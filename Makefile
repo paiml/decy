@@ -383,3 +383,28 @@ version: ## Show version information
 	@echo "Sprint: 1 (Foundation & C Parser)"
 	@. ~/.cargo/env && rustc --version 2>/dev/null || echo "Rust: not installed"
 	@. ~/.cargo/env && cargo --version 2>/dev/null || echo "Cargo: not installed"
+
+##@ PMAT Enforcement
+
+sync-roadmap: ## Sync roadmap.yaml with GitHub Issues
+	@echo "📋 Synchronizing roadmap with GitHub Issues..."
+	@./scripts/sync-roadmap.sh
+
+check-roadmap: ## Verify roadmap state integrity
+	@echo "🔍 Checking roadmap state..."
+	@echo "Current Sprint: Sprint 1"
+	@echo "Active Tickets:"
+	@grep -A 3 "status: in_progress" roadmap.yaml || echo "  No active tickets"
+	@echo ""
+	@echo "Pending Tickets:"
+	@grep -A 3 "status: not_started" roadmap.yaml | head -20 || echo "  No pending tickets"
+
+roadmap-status: ## Show roadmap status
+	@echo "📊 Roadmap Status:"
+	@echo ""
+	@echo "Sprint 1 - Foundation & C Parser"
+	@echo "  DECY-001: in_progress (RED phase)"
+	@echo "  DECY-002: not_started"
+	@echo "  DECY-003: not_started"
+	@echo ""
+	@echo "Run 'make sync-roadmap' to create GitHub issues"
