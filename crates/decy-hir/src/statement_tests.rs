@@ -611,4 +611,103 @@ mod tests {
             panic!("Expected FunctionCall");
         }
     }
+
+    // DECY-009 Phase 2: Assignment statement tests (RED phase)
+
+    #[test]
+    fn test_assignment_statement_simple() {
+        // RED PHASE: This test will FAIL
+        let assign_stmt = HirStatement::Assignment {
+            target: "x".to_string(),
+            value: HirExpression::IntLiteral(42),
+        };
+
+        if let HirStatement::Assignment { target, value } = &assign_stmt {
+            assert_eq!(target, "x");
+            assert!(matches!(value, HirExpression::IntLiteral(42)));
+        } else {
+            panic!("Expected Assignment");
+        }
+    }
+
+    #[test]
+    fn test_assignment_with_variable() {
+        // RED PHASE: This test will FAIL
+        let assign_stmt = HirStatement::Assignment {
+            target: "result".to_string(),
+            value: HirExpression::Variable("temp".to_string()),
+        };
+
+        if let HirStatement::Assignment { target, value } = &assign_stmt {
+            assert_eq!(target, "result");
+            assert!(matches!(value, HirExpression::Variable(_)));
+        } else {
+            panic!("Expected Assignment");
+        }
+    }
+
+    #[test]
+    fn test_assignment_with_function_call() {
+        // RED PHASE: This test will FAIL
+        // ptr = malloc(100)
+        let assign_stmt = HirStatement::Assignment {
+            target: "ptr".to_string(),
+            value: HirExpression::FunctionCall {
+                function: "malloc".to_string(),
+                arguments: vec![HirExpression::IntLiteral(100)],
+            },
+        };
+
+        if let HirStatement::Assignment { target, value } = &assign_stmt {
+            assert_eq!(target, "ptr");
+            assert!(matches!(value, HirExpression::FunctionCall { .. }));
+        } else {
+            panic!("Expected Assignment");
+        }
+    }
+
+    #[test]
+    fn test_assignment_with_binary_expr() {
+        // RED PHASE: This test will FAIL
+        // x = a + b
+        let assign_stmt = HirStatement::Assignment {
+            target: "x".to_string(),
+            value: HirExpression::BinaryOp {
+                op: BinaryOperator::Add,
+                left: Box::new(HirExpression::Variable("a".to_string())),
+                right: Box::new(HirExpression::Variable("b".to_string())),
+            },
+        };
+
+        if let HirStatement::Assignment { target, value } = &assign_stmt {
+            assert_eq!(target, "x");
+            assert!(matches!(value, HirExpression::BinaryOp { .. }));
+        } else {
+            panic!("Expected Assignment");
+        }
+    }
+
+    #[test]
+    fn test_assignment_clone() {
+        // RED PHASE: This test will FAIL
+        let assign_stmt = HirStatement::Assignment {
+            target: "x".to_string(),
+            value: HirExpression::IntLiteral(5),
+        };
+
+        let cloned = assign_stmt.clone();
+        assert_eq!(assign_stmt, cloned);
+    }
+
+    #[test]
+    fn test_assignment_debug() {
+        // RED PHASE: This test will FAIL
+        let assign_stmt = HirStatement::Assignment {
+            target: "x".to_string(),
+            value: HirExpression::IntLiteral(5),
+        };
+
+        let debug_str = format!("{:?}", assign_stmt);
+        assert!(debug_str.contains("Assignment"));
+    }
 }

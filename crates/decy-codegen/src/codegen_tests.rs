@@ -910,4 +910,128 @@ mod tests {
 
         assert_eq!(code, "let mut ptr: *mut i32 = malloc(40);");
     }
+
+    // DECY-009 Phase 2: Assignment statement tests (RED phase)
+
+    #[test]
+    fn test_generate_assignment_simple() {
+        // RED PHASE: This test will FAIL
+        use decy_hir::{HirExpression, HirStatement};
+
+        let assign_stmt = HirStatement::Assignment {
+            target: "x".to_string(),
+            value: HirExpression::IntLiteral(42),
+        };
+
+        let codegen = CodeGenerator::new();
+        let code = codegen.generate_statement(&assign_stmt);
+
+        assert_eq!(code, "x = 42;");
+    }
+
+    #[test]
+    fn test_generate_assignment_with_variable() {
+        // RED PHASE: This test will FAIL
+        use decy_hir::{HirExpression, HirStatement};
+
+        let assign_stmt = HirStatement::Assignment {
+            target: "result".to_string(),
+            value: HirExpression::Variable("temp".to_string()),
+        };
+
+        let codegen = CodeGenerator::new();
+        let code = codegen.generate_statement(&assign_stmt);
+
+        assert_eq!(code, "result = temp;");
+    }
+
+    #[test]
+    fn test_generate_assignment_with_malloc() {
+        // RED PHASE: This test will FAIL
+        // ptr = malloc(100)
+        use decy_hir::{HirExpression, HirStatement};
+
+        let assign_stmt = HirStatement::Assignment {
+            target: "ptr".to_string(),
+            value: HirExpression::FunctionCall {
+                function: "malloc".to_string(),
+                arguments: vec![HirExpression::IntLiteral(100)],
+            },
+        };
+
+        let codegen = CodeGenerator::new();
+        let code = codegen.generate_statement(&assign_stmt);
+
+        assert_eq!(code, "ptr = malloc(100);");
+    }
+
+    #[test]
+    fn test_generate_assignment_with_expression() {
+        // RED PHASE: This test will FAIL
+        // x = a + b
+        use decy_hir::{BinaryOperator, HirExpression, HirStatement};
+
+        let assign_stmt = HirStatement::Assignment {
+            target: "x".to_string(),
+            value: HirExpression::BinaryOp {
+                op: BinaryOperator::Add,
+                left: Box::new(HirExpression::Variable("a".to_string())),
+                right: Box::new(HirExpression::Variable("b".to_string())),
+            },
+        };
+
+        let codegen = CodeGenerator::new();
+        let code = codegen.generate_statement(&assign_stmt);
+
+        assert_eq!(code, "x = a + b;");
+    }
+
+    #[test]
+    fn test_generate_assignment_with_dereference() {
+        // RED PHASE: This test will FAIL
+        // *ptr = 5
+        use decy_hir::{HirExpression, HirStatement};
+
+        let assign_stmt = HirStatement::Assignment {
+            target: "ptr".to_string(),
+            value: HirExpression::Dereference(Box::new(HirExpression::Variable(
+                "other_ptr".to_string(),
+            ))),
+        };
+
+        let codegen = CodeGenerator::new();
+        let code = codegen.generate_statement(&assign_stmt);
+
+        assert_eq!(code, "ptr = *other_ptr;");
+    }
+
+    #[test]
+    fn test_generate_assignment_in_function() {
+        // RED PHASE: This test will FAIL
+        use decy_hir::{HirExpression, HirStatement};
+
+        let func = HirFunction::new_with_body(
+            "test".to_string(),
+            HirType::Void,
+            vec![],
+            vec![
+                HirStatement::VariableDeclaration {
+                    name: "x".to_string(),
+                    var_type: HirType::Int,
+                    initializer: Some(HirExpression::IntLiteral(0)),
+                },
+                HirStatement::Assignment {
+                    target: "x".to_string(),
+                    value: HirExpression::IntLiteral(42),
+                },
+            ],
+        );
+
+        let codegen = CodeGenerator::new();
+        let code = codegen.generate_function(&func);
+
+        assert!(code.contains("fn test()"));
+        assert!(code.contains("let mut x: i32 = 0;"));
+        assert!(code.contains("x = 42;"));
+    }
 }
