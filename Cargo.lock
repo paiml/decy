@@ -738,6 +738,7 @@ name = "decy-hir"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "decy-parser",
  "proptest",
  "serde",
  "serde_json",
