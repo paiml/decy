@@ -182,6 +182,399 @@
                 <div id="content" class="content">
                     <main>
                         <h1 id="ownership-patterns"><a class="header" href="#ownership-patterns">Ownership Patterns</a></h1>
+<p>This chapter demonstrates the three main ownership patterns DECY recognizes and how they map from C to Rust.</p>
+<h2 id="pattern-1-owning-box"><a class="header" href="#pattern-1-owning-box">Pattern 1: Owning (Box<T>)</a></h2>
+<p>When a variable <strong>owns</strong> its data, it's responsible for cleanup. In C, this means calling <code>free()</code>. In Rust, we use <code>Box&lt;T&gt;</code> for automatic cleanup.</p>
+<h3 id="pattern-malloc--return"><a class="header" href="#pattern-malloc--return">Pattern: malloc + return</a></h3>
+<pre><code class="language-c">int* create_number(int value) {
+    int* p = malloc(sizeof(int));
+    *p = value;
+    return p;
+}
+</code></pre>
+<p>Transpiled to Rust:</p>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>fn create_number(value: i32) -&gt; Box&lt;i32&gt; {
+    let mut p = Box::new(0i32);
+    *p = value;
+    p
+}
+<span class="boring">}</span></code></pre></pre>
+<h3 id="verification"><a class="header" href="#verification">Verification</a></h3>
+<pre><code class="language-rust ignore">#[test]
+fn test_owning_pattern_malloc_return() {
+    let c_code = r#"
+        int* create_number(int value) {
+            int* p = malloc(sizeof(int));
+            *p = value;
+            return p;
+        }
+    "#;
+
+    let rust_code = transpile(c_code).unwrap();
+
+    // Verify Box usage
+    assert!(rust_code.contains("Box::new"));
+    assert!(rust_code.contains("Box&lt;i32&gt;"));
+
+    // Verify no manual free
+    assert!(!rust_code.contains("free"));
+
+    // Verify compiles
+    assert!(compile_rust(&amp;rust_code).is_ok());
+}</code></pre>
+<h2 id="pattern-2-borrowed-t-or-mut-t"><a class="header" href="#pattern-2-borrowed-t-or-mut-t">Pattern 2: Borrowed (&amp;T or &amp;mut T)</a></h2>
+<p>When a variable <strong>borrows</strong> data, it doesn't own it and can't free it. In C, these are typically function parameters. In Rust, we use references.</p>
+<h3 id="pattern-function-parameter-immutable"><a class="header" href="#pattern-function-parameter-immutable">Pattern: Function parameter (immutable)</a></h3>
+<pre><code class="language-c">int get_value(const int* p) {
+    return *p;
+}
+</code></pre>
+<p>Transpiled to Rust:</p>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>fn get_value(p: &amp;i32) -&gt; i32 {
+    *p
+}
+<span class="boring">}</span></code></pre></pre>
+<h3 id="verification-1"><a class="header" href="#verification-1">Verification</a></h3>
+<pre><code class="language-rust ignore">#[test]
+fn test_borrowed_immutable_pattern() {
+    let c_code = "int get_value(const int* p) { return *p; }";
+
+    let rust_code = transpile(c_code).unwrap();
+
+    // Verify immutable reference
+    assert!(rust_code.contains("&amp;i32"));
+    assert!(!rust_code.contains("&amp;mut"));
+
+    // Verify no Box
+    assert!(!rust_code.contains("Box"));
+
+    // Verify compiles
+    assert!(compile_rust(&amp;rust_code).is_ok());
+}</code></pre>
+<h3 id="pattern-function-parameter-mutable"><a class="header" href="#pattern-function-parameter-mutable">Pattern: Function parameter (mutable)</a></h3>
+<pre><code class="language-c">void increment(int* p) {
+    *p = *p + 1;
+}
+</code></pre>
+<p>Transpiled to Rust:</p>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>fn increment(p: &amp;mut i32) {
+    *p = *p + 1;
+}
+<span class="boring">}</span></code></pre></pre>
+<h3 id="verification-2"><a class="header" href="#verification-2">Verification</a></h3>
+<pre><code class="language-rust ignore">#[test]
+fn test_borrowed_mutable_pattern() {
+    let c_code = "void increment(int* p) { *p = *p + 1; }";
+
+    let rust_code = transpile(c_code).unwrap();
+
+    // Verify mutable reference
+    assert!(rust_code.contains("&amp;mut i32"));
+
+    // Verify no Box
+    assert!(!rust_code.contains("Box"));
+
+    // Verify compiles
+    assert!(compile_rust(&amp;rust_code).is_ok());
+}</code></pre>
+<h2 id="pattern-3-mixed-owning--borrowing"><a class="header" href="#pattern-3-mixed-owning--borrowing">Pattern 3: Mixed (Owning + Borrowing)</a></h2>
+<p>Real functions often mix ownership patterns - some parameters borrowed, others owned.</p>
+<h3 id="c-code"><a class="header" href="#c-code">C Code</a></h3>
+<pre><code class="language-c">int* double_value(const int* input) {
+    int* output = malloc(sizeof(int));
+    *output = *input * 2;
+    return output;
+}
+</code></pre>
+<h3 id="transpiled-rust"><a class="header" href="#transpiled-rust">Transpiled Rust</a></h3>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>fn double_value(input: &amp;i32) -&gt; Box&lt;i32&gt; {
+    let mut output = Box::new(0i32);
+    *output = *input * 2;
+    output
+}
+<span class="boring">}</span></code></pre></pre>
+<h3 id="verification-3"><a class="header" href="#verification-3">Verification</a></h3>
+<pre><code class="language-rust ignore">#[test]
+fn test_mixed_ownership_pattern() {
+    let c_code = r#"
+        int* double_value(const int* input) {
+            int* output = malloc(sizeof(int));
+            *output = *input * 2;
+            return output;
+        }
+    "#;
+
+    let rust_code = transpile(c_code).unwrap();
+
+    // Verify input is borrowed
+    assert!(rust_code.contains("input: &amp;i32"));
+
+    // Verify output is owned
+    assert!(rust_code.contains("Box::new"));
+    assert!(rust_code.contains("-&gt; Box&lt;i32&gt;"));
+
+    // Verify compiles
+    assert!(compile_rust(&amp;rust_code).is_ok());
+}</code></pre>
+<h2 id="pattern-4-array-ownership"><a class="header" href="#pattern-4-array-ownership">Pattern 4: Array Ownership</a></h2>
+<p>Arrays have special ownership rules in C and Rust.</p>
+<h3 id="c-code-array-parameter"><a class="header" href="#c-code-array-parameter">C Code: Array parameter</a></h3>
+<pre><code class="language-c">int sum(int* arr, int len) {
+    int total = 0;
+    for (int i = 0; i &lt; len; i++) {
+        total += arr[i];
+    }
+    return total;
+}
+</code></pre>
+<h3 id="transpiled-rust-slice"><a class="header" href="#transpiled-rust-slice">Transpiled Rust (slice)</a></h3>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>fn sum(arr: &amp;[i32]) -&gt; i32 {
+    let mut total = 0;
+    for &amp;val in arr {
+        total += val;
+    }
+    total
+}
+<span class="boring">}</span></code></pre></pre>
+<h3 id="verification-4"><a class="header" href="#verification-4">Verification</a></h3>
+<pre><code class="language-rust ignore">#[test]
+fn test_array_borrowed_as_slice() {
+    let c_code = r#"
+        int sum(int* arr, int len) {
+            int total = 0;
+            for (int i = 0; i &lt; len; i++) {
+                total += arr[i];
+            }
+            return total;
+        }
+    "#;
+
+    let rust_code = transpile(c_code).unwrap();
+
+    // Verify slice usage
+    assert!(rust_code.contains("&amp;[i32]"));
+
+    // Verify idiomatic iteration
+    assert!(rust_code.contains("for &amp;val in"));
+
+    // Verify compiles
+    assert!(compile_rust(&amp;rust_code).is_ok());
+}</code></pre>
+<h2 id="pattern-5-optional-ownership-option"><a class="header" href="#pattern-5-optional-ownership-option">Pattern 5: Optional Ownership (Option<T>)</a></h2>
+<p>NULL pointers in C become Option in Rust.</p>
+<h3 id="c-code-nullable-return"><a class="header" href="#c-code-nullable-return">C Code: Nullable return</a></h3>
+<pre><code class="language-c">int* find_first_positive(int* arr, int len) {
+    for (int i = 0; i &lt; len; i++) {
+        if (arr[i] &gt; 0) {
+            return &amp;arr[i];
+        }
+    }
+    return NULL;
+}
+</code></pre>
+<h3 id="transpiled-rust-1"><a class="header" href="#transpiled-rust-1">Transpiled Rust</a></h3>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>fn find_first_positive(arr: &amp;[i32]) -&gt; Option&lt;&amp;i32&gt; {
+    for val in arr {
+        if *val &gt; 0 {
+            return Some(val);
+        }
+    }
+    None
+}
+<span class="boring">}</span></code></pre></pre>
+<h3 id="verification-5"><a class="header" href="#verification-5">Verification</a></h3>
+<pre><code class="language-rust ignore">#[test]
+fn test_nullable_becomes_option() {
+    let c_code = r#"
+        int* find_first_positive(int* arr, int len) {
+            for (int i = 0; i &lt; len; i++) {
+                if (arr[i] &gt; 0) {
+                    return &amp;arr[i];
+                }
+            }
+            return NULL;
+        }
+    "#;
+
+    let rust_code = transpile(c_code).unwrap();
+
+    // Verify Option usage
+    assert!(rust_code.contains("Option&lt;&amp;i32&gt;"));
+    assert!(rust_code.contains("Some("));
+    assert!(rust_code.contains("None"));
+
+    // Verify no NULL
+    assert!(!rust_code.contains("NULL"));
+
+    // Verify compiles
+    assert!(compile_rust(&amp;rust_code).is_ok());
+}</code></pre>
+<h2 id="property-tests-for-ownership-patterns"><a class="header" href="#property-tests-for-ownership-patterns">Property Tests for Ownership Patterns</a></h2>
+<h3 id="property-malloc-always-returns-owned-type"><a class="header" href="#property-malloc-always-returns-owned-type">Property: malloc Always Returns Owned Type</a></h3>
+<pre><code class="language-rust ignore">use proptest::prelude::*;
+
+proptest! {
+    #[test]
+    fn prop_malloc_return_is_box(func_name in "[a-z]+") {
+        let c_code = format!(
+            "int* {}() {{ return malloc(sizeof(int)); }}",
+            func_name
+        );
+
+        let rust_code = transpile(&amp;c_code).unwrap();
+
+        // Property: Functions returning malloc result return Box
+        prop_assert!(rust_code.contains("-&gt; Box&lt;i32&gt;"));
+    }
+}</code></pre>
+<h3 id="property-parameters-are-borrowed"><a class="header" href="#property-parameters-are-borrowed">Property: Parameters Are Borrowed</a></h3>
+<pre><code class="language-rust ignore">proptest! {
+    #[test]
+    fn prop_pointer_parameters_borrowed(
+        func_name in "[a-z]+",
+        param_name in "[a-z]+",
+    ) {
+        let c_code = format!(
+            "void {}(int* {}) {{ *{} = 0; }}",
+            func_name, param_name, param_name
+        );
+
+        let rust_code = transpile(&amp;c_code).unwrap();
+
+        // Property: Pointer parameters become references
+        prop_assert!(
+            rust_code.contains("&amp;i32") || rust_code.contains("&amp;mut i32"),
+            "Expected reference type, got: {}", rust_code
+        );
+    }
+}</code></pre>
+<h3 id="property-const-parameters-are-immutable"><a class="header" href="#property-const-parameters-are-immutable">Property: Const Parameters Are Immutable</a></h3>
+<pre><code class="language-rust ignore">proptest! {
+    #[test]
+    fn prop_const_params_immutable(param_name in "[a-z]+") {
+        let c_code = format!(
+            "int func(const int* {}) {{ return *{}; }}",
+            param_name, param_name
+        );
+
+        let rust_code = transpile(&amp;c_code).unwrap();
+
+        // Property: const parameters → immutable references
+        prop_assert!(rust_code.contains("&amp;i32"));
+        prop_assert!(!rust_code.contains("&amp;mut"));
+    }
+}</code></pre>
+<h2 id="complex-example-multiple-patterns"><a class="header" href="#complex-example-multiple-patterns">Complex Example: Multiple Patterns</a></h2>
+<h3 id="c-code-1"><a class="header" href="#c-code-1">C Code</a></h3>
+<pre><code class="language-c">int* process_array(const int* input, int len, int* output_len) {
+    // Count positive numbers
+    int count = 0;
+    for (int i = 0; i &lt; len; i++) {
+        if (input[i] &gt; 0) count++;
+    }
+
+    // Allocate output array
+    int* output = malloc(count * sizeof(int));
+
+    // Copy positive numbers
+    int j = 0;
+    for (int i = 0; i &lt; len; i++) {
+        if (input[i] &gt; 0) {
+            output[j++] = input[i];
+        }
+    }
+
+    *output_len = count;
+    return output;
+}
+</code></pre>
+<h3 id="transpiled-rust-2"><a class="header" href="#transpiled-rust-2">Transpiled Rust</a></h3>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>fn process_array(input: &amp;[i32], output_len: &amp;mut i32) -&gt; Box&lt;[i32]&gt; {
+    // Count positive numbers
+    let count = input.iter().filter(|&amp;&amp;x| x &gt; 0).count();
+
+    // Collect positive numbers
+    let output = input.iter()
+        .filter(|&amp;&amp;x| x &gt; 0)
+        .copied()
+        .collect::&lt;Vec&lt;_&gt;&gt;()
+        .into_boxed_slice();
+
+    *output_len = count as i32;
+    output
+}
+<span class="boring">}</span></code></pre></pre>
+<h3 id="verification-6"><a class="header" href="#verification-6">Verification</a></h3>
+<pre><code class="language-rust ignore">#[test]
+fn test_complex_ownership_patterns() {
+    let c_code = r#"
+        int* process_array(const int* input, int len, int* output_len) {
+            int count = 0;
+            for (int i = 0; i &lt; len; i++) {
+                if (input[i] &gt; 0) count++;
+            }
+            int* output = malloc(count * sizeof(int));
+            int j = 0;
+            for (int i = 0; i &lt; len; i++) {
+                if (input[i] &gt; 0) {
+                    output[j++] = input[i];
+                }
+            }
+            *output_len = count;
+            return output;
+        }
+    "#;
+
+    let rust_code = transpile(c_code).unwrap();
+
+    // Verify input is borrowed (immutable)
+    assert!(rust_code.contains("input: &amp;[i32]"));
+
+    // Verify output_len is borrowed (mutable)
+    assert!(rust_code.contains("output_len: &amp;mut i32"));
+
+    // Verify return is owned
+    assert!(rust_code.contains("-&gt; Box&lt;[i32]&gt;"));
+
+    // Verify compiles
+    assert!(compile_rust(&amp;rust_code).is_ok());
+
+    // Verify passes clippy
+    assert!(clippy_check(&amp;rust_code).is_ok());
+}</code></pre>
+<h2 id="summary"><a class="header" href="#summary">Summary</a></h2>
+<p>DECY recognizes and correctly transpiles these ownership patterns:</p>
+<p>✅ <strong>Owning (Box<T>)</strong>: malloc → Box, returned pointers
+✅ <strong>Borrowed (&amp;T)</strong>: const parameters, non-mutated pointers
+✅ <strong>Borrowed (&amp;mut T)</strong>: mutable parameters, modified pointers
+✅ <strong>Array slices (&amp;[T])</strong>: Array parameters with length
+✅ <strong>Optional (Option&lt;&amp;T&gt;)</strong>: Nullable pointers, NULL returns</p>
+<p>All patterns:</p>
+<ul>
+<li>Compile without errors</li>
+<li>Pass clippy with zero warnings</li>
+<li>Are memory safe (no leaks, no dangling pointers)</li>
+<li>Follow Rust idioms and best practices</li>
+</ul>
+<h2 id="next-steps"><a class="header" href="#next-steps">Next Steps</a></h2>
+<ul>
+<li><a href="./lifetimes.html">Lifetime Annotations</a> - How lifetimes are inferred</li>
+<li><a href="./box-transform.html">Box Transformations</a> - Deep dive into malloc → Box</li>
+</ul>
 
                     </main>
 
