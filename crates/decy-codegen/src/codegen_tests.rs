@@ -738,4 +738,83 @@ mod tests {
         assert!(code.contains("while i < 10"));
         assert!(code.contains("continue;"));
     }
+
+    // DECY-008: Pointer operation tests (RED phase)
+
+    #[test]
+    fn test_generate_dereference() {
+        // RED PHASE: This test will FAIL
+        use decy_hir::HirExpression;
+
+        let expr = HirExpression::Dereference(Box::new(HirExpression::Variable("ptr".to_string())));
+
+        let codegen = CodeGenerator::new();
+        let code = codegen.generate_expression(&expr);
+
+        assert_eq!(code, "*ptr");
+    }
+
+    #[test]
+    fn test_generate_address_of() {
+        // RED PHASE: This test will FAIL
+        use decy_hir::HirExpression;
+
+        let expr = HirExpression::AddressOf(Box::new(HirExpression::Variable("x".to_string())));
+
+        let codegen = CodeGenerator::new();
+        let code = codegen.generate_expression(&expr);
+
+        assert_eq!(code, "&x");
+    }
+
+    #[test]
+    fn test_generate_nested_dereference() {
+        // RED PHASE: This test will FAIL
+        use decy_hir::HirExpression;
+
+        // **ptr_ptr
+        let expr = HirExpression::Dereference(Box::new(HirExpression::Dereference(
+            Box::new(HirExpression::Variable("ptr_ptr".to_string())),
+        )));
+
+        let codegen = CodeGenerator::new();
+        let code = codegen.generate_expression(&expr);
+
+        assert_eq!(code, "**ptr_ptr");
+    }
+
+    #[test]
+    fn test_generate_address_of_dereference() {
+        // RED PHASE: This test will FAIL
+        use decy_hir::HirExpression;
+
+        // &(*ptr)
+        let expr = HirExpression::AddressOf(Box::new(HirExpression::Dereference(
+            Box::new(HirExpression::Variable("ptr".to_string())),
+        )));
+
+        let codegen = CodeGenerator::new();
+        let code = codegen.generate_expression(&expr);
+
+        assert_eq!(code, "&(*ptr)");
+    }
+
+    #[test]
+    fn test_generate_pointer_in_variable_declaration() {
+        // RED PHASE: This test will FAIL
+        use decy_hir::{HirExpression, HirStatement};
+
+        let var_decl = HirStatement::VariableDeclaration {
+            name: "val".to_string(),
+            var_type: HirType::Int,
+            initializer: Some(HirExpression::Dereference(Box::new(
+                HirExpression::Variable("ptr".to_string()),
+            ))),
+        };
+
+        let codegen = CodeGenerator::new();
+        let code = codegen.generate_statement(&var_decl);
+
+        assert_eq!(code, "let mut val: i32 = *ptr;");
+    }
 }

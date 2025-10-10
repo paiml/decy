@@ -451,4 +451,61 @@ mod tests {
         let cloned = while_stmt.clone();
         assert_eq!(while_stmt, cloned);
     }
+
+    // DECY-008: Pointer operation tests (RED phase)
+
+    #[test]
+    fn test_dereference_expression() {
+        // RED PHASE: This test will FAIL
+        let expr = HirExpression::Dereference(Box::new(HirExpression::Variable("ptr".to_string())));
+
+        if let HirExpression::Dereference(inner) = &expr {
+            assert!(matches!(**inner, HirExpression::Variable(_)));
+        } else {
+            panic!("Expected Dereference");
+        }
+    }
+
+    #[test]
+    fn test_address_of_expression() {
+        // RED PHASE: This test will FAIL
+        let expr = HirExpression::AddressOf(Box::new(HirExpression::Variable("x".to_string())));
+
+        if let HirExpression::AddressOf(inner) = &expr {
+            assert!(matches!(**inner, HirExpression::Variable(_)));
+        } else {
+            panic!("Expected AddressOf");
+        }
+    }
+
+    #[test]
+    fn test_dereference_clone() {
+        // RED PHASE: This test will FAIL
+        let expr = HirExpression::Dereference(Box::new(HirExpression::Variable("ptr".to_string())));
+        let cloned = expr.clone();
+        assert_eq!(expr, cloned);
+    }
+
+    #[test]
+    fn test_address_of_clone() {
+        // RED PHASE: This test will FAIL
+        let expr = HirExpression::AddressOf(Box::new(HirExpression::Variable("x".to_string())));
+        let cloned = expr.clone();
+        assert_eq!(expr, cloned);
+    }
+
+    #[test]
+    fn test_nested_dereference() {
+        // RED PHASE: This test will FAIL
+        // **ptr_ptr (dereference twice)
+        let expr = HirExpression::Dereference(Box::new(HirExpression::Dereference(
+            Box::new(HirExpression::Variable("ptr_ptr".to_string())),
+        )));
+
+        if let HirExpression::Dereference(inner) = &expr {
+            assert!(matches!(**inner, HirExpression::Dereference(_)));
+        } else {
+            panic!("Expected nested Dereference");
+        }
+    }
 }
