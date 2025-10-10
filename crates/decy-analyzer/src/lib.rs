@@ -5,3 +5,5 @@
 #![warn(missing_docs)]
 #![warn(clippy::all)]
 #![deny(unsafe_code)]
+
+pub mod patterns;
