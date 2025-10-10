@@ -54,6 +54,7 @@ impl BoxTransformer {
     /// Transform a statement containing malloc into one using Box::new().
     ///
     /// Takes a VariableDeclaration or Assignment with malloc and transforms it.
+    /// Converts both the malloc expression AND the variable type from Pointer to Box.
     pub fn transform_statement(
         &self,
         stmt: &HirStatement,
@@ -72,9 +73,12 @@ impl BoxTransformer {
                             let box_expr = self
                                 .transform_malloc_to_box(initializer.as_ref().unwrap(), pointee);
 
+                            // Convert Pointer type to Box type
+                            let box_type = HirType::Box(pointee.clone());
+
                             return HirStatement::VariableDeclaration {
                                 name: name.clone(),
-                                var_type: var_type.clone(),
+                                var_type: box_type,
                                 initializer: Some(box_expr),
                             };
                         }
@@ -227,6 +231,72 @@ mod tests {
 
         let char_default = transformer.default_value_for_type(&HirType::Char);
         assert_eq!(char_default, HirExpression::IntLiteral(0));
+    }
+
+    #[test]
+    fn test_transform_generates_box_type() {
+        let transformer = BoxTransformer::new();
+        let candidate = BoxCandidate {
+            variable: "ptr".to_string(),
+            malloc_index: 0,
+            free_index: None,
+        };
+
+        let stmt = HirStatement::VariableDeclaration {
+            name: "ptr".to_string(),
+            var_type: HirType::Pointer(Box::new(HirType::Int)),
+            initializer: Some(HirExpression::FunctionCall {
+                function: "malloc".to_string(),
+                arguments: vec![HirExpression::IntLiteral(100)],
+            }),
+        };
+
+        let transformed = transformer.transform_statement(&stmt, &candidate);
+
+        match transformed {
+            HirStatement::VariableDeclaration {
+                name,
+                var_type: HirType::Box(inner),
+                initializer: Some(HirExpression::FunctionCall { function, .. }),
+                ..
+            } => {
+                assert_eq!(name, "ptr");
+                assert_eq!(function, "Box::new");
+                assert_eq!(*inner, HirType::Int);
+            }
+            _ => panic!("Expected VariableDeclaration with Box<T> type"),
+        }
+    }
+
+    #[test]
+    fn test_box_type_with_different_pointee() {
+        let transformer = BoxTransformer::new();
+        let candidate = BoxCandidate {
+            variable: "data".to_string(),
+            malloc_index: 0,
+            free_index: None,
+        };
+
+        let stmt = HirStatement::VariableDeclaration {
+            name: "data".to_string(),
+            var_type: HirType::Pointer(Box::new(HirType::Char)),
+            initializer: Some(HirExpression::FunctionCall {
+                function: "malloc".to_string(),
+                arguments: vec![HirExpression::IntLiteral(50)],
+            }),
+        };
+
+        let transformed = transformer.transform_statement(&stmt, &candidate);
+
+        match transformed {
+            HirStatement::VariableDeclaration {
+                var_type: HirType::Box(inner),
+                ..
+            } => {
+                assert_eq!(*inner, HirType::Char);
+            }
+            _ => panic!("Expected Box<char> type"),
+        }
     }
 }
 

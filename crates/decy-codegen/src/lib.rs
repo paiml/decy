@@ -70,6 +70,7 @@ impl CodeGenerator {
     ///
     /// assert_eq!(CodeGenerator::map_type(&HirType::Int), "i32");
     /// assert_eq!(CodeGenerator::map_type(&HirType::Float), "f32");
+    /// assert_eq!(CodeGenerator::map_type(&HirType::Box(Box::new(HirType::Int))), "Box<i32>");
     /// ```
     pub fn map_type(hir_type: &HirType) -> String {
         match hir_type {
@@ -80,6 +81,9 @@ impl CodeGenerator {
             HirType::Char => "u8".to_string(),
             HirType::Pointer(inner) => {
                 format!("*mut {}", Self::map_type(inner))
+            }
+            HirType::Box(inner) => {
+                format!("Box<{}>", Self::map_type(inner))
             }
         }
     }
@@ -162,6 +166,11 @@ impl CodeGenerator {
             HirType::Double => "0.0".to_string(),
             HirType::Char => "0".to_string(),
             HirType::Pointer(_) => "std::ptr::null_mut()".to_string(),
+            HirType::Box(inner) => {
+                // Box types should not use default values, they should be initialized with Box::new
+                // This is just a fallback
+                format!("Box::new({})", Self::default_value_for_type(inner))
+            }
         }
     }
 
@@ -300,6 +309,12 @@ impl CodeGenerator {
             HirType::Double => "    return 0.0;".to_string(),
             HirType::Char => "    return 0;".to_string(),
             HirType::Pointer(_) => "    return std::ptr::null_mut();".to_string(),
+            HirType::Box(inner) => {
+                format!(
+                    "    return Box::new({});",
+                    Self::default_value_for_type(inner)
+                )
+            }
         }
     }
 

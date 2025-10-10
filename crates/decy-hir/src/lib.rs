@@ -37,6 +37,8 @@ pub enum HirType {
     Char,
     /// Pointer to another type
     Pointer(Box<HirType>),
+    /// Boxed type (Rust `Box<T>`)
+    Box(Box<HirType>),
 }
 
 impl HirType {

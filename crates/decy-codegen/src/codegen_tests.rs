@@ -1035,3 +1035,43 @@ mod tests {
         assert!(code.contains("x = 42;"));
     }
 }
+
+#[test]
+fn test_type_mapping_box_int() {
+    let box_type = HirType::Box(Box::new(HirType::Int));
+    assert_eq!(CodeGenerator::map_type(&box_type), "Box<i32>");
+}
+
+#[test]
+fn test_type_mapping_box_char() {
+    let box_type = HirType::Box(Box::new(HirType::Char));
+    assert_eq!(CodeGenerator::map_type(&box_type), "Box<u8>");
+}
+
+#[test]
+fn test_generate_box_variable_declaration() {
+    use decy_analyzer::patterns::PatternDetector;
+
+    let func = HirFunction::new_with_body(
+        "test".to_string(),
+        HirType::Void,
+        vec![],
+        vec![HirStatement::VariableDeclaration {
+            name: "ptr".to_string(),
+            var_type: HirType::Pointer(Box::new(HirType::Int)),
+            initializer: Some(HirExpression::FunctionCall {
+                function: "malloc".to_string(),
+                arguments: vec![HirExpression::IntLiteral(100)],
+            }),
+        }],
+    );
+
+    let codegen = CodeGenerator::new();
+    let detector = PatternDetector::new();
+    let candidates = detector.find_box_candidates(&func);
+    let code = codegen.generate_function_with_box_transform(&func, &candidates);
+
+    assert!(code.contains("Box<i32>"));
+    assert!(code.contains("Box::new"));
+    assert!(!code.contains("*mut"));
+}
