@@ -817,4 +817,97 @@ mod tests {
 
         assert_eq!(code, "let mut val: i32 = *ptr;");
     }
+
+    // DECY-009: Function call expression tests (RED phase)
+
+    #[test]
+    fn test_generate_function_call_no_args() {
+        // RED PHASE: This test will FAIL
+        use decy_hir::HirExpression;
+
+        let expr = HirExpression::FunctionCall {
+            function: "foo".to_string(),
+            arguments: vec![],
+        };
+
+        let codegen = CodeGenerator::new();
+        let code = codegen.generate_expression(&expr);
+
+        assert_eq!(code, "foo()");
+    }
+
+    #[test]
+    fn test_generate_function_call_one_arg() {
+        // RED PHASE: This test will FAIL
+        use decy_hir::HirExpression;
+
+        let expr = HirExpression::FunctionCall {
+            function: "malloc".to_string(),
+            arguments: vec![HirExpression::IntLiteral(10)],
+        };
+
+        let codegen = CodeGenerator::new();
+        let code = codegen.generate_expression(&expr);
+
+        assert_eq!(code, "malloc(10)");
+    }
+
+    #[test]
+    fn test_generate_function_call_multiple_args() {
+        // RED PHASE: This test will FAIL
+        use decy_hir::HirExpression;
+
+        let expr = HirExpression::FunctionCall {
+            function: "add".to_string(),
+            arguments: vec![
+                HirExpression::Variable("x".to_string()),
+                HirExpression::Variable("y".to_string()),
+            ],
+        };
+
+        let codegen = CodeGenerator::new();
+        let code = codegen.generate_expression(&expr);
+
+        assert_eq!(code, "add(x, y)");
+    }
+
+    #[test]
+    fn test_generate_nested_function_call() {
+        // RED PHASE: This test will FAIL
+        // outer(inner())
+        use decy_hir::HirExpression;
+
+        let expr = HirExpression::FunctionCall {
+            function: "outer".to_string(),
+            arguments: vec![HirExpression::FunctionCall {
+                function: "inner".to_string(),
+                arguments: vec![],
+            }],
+        };
+
+        let codegen = CodeGenerator::new();
+        let code = codegen.generate_expression(&expr);
+
+        assert_eq!(code, "outer(inner())");
+    }
+
+    #[test]
+    fn test_generate_function_call_in_variable_declaration() {
+        // RED PHASE: This test will FAIL
+        use decy_hir::{HirExpression, HirStatement};
+
+        let var_decl = HirStatement::VariableDeclaration {
+            name: "ptr".to_string(),
+            var_type: HirType::Pointer(Box::new(HirType::Int)),
+            initializer: Some(HirExpression::FunctionCall {
+                function: "malloc".to_string(),
+                arguments: vec![HirExpression::IntLiteral(40)],
+            }),
+        };
+
+        let codegen = CodeGenerator::new();
+        let code = codegen.generate_statement(&var_decl);
+
+        assert_eq!(code, "let mut ptr: *mut i32 = malloc(40);");
+    }
 }
