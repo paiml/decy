@@ -79,19 +79,18 @@ pub fn transpile(c_code: &str) -> Result<String> {
 
         // Generate lifetime annotations
         let lifetime_annotator = LifetimeAnnotator::new();
-        let _annotated_signature = lifetime_annotator.annotate_function(&func_with_borrows);
+        let annotated_signature = lifetime_annotator.annotate_function(&func_with_borrows);
 
-        // For now, use the function with borrows
-        // Future: integrate lifetime annotations into code generation
-        transformed_functions.push(func_with_borrows);
+        // Store both function and its annotated signature
+        transformed_functions.push((func_with_borrows, annotated_signature));
     }
 
-    // Step 4: Generate Rust code
+    // Step 4: Generate Rust code with lifetime annotations
     let code_generator = CodeGenerator::new();
     let mut rust_code = String::new();
 
-    for func in &transformed_functions {
-        let generated = code_generator.generate_function(func);
+    for (func, annotated_sig) in &transformed_functions {
+        let generated = code_generator.generate_function_with_lifetimes(func, annotated_sig);
         rust_code.push_str(&generated);
         rust_code.push('\n');
     }
@@ -221,5 +220,25 @@ mod tests {
         let rust_code = result.unwrap();
         assert!(rust_code.contains("fn calculate"));
         assert!(rust_code.contains("let mut result"));
+    }
+
+    #[test]
+    fn test_transpile_with_lifetime_annotations() {
+        // Test that functions with references get lifetime annotations
+        // Note: This test depends on the C parser's ability to handle references
+        // For now, we test that the pipeline runs successfully
+        let c_code = "int add(int a, int b) { return a + b; }";
+        let result = transpile(c_code);
+        assert!(
+            result.is_ok(),
+            "Transpilation with lifetime analysis should succeed"
+        );
+
+        let rust_code = result.unwrap();
+        // Basic transpilation should work
+        assert!(rust_code.contains("fn add"));
+
+        // When references are present, lifetime annotations would appear
+        // Future: Add a test with actual C pointer parameters to verify '<'a> syntax
     }
 }

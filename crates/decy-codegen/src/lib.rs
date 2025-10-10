@@ -33,6 +33,7 @@ pub mod box_transform;
 pub mod test_generator;
 
 use decy_hir::{BinaryOperator, HirExpression, HirFunction, HirStatement, HirType};
+use decy_ownership::lifetime_gen::{AnnotatedSignature, AnnotatedType};
 
 /// Code generator for converting HIR to Rust source code.
 #[derive(Debug, Clone)]
@@ -303,6 +304,132 @@ impl CodeGenerator {
         sig
     }
 
+    /// Generate a function signature with lifetime annotations.
+    ///
+    /// Takes an `AnnotatedSignature` with lifetime information and generates
+    /// the complete Rust function signature including lifetime parameters.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use decy_codegen::CodeGenerator;
+    /// use decy_ownership::lifetime_gen::{AnnotatedSignature, AnnotatedParameter, AnnotatedType, LifetimeParam};
+    /// use decy_hir::HirType;
+    ///
+    /// let sig = AnnotatedSignature {
+    ///     name: "get_first".to_string(),
+    ///     lifetimes: vec![LifetimeParam::standard(0)], // 'a
+    ///     parameters: vec![
+    ///         AnnotatedParameter {
+    ///             name: "items".to_string(),
+    ///             param_type: AnnotatedType::Reference {
+    ///                 inner: Box::new(AnnotatedType::Simple(HirType::Int)),
+    ///                 mutable: false,
+    ///                 lifetime: Some(LifetimeParam::standard(0)),
+    ///             },
+    ///         },
+    ///     ],
+    ///     return_type: AnnotatedType::Reference {
+    ///         inner: Box::new(AnnotatedType::Simple(HirType::Int)),
+    ///         mutable: false,
+    ///         lifetime: Some(LifetimeParam::standard(0)),
+    ///     },
+    /// };
+    ///
+    /// let codegen = CodeGenerator::new();
+    /// let rust_sig = codegen.generate_annotated_signature(&sig);
+    ///
+    /// assert!(rust_sig.contains("<'a>"));
+    /// assert!(rust_sig.contains("&'a i32"));
+    /// ```
+    pub fn generate_annotated_signature(&self, sig: &AnnotatedSignature) -> String {
+        let mut result = format!("fn {}", sig.name);
+
+        // Add lifetime parameters if present
+        if !sig.lifetimes.is_empty() {
+            let lifetime_params: Vec<String> =
+                sig.lifetimes.iter().map(|lt| lt.name.clone()).collect();
+            result.push_str(&format!("<{}>", lifetime_params.join(", ")));
+        }
+
+        // Add function parameters
+        result.push('(');
+        let params: Vec<String> = sig
+            .parameters
+            .iter()
+            .map(|p| {
+                format!(
+                    "{}: {}",
+                    p.name,
+                    self.annotated_type_to_string(&p.param_type)
+                )
+            })
+            .collect();
+        result.push_str(&params.join(", "));
+        result.push(')');
+
+        // Add return type if not void
+        let return_type_str = self.annotated_type_to_string(&sig.return_type);
+        if return_type_str != "()" {
+            result.push_str(&format!(" -> {}", return_type_str));
+        }
+
+        result
+    }
+
+    /// Convert an `AnnotatedType` to Rust type string with lifetime annotations.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use decy_codegen::CodeGenerator;
+    /// use decy_ownership::lifetime_gen::{AnnotatedType, LifetimeParam};
+    /// use decy_hir::HirType;
+    ///
+    /// let codegen = CodeGenerator::new();
+    ///
+    /// // Simple type
+    /// let simple = AnnotatedType::Simple(HirType::Int);
+    /// assert_eq!(codegen.annotated_type_to_string(&simple), "i32");
+    ///
+    /// // Reference with lifetime
+    /// let ref_type = AnnotatedType::Reference {
+    ///     inner: Box::new(AnnotatedType::Simple(HirType::Int)),
+    ///     mutable: false,
+    ///     lifetime: Some(LifetimeParam::standard(0)),
+    /// };
+    /// assert_eq!(codegen.annotated_type_to_string(&ref_type), "&'a i32");
+    /// ```
+    #[allow(clippy::only_used_in_recursion)]
+    pub fn annotated_type_to_string(&self, annotated_type: &AnnotatedType) -> String {
+        match annotated_type {
+            AnnotatedType::Simple(hir_type) => Self::map_type(hir_type),
+            AnnotatedType::Reference {
+                inner,
+                mutable,
+                lifetime,
+            } => {
+                let mut result = String::from("&");
+
+                // Add lifetime if present
+                if let Some(lt) = lifetime {
+                    result.push_str(&lt.name);
+                    result.push(' ');
+                }
+
+                // Add mutability
+                if *mutable {
+                    result.push_str("mut ");
+                }
+
+                // Add inner type
+                result.push_str(&self.annotated_type_to_string(inner));
+
+                result
+            }
+        }
+    }
+
     /// Generate a default return statement for a type.
     ///
     /// # Examples
@@ -329,9 +456,10 @@ impl CodeGenerator {
                 )
             }
             HirType::Reference { .. } => {
-                // References in return position need concrete values
-                // This is a stub - real code should never reach here
-                "    // TODO: return proper reference".to_string()
+                // References in return position need concrete values from parameters
+                // This should be handled by lifetime-annotated code generation
+                // using generate_function_with_lifetimes() instead
+                String::new()
             }
         }
     }
@@ -365,6 +493,90 @@ impl CodeGenerator {
 
         // Generate signature
         code.push_str(&self.generate_signature(func));
+        code.push_str(" {\n");
+
+        // Generate body statements if present
+        if func.body().is_empty() {
+            // Generate stub body with return statement
+            let return_stmt = self.generate_return(func.return_type());
+            if !return_stmt.is_empty() {
+                code.push_str(&return_stmt);
+                code.push('\n');
+            }
+        } else {
+            // Generate actual body statements
+            for stmt in func.body() {
+                code.push_str("    ");
+                code.push_str(&self.generate_statement(stmt));
+                code.push('\n');
+            }
+        }
+
+        code.push('}');
+        code
+    }
+
+    /// Generate a complete function from HIR with lifetime annotations.
+    ///
+    /// Takes both the HIR function and its annotated signature to generate
+    /// Rust code with proper lifetime annotations.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use decy_codegen::CodeGenerator;
+    /// use decy_hir::{HirFunction, HirType, HirParameter};
+    /// use decy_ownership::lifetime_gen::{AnnotatedSignature, AnnotatedParameter, AnnotatedType, LifetimeParam};
+    ///
+    /// let func = HirFunction::new(
+    ///     "identity".to_string(),
+    ///     HirType::Reference {
+    ///         inner: Box::new(HirType::Int),
+    ///         mutable: false,
+    ///     },
+    ///     vec![
+    ///         HirParameter::new("x".to_string(), HirType::Reference {
+    ///             inner: Box::new(HirType::Int),
+    ///             mutable: false,
+    ///         }),
+    ///     ],
+    /// );
+    ///
+    /// let sig = AnnotatedSignature {
+    ///     name: "identity".to_string(),
+    ///     lifetimes: vec![LifetimeParam::standard(0)],
+    ///     parameters: vec![
+    ///         AnnotatedParameter {
+    ///             name: "x".to_string(),
+    ///             param_type: AnnotatedType::Reference {
+    ///                 inner: Box::new(AnnotatedType::Simple(HirType::Int)),
+    ///                 mutable: false,
+    ///                 lifetime: Some(LifetimeParam::standard(0)),
+    ///             },
+    ///         },
+    ///     ],
+    ///     return_type: AnnotatedType::Reference {
+    ///         inner: Box::new(AnnotatedType::Simple(HirType::Int)),
+    ///         mutable: false,
+    ///         lifetime: Some(LifetimeParam::standard(0)),
+    ///     },
+    /// };
+    ///
+    /// let codegen = CodeGenerator::new();
+    /// let code = codegen.generate_function_with_lifetimes(&func, &sig);
+    ///
+    /// assert!(code.contains("<'a>"));
+    /// assert!(code.contains("&'a i32"));
+    /// ```
+    pub fn generate_function_with_lifetimes(
+        &self,
+        func: &HirFunction,
+        sig: &AnnotatedSignature,
+    ) -> String {
+        let mut code = String::new();
+
+        // Generate signature with lifetimes
+        code.push_str(&self.generate_annotated_signature(sig));
         code.push_str(" {\n");
 
         // Generate body statements if present

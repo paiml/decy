@@ -707,6 +707,7 @@ dependencies = [
  "anyhow",
  "decy-analyzer",
  "decy-hir",
+ "decy-ownership",
  "decy-parser",
  "proc-macro2",
  "proptest",
