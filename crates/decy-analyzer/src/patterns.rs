@@ -15,6 +15,19 @@ pub struct BoxCandidate {
     pub free_index: Option<usize>,
 }
 
+/// Represents a detected `Vec<T>` pattern candidate.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct VecCandidate {
+    /// Variable name that holds the allocated array pointer
+    pub variable: String,
+    /// Statement index where malloc occurs
+    pub malloc_index: usize,
+    /// Statement index where free occurs (if found)
+    pub free_index: Option<usize>,
+    /// Expression representing the array capacity (number of elements)
+    pub capacity_expr: Option<HirExpression>,
+}
+
 /// Pattern detector for identifying `Box<T>` candidates.
 #[derive(Debug, Clone)]
 pub struct PatternDetector;
@@ -116,6 +129,31 @@ impl PatternDetector {
         // This will be implemented in a future phase when ExpressionStatement is added.
         // For now, free_index in BoxCandidate will always be None.
         false
+    }
+
+    /// Analyze a function to find `Vec<T>` candidates.
+    ///
+    /// Detects patterns like:
+    /// ```c
+    /// T* arr = malloc(n * sizeof(T));
+    /// // ... use arr as array ...
+    /// free(arr);
+    /// ```
+    pub fn find_vec_candidates(&self, _func: &HirFunction) -> Vec<VecCandidate> {
+        // STUB: RED phase - this will fail tests
+        Vec::new()
+    }
+
+    /// Check if an expression represents array allocation: n * sizeof(T) pattern
+    fn _is_array_size_expr(&self, _expr: &HirExpression) -> bool {
+        // STUB: RED phase
+        false
+    }
+
+    /// Extract capacity from array size expression
+    fn _extract_capacity(&self, _expr: &HirExpression) -> Option<HirExpression> {
+        // STUB: RED phase
+        None
     }
 }
 
@@ -258,6 +296,194 @@ mod tests {
 
         assert_eq!(candidates.len(), 0);
     }
+
+    // Vec candidate detection tests
+    #[test]
+    fn test_detect_vec_array_allocation_in_variable_declaration() {
+        // Pattern: int* arr = malloc(n * sizeof(int));
+        // Should be detected as Vec<i32> candidate
+        let n_expr = HirExpression::Variable("n".to_string());
+        let sizeof_expr = HirExpression::IntLiteral(4); // sizeof(int) = 4
+        let size_expr = HirExpression::BinaryOp {
+            op: decy_hir::BinaryOperator::Multiply,
+            left: Box::new(n_expr.clone()),
+            right: Box::new(sizeof_expr),
+        };
+
+        let func = HirFunction::new_with_body(
+            "test".to_string(),
+            HirType::Void,
+            vec![],
+            vec![HirStatement::VariableDeclaration {
+                name: "arr".to_string(),
+                var_type: HirType::Pointer(Box::new(HirType::Int)),
+                initializer: Some(HirExpression::FunctionCall {
+                    function: "malloc".to_string(),
+                    arguments: vec![size_expr],
+                }),
+            }],
+        );
+
+        let detector = PatternDetector::new();
+        let candidates = detector.find_vec_candidates(&func);
+
+        assert_eq!(candidates.len(), 1, "Should detect one Vec candidate");
+        assert_eq!(candidates[0].variable, "arr");
+        assert_eq!(candidates[0].malloc_index, 0);
+    }
+
+    #[test]
+    fn test_detect_vec_with_literal_capacity() {
+        // Pattern: int* arr = malloc(10 * sizeof(int));
+        let capacity = HirExpression::IntLiteral(10);
+        let sizeof_expr = HirExpression::IntLiteral(4);
+        let size_expr = HirExpression::BinaryOp {
+            op: decy_hir::BinaryOperator::Multiply,
+            left: Box::new(capacity.clone()),
+            right: Box::new(sizeof_expr),
+        };
+
+        let func = HirFunction::new_with_body(
+            "test".to_string(),
+            HirType::Void,
+            vec![],
+            vec![HirStatement::VariableDeclaration {
+                name: "arr".to_string(),
+                var_type: HirType::Pointer(Box::new(HirType::Int)),
+                initializer: Some(HirExpression::FunctionCall {
+                    function: "malloc".to_string(),
+                    arguments: vec![size_expr],
+                }),
+            }],
+        );
+
+        let detector = PatternDetector::new();
+        let candidates = detector.find_vec_candidates(&func);
+
+        assert_eq!(candidates.len(), 1);
+        assert_eq!(candidates[0].variable, "arr");
+        assert!(
+            candidates[0].capacity_expr.is_some(),
+            "Should extract capacity expression"
+        );
+    }
+
+    #[test]
+    fn test_vec_vs_box_distinction() {
+        // Box pattern: malloc(sizeof(T)) - single element
+        // Vec pattern: malloc(n * sizeof(T)) - array
+        let func = HirFunction::new_with_body(
+            "test".to_string(),
+            HirType::Void,
+            vec![],
+            vec![
+                // Box candidate: single element
+                HirStatement::VariableDeclaration {
+                    name: "single".to_string(),
+                    var_type: HirType::Pointer(Box::new(HirType::Int)),
+                    initializer: Some(HirExpression::FunctionCall {
+                        function: "malloc".to_string(),
+                        arguments: vec![HirExpression::IntLiteral(4)], // just sizeof(int)
+                    }),
+                },
+                // Vec candidate: array
+                HirStatement::VariableDeclaration {
+                    name: "array".to_string(),
+                    var_type: HirType::Pointer(Box::new(HirType::Int)),
+                    initializer: Some(HirExpression::FunctionCall {
+                        function: "malloc".to_string(),
+                        arguments: vec![HirExpression::BinaryOp {
+                            op: decy_hir::BinaryOperator::Multiply,
+                            left: Box::new(HirExpression::IntLiteral(10)),
+                            right: Box::new(HirExpression::IntLiteral(4)),
+                        }],
+                    }),
+                },
+            ],
+        );
+
+        let detector = PatternDetector::new();
+        let box_candidates = detector.find_box_candidates(&func);
+        let vec_candidates = detector.find_vec_candidates(&func);
+
+        // Box detector should find both (it's less specific)
+        // Vec detector should only find the array pattern
+        assert_eq!(vec_candidates.len(), 1, "Should find only array pattern");
+        assert_eq!(vec_candidates[0].variable, "array");
+
+        // The "single" allocation should be detected as Box only
+        // (Box detector will find it, Vec detector won't)
+        assert!(box_candidates.iter().any(|c| c.variable == "single"));
+    }
+
+    #[test]
+    fn test_no_vec_detected_for_non_array_malloc() {
+        // malloc without multiplication pattern should not be Vec
+        let func = HirFunction::new_with_body(
+            "test".to_string(),
+            HirType::Void,
+            vec![],
+            vec![HirStatement::VariableDeclaration {
+                name: "ptr".to_string(),
+                var_type: HirType::Pointer(Box::new(HirType::Int)),
+                initializer: Some(HirExpression::FunctionCall {
+                    function: "malloc".to_string(),
+                    arguments: vec![HirExpression::IntLiteral(100)],
+                }),
+            }],
+        );
+
+        let detector = PatternDetector::new();
+        let candidates = detector.find_vec_candidates(&func);
+
+        assert_eq!(candidates.len(), 0, "Should not detect non-array as Vec");
+    }
+
+    #[test]
+    fn test_multiple_vec_allocations() {
+        let size1 = HirExpression::BinaryOp {
+            op: decy_hir::BinaryOperator::Multiply,
+            left: Box::new(HirExpression::IntLiteral(10)),
+            right: Box::new(HirExpression::IntLiteral(4)),
+        };
+
+        let size2 = HirExpression::BinaryOp {
+            op: decy_hir::BinaryOperator::Multiply,
+            left: Box::new(HirExpression::Variable("count".to_string())),
+            right: Box::new(HirExpression::IntLiteral(8)),
+        };
+
+        let func = HirFunction::new_with_body(
+            "test".to_string(),
+            HirType::Void,
+            vec![],
+            vec![
+                HirStatement::VariableDeclaration {
+                    name: "arr1".to_string(),
+                    var_type: HirType::Pointer(Box::new(HirType::Int)),
+                    initializer: Some(HirExpression::FunctionCall {
+                        function: "malloc".to_string(),
+                        arguments: vec![size1],
+                    }),
+                },
+                HirStatement::VariableDeclaration {
+                    name: "arr2".to_string(),
+                    var_type: HirType::Pointer(Box::new(HirType::Double)),
+                    initializer: Some(HirExpression::FunctionCall {
+                        function: "malloc".to_string(),
+                        arguments: vec![size2],
+                    }),
+                },
+            ],
+        );
+
+        let detector = PatternDetector::new();
+        let candidates = detector.find_vec_candidates(&func);
+
+        assert_eq!(candidates.len(), 2, "Should detect both Vec candidates");
+        assert_eq!(candidates[0].variable, "arr1");
+        assert_eq!(candidates[1].variable, "arr2");
+    }
 }
 
 #[cfg(test)]
@@ -385,6 +611,153 @@ mod property_tests {
             let candidates2 = detector.find_box_candidates(&func);
 
             prop_assert_eq!(candidates1, candidates2);
+        }
+
+        // Vec candidate property tests
+        /// Property: Vec detector never panics
+        #[test]
+        fn property_vec_detector_never_panics(
+            func_name in "[a-z_][a-z0-9_]{0,10}",
+            var_name in "[a-z_][a-z0-9_]{0,10}",
+            capacity in 1i32..1000,
+            elem_size in 1i32..16
+        ) {
+            let size_expr = HirExpression::BinaryOp {
+                op: decy_hir::BinaryOperator::Multiply,
+                left: Box::new(HirExpression::IntLiteral(capacity)),
+                right: Box::new(HirExpression::IntLiteral(elem_size)),
+            };
+
+            let func = HirFunction::new_with_body(
+                func_name,
+                HirType::Void,
+                vec![],
+                vec![HirStatement::VariableDeclaration {
+                    name: var_name,
+                    var_type: HirType::Pointer(Box::new(HirType::Int)),
+                    initializer: Some(HirExpression::FunctionCall {
+                        function: "malloc".to_string(),
+                        arguments: vec![size_expr],
+                    }),
+                }],
+            );
+
+            let detector = PatternDetector::new();
+            let _candidates = detector.find_vec_candidates(&func);
+            // If we get here without panic, test passes
+        }
+
+        /// Property: Vec detection is deterministic
+        #[test]
+        fn property_vec_detection_deterministic(
+            var_name in "[a-z_][a-z0-9_]{0,10}",
+            capacity in 1i32..100,
+            elem_size in 1i32..16
+        ) {
+            let size_expr = HirExpression::BinaryOp {
+                op: decy_hir::BinaryOperator::Multiply,
+                left: Box::new(HirExpression::IntLiteral(capacity)),
+                right: Box::new(HirExpression::IntLiteral(elem_size)),
+            };
+
+            let func = HirFunction::new_with_body(
+                "test".to_string(),
+                HirType::Void,
+                vec![],
+                vec![HirStatement::VariableDeclaration {
+                    name: var_name,
+                    var_type: HirType::Pointer(Box::new(HirType::Int)),
+                    initializer: Some(HirExpression::FunctionCall {
+                        function: "malloc".to_string(),
+                        arguments: vec![size_expr],
+                    }),
+                }],
+            );
+
+            let detector = PatternDetector::new();
+            let candidates1 = detector.find_vec_candidates(&func);
+            let candidates2 = detector.find_vec_candidates(&func);
+
+            prop_assert_eq!(candidates1, candidates2);
+        }
+
+        /// Property: Detected variable names match actual variable names
+        #[test]
+        fn property_vec_variable_name_preserved(
+            var_name in "[a-z_][a-z0-9_]{0,10}",
+            capacity in 1i32..100,
+            elem_size in 1i32..16
+        ) {
+            let size_expr = HirExpression::BinaryOp {
+                op: decy_hir::BinaryOperator::Multiply,
+                left: Box::new(HirExpression::IntLiteral(capacity)),
+                right: Box::new(HirExpression::IntLiteral(elem_size)),
+            };
+
+            let func = HirFunction::new_with_body(
+                "test".to_string(),
+                HirType::Void,
+                vec![],
+                vec![HirStatement::VariableDeclaration {
+                    name: var_name.clone(),
+                    var_type: HirType::Pointer(Box::new(HirType::Int)),
+                    initializer: Some(HirExpression::FunctionCall {
+                        function: "malloc".to_string(),
+                        arguments: vec![size_expr],
+                    }),
+                }],
+            );
+
+            let detector = PatternDetector::new();
+            let candidates = detector.find_vec_candidates(&func);
+
+            if !candidates.is_empty() {
+                prop_assert_eq!(&candidates[0].variable, &var_name);
+            }
+        }
+
+        /// Property: Vec malloc_index is always valid
+        #[test]
+        fn property_vec_malloc_index_valid(
+            var_name in "[a-z_][a-z0-9_]{0,10}",
+            capacity in 1i32..100,
+            elem_size in 1i32..16
+        ) {
+            let size_expr = HirExpression::BinaryOp {
+                op: decy_hir::BinaryOperator::Multiply,
+                left: Box::new(HirExpression::IntLiteral(capacity)),
+                right: Box::new(HirExpression::IntLiteral(elem_size)),
+            };
+
+            let body = vec![
+                HirStatement::VariableDeclaration {
+                    name: "x".to_string(),
+                    var_type: HirType::Int,
+                    initializer: Some(HirExpression::IntLiteral(0)),
+                },
+                HirStatement::VariableDeclaration {
+                    name: var_name,
+                    var_type: HirType::Pointer(Box::new(HirType::Int)),
+                    initializer: Some(HirExpression::FunctionCall {
+                        function: "malloc".to_string(),
+                        arguments: vec![size_expr],
+                    }),
+                },
+            ];
+
+            let func = HirFunction::new_with_body(
+                "test".to_string(),
+                HirType::Void,
+                vec![],
+                body.clone(),
+            );
+
+            let detector = PatternDetector::new();
+            let candidates = detector.find_vec_candidates(&func);
+
+            for candidate in candidates {
+                prop_assert!(candidate.malloc_index < body.len());
+            }
         }
     }
 }
