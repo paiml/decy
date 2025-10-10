@@ -231,6 +231,9 @@ impl CodeGenerator {
             }
             HirStatement::Break => "break;".to_string(),
             HirStatement::Continue => "continue;".to_string(),
+            HirStatement::Assignment { target, value } => {
+                format!("{} = {};", target, self.generate_expression(value))
+            }
         }
     }
 
