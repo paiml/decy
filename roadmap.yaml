@@ -349,6 +349,18 @@ sprint_2:
       type: feature
       priority: high
       story_points: 5
+      assignee: Claude
+      status: done
+      github_issue: null
+      phase: DONE
+      completed_date: "2025-10-10"
+      actual_coverage: 95.88
+      actual_metrics:
+        coverage: "95.88%"
+        tests_passing: "91 tests (42 codegen + 39 HIR + 9 parser + 1 core)"
+        clippy_warnings: 0
+        property_tests: "1 property x 100 cases + 2 unit tests for all operators"
+        quality_grade: "A+"
 
       description: |
         Support basic expressions: +, -, *, /, %, ==, !=, <, >, <=, >=
