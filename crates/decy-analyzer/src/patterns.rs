@@ -139,21 +139,101 @@ impl PatternDetector {
     /// // ... use arr as array ...
     /// free(arr);
     /// ```
-    pub fn find_vec_candidates(&self, _func: &HirFunction) -> Vec<VecCandidate> {
-        // STUB: RED phase - this will fail tests
-        Vec::new()
+    pub fn find_vec_candidates(&self, func: &HirFunction) -> Vec<VecCandidate> {
+        let mut candidates = Vec::new();
+        let body = func.body();
+
+        // Track malloc calls assigned to variables that use array allocation pattern
+        for (idx, stmt) in body.iter().enumerate() {
+            if let Some((var_name, malloc_expr)) = self.is_malloc_assignment_expr(stmt) {
+                // Check if this is an array allocation pattern (n * sizeof(T))
+                if self.is_array_size_expr(malloc_expr) {
+                    let capacity = self.extract_capacity(malloc_expr);
+
+                    // Look for corresponding free (same logic as Box)
+                    let free_idx = self.find_free_call(body, idx + 1, &var_name);
+
+                    candidates.push(VecCandidate {
+                        variable: var_name,
+                        malloc_index: idx,
+                        free_index: free_idx,
+                        capacity_expr: capacity,
+                    });
+                }
+            }
+        }
+
+        candidates
+    }
+
+    /// Check if a statement is an assignment from malloc, returning var name and malloc expr.
+    ///
+    /// Similar to is_malloc_assignment but returns the malloc call expression for analysis.
+    fn is_malloc_assignment_expr<'a>(
+        &self,
+        stmt: &'a HirStatement,
+    ) -> Option<(String, &'a HirExpression)> {
+        match stmt {
+            HirStatement::VariableDeclaration {
+                name,
+                initializer: Some(expr),
+                ..
+            } => {
+                if let HirExpression::FunctionCall {
+                    function,
+                    arguments,
+                } = expr
+                {
+                    if function == "malloc" && !arguments.is_empty() {
+                        return Some((name.clone(), &arguments[0]));
+                    }
+                }
+                None
+            }
+            HirStatement::Assignment { target, value } => {
+                if let HirExpression::FunctionCall {
+                    function,
+                    arguments,
+                } = value
+                {
+                    if function == "malloc" && !arguments.is_empty() {
+                        return Some((target.clone(), &arguments[0]));
+                    }
+                }
+                None
+            }
+            _ => None,
+        }
     }
 
     /// Check if an expression represents array allocation: n * sizeof(T) pattern
-    fn _is_array_size_expr(&self, _expr: &HirExpression) -> bool {
-        // STUB: RED phase
-        false
+    ///
+    /// Looks for multiplication expressions that indicate array sizing.
+    fn is_array_size_expr(&self, expr: &HirExpression) -> bool {
+        matches!(
+            expr,
+            HirExpression::BinaryOp {
+                op: decy_hir::BinaryOperator::Multiply,
+                ..
+            }
+        )
     }
 
-    /// Extract capacity from array size expression
-    fn _extract_capacity(&self, _expr: &HirExpression) -> Option<HirExpression> {
-        // STUB: RED phase
-        None
+    /// Extract capacity from array size expression (n * sizeof(T))
+    ///
+    /// Returns the left operand of the multiplication, which typically
+    /// represents the number of elements (capacity).
+    fn extract_capacity(&self, expr: &HirExpression) -> Option<HirExpression> {
+        if let HirExpression::BinaryOp {
+            op: decy_hir::BinaryOperator::Multiply,
+            left,
+            ..
+        } = expr
+        {
+            Some((**left).clone())
+        } else {
+            None
+        }
     }
 }
 
