@@ -175,6 +175,75 @@ proptest! {
 
         prop_assert_eq!(code1, code2);
     }
+
+    // DECY-005 property tests for if/else statements
+
+    /// Property: If statements always contain "if" keyword
+    #[test]
+    fn property_if_contains_if_keyword(val in -100i32..100i32) {
+        use decy_hir::{BinaryOperator, HirExpression, HirStatement};
+
+        let if_stmt = HirStatement::If {
+            condition: HirExpression::BinaryOp {
+                op: BinaryOperator::GreaterThan,
+                left: Box::new(HirExpression::Variable("x".to_string())),
+                right: Box::new(HirExpression::IntLiteral(val)),
+            },
+            then_block: vec![HirStatement::Return(Some(HirExpression::IntLiteral(1)))],
+            else_block: None,
+        };
+
+        let codegen = CodeGenerator::new();
+        let code = codegen.generate_statement(&if_stmt);
+
+        prop_assert!(code.starts_with("if "));
+    }
+
+    /// Property: If statements have balanced braces
+    #[test]
+    fn property_if_balanced_braces(val in -100i32..100i32) {
+        use decy_hir::{BinaryOperator, HirExpression, HirStatement};
+
+        let if_stmt = HirStatement::If {
+            condition: HirExpression::BinaryOp {
+                op: BinaryOperator::LessThan,
+                left: Box::new(HirExpression::Variable("x".to_string())),
+                right: Box::new(HirExpression::IntLiteral(val)),
+            },
+            then_block: vec![HirStatement::Return(Some(HirExpression::IntLiteral(0)))],
+            else_block: None,
+        };
+
+        let codegen = CodeGenerator::new();
+        let code = codegen.generate_statement(&if_stmt);
+
+        let open = code.matches('{').count();
+        let close = code.matches('}').count();
+        prop_assert_eq!(open, close);
+        prop_assert!(open >= 1);
+    }
+
+    /// Property: If/else statements contain "else" keyword
+    #[test]
+    fn property_if_else_contains_else(val in -100i32..100i32) {
+        use decy_hir::{BinaryOperator, HirExpression, HirStatement};
+
+        let if_stmt = HirStatement::If {
+            condition: HirExpression::BinaryOp {
+                op: BinaryOperator::Equal,
+                left: Box::new(HirExpression::Variable("x".to_string())),
+                right: Box::new(HirExpression::IntLiteral(val)),
+            },
+            then_block: vec![HirStatement::Return(Some(HirExpression::IntLiteral(1)))],
+            else_block: Some(vec![HirStatement::Return(Some(HirExpression::IntLiteral(-1)))]),
+        };
+
+        let codegen = CodeGenerator::new();
+        let code = codegen.generate_statement(&if_stmt);
+
+        // Check for else keyword
+        prop_assert!(code.contains("else"));
+    }
 }
 
 // Regular tests for binary expressions (not property tests)
