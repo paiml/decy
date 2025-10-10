@@ -1,0 +1,749 @@
+<!DOCTYPE HTML>
+<html lang="en" class="rust sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Property Testing - DECY: C-to-Rust Transpiler Verification Book</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="Comprehensive verification and testing documentation for the DECY C-to-Rust transpiler, following EXTREME TDD methodology">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="../favicon.svg">
+        <link rel="shortcut icon" href="../favicon.png">
+        <link rel="stylesheet" href="../css/variables.css">
+        <link rel="stylesheet" href="../css/general.css">
+        <link rel="stylesheet" href="../css/chrome.css">
+        <link rel="stylesheet" href="../css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="../fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="highlight-css" href="../highlight.css">
+        <link rel="stylesheet" id="tomorrow-night-css" href="../tomorrow-night.css">
+        <link rel="stylesheet" id="ayu-highlight-css" href="../ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "../";
+            const default_light_theme = "rust";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "../searchindex.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="../toc.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('rust')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="../toc.html"></iframe>
+            </noscript>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="sidebar-toggle" class="icon-button" for="sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </label>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">DECY: C-to-Rust Transpiler Verification Book</h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        <a href="https://github.com/noahgift/decy" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
+                        </a>
+                        <a href="https://github.com/noahgift/decy/edit/main/book/src/methodology/property-testing.md" title="Suggest an edit" aria-label="Suggest an edit" rel="edit">
+                            <i id="git-edit-button" class="fa fa-edit"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <i class="fa fa-spinner fa-spin"></i>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="property-testing"><a class="header" href="#property-testing">Property Testing</a></h1>
+<p>Property testing verifies <strong>invariants</strong> that should hold for ALL inputs, not just specific test cases.</p>
+<h2 id="philosophy"><a class="header" href="#philosophy">Philosophy</a></h2>
+<p>Traditional unit tests check specific examples:</p>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[test]
+fn test_add() {
+    assert_eq!(add(2, 3), 5);  // Only tests ONE input
+}
+<span class="boring">}</span></code></pre></pre>
+<p>Property tests check invariants across THOUSANDS of random inputs:</p>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>proptest! {
+    #[test]
+    fn prop_add_commutative(a: i32, b: i32) {
+        // Property: addition is commutative for ALL inputs
+        prop_assert_eq!(add(a, b), add(b, a));
+    }
+}
+<span class="boring">}</span></code></pre></pre>
+<p>This runs 1000+ times with random values!</p>
+<h2 id="proptest-framework"><a class="header" href="#proptest-framework">proptest Framework</a></h2>
+<p>DECY uses the <code>proptest</code> crate for property-based testing.</p>
+<h3 id="installation"><a class="header" href="#installation">Installation</a></h3>
+<p>Add to <code>Cargo.toml</code>:</p>
+<pre><code class="language-toml">[dev-dependencies]
+proptest = "1.4"
+</code></pre>
+<h3 id="basic-example"><a class="header" href="#basic-example">Basic Example</a></h3>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use proptest::prelude::*;
+
+proptest! {
+    #[test]
+    fn prop_reverse_twice_is_identity(vec in prop::collection::vec(any::&lt;i32&gt;(), 0..100)) {
+        let reversed_twice = vec.iter().rev().rev().collect::&lt;Vec&lt;_&gt;&gt;();
+        prop_assert_eq!(vec, reversed_twice);
+    }
+}
+<span class="boring">}</span></code></pre></pre>
+<h2 id="properties-in-decy"><a class="header" href="#properties-in-decy">Properties in DECY</a></h2>
+<h3 id="property-1-deterministic-transpilation"><a class="header" href="#property-1-deterministic-transpilation">Property 1: Deterministic Transpilation</a></h3>
+<p>Same C code → same Rust output (always):</p>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use proptest::prelude::*;
+
+proptest! {
+    #[test]
+    fn prop_transpilation_deterministic(
+        func_name in "[a-z]{3,10}",
+        param1 in "[a-z]{1,5}",
+        param2 in "[a-z]{1,5}",
+    ) {
+        let c_code = format!(
+            "int {}(int {}, int {}) {{ return {} + {}; }}",
+            func_name, param1, param2, param1, param2
+        );
+
+        let output1 = transpile(&amp;c_code).unwrap();
+        let output2 = transpile(&amp;c_code).unwrap();
+
+        // Property: Transpilation is deterministic
+        prop_assert_eq!(output1, output2);
+    }
+}
+<span class="boring">}</span></code></pre></pre>
+<h3 id="property-2-function-names-preserved"><a class="header" href="#property-2-function-names-preserved">Property 2: Function Names Preserved</a></h3>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>proptest! {
+    #[test]
+    fn prop_function_names_preserved(func_name in "[a-z_][a-z0-9_]{2,20}") {
+        let c_code = format!("int {}() {{ return 0; }}", func_name);
+        let rust_code = transpile(&amp;c_code).unwrap();
+
+        // Property: Function name appears in output
+        prop_assert!(
+            rust_code.contains(&amp;format!("fn {}", func_name)),
+            "Expected 'fn {}' in output",
+            func_name
+        );
+    }
+}
+<span class="boring">}</span></code></pre></pre>
+<h3 id="property-3-valid-rust-output"><a class="header" href="#property-3-valid-rust-output">Property 3: Valid Rust Output</a></h3>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>proptest! {
+    #[test]
+    fn prop_output_is_valid_rust(c_code in valid_c_function()) {
+        let rust_code = transpile(&amp;c_code).unwrap();
+
+        // Property: Output compiles as valid Rust
+        prop_assert!(
+            compile_rust(&amp;rust_code).is_ok(),
+            "Generated Rust must compile:\n{}",
+            rust_code
+        );
+    }
+}
+<span class="boring">}</span></code></pre></pre>
+<h3 id="property-4-type-safety"><a class="header" href="#property-4-type-safety">Property 4: Type Safety</a></h3>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>proptest! {
+    #[test]
+    fn prop_int_maps_to_i32(func_name in "[a-z]{3,10}") {
+        let c_code = format!("int {}() {{ return 0; }}", func_name);
+        let rust_code = transpile(&amp;c_code).unwrap();
+
+        // Property: C 'int' → Rust 'i32'
+        prop_assert!(
+            rust_code.contains("i32"),
+            "int functions should use i32"
+        );
+    }
+
+    #[test]
+    fn prop_pointers_map_to_references(ty in c_type_generator()) {
+        let c_code = format!("{}* func() {{ return 0; }}", ty);
+        let rust_code = transpile(&amp;c_code).unwrap();
+
+        // Property: Pointers become references or raw pointers
+        prop_assert!(
+            rust_code.contains("&amp;") || rust_code.contains("*"),
+            "Pointers should map to &amp; or *"
+        );
+    }
+}
+<span class="boring">}</span></code></pre></pre>
+<h3 id="property-5-no-memory-leaks"><a class="header" href="#property-5-no-memory-leaks">Property 5: No Memory Leaks</a></h3>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>proptest! {
+    #[test]
+    fn prop_malloc_has_drop(c_code in c_code_with_malloc()) {
+        let rust_code = transpile(&amp;c_code).unwrap();
+
+        // Property: malloc → Box (automatic drop)
+        if c_code.contains("malloc") {
+            prop_assert!(
+                rust_code.contains("Box::new") || rust_code.contains("Box&lt;"),
+                "malloc should become Box for automatic cleanup"
+            );
+        }
+    }
+}
+<span class="boring">}</span></code></pre></pre>
+<h3 id="property-6-borrow-checker-compliance"><a class="header" href="#property-6-borrow-checker-compliance">Property 6: Borrow Checker Compliance</a></h3>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>proptest! {
+    #[test]
+    fn prop_no_multiple_mutable_borrows(c_code in safe_c_code()) {
+        let rust_code = transpile(&amp;c_code).unwrap();
+
+        // Property: Generated code respects borrow checker
+        prop_assert!(
+            compile_with_borrowck(&amp;rust_code).is_ok(),
+            "Generated code must pass borrow checker"
+        );
+    }
+}
+<span class="boring">}</span></code></pre></pre>
+<h2 id="custom-generators"><a class="header" href="#custom-generators">Custom Generators</a></h2>
+<p>Generate valid C code for testing:</p>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use proptest::prelude::*;
+
+/// Generate valid C function names
+fn c_identifier() -&gt; impl Strategy&lt;Value = String&gt; {
+    "[a-z_][a-z0-9_]{2,20}"
+}
+
+/// Generate C type names
+fn c_type() -&gt; impl Strategy&lt;Value = String&gt; {
+    prop_oneof![
+        Just("int".to_string()),
+        Just("char".to_string()),
+        Just("void".to_string()),
+        Just("float".to_string()),
+        Just("double".to_string()),
+    ]
+}
+
+/// Generate C function with parameters
+fn c_function() -&gt; impl Strategy&lt;Value = String&gt; {
+    (c_type(), c_identifier(), prop::collection::vec(c_identifier(), 0..5))
+        .prop_map(|(ret_type, name, params)| {
+            if params.is_empty() {
+                format!("{} {}() {{ return 0; }}", ret_type, name)
+            } else {
+                let param_list = params
+                    .iter()
+                    .map(|p| format!("int {}", p))
+                    .collect::&lt;Vec&lt;_&gt;&gt;()
+                    .join(", ");
+                format!("{} {}({}) {{ return 0; }}", ret_type, name, param_list)
+            }
+        })
+}
+
+proptest! {
+    #[test]
+    fn prop_test_with_custom_generator(c_code in c_function()) {
+        let result = transpile(&amp;c_code);
+        prop_assert!(result.is_ok());
+    }
+}
+<span class="boring">}</span></code></pre></pre>
+<h2 id="shrinking"><a class="header" href="#shrinking">Shrinking</a></h2>
+<p>When a property fails, proptest <strong>shrinks</strong> the input to find the minimal failing case:</p>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>proptest! {
+    #[test]
+    fn prop_example_that_fails(x in 0..1000i32) {
+        // This will fail for x &gt;= 100
+        prop_assert!(x &lt; 100);
+    }
+}
+<span class="boring">}</span></code></pre></pre>
+<p>Output:</p>
+<pre><code>Test failed for input: 999
+Shrinking to minimal case...
+Minimal failing input: 100
+</code></pre>
+<p>Proptest automatically finds the SMALLEST input that causes failure!</p>
+<h2 id="stateful-testing"><a class="header" href="#stateful-testing">Stateful Testing</a></h2>
+<p>Test state machines with property tests:</p>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[derive(Debug, Clone)]
+enum Action {
+    Allocate(usize),
+    Free(usize),
+    Use(usize),
+}
+
+proptest! {
+    #[test]
+    fn prop_memory_state_machine(actions in prop::collection::vec(action_generator(), 0..50)) {
+        let mut state = MemoryState::new();
+
+        for action in actions {
+            match action {
+                Action::Allocate(id) =&gt; state.allocate(id),
+                Action::Free(id) =&gt; state.free(id),
+                Action::Use(id) =&gt; {
+                    // Property: Can only use allocated memory
+                    if !state.is_allocated(id) {
+                        prop_assert!(state.use_memory(id).is_err());
+                    }
+                }
+            }
+        }
+
+        // Property: No memory leaks at end
+        prop_assert!(state.all_freed());
+    }
+}
+<span class="boring">}</span></code></pre></pre>
+<h2 id="regression-testing"><a class="header" href="#regression-testing">Regression Testing</a></h2>
+<p>Save failing cases to prevent regressions:</p>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>proptest! {
+    #[test]
+    fn prop_transpile_never_panics(c_code in "\\PC*") {
+        // Should never panic, even with garbage input
+        let _ = transpile(&amp;c_code);
+    }
+}
+<span class="boring">}</span></code></pre></pre>
+<p>When a failure is found, proptest saves it to <code>proptest-regressions/</code>:</p>
+<pre><code>proptest-regressions/
+└── lib.proptest-regressions
+    └── prop_transpile_never_panics
+        └── cc 01234567 // Saved failing input
+</code></pre>
+<h2 id="configuration"><a class="header" href="#configuration">Configuration</a></h2>
+<p>Customize proptest behavior:</p>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>proptest! {
+    #![proptest_config(ProptestConfig {
+        cases: 10000,           // Run 10,000 times (default: 256)
+        max_shrink_iters: 10000, // Shrink more aggressively
+        timeout: 5000,          // 5 second timeout per test
+        ..ProptestConfig::default()
+    })]
+
+    #[test]
+    fn prop_intensive_test(input in any::&lt;Vec&lt;i32&gt;&gt;()) {
+        // This will run 10,000 times
+        prop_assert!(verify_invariant(&amp;input));
+    }
+}
+<span class="boring">}</span></code></pre></pre>
+<h2 id="decy-specific-properties"><a class="header" href="#decy-specific-properties">DECY-Specific Properties</a></h2>
+<h3 id="parser-properties"><a class="header" href="#parser-properties">Parser Properties</a></h3>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>proptest! {
+    #[test]
+    fn prop_parser_never_panics(input in "\\PC*") {
+        // Property: Parser should never panic
+        let _ = CParser::new().unwrap().parse(&amp;input);
+    }
+
+    #[test]
+    fn prop_parse_print_roundtrip(c_code in valid_c_code()) {
+        let ast = parse(&amp;c_code).unwrap();
+        let printed = ast.to_string();
+        let reparsed = parse(&amp;printed).unwrap();
+
+        // Property: Parse → print → parse = identity
+        prop_assert_eq!(ast, reparsed);
+    }
+}
+<span class="boring">}</span></code></pre></pre>
+<h3 id="hir-properties"><a class="header" href="#hir-properties">HIR Properties</a></h3>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>proptest! {
+    #[test]
+    fn prop_hir_preserves_semantics(c_code in valid_c_code()) {
+        let ast = parse(&amp;c_code).unwrap();
+        let hir = lower_to_hir(&amp;ast).unwrap();
+
+        // Property: HIR has same number of functions
+        prop_assert_eq!(ast.functions().len(), hir.functions().len());
+
+        // Property: Function names preserved
+        for (ast_func, hir_func) in ast.functions().iter().zip(hir.functions()) {
+            prop_assert_eq!(ast_func.name(), hir_func.name());
+        }
+    }
+}
+<span class="boring">}</span></code></pre></pre>
+<h3 id="ownership-properties"><a class="header" href="#ownership-properties">Ownership Properties</a></h3>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>proptest! {
+    #[test]
+    fn prop_malloc_becomes_owning(size in 1..1024usize) {
+        let c_code = format!("int* p = malloc({});", size);
+        let ownership = infer_ownership(&amp;c_code).unwrap();
+
+        // Property: malloc is always owning
+        prop_assert_eq!(ownership.pattern, OwnershipPattern::Owning);
+    }
+
+    #[test]
+    fn prop_parameter_pointers_borrowed(param_name in c_identifier()) {
+        let c_code = format!("void func(int* {}) {{}}", param_name);
+        let ownership = infer_ownership(&amp;c_code).unwrap();
+
+        // Property: Function parameters are borrowed
+        prop_assert_eq!(ownership.pattern, OwnershipPattern::Borrowed);
+    }
+}
+<span class="boring">}</span></code></pre></pre>
+<h3 id="codegen-properties"><a class="header" href="#codegen-properties">Codegen Properties</a></h3>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>proptest! {
+    #[test]
+    fn prop_generated_code_compiles(c_code in valid_c_function()) {
+        let rust_code = transpile(&amp;c_code).unwrap();
+
+        // Property: Generated Rust always compiles
+        prop_assert!(
+            compile_rust(&amp;rust_code).is_ok(),
+            "Generated code must compile:\n{}",
+            rust_code
+        );
+    }
+
+    #[test]
+    fn prop_no_unsafe_for_safe_c(c_code in memory_safe_c()) {
+        let rust_code = transpile(&amp;c_code).unwrap();
+
+        // Property: Safe C → safe Rust (no unsafe blocks)
+        prop_assert!(
+            !rust_code.contains("unsafe"),
+            "Safe C should not generate unsafe Rust"
+        );
+    }
+
+    #[test]
+    fn prop_clippy_clean(c_code in valid_c_function()) {
+        let rust_code = transpile(&amp;c_code).unwrap();
+
+        // Property: Generated code passes clippy
+        prop_assert!(
+            clippy_check(&amp;rust_code).is_ok(),
+            "Generated code must pass clippy"
+        );
+    }
+}
+<span class="boring">}</span></code></pre></pre>
+<h2 id="integration-with-coverage"><a class="header" href="#integration-with-coverage">Integration with Coverage</a></h2>
+<p>Property tests contribute to coverage:</p>
+<pre><code class="language-bash">cargo llvm-cov --lcov --output-path coverage.lcov
+</code></pre>
+<p>Each property test execution increases coverage by testing different code paths!</p>
+<h2 id="best-practices"><a class="header" href="#best-practices">Best Practices</a></h2>
+<h3 id="1-test-invariants-not-implementations"><a class="header" href="#1-test-invariants-not-implementations">1. Test Invariants, Not Implementations</a></h3>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// ❌ BAD: Testing implementation details
+proptest! {
+    #[test]
+    fn prop_uses_specific_algorithm(input in any::&lt;Vec&lt;i32&gt;&gt;()) {
+        let output = sort(&amp;input);
+        // Don't test HOW it sorts
+    }
+}
+
+// ✅ GOOD: Testing properties
+proptest! {
+    #[test]
+    fn prop_sort_is_sorted(input in any::&lt;Vec&lt;i32&gt;&gt;()) {
+        let output = sort(&amp;input);
+        // Test WHAT it achieves
+        for i in 0..output.len() - 1 {
+            prop_assert!(output[i] &lt;= output[i + 1]);
+        }
+    }
+
+    #[test]
+    fn prop_sort_preserves_elements(input in any::&lt;Vec&lt;i32&gt;&gt;()) {
+        let output = sort(&amp;input);
+        // Same elements, different order
+        prop_assert_eq!(input.len(), output.len());
+        for &amp;x in &amp;input {
+            prop_assert!(output.contains(&amp;x));
+        }
+    }
+}
+<span class="boring">}</span></code></pre></pre>
+<h3 id="2-keep-properties-simple"><a class="header" href="#2-keep-properties-simple">2. Keep Properties Simple</a></h3>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// ❌ BAD: Complex property hard to understand
+proptest! {
+    #[test]
+    fn prop_complex(a in any::&lt;i32&gt;(), b in any::&lt;i32&gt;(), c in any::&lt;i32&gt;()) {
+        prop_assert!(complex_condition(a, b, c) == other_complex_condition(c, b, a));
+    }
+}
+
+// ✅ GOOD: Simple, obvious properties
+proptest! {
+    #[test]
+    fn prop_add_commutative(a in any::&lt;i32&gt;(), b in any::&lt;i32&gt;()) {
+        prop_assert_eq!(add(a, b), add(b, a));
+    }
+
+    #[test]
+    fn prop_add_associative(a in any::&lt;i32&gt;(), b in any::&lt;i32&gt;(), c in any::&lt;i32&gt;()) {
+        prop_assert_eq!(add(add(a, b), c), add(a, add(b, c)));
+    }
+}
+<span class="boring">}</span></code></pre></pre>
+<h3 id="3-use-appropriate-generators"><a class="header" href="#3-use-appropriate-generators">3. Use Appropriate Generators</a></h3>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// ❌ BAD: Too broad (will generate invalid code)
+proptest! {
+    #[test]
+    fn prop_bad_generator(input in ".*") {
+        let _ = parse(&amp;input);  // Mostly fails with garbage
+    }
+}
+
+// ✅ GOOD: Constrained to valid inputs
+proptest! {
+    #[test]
+    fn prop_good_generator(input in valid_c_function()) {
+        let ast = parse(&amp;input).unwrap();  // Always valid C
+        prop_assert!(ast.functions().len() &gt; 0);
+    }
+}
+<span class="boring">}</span></code></pre></pre>
+<h2 id="summary"><a class="header" href="#summary">Summary</a></h2>
+<p>Property testing in DECY verifies:</p>
+<p>✅ <strong>Determinism</strong>: Same input → same output
+✅ <strong>Correctness</strong>: Invariants hold for all inputs
+✅ <strong>Completeness</strong>: Generated Rust compiles
+✅ <strong>Safety</strong>: Borrow checker passes
+✅ <strong>Quality</strong>: Clippy warnings zero
+✅ <strong>Robustness</strong>: No panics on invalid input</p>
+<p>Property tests run <strong>thousands of times</strong> with random inputs to ensure quality!</p>
+<h2 id="next-steps"><a class="header" href="#next-steps">Next Steps</a></h2>
+<ul>
+<li><a href="./mutation-testing.html">Mutation Testing</a> - Verify test quality</li>
+<li><a href="../components/parser.html">Parser Verification</a> - Parser property tests</li>
+</ul>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../methodology/quality-gates.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+
+                            <a rel="next prefetch" href="../methodology/mutation-testing.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../methodology/quality-gates.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+                    <a rel="next prefetch" href="../methodology/mutation-testing.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+            </nav>
+
+        </div>
+
+
+
+        <script>
+            window.playground_line_numbers = true;
+        </script>
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+        <script src="../ace.js"></script>
+        <script src="../mode-rust.js"></script>
+        <script src="../editor.js"></script>
+        <script src="../theme-dawn.js"></script>
+        <script src="../theme-tomorrow_night.js"></script>
+
+        <script src="../elasticlunr.min.js"></script>
+        <script src="../mark.min.js"></script>
+        <script src="../searcher.js"></script>
+
+        <script src="../clipboard.min.js"></script>
+        <script src="../highlight.js"></script>
+        <script src="../book.js"></script>
+
+        <!-- Custom JS scripts -->
+
+
+
+    </div>
+    </body>
+</html>
