@@ -1,6 +1,5 @@
 # Decy: C-to-Rust Transpiler with EXTREME Quality Standards
 
-[![Quality Gates](https://github.com/your-org/decy/actions/workflows/quality.yml/badge.svg)](https://github.com/your-org/decy/actions/workflows/quality.yml)
 [![License: MIT OR Apache-2.0](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue.svg)](https://opensource.org/licenses/MIT)
 
 Decy is a production-grade C-to-Rust transpiler that generates idiomatic, safe Rust code with minimal `unsafe` blocks (<5 per 1000 LOC). Built using EXTREME TDD methodology, Toyota Way principles, and PMAT qualification.
@@ -306,9 +305,8 @@ Decy is inspired by:
 
 ## 📞 Contact & Support
 
-- **Issues**: [GitHub Issues](https://github.com/your-org/decy/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/your-org/decy/discussions)
 - **Documentation**: [docs/](docs/)
+- **Roadmap**: [roadmap.yaml](roadmap.yaml)
 
 ---
 
