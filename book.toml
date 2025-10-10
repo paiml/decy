@@ -1,0 +1,33 @@
+[book]
+title = "DECY: C-to-Rust Transpiler Verification Book"
+authors = ["DECY Contributors"]
+language = "en"
+multilingual = false
+src = "book/src"
+description = "Comprehensive verification and testing documentation for the DECY C-to-Rust transpiler, following EXTREME TDD methodology"
+
+[build]
+build-dir = "book/build"
+create-missing = true
+
+[preprocessor.links]
+
+[output.html]
+default-theme = "rust"
+preferred-dark-theme = "navy"
+git-repository-url = "https://github.com/noahgift/decy"
+edit-url-template = "https://github.com/noahgift/decy/edit/main/{path}"
+
+[output.html.fold]
+enable = true
+level = 1
+
+[output.html.playground]
+editable = true
+copyable = true
+copy-js = true
+line-numbers = true
+runnable = true
+
+[rust]
+edition = "2021"

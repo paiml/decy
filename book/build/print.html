@@ -1,0 +1,3762 @@
+<!DOCTYPE HTML>
+<html lang="en" class="rust sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>DECY: C-to-Rust Transpiler Verification Book</title>
+        <meta name="robots" content="noindex">
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="Comprehensive verification and testing documentation for the DECY C-to-Rust transpiler, following EXTREME TDD methodology">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="favicon.svg">
+        <link rel="shortcut icon" href="favicon.png">
+        <link rel="stylesheet" href="css/variables.css">
+        <link rel="stylesheet" href="css/general.css">
+        <link rel="stylesheet" href="css/chrome.css">
+        <link rel="stylesheet" href="css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="highlight-css" href="highlight.css">
+        <link rel="stylesheet" id="tomorrow-night-css" href="tomorrow-night.css">
+        <link rel="stylesheet" id="ayu-highlight-css" href="ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "";
+            const default_light_theme = "rust";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "searchindex.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="toc.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('rust')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="toc.html"></iframe>
+            </noscript>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="sidebar-toggle" class="icon-button" for="sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </label>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">DECY: C-to-Rust Transpiler Verification Book</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        <a href="https://github.com/noahgift/decy" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <i class="fa fa-spinner fa-spin"></i>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="introduction"><a class="header" href="#introduction">Introduction</a></h1>
+<p>Welcome to the <strong>DECY Verification Book</strong> - a comprehensive testing and verification guide for the DECY C-to-Rust transpiler.</p>
+<h2 id="what-is-decy"><a class="header" href="#what-is-decy">What is DECY?</a></h2>
+<p>DECY is a production-grade C-to-Rust transpiler that automatically converts legacy C code into safe, idiomatic, fully-tested Rust code. Unlike traditional transpilers, DECY follows <strong>EXTREME Test-Driven Development (TDD)</strong> methodology with:</p>
+<ul>
+<li><strong>≥80% test coverage</strong> maintained at ALL times</li>
+<li><strong>≥90% mutation testing score</strong> as target</li>
+<li><strong>100% linting passing</strong> continuously</li>
+<li><strong>Zero tolerance for technical debt</strong></li>
+<li><strong>Property-based testing</strong> for correctness guarantees</li>
+<li><strong>Book-based verification</strong> (this book!)</li>
+</ul>
+<h2 id="philosophy"><a class="header" href="#philosophy">Philosophy</a></h2>
+<blockquote>
+<p>"If it's not tested in the book, it doesn't work."</p>
+</blockquote>
+<p>This book is not just documentation - it's <strong>executable verification</strong>. Every code example in this book:</p>
+<ol>
+<li>✅ <strong>Compiles</strong> with <code>cargo build</code></li>
+<li>✅ <strong>Runs</strong> with <code>cargo test</code></li>
+<li>✅ <strong>Lints clean</strong> with <code>cargo clippy</code></li>
+<li>✅ <strong>Passes property tests</strong> with randomized inputs</li>
+<li>✅ <strong>Survives mutation testing</strong> with ≥90% kill rate</li>
+</ol>
+<h2 id="inspired-by"><a class="header" href="#inspired-by">Inspired By</a></h2>
+<p>DECY's book-based verification is inspired by:</p>
+<ul>
+<li><strong>The Rust Book</strong>: Runnable code examples in documentation</li>
+<li><strong>mdBook best practices</strong>: Executable verification through documentation</li>
+</ul>
+<h2 id="how-to-use-this-book"><a class="header" href="#how-to-use-this-book">How to Use This Book</a></h2>
+<p>Each chapter demonstrates a component of the transpiler with:</p>
+<ol>
+<li><strong>Explanation</strong>: What the component does</li>
+<li><strong>Examples</strong>: Real C code → Rust transpilation</li>
+<li><strong>Tests</strong>: Unit, property, and mutation tests</li>
+<li><strong>Verification</strong>: Proof that it works correctly</li>
+</ol>
+<p>All code blocks are tested automatically when you run:</p>
+<pre><code class="language-bash">mdbook test
+</code></pre>
+<h2 id="quality-standards"><a class="header" href="#quality-standards">Quality Standards</a></h2>
+<p>This book enforces the same quality standards as the transpiler:</p>
+<div class="table-wrapper"><table><thead><tr><th>Metric</th><th>Requirement</th><th>Enforcement</th></tr></thead><tbody>
+<tr><td>Test Coverage</td><td>≥80%</td><td>CI/CD blocks if &lt;80%</td></tr>
+<tr><td>Mutation Score</td><td>≥90%</td><td>Reported in metrics</td></tr>
+<tr><td>Clippy Warnings</td><td>0</td><td>Build fails on warnings</td></tr>
+<tr><td>Property Tests</td><td>100+</td><td>Required for core logic</td></tr>
+<tr><td>Doc Tests</td><td>100%</td><td>All public APIs documented</td></tr>
+</tbody></table>
+</div>
+<h2 id="structure"><a class="header" href="#structure">Structure</a></h2>
+<p>The book is organized into sections:</p>
+<h3 id="methodology"><a class="header" href="#methodology">Methodology</a></h3>
+<p>Learn about EXTREME TDD, quality gates, property testing, and mutation testing.</p>
+<h3 id="core-components"><a class="header" href="#core-components">Core Components</a></h3>
+<p>Verify each component of the transpiler pipeline:</p>
+<ul>
+<li>Parser (C AST extraction)</li>
+<li>HIR (High-level IR)</li>
+<li>Dataflow analysis</li>
+<li>Ownership inference</li>
+<li>Borrow generation</li>
+<li>Lifetime analysis</li>
+<li>Code generation</li>
+</ul>
+<h3 id="end-to-end-verification"><a class="header" href="#end-to-end-verification">End-to-End Verification</a></h3>
+<p>Complete transpilation examples from C to Rust:</p>
+<ul>
+<li>Simple functions</li>
+<li>Pointer handling</li>
+<li>Ownership patterns</li>
+<li>Lifetime annotations</li>
+<li>Box transformations</li>
+</ul>
+<h3 id="real-world-examples"><a class="header" href="#real-world-examples">Real-World Examples</a></h3>
+<p>Transpilation of actual C codebases:</p>
+<ul>
+<li>Python source code (cpython)</li>
+<li>Git source code</li>
+<li>NumPy arrays</li>
+<li>SQLite B-tree implementation</li>
+</ul>
+<h3 id="quality-metrics"><a class="header" href="#quality-metrics">Quality Metrics</a></h3>
+<p>Measure and track quality:</p>
+<ul>
+<li>Test coverage reports</li>
+<li>Mutation testing scores</li>
+<li>Complexity analysis</li>
+<li>Safety verification</li>
+</ul>
+<h2 id="running-the-examples"><a class="header" href="#running-the-examples">Running the Examples</a></h2>
+<p>All examples in this book can be run locally:</p>
+<pre><code class="language-bash"># Clone the repository
+git clone https://github.com/noahgift/decy
+cd decy
+
+# Build the book
+mdbook build
+
+# Test all code examples
+mdbook test
+
+# Serve locally with hot reload
+mdbook serve
+</code></pre>
+<h2 id="contributing"><a class="header" href="#contributing">Contributing</a></h2>
+<p>Found an issue? Code doesn't work? <strong>That's a bug!</strong></p>
+<p>This book is living documentation. If an example fails:</p>
+<ol>
+<li>File an issue: https://github.com/noahgift/decy/issues</li>
+<li>Fix the code (not the test!)</li>
+<li>Submit a PR with the fix</li>
+<li>Verify <code>mdbook test</code> passes</li>
+</ol>
+<h2 id="lets-begin"><a class="header" href="#lets-begin">Let's Begin</a></h2>
+<p>Ready to explore how DECY transpiles C to Rust with extreme quality?</p>
+<p>→ <a href="./methodology/extreme-tdd.html">Start with EXTREME TDD Methodology</a></p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="extreme-tdd-methodology"><a class="header" href="#extreme-tdd-methodology">EXTREME TDD Methodology</a></h1>
+<p>DECY follows <strong>EXTREME Test-Driven Development</strong> - a rigorous approach to software quality that goes beyond traditional TDD.</p>
+<h2 id="the-red-green-refactor-cycle"><a class="header" href="#the-red-green-refactor-cycle">The RED-GREEN-REFACTOR Cycle</a></h2>
+<p>Every feature in DECY follows this cycle:</p>
+<h3 id="-red-write-failing-tests-first"><a class="header" href="#-red-write-failing-tests-first">🔴 RED: Write Failing Tests First</a></h3>
+<p>Write tests BEFORE writing any production code:</p>
+<pre><code class="language-rust ignore">#[test]
+fn test_transpile_simple_function() {
+    let c_code = "int add(int a, int b) { return a + b; }";
+    let rust_code = transpile(c_code).unwrap();
+
+    assert!(rust_code.contains("fn add"));
+    assert!(rust_code.contains("i32"));
+}</code></pre>
+<p>This test will FAIL because <code>transpile()</code> doesn't exist yet.</p>
+<h3 id="-green-write-minimal-code-to-pass"><a class="header" href="#-green-write-minimal-code-to-pass">🟢 GREEN: Write Minimal Code to Pass</a></h3>
+<p>Write just enough code to make the test pass:</p>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn transpile(c_code: &amp;str) -&gt; Result&lt;String&gt; {
+    // Minimal implementation
+    let parser = CParser::new()?;
+    let ast = parser.parse(c_code)?;
+    let hir = HirFunction::from_ast_function(&amp;ast.functions()[0]);
+    let codegen = CodeGenerator::new();
+    Ok(codegen.generate_function(&amp;hir))
+}
+<span class="boring">}</span></code></pre></pre>
+<p>Run <code>cargo test</code> - the test should now PASS ✅</p>
+<h3 id="-refactor-improve-while-keeping-green"><a class="header" href="#-refactor-improve-while-keeping-green">♻️ REFACTOR: Improve While Keeping Green</a></h3>
+<p>Now refactor for quality while keeping tests green:</p>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn transpile(c_code: &amp;str) -&gt; Result&lt;String&gt; {
+    // Step 1: Parse C code
+    let parser = CParser::new()
+        .context("Failed to create C parser")?;
+    let ast = parser.parse(c_code)
+        .context("Failed to parse C code")?;
+
+    // Step 2: Convert to HIR
+    let hir_functions: Vec&lt;HirFunction&gt; = ast
+        .functions()
+        .iter()
+        .map(HirFunction::from_ast_function)
+        .collect();
+
+    // Step 3: Generate Rust code
+    let code_generator = CodeGenerator::new();
+    let mut rust_code = String::new();
+
+    for func in &amp;hir_functions {
+        let generated = code_generator.generate_function(func);
+        rust_code.push_str(&amp;generated);
+        rust_code.push('\n');
+    }
+
+    Ok(rust_code)
+}
+<span class="boring">}</span></code></pre></pre>
+<p>All tests still pass ✅ but code is cleaner!</p>
+<h2 id="quality-requirements"><a class="header" href="#quality-requirements">Quality Requirements</a></h2>
+<p>EXTREME TDD enforces strict quality gates:</p>
+<h3 id="-coverage-80-at-all-times"><a class="header" href="#-coverage-80-at-all-times">✅ Coverage: ≥80% at ALL Times</a></h3>
+<pre><code class="language-bash">cargo llvm-cov --lcov --output-path coverage.lcov
+# Coverage must be ≥80% or commit is BLOCKED
+</code></pre>
+<p><strong>Example from DECY:</strong></p>
+<pre><code>decy-parser/     : 87.3% coverage ✅
+decy-hir/        : 91.2% coverage ✅
+decy-ownership/  : 93.4% coverage ✅
+decy-codegen/    : 94.1% coverage ✅
+──────────────────────────────────────
+Overall          : 93.37% coverage ✅
+</code></pre>
+<h3 id="-mutation-testing-90-kill-rate"><a class="header" href="#-mutation-testing-90-kill-rate">✅ Mutation Testing: ≥90% Kill Rate</a></h3>
+<p>Mutation testing introduces bugs into your code to verify tests catch them:</p>
+<pre><code class="language-bash">cargo mutants --in-diff origin/main
+# ≥90% of mutants must be caught
+</code></pre>
+<p><strong>Example mutation:</strong></p>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// Original code
+fn add(a: i32, b: i32) -&gt; i32 {
+    a + b  // ← Mutation: change + to -
+}
+
+// Mutant version
+fn add(a: i32, b: i32) -&gt; i32 {
+    a - b  // ← If tests don't fail, BAD TESTS!
+}
+<span class="boring">}</span></code></pre></pre>
+<p>Good tests will catch this mutant:</p>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[test]
+fn test_add() {
+    assert_eq!(add(2, 3), 5);  // Fails with mutant (2-3 = -1) ✅
+}
+<span class="boring">}</span></code></pre></pre>
+<h3 id="-clippy-zero-warnings"><a class="header" href="#-clippy-zero-warnings">✅ Clippy: Zero Warnings</a></h3>
+<pre><code class="language-bash">cargo clippy --all-targets -- -D warnings
+# ANY warning = build fails
+</code></pre>
+<p><strong>Example clippy fix:</strong></p>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// ❌ Clippy warning: using len() == 0
+if items.len() == 0 {
+    return None;
+}
+
+// ✅ Fixed: use is_empty()
+if items.is_empty() {
+    return None;
+}
+<span class="boring">}</span></code></pre></pre>
+<h3 id="-property-testing-100-properties"><a class="header" href="#-property-testing-100-properties">✅ Property Testing: 100+ Properties</a></h3>
+<p>Test invariants with randomized inputs:</p>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use proptest::prelude::*;
+
+proptest! {
+    #[test]
+    fn prop_transpilation_deterministic(c_code in c_code_generator()) {
+        let output1 = transpile(&amp;c_code).unwrap();
+        let output2 = transpile(&amp;c_code).unwrap();
+
+        // Property: Same input → same output
+        prop_assert_eq!(output1, output2);
+    }
+
+    #[test]
+    fn prop_generated_rust_compiles(c_code in valid_c_code()) {
+        let rust_code = transpile(&amp;c_code).unwrap();
+
+        // Property: Generated code must compile
+        prop_assert!(compile_rust(&amp;rust_code).is_ok());
+    }
+
+    #[test]
+    fn prop_no_unsafe_blocks(c_code in memory_safe_c()) {
+        let rust_code = transpile(&amp;c_code).unwrap();
+
+        // Property: Safe C → no unsafe Rust
+        prop_assert!(!rust_code.contains("unsafe"));
+    }
+}
+<span class="boring">}</span></code></pre></pre>
+<p>These run 1000+ times each with different random inputs!</p>
+<h3 id="-zero-satd-technical-debt"><a class="header" href="#-zero-satd-technical-debt">✅ Zero SATD (Technical Debt)</a></h3>
+<p><strong>SATD (Self-Admitted Technical Debt)</strong> is forbidden:</p>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// ❌ BLOCKED by pre-commit hook
+// TODO: implement this later
+// FIXME: this is broken
+// HACK: workaround for bug
+
+// ✅ Allowed: explain WHY, not WHAT
+// Use single lifetime for simplicity - multiple lifetimes require
+// dependency analysis which is tracked in DECY-018
+<span class="boring">}</span></code></pre></pre>
+<h2 id="test-types"><a class="header" href="#test-types">Test Types</a></h2>
+<p>DECY uses multiple test types for comprehensive coverage:</p>
+<h3 id="1-unit-tests"><a class="header" href="#1-unit-tests">1. Unit Tests</a></h3>
+<p>Test individual functions:</p>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[test]
+fn test_map_type_int() {
+    assert_eq!(CodeGenerator::map_type(&amp;HirType::Int), "i32");
+}
+
+#[test]
+fn test_map_type_pointer() {
+    let ptr = HirType::Pointer(Box::new(HirType::Int));
+    assert_eq!(CodeGenerator::map_type(&amp;ptr), "*mut i32");
+}
+<span class="boring">}</span></code></pre></pre>
+<h3 id="2-integration-tests"><a class="header" href="#2-integration-tests">2. Integration Tests</a></h3>
+<p>Test complete workflows:</p>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[test]
+fn test_end_to_end_transpilation() {
+    let c_code = r#"
+        int calculate(int a, int b) {
+            int result = a + b;
+            return result;
+        }
+    "#;
+
+    let rust_code = transpile(c_code).unwrap();
+
+    assert!(rust_code.contains("fn calculate"));
+    assert!(rust_code.contains("let mut result"));
+    assert!(rust_code.contains("i32"));
+}
+<span class="boring">}</span></code></pre></pre>
+<h3 id="3-property-tests"><a class="header" href="#3-property-tests">3. Property Tests</a></h3>
+<p>Test invariants with random inputs:</p>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>proptest! {
+    #[test]
+    fn prop_parser_never_panics(input in "\\PC*") {
+        // Parser should never panic, even with garbage input
+        let _ = CParser::new().unwrap().parse(&amp;input);
+    }
+}
+<span class="boring">}</span></code></pre></pre>
+<h3 id="4-doc-tests"><a class="header" href="#4-doc-tests">4. Doc Tests</a></h3>
+<p>Test documentation examples:</p>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>/// Transpile C code to Rust.
+///
+/// # Examples
+///
+/// ```
+/// use decy_core::transpile;
+///
+/// let c_code = "int add(int a, int b) { return a + b; }";
+/// let rust_code = transpile(c_code)?;
+/// assert!(rust_code.contains("fn add"));
+/// # Ok::&lt;(), anyhow::Error&gt;(())
+/// ```
+pub fn transpile(c_code: &amp;str) -&gt; Result&lt;String&gt; {
+    // ...
+}
+<span class="boring">}</span></code></pre></pre>
+<p>Run with <code>cargo test --doc</code> - examples MUST work!</p>
+<h3 id="5-mutation-tests"><a class="header" href="#5-mutation-tests">5. Mutation Tests</a></h3>
+<p>Verify test quality by introducing bugs:</p>
+<pre><code class="language-bash">cargo mutants --test-tool=nextest \
+              --timeout=120 \
+              --in-diff origin/main
+</code></pre>
+<p>Example output:</p>
+<pre><code>Mutation testing results:
+  Caught: 234 mutants (94.3%) ✅
+  Missed:  14 mutants (5.7%)  ⚠️
+  Timeout: 0 mutants
+──────────────────────────────────
+Kill rate: 94.3% (target: ≥90%) ✅
+</code></pre>
+<h2 id="commit-strategy"><a class="header" href="#commit-strategy">Commit Strategy</a></h2>
+<p>Every commit follows this format:</p>
+<pre><code>[RED] DECY-XXX: Add failing tests for &lt;feature&gt;
+[GREEN] DECY-XXX: Implement &lt;feature&gt; to pass tests
+[REFACTOR] DECY-XXX: Refactor &lt;feature&gt; for quality
+</code></pre>
+<p>Or squashed:</p>
+<pre><code>DECY-XXX: &lt;Feature title&gt;
+
+- Implemented &lt;requirement 1&gt;
+- Implemented &lt;requirement 2&gt;
+- Added N tests (unit, property, integration)
+- Coverage: X% (target: ≥80%)
+- Mutation score: Y% (target: ≥90%)
+- Quality grade: A+ (98/100)
+
+Closes #XXX
+</code></pre>
+<h2 id="pre-commit-hooks"><a class="header" href="#pre-commit-hooks">Pre-Commit Hooks</a></h2>
+<p>Quality gates run BEFORE commit:</p>
+<pre><code class="language-bash">#!/bin/bash
+# .git/hooks/pre-commit
+
+# 1. Check coverage ≥80%
+cargo llvm-cov || exit 1
+
+# 2. Check linting
+cargo clippy -- -D warnings || exit 1
+
+# 3. Check formatting
+cargo fmt -- --check || exit 1
+
+# 4. Check SATD
+git diff --cached | grep -E "TODO|FIXME|HACK" &amp;&amp; exit 1
+
+# 5. Check tests pass
+cargo test || exit 1
+</code></pre>
+<h2 id="example-adding-a-feature"><a class="header" href="#example-adding-a-feature">Example: Adding a Feature</a></h2>
+<p>Let's add ownership inference for malloc/free:</p>
+<h3 id="step-1-red---write-failing-test"><a class="header" href="#step-1-red---write-failing-test">Step 1: RED - Write Failing Test</a></h3>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[test]
+fn test_malloc_becomes_box() {
+    let c_code = "int* p = malloc(sizeof(int));";
+    let ownership = infer_ownership(c_code).unwrap();
+
+    assert_eq!(ownership.pattern, OwnershipPattern::Owning);
+    assert_eq!(ownership.rust_type, "Box&lt;i32&gt;");
+}
+<span class="boring">}</span></code></pre></pre>
+<p>Run: <code>cargo test</code> → ❌ FAILS (function doesn't exist)</p>
+<h3 id="step-2-green---minimal-implementation"><a class="header" href="#step-2-green---minimal-implementation">Step 2: GREEN - Minimal Implementation</a></h3>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn infer_ownership(c_code: &amp;str) -&gt; Result&lt;OwnershipInfo&gt; {
+    // Minimal code to pass test
+    if c_code.contains("malloc") {
+        return Ok(OwnershipInfo {
+            pattern: OwnershipPattern::Owning,
+            rust_type: "Box&lt;i32&gt;".to_string(),
+        });
+    }
+    Err(anyhow!("Not implemented"))
+}
+<span class="boring">}</span></code></pre></pre>
+<p>Run: <code>cargo test</code> → ✅ PASSES</p>
+<h3 id="step-3-refactor---add-quality"><a class="header" href="#step-3-refactor---add-quality">Step 3: REFACTOR - Add Quality</a></h3>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn infer_ownership(c_code: &amp;str) -&gt; Result&lt;OwnershipInfo&gt; {
+    let parser = CParser::new()?;
+    let ast = parser.parse(c_code)?;
+
+    let analyzer = DataflowAnalyzer::new();
+    let graph = analyzer.analyze(&amp;ast);
+
+    let inferencer = OwnershipInferencer::new();
+    let inferences = inferencer.infer(&amp;graph);
+
+    Ok(inferences[0].clone())
+}
+<span class="boring">}</span></code></pre></pre>
+<p>Add more tests:</p>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>proptest! {
+    #[test]
+    fn prop_malloc_always_owning(size in 1..1024usize) {
+        let c_code = format!("int* p = malloc({});", size);
+        let ownership = infer_ownership(&amp;c_code).unwrap();
+        prop_assert_eq!(ownership.pattern, OwnershipPattern::Owning);
+    }
+}
+<span class="boring">}</span></code></pre></pre>
+<p>Run: <code>cargo test</code> → ✅ ALL PASS</p>
+<p>Check coverage: <code>cargo llvm-cov</code> → 94.2% ✅</p>
+<p>Run clippy: <code>cargo clippy</code> → 0 warnings ✅</p>
+<p>Commit:</p>
+<pre><code class="language-bash">git commit -m "DECY-012: Ownership inference for malloc/free
+
+- Implemented dataflow-based ownership analysis
+- Added detection of malloc → Box&lt;T&gt; pattern
+- Added 15 tests (unit, property, integration)
+- Coverage: 94.2% (target: ≥80%)
+- Mutation score: 92.1% (target: ≥90%)
+</code></pre>
+<h2 id="benefits-of-extreme-tdd"><a class="header" href="#benefits-of-extreme-tdd">Benefits of EXTREME TDD</a></h2>
+<ol>
+<li><strong>Confidence</strong>: Every feature is proven to work</li>
+<li><strong>Regression Prevention</strong>: Tests catch breaking changes</li>
+<li><strong>Documentation</strong>: Tests show how to use the API</li>
+<li><strong>Refactoring Safety</strong>: Change internals without breaking behavior</li>
+<li><strong>Quality</strong>: Enforced by automated gates</li>
+</ol>
+<h2 id="next-steps"><a class="header" href="#next-steps">Next Steps</a></h2>
+<ul>
+<li><a href="methodology/./quality-gates.html">Quality Gates</a> - Learn about the enforcement mechanisms</li>
+<li><a href="methodology/./property-testing.html">Property Testing</a> - Deep dive into property-based testing</li>
+<li><a href="methodology/./mutation-testing.html">Mutation Testing</a> - Verify your tests are good</li>
+</ul>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="quality-gates"><a class="header" href="#quality-gates">Quality Gates</a></h1>
+<p>DECY enforces quality through <strong>automated gates</strong> that block commits unless strict standards are met.</p>
+<h2 id="the-quality-gate-pipeline"><a class="header" href="#the-quality-gate-pipeline">The Quality Gate Pipeline</a></h2>
+<p>Every change must pass these gates BEFORE merging:</p>
+<pre><code>┌─────────────┐
+│  git commit │
+└──────┬──────┘
+       │
+       ▼
+┌─────────────────┐
+│  Pre-commit     │ ← Runs locally before commit
+│  Hooks          │
+└──────┬──────────┘
+       │
+       ▼
+┌─────────────────┐
+│  CI/CD          │ ← Runs on GitHub Actions
+│  Pipeline       │
+└──────┬──────────┘
+       │
+       ▼
+┌─────────────────┐
+│  Merge to main  │ ← Only if ALL gates pass
+└─────────────────┘
+</code></pre>
+<h2 id="gate-1-test-coverage-80"><a class="header" href="#gate-1-test-coverage-80">Gate 1: Test Coverage ≥80%</a></h2>
+<h3 id="enforcement"><a class="header" href="#enforcement">Enforcement</a></h3>
+<pre><code class="language-bash">cargo llvm-cov --lcov --output-path coverage.lcov
+</code></pre>
+<p><strong>Pass Criteria</strong>: Overall coverage ≥80%</p>
+<h3 id="example-output"><a class="header" href="#example-output">Example Output</a></h3>
+<pre><code>Filename                      Regions    Missed Regions     Cover
+────────────────────────────────────────────────────────────────
+decy-parser/src/lib.rs            245                32    86.94%
+decy-hir/src/lib.rs               189                17    91.00%
+decy-ownership/src/lib.rs         312                21    93.27%
+decy-codegen/src/lib.rs           421                25    94.06%
+────────────────────────────────────────────────────────────────
+TOTAL                            1167                95    91.86% ✅
+</code></pre>
+<h3 id="coverage-configuration"><a class="header" href="#coverage-configuration">Coverage Configuration</a></h3>
+<p>Create <code>llvm-cov.toml</code>:</p>
+<pre><code class="language-toml">[llvm-cov]
+target-dir = "target"
+html = true
+open = false
+ignore-filename-regex = [
+    "tests/",
+    "benches/",
+]
+
+[report]
+fail-under-lines = 80
+fail-under-functions = 80
+</code></pre>
+<h3 id="what-counts-as-covered"><a class="header" href="#what-counts-as-covered">What Counts as Covered?</a></h3>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// ✅ COVERED: Line executed by test
+pub fn add(a: i32, b: i32) -&gt; i32 {
+    a + b  // ← Test calls this
+}
+
+// ❌ NOT COVERED: Unreachable code
+pub fn unreachable_branch(x: i32) -&gt; i32 {
+    if x &gt; 0 {
+        return x;  // ← Covered
+    }
+    panic!("Never happens");  // ← NOT covered (needs test!)
+}
+<span class="boring">}</span></code></pre></pre>
+<h2 id="gate-2-mutation-testing-90"><a class="header" href="#gate-2-mutation-testing-90">Gate 2: Mutation Testing ≥90%</a></h2>
+<h3 id="enforcement-1"><a class="header" href="#enforcement-1">Enforcement</a></h3>
+<pre><code class="language-bash">cargo mutants --in-diff origin/main --timeout 120
+</code></pre>
+<p><strong>Pass Criteria</strong>: ≥90% of mutants caught by tests</p>
+<h3 id="example-mutants"><a class="header" href="#example-mutants">Example Mutants</a></h3>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// Original code
+fn is_pointer(ty: &amp;HirType) -&gt; bool {
+    matches!(ty, HirType::Pointer(_))
+}
+
+// Mutant 1: Replace true with false
+fn is_pointer(ty: &amp;HirType) -&gt; bool {
+    false  // ← Mutant: always return false
+}
+
+// Mutant 2: Negate condition
+fn is_pointer(ty: &amp;HirType) -&gt; bool {
+    !matches!(ty, HirType::Pointer(_))  // ← Mutant: invert logic
+}
+<span class="boring">}</span></code></pre></pre>
+<p>Good tests will catch these:</p>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[test]
+fn test_is_pointer_detects_pointers() {
+    let ptr = HirType::Pointer(Box::new(HirType::Int));
+    assert!(is_pointer(&amp;ptr));  // ← Catches Mutant 1 and 2!
+}
+
+#[test]
+fn test_is_pointer_rejects_non_pointers() {
+    assert!(!is_pointer(&amp;HirType::Int));  // ← Catches Mutant 2!
+}
+<span class="boring">}</span></code></pre></pre>
+<h3 id="mutation-report"><a class="header" href="#mutation-report">Mutation Report</a></h3>
+<pre><code>Mutation testing results:
+  Caught:   234 mutants (94.3%) ✅
+  Missed:    14 mutants (5.7%)  ⚠️
+  Timeout:    0 mutants
+  Unviable:   3 mutants
+─────────────────────────────────────
+Kill rate: 94.3% (target: ≥90%) ✅
+</code></pre>
+<h3 id="common-missed-mutants"><a class="header" href="#common-missed-mutants">Common Missed Mutants</a></h3>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// ❌ BAD: Only tests one value
+#[test]
+fn test_add() {
+    assert_eq!(add(0, 0), 0);  // Passes even with "return 0" mutant!
+}
+
+// ✅ GOOD: Tests multiple values
+#[test]
+fn test_add() {
+    assert_eq!(add(2, 3), 5);   // Catches "return 0" mutant
+    assert_eq!(add(-1, 1), 0);  // Catches "return a" mutant
+    assert_eq!(add(10, 5), 15); // Catches "return b" mutant
+}
+<span class="boring">}</span></code></pre></pre>
+<h2 id="gate-3-clippy-with-zero-warnings"><a class="header" href="#gate-3-clippy-with-zero-warnings">Gate 3: Clippy with Zero Warnings</a></h2>
+<h3 id="enforcement-2"><a class="header" href="#enforcement-2">Enforcement</a></h3>
+<pre><code class="language-bash">cargo clippy --all-targets --all-features -- -D warnings
+</code></pre>
+<p><strong>Pass Criteria</strong>: Zero warnings, zero errors</p>
+<h3 id="clippy-configuration"><a class="header" href="#clippy-configuration">Clippy Configuration</a></h3>
+<p>Create <code>.cargo/config.toml</code>:</p>
+<pre><code class="language-toml">[target.'cfg(all())']
+rustflags = [
+    "-D", "warnings",
+    "-D", "clippy::all",
+    "-D", "clippy::pedantic",
+    "-D", "clippy::cargo",
+]
+</code></pre>
+<h3 id="common-clippy-issues"><a class="header" href="#common-clippy-issues">Common Clippy Issues</a></h3>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// ❌ Clippy: unnecessary `return` statement
+fn add(a: i32, b: i32) -&gt; i32 {
+    return a + b;
+}
+
+// ✅ Fixed: implicit return
+fn add(a: i32, b: i32) -&gt; i32 {
+    a + b
+}
+
+// ❌ Clippy: using `len() == 0` instead of `is_empty()`
+if vec.len() == 0 {
+    return None;
+}
+
+// ✅ Fixed: use `is_empty()`
+if vec.is_empty() {
+    return None;
+}
+
+// ❌ Clippy: needless borrow
+fn process(s: &amp;String) {
+    println!("{}", s);
+}
+
+// ✅ Fixed: use string slice
+fn process(s: &amp;str) {
+    println!("{}", s);
+}
+<span class="boring">}</span></code></pre></pre>
+<h2 id="gate-4-formatting-with-rustfmt"><a class="header" href="#gate-4-formatting-with-rustfmt">Gate 4: Formatting with rustfmt</a></h2>
+<h3 id="enforcement-3"><a class="header" href="#enforcement-3">Enforcement</a></h3>
+<pre><code class="language-bash">cargo fmt -- --check
+</code></pre>
+<p><strong>Pass Criteria</strong>: No formatting changes needed</p>
+<h3 id="rustfmt-configuration"><a class="header" href="#rustfmt-configuration">rustfmt Configuration</a></h3>
+<p>Create <code>rustfmt.toml</code>:</p>
+<pre><code class="language-toml">edition = "2021"
+max_width = 100
+tab_spaces = 4
+newline_style = "Unix"
+use_small_heuristics = "Default"
+reorder_imports = true
+reorder_modules = true
+remove_nested_parens = true
+format_code_in_doc_comments = true
+normalize_comments = true
+wrap_comments = true
+</code></pre>
+<h3 id="auto-fix"><a class="header" href="#auto-fix">Auto-fix</a></h3>
+<pre><code class="language-bash"># Fix formatting automatically
+cargo fmt
+</code></pre>
+<h2 id="gate-5-zero-satd-comments"><a class="header" href="#gate-5-zero-satd-comments">Gate 5: Zero SATD Comments</a></h2>
+<h3 id="enforcement-4"><a class="header" href="#enforcement-4">Enforcement</a></h3>
+<pre><code class="language-bash"># Pre-commit hook checks for SATD
+git diff --cached | grep -E "TODO|FIXME|HACK|XXX" &amp;&amp; exit 1
+</code></pre>
+<p><strong>Pass Criteria</strong>: No TODO/FIXME/HACK/XXX comments</p>
+<h3 id="examples"><a class="header" href="#examples">Examples</a></h3>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// ❌ BLOCKED: Self-Admitted Technical Debt
+// TODO: implement this later
+// FIXME: this is broken
+// HACK: workaround for bug
+// XXX: needs refactoring
+
+// ✅ ALLOWED: Explanatory comments
+// Use single lifetime for simplicity - multiple lifetimes require
+// dependency analysis which is tracked in DECY-018
+
+// ✅ ALLOWED: Documentation
+/// Returns the ownership pattern for the given variable.
+/// This uses dataflow analysis to determine if the variable
+/// is owned, borrowed, or has a static lifetime.
+<span class="boring">}</span></code></pre></pre>
+<h2 id="gate-6-documentation-coverage"><a class="header" href="#gate-6-documentation-coverage">Gate 6: Documentation Coverage</a></h2>
+<h3 id="enforcement-5"><a class="header" href="#enforcement-5">Enforcement</a></h3>
+<pre><code class="language-bash">cargo doc --no-deps --document-private-items
+</code></pre>
+<p><strong>Pass Criteria</strong>: All public items documented</p>
+<h3 id="example"><a class="header" href="#example">Example</a></h3>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// ❌ Missing documentation
+pub fn transpile(c_code: &amp;str) -&gt; Result&lt;String&gt; {
+    // ...
+}
+
+// ✅ Documented
+/// Transpiles C code to Rust.
+///
+/// # Arguments
+///
+/// * `c_code` - The C source code to transpile
+///
+/// # Returns
+///
+/// Returns the transpiled Rust code or an error if parsing fails.
+///
+/// # Examples
+///
+/// ```
+/// use decy_core::transpile;
+///
+/// let c_code = "int add(int a, int b) { return a + b; }";
+/// let rust_code = transpile(c_code)?;
+/// # Ok::&lt;(), anyhow::Error&gt;(())
+/// ```
+pub fn transpile(c_code: &amp;str) -&gt; Result&lt;String&gt; {
+    // ...
+}
+<span class="boring">}</span></code></pre></pre>
+<h2 id="gate-7-doc-tests-pass"><a class="header" href="#gate-7-doc-tests-pass">Gate 7: Doc Tests Pass</a></h2>
+<h3 id="enforcement-6"><a class="header" href="#enforcement-6">Enforcement</a></h3>
+<pre><code class="language-bash">cargo test --doc
+</code></pre>
+<p><strong>Pass Criteria</strong>: All documentation examples compile and pass</p>
+<h3 id="example-1"><a class="header" href="#example-1">Example</a></h3>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>/// Parses C code into an AST.
+///
+/// # Examples
+///
+/// ```
+/// use decy_parser::CParser;
+///
+/// let parser = CParser::new()?;
+/// let ast = parser.parse("int x = 5;")?;
+/// assert_eq!(ast.statements().len(), 1);
+/// # Ok::&lt;(), anyhow::Error&gt;(())
+/// ```
+pub fn parse(&amp;self, code: &amp;str) -&gt; Result&lt;Ast&gt; {
+    // ...
+}
+<span class="boring">}</span></code></pre></pre>
+<p>This example will be compiled and run by <code>cargo test --doc</code>!</p>
+<h2 id="gate-8-benchmark-performance"><a class="header" href="#gate-8-benchmark-performance">Gate 8: Benchmark Performance</a></h2>
+<h3 id="enforcement-7"><a class="header" href="#enforcement-7">Enforcement</a></h3>
+<pre><code class="language-bash">cargo bench --bench transpile_bench
+</code></pre>
+<p><strong>Pass Criteria</strong>: No regressions &gt;5%</p>
+<h3 id="example-benchmark"><a class="header" href="#example-benchmark">Example Benchmark</a></h3>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use criterion::{black_box, criterion_group, criterion_main, Criterion};
+
+fn benchmark_transpile(c: &amp;mut Criterion) {
+    let c_code = "int add(int a, int b) { return a + b; }";
+
+    c.bench_function("transpile_simple_function", |b| {
+        b.iter(|| {
+            transpile(black_box(c_code)).unwrap()
+        });
+    });
+}
+
+criterion_group!(benches, benchmark_transpile);
+criterion_main!(benches);
+<span class="boring">}</span></code></pre></pre>
+<h2 id="pre-commit-hook"><a class="header" href="#pre-commit-hook">Pre-Commit Hook</a></h2>
+<p>Create <code>.git/hooks/pre-commit</code>:</p>
+<pre><code class="language-bash">#!/bin/bash
+set -e
+
+echo "🔍 Running pre-commit quality gates..."
+
+# Gate 1: Format check
+echo "  ✓ Checking formatting..."
+cargo fmt -- --check || {
+    echo "❌ Code is not formatted. Run: cargo fmt"
+    exit 1
+}
+
+# Gate 2: Clippy
+echo "  ✓ Running clippy..."
+cargo clippy --all-targets -- -D warnings || {
+    echo "❌ Clippy found issues"
+    exit 1
+}
+
+# Gate 3: SATD check
+echo "  ✓ Checking for SATD comments..."
+if git diff --cached | grep -E "TODO|FIXME|HACK|XXX"; then
+    echo "❌ SATD comments detected (TODO/FIXME/HACK/XXX)"
+    exit 1
+fi
+
+# Gate 4: Tests
+echo "  ✓ Running tests..."
+cargo test --quiet || {
+    echo "❌ Tests failed"
+    exit 1
+}
+
+# Gate 5: Coverage (local check, full check in CI)
+echo "  ✓ Checking coverage..."
+cargo llvm-cov --quiet || {
+    echo "❌ Coverage check failed"
+    exit 1
+}
+
+echo "✅ All pre-commit gates passed!"
+</code></pre>
+<p>Make it executable:</p>
+<pre><code class="language-bash">chmod +x .git/hooks/pre-commit
+</code></pre>
+<h2 id="cicd-pipeline"><a class="header" href="#cicd-pipeline">CI/CD Pipeline</a></h2>
+<p>GitHub Actions workflow (<code>.github/workflows/quality-gates.yml</code>):</p>
+<pre><code class="language-yaml">name: Quality Gates
+
+on: [push, pull_request]
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          components: clippy, rustfmt
+
+      - name: Install tools
+        run: |
+          cargo install cargo-llvm-cov cargo-mutants
+
+      - name: Check formatting
+        run: cargo fmt -- --check
+
+      - name: Run clippy
+        run: cargo clippy --all-targets -- -D warnings
+
+      - name: Run tests
+        run: cargo test --all-features
+
+      - name: Check coverage
+        run: |
+          cargo llvm-cov --lcov --output-path coverage.lcov
+          # Fail if coverage &lt; 80%
+          cargo llvm-cov report --fail-under-lines 80
+
+      - name: Run mutation tests
+        run: |
+          cargo mutants --in-diff origin/main --timeout 120
+
+      - name: Upload coverage
+        uses: codecov/codecov-action@v3
+        with:
+          files: coverage.lcov
+</code></pre>
+<h2 id="quality-dashboard"><a class="header" href="#quality-dashboard">Quality Dashboard</a></h2>
+<p>Track metrics over time:</p>
+<pre><code>┌─────────────────────────────────────────────┐
+│ DECY Quality Dashboard                      │
+├─────────────────────────────────────────────┤
+│ Test Coverage:      93.37% ✅ (target: 80%) │
+│ Mutation Score:     94.30% ✅ (target: 90%) │
+│ Clippy Warnings:         0 ✅               │
+│ SATD Comments:           0 ✅               │
+│ Doc Coverage:      100.00% ✅               │
+│ Build Time:          2m 34s                 │
+│ Test Time:           1m 12s                 │
+└─────────────────────────────────────────────┘
+</code></pre>
+<h2 id="summary"><a class="header" href="#summary">Summary</a></h2>
+<p>Quality gates ensure:</p>
+<p>✅ <strong>Coverage ≥80%</strong>: All code paths tested
+✅ <strong>Mutation ≥90%</strong>: Tests are effective
+✅ <strong>Clippy clean</strong>: Best practices followed
+✅ <strong>Formatted</strong>: Consistent style
+✅ <strong>Zero SATD</strong>: No technical debt
+✅ <strong>Documented</strong>: All APIs explained
+✅ <strong>Doc tests pass</strong>: Examples work
+✅ <strong>Benchmarks</strong>: No regressions</p>
+<p>These gates are <strong>automated</strong> and <strong>enforced</strong> - no exceptions!</p>
+<h2 id="next-steps-1"><a class="header" href="#next-steps-1">Next Steps</a></h2>
+<ul>
+<li><a href="methodology/./property-testing.html">Property Testing</a> - Testing invariants</li>
+<li><a href="methodology/./mutation-testing.html">Mutation Testing</a> - Deep dive into mutation testing</li>
+</ul>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="property-testing"><a class="header" href="#property-testing">Property Testing</a></h1>
+<p>Property testing verifies <strong>invariants</strong> that should hold for ALL inputs, not just specific test cases.</p>
+<h2 id="philosophy-1"><a class="header" href="#philosophy-1">Philosophy</a></h2>
+<p>Traditional unit tests check specific examples:</p>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[test]
+fn test_add() {
+    assert_eq!(add(2, 3), 5);  // Only tests ONE input
+}
+<span class="boring">}</span></code></pre></pre>
+<p>Property tests check invariants across THOUSANDS of random inputs:</p>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>proptest! {
+    #[test]
+    fn prop_add_commutative(a: i32, b: i32) {
+        // Property: addition is commutative for ALL inputs
+        prop_assert_eq!(add(a, b), add(b, a));
+    }
+}
+<span class="boring">}</span></code></pre></pre>
+<p>This runs 1000+ times with random values!</p>
+<h2 id="proptest-framework"><a class="header" href="#proptest-framework">proptest Framework</a></h2>
+<p>DECY uses the <code>proptest</code> crate for property-based testing.</p>
+<h3 id="installation"><a class="header" href="#installation">Installation</a></h3>
+<p>Add to <code>Cargo.toml</code>:</p>
+<pre><code class="language-toml">[dev-dependencies]
+proptest = "1.4"
+</code></pre>
+<h3 id="basic-example"><a class="header" href="#basic-example">Basic Example</a></h3>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use proptest::prelude::*;
+
+proptest! {
+    #[test]
+    fn prop_reverse_twice_is_identity(vec in prop::collection::vec(any::&lt;i32&gt;(), 0..100)) {
+        let reversed_twice = vec.iter().rev().rev().collect::&lt;Vec&lt;_&gt;&gt;();
+        prop_assert_eq!(vec, reversed_twice);
+    }
+}
+<span class="boring">}</span></code></pre></pre>
+<h2 id="properties-in-decy"><a class="header" href="#properties-in-decy">Properties in DECY</a></h2>
+<h3 id="property-1-deterministic-transpilation"><a class="header" href="#property-1-deterministic-transpilation">Property 1: Deterministic Transpilation</a></h3>
+<p>Same C code → same Rust output (always):</p>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use proptest::prelude::*;
+
+proptest! {
+    #[test]
+    fn prop_transpilation_deterministic(
+        func_name in "[a-z]{3,10}",
+        param1 in "[a-z]{1,5}",
+        param2 in "[a-z]{1,5}",
+    ) {
+        let c_code = format!(
+            "int {}(int {}, int {}) {{ return {} + {}; }}",
+            func_name, param1, param2, param1, param2
+        );
+
+        let output1 = transpile(&amp;c_code).unwrap();
+        let output2 = transpile(&amp;c_code).unwrap();
+
+        // Property: Transpilation is deterministic
+        prop_assert_eq!(output1, output2);
+    }
+}
+<span class="boring">}</span></code></pre></pre>
+<h3 id="property-2-function-names-preserved"><a class="header" href="#property-2-function-names-preserved">Property 2: Function Names Preserved</a></h3>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>proptest! {
+    #[test]
+    fn prop_function_names_preserved(func_name in "[a-z_][a-z0-9_]{2,20}") {
+        let c_code = format!("int {}() {{ return 0; }}", func_name);
+        let rust_code = transpile(&amp;c_code).unwrap();
+
+        // Property: Function name appears in output
+        prop_assert!(
+            rust_code.contains(&amp;format!("fn {}", func_name)),
+            "Expected 'fn {}' in output",
+            func_name
+        );
+    }
+}
+<span class="boring">}</span></code></pre></pre>
+<h3 id="property-3-valid-rust-output"><a class="header" href="#property-3-valid-rust-output">Property 3: Valid Rust Output</a></h3>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>proptest! {
+    #[test]
+    fn prop_output_is_valid_rust(c_code in valid_c_function()) {
+        let rust_code = transpile(&amp;c_code).unwrap();
+
+        // Property: Output compiles as valid Rust
+        prop_assert!(
+            compile_rust(&amp;rust_code).is_ok(),
+            "Generated Rust must compile:\n{}",
+            rust_code
+        );
+    }
+}
+<span class="boring">}</span></code></pre></pre>
+<h3 id="property-4-type-safety"><a class="header" href="#property-4-type-safety">Property 4: Type Safety</a></h3>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>proptest! {
+    #[test]
+    fn prop_int_maps_to_i32(func_name in "[a-z]{3,10}") {
+        let c_code = format!("int {}() {{ return 0; }}", func_name);
+        let rust_code = transpile(&amp;c_code).unwrap();
+
+        // Property: C 'int' → Rust 'i32'
+        prop_assert!(
+            rust_code.contains("i32"),
+            "int functions should use i32"
+        );
+    }
+
+    #[test]
+    fn prop_pointers_map_to_references(ty in c_type_generator()) {
+        let c_code = format!("{}* func() {{ return 0; }}", ty);
+        let rust_code = transpile(&amp;c_code).unwrap();
+
+        // Property: Pointers become references or raw pointers
+        prop_assert!(
+            rust_code.contains("&amp;") || rust_code.contains("*"),
+            "Pointers should map to &amp; or *"
+        );
+    }
+}
+<span class="boring">}</span></code></pre></pre>
+<h3 id="property-5-no-memory-leaks"><a class="header" href="#property-5-no-memory-leaks">Property 5: No Memory Leaks</a></h3>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>proptest! {
+    #[test]
+    fn prop_malloc_has_drop(c_code in c_code_with_malloc()) {
+        let rust_code = transpile(&amp;c_code).unwrap();
+
+        // Property: malloc → Box (automatic drop)
+        if c_code.contains("malloc") {
+            prop_assert!(
+                rust_code.contains("Box::new") || rust_code.contains("Box&lt;"),
+                "malloc should become Box for automatic cleanup"
+            );
+        }
+    }
+}
+<span class="boring">}</span></code></pre></pre>
+<h3 id="property-6-borrow-checker-compliance"><a class="header" href="#property-6-borrow-checker-compliance">Property 6: Borrow Checker Compliance</a></h3>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>proptest! {
+    #[test]
+    fn prop_no_multiple_mutable_borrows(c_code in safe_c_code()) {
+        let rust_code = transpile(&amp;c_code).unwrap();
+
+        // Property: Generated code respects borrow checker
+        prop_assert!(
+            compile_with_borrowck(&amp;rust_code).is_ok(),
+            "Generated code must pass borrow checker"
+        );
+    }
+}
+<span class="boring">}</span></code></pre></pre>
+<h2 id="custom-generators"><a class="header" href="#custom-generators">Custom Generators</a></h2>
+<p>Generate valid C code for testing:</p>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use proptest::prelude::*;
+
+/// Generate valid C function names
+fn c_identifier() -&gt; impl Strategy&lt;Value = String&gt; {
+    "[a-z_][a-z0-9_]{2,20}"
+}
+
+/// Generate C type names
+fn c_type() -&gt; impl Strategy&lt;Value = String&gt; {
+    prop_oneof![
+        Just("int".to_string()),
+        Just("char".to_string()),
+        Just("void".to_string()),
+        Just("float".to_string()),
+        Just("double".to_string()),
+    ]
+}
+
+/// Generate C function with parameters
+fn c_function() -&gt; impl Strategy&lt;Value = String&gt; {
+    (c_type(), c_identifier(), prop::collection::vec(c_identifier(), 0..5))
+        .prop_map(|(ret_type, name, params)| {
+            if params.is_empty() {
+                format!("{} {}() {{ return 0; }}", ret_type, name)
+            } else {
+                let param_list = params
+                    .iter()
+                    .map(|p| format!("int {}", p))
+                    .collect::&lt;Vec&lt;_&gt;&gt;()
+                    .join(", ");
+                format!("{} {}({}) {{ return 0; }}", ret_type, name, param_list)
+            }
+        })
+}
+
+proptest! {
+    #[test]
+    fn prop_test_with_custom_generator(c_code in c_function()) {
+        let result = transpile(&amp;c_code);
+        prop_assert!(result.is_ok());
+    }
+}
+<span class="boring">}</span></code></pre></pre>
+<h2 id="shrinking"><a class="header" href="#shrinking">Shrinking</a></h2>
+<p>When a property fails, proptest <strong>shrinks</strong> the input to find the minimal failing case:</p>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>proptest! {
+    #[test]
+    fn prop_example_that_fails(x in 0..1000i32) {
+        // This will fail for x &gt;= 100
+        prop_assert!(x &lt; 100);
+    }
+}
+<span class="boring">}</span></code></pre></pre>
+<p>Output:</p>
+<pre><code>Test failed for input: 999
+Shrinking to minimal case...
+Minimal failing input: 100
+</code></pre>
+<p>Proptest automatically finds the SMALLEST input that causes failure!</p>
+<h2 id="stateful-testing"><a class="header" href="#stateful-testing">Stateful Testing</a></h2>
+<p>Test state machines with property tests:</p>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[derive(Debug, Clone)]
+enum Action {
+    Allocate(usize),
+    Free(usize),
+    Use(usize),
+}
+
+proptest! {
+    #[test]
+    fn prop_memory_state_machine(actions in prop::collection::vec(action_generator(), 0..50)) {
+        let mut state = MemoryState::new();
+
+        for action in actions {
+            match action {
+                Action::Allocate(id) =&gt; state.allocate(id),
+                Action::Free(id) =&gt; state.free(id),
+                Action::Use(id) =&gt; {
+                    // Property: Can only use allocated memory
+                    if !state.is_allocated(id) {
+                        prop_assert!(state.use_memory(id).is_err());
+                    }
+                }
+            }
+        }
+
+        // Property: No memory leaks at end
+        prop_assert!(state.all_freed());
+    }
+}
+<span class="boring">}</span></code></pre></pre>
+<h2 id="regression-testing"><a class="header" href="#regression-testing">Regression Testing</a></h2>
+<p>Save failing cases to prevent regressions:</p>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>proptest! {
+    #[test]
+    fn prop_transpile_never_panics(c_code in "\\PC*") {
+        // Should never panic, even with garbage input
+        let _ = transpile(&amp;c_code);
+    }
+}
+<span class="boring">}</span></code></pre></pre>
+<p>When a failure is found, proptest saves it to <code>proptest-regressions/</code>:</p>
+<pre><code>proptest-regressions/
+└── lib.proptest-regressions
+    └── prop_transpile_never_panics
+        └── cc 01234567 // Saved failing input
+</code></pre>
+<h2 id="configuration"><a class="header" href="#configuration">Configuration</a></h2>
+<p>Customize proptest behavior:</p>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>proptest! {
+    #![proptest_config(ProptestConfig {
+        cases: 10000,           // Run 10,000 times (default: 256)
+        max_shrink_iters: 10000, // Shrink more aggressively
+        timeout: 5000,          // 5 second timeout per test
+        ..ProptestConfig::default()
+    })]
+
+    #[test]
+    fn prop_intensive_test(input in any::&lt;Vec&lt;i32&gt;&gt;()) {
+        // This will run 10,000 times
+        prop_assert!(verify_invariant(&amp;input));
+    }
+}
+<span class="boring">}</span></code></pre></pre>
+<h2 id="decy-specific-properties"><a class="header" href="#decy-specific-properties">DECY-Specific Properties</a></h2>
+<h3 id="parser-properties"><a class="header" href="#parser-properties">Parser Properties</a></h3>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>proptest! {
+    #[test]
+    fn prop_parser_never_panics(input in "\\PC*") {
+        // Property: Parser should never panic
+        let _ = CParser::new().unwrap().parse(&amp;input);
+    }
+
+    #[test]
+    fn prop_parse_print_roundtrip(c_code in valid_c_code()) {
+        let ast = parse(&amp;c_code).unwrap();
+        let printed = ast.to_string();
+        let reparsed = parse(&amp;printed).unwrap();
+
+        // Property: Parse → print → parse = identity
+        prop_assert_eq!(ast, reparsed);
+    }
+}
+<span class="boring">}</span></code></pre></pre>
+<h3 id="hir-properties"><a class="header" href="#hir-properties">HIR Properties</a></h3>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>proptest! {
+    #[test]
+    fn prop_hir_preserves_semantics(c_code in valid_c_code()) {
+        let ast = parse(&amp;c_code).unwrap();
+        let hir = lower_to_hir(&amp;ast).unwrap();
+
+        // Property: HIR has same number of functions
+        prop_assert_eq!(ast.functions().len(), hir.functions().len());
+
+        // Property: Function names preserved
+        for (ast_func, hir_func) in ast.functions().iter().zip(hir.functions()) {
+            prop_assert_eq!(ast_func.name(), hir_func.name());
+        }
+    }
+}
+<span class="boring">}</span></code></pre></pre>
+<h3 id="ownership-properties"><a class="header" href="#ownership-properties">Ownership Properties</a></h3>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>proptest! {
+    #[test]
+    fn prop_malloc_becomes_owning(size in 1..1024usize) {
+        let c_code = format!("int* p = malloc({});", size);
+        let ownership = infer_ownership(&amp;c_code).unwrap();
+
+        // Property: malloc is always owning
+        prop_assert_eq!(ownership.pattern, OwnershipPattern::Owning);
+    }
+
+    #[test]
+    fn prop_parameter_pointers_borrowed(param_name in c_identifier()) {
+        let c_code = format!("void func(int* {}) {{}}", param_name);
+        let ownership = infer_ownership(&amp;c_code).unwrap();
+
+        // Property: Function parameters are borrowed
+        prop_assert_eq!(ownership.pattern, OwnershipPattern::Borrowed);
+    }
+}
+<span class="boring">}</span></code></pre></pre>
+<h3 id="codegen-properties"><a class="header" href="#codegen-properties">Codegen Properties</a></h3>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>proptest! {
+    #[test]
+    fn prop_generated_code_compiles(c_code in valid_c_function()) {
+        let rust_code = transpile(&amp;c_code).unwrap();
+
+        // Property: Generated Rust always compiles
+        prop_assert!(
+            compile_rust(&amp;rust_code).is_ok(),
+            "Generated code must compile:\n{}",
+            rust_code
+        );
+    }
+
+    #[test]
+    fn prop_no_unsafe_for_safe_c(c_code in memory_safe_c()) {
+        let rust_code = transpile(&amp;c_code).unwrap();
+
+        // Property: Safe C → safe Rust (no unsafe blocks)
+        prop_assert!(
+            !rust_code.contains("unsafe"),
+            "Safe C should not generate unsafe Rust"
+        );
+    }
+
+    #[test]
+    fn prop_clippy_clean(c_code in valid_c_function()) {
+        let rust_code = transpile(&amp;c_code).unwrap();
+
+        // Property: Generated code passes clippy
+        prop_assert!(
+            clippy_check(&amp;rust_code).is_ok(),
+            "Generated code must pass clippy"
+        );
+    }
+}
+<span class="boring">}</span></code></pre></pre>
+<h2 id="integration-with-coverage"><a class="header" href="#integration-with-coverage">Integration with Coverage</a></h2>
+<p>Property tests contribute to coverage:</p>
+<pre><code class="language-bash">cargo llvm-cov --lcov --output-path coverage.lcov
+</code></pre>
+<p>Each property test execution increases coverage by testing different code paths!</p>
+<h2 id="best-practices"><a class="header" href="#best-practices">Best Practices</a></h2>
+<h3 id="1-test-invariants-not-implementations"><a class="header" href="#1-test-invariants-not-implementations">1. Test Invariants, Not Implementations</a></h3>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// ❌ BAD: Testing implementation details
+proptest! {
+    #[test]
+    fn prop_uses_specific_algorithm(input in any::&lt;Vec&lt;i32&gt;&gt;()) {
+        let output = sort(&amp;input);
+        // Don't test HOW it sorts
+    }
+}
+
+// ✅ GOOD: Testing properties
+proptest! {
+    #[test]
+    fn prop_sort_is_sorted(input in any::&lt;Vec&lt;i32&gt;&gt;()) {
+        let output = sort(&amp;input);
+        // Test WHAT it achieves
+        for i in 0..output.len() - 1 {
+            prop_assert!(output[i] &lt;= output[i + 1]);
+        }
+    }
+
+    #[test]
+    fn prop_sort_preserves_elements(input in any::&lt;Vec&lt;i32&gt;&gt;()) {
+        let output = sort(&amp;input);
+        // Same elements, different order
+        prop_assert_eq!(input.len(), output.len());
+        for &amp;x in &amp;input {
+            prop_assert!(output.contains(&amp;x));
+        }
+    }
+}
+<span class="boring">}</span></code></pre></pre>
+<h3 id="2-keep-properties-simple"><a class="header" href="#2-keep-properties-simple">2. Keep Properties Simple</a></h3>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// ❌ BAD: Complex property hard to understand
+proptest! {
+    #[test]
+    fn prop_complex(a in any::&lt;i32&gt;(), b in any::&lt;i32&gt;(), c in any::&lt;i32&gt;()) {
+        prop_assert!(complex_condition(a, b, c) == other_complex_condition(c, b, a));
+    }
+}
+
+// ✅ GOOD: Simple, obvious properties
+proptest! {
+    #[test]
+    fn prop_add_commutative(a in any::&lt;i32&gt;(), b in any::&lt;i32&gt;()) {
+        prop_assert_eq!(add(a, b), add(b, a));
+    }
+
+    #[test]
+    fn prop_add_associative(a in any::&lt;i32&gt;(), b in any::&lt;i32&gt;(), c in any::&lt;i32&gt;()) {
+        prop_assert_eq!(add(add(a, b), c), add(a, add(b, c)));
+    }
+}
+<span class="boring">}</span></code></pre></pre>
+<h3 id="3-use-appropriate-generators"><a class="header" href="#3-use-appropriate-generators">3. Use Appropriate Generators</a></h3>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// ❌ BAD: Too broad (will generate invalid code)
+proptest! {
+    #[test]
+    fn prop_bad_generator(input in ".*") {
+        let _ = parse(&amp;input);  // Mostly fails with garbage
+    }
+}
+
+// ✅ GOOD: Constrained to valid inputs
+proptest! {
+    #[test]
+    fn prop_good_generator(input in valid_c_function()) {
+        let ast = parse(&amp;input).unwrap();  // Always valid C
+        prop_assert!(ast.functions().len() &gt; 0);
+    }
+}
+<span class="boring">}</span></code></pre></pre>
+<h2 id="summary-1"><a class="header" href="#summary-1">Summary</a></h2>
+<p>Property testing in DECY verifies:</p>
+<p>✅ <strong>Determinism</strong>: Same input → same output
+✅ <strong>Correctness</strong>: Invariants hold for all inputs
+✅ <strong>Completeness</strong>: Generated Rust compiles
+✅ <strong>Safety</strong>: Borrow checker passes
+✅ <strong>Quality</strong>: Clippy warnings zero
+✅ <strong>Robustness</strong>: No panics on invalid input</p>
+<p>Property tests run <strong>thousands of times</strong> with random inputs to ensure quality!</p>
+<h2 id="next-steps-2"><a class="header" href="#next-steps-2">Next Steps</a></h2>
+<ul>
+<li><a href="methodology/./mutation-testing.html">Mutation Testing</a> - Verify test quality</li>
+<li><a href="methodology/../components/parser.html">Parser Verification</a> - Parser property tests</li>
+</ul>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="mutation-testing"><a class="header" href="#mutation-testing">Mutation Testing</a></h1>
+<p>Mutation testing answers the question: <strong>"How good are my tests?"</strong></p>
+<h2 id="the-problem"><a class="header" href="#the-problem">The Problem</a></h2>
+<p>You can have 100% test coverage but still have BAD tests:</p>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn is_positive(x: i32) -&gt; bool {
+    x &gt; 0  // ← Covered by tests
+}
+
+#[test]
+fn test_is_positive() {
+    is_positive(5);  // ← Test runs but doesn't assert anything!
+}
+<span class="boring">}</span></code></pre></pre>
+<p>Coverage: 100% ✅
+Quality: 0% ❌</p>
+<h2 id="the-solution-mutation-testing"><a class="header" href="#the-solution-mutation-testing">The Solution: Mutation Testing</a></h2>
+<p>Mutation testing <strong>introduces bugs</strong> into your code and verifies tests catch them.</p>
+<h3 id="original-code"><a class="header" href="#original-code">Original Code</a></h3>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn is_positive(x: i32) -&gt; bool {
+    x &gt; 0
+}
+<span class="boring">}</span></code></pre></pre>
+<h3 id="mutant-1-change--to"><a class="header" href="#mutant-1-change--to">Mutant 1: Change &gt; to &lt;</a></h3>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn is_positive(x: i32) -&gt; bool {
+    x &lt; 0  // ← Mutated!
+}
+<span class="boring">}</span></code></pre></pre>
+<p><strong>Good tests will FAIL</strong> with this mutant.
+<strong>Bad tests will PASS</strong> (they didn't check the result!).</p>
+<h3 id="mutant-2-change--to-"><a class="header" href="#mutant-2-change--to-">Mutant 2: Change &gt; to &gt;=</a></h3>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn is_positive(x: i32) -&gt; bool {
+    x &gt;= 0  // ← Mutated!
+}
+<span class="boring">}</span></code></pre></pre>
+<h3 id="mutant-3-return-false"><a class="header" href="#mutant-3-return-false">Mutant 3: Return false</a></h3>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn is_positive(x: i32) -&gt; bool {
+    false  // ← Mutated!
+}
+<span class="boring">}</span></code></pre></pre>
+<h2 id="good-vs-bad-tests"><a class="header" href="#good-vs-bad-tests">Good vs Bad Tests</a></h2>
+<h3 id="bad-test-doesnt-catch-mutants"><a class="header" href="#bad-test-doesnt-catch-mutants">Bad Test (doesn't catch mutants)</a></h3>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[test]
+fn test_is_positive_bad() {
+    is_positive(5);  // ❌ No assertion!
+}
+<span class="boring">}</span></code></pre></pre>
+<p><strong>Result</strong>: ALL mutants survive ❌</p>
+<h3 id="good-test-catches-mutants"><a class="header" href="#good-test-catches-mutants">Good Test (catches mutants)</a></h3>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[test]
+fn test_is_positive_good() {
+    assert!(is_positive(5));   // ✅ Catches mutant 2 and 3
+    assert!(!is_positive(-5)); // ✅ Catches mutant 1
+    assert!(!is_positive(0));  // ✅ Catches mutant 2
+}
+<span class="boring">}</span></code></pre></pre>
+<p><strong>Result</strong>: ALL mutants killed ✅</p>
+<h2 id="cargo-mutants"><a class="header" href="#cargo-mutants">cargo-mutants</a></h2>
+<p>DECY uses <code>cargo-mutants</code> for mutation testing.</p>
+<h3 id="installation-1"><a class="header" href="#installation-1">Installation</a></h3>
+<pre><code class="language-bash">cargo install cargo-mutants
+</code></pre>
+<h3 id="basic-usage"><a class="header" href="#basic-usage">Basic Usage</a></h3>
+<pre><code class="language-bash"># Test all mutants in the project
+cargo mutants
+
+# Test only changed code
+cargo mutants --in-diff origin/main
+
+# With timeout (kill slow tests)
+cargo mutants --timeout 120
+</code></pre>
+<h3 id="configuration-1"><a class="header" href="#configuration-1">Configuration</a></h3>
+<p>Create <code>mutants.toml</code>:</p>
+<pre><code class="language-toml"># Minimum mutation score to pass
+minimum_test_timeout = 120
+
+# Files to exclude
+exclude_globs = [
+    "tests/**",
+    "benches/**",
+    "**/test_*.rs",
+]
+
+# Specific mutations to exclude
+exclude_mutants = [
+    # Don't mutate panic messages
+    "panic!",
+    "unreachable!",
+]
+</code></pre>
+<h2 id="types-of-mutants"><a class="header" href="#types-of-mutants">Types of Mutants</a></h2>
+<h3 id="1-arithmetic-operators"><a class="header" href="#1-arithmetic-operators">1. Arithmetic Operators</a></h3>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// Original
+fn add(a: i32, b: i32) -&gt; i32 {
+    a + b
+}
+
+// Mutants
+a - b  // Replace + with -
+a * b  // Replace + with *
+a / b  // Replace + with /
+a % b  // Replace + with %
+<span class="boring">}</span></code></pre></pre>
+<h3 id="2-comparison-operators"><a class="header" href="#2-comparison-operators">2. Comparison Operators</a></h3>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// Original
+fn is_greater(a: i32, b: i32) -&gt; bool {
+    a &gt; b
+}
+
+// Mutants
+a &lt; b   // Replace &gt; with &lt;
+a &gt;= b  // Replace &gt; with &gt;=
+a == b  // Replace &gt; with ==
+a != b  // Replace &gt; with !=
+<span class="boring">}</span></code></pre></pre>
+<h3 id="3-logical-operators"><a class="header" href="#3-logical-operators">3. Logical Operators</a></h3>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// Original
+fn both_true(a: bool, b: bool) -&gt; bool {
+    a &amp;&amp; b
+}
+
+// Mutants
+a || b  // Replace &amp;&amp; with ||
+!a &amp;&amp; b // Negate first operand
+a &amp;&amp; !b // Negate second operand
+<span class="boring">}</span></code></pre></pre>
+<h3 id="4-return-values"><a class="header" href="#4-return-values">4. Return Values</a></h3>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// Original
+fn get_value() -&gt; i32 {
+    42
+}
+
+// Mutants
+return 0;   // Replace with 0
+return 1;   // Replace with 1
+return -1;  // Replace with -1
+<span class="boring">}</span></code></pre></pre>
+<h3 id="5-conditionals"><a class="header" href="#5-conditionals">5. Conditionals</a></h3>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// Original
+fn absolute(x: i32) -&gt; i32 {
+    if x &lt; 0 {
+        -x
+    } else {
+        x
+    }
+}
+
+// Mutants
+if x &gt; 0 { ... }    // Replace &lt; with &gt;
+if x &lt;= 0 { ... }   // Replace &lt; with &lt;=
+if true { ... }     // Replace condition with true
+if false { ... }    // Replace condition with false
+<span class="boring">}</span></code></pre></pre>
+<h3 id="6-function-calls"><a class="header" href="#6-function-calls">6. Function Calls</a></h3>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// Original
+fn process(x: i32) -&gt; i32 {
+    helper(x)
+}
+
+// Mutants
+helper(0)  // Replace argument with 0
+helper(1)  // Replace argument with 1
+0          // Remove function call
+<span class="boring">}</span></code></pre></pre>
+<h2 id="mutation-testing-output"><a class="header" href="#mutation-testing-output">Mutation Testing Output</a></h2>
+<h3 id="example-report"><a class="header" href="#example-report">Example Report</a></h3>
+<pre><code>Testing 248 mutants
+========================
+
+[1/248] CAUGHT: decy_parser/src/lib.rs:45:12: replaced + with -
+[2/248] CAUGHT: decy_parser/src/lib.rs:67:8: replaced &amp;&amp; with ||
+[3/248] CAUGHT: decy_hir/src/types.rs:23:16: replaced &gt; with &gt;=
+...
+[245/248] CAUGHT: decy_codegen/src/generate.rs:123:20: replaced return with 0
+[246/248] MISSED: decy_codegen/src/generate.rs:145:12: replaced Some with None
+[247/248] TIMEOUT: decy_ownership/src/infer.rs:89:16: infinite loop
+[248/248] CAUGHT: decy_borrow/src/checker.rs:234:8: negated condition
+
+========================
+Results:
+  Caught:    234 mutants (94.4%) ✅
+  Missed:     14 mutants (5.6%)  ⚠️
+  Timeout:     0 mutants
+  Unviable:    0 mutants
+========================
+Kill rate: 94.4% (target: ≥90%) ✅
+</code></pre>
+<h2 id="understanding-results"><a class="header" href="#understanding-results">Understanding Results</a></h2>
+<h3 id="caught--good"><a class="header" href="#caught--good">CAUGHT (✅ Good!)</a></h3>
+<pre><code>CAUGHT: src/lib.rs:45:12: replaced + with -
+</code></pre>
+<p>Your tests detected this mutant and failed. <strong>Good tests!</strong></p>
+<h3 id="missed--bad"><a class="header" href="#missed--bad">MISSED (⚠️ Bad!)</a></h3>
+<pre><code>MISSED: src/lib.rs:67:8: replaced &amp;&amp; with ||
+</code></pre>
+<p>Your tests <strong>didn't detect</strong> this mutant. You need more tests!</p>
+<h3 id="timeout"><a class="header" href="#timeout">TIMEOUT</a></h3>
+<pre><code>TIMEOUT: src/lib.rs:89:16: infinite loop
+</code></pre>
+<p>The mutant caused an infinite loop. This is caught (killed by timeout).</p>
+<h3 id="unviable"><a class="header" href="#unviable">UNVIABLE</a></h3>
+<pre><code>UNVIABLE: src/lib.rs:123:4: type error
+</code></pre>
+<p>The mutant doesn't compile. Doesn't count toward score.</p>
+<h2 id="example-improving-test-quality"><a class="header" href="#example-improving-test-quality">Example: Improving Test Quality</a></h2>
+<h3 id="original-code-1"><a class="header" href="#original-code-1">Original Code</a></h3>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn factorial(n: u32) -&gt; u32 {
+    if n &lt;= 1 {
+        1
+    } else {
+        n * factorial(n - 1)
+    }
+}
+<span class="boring">}</span></code></pre></pre>
+<h3 id="bad-test-low-mutation-score"><a class="header" href="#bad-test-low-mutation-score">Bad Test (low mutation score)</a></h3>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[test]
+fn test_factorial() {
+    assert_eq!(factorial(0), 1);  // Only tests base case!
+}
+<span class="boring">}</span></code></pre></pre>
+<p><strong>Mutation Results</strong>:</p>
+<pre><code>CAUGHT: replaced &lt;= with &lt;        ✅
+MISSED: replaced 1 with 0          ❌
+MISSED: replaced * with +          ❌
+MISSED: replaced n - 1 with n      ❌
+MISSED: replaced n - 1 with n - 2  ❌
+──────────────────────────────────
+Kill rate: 20% (1/5 mutants) ❌
+</code></pre>
+<h3 id="good-test-high-mutation-score"><a class="header" href="#good-test-high-mutation-score">Good Test (high mutation score)</a></h3>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[test]
+fn test_factorial() {
+    assert_eq!(factorial(0), 1);   // Base case: n = 0
+    assert_eq!(factorial(1), 1);   // Base case: n = 1
+    assert_eq!(factorial(2), 2);   // Recursive case
+    assert_eq!(factorial(3), 6);   // Catches * mutants
+    assert_eq!(factorial(4), 24);  // Catches n-1 mutants
+    assert_eq!(factorial(5), 120); // More coverage
+}
+<span class="boring">}</span></code></pre></pre>
+<p><strong>Mutation Results</strong>:</p>
+<pre><code>CAUGHT: replaced &lt;= with &lt;        ✅
+CAUGHT: replaced 1 with 0          ✅
+CAUGHT: replaced * with +          ✅
+CAUGHT: replaced n - 1 with n      ✅
+CAUGHT: replaced n - 1 with n - 2  ✅
+──────────────────────────────────
+Kill rate: 100% (5/5 mutants) ✅
+</code></pre>
+<h2 id="decy-mutation-testing"><a class="header" href="#decy-mutation-testing">DECY Mutation Testing</a></h2>
+<h3 id="parser-mutations"><a class="header" href="#parser-mutations">Parser Mutations</a></h3>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// Original
+pub fn parse_type(&amp;mut self) -&gt; Result&lt;HirType&gt; {
+    if self.peek() == "int" {
+        self.advance();
+        Ok(HirType::Int)
+    } else {
+        Err(anyhow!("Expected type"))
+    }
+}
+<span class="boring">}</span></code></pre></pre>
+<p><strong>Mutants</strong>:</p>
+<ul>
+<li>Replace <code>==</code> with <code>!=</code></li>
+<li>Replace <code>Ok(HirType::Int)</code> with <code>Ok(HirType::Void)</code></li>
+<li>Replace <code>Err(anyhow!(...))</code> with <code>Ok(HirType::Int)</code></li>
+</ul>
+<p><strong>Tests to catch them</strong>:</p>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[test]
+fn test_parse_int_type() {
+    let mut parser = Parser::new("int");
+    assert_eq!(parser.parse_type().unwrap(), HirType::Int);
+}
+
+#[test]
+fn test_parse_invalid_type() {
+    let mut parser = Parser::new("invalid");
+    assert!(parser.parse_type().is_err());
+}
+
+#[test]
+fn test_parse_not_void() {
+    let mut parser = Parser::new("int");
+    assert_ne!(parser.parse_type().unwrap(), HirType::Void);
+}
+<span class="boring">}</span></code></pre></pre>
+<h3 id="ownership-mutations"><a class="header" href="#ownership-mutations">Ownership Mutations</a></h3>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// Original
+pub fn is_owning(&amp;self, var: &amp;str) -&gt; bool {
+    self.ownership.get(var) == Some(&amp;OwnershipPattern::Owning)
+}
+<span class="boring">}</span></code></pre></pre>
+<p><strong>Mutants</strong>:</p>
+<ul>
+<li>Replace <code>==</code> with <code>!=</code></li>
+<li>Replace <code>Some(&amp;OwnershipPattern::Owning)</code> with <code>None</code></li>
+<li>Replace <code>Some(&amp;OwnershipPattern::Owning)</code> with <code>Some(&amp;OwnershipPattern::Borrowed)</code></li>
+</ul>
+<p><strong>Tests to catch them</strong>:</p>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[test]
+fn test_is_owning_detects_owned() {
+    let mut analysis = OwnershipAnalysis::new();
+    analysis.set_ownership("p", OwnershipPattern::Owning);
+    assert!(analysis.is_owning("p"));
+}
+
+#[test]
+fn test_is_owning_rejects_borrowed() {
+    let mut analysis = OwnershipAnalysis::new();
+    analysis.set_ownership("p", OwnershipPattern::Borrowed);
+    assert!(!analysis.is_owning("p"));
+}
+
+#[test]
+fn test_is_owning_rejects_unknown() {
+    let analysis = OwnershipAnalysis::new();
+    assert!(!analysis.is_owning("unknown"));
+}
+<span class="boring">}</span></code></pre></pre>
+<h3 id="codegen-mutations"><a class="header" href="#codegen-mutations">Codegen Mutations</a></h3>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// Original
+pub fn generate_type(&amp;self, ty: &amp;HirType) -&gt; String {
+    match ty {
+        HirType::Int =&gt; "i32".to_string(),
+        HirType::Void =&gt; "()".to_string(),
+        HirType::Pointer(inner) =&gt; format!("*mut {}", self.generate_type(inner)),
+    }
+}
+<span class="boring">}</span></code></pre></pre>
+<p><strong>Mutants</strong>:</p>
+<ul>
+<li>Replace <code>"i32"</code> with <code>"i64"</code></li>
+<li>Replace <code>"*mut"</code> with <code>"*const"</code></li>
+<li>Replace <code>"()"</code> with <code>""</code></li>
+</ul>
+<p><strong>Tests to catch them</strong>:</p>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[test]
+fn test_generate_int_type() {
+    let codegen = CodeGenerator::new();
+    assert_eq!(codegen.generate_type(&amp;HirType::Int), "i32");
+}
+
+#[test]
+fn test_generate_void_type() {
+    let codegen = CodeGenerator::new();
+    assert_eq!(codegen.generate_type(&amp;HirType::Void), "()");
+}
+
+#[test]
+fn test_generate_pointer_is_mutable() {
+    let codegen = CodeGenerator::new();
+    let ptr = HirType::Pointer(Box::new(HirType::Int));
+    let result = codegen.generate_type(&amp;ptr);
+    assert!(result.contains("*mut"));
+    assert!(!result.contains("*const"));
+}
+<span class="boring">}</span></code></pre></pre>
+<h2 id="mutation-testing-in-cicd"><a class="header" href="#mutation-testing-in-cicd">Mutation Testing in CI/CD</a></h2>
+<p>Add to <code>.github/workflows/mutation-testing.yml</code>:</p>
+<pre><code class="language-yaml">name: Mutation Testing
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  mutants:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0  # Full history for diff
+
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+
+      - name: Install cargo-mutants
+        run: cargo install cargo-mutants
+
+      - name: Run mutation testing
+        run: |
+          cargo mutants --in-diff origin/main \
+                        --timeout 120 \
+                        --output mutants.json
+
+      - name: Check mutation score
+        run: |
+          # Extract kill rate from output
+          KILL_RATE=$(jq '.summary.caught / .summary.total * 100' mutants.json)
+          if (( $(echo "$KILL_RATE &lt; 90" | bc -l) )); then
+            echo "Mutation score too low: $KILL_RATE% (target: ≥90%)"
+            exit 1
+          fi
+          echo "Mutation score: $KILL_RATE% ✅"
+
+      - name: Upload results
+        uses: actions/upload-artifact@v3
+        with:
+          name: mutation-results
+          path: mutants.json
+</code></pre>
+<h2 id="best-practices-1"><a class="header" href="#best-practices-1">Best Practices</a></h2>
+<h3 id="1-run-on-diffs-only"><a class="header" href="#1-run-on-diffs-only">1. Run on Diffs Only</a></h3>
+<pre><code class="language-bash"># ❌ Slow: test entire codebase
+cargo mutants
+
+# ✅ Fast: test only changes
+cargo mutants --in-diff origin/main
+</code></pre>
+<h3 id="2-use-timeouts"><a class="header" href="#2-use-timeouts">2. Use Timeouts</a></h3>
+<pre><code class="language-bash"># ❌ Infinite loops hang forever
+cargo mutants
+
+# ✅ Kill slow tests
+cargo mutants --timeout 120
+</code></pre>
+<h3 id="3-focus-on-critical-code"><a class="header" href="#3-focus-on-critical-code">3. Focus on Critical Code</a></h3>
+<pre><code class="language-toml"># mutants.toml
+[test]
+# Only mutate core logic
+include_globs = [
+    "src/parser/*.rs",
+    "src/ownership/*.rs",
+    "src/codegen/*.rs",
+]
+
+# Skip less critical code
+exclude_globs = [
+    "src/cli/*.rs",
+    "src/utils/*.rs",
+]
+</code></pre>
+<h3 id="4-integrate-with-coverage"><a class="header" href="#4-integrate-with-coverage">4. Integrate with Coverage</a></h3>
+<pre><code class="language-bash"># 1. Check coverage
+cargo llvm-cov
+
+# 2. If coverage ≥80%, check mutation score
+cargo mutants --in-diff origin/main
+</code></pre>
+<p>Both must pass!</p>
+<h2 id="common-pitfalls"><a class="header" href="#common-pitfalls">Common Pitfalls</a></h2>
+<h3 id="pitfall-1-testing-implementation-not-behavior"><a class="header" href="#pitfall-1-testing-implementation-not-behavior">Pitfall 1: Testing Implementation, Not Behavior</a></h3>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// ❌ BAD: Tests internal state
+#[test]
+fn test_uses_hashmap() {
+    let analyzer = Analyzer::new();
+    assert!(analyzer.data.is_empty());  // Testing internals!
+}
+
+// ✅ GOOD: Tests behavior
+#[test]
+fn test_analyzer_finds_variables() {
+    let analyzer = Analyzer::new();
+    analyzer.analyze("int x;");
+    assert!(analyzer.has_variable("x"));  // Testing behavior
+}
+<span class="boring">}</span></code></pre></pre>
+<h3 id="pitfall-2-not-testing-edge-cases"><a class="header" href="#pitfall-2-not-testing-edge-cases">Pitfall 2: Not Testing Edge Cases</a></h3>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// ❌ BAD: Only happy path
+#[test]
+fn test_divide() {
+    assert_eq!(divide(10, 2), 5);
+}
+
+// ✅ GOOD: Tests edge cases
+#[test]
+fn test_divide() {
+    assert_eq!(divide(10, 2), 5);
+    assert_eq!(divide(0, 5), 0);
+    assert_eq!(divide(7, 3), 2);  // Integer division
+}
+
+#[test]
+#[should_panic]
+fn test_divide_by_zero() {
+    divide(10, 0);
+}
+<span class="boring">}</span></code></pre></pre>
+<h3 id="pitfall-3-weak-assertions"><a class="header" href="#pitfall-3-weak-assertions">Pitfall 3: Weak Assertions</a></h3>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// ❌ BAD: Weak assertion
+#[test]
+fn test_parse() {
+    let result = parse("int x;");
+    assert!(result.is_ok());  // Doesn't check contents!
+}
+
+// ✅ GOOD: Strong assertions
+#[test]
+fn test_parse() {
+    let ast = parse("int x;").unwrap();
+    assert_eq!(ast.declarations().len(), 1);
+    assert_eq!(ast.declarations()[0].name(), "x");
+    assert_eq!(ast.declarations()[0].ty(), &amp;HirType::Int);
+}
+<span class="boring">}</span></code></pre></pre>
+<h2 id="summary-2"><a class="header" href="#summary-2">Summary</a></h2>
+<p>Mutation testing ensures test quality:</p>
+<p>✅ <strong>Measures effectiveness</strong>: Are tests actually checking behavior?
+✅ <strong>Finds weak tests</strong>: Tests that don't assert enough
+✅ <strong>Improves confidence</strong>: High mutation score = good tests
+✅ <strong>Prevents regressions</strong>: Good tests catch bugs early
+✅ <strong>Complements coverage</strong>: 100% coverage + 90% mutation score = excellent quality</p>
+<p>Target: <strong>≥90% mutation kill rate</strong></p>
+<h2 id="next-steps-3"><a class="header" href="#next-steps-3">Next Steps</a></h2>
+<ul>
+<li><a href="methodology/../components/parser.html">Parser Verification</a> - Apply mutation testing to parser</li>
+<li><a href="methodology/../metrics/coverage.html">Test Coverage</a> - Combining coverage and mutation metrics</li>
+</ul>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="parser-verification"><a class="header" href="#parser-verification">Parser Verification</a></h1>
+<p>The parser is the first stage of the DECY transpiler pipeline. It converts C source code into an Abstract Syntax Tree (AST).</p>
+<h2 id="architecture"><a class="header" href="#architecture">Architecture</a></h2>
+<pre><code>C Source Code → tree-sitter → CST → AST Builder → AST
+</code></pre>
+<p>DECY uses <code>tree-sitter-c</code> for robust, error-tolerant parsing.</p>
+<h2 id="basic-function-parsing"><a class="header" href="#basic-function-parsing">Basic Function Parsing</a></h2>
+<h3 id="c-input"><a class="header" href="#c-input">C Input</a></h3>
+<pre><code class="language-c">int add(int a, int b) {
+    return a + b;
+}
+</code></pre>
+<h3 id="expected-ast-structure"><a class="header" href="#expected-ast-structure">Expected AST Structure</a></h3>
+<pre><code class="language-rust ignore">Function {
+    name: "add",
+    return_type: Type::Int,
+    parameters: [
+        Parameter { name: "a", ty: Type::Int },
+        Parameter { name: "b", ty: Type::Int },
+    ],
+    body: Block {
+        statements: [
+            Return(BinaryOp {
+                op: Add,
+                left: Var("a"),
+                right: Var("b"),
+            })
+        ]
+    }
+}</code></pre>
+<h3 id="verification-test"><a class="header" href="#verification-test">Verification Test</a></h3>
+<pre><code class="language-rust ignore">use decy_parser::CParser;
+
+#[test]
+fn test_parse_simple_function() {
+    let c_code = "int add(int a, int b) { return a + b; }";
+
+    let parser = CParser::new().expect("Failed to create parser");
+    let ast = parser.parse(c_code).expect("Failed to parse");
+
+    assert_eq!(ast.functions().len(), 1);
+
+    let func = &amp;ast.functions()[0];
+    assert_eq!(func.name(), "add");
+    assert_eq!(func.parameters().len(), 2);
+    assert_eq!(func.parameters()[0].name(), "a");
+    assert_eq!(func.parameters()[1].name(), "b");
+}</code></pre>
+<h2 id="variable-declarations"><a class="header" href="#variable-declarations">Variable Declarations</a></h2>
+<h3 id="c-input-1"><a class="header" href="#c-input-1">C Input</a></h3>
+<pre><code class="language-c">int main() {
+    int x = 5;
+    int y;
+    y = x + 10;
+    return y;
+}
+</code></pre>
+<h3 id="verification-test-1"><a class="header" href="#verification-test-1">Verification Test</a></h3>
+<pre><code class="language-rust ignore">#[test]
+fn test_parse_variable_declarations() {
+    let c_code = r#"
+        int main() {
+            int x = 5;
+            int y;
+            y = x + 10;
+            return y;
+        }
+    "#;
+
+    let parser = CParser::new().unwrap();
+    let ast = parser.parse(c_code).unwrap();
+
+    let func = &amp;ast.functions()[0];
+    let statements = func.body().statements();
+
+    // Check for variable declaration with initializer
+    assert!(matches!(statements[0], Statement::VarDecl { .. }));
+
+    // Check for variable declaration without initializer
+    assert!(matches!(statements[1], Statement::VarDecl { .. }));
+
+    // Check for assignment
+    assert!(matches!(statements[2], Statement::Assignment { .. }));
+
+    // Check for return
+    assert!(matches!(statements[3], Statement::Return(_)));
+}</code></pre>
+<h2 id="pointer-declarations"><a class="header" href="#pointer-declarations">Pointer Declarations</a></h2>
+<h3 id="c-input-2"><a class="header" href="#c-input-2">C Input</a></h3>
+<pre><code class="language-c">int* create_int() {
+    int* p = malloc(sizeof(int));
+    *p = 42;
+    return p;
+}
+</code></pre>
+<h3 id="verification-test-2"><a class="header" href="#verification-test-2">Verification Test</a></h3>
+<pre><code class="language-rust ignore">#[test]
+fn test_parse_pointers() {
+    let c_code = r#"
+        int* create_int() {
+            int* p = malloc(sizeof(int));
+            *p = 42;
+            return p;
+        }
+    "#;
+
+    let parser = CParser::new().unwrap();
+    let ast = parser.parse(c_code).unwrap();
+
+    let func = &amp;ast.functions()[0];
+
+    // Check return type is pointer
+    assert!(matches!(func.return_type(), Type::Pointer(_)));
+
+    // Check malloc call
+    let statements = func.body().statements();
+    if let Statement::VarDecl { initializer: Some(init), .. } = &amp;statements[0] {
+        assert!(matches!(init, Expression::Call { name, .. } if name == "malloc"));
+    } else {
+        panic!("Expected variable declaration with malloc initializer");
+    }
+
+    // Check dereference assignment
+    assert!(matches!(statements[1], Statement::Assignment {
+        target: Expression::Dereference(_),
+        ..
+    }));
+}</code></pre>
+<h2 id="property-tests-for-parser"><a class="header" href="#property-tests-for-parser">Property Tests for Parser</a></h2>
+<h3 id="property-parser-never-panics"><a class="header" href="#property-parser-never-panics">Property: Parser Never Panics</a></h3>
+<pre><code class="language-rust ignore">use proptest::prelude::*;
+
+proptest! {
+    #[test]
+    fn prop_parser_never_panics(input in "\\PC*") {
+        let parser = CParser::new().unwrap();
+        // Should never panic, even with garbage input
+        let _ = parser.parse(&amp;input);
+    }
+}</code></pre>
+<h3 id="property-valid-c-always-parses"><a class="header" href="#property-valid-c-always-parses">Property: Valid C Always Parses</a></h3>
+<pre><code class="language-rust ignore">proptest! {
+    #[test]
+    fn prop_valid_c_parses(
+        func_name in "[a-z_][a-z0-9_]{2,20}",
+        param_name in "[a-z_][a-z0-9_]{2,20}",
+    ) {
+        let c_code = format!(
+            "int {}(int {}) {{ return {}; }}",
+            func_name, param_name, param_name
+        );
+
+        let parser = CParser::new().unwrap();
+        let result = parser.parse(&amp;c_code);
+
+        prop_assert!(result.is_ok(), "Valid C should parse successfully");
+
+        let ast = result.unwrap();
+        prop_assert_eq!(ast.functions().len(), 1);
+        prop_assert_eq!(ast.functions()[0].name(), &amp;func_name);
+    }
+}</code></pre>
+<h3 id="property-parse-print-roundtrip"><a class="header" href="#property-parse-print-roundtrip">Property: Parse-Print Roundtrip</a></h3>
+<pre><code class="language-rust ignore">proptest! {
+    #[test]
+    fn prop_parse_print_roundtrip(c_code in valid_c_function()) {
+        let parser = CParser::new().unwrap();
+
+        let ast1 = parser.parse(&amp;c_code).unwrap();
+        let printed = ast1.to_string();
+        let ast2 = parser.parse(&amp;printed).unwrap();
+
+        // Property: Parse → print → parse should preserve structure
+        prop_assert_eq!(
+            ast1.functions().len(),
+            ast2.functions().len()
+        );
+    }
+}</code></pre>
+<h2 id="error-handling"><a class="header" href="#error-handling">Error Handling</a></h2>
+<h3 id="missing-semicolon"><a class="header" href="#missing-semicolon">Missing Semicolon</a></h3>
+<pre><code class="language-rust ignore">#[test]
+fn test_parse_error_missing_semicolon() {
+    let c_code = "int x = 5";  // Missing semicolon
+
+    let parser = CParser::new().unwrap();
+    let result = parser.parse(c_code);
+
+    assert!(result.is_err());
+    let err = result.unwrap_err();
+    assert!(err.to_string().contains("semicolon"));
+}</code></pre>
+<h3 id="invalid-syntax"><a class="header" href="#invalid-syntax">Invalid Syntax</a></h3>
+<pre><code class="language-rust ignore">#[test]
+fn test_parse_error_invalid_syntax() {
+    let c_code = "int main() { return; }";  // return without value
+
+    let parser = CParser::new().unwrap();
+    let result = parser.parse(c_code);
+
+    // tree-sitter may parse this, but semantic analysis should catch it
+    if let Ok(ast) = result {
+        let func = &amp;ast.functions()[0];
+        assert!(matches!(func.return_type(), Type::Int));
+
+        // Return statement should have no value
+        if let Statement::Return(value) = &amp;func.body().statements()[0] {
+            assert!(value.is_none());
+        }
+    }
+}</code></pre>
+<h2 id="performance-testing"><a class="header" href="#performance-testing">Performance Testing</a></h2>
+<h3 id="benchmark-small-functions"><a class="header" href="#benchmark-small-functions">Benchmark: Small Functions</a></h3>
+<pre><code class="language-rust ignore">use criterion::{black_box, criterion_group, criterion_main, Criterion};
+
+fn benchmark_parse_small_function(c: &amp;mut Criterion) {
+    let c_code = "int add(int a, int b) { return a + b; }";
+    let parser = CParser::new().unwrap();
+
+    c.bench_function("parse_small_function", |b| {
+        b.iter(|| {
+            parser.parse(black_box(c_code)).unwrap()
+        });
+    });
+}
+
+criterion_group!(benches, benchmark_parse_small_function);
+criterion_main!(benches);</code></pre>
+<h3 id="benchmark-large-files"><a class="header" href="#benchmark-large-files">Benchmark: Large Files</a></h3>
+<pre><code class="language-rust ignore">fn benchmark_parse_large_file(c: &amp;mut Criterion) {
+    // 1000-line C file
+    let c_code = generate_large_c_file(1000);
+    let parser = CParser::new().unwrap();
+
+    c.bench_function("parse_large_file", |b| {
+        b.iter(|| {
+            parser.parse(black_box(&amp;c_code)).unwrap()
+        });
+    });
+}</code></pre>
+<h2 id="mutation-testing-for-parser"><a class="header" href="#mutation-testing-for-parser">Mutation Testing for Parser</a></h2>
+<h3 id="original-code-2"><a class="header" href="#original-code-2">Original Code</a></h3>
+<pre><code class="language-rust ignore">pub fn parse_type(&amp;mut self) -&gt; Result&lt;Type&gt; {
+    match self.current_token() {
+        "int" =&gt; {
+            self.advance();
+            Ok(Type::Int)
+        }
+        "void" =&gt; {
+            self.advance();
+            Ok(Type::Void)
+        }
+        _ =&gt; Err(anyhow!("Expected type")),
+    }
+}</code></pre>
+<h3 id="expected-mutants"><a class="header" href="#expected-mutants">Expected Mutants</a></h3>
+<ol>
+<li>Replace <code>"int"</code> with <code>"void"</code></li>
+<li>Replace <code>Ok(Type::Int)</code> with <code>Ok(Type::Void)</code></li>
+<li>Replace <code>"void"</code> with <code>"int"</code></li>
+<li>Remove <code>self.advance()</code></li>
+</ol>
+<h3 id="tests-to-catch-mutants"><a class="header" href="#tests-to-catch-mutants">Tests to Catch Mutants</a></h3>
+<pre><code class="language-rust ignore">#[test]
+fn test_parse_int_type() {
+    let mut parser = create_parser("int");
+    assert_eq!(parser.parse_type().unwrap(), Type::Int);
+}
+
+#[test]
+fn test_parse_void_type() {
+    let mut parser = create_parser("void");
+    assert_eq!(parser.parse_type().unwrap(), Type::Void);
+}
+
+#[test]
+fn test_parse_int_not_void() {
+    let mut parser = create_parser("int");
+    assert_ne!(parser.parse_type().unwrap(), Type::Void);
+}
+
+#[test]
+fn test_parse_void_not_int() {
+    let mut parser = create_parser("void");
+    assert_ne!(parser.parse_type().unwrap(), Type::Int);
+}
+
+#[test]
+fn test_parse_invalid_type() {
+    let mut parser = create_parser("invalid");
+    assert!(parser.parse_type().is_err());
+}
+
+#[test]
+fn test_parse_type_advances_position() {
+    let mut parser = create_parser("int x");
+    parser.parse_type().unwrap();
+    // Should now be at "x", not "int"
+    assert_eq!(parser.current_token(), "x");
+}</code></pre>
+<h2 id="integration-with-tree-sitter"><a class="header" href="#integration-with-tree-sitter">Integration with tree-sitter</a></h2>
+<h3 id="tree-sitter-configuration"><a class="header" href="#tree-sitter-configuration">Tree-sitter Configuration</a></h3>
+<pre><code class="language-rust ignore">use tree_sitter::{Parser as TSParser, Language};
+
+extern "C" {
+    fn tree_sitter_c() -&gt; Language;
+}
+
+pub struct CParser {
+    parser: TSParser,
+}
+
+impl CParser {
+    pub fn new() -&gt; Result&lt;Self&gt; {
+        let mut parser = TSParser::new();
+        let language = unsafe { tree_sitter_c() };
+        parser.set_language(language)
+            .context("Failed to set C language")?;
+
+        Ok(Self { parser })
+    }
+}</code></pre>
+<h3 id="verification-test-3"><a class="header" href="#verification-test-3">Verification Test</a></h3>
+<pre><code class="language-rust ignore">#[test]
+fn test_tree_sitter_integration() {
+    let parser = CParser::new().unwrap();
+    let c_code = "int main() { return 0; }";
+
+    let tree = parser.parser.parse(c_code, None).unwrap();
+    let root = tree.root_node();
+
+    assert_eq!(root.kind(), "translation_unit");
+    assert!(root.child_count() &gt; 0);
+}</code></pre>
+<h2 id="coverage-requirements"><a class="header" href="#coverage-requirements">Coverage Requirements</a></h2>
+<p>Parser tests must achieve ≥80% coverage:</p>
+<pre><code class="language-bash">cargo llvm-cov --package decy-parser
+</code></pre>
+<p>Expected output:</p>
+<pre><code>decy-parser/src/lib.rs       87.3% coverage ✅
+decy-parser/src/types.rs     91.2% coverage ✅
+decy-parser/src/ast.rs       89.1% coverage ✅
+──────────────────────────────────────────────
+Overall                      89.2% coverage ✅
+</code></pre>
+<h2 id="summary-3"><a class="header" href="#summary-3">Summary</a></h2>
+<p>Parser verification ensures:</p>
+<p>✅ <strong>Correct parsing</strong>: C code → accurate AST
+✅ <strong>Error handling</strong>: Invalid input → meaningful errors
+✅ <strong>Robustness</strong>: No panics on malformed input
+✅ <strong>Performance</strong>: Fast parsing (&lt;1ms for simple functions)
+✅ <strong>Property compliance</strong>: Invariants hold for all inputs
+✅ <strong>High coverage</strong>: ≥80% test coverage
+✅ <strong>Mutation resistance</strong>: ≥90% mutation kill rate</p>
+<h2 id="next-steps-4"><a class="header" href="#next-steps-4">Next Steps</a></h2>
+<ul>
+<li><a href="components/./hir.html">HIR Verification</a> - Converting AST to High-level IR</li>
+<li><a href="components/./dataflow.html">Dataflow Analysis</a> - Analyzing variable usage</li>
+</ul>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="hir-high-level-intermediate-representation-verification"><a class="header" href="#hir-high-level-intermediate-representation-verification">HIR (High-level Intermediate Representation) Verification</a></h1>
+<p>The HIR is DECY's intermediate representation between the C AST and Rust code generation. It simplifies and normalizes C constructs for easier analysis.</p>
+<h2 id="purpose"><a class="header" href="#purpose">Purpose</a></h2>
+<p>The HIR serves as:</p>
+<ol>
+<li><strong>Normalization layer</strong>: Converts complex C syntax into simpler forms</li>
+<li><strong>Analysis target</strong>: Provides a clean structure for dataflow and ownership analysis</li>
+<li><strong>Decoupling</strong>: Separates parsing from code generation</li>
+</ol>
+<h2 id="architecture-1"><a class="header" href="#architecture-1">Architecture</a></h2>
+<pre><code>C AST → HIR Lowering → HIR → Analysis → Annotated HIR → Codegen
+</code></pre>
+<h2 id="summary-4"><a class="header" href="#summary-4">Summary</a></h2>
+<p>HIR verification ensures correct lowering from AST to a simplified intermediate representation suitable for ownership and lifetime analysis.</p>
+<h2 id="next-steps-5"><a class="header" href="#next-steps-5">Next Steps</a></h2>
+<ul>
+<li><a href="components/./dataflow.html">Dataflow Analysis</a> - Analyzing variable usage in HIR</li>
+<li><a href="components/./ownership.html">Ownership Inference</a> - Determining ownership patterns</li>
+</ul>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="dataflow-analysis"><a class="header" href="#dataflow-analysis">Dataflow Analysis</a></h1>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="ownership-inference"><a class="header" href="#ownership-inference">Ownership Inference</a></h1>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="borrow-generation"><a class="header" href="#borrow-generation">Borrow Generation</a></h1>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="lifetime-analysis"><a class="header" href="#lifetime-analysis">Lifetime Analysis</a></h1>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="code-generation-verification"><a class="header" href="#code-generation-verification">Code Generation Verification</a></h1>
+<p>Code generation is the final stage of the DECY pipeline, converting the High-level IR (HIR) with ownership and lifetime annotations into idiomatic Rust code.</p>
+<h2 id="architecture-2"><a class="header" href="#architecture-2">Architecture</a></h2>
+<pre><code>HIR + Ownership + Lifetimes → CodeGenerator → Rust Source Code
+</code></pre>
+<h2 id="basic-function-generation"><a class="header" href="#basic-function-generation">Basic Function Generation</a></h2>
+<h3 id="input-hir"><a class="header" href="#input-hir">Input HIR</a></h3>
+<pre><code class="language-rust ignore">HirFunction {
+    name: "add",
+    return_type: HirType::Int,
+    parameters: vec![
+        HirParameter { name: "a", ty: HirType::Int },
+        HirParameter { name: "b", ty: HirType::Int },
+    ],
+    body: vec![
+        HirStatement::Return(
+            HirExpression::BinaryOp {
+                op: BinaryOperator::Add,
+                left: Box::new(HirExpression::Var("a")),
+                right: Box::new(HirExpression::Var("b")),
+            }
+        )
+    ],
+    lifetimes: vec![],
+}</code></pre>
+<h3 id="expected-rust-output"><a class="header" href="#expected-rust-output">Expected Rust Output</a></h3>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>fn add(a: i32, b: i32) -&gt; i32 {
+    a + b
+}
+<span class="boring">}</span></code></pre></pre>
+<h3 id="verification-test-4"><a class="header" href="#verification-test-4">Verification Test</a></h3>
+<pre><code class="language-rust ignore">use decy_codegen::CodeGenerator;
+
+#[test]
+fn test_generate_simple_function() {
+    let hir_func = create_add_function();  // Helper to create HIR
+
+    let codegen = CodeGenerator::new();
+    let rust_code = codegen.generate_function(&amp;hir_func);
+
+    assert!(rust_code.contains("fn add"));
+    assert!(rust_code.contains("i32"));
+    assert!(rust_code.contains("a + b"));
+    assert!(!rust_code.contains("return"));  // Should use implicit return
+}</code></pre>
+<h2 id="type-mapping"><a class="header" href="#type-mapping">Type Mapping</a></h2>
+<h3 id="c-types--rust-types"><a class="header" href="#c-types--rust-types">C Types → Rust Types</a></h3>
+<div class="table-wrapper"><table><thead><tr><th>C Type</th><th>Rust Type</th></tr></thead><tbody>
+<tr><td><code>int</code></td><td><code>i32</code></td></tr>
+<tr><td><code>char</code></td><td><code>i8</code></td></tr>
+<tr><td><code>float</code></td><td><code>f32</code></td></tr>
+<tr><td><code>double</code></td><td><code>f64</code></td></tr>
+<tr><td><code>void</code></td><td><code>()</code></td></tr>
+<tr><td><code>int*</code></td><td><code>*mut i32</code> or <code>&amp;mut i32</code></td></tr>
+<tr><td><code>const int*</code></td><td><code>*const i32</code> or <code>&amp;i32</code></td></tr>
+</tbody></table>
+</div>
+<h3 id="verification-test-5"><a class="header" href="#verification-test-5">Verification Test</a></h3>
+<pre><code class="language-rust ignore">#[test]
+fn test_type_mapping() {
+    let codegen = CodeGenerator::new();
+
+    assert_eq!(codegen.map_type(&amp;HirType::Int), "i32");
+    assert_eq!(codegen.map_type(&amp;HirType::Char), "i8");
+    assert_eq!(codegen.map_type(&amp;HirType::Float), "f32");
+    assert_eq!(codegen.map_type(&amp;HirType::Double), "f64");
+    assert_eq!(codegen.map_type(&amp;HirType::Void), "()");
+}
+
+#[test]
+fn test_pointer_mapping() {
+    let codegen = CodeGenerator::new();
+
+    let int_ptr = HirType::Pointer(Box::new(HirType::Int));
+    assert_eq!(codegen.map_type(&amp;int_ptr), "*mut i32");
+
+    let const_int_ptr = HirType::ConstPointer(Box::new(HirType::Int));
+    assert_eq!(codegen.map_type(&amp;const_int_ptr), "*const i32");
+}</code></pre>
+<h2 id="ownership-pattern-generation"><a class="header" href="#ownership-pattern-generation">Ownership Pattern Generation</a></h2>
+<h3 id="malloc--box"><a class="header" href="#malloc--box">malloc → Box</a></h3>
+<pre><code class="language-rust ignore">// C code
+int* p = malloc(sizeof(int));
+*p = 42;
+
+// Generated Rust
+let mut p = Box::new(0i32);
+*p = 42;</code></pre>
+<h3 id="verification-test-6"><a class="header" href="#verification-test-6">Verification Test</a></h3>
+<pre><code class="language-rust ignore">#[test]
+fn test_malloc_becomes_box() {
+    let hir_stmt = HirStatement::VarDecl {
+        name: "p".to_string(),
+        ty: HirType::Pointer(Box::new(HirType::Int)),
+        init: Some(HirExpression::Malloc {
+            size: 4,
+            ty: HirType::Int,
+        }),
+        ownership: OwnershipPattern::Owning,
+    };
+
+    let codegen = CodeGenerator::new();
+    let rust_code = codegen.generate_statement(&amp;hir_stmt);
+
+    assert!(rust_code.contains("Box::new"));
+    assert!(!rust_code.contains("malloc"));
+}</code></pre>
+<h3 id="function-parameters--references"><a class="header" href="#function-parameters--references">Function Parameters → References</a></h3>
+<pre><code class="language-rust ignore">// C code
+void modify(int* p) {
+    *p = 10;
+}
+
+// Generated Rust
+fn modify(p: &amp;mut i32) {
+    *p = 10;
+}</code></pre>
+<h3 id="verification-test-7"><a class="header" href="#verification-test-7">Verification Test</a></h3>
+<pre><code class="language-rust ignore">#[test]
+fn test_parameter_pointer_becomes_reference() {
+    let hir_func = HirFunction {
+        name: "modify".to_string(),
+        return_type: HirType::Void,
+        parameters: vec![
+            HirParameter {
+                name: "p".to_string(),
+                ty: HirType::Pointer(Box::new(HirType::Int)),
+                ownership: OwnershipPattern::Borrowed,
+                is_mutable: true,
+            }
+        ],
+        body: vec![
+            HirStatement::Assignment {
+                target: HirExpression::Dereference(
+                    Box::new(HirExpression::Var("p"))
+                ),
+                value: HirExpression::Literal(10),
+            }
+        ],
+        lifetimes: vec![],
+    };
+
+    let codegen = CodeGenerator::new();
+    let rust_code = codegen.generate_function(&amp;hir_func);
+
+    assert!(rust_code.contains("&amp;mut i32"));
+    assert!(!rust_code.contains("*mut"));
+}</code></pre>
+<h2 id="lifetime-annotation-generation"><a class="header" href="#lifetime-annotation-generation">Lifetime Annotation Generation</a></h2>
+<h3 id="single-lifetime"><a class="header" href="#single-lifetime">Single Lifetime</a></h3>
+<pre><code class="language-rust ignore">// C code
+const char* get_message() {
+    static const char* msg = "Hello";
+    return msg;
+}
+
+// Generated Rust
+fn get_message() -&gt; &amp;'static str {
+    "Hello"
+}</code></pre>
+<h3 id="multiple-lifetimes"><a class="header" href="#multiple-lifetimes">Multiple Lifetimes</a></h3>
+<pre><code class="language-rust ignore">// C code
+int* choose(int* a, int* b, int condition) {
+    return condition ? a : b;
+}
+
+// Generated Rust
+fn choose&lt;'a&gt;(a: &amp;'a i32, b: &amp;'a i32, condition: i32) -&gt; &amp;'a i32 {
+    if condition != 0 { a } else { b }
+}</code></pre>
+<h3 id="verification-test-8"><a class="header" href="#verification-test-8">Verification Test</a></h3>
+<pre><code class="language-rust ignore">#[test]
+fn test_lifetime_annotation_generation() {
+    let hir_func = HirFunction {
+        name: "choose".to_string(),
+        return_type: HirType::Pointer(Box::new(HirType::Int)),
+        parameters: vec![
+            HirParameter {
+                name: "a".to_string(),
+                ty: HirType::Pointer(Box::new(HirType::Int)),
+                ownership: OwnershipPattern::Borrowed,
+                lifetime: Some(Lifetime::Named("a".to_string())),
+            },
+            HirParameter {
+                name: "b".to_string(),
+                ty: HirType::Pointer(Box::new(HirType::Int)),
+                ownership: OwnershipPattern::Borrowed,
+                lifetime: Some(Lifetime::Named("a".to_string())),
+            },
+        ],
+        body: vec![/* ... */],
+        lifetimes: vec![Lifetime::Named("a".to_string())],
+    };
+
+    let codegen = CodeGenerator::new();
+    let rust_code = codegen.generate_function(&amp;hir_func);
+
+    assert!(rust_code.contains("&lt;'a&gt;"));
+    assert!(rust_code.contains("&amp;'a i32"));
+}</code></pre>
+<h2 id="property-tests-for-codegen"><a class="header" href="#property-tests-for-codegen">Property Tests for Codegen</a></h2>
+<h3 id="property-generated-code-always-compiles"><a class="header" href="#property-generated-code-always-compiles">Property: Generated Code Always Compiles</a></h3>
+<pre><code class="language-rust ignore">use proptest::prelude::*;
+
+proptest! {
+    #[test]
+    fn prop_generated_code_compiles(hir_func in valid_hir_function()) {
+        let codegen = CodeGenerator::new();
+        let rust_code = codegen.generate_function(&amp;hir_func);
+
+        // Property: All generated code must compile
+        prop_assert!(
+            compile_rust(&amp;rust_code).is_ok(),
+            "Generated code must compile:\n{}",
+            rust_code
+        );
+    }
+}</code></pre>
+<h3 id="property-generated-code-passes-clippy"><a class="header" href="#property-generated-code-passes-clippy">Property: Generated Code Passes Clippy</a></h3>
+<pre><code class="language-rust ignore">proptest! {
+    #[test]
+    fn prop_generated_code_passes_clippy(hir_func in valid_hir_function()) {
+        let codegen = CodeGenerator::new();
+        let rust_code = codegen.generate_function(&amp;hir_func);
+
+        // Property: Generated code has zero clippy warnings
+        prop_assert!(
+            clippy_check(&amp;rust_code).is_ok(),
+            "Generated code must pass clippy:\n{}",
+            rust_code
+        );
+    }
+}</code></pre>
+<h3 id="property-generated-code-is-formatted"><a class="header" href="#property-generated-code-is-formatted">Property: Generated Code is Formatted</a></h3>
+<pre><code class="language-rust ignore">proptest! {
+    #[test]
+    fn prop_generated_code_is_formatted(hir_func in valid_hir_function()) {
+        let codegen = CodeGenerator::new();
+        let rust_code = codegen.generate_function(&amp;hir_func);
+
+        // Property: Generated code should be properly formatted
+        let formatted = format_rust(&amp;rust_code).unwrap();
+        prop_assert_eq!(&amp;rust_code, &amp;formatted, "Generated code should be formatted");
+    }
+}</code></pre>
+<h3 id="property-no-unsafe-blocks-for-safe-code"><a class="header" href="#property-no-unsafe-blocks-for-safe-code">Property: No Unsafe Blocks for Safe Code</a></h3>
+<pre><code class="language-rust ignore">proptest! {
+    #[test]
+    fn prop_no_unsafe_for_safe_code(hir_func in memory_safe_hir()) {
+        let codegen = CodeGenerator::new();
+        let rust_code = codegen.generate_function(&amp;hir_func);
+
+        // Property: Memory-safe HIR → no unsafe blocks
+        prop_assert!(
+            !rust_code.contains("unsafe"),
+            "Safe HIR should not generate unsafe blocks"
+        );
+    }
+}</code></pre>
+<h2 id="compilation-verification"><a class="header" href="#compilation-verification">Compilation Verification</a></h2>
+<p>Test that generated code actually compiles:</p>
+<pre><code class="language-rust ignore">use std::process::Command;
+use std::fs;
+
+fn compile_rust(code: &amp;str) -&gt; Result&lt;()&gt; {
+    let temp_file = "/tmp/decy_codegen_test.rs";
+    fs::write(temp_file, code)?;
+
+    let output = Command::new("rustc")
+        .args(&amp;["--crate-type", "lib", temp_file])
+        .output()?;
+
+    if !output.status.success() {
+        anyhow::bail!(
+            "Compilation failed:\n{}",
+            String::from_utf8_lossy(&amp;output.stderr)
+        );
+    }
+
+    Ok(())
+}
+
+#[test]
+fn test_compilation_simple_function() {
+    let hir_func = create_add_function();
+    let codegen = CodeGenerator::new();
+    let rust_code = codegen.generate_function(&amp;hir_func);
+
+    compile_rust(&amp;rust_code).expect("Generated code should compile");
+}</code></pre>
+<h2 id="clippy-verification"><a class="header" href="#clippy-verification">Clippy Verification</a></h2>
+<p>Test that generated code passes clippy:</p>
+<pre><code class="language-rust ignore">fn clippy_check(code: &amp;str) -&gt; Result&lt;()&gt; {
+    let temp_dir = tempdir()?;
+    let lib_file = temp_dir.path().join("lib.rs");
+    fs::write(&amp;lib_file, code)?;
+
+    let output = Command::new("cargo")
+        .args(&amp;["clippy", "--", "-D", "warnings"])
+        .current_dir(&amp;temp_dir)
+        .output()?;
+
+    if !output.status.success() {
+        anyhow::bail!(
+            "Clippy failed:\n{}",
+            String::from_utf8_lossy(&amp;output.stderr)
+        );
+    }
+
+    Ok(())
+}
+
+#[test]
+fn test_clippy_simple_function() {
+    let hir_func = create_add_function();
+    let codegen = CodeGenerator::new();
+    let rust_code = codegen.generate_function(&amp;hir_func);
+
+    clippy_check(&amp;rust_code).expect("Generated code should pass clippy");
+}</code></pre>
+<h2 id="formatting"><a class="header" href="#formatting">Formatting</a></h2>
+<p>Generate properly formatted Rust code:</p>
+<pre><code class="language-rust ignore">impl CodeGenerator {
+    pub fn generate_function(&amp;self, func: &amp;HirFunction) -&gt; String {
+        let mut code = String::new();
+
+        // Generate function signature
+        self.generate_signature(func, &amp;mut code);
+
+        // Generate body
+        code.push_str(" {\n");
+        for stmt in &amp;func.body {
+            code.push_str("    ");  // 4-space indent
+            self.generate_statement(stmt, &amp;mut code);
+            code.push('\n');
+        }
+        code.push_str("}\n");
+
+        code
+    }
+}
+
+#[test]
+fn test_formatting_indentation() {
+    let hir_func = create_function_with_multiple_statements();
+    let codegen = CodeGenerator::new();
+    let rust_code = codegen.generate_function(&amp;hir_func);
+
+    // Verify proper indentation
+    let lines: Vec&lt;&amp;str&gt; = rust_code.lines().collect();
+    for line in &amp;lines[1..lines.len()-1] {  // Skip first and last line
+        if !line.is_empty() {
+            assert!(
+                line.starts_with("    "),
+                "Body statements should be indented with 4 spaces"
+            );
+        }
+    }
+}</code></pre>
+<h2 id="mutation-testing-for-codegen"><a class="header" href="#mutation-testing-for-codegen">Mutation Testing for Codegen</a></h2>
+<h3 id="original-code-3"><a class="header" href="#original-code-3">Original Code</a></h3>
+<pre><code class="language-rust ignore">pub fn map_type(&amp;self, ty: &amp;HirType) -&gt; String {
+    match ty {
+        HirType::Int =&gt; "i32".to_string(),
+        HirType::Char =&gt; "i8".to_string(),
+        HirType::Void =&gt; "()".to_string(),
+        HirType::Pointer(inner) =&gt; {
+            format!("*mut {}", self.map_type(inner))
+        }
+    }
+}</code></pre>
+<h3 id="expected-mutants-1"><a class="header" href="#expected-mutants-1">Expected Mutants</a></h3>
+<ol>
+<li>Replace <code>"i32"</code> with <code>"i64"</code></li>
+<li>Replace <code>"i8"</code> with <code>"u8"</code></li>
+<li>Replace <code>"*mut"</code> with <code>"*const"</code></li>
+<li>Replace <code>"()"</code> with <code>""</code></li>
+</ol>
+<h3 id="tests-to-catch-mutants-1"><a class="header" href="#tests-to-catch-mutants-1">Tests to Catch Mutants</a></h3>
+<pre><code class="language-rust ignore">#[test]
+fn test_int_maps_to_i32_exactly() {
+    let codegen = CodeGenerator::new();
+    assert_eq!(codegen.map_type(&amp;HirType::Int), "i32");
+    assert_ne!(codegen.map_type(&amp;HirType::Int), "i64");
+}
+
+#[test]
+fn test_char_maps_to_i8_exactly() {
+    let codegen = CodeGenerator::new();
+    assert_eq!(codegen.map_type(&amp;HirType::Char), "i8");
+    assert_ne!(codegen.map_type(&amp;HirType::Char), "u8");
+}
+
+#[test]
+fn test_void_maps_to_unit() {
+    let codegen = CodeGenerator::new();
+    assert_eq!(codegen.map_type(&amp;HirType::Void), "()");
+    assert!(!codegen.map_type(&amp;HirType::Void).is_empty());
+}
+
+#[test]
+fn test_pointer_is_mutable() {
+    let codegen = CodeGenerator::new();
+    let ptr = HirType::Pointer(Box::new(HirType::Int));
+    let result = codegen.map_type(&amp;ptr);
+    assert!(result.contains("*mut"));
+    assert!(!result.contains("*const"));
+}</code></pre>
+<h2 id="end-to-end-tests"><a class="header" href="#end-to-end-tests">End-to-End Tests</a></h2>
+<p>Test complete transpilation pipeline:</p>
+<pre><code class="language-rust ignore">#[test]
+fn test_e2e_simple_function() {
+    let c_code = "int add(int a, int b) { return a + b; }";
+
+    // Parse
+    let parser = CParser::new().unwrap();
+    let ast = parser.parse(c_code).unwrap();
+
+    // Lower to HIR
+    let hir = lower_to_hir(&amp;ast).unwrap();
+
+    // Infer ownership
+    let hir_with_ownership = infer_ownership(&amp;hir).unwrap();
+
+    // Generate Rust
+    let codegen = CodeGenerator::new();
+    let rust_code = codegen.generate(&amp;hir_with_ownership);
+
+    // Verify
+    assert!(rust_code.contains("fn add"));
+    assert!(rust_code.contains("i32"));
+    assert!(compile_rust(&amp;rust_code).is_ok());
+    assert!(clippy_check(&amp;rust_code).is_ok());
+}</code></pre>
+<h2 id="performance-benchmarks"><a class="header" href="#performance-benchmarks">Performance Benchmarks</a></h2>
+<pre><code class="language-rust ignore">use criterion::{black_box, criterion_group, criterion_main, Criterion};
+
+fn benchmark_generate_simple_function(c: &amp;mut Criterion) {
+    let hir_func = create_add_function();
+    let codegen = CodeGenerator::new();
+
+    c.bench_function("generate_simple_function", |b| {
+        b.iter(|| {
+            codegen.generate_function(black_box(&amp;hir_func))
+        });
+    });
+}
+
+fn benchmark_generate_complex_function(c: &amp;mut Criterion) {
+    let hir_func = create_complex_function_with_100_statements();
+    let codegen = CodeGenerator::new();
+
+    c.bench_function("generate_complex_function", |b| {
+        b.iter(|| {
+            codegen.generate_function(black_box(&amp;hir_func))
+        });
+    });
+}
+
+criterion_group!(benches,
+    benchmark_generate_simple_function,
+    benchmark_generate_complex_function
+);
+criterion_main!(benches);</code></pre>
+<h2 id="coverage-requirements-1"><a class="header" href="#coverage-requirements-1">Coverage Requirements</a></h2>
+<p>Codegen tests must achieve ≥80% coverage:</p>
+<pre><code class="language-bash">cargo llvm-cov --package decy-codegen
+</code></pre>
+<p>Expected output:</p>
+<pre><code>decy-codegen/src/lib.rs          94.1% coverage ✅
+decy-codegen/src/types.rs        92.3% coverage ✅
+decy-codegen/src/ownership.rs    93.7% coverage ✅
+decy-codegen/src/formatting.rs   89.2% coverage ✅
+───────────────────────────────────────────────
+Overall                          92.3% coverage ✅
+</code></pre>
+<h2 id="summary-5"><a class="header" href="#summary-5">Summary</a></h2>
+<p>Code generation verification ensures:</p>
+<p>✅ <strong>Correct type mapping</strong>: C types → Rust types
+✅ <strong>Ownership patterns</strong>: malloc → Box, parameters → &amp;T
+✅ <strong>Lifetime annotations</strong>: Automatic lifetime inference
+✅ <strong>Compiles</strong>: All generated code is valid Rust
+✅ <strong>Clippy clean</strong>: Zero warnings on generated code
+✅ <strong>Formatted</strong>: Proper indentation and style
+✅ <strong>Property compliance</strong>: Invariants hold for all inputs
+✅ <strong>High coverage</strong>: ≥80% test coverage
+✅ <strong>Mutation resistance</strong>: ≥90% mutation kill rate</p>
+<h2 id="next-steps-6"><a class="header" href="#next-steps-6">Next Steps</a></h2>
+<ul>
+<li><a href="components/../verification/simple-function.html">Simple Function Transpilation</a> - End-to-end examples</li>
+<li><a href="components/../metrics/coverage.html">Test Coverage</a> - Coverage reports</li>
+</ul>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="simple-function-transpilation"><a class="header" href="#simple-function-transpilation">Simple Function Transpilation</a></h1>
+<p>This chapter demonstrates end-to-end transpilation of simple C functions to Rust, with complete verification.</p>
+<h2 id="basic-function-add-two-numbers"><a class="header" href="#basic-function-add-two-numbers">Basic Function: Add Two Numbers</a></h2>
+<h3 id="original-c-code"><a class="header" href="#original-c-code">Original C Code</a></h3>
+<pre><code class="language-c">int add(int a, int b) {
+    return a + b;
+}
+</code></pre>
+<h3 id="transpiled-rust-code"><a class="header" href="#transpiled-rust-code">Transpiled Rust Code</a></h3>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>fn add(a: i32, b: i32) -&gt; i32 {
+    return a + b;
+}
+<span class="boring">}</span></code></pre></pre>
+<h3 id="verification"><a class="header" href="#verification">Verification</a></h3>
+<p>Let's verify this transpilation works:</p>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use decy_core::transpile;
+
+#[test]
+fn test_transpile_add_function() {
+    let c_code = "int add(int a, int b) { return a + b; }";
+
+    let result = transpile(c_code);
+    assert!(result.is_ok(), "Transpilation should succeed");
+
+    let rust_code = result.unwrap();
+
+    // Verify function signature
+    assert!(rust_code.contains("fn add"), "Should contain function name");
+    assert!(rust_code.contains("i32"), "Should contain Rust int type");
+
+    // Verify parameters
+    assert!(rust_code.contains("a"), "Should contain parameter a");
+    assert!(rust_code.contains("b"), "Should contain parameter b");
+}
+<span class="boring">}</span></code></pre></pre>
+<h2 id="function-with-variables"><a class="header" href="#function-with-variables">Function with Variables</a></h2>
+<h3 id="c-code-with-local-variable"><a class="header" href="#c-code-with-local-variable">C Code with Local Variable</a></h3>
+<pre><code class="language-c">int calculate(int a, int b) {
+    int result;
+    result = a + b;
+    return result;
+}
+</code></pre>
+<h3 id="expected-rust-output-1"><a class="header" href="#expected-rust-output-1">Expected Rust Output</a></h3>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>fn calculate(a: i32, b: i32) -&gt; i32 {
+    let mut result: i32 = 0;
+    result = a + b;
+    return result;
+}
+<span class="boring">}</span></code></pre></pre>
+<h3 id="verification-test-9"><a class="header" href="#verification-test-9">Verification Test</a></h3>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[test]
+fn test_transpile_function_with_variable() {
+    let c_code = r#"
+        int calculate(int a, int b) {
+            int result;
+            result = a + b;
+            return result;
+        }
+    "#;
+
+    let rust_code = transpile(c_code).unwrap();
+
+    assert!(rust_code.contains("fn calculate"));
+    assert!(rust_code.contains("let mut result"));
+    assert!(rust_code.contains("i32"));
+}
+<span class="boring">}</span></code></pre></pre>
+<h2 id="void-function"><a class="header" href="#void-function">Void Function</a></h2>
+<h3 id="c-code"><a class="header" href="#c-code">C Code</a></h3>
+<pre><code class="language-c">void do_nothing() {
+    return;
+}
+</code></pre>
+<h3 id="transpiled-rust"><a class="header" href="#transpiled-rust">Transpiled Rust</a></h3>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>fn do_nothing() {
+    return;
+}
+<span class="boring">}</span></code></pre></pre>
+<h3 id="verification-1"><a class="header" href="#verification-1">Verification</a></h3>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[test]
+fn test_transpile_void_function() {
+    let c_code = "void do_nothing() { return; }";
+
+    let rust_code = transpile(c_code).unwrap();
+
+    assert!(rust_code.contains("fn do_nothing"));
+    assert!(!rust_code.contains("-&gt;"), "Void functions have no return type");
+}
+<span class="boring">}</span></code></pre></pre>
+<h2 id="property-tests-for-simple-functions"><a class="header" href="#property-tests-for-simple-functions">Property Tests for Simple Functions</a></h2>
+<p>Let's verify properties hold for ALL simple functions:</p>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use proptest::prelude::*;
+
+proptest! {
+    #[test]
+    fn prop_transpilation_deterministic(
+        func_name in "[a-z]{3,10}",
+        param1 in "[a-z]{1,5}",
+        param2 in "[a-z]{1,5}",
+    ) {
+        let c_code = format!(
+            "int {}(int {}, int {}) {{ return {} + {}; }}",
+            func_name, param1, param2, param1, param2
+        );
+
+        let output1 = transpile(&amp;c_code).unwrap();
+        let output2 = transpile(&amp;c_code).unwrap();
+
+        // Property: Same C code → same Rust output
+        prop_assert_eq!(output1, output2);
+    }
+
+    #[test]
+    fn prop_rust_output_contains_function_name(
+        func_name in "[a-z]{3,10}",
+    ) {
+        let c_code = format!("int {}() {{ return 0; }}", func_name);
+
+        let rust_code = transpile(&amp;c_code).unwrap();
+
+        // Property: Function name is preserved
+        prop_assert!(rust_code.contains(&amp;format!("fn {}", func_name)));
+    }
+
+    #[test]
+    fn prop_parameters_preserved(
+        param_name in "[a-z]{1,8}",
+    ) {
+        let c_code = format!("int foo(int {}) {{ return {}; }}", param_name, param_name);
+
+        let rust_code = transpile(&amp;c_code).unwrap();
+
+        // Property: Parameter names are preserved
+        prop_assert!(rust_code.contains(&amp;param_name));
+    }
+}
+<span class="boring">}</span></code></pre></pre>
+<h2 id="compilation-verification-1"><a class="header" href="#compilation-verification-1">Compilation Verification</a></h2>
+<p>The ultimate test: does the generated Rust compile?</p>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use std::process::Command;
+use std::fs;
+
+#[test]
+fn test_generated_rust_compiles() {
+    let c_code = "int add(int a, int b) { return a + b; }";
+    let rust_code = transpile(c_code).unwrap();
+
+    // Write to temporary file
+    let temp_file = "/tmp/decy_test_add.rs";
+    fs::write(temp_file, &amp;rust_code).unwrap();
+
+    // Try to compile with rustc
+    let output = Command::new("rustc")
+        .args(&amp;["--crate-type", "lib", temp_file])
+        .output()
+        .expect("Failed to run rustc");
+
+    assert!(
+        output.status.success(),
+        "Generated Rust code should compile:\n{}",
+        String::from_utf8_lossy(&amp;output.stderr)
+    );
+}
+<span class="boring">}</span></code></pre></pre>
+<h2 id="clippy-verification-1"><a class="header" href="#clippy-verification-1">Clippy Verification</a></h2>
+<p>Generated code must pass clippy:</p>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[test]
+fn test_generated_rust_passes_clippy() {
+    let c_code = "int add(int a, int b) { return a + b; }";
+    let rust_code = transpile(c_code).unwrap();
+
+    // Write to temporary file
+    let temp_file = "/tmp/decy_test_clippy.rs";
+    fs::write(temp_file, &amp;rust_code).unwrap();
+
+    // Run clippy
+    let output = Command::new("cargo")
+        .args(&amp;["clippy", "--", "-D", "warnings"])
+        .current_dir("/tmp")
+        .output()
+        .expect("Failed to run clippy");
+
+    assert!(
+        output.status.success(),
+        "Generated code should pass clippy:\n{}",
+        String::from_utf8_lossy(&amp;output.stderr)
+    );
+}
+<span class="boring">}</span></code></pre></pre>
+<h2 id="summary-6"><a class="header" href="#summary-6">Summary</a></h2>
+<p>Simple function transpilation demonstrates:</p>
+<p>✅ <strong>Basic transpilation works</strong>: C functions → Rust functions
+✅ <strong>Type mapping correct</strong>: <code>int</code> → <code>i32</code>, <code>void</code> → <code>()</code>
+✅ <strong>Parameters preserved</strong>: Names and types maintained
+✅ <strong>Variables handled</strong>: <code>int x;</code> → <code>let mut x: i32 = 0;</code>
+✅ <strong>Deterministic output</strong>: Same input → same output
+✅ <strong>Compiles</strong>: Generated Rust is valid
+✅ <strong>Lints clean</strong>: Passes clippy with zero warnings</p>
+<h2 id="next-steps-7"><a class="header" href="#next-steps-7">Next Steps</a></h2>
+<ul>
+<li><a href="verification/./pointers.html">Pointer Handling</a> - How pointers become references</li>
+<li><a href="verification/./ownership-patterns.html">Ownership Patterns</a> - malloc → Box, parameters → &amp;T</li>
+<li><a href="verification/./lifetimes.html">Lifetime Annotations</a> - Automatic lifetime inference</li>
+</ul>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="pointer-handling"><a class="header" href="#pointer-handling">Pointer Handling</a></h1>
+<p>This chapter demonstrates how DECY transpiles C pointers into safe Rust references, raw pointers, and Box types.</p>
+<h2 id="strategy"><a class="header" href="#strategy">Strategy</a></h2>
+<p>DECY uses <strong>dataflow analysis</strong> and <strong>ownership inference</strong> to determine the safest Rust representation:</p>
+<div class="table-wrapper"><table><thead><tr><th>C Pattern</th><th>Rust Pattern</th><th>Example</th></tr></thead><tbody>
+<tr><td><code>malloc</code> + <code>free</code></td><td><code>Box&lt;T&gt;</code></td><td>Owned heap allocation</td></tr>
+<tr><td>Function parameter</td><td><code>&amp;T</code> or <code>&amp;mut T</code></td><td>Borrowed reference</td></tr>
+<tr><td>Pointer arithmetic</td><td><code>*mut T</code></td><td>Raw pointer (unsafe)</td></tr>
+<tr><td>NULL checks</td><td><code>Option&lt;&amp;T&gt;</code></td><td>Nullable reference</td></tr>
+</tbody></table>
+</div>
+<h2 id="malloc--box-1"><a class="header" href="#malloc--box-1">malloc → Box<T></a></h2>
+<h3 id="c-code-1"><a class="header" href="#c-code-1">C Code</a></h3>
+<pre><code class="language-c">int* create_int() {
+    int* p = malloc(sizeof(int));
+    *p = 42;
+    return p;
+}
+</code></pre>
+<h3 id="transpiled-rust-1"><a class="header" href="#transpiled-rust-1">Transpiled Rust</a></h3>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>fn create_int() -&gt; Box&lt;i32&gt; {
+    let mut p = Box::new(0i32);
+    *p = 42;
+    p
+}
+<span class="boring">}</span></code></pre></pre>
+<h3 id="verification-2"><a class="header" href="#verification-2">Verification</a></h3>
+<pre><code class="language-rust ignore">use decy_core::transpile;
+
+#[test]
+fn test_malloc_becomes_box() {
+    let c_code = r#"
+        int* create_int() {
+            int* p = malloc(sizeof(int));
+            *p = 42;
+            return p;
+        }
+    "#;
+
+    let rust_code = transpile(c_code).unwrap();
+
+    // Verify Box usage
+    assert!(rust_code.contains("Box::new"));
+    assert!(rust_code.contains("Box&lt;i32&gt;"));
+
+    // Verify no malloc
+    assert!(!rust_code.contains("malloc"));
+
+    // Verify compiles
+    assert!(compile_rust(&amp;rust_code).is_ok());
+}</code></pre>
+<h2 id="function-parameters--references-1"><a class="header" href="#function-parameters--references-1">Function Parameters → References</a></h2>
+<h3 id="c-code-2"><a class="header" href="#c-code-2">C Code</a></h3>
+<pre><code class="language-c">void increment(int* p) {
+    *p = *p + 1;
+}
+</code></pre>
+<h3 id="transpiled-rust-2"><a class="header" href="#transpiled-rust-2">Transpiled Rust</a></h3>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>fn increment(p: &amp;mut i32) {
+    *p = *p + 1;
+}
+<span class="boring">}</span></code></pre></pre>
+<h3 id="verification-3"><a class="header" href="#verification-3">Verification</a></h3>
+<pre><code class="language-rust ignore">#[test]
+fn test_parameter_pointer_becomes_reference() {
+    let c_code = "void increment(int* p) { *p = *p + 1; }";
+
+    let rust_code = transpile(c_code).unwrap();
+
+    // Verify reference usage
+    assert!(rust_code.contains("&amp;mut i32"));
+
+    // Verify no raw pointers
+    assert!(!rust_code.contains("*mut"));
+    assert!(!rust_code.contains("*const"));
+
+    // Verify compiles
+    assert!(compile_rust(&amp;rust_code).is_ok());
+}</code></pre>
+<h2 id="const-pointers--immutable-references"><a class="header" href="#const-pointers--immutable-references">Const Pointers → Immutable References</a></h2>
+<h3 id="c-code-3"><a class="header" href="#c-code-3">C Code</a></h3>
+<pre><code class="language-c">int sum(const int* arr, int len) {
+    int total = 0;
+    for (int i = 0; i &lt; len; i++) {
+        total += arr[i];
+    }
+    return total;
+}
+</code></pre>
+<h3 id="transpiled-rust-3"><a class="header" href="#transpiled-rust-3">Transpiled Rust</a></h3>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>fn sum(arr: &amp;[i32]) -&gt; i32 {
+    let mut total = 0;
+    for &amp;val in arr {
+        total += val;
+    }
+    total
+}
+<span class="boring">}</span></code></pre></pre>
+<h3 id="verification-4"><a class="header" href="#verification-4">Verification</a></h3>
+<pre><code class="language-rust ignore">#[test]
+fn test_const_pointer_becomes_slice() {
+    let c_code = r#"
+        int sum(const int* arr, int len) {
+            int total = 0;
+            for (int i = 0; i &lt; len; i++) {
+                total += arr[i];
+            }
+            return total;
+        }
+    "#;
+
+    let rust_code = transpile(c_code).unwrap();
+
+    // Verify slice usage
+    assert!(rust_code.contains("&amp;[i32]"));
+
+    // Verify no raw pointers
+    assert!(!rust_code.contains("*const"));
+
+    // Verify idiomatic iteration
+    assert!(rust_code.contains("for &amp;val in"));
+
+    // Verify compiles
+    assert!(compile_rust(&amp;rust_code).is_ok());
+}</code></pre>
+<h2 id="pointer-arithmetic--raw-pointers"><a class="header" href="#pointer-arithmetic--raw-pointers">Pointer Arithmetic → Raw Pointers</a></h2>
+<h3 id="c-code-4"><a class="header" href="#c-code-4">C Code</a></h3>
+<pre><code class="language-c">void process_array(int* arr, int len) {
+    int* end = arr + len;
+    for (int* p = arr; p &lt; end; p++) {
+        *p = *p * 2;
+    }
+}
+</code></pre>
+<h3 id="transpiled-rust-4"><a class="header" href="#transpiled-rust-4">Transpiled Rust</a></h3>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>fn process_array(arr: &amp;mut [i32]) {
+    for val in arr.iter_mut() {
+        *val = *val * 2;
+    }
+}
+<span class="boring">}</span></code></pre></pre>
+<p>Note: DECY converts pointer arithmetic to safe iterator usage when possible!</p>
+<h3 id="verification-5"><a class="header" href="#verification-5">Verification</a></h3>
+<pre><code class="language-rust ignore">#[test]
+fn test_pointer_arithmetic_becomes_iterator() {
+    let c_code = r#"
+        void process_array(int* arr, int len) {
+            int* end = arr + len;
+            for (int* p = arr; p &lt; end; p++) {
+                *p = *p * 2;
+            }
+        }
+    "#;
+
+    let rust_code = transpile(c_code).unwrap();
+
+    // Verify slice usage
+    assert!(rust_code.contains("&amp;mut [i32]"));
+
+    // Verify iterator usage
+    assert!(rust_code.contains("iter_mut()"));
+
+    // Verify no unsafe pointer arithmetic
+    assert!(!rust_code.contains("unsafe"));
+    assert!(!rust_code.contains(".add("));
+    assert!(!rust_code.contains(".offset("));
+
+    // Verify compiles
+    assert!(compile_rust(&amp;rust_code).is_ok());
+}</code></pre>
+<h2 id="null-checks--option"><a class="header" href="#null-checks--option">NULL Checks → Option<T></a></h2>
+<h3 id="c-code-5"><a class="header" href="#c-code-5">C Code</a></h3>
+<pre><code class="language-c">int* find_value(int* arr, int len, int target) {
+    for (int i = 0; i &lt; len; i++) {
+        if (arr[i] == target) {
+            return &amp;arr[i];
+        }
+    }
+    return NULL;
+}
+</code></pre>
+<h3 id="transpiled-rust-5"><a class="header" href="#transpiled-rust-5">Transpiled Rust</a></h3>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>fn find_value(arr: &amp;[i32], target: i32) -&gt; Option&lt;&amp;i32&gt; {
+    for val in arr {
+        if *val == target {
+            return Some(val);
+        }
+    }
+    None
+}
+<span class="boring">}</span></code></pre></pre>
+<h3 id="verification-6"><a class="header" href="#verification-6">Verification</a></h3>
+<pre><code class="language-rust ignore">#[test]
+fn test_null_becomes_option() {
+    let c_code = r#"
+        int* find_value(int* arr, int len, int target) {
+            for (int i = 0; i &lt; len; i++) {
+                if (arr[i] == target) {
+                    return &amp;arr[i];
+                }
+            }
+            return NULL;
+        }
+    "#;
+
+    let rust_code = transpile(c_code).unwrap();
+
+    // Verify Option usage
+    assert!(rust_code.contains("Option&lt;&amp;i32&gt;"));
+    assert!(rust_code.contains("Some("));
+    assert!(rust_code.contains("None"));
+
+    // Verify no NULL
+    assert!(!rust_code.contains("NULL"));
+    assert!(!rust_code.contains("null"));
+
+    // Verify compiles
+    assert!(compile_rust(&amp;rust_code).is_ok());
+}</code></pre>
+<h2 id="pointer-to-pointer--nested-references"><a class="header" href="#pointer-to-pointer--nested-references">Pointer to Pointer → Nested References</a></h2>
+<h3 id="c-code-6"><a class="header" href="#c-code-6">C Code</a></h3>
+<pre><code class="language-c">void allocate_array(int** ptr, int size) {
+    *ptr = malloc(size * sizeof(int));
+}
+</code></pre>
+<h3 id="transpiled-rust-6"><a class="header" href="#transpiled-rust-6">Transpiled Rust</a></h3>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>fn allocate_array(ptr: &amp;mut Box&lt;[i32]&gt;, size: usize) {
+    *ptr = vec![0; size].into_boxed_slice();
+}
+<span class="boring">}</span></code></pre></pre>
+<h3 id="verification-7"><a class="header" href="#verification-7">Verification</a></h3>
+<pre><code class="language-rust ignore">#[test]
+fn test_pointer_to_pointer_becomes_mut_ref_to_box() {
+    let c_code = r#"
+        void allocate_array(int** ptr, int size) {
+            *ptr = malloc(size * sizeof(int));
+        }
+    "#;
+
+    let rust_code = transpile(c_code).unwrap();
+
+    // Verify nested reference
+    assert!(rust_code.contains("&amp;mut Box&lt;[i32]&gt;"));
+
+    // Verify no raw pointers
+    assert!(!rust_code.contains("**"));
+    assert!(!rust_code.contains("*mut *mut"));
+
+    // Verify compiles
+    assert!(compile_rust(&amp;rust_code).is_ok());
+}</code></pre>
+<h2 id="property-tests-for-pointers"><a class="header" href="#property-tests-for-pointers">Property Tests for Pointers</a></h2>
+<h3 id="property-malloc-always-becomes-box"><a class="header" href="#property-malloc-always-becomes-box">Property: malloc Always Becomes Box</a></h3>
+<pre><code class="language-rust ignore">use proptest::prelude::*;
+
+proptest! {
+    #[test]
+    fn prop_malloc_always_box(size in 1..1024usize) {
+        let c_code = format!(
+            "int* p = malloc({} * sizeof(int));",
+            size
+        );
+
+        let rust_code = transpile(&amp;c_code).unwrap();
+
+        // Property: malloc → Box
+        prop_assert!(rust_code.contains("Box::new"));
+    }
+}</code></pre>
+<h3 id="property-function-parameters-become-references"><a class="header" href="#property-function-parameters-become-references">Property: Function Parameters Become References</a></h3>
+<pre><code class="language-rust ignore">proptest! {
+    #[test]
+    fn prop_parameters_become_references(
+        func_name in "[a-z]{3,10}",
+        param_name in "[a-z]{1,5}",
+    ) {
+        let c_code = format!(
+            "void {}(int* {}) {{ *{} = 0; }}",
+            func_name, param_name, param_name
+        );
+
+        let rust_code = transpile(&amp;c_code).unwrap();
+
+        // Property: parameter pointers → references
+        prop_assert!(
+            rust_code.contains("&amp;mut i32") || rust_code.contains("&amp;i32"),
+            "Parameter pointers should become references"
+        );
+    }
+}</code></pre>
+<h3 id="property-no-unsafe-for-safe-pointers"><a class="header" href="#property-no-unsafe-for-safe-pointers">Property: No Unsafe for Safe Pointers</a></h3>
+<pre><code class="language-rust ignore">proptest! {
+    #[test]
+    fn prop_no_unsafe_for_safe_pointers(c_code in safe_pointer_code()) {
+        let rust_code = transpile(&amp;c_code).unwrap();
+
+        // Property: Safe pointer usage → no unsafe blocks
+        prop_assert!(
+            !rust_code.contains("unsafe"),
+            "Safe pointer code should not generate unsafe blocks"
+        );
+    }
+}</code></pre>
+<h2 id="compilation-verification-2"><a class="header" href="#compilation-verification-2">Compilation Verification</a></h2>
+<p>Every pointer transpilation must compile:</p>
+<pre><code class="language-rust ignore">#[test]
+fn test_pointer_examples_compile() {
+    let examples = vec![
+        // malloc → Box
+        "int* p = malloc(sizeof(int));",
+
+        // Parameter → reference
+        "void func(int* p) { *p = 0; }",
+
+        // Const pointer → immutable reference
+        "int func(const int* p) { return *p; }",
+
+        // Array → slice
+        "void func(int* arr, int len) {}",
+
+        // NULL → Option
+        "int* func() { return NULL; }",
+    ];
+
+    for c_code in examples {
+        let rust_code = transpile(c_code)
+            .unwrap_or_else(|e| panic!("Failed to transpile: {}\nError: {}", c_code, e));
+
+        compile_rust(&amp;rust_code)
+            .unwrap_or_else(|e| panic!("Failed to compile:\n{}\nError: {}", rust_code, e));
+    }
+}</code></pre>
+<h2 id="safety-analysis"><a class="header" href="#safety-analysis">Safety Analysis</a></h2>
+<p>Verify that pointer transpilation maintains memory safety:</p>
+<pre><code class="language-rust ignore">#[test]
+fn test_pointer_safety() {
+    let test_cases = vec![
+        // malloc without free → automatic cleanup
+        (
+            "int* p = malloc(sizeof(int)); return p;",
+            "Box::new",  // Box auto-drops
+        ),
+
+        // Dangling pointer → prevented
+        (
+            "int* func() { int x = 5; return &amp;x; }",
+            "error",  // Should detect this is unsafe
+        ),
+
+        // Double free → prevented
+        (
+            "free(p); free(p);",
+            "error",  // Should detect double free
+        ),
+
+        // Use after free → prevented
+        (
+            "free(p); *p = 5;",
+            "error",  // Should detect use after free
+        ),
+    ];
+
+    for (c_code, expected) in test_cases {
+        let result = transpile(c_code);
+
+        if expected == "error" {
+            assert!(result.is_err(), "Should detect unsafe pattern: {}", c_code);
+        } else {
+            let rust_code = result.unwrap();
+            assert!(rust_code.contains(expected));
+            assert!(compile_rust(&amp;rust_code).is_ok());
+        }
+    }
+}</code></pre>
+<h2 id="performance"><a class="header" href="#performance">Performance</a></h2>
+<p>Verify that pointer transpilation doesn't introduce overhead:</p>
+<pre><code class="language-rust ignore">use criterion::{black_box, criterion_group, criterion_main, Criterion};
+
+fn benchmark_pointer_transpilation(c: &amp;mut Criterion) {
+    let c_code = r#"
+        int* create_array(int size) {
+            int* arr = malloc(size * sizeof(int));
+            for (int i = 0; i &lt; size; i++) {
+                arr[i] = i;
+            }
+            return arr;
+        }
+    "#;
+
+    c.bench_function("transpile_pointer_code", |b| {
+        b.iter(|| {
+            transpile(black_box(c_code)).unwrap()
+        });
+    });
+}
+
+criterion_group!(benches, benchmark_pointer_transpilation);
+criterion_main!(benches);</code></pre>
+<h2 id="summary-7"><a class="header" href="#summary-7">Summary</a></h2>
+<p>Pointer handling demonstrates:</p>
+<p>✅ <strong>malloc → Box</strong>: Automatic memory management
+✅ <strong>Parameters → &amp;T</strong>: Safe borrowing
+✅ <strong>Const → &amp;T</strong>: Immutable references
+✅ <strong>Arrays → slices</strong>: Safe array access
+✅ <strong>NULL → Option</strong>: Null safety
+✅ <strong>Pointer arithmetic → iterators</strong>: Safe iteration
+✅ <strong>No unsafe</strong>: When possible, avoid unsafe code
+✅ <strong>Compiles</strong>: All generated code is valid Rust
+✅ <strong>Memory safe</strong>: No leaks, dangling pointers, or double frees</p>
+<h2 id="next-steps-8"><a class="header" href="#next-steps-8">Next Steps</a></h2>
+<ul>
+<li><a href="verification/./ownership-patterns.html">Ownership Patterns</a> - Deep dive into ownership inference</li>
+<li><a href="verification/./lifetimes.html">Lifetime Annotations</a> - How lifetimes are determined</li>
+</ul>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="ownership-patterns"><a class="header" href="#ownership-patterns">Ownership Patterns</a></h1>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="lifetime-annotations"><a class="header" href="#lifetime-annotations">Lifetime Annotations</a></h1>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="box-transformations"><a class="header" href="#box-transformations">Box Transformations</a></h1>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="python-source-code"><a class="header" href="#python-source-code">Python Source Code</a></h1>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="git-source-code"><a class="header" href="#git-source-code">Git Source Code</a></h1>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="numpy-arrays"><a class="header" href="#numpy-arrays">NumPy Arrays</a></h1>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="sqlite-b-tree"><a class="header" href="#sqlite-b-tree">SQLite B-tree</a></h1>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="test-coverage"><a class="header" href="#test-coverage">Test Coverage</a></h1>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="mutation-scores"><a class="header" href="#mutation-scores">Mutation Scores</a></h1>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="complexity-analysis"><a class="header" href="#complexity-analysis">Complexity Analysis</a></h1>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="safety-verification"><a class="header" href="#safety-verification">Safety Verification</a></h1>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+
+            </nav>
+
+        </div>
+
+
+
+        <script>
+            window.playground_line_numbers = true;
+        </script>
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+        <script src="ace.js"></script>
+        <script src="mode-rust.js"></script>
+        <script src="editor.js"></script>
+        <script src="theme-dawn.js"></script>
+        <script src="theme-tomorrow_night.js"></script>
+
+        <script src="elasticlunr.min.js"></script>
+        <script src="mark.min.js"></script>
+        <script src="searcher.js"></script>
+
+        <script src="clipboard.min.js"></script>
+        <script src="highlight.js"></script>
+        <script src="book.js"></script>
+
+        <!-- Custom JS scripts -->
+
+        <script>
+        window.addEventListener('load', function() {
+            window.setTimeout(window.print, 100);
+        });
+        </script>
+
+
+    </div>
+    </body>
+</html>
