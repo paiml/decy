@@ -181,4 +181,158 @@ mod tests {
         assert!(code.contains("{"));
         assert!(code.contains("}"));
     }
+
+    // DECY-004: Variable declaration tests (RED phase)
+    #[test]
+    fn test_generate_variable_declaration() {
+        // RED PHASE: This test will FAIL
+        use decy_hir::{HirStatement, HirExpression};
+
+        let var_decl = HirStatement::VariableDeclaration {
+            name: "x".to_string(),
+            var_type: HirType::Int,
+            initializer: Some(HirExpression::IntLiteral(5)),
+        };
+
+        let codegen = CodeGenerator::new();
+        let code = codegen.generate_statement(&var_decl);
+
+        assert_eq!(code, "let mut x: i32 = 5;");
+    }
+
+    #[test]
+    fn test_generate_variable_without_initializer() {
+        // RED PHASE: This test will FAIL
+        use decy_hir::{HirStatement};
+
+        let var_decl = HirStatement::VariableDeclaration {
+            name: "y".to_string(),
+            var_type: HirType::Float,
+            initializer: None,
+        };
+
+        let codegen = CodeGenerator::new();
+        let code = codegen.generate_statement(&var_decl);
+
+        // Uninitialized variables get default value
+        assert_eq!(code, "let mut y: f32 = 0.0;");
+    }
+
+    #[test]
+    fn test_generate_int_literal() {
+        // RED PHASE: This test will FAIL
+        use decy_hir::HirExpression;
+
+        let expr = HirExpression::IntLiteral(42);
+
+        let codegen = CodeGenerator::new();
+        let code = codegen.generate_expression(&expr);
+
+        assert_eq!(code, "42");
+    }
+
+    #[test]
+    fn test_generate_variable_reference() {
+        // RED PHASE: This test will FAIL
+        use decy_hir::HirExpression;
+
+        let expr = HirExpression::Variable("x".to_string());
+
+        let codegen = CodeGenerator::new();
+        let code = codegen.generate_expression(&expr);
+
+        assert_eq!(code, "x");
+    }
+
+    #[test]
+    fn test_generate_return_with_expression() {
+        // RED PHASE: This test will FAIL
+        use decy_hir::{HirStatement, HirExpression};
+
+        let stmt = HirStatement::Return(Some(HirExpression::IntLiteral(0)));
+
+        let codegen = CodeGenerator::new();
+        let code = codegen.generate_statement(&stmt);
+
+        assert_eq!(code, "return 0;");
+    }
+
+    #[test]
+    fn test_generate_return_void() {
+        // RED PHASE: This test will FAIL
+        use decy_hir::HirStatement;
+
+        let stmt = HirStatement::Return(None);
+
+        let codegen = CodeGenerator::new();
+        let code = codegen.generate_statement(&stmt);
+
+        assert_eq!(code, "return;");
+    }
+
+    #[test]
+    fn test_generate_function_with_body() {
+        // RED PHASE: This test will FAIL
+        use decy_hir::{HirStatement, HirExpression};
+
+        let func = HirFunction::new_with_body(
+            "test".to_string(),
+            HirType::Int,
+            vec![],
+            vec![
+                HirStatement::VariableDeclaration {
+                    name: "x".to_string(),
+                    var_type: HirType::Int,
+                    initializer: Some(HirExpression::IntLiteral(5)),
+                },
+                HirStatement::Return(Some(HirExpression::Variable("x".to_string()))),
+            ],
+        );
+
+        let codegen = CodeGenerator::new();
+        let code = codegen.generate_function(&func);
+
+        assert!(code.contains("fn test() -> i32"));
+        assert!(code.contains("let mut x: i32 = 5;"));
+        assert!(code.contains("return x;"));
+    }
+
+    #[test]
+    fn test_infer_mutability_default() {
+        // RED PHASE: This test will FAIL
+        // All C variables are mutable by default
+        use decy_hir::{HirStatement, HirExpression};
+
+        let var_decl = HirStatement::VariableDeclaration {
+            name: "counter".to_string(),
+            var_type: HirType::Int,
+            initializer: Some(HirExpression::IntLiteral(0)),
+        };
+
+        let codegen = CodeGenerator::new();
+        let code = codegen.generate_statement(&var_decl);
+
+        // Should generate "let mut" not "let"
+        assert!(code.starts_with("let mut"));
+    }
+
+    #[test]
+    fn test_end_to_end_variable_declaration() {
+        // RED PHASE: This test will FAIL
+        // Test complete flow: C code concept -> HIR -> Rust code
+        use decy_hir::{HirStatement, HirExpression};
+
+        // Simulates: int x = 5;
+        let var_decl = HirStatement::VariableDeclaration {
+            name: "x".to_string(),
+            var_type: HirType::Int,
+            initializer: Some(HirExpression::IntLiteral(5)),
+        };
+
+        let codegen = CodeGenerator::new();
+        let rust_code = codegen.generate_statement(&var_decl);
+
+        // Should produce: let mut x: i32 = 5;
+        assert_eq!(rust_code, "let mut x: i32 = 5;");
+    }
 }
