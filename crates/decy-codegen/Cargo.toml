@@ -1,0 +1,24 @@
+[package]
+name = "decy-codegen"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+documentation.workspace = true
+keywords.workspace = true
+categories.workspace = true
+description = "Rust code generation from HIR with minimal unsafe blocks"
+
+[dependencies]
+decy-hir = { path = "../decy-hir" }
+syn.workspace = true
+quote.workspace = true
+proc-macro2.workspace = true
+anyhow.workspace = true
+thiserror.workspace = true
+tracing.workspace = true
+
+[dev-dependencies]
+proptest.workspace = true

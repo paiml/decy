@@ -1,0 +1,28 @@
+[package]
+name = "decy-mcp"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+documentation.workspace = true
+keywords.workspace = true
+categories.workspace = true
+description = "MCP server for Claude Code integration"
+
+[dependencies]
+decy-core = { path = "../decy-core" }
+decy-agent = { path = "../decy-agent" }
+axum.workspace = true
+tower.workspace = true
+tokio.workspace = true
+async-trait.workspace = true
+anyhow.workspace = true
+thiserror.workspace = true
+tracing.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+
+[dev-dependencies]
+proptest.workspace = true

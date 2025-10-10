@@ -1,0 +1,198 @@
+# Decy Quality Configuration
+# Based on EXTREME TDD, Toyota Way principles, and PMAT qualification
+# Zero tolerance policies enforced at all times
+
+[project]
+name = "decy"
+version = "0.1.0"
+description = "C-to-Rust transpiler with EXTREME quality standards"
+
+# Toyota Way Principles
+[toyota_way]
+jidoka = "Build quality in - never merge incomplete features"
+hansei = "Reflect after each sprint on quality metrics"
+kaizen = "Continuous improvement - fix bugs before features"
+genchi_genbutsu = "Direct observation - test with real C code"
+
+# Coverage Requirements (ENFORCED)
+[coverage]
+minimum_coverage = 80.0              # Hard requirement - blocks commit if <80%
+target_coverage = 85.0               # Sprint target
+tool = "cargo-llvm-cov"              # Fast, accurate LLVM-based coverage
+exclude_patterns = ["tests/*", "examples/*", "benches/*"]
+
+# Coverage by crate (targets)
+[coverage.crates]
+decy-core = 85.0
+decy-parser = 85.0
+decy-hir = 85.0
+decy-analyzer = 85.0
+decy-ownership = 90.0                # CRITICAL - higher target
+decy-verify = 85.0
+decy-codegen = 85.0
+decy-book = 80.0
+decy-agent = 80.0
+decy-mcp = 80.0
+decy-repo = 80.0
+
+# Mutation Testing
+[mutation_testing]
+minimum_kill_rate = 0.90             # ≥90% mutation kill rate
+tool = "cargo-mutants"
+timeout_multiplier = 5               # 5x test time for mutants
+exclude_patterns = ["tests/*", "examples/*"]
+
+# Property Testing
+[property_testing]
+minimum_properties = 100             # 100+ property tests required
+cases_per_property = 1000            # 1000 cases each = 100K+ total
+tool = "proptest"
+max_shrink_iters = 10000
+
+# Complexity Thresholds
+[complexity]
+cyclomatic_threshold = 10            # Max cyclomatic complexity
+cognitive_threshold = 15             # Max cognitive complexity
+max_function_lines = 100             # Max lines per function
+max_file_lines = 500                 # Max lines per file
+
+# Linting (Zero Warnings)
+[linting]
+tool = "clippy"
+deny_warnings = true                 # -D warnings
+pedantic = true                      # clippy::pedantic
+nursery = false                      # Don't use unstable lints
+additional_lints = [
+    "clippy::all",
+    "clippy::correctness",
+    "clippy::style",
+    "clippy::complexity",
+    "clippy::perf",
+]
+
+# Formatting
+[formatting]
+tool = "rustfmt"
+edition = "2021"
+max_width = 100
+tab_spaces = 4
+enforce = true                       # Blocks commit if not formatted
+
+# SATD (Self-Admitted Technical Debt) - Zero Tolerance
+[satd]
+allow_todo = false                   # No TODO comments
+allow_fixme = false                  # No FIXME comments
+allow_hack = false                   # No HACK comments
+allow_xxx = false                    # No XXX comments
+custom_patterns = ["TEMP", "WIP", "BROKEN"]
+
+# Unsafe Code Policy
+[unsafe_code]
+max_per_1000_loc = 5                 # <5 unsafe blocks per 1000 LOC
+require_safety_comment = true        # Every unsafe needs SAFETY comment
+audit_required = true                # Manual audit for all unsafe
+
+# Testing Requirements
+[testing]
+unit_tests_required = true
+property_tests_required = true
+integration_tests_required = true
+doctest_required = true
+example_required = true              # Every module needs working example
+
+# Minimum test counts per module
+[testing.minimums]
+unit_tests = 5                       # At least 5 unit tests per module
+property_tests = 3                   # At least 3 property tests per module
+doctests = 2                         # At least 2 doctests per public function
+
+# Performance Requirements
+[performance]
+transpile_time_per_1000_loc_ms = 1000  # <1s per 1000 LOC
+rust_perf_overhead_percent = 20      # Within 20% of C performance
+memory_overhead_percent = 30         # Within 30% of C memory
+
+# Quality Gates (Pre-commit)
+[quality_gates]
+enabled = true
+block_commit_on_failure = true
+
+[quality_gates.checks]
+coverage = { enabled = true, threshold = 80.0 }
+clippy = { enabled = true, deny_warnings = true }
+fmt = { enabled = true }
+satd = { enabled = true }
+tests = { enabled = true, require_pass = true }
+complexity = { enabled = true }
+mutation = { enabled = false }       # Too slow for pre-commit, run in CI
+
+# CI/CD Requirements
+[ci]
+run_on = ["push", "pull_request"]
+fail_fast = false                    # Run all checks even if one fails
+
+[ci.checks]
+build = true
+test = true
+clippy = true
+fmt = true
+coverage = true
+mutation = true                      # Run mutation tests in CI
+doc = true                           # Check documentation builds
+
+# Documentation Requirements
+[documentation]
+require_module_docs = true           # Every module needs //! doc
+require_function_docs = true         # Every public function needs ///
+require_examples = true              # Examples in docs
+missing_docs_is_error = true
+
+# Dependency Policies
+[dependencies]
+audit_tool = "cargo-audit"
+allow_git_dependencies = false       # No git dependencies in production
+allow_path_dependencies = true       # Allow for workspace crates
+minimum_msrv = "1.70"                # Minimum Rust version
+
+# Sprint Quality Metrics
+[sprint_metrics]
+track_velocity = true                # Track story points per sprint
+track_defects = true                 # Track bugs found per sprint
+track_coverage_delta = true          # Track coverage changes
+track_mutation_delta = true          # Track mutation score changes
+
+# Reporting
+[reporting]
+format = "markdown"
+output_dir = "docs/quality-reports"
+include_graphs = true
+include_trends = true
+
+# Real-world Project Targets
+[targets]
+projects = [
+    "cpython",                       # Python language source
+    "git",                           # Git source control
+    "numpy",                         # NumPy C extensions
+    "sqlite",                        # SQLite database
+]
+
+[targets.cpython]
+loc = 500000                         # Approximate LOC
+priority = "high"
+target_sprint = 20
+
+[targets.git]
+loc = 200000
+priority = "high"
+target_sprint = 15
+
+[targets.numpy]
+loc = 100000
+priority = "medium"
+target_sprint = 12
+
+[targets.sqlite]
+loc = 150000
+priority = "medium"
+target_sprint = 18

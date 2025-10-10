@@ -1,0 +1,32 @@
+[package]
+name = "decy"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+documentation.workspace = true
+keywords.workspace = true
+categories.workspace = true
+description = "CLI tool for C-to-Rust transpilation with EXTREME quality standards"
+
+[dependencies]
+decy-core = { path = "../decy-core" }
+decy-agent = { path = "../decy-agent" }
+decy-mcp = { path = "../decy-mcp" }
+decy-repo = { path = "../decy-repo" }
+decy-book = { path = "../decy-book" }
+clap.workspace = true
+tokio.workspace = true
+anyhow.workspace = true
+thiserror.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+indicatif.workspace = true
+console.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+
+[dev-dependencies]
+proptest.workspace = true

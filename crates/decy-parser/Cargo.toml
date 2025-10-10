@@ -1,0 +1,22 @@
+[package]
+name = "decy-parser"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+documentation.workspace = true
+keywords.workspace = true
+categories.workspace = true
+description = "C AST parsing using clang-sys for Decy transpiler"
+
+[dependencies]
+clang-sys.workspace = true
+anyhow.workspace = true
+thiserror.workspace = true
+tracing.workspace = true
+serde.workspace = true
+
+[dev-dependencies]
+proptest.workspace = true

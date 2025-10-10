@@ -1,0 +1,29 @@
+[package]
+name = "decy-core"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+documentation.workspace = true
+keywords.workspace = true
+categories.workspace = true
+description = "Core transpilation pipeline for C-to-Rust conversion"
+
+[dependencies]
+decy-parser = { path = "../decy-parser" }
+decy-hir = { path = "../decy-hir" }
+decy-analyzer = { path = "../decy-analyzer" }
+decy-ownership = { path = "../decy-ownership" }
+decy-verify = { path = "../decy-verify" }
+decy-codegen = { path = "../decy-codegen" }
+anyhow.workspace = true
+thiserror.workspace = true
+tracing.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+
+[dev-dependencies]
+proptest.workspace = true
+criterion.workspace = true
