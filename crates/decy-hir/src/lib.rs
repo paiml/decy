@@ -232,6 +232,33 @@ impl HirFunction {
     }
 }
 
+/// Binary operators for expressions.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum BinaryOperator {
+    /// Addition (+)
+    Add,
+    /// Subtraction (-)
+    Subtract,
+    /// Multiplication (*)
+    Multiply,
+    /// Division (/)
+    Divide,
+    /// Modulo (%)
+    Modulo,
+    /// Equality (==)
+    Equal,
+    /// Inequality (!=)
+    NotEqual,
+    /// Less than (<)
+    LessThan,
+    /// Greater than (>)
+    GreaterThan,
+    /// Less than or equal (<=)
+    LessEqual,
+    /// Greater than or equal (>=)
+    GreaterEqual,
+}
+
 /// Represents an expression in HIR.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum HirExpression {
@@ -239,6 +266,15 @@ pub enum HirExpression {
     IntLiteral(i32),
     /// Variable reference
     Variable(String),
+    /// Binary operation (left op right)
+    BinaryOp {
+        /// The operator
+        op: BinaryOperator,
+        /// Left operand
+        left: Box<HirExpression>,
+        /// Right operand
+        right: Box<HirExpression>,
+    },
 }
 
 /// Represents a statement in HIR.

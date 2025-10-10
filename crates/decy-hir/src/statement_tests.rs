@@ -168,4 +168,95 @@ mod tests {
             panic!("Expected VariableDeclaration");
         }
     }
+
+    // DECY-007: Binary expression tests (RED phase)
+
+    #[test]
+    fn test_binary_expression_addition() {
+        // RED PHASE: This test will FAIL
+        let expr = HirExpression::BinaryOp {
+            op: BinaryOperator::Add,
+            left: Box::new(HirExpression::Variable("a".to_string())),
+            right: Box::new(HirExpression::Variable("b".to_string())),
+        };
+
+        if let HirExpression::BinaryOp { op, left, right } = &expr {
+            assert!(matches!(op, BinaryOperator::Add));
+            assert!(matches!(**left, HirExpression::Variable(_)));
+            assert!(matches!(**right, HirExpression::Variable(_)));
+        } else {
+            panic!("Expected BinaryOp");
+        }
+    }
+
+    #[test]
+    fn test_binary_expression_comparison() {
+        // RED PHASE: This test will FAIL
+        let expr = HirExpression::BinaryOp {
+            op: BinaryOperator::GreaterThan,
+            left: Box::new(HirExpression::Variable("x".to_string())),
+            right: Box::new(HirExpression::IntLiteral(0)),
+        };
+
+        if let HirExpression::BinaryOp { op, .. } = &expr {
+            assert!(matches!(op, BinaryOperator::GreaterThan));
+        } else {
+            panic!("Expected BinaryOp");
+        }
+    }
+
+    #[test]
+    fn test_binary_operator_variants() {
+        // RED PHASE: This test will FAIL
+        let operators = vec![
+            BinaryOperator::Add,
+            BinaryOperator::Subtract,
+            BinaryOperator::Multiply,
+            BinaryOperator::Divide,
+            BinaryOperator::Modulo,
+            BinaryOperator::Equal,
+            BinaryOperator::NotEqual,
+            BinaryOperator::LessThan,
+            BinaryOperator::GreaterThan,
+            BinaryOperator::LessEqual,
+            BinaryOperator::GreaterEqual,
+        ];
+
+        assert_eq!(operators.len(), 11);
+    }
+
+    #[test]
+    fn test_nested_binary_expressions() {
+        // RED PHASE: This test will FAIL
+        // (a + b) * c
+        let expr = HirExpression::BinaryOp {
+            op: BinaryOperator::Multiply,
+            left: Box::new(HirExpression::BinaryOp {
+                op: BinaryOperator::Add,
+                left: Box::new(HirExpression::Variable("a".to_string())),
+                right: Box::new(HirExpression::Variable("b".to_string())),
+            }),
+            right: Box::new(HirExpression::Variable("c".to_string())),
+        };
+
+        if let HirExpression::BinaryOp { op, left, .. } = &expr {
+            assert!(matches!(op, BinaryOperator::Multiply));
+            assert!(matches!(**left, HirExpression::BinaryOp { .. }));
+        } else {
+            panic!("Expected BinaryOp");
+        }
+    }
+
+    #[test]
+    fn test_binary_expression_clone() {
+        // RED PHASE: This test will FAIL
+        let expr = HirExpression::BinaryOp {
+            op: BinaryOperator::Add,
+            left: Box::new(HirExpression::IntLiteral(1)),
+            right: Box::new(HirExpression::IntLiteral(2)),
+        };
+
+        let cloned = expr.clone();
+        assert_eq!(expr, cloned);
+    }
 }
