@@ -244,6 +244,73 @@ proptest! {
         // Check for else keyword
         prop_assert!(code.contains("else"));
     }
+
+    // DECY-006 property tests for while loops
+
+    /// Property: While statements always contain "while" keyword
+    #[test]
+    fn property_while_contains_while_keyword(val in -100i32..100i32) {
+        use decy_hir::{BinaryOperator, HirExpression, HirStatement};
+
+        let while_stmt = HirStatement::While {
+            condition: HirExpression::BinaryOp {
+                op: BinaryOperator::LessThan,
+                left: Box::new(HirExpression::Variable("i".to_string())),
+                right: Box::new(HirExpression::IntLiteral(val)),
+            },
+            body: vec![HirStatement::Continue],
+        };
+
+        let codegen = CodeGenerator::new();
+        let code = codegen.generate_statement(&while_stmt);
+
+        prop_assert!(code.starts_with("while "));
+    }
+
+    /// Property: While statements have balanced braces
+    #[test]
+    fn property_while_balanced_braces(val in -100i32..100i32) {
+        use decy_hir::{BinaryOperator, HirExpression, HirStatement};
+
+        let while_stmt = HirStatement::While {
+            condition: HirExpression::BinaryOp {
+                op: BinaryOperator::GreaterThan,
+                left: Box::new(HirExpression::Variable("x".to_string())),
+                right: Box::new(HirExpression::IntLiteral(val)),
+            },
+            body: vec![HirStatement::Break],
+        };
+
+        let codegen = CodeGenerator::new();
+        let code = codegen.generate_statement(&while_stmt);
+
+        let open = code.matches('{').count();
+        let close = code.matches('}').count();
+        prop_assert_eq!(open, close);
+        prop_assert!(open >= 1);
+    }
+
+    /// Property: Break statement always generates "break;"
+    #[test]
+    fn property_break_is_constant(_seed in 0u32..100) {
+        use decy_hir::HirStatement;
+
+        let codegen = CodeGenerator::new();
+        let code = codegen.generate_statement(&HirStatement::Break);
+
+        prop_assert_eq!(code, "break;");
+    }
+
+    /// Property: Continue statement always generates "continue;"
+    #[test]
+    fn property_continue_is_constant(_seed in 0u32..100) {
+        use decy_hir::HirStatement;
+
+        let codegen = CodeGenerator::new();
+        let code = codegen.generate_statement(&HirStatement::Continue);
+
+        prop_assert_eq!(code, "continue;");
+    }
 }
 
 // Regular tests for binary expressions (not property tests)
