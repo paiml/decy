@@ -311,6 +311,67 @@ proptest! {
 
         prop_assert_eq!(code, "continue;");
     }
+
+    // DECY-008 property tests for pointer operations
+
+    /// Property: Dereference always starts with "*"
+    #[test]
+    fn property_dereference_starts_with_star(name in "[a-z_][a-z0-9_]{0,10}") {
+        use decy_hir::HirExpression;
+
+        let expr = HirExpression::Dereference(Box::new(HirExpression::Variable(name)));
+
+        let codegen = CodeGenerator::new();
+        let code = codegen.generate_expression(&expr);
+
+        prop_assert!(code.starts_with('*'));
+    }
+
+    /// Property: AddressOf always starts with "&"
+    #[test]
+    fn property_address_of_starts_with_ampersand(name in "[a-z_][a-z0-9_]{0,10}") {
+        use decy_hir::HirExpression;
+
+        let expr = HirExpression::AddressOf(Box::new(HirExpression::Variable(name)));
+
+        let codegen = CodeGenerator::new();
+        let code = codegen.generate_expression(&expr);
+
+        prop_assert!(code.starts_with('&'));
+    }
+
+    /// Property: Nested dereferences maintain proper star count
+    #[test]
+    fn property_nested_dereference_star_count(depth in 1usize..5) {
+        use decy_hir::HirExpression;
+
+        // Build nested dereferences: *, **, ***, etc.
+        let mut expr = HirExpression::Variable("ptr".to_string());
+        for _ in 0..depth {
+            expr = HirExpression::Dereference(Box::new(expr));
+        }
+
+        let codegen = CodeGenerator::new();
+        let code = codegen.generate_expression(&expr);
+
+        // Should have exactly 'depth' stars
+        let star_count = code.chars().filter(|&c| c == '*').count();
+        prop_assert_eq!(star_count, depth);
+    }
+
+    /// Property: Pointer operations generate consistent code
+    #[test]
+    fn property_pointer_ops_consistent(name in "[a-z_][a-z0-9_]{0,10}") {
+        use decy_hir::HirExpression;
+
+        let expr = HirExpression::Dereference(Box::new(HirExpression::Variable(name.clone())));
+
+        let codegen = CodeGenerator::new();
+        let code1 = codegen.generate_expression(&expr);
+        let code2 = codegen.generate_expression(&expr);
+
+        prop_assert_eq!(code1, code2);
+    }
 }
 
 // Regular tests for binary expressions (not property tests)
