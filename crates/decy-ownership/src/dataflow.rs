@@ -3,7 +3,7 @@
 //! This module builds a dataflow graph that tracks how pointers flow through
 //! functions, enabling detection of ownership patterns and use-after-free issues.
 
-use decy_hir::{HirExpression, HirFunction, HirStatement};
+use decy_hir::{HirExpression, HirFunction, HirStatement, HirType};
 use std::collections::{HashMap, HashSet};
 
 /// Represents a node in the dataflow graph (a pointer variable or operation).
@@ -101,24 +101,151 @@ impl DataflowAnalyzer {
     /// Build a dataflow graph for a function.
     ///
     /// Analyzes pointer usage patterns throughout the function body.
-    pub fn analyze(&self, _func: &HirFunction) -> DataflowGraph {
-        // STUB: RED phase - returns empty graph
-        DataflowGraph::new()
+    pub fn analyze(&self, func: &HirFunction) -> DataflowGraph {
+        let mut graph = DataflowGraph::new();
+
+        // Track function parameters (pointer parameters only)
+        for param in func.parameters() {
+            if matches!(param.param_type(), HirType::Pointer(_) | HirType::Box(_)) {
+                let node = PointerNode {
+                    name: param.name().to_string(),
+                    def_index: 0,
+                    kind: NodeKind::Parameter,
+                };
+                graph.nodes.entry(param.name().to_string())
+                    .or_default()
+                    .push(node);
+            }
+        }
+
+        // Analyze function body
+        for (index, stmt) in func.body().iter().enumerate() {
+            self.track_statement(stmt, &mut graph, index);
+        }
+
+        // Detect use-after-free patterns (future enhancement)
+        self.detect_use_after_free(&mut graph);
+
+        graph
     }
 
-    /// Track pointer assignments in a statement.
-    fn _track_assignment(&self, _stmt: &HirStatement, _graph: &mut DataflowGraph, _index: usize) {
-        // STUB: RED phase
+    /// Track pointer operations in a statement.
+    fn track_statement(&self, stmt: &HirStatement, graph: &mut DataflowGraph, index: usize) {
+        match stmt {
+            HirStatement::VariableDeclaration {
+                name,
+                var_type,
+                initializer,
+            } => {
+                // Only track pointer types
+                if matches!(var_type, HirType::Pointer(_) | HirType::Box(_)) {
+                    if let Some(init_expr) = initializer {
+                        let kind = self.classify_initialization(init_expr);
+
+                        // Add dependencies if assignment from variable
+                        if let NodeKind::Assignment { ref source } = kind {
+                            graph.dependencies.entry(name.clone())
+                                .or_default()
+                                .insert(source.clone());
+                        }
+
+                        let node = PointerNode {
+                            name: name.clone(),
+                            def_index: index,
+                            kind,
+                        };
+                        graph.nodes.entry(name.clone())
+                            .or_default()
+                            .push(node);
+                    }
+                }
+            }
+            HirStatement::Assignment { target: _, value } => {
+                // Track uses of pointers in the value expression
+                self.track_expression_uses(value, graph, index);
+            }
+            HirStatement::If { condition, then_block, else_block } => {
+                self.track_expression_uses(condition, graph, index);
+                for s in then_block {
+                    self.track_statement(s, graph, index);
+                }
+                if let Some(else_stmts) = else_block {
+                    for s in else_stmts {
+                        self.track_statement(s, graph, index);
+                    }
+                }
+            }
+            HirStatement::While { condition, body } => {
+                self.track_expression_uses(condition, graph, index);
+                for s in body {
+                    self.track_statement(s, graph, index);
+                }
+            }
+            HirStatement::Return(expr_opt) => {
+                if let Some(expr) = expr_opt {
+                    self.track_expression_uses(expr, graph, index);
+                }
+            }
+            HirStatement::Break | HirStatement::Continue => {
+                // No pointer tracking needed
+            }
+        }
     }
 
-    /// Track pointer uses in an expression.
-    fn _track_uses(&self, _expr: &HirExpression, _graph: &mut DataflowGraph, _index: usize) {
-        // STUB: RED phase
+    /// Classify the initialization expression to determine node kind.
+    fn classify_initialization(&self, expr: &HirExpression) -> NodeKind {
+        match expr {
+            HirExpression::FunctionCall { function, .. } if function == "malloc" => {
+                NodeKind::Allocation
+            }
+            HirExpression::Variable(var_name) => {
+                NodeKind::Assignment { source: var_name.clone() }
+            }
+            HirExpression::Dereference(_) => NodeKind::Dereference,
+            _ => NodeKind::Assignment { source: "unknown".to_string() },
+        }
+    }
+
+    /// Track uses of pointer variables in an expression.
+    fn track_expression_uses(&self, expr: &HirExpression, graph: &mut DataflowGraph, index: usize) {
+        Self::track_expr_recursive(expr, graph, index);
+    }
+
+    /// Recursively track expression uses (helper for track_expression_uses).
+    fn track_expr_recursive(expr: &HirExpression, _graph: &mut DataflowGraph, _index: usize) {
+        match expr {
+            HirExpression::Variable(_) => {
+                // Pointer variable used - track it
+                // Future: detect use-after-free here
+            }
+            HirExpression::Dereference(inner) => {
+                Self::track_expr_recursive(inner, _graph, _index);
+            }
+            HirExpression::BinaryOp { left, right, .. } => {
+                Self::track_expr_recursive(left, _graph, _index);
+                Self::track_expr_recursive(right, _graph, _index);
+            }
+            HirExpression::AddressOf(inner) => {
+                Self::track_expr_recursive(inner, _graph, _index);
+            }
+            HirExpression::FunctionCall { arguments, .. } => {
+                for arg in arguments {
+                    Self::track_expr_recursive(arg, _graph, _index);
+                }
+            }
+            HirExpression::IntLiteral(_) => {
+                // No tracking needed
+            }
+        }
     }
 
     /// Detect use-after-free patterns.
-    fn _detect_use_after_free(&self, _graph: &mut DataflowGraph) {
-        // STUB: RED phase
+    ///
+    /// Currently a placeholder - requires ExpressionStatement support in HIR
+    /// to properly detect free() calls.
+    fn detect_use_after_free(&self, _graph: &mut DataflowGraph) {
+        // Placeholder for future implementation
+        // Will require tracking free() calls and subsequent uses
     }
 }
 
