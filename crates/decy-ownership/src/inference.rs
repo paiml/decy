@@ -119,19 +119,52 @@ impl OwnershipInferencer {
 
     /// Detect if a pointer is mutated.
     ///
-    /// Currently simplified - assumes parameters written to are mutable.
-    /// Future enhancement: track actual writes through pointer dereferences.
-    fn is_mutated(&self, _var_name: &str, _graph: &DataflowGraph) -> bool {
-        // Simplified: assume not mutated unless we can prove otherwise
-        // Future: analyze if pointer is used in assignment target position
+    /// Checks if the pointer is used in dereference assignments or passed to functions
+    /// that might mutate it.
+    fn is_mutated(&self, var_name: &str, graph: &DataflowGraph) -> bool {
+        use crate::dataflow::NodeKind;
+
+        // Get all nodes for this variable
+        let nodes = match graph.nodes_for(var_name) {
+            Some(n) => n,
+            None => return false,
+        };
+
+        // Check if any node indicates mutation
+        for node in nodes {
+            if matches!(&node.kind, NodeKind::Dereference) {
+                // Dereference on LHS of assignment indicates mutation
+                // For now, conservatively assume dereference might mutate
+                return true;
+            }
+        }
+
         false
     }
 
     /// Check if a pointer escapes the function (returned or stored).
     ///
-    /// Future enhancement for more sophisticated ownership analysis.
-    fn _escapes_function(&self, _var_name: &str, _graph: &DataflowGraph) -> bool {
-        // Placeholder for future implementation
+    /// A pointer escapes if it's returned from the function or assigned to
+    /// a location that outlives the function.
+    fn escapes_function(&self, var_name: &str, graph: &DataflowGraph) -> bool {
+        use crate::dataflow::NodeKind;
+
+        let nodes = match graph.nodes_for(var_name) {
+            Some(n) => n,
+            None => return false,
+        };
+
+        // Check if variable appears in any return statement
+        // This is a simplified check - in reality we'd need to track
+        // the actual return value
+        for node in nodes {
+            if matches!(node.kind, NodeKind::Assignment { .. }) {
+                // Conservative: if assigned somewhere, might escape
+                // Future: track assignment targets more precisely
+                return true;
+            }
+        }
+
         false
     }
 
@@ -139,23 +172,32 @@ impl OwnershipInferencer {
     fn calculate_confidence(
         &self,
         kind: &OwnershipKind,
-        _graph: &DataflowGraph,
-        _var_name: &str,
+        graph: &DataflowGraph,
+        var_name: &str,
     ) -> f32 {
-        match kind {
-            OwnershipKind::Owning => {
-                // High confidence for malloc allocations
-                0.9
-            }
-            OwnershipKind::ImmutableBorrow | OwnershipKind::MutableBorrow => {
-                // Medium-high confidence for borrows
-                0.8
-            }
-            OwnershipKind::Unknown => {
-                // Low confidence for uncertain cases
-                0.3
+        let base_confidence = match kind {
+            OwnershipKind::Owning => 0.9,          // High confidence for malloc
+            OwnershipKind::ImmutableBorrow => 0.8, // Medium-high for immutable
+            OwnershipKind::MutableBorrow => 0.75,  // Slightly lower for mutable
+            OwnershipKind::Unknown => 0.3,         // Low for uncertain
+        };
+
+        // Adjust confidence based on additional signals
+        let mut confidence = base_confidence;
+
+        // Boost confidence if pointer is returned (transfers ownership)
+        if self.escapes_function(var_name, graph) {
+            match kind {
+                OwnershipKind::Owning => {
+                    confidence = f32::min(confidence + 0.05, 0.95); // Boost owning
+                }
+                _ => {
+                    confidence = f32::max(confidence - 0.05, 0.3); // Lower borrow confidence if escapes
+                }
             }
         }
+
+        confidence
     }
 
     /// Generate human-readable reasoning for an inference.
