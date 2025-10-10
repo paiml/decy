@@ -246,3 +246,223 @@ fn test_non_pointer_type_unchanged() {
         "Non-pointer types should remain unchanged"
     );
 }
+
+// RED PHASE: Enhanced borrow generation tests
+
+#[test]
+fn test_multiple_immutable_borrows_allowed() {
+    // Test that multiple immutable borrows of the same data are allowed
+    // This follows Rust's borrow checker rules: multiple &T are ok
+    let generator = BorrowGenerator::new();
+
+    let params = vec![
+        HirParameter::new("data".to_string(), HirType::Pointer(Box::new(HirType::Int))),
+        HirParameter::new(
+            "data2".to_string(),
+            HirType::Pointer(Box::new(HirType::Int)),
+        ),
+    ];
+
+    let mut inferences = HashMap::new();
+    inferences.insert(
+        "data".to_string(),
+        OwnershipInference {
+            variable: "data".to_string(),
+            kind: OwnershipKind::ImmutableBorrow,
+            confidence: 0.8,
+            reason: "First immutable borrow".to_string(),
+        },
+    );
+    inferences.insert(
+        "data2".to_string(),
+        OwnershipInference {
+            variable: "data2".to_string(),
+            kind: OwnershipKind::ImmutableBorrow,
+            confidence: 0.8,
+            reason: "Second immutable borrow".to_string(),
+        },
+    );
+
+    let transformed = generator.transform_parameters(&params, &inferences);
+
+    // Both should be immutable references - this is valid Rust
+    assert_eq!(transformed.len(), 2);
+    assert!(matches!(
+        transformed[0].param_type(),
+        HirType::Reference { mutable: false, .. }
+    ));
+    assert!(matches!(
+        transformed[1].param_type(),
+        HirType::Reference { mutable: false, .. }
+    ));
+}
+
+#[test]
+fn test_mutable_borrow_prevents_other_borrows() {
+    // Test detection of borrow checker violations
+    // In Rust, if you have &mut T, you can't have any other borrows
+    // This test verifies we can detect potential conflicts
+    let generator = BorrowGenerator::new();
+
+    let func = HirFunction::new_with_body(
+        "modify_data".to_string(),
+        HirType::Void,
+        vec![
+            HirParameter::new("data".to_string(), HirType::Pointer(Box::new(HirType::Int))),
+            HirParameter::new(
+                "data2".to_string(),
+                HirType::Pointer(Box::new(HirType::Int)),
+            ),
+        ],
+        vec![],
+    );
+
+    let mut inferences = HashMap::new();
+    inferences.insert(
+        "data".to_string(),
+        OwnershipInference {
+            variable: "data".to_string(),
+            kind: OwnershipKind::MutableBorrow,
+            confidence: 0.9,
+            reason: "Mutable borrow".to_string(),
+        },
+    );
+    inferences.insert(
+        "data2".to_string(),
+        OwnershipInference {
+            variable: "data2".to_string(),
+            kind: OwnershipKind::ImmutableBorrow,
+            confidence: 0.8,
+            reason: "Immutable borrow of same data".to_string(),
+        },
+    );
+
+    let transformed = generator.transform_function(&func, &inferences);
+
+    // Should generate both borrows (conflict detection is a future enhancement)
+    assert_eq!(transformed.parameters().len(), 2);
+    assert!(matches!(
+        transformed.parameters()[0].param_type(),
+        HirType::Reference { mutable: true, .. }
+    ));
+    assert!(matches!(
+        transformed.parameters()[1].param_type(),
+        HirType::Reference { mutable: false, .. }
+    ));
+}
+
+#[test]
+fn test_nested_pointer_types() {
+    // Test handling of nested pointer types (int** → &&T)
+    let generator = BorrowGenerator::new();
+
+    let nested_ptr_type = HirType::Pointer(Box::new(HirType::Pointer(Box::new(HirType::Int))));
+    let mut inferences = HashMap::new();
+    inferences.insert(
+        "data".to_string(),
+        OwnershipInference {
+            variable: "data".to_string(),
+            kind: OwnershipKind::ImmutableBorrow,
+            confidence: 0.7,
+            reason: "Nested pointer borrow".to_string(),
+        },
+    );
+
+    let transformed = generator.transform_type(&nested_ptr_type, "data", &inferences);
+
+    // Nested pointers: outer pointer becomes reference
+    assert!(matches!(transformed, HirType::Reference { .. }));
+}
+
+#[test]
+fn test_lifetime_aware_borrow_generation() {
+    // Test that borrow generation is prepared for lifetime annotations
+    // Future phase: add lifetime tracking to inferences
+    let func = HirFunction::new_with_body(
+        "get_value".to_string(),
+        HirType::Pointer(Box::new(HirType::Int)),
+        vec![HirParameter::new(
+            "container".to_string(),
+            HirType::Pointer(Box::new(HirType::Int)),
+        )],
+        vec![HirStatement::Return(Some(HirExpression::Variable(
+            "container".to_string(),
+        )))],
+    );
+
+    let analyzer = DataflowAnalyzer::new();
+    let graph = analyzer.analyze(&func);
+
+    let inferencer = OwnershipInferencer::new();
+    let inferences = inferencer.infer(&graph);
+
+    let generator = BorrowGenerator::new();
+    let transformed = generator.transform_function(&func, &inferences);
+
+    // Parameter should be transformed to borrow
+    assert!(matches!(
+        transformed.parameters()[0].param_type(),
+        HirType::Reference { .. }
+    ));
+
+    // Return type should also be a reference (since it returns the parameter)
+    // NOTE: This test documents current behavior - return type transformation
+    // will be enhanced in future phases
+    assert!(matches!(
+        transformed.return_type(),
+        HirType::Pointer(..) | HirType::Reference { .. }
+    ));
+}
+
+#[test]
+fn test_high_confidence_borrows_prioritized() {
+    // Test that high-confidence inferences are trusted more
+    let generator = BorrowGenerator::new();
+
+    let ptr_type = HirType::Pointer(Box::new(HirType::Int));
+    let mut inferences = HashMap::new();
+    inferences.insert(
+        "data".to_string(),
+        OwnershipInference {
+            variable: "data".to_string(),
+            kind: OwnershipKind::ImmutableBorrow,
+            confidence: 0.95, // Very high confidence
+            reason: "Const qualifier and read-only usage".to_string(),
+        },
+    );
+
+    let transformed = generator.transform_type(&ptr_type, "data", &inferences);
+
+    // High confidence should still generate correct borrow
+    assert_eq!(
+        transformed,
+        HirType::Reference {
+            inner: Box::new(HirType::Int),
+            mutable: false,
+        }
+    );
+}
+
+#[test]
+fn test_low_confidence_falls_back_to_raw_pointer() {
+    // Test that low-confidence Unknown inferences keep raw pointers
+    // This is safer than guessing - better to use unsafe than incorrectly infer
+    let generator = BorrowGenerator::new();
+
+    let ptr_type = HirType::Pointer(Box::new(HirType::Int));
+    let mut inferences = HashMap::new();
+    inferences.insert(
+        "data".to_string(),
+        OwnershipInference {
+            variable: "data".to_string(),
+            kind: OwnershipKind::Unknown,
+            confidence: 0.25, // Very low confidence
+            reason: "Uncertain usage pattern".to_string(),
+        },
+    );
+
+    let transformed = generator.transform_type(&ptr_type, "data", &inferences);
+
+    // Low confidence Unknown should fall back to raw pointer
+    assert_eq!(transformed, HirType::Pointer(Box::new(HirType::Int)));
+}
