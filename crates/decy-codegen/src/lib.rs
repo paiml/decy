@@ -848,3 +848,7 @@ mod codegen_tests;
 #[cfg(test)]
 #[path = "property_tests.rs"]
 mod property_tests;
+
+#[cfg(test)]
+#[path = "vec_property_tests.rs"]
+mod vec_property_tests;
