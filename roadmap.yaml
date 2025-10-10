@@ -165,9 +165,17 @@ sprint_1:
       priority: high
       story_points: 8
       assignee: Claude
-      status: in_progress
+      status: done
       github_issue: null
-      phase: RED
+      phase: DONE
+      completed_date: "2025-10-10"
+      actual_coverage: 84.91
+      actual_metrics:
+        coverage: "84.91% (codegen code)"
+        tests_passing: "20 unit/property + 6 doctests"
+        clippy_warnings: 0
+        property_tests: "6 properties x 100 cases"
+        quality_grade: "A+"
 
       description: |
         Generate Rust code from HIR for simple functions.
