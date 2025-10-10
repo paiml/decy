@@ -1,0 +1,754 @@
+# Decy Development Roadmap
+# PMAT-Qualified: Roadmap-driven, ticket-only development
+# EXTREME TDD: RED-GREEN-REFACTOR mandatory for every ticket
+
+project:
+  name: Decy
+  version: 0.1.0
+  methodology: EXTREME TDD + Toyota Way + PMAT
+  sprint_duration: 2 weeks
+  total_sprints: 20
+
+# Sprint 1: Foundation & Parser Setup
+sprint_1:
+  name: "Foundation & C Parser"
+  duration: "2 weeks"
+  goals:
+    - Setup clang-sys integration
+    - Parse simple C functions
+    - Basic HIR structure
+    - Quality gates operational
+  story_points: 21
+
+  tickets:
+    DECY-001:
+      title: "Setup clang-sys integration and parse simple C function"
+      type: feature
+      priority: critical
+      story_points: 8
+      assignee: TBD
+
+      description: |
+        Integrate clang-sys to parse C source code into AST.
+        Start with simplest case: `int main() { return 0; }`
+
+      requirements:
+        - Install and configure clang-sys bindings
+        - Parse single C function into AST
+        - Extract function name, return type, parameters
+        - Handle basic error cases (syntax errors)
+
+      test_requirements:
+        unit_tests:
+          - test_parse_simple_main_function
+          - test_parse_function_with_parameters
+          - test_parse_function_with_return_value
+          - test_parse_syntax_error_handling
+          - test_parse_empty_input
+
+        property_tests:
+          - property_parsing_never_panics
+          - property_valid_c_always_parses
+          - property_invalid_c_returns_error
+
+        doctests:
+          - Basic parsing example in module docs
+          - Error handling example
+
+        examples:
+          - examples/parse_simple.rs
+
+      acceptance_criteria:
+        - "Can parse `int main() { return 0; }`"
+        - "Extracts function name 'main'"
+        - "Identifies return type as 'int'"
+        - "Coverage ≥80%"
+        - "0 clippy warnings"
+        - "0 SATD comments"
+
+      red_phase:
+        - Write failing test_parse_simple_main_function
+        - Write failing property test for parsing
+        - Commit: "[RED] DECY-001: Add failing tests for clang-sys"
+
+      green_phase:
+        - Implement CParser struct with clang-sys
+        - Implement parse() method (minimal)
+        - Make tests pass
+        - Commit: "[GREEN] DECY-001: Implement clang-sys parser"
+
+      refactor_phase:
+        - Improve error handling
+        - Add documentation
+        - Meet quality gates (80% coverage, 0 warnings)
+        - Commit: "[REFACTOR] DECY-001: Meet quality gates"
+
+      final_commit:
+        message: |
+          DECY-001: Setup clang-sys integration
+
+          - Parse simple C functions via clang-sys
+          - Extract function metadata (name, return type, params)
+          - Error handling for syntax errors
+          - Coverage: 82% ✅
+          - Clippy: 0 warnings ✅
+          - Quality grade: A (95/100) ✅
+
+          Closes #1
+
+    DECY-002:
+      title: "Define HIR (High-level IR) structure for functions"
+      type: feature
+      priority: critical
+      story_points: 5
+      assignee: TBD
+
+      description: |
+        Define the HIR structure that represents C code in a Rust-friendly format.
+        Start with function representations only.
+
+      requirements:
+        - Define HirFunction struct
+        - Define HirType enum (int, float, void, pointer)
+        - Define HirParameter struct
+        - Implement conversion from clang AST to HIR
+
+      test_requirements:
+        unit_tests:
+          - test_hir_function_creation
+          - test_hir_type_conversion
+          - test_hir_parameter_conversion
+          - test_ast_to_hir_conversion
+          - test_hir_serialization
+
+        property_tests:
+          - property_hir_roundtrip_serialization
+          - property_hir_equality_reflexive
+
+        doctests:
+          - HirFunction creation example
+          - AST to HIR conversion example
+
+      acceptance_criteria:
+        - "HirFunction can represent C functions"
+        - "HirType covers basic C types"
+        - "Can convert clang AST to HIR"
+        - "Coverage ≥85%"
+        - "0 clippy warnings"
+
+      red_green_refactor: true
+
+    DECY-003:
+      title: "Implement basic code generator for simple functions"
+      type: feature
+      priority: high
+      story_points: 8
+      assignee: TBD
+
+      description: |
+        Generate Rust code from HIR for simple functions.
+        Target: `int add(int a, int b) { return a + b; }` → Rust
+
+      requirements:
+        - Generate Rust function signature from HirFunction
+        - Convert C types to Rust types (int→i32, float→f64)
+        - Generate basic function body
+        - Handle return statements
+
+      test_requirements:
+        unit_tests:
+          - test_generate_function_signature
+          - test_generate_return_statement
+          - test_type_mapping_int_to_i32
+          - test_type_mapping_float_to_f64
+          - test_end_to_end_add_function
+
+        property_tests:
+          - property_generated_code_compiles
+          - property_generated_code_passes_clippy
+
+        integration_tests:
+          - test_full_pipeline_simple_function
+
+      acceptance_criteria:
+        - "Generates compilable Rust from simple C"
+        - "Type mappings correct (int→i32, etc)"
+        - "Generated code passes clippy"
+        - "Coverage ≥80%"
+        - "End-to-end test passes"
+
+      red_green_refactor: true
+
+# Sprint 2: Basic Statements & Control Flow
+sprint_2:
+  name: "Statements & Control Flow"
+  duration: "2 weeks"
+  goals:
+    - Variable declarations
+    - If/else statements
+    - While loops
+    - Basic expressions
+  story_points: 26
+
+  tickets:
+    DECY-004:
+      title: "Parse and transpile variable declarations"
+      type: feature
+      priority: high
+      story_points: 5
+
+      description: |
+        Support variable declarations: `int x = 5;`
+        Convert to Rust: `let mut x: i32 = 5;`
+
+      requirements:
+        - Parse variable declarations
+        - Infer mutability (default: mutable)
+        - Generate let bindings
+        - Handle initialization expressions
+
+      test_requirements:
+        unit_tests:
+          - test_parse_variable_declaration
+          - test_infer_mutability
+          - test_generate_let_binding
+          - test_variable_with_initialization
+          - test_variable_without_initialization
+
+        property_tests:
+          - property_all_declarations_have_type
+          - property_mutable_by_default
+
+      acceptance_criteria:
+        - "Parses `int x = 5;`"
+        - "Generates `let mut x: i32 = 5;`"
+        - "Coverage ≥80%"
+
+      red_green_refactor: true
+
+    DECY-005:
+      title: "Implement if/else statement transpilation"
+      type: feature
+      priority: high
+      story_points: 8
+
+      description: |
+        Support if/else control flow.
+        C: `if (x > 0) { y = 1; } else { y = -1; }`
+
+      requirements:
+        - Parse if/else statements
+        - Convert condition expressions
+        - Generate Rust if/else blocks
+        - Handle nested if statements
+
+      test_requirements:
+        unit_tests:
+          - test_parse_if_statement
+          - test_parse_if_else_statement
+          - test_parse_nested_if
+          - test_generate_if_block
+          - test_condition_conversion
+
+        property_tests:
+          - property_if_always_has_condition
+          - property_nested_if_preserves_structure
+
+        integration_tests:
+          - test_if_else_end_to_end
+
+      acceptance_criteria:
+        - "Parses if/else correctly"
+        - "Generates valid Rust if/else"
+        - "Handles nested if statements"
+        - "Coverage ≥85%"
+
+      red_green_refactor: true
+
+    DECY-006:
+      title: "Implement while loop transpilation"
+      type: feature
+      priority: high
+      story_points: 8
+
+      description: |
+        Support while loops.
+        C: `while (x < 10) { x++; }`
+
+      requirements:
+        - Parse while loops
+        - Convert loop conditions
+        - Generate Rust while blocks
+        - Handle break/continue
+
+      test_requirements:
+        unit_tests:
+          - test_parse_while_loop
+          - test_parse_while_with_break
+          - test_parse_while_with_continue
+          - test_generate_while_block
+          - test_loop_condition_conversion
+
+        property_tests:
+          - property_while_always_has_condition
+          - property_break_exits_loop
+
+      acceptance_criteria:
+        - "Parses while loops"
+        - "Handles break/continue"
+        - "Coverage ≥80%"
+
+      red_green_refactor: true
+
+    DECY-007:
+      title: "Implement basic expression handling (arithmetic, comparison)"
+      type: feature
+      priority: high
+      story_points: 5
+
+      description: |
+        Support basic expressions: +, -, *, /, %, ==, !=, <, >, <=, >=
+
+      requirements:
+        - Parse binary expressions
+        - Convert operators to Rust equivalents
+        - Handle operator precedence
+        - Generate expression code
+
+      test_requirements:
+        unit_tests:
+          - test_parse_arithmetic_expressions
+          - test_parse_comparison_expressions
+          - test_operator_precedence
+          - test_generate_binary_expression
+
+        property_tests:
+          - property_operator_precedence_preserved
+          - property_expressions_type_safe
+
+      acceptance_criteria:
+        - "Handles arithmetic operators"
+        - "Handles comparison operators"
+        - "Preserves precedence"
+        - "Coverage ≥85%"
+
+      red_green_refactor: true
+
+# Sprint 3: Pointers & Memory (Phase 1)
+sprint_3:
+  name: "Basic Pointer Handling"
+  duration: "2 weeks"
+  goals:
+    - Parse pointer types
+    - Simple pointer dereference
+    - Address-of operator
+    - Pattern detection (Box, Vec candidates)
+  story_points: 34
+
+  tickets:
+    DECY-008:
+      title: "Parse pointer types and dereference operations"
+      type: feature
+      priority: critical
+      story_points: 8
+
+      description: |
+        Parse C pointers: `int* ptr`, `*ptr`, `&x`
+        First step toward ownership inference.
+
+      requirements:
+        - Parse pointer type declarations
+        - Parse dereference operator (*)
+        - Parse address-of operator (&)
+        - Build pointer usage graph
+
+      test_requirements:
+        unit_tests:
+          - test_parse_pointer_declaration
+          - test_parse_dereference
+          - test_parse_address_of
+          - test_pointer_usage_tracking
+
+        property_tests:
+          - property_pointer_operations_valid
+          - property_pointer_graph_acyclic
+
+      acceptance_criteria:
+        - "Parses pointer declarations"
+        - "Tracks pointer operations"
+        - "Builds usage graph"
+        - "Coverage ≥80%"
+
+      red_green_refactor: true
+
+    DECY-009:
+      title: "Implement pattern detection for Box candidates"
+      type: feature
+      priority: critical
+      story_points: 13
+
+      description: |
+        Detect malloc/free patterns that should become Box<T>.
+        C: `T* x = malloc(sizeof(T)); free(x);` → Rust: `Box::new(x)`
+
+      requirements:
+        - Detect malloc/free patterns
+        - Identify single-ownership cases
+        - Generate Box::new() instead of unsafe
+        - Track ownership transfer
+
+      test_requirements:
+        unit_tests:
+          - test_detect_malloc_free_pattern
+          - test_detect_single_ownership
+          - test_generate_box_allocation
+          - test_ownership_transfer_tracking
+
+        property_tests:
+          - property_box_never_double_freed
+          - property_box_ownership_unique
+
+        integration_tests:
+          - test_malloc_free_to_box_end_to_end
+
+      acceptance_criteria:
+        - "Detects malloc/free patterns"
+        - "Generates Box::new() code"
+        - "No unsafe blocks for detected patterns"
+        - "Coverage ≥85%"
+        - "Reduces unsafe by ~30%"
+
+      red_green_refactor: true
+
+    DECY-010:
+      title: "Implement pattern detection for Vec candidates"
+      type: feature
+      priority: high
+      story_points: 13
+
+      description: |
+        Detect array allocation patterns that should become Vec<T>.
+        C: `T* arr = malloc(n * sizeof(T));` → Rust: `Vec::with_capacity(n)`
+
+      requirements:
+        - Detect array allocation patterns
+        - Identify dynamic sizing
+        - Generate Vec::with_capacity()
+        - Handle push operations
+
+      test_requirements:
+        unit_tests:
+          - test_detect_array_allocation
+          - test_detect_dynamic_sizing
+          - test_generate_vec_allocation
+          - test_push_operation_conversion
+
+        property_tests:
+          - property_vec_capacity_sufficient
+          - property_vec_bounds_checked
+
+      acceptance_criteria:
+        - "Detects array patterns"
+        - "Generates Vec code"
+        - "Handles dynamic sizing"
+        - "Coverage ≥85%"
+
+      red_green_refactor: true
+
+# Sprint 4: Ownership Inference Foundation
+sprint_4:
+  name: "Ownership Inference (Phase 1)"
+  duration: "2 weeks"
+  goals:
+    - Build pointer flow graph
+    - Infer ownership patterns
+    - Detect borrows vs moves
+    - Generate &T and &mut T
+  story_points: 34
+
+  tickets:
+    DECY-011:
+      title: "Build pointer dataflow analysis graph"
+      type: feature
+      priority: critical
+      story_points: 13
+
+      description: |
+        Build dataflow graph tracking pointer usage throughout functions.
+        Foundation for ownership inference.
+
+      requirements:
+        - Implement dataflow analysis
+        - Track pointer assignments
+        - Identify use-after-free potential
+        - Build dependency graph
+
+      test_requirements:
+        unit_tests:
+          - test_build_dataflow_graph
+          - test_track_pointer_assignments
+          - test_detect_use_after_free
+          - test_dependency_ordering
+
+        property_tests:
+          - property_dataflow_graph_complete
+          - property_no_untracked_pointers
+
+        integration_tests:
+          - test_complex_pointer_flow
+
+      acceptance_criteria:
+        - "Builds complete dataflow graph"
+        - "Tracks all pointer operations"
+        - "Detects use-after-free"
+        - "Coverage ≥85%"
+
+      red_green_refactor: true
+
+    DECY-012:
+      title: "Infer ownership from pointer usage patterns"
+      type: feature
+      priority: critical
+      story_points: 13
+
+      description: |
+        Infer whether a pointer represents ownership or borrowing.
+        Key algorithm for reducing unsafe code.
+
+      requirements:
+        - Classify pointers as owning/borrowing
+        - Detect mutation patterns
+        - Infer &T vs &mut T
+        - Handle function parameters
+
+      test_requirements:
+        unit_tests:
+          - test_classify_owning_pointer
+          - test_classify_borrowing_pointer
+          - test_detect_mutation
+          - test_infer_immutable_borrow
+          - test_infer_mutable_borrow
+
+        property_tests:
+          - property_unique_owner_per_allocation
+          - property_borrows_outlive_owner
+          - property_exclusive_mutable_borrow
+
+        integration_tests:
+          - test_ownership_inference_complex_case
+
+      acceptance_criteria:
+        - "Classifies owning vs borrowing"
+        - "Infers &T and &mut T correctly"
+        - "Property tests pass (100+ properties)"
+        - "Coverage ≥90% (critical component)"
+        - "Reduces unsafe by ~20%"
+
+      red_green_refactor: true
+
+    DECY-013:
+      title: "Generate borrow code (&T, &mut T) from inference"
+      type: feature
+      priority: critical
+      story_points: 8
+
+      description: |
+        Generate Rust borrow syntax from ownership inference results.
+
+      requirements:
+        - Generate & and &mut references
+        - Insert borrow operators
+        - Handle function signatures
+        - Validate borrow checker rules
+
+      test_requirements:
+        unit_tests:
+          - test_generate_immutable_borrow
+          - test_generate_mutable_borrow
+          - test_generate_borrowed_parameter
+          - test_borrow_checker_validation
+
+        integration_tests:
+          - test_end_to_end_borrow_generation
+
+      acceptance_criteria:
+        - "Generates & and &mut correctly"
+        - "Generated code passes borrow checker"
+        - "Coverage ≥85%"
+
+      red_green_refactor: true
+
+# Sprint 5: Lifetime Inference Foundation
+sprint_5:
+  name: "Lifetime Inference (Phase 1)"
+  duration: "2 weeks"
+  goals:
+    - Scope-based lifetime analysis
+    - Function lifetime annotations
+    - Struct lifetime annotations
+    - Handle simple lifetime cases
+  story_points: 34
+
+  tickets:
+    DECY-014:
+      title: "Implement scope-based lifetime analysis"
+      type: feature
+      priority: critical
+      story_points: 13
+
+      description: |
+        Analyze C variable scopes to infer Rust lifetimes.
+        Start with function-local lifetimes.
+
+      requirements:
+        - Build scope tree
+        - Track variable lifetimes
+        - Detect dangling pointer potential
+        - Infer lifetime relationships
+
+      test_requirements:
+        unit_tests:
+          - test_build_scope_tree
+          - test_track_variable_lifetimes
+          - test_detect_dangling_pointer
+          - test_lifetime_relationships
+
+        property_tests:
+          - property_lifetimes_nested_correctly
+          - property_no_dangling_references
+
+        integration_tests:
+          - test_complex_scope_analysis
+
+      acceptance_criteria:
+        - "Builds scope tree correctly"
+        - "Infers lifetime relationships"
+        - "Detects dangling pointers"
+        - "Coverage ≥85%"
+
+      red_green_refactor: true
+
+    DECY-015:
+      title: "Generate function lifetime annotations"
+      type: feature
+      priority: critical
+      story_points: 13
+
+      description: |
+        Generate lifetime annotations for function signatures.
+        C: `char* get_name(Person* p) { return p->name; }`
+        Rust: `fn get_name<'a>(p: &'a Person) -> &'a str`
+
+      requirements:
+        - Infer lifetime parameters needed
+        - Generate <'a, 'b> syntax
+        - Annotate parameters and return types
+        - Validate lifetime constraints
+
+      test_requirements:
+        unit_tests:
+          - test_infer_lifetime_parameters
+          - test_generate_lifetime_syntax
+          - test_annotate_parameters
+          - test_annotate_return_type
+          - test_validate_constraints
+
+        property_tests:
+          - property_lifetime_annotations_valid
+          - property_return_lifetime_subset_params
+
+        integration_tests:
+          - test_function_lifetime_end_to_end
+
+      acceptance_criteria:
+        - "Generates lifetime annotations"
+        - "Handles multiple lifetimes"
+        - "Validates constraints"
+        - "Coverage ≥90%"
+        - "Reduces unsafe by ~10%"
+
+      red_green_refactor: true
+
+    DECY-016:
+      title: "Handle struct field lifetime annotations"
+      type: feature
+      priority: high
+      story_points: 8
+
+      description: |
+        Generate lifetime annotations for struct fields with references.
+
+      requirements:
+        - Detect struct fields with pointers
+        - Infer lifetime parameters for structs
+        - Generate struct<'a> syntax
+        - Annotate reference fields
+
+      test_requirements:
+        unit_tests:
+          - test_detect_reference_fields
+          - test_infer_struct_lifetimes
+          - test_generate_struct_lifetime_syntax
+          - test_annotate_fields
+
+        property_tests:
+          - property_struct_lifetimes_valid
+
+      acceptance_criteria:
+        - "Generates struct<'a> syntax"
+        - "Annotates reference fields"
+        - "Coverage ≥85%"
+
+      red_green_refactor: true
+
+# Quality Metrics Tracking
+quality_metrics:
+  tracked_per_sprint:
+    - coverage_percentage
+    - mutation_kill_rate
+    - unsafe_blocks_per_1000_loc
+    - clippy_warnings
+    - satd_comments
+    - complexity_violations
+    - test_count
+    - defects_found
+
+  sprint_targets:
+    sprint_1:
+      coverage: 80
+      mutation_kill_rate: 0.85
+      unsafe_per_1000_loc: 100  # Baseline - no inference yet
+
+    sprint_2:
+      coverage: 82
+      mutation_kill_rate: 0.87
+      unsafe_per_1000_loc: 90
+
+    sprint_3:
+      coverage: 83
+      mutation_kill_rate: 0.88
+      unsafe_per_1000_loc: 60   # Pattern detection reduces unsafe
+
+    sprint_4:
+      coverage: 85
+      mutation_kill_rate: 0.89
+      unsafe_per_1000_loc: 30   # Ownership inference major reduction
+
+    sprint_5:
+      coverage: 85
+      mutation_kill_rate: 0.90
+      unsafe_per_1000_loc: 15   # Lifetime inference further reduction
+
+# Definition of Done (All Tickets)
+definition_of_done:
+  - RED phase complete with failing tests
+  - GREEN phase complete with passing tests
+  - REFACTOR phase complete with quality gates met
+  - Coverage ≥ 80% (or crate-specific target)
+  - Mutation kill rate ≥ 90% (by Sprint 5)
+  - 0 clippy warnings
+  - 0 SATD comments
+  - All tests passing (unit, property, integration, doctest, examples)
+  - Documentation complete
+  - Code review approved
+  - CI pipeline green

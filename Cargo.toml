@@ -1,0 +1,85 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/decy-core",
+    "crates/decy-parser",
+    "crates/decy-hir",
+    "crates/decy-analyzer",
+    "crates/decy-ownership",
+    "crates/decy-verify",
+    "crates/decy-codegen",
+    "crates/decy-book",
+    "crates/decy-agent",
+    "crates/decy-mcp",
+    "crates/decy-repo",
+    "crates/decy",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+authors = ["Decy Contributors"]
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/your-org/decy"
+homepage = "https://github.com/your-org/decy"
+documentation = "https://docs.rs/decy"
+keywords = ["c", "rust", "transpiler", "compiler", "static-analysis"]
+categories = ["development-tools", "compilers", "command-line-utilities"]
+
+[workspace.dependencies]
+# Core dependencies
+clang-sys = "1.7"
+syn = { version = "2.0", features = ["full", "parsing"] }
+quote = "1.0"
+proc-macro2 = "1.0"
+
+# Async runtime
+tokio = { version = "1.35", features = ["full"] }
+async-trait = "0.1"
+
+# Data structures
+petgraph = "0.6"  # For dependency graphs
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+serde_yaml = "0.9"
+
+# Git/GitHub integration
+git2 = "0.18"
+octocrab = "0.35"
+
+# MCP server
+axum = "0.7"
+tower = "0.4"
+
+# Parallel processing
+rayon = "1.8"
+
+# Testing
+proptest = "1.4"
+criterion = "0.5"
+
+# Error handling
+anyhow = "1.0"
+thiserror = "1.0"
+
+# CLI
+clap = { version = "4.4", features = ["derive", "env"] }
+indicatif = "0.17"
+console = "0.15"
+
+# Logging
+tracing = "0.1"
+tracing-subscriber = "0.3"
+
+# Book generation
+mdbook = "0.4"
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+strip = true
+
+[profile.dev]
+opt-level = 0
+debug = true
