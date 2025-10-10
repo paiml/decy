@@ -112,9 +112,17 @@ sprint_1:
       priority: critical
       story_points: 5
       assignee: Claude
-      status: in_progress
+      status: done
       github_issue: null
-      phase: RED
+      phase: DONE
+      completed_date: "2025-10-10"
+      actual_coverage: 100.0
+      actual_metrics:
+        coverage: "100% (HIR code)"
+        tests_passing: "23 unit/property + 5 doctests"
+        clippy_warnings: 0
+        property_tests: "11 properties x 100 cases"
+        quality_grade: "A+"
 
       description: |
         Define the HIR structure that represents C code in a Rust-friendly format.
