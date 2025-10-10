@@ -8,3 +8,4 @@
 #![deny(unsafe_code)]
 
 pub mod dataflow;
+pub mod inference;
