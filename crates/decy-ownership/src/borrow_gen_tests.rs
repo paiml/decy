@@ -466,3 +466,210 @@ fn test_low_confidence_falls_back_to_raw_pointer() {
     // Low confidence Unknown should fall back to raw pointer
     assert_eq!(transformed, HirType::Pointer(Box::new(HirType::Int)));
 }
+
+// REFACTOR PHASE: Property tests for borrow generation
+
+#[cfg(test)]
+mod property_tests {
+    use super::*;
+    use proptest::prelude::*;
+
+    proptest! {
+        #[test]
+        fn prop_immutable_borrow_generates_non_mutable_reference(
+            var_name in "[a-z][a-z0-9_]{0,10}",
+        ) {
+            // Property: ImmutableBorrow always generates non-mutable reference
+            let generator = BorrowGenerator::new();
+            let ptr_type = HirType::Pointer(Box::new(HirType::Int));
+            let mut inferences = HashMap::new();
+            inferences.insert(
+                var_name.clone(),
+                OwnershipInference {
+                    variable: var_name.clone(),
+                    kind: OwnershipKind::ImmutableBorrow,
+                    confidence: 0.8,
+                    reason: "Test".to_string(),
+                },
+            );
+
+            let transformed = generator.transform_type(&ptr_type, &var_name, &inferences);
+
+            let is_immutable_ref = matches!(
+                transformed,
+                HirType::Reference { mutable: false, .. }
+            );
+            prop_assert!(is_immutable_ref);
+        }
+
+        #[test]
+        fn prop_mutable_borrow_generates_mutable_reference(
+            var_name in "[a-z][a-z0-9_]{0,10}",
+        ) {
+            // Property: MutableBorrow always generates mutable reference
+            let generator = BorrowGenerator::new();
+            let ptr_type = HirType::Pointer(Box::new(HirType::Int));
+            let mut inferences = HashMap::new();
+            inferences.insert(
+                var_name.clone(),
+                OwnershipInference {
+                    variable: var_name.clone(),
+                    kind: OwnershipKind::MutableBorrow,
+                    confidence: 0.8,
+                    reason: "Test".to_string(),
+                },
+            );
+
+            let transformed = generator.transform_type(&ptr_type, &var_name, &inferences);
+
+            let is_mutable_ref = matches!(
+                transformed,
+                HirType::Reference { mutable: true, .. }
+            );
+            prop_assert!(is_mutable_ref);
+        }
+
+        #[test]
+        fn prop_owning_generates_box(
+            var_name in "[a-z][a-z0-9_]{0,10}",
+        ) {
+            // Property: Owning pointers always become Box<T>
+            let generator = BorrowGenerator::new();
+            let ptr_type = HirType::Pointer(Box::new(HirType::Int));
+            let mut inferences = HashMap::new();
+            inferences.insert(
+                var_name.clone(),
+                OwnershipInference {
+                    variable: var_name.clone(),
+                    kind: OwnershipKind::Owning,
+                    confidence: 0.9,
+                    reason: "Test".to_string(),
+                },
+            );
+
+            let transformed = generator.transform_type(&ptr_type, &var_name, &inferences);
+
+            prop_assert!(matches!(transformed, HirType::Box(..)));
+        }
+
+        #[test]
+        fn prop_unknown_keeps_raw_pointer(
+            var_name in "[a-z][a-z0-9_]{0,10}",
+        ) {
+            // Property: Unknown ownership preserves raw pointer
+            let generator = BorrowGenerator::new();
+            let ptr_type = HirType::Pointer(Box::new(HirType::Int));
+            let mut inferences = HashMap::new();
+            inferences.insert(
+                var_name.clone(),
+                OwnershipInference {
+                    variable: var_name.clone(),
+                    kind: OwnershipKind::Unknown,
+                    confidence: 0.3,
+                    reason: "Test".to_string(),
+                },
+            );
+
+            let transformed = generator.transform_type(&ptr_type, &var_name, &inferences);
+
+            prop_assert!(matches!(transformed, HirType::Pointer(..)));
+        }
+
+        #[test]
+        fn prop_transformation_deterministic(
+            var_name in "[a-z][a-z0-9_]{0,10}",
+            confidence in 0.0f32..1.0f32,
+        ) {
+            // Property: Same input produces same output
+            let generator = BorrowGenerator::new();
+            let ptr_type = HirType::Pointer(Box::new(HirType::Int));
+            let mut inferences = HashMap::new();
+            inferences.insert(
+                var_name.clone(),
+                OwnershipInference {
+                    variable: var_name.clone(),
+                    kind: OwnershipKind::ImmutableBorrow,
+                    confidence,
+                    reason: "Test".to_string(),
+                },
+            );
+
+            let transformed1 = generator.transform_type(&ptr_type, &var_name, &inferences);
+            let transformed2 = generator.transform_type(&ptr_type, &var_name, &inferences);
+
+            prop_assert_eq!(transformed1, transformed2);
+        }
+
+        #[test]
+        fn prop_non_pointer_types_unchanged(
+            var_name in "[a-z][a-z0-9_]{0,10}",
+        ) {
+            // Property: Non-pointer types are never transformed
+            let generator = BorrowGenerator::new();
+            let non_ptr_types = vec![HirType::Int, HirType::Float, HirType::Void];
+            let inferences = HashMap::new();
+
+            for ty in non_ptr_types {
+                let transformed = generator.transform_type(&ty, &var_name, &inferences);
+                prop_assert_eq!(&transformed, &ty);
+            }
+        }
+
+        #[test]
+        fn prop_transform_never_panics(
+            var_name in "[a-z][a-z0-9_]{0,10}",
+            confidence in 0.0f32..1.0f32,
+        ) {
+            // Property: Transformation never panics
+            let generator = BorrowGenerator::new();
+            let ptr_type = HirType::Pointer(Box::new(HirType::Int));
+
+            // Try all ownership kinds
+            for kind in &[
+                OwnershipKind::Owning,
+                OwnershipKind::ImmutableBorrow,
+                OwnershipKind::MutableBorrow,
+                OwnershipKind::Unknown,
+            ] {
+                let mut inferences = HashMap::new();
+                inferences.insert(
+                    var_name.clone(),
+                    OwnershipInference {
+                        variable: var_name.clone(),
+                        kind: kind.clone(),
+                        confidence,
+                        reason: "Test".to_string(),
+                    },
+                );
+
+                // Should not panic
+                let _transformed = generator.transform_type(&ptr_type, &var_name, &inferences);
+            }
+        }
+
+        #[test]
+        fn prop_parameter_transformation_preserves_count(
+            num_params in 0usize..5,
+            param_names in prop::collection::vec("[a-z][a-z0-9_]{0,10}", 0..5),
+        ) {
+            // Property: Transformation preserves parameter count
+            let generator = BorrowGenerator::new();
+
+            let params: Vec<HirParameter> = param_names
+                .iter()
+                .take(num_params)
+                .map(|name| {
+                    HirParameter::new(
+                        name.clone(),
+                        HirType::Pointer(Box::new(HirType::Int)),
+                    )
+                })
+                .collect();
+
+            let inferences = HashMap::new();
+            let transformed = generator.transform_parameters(&params, &inferences);
+
+            prop_assert_eq!(transformed.len(), params.len());
+        }
+    }
+}
