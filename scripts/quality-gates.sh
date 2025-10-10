@@ -115,7 +115,18 @@ else
 fi
 echo ""
 
-# 8. Doc Check
+# 8. Validate Documentation Links
+echo "🔗 Validating documentation links..."
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if "$SCRIPT_DIR/validate-docs.sh"; then
+    echo -e "${GREEN}✅ Documentation links valid${NC}"
+else
+    echo -e "${RED}❌ Broken documentation links found${NC}"
+    FAILED=1
+fi
+echo ""
+
+# 9. Doc Check
 echo "📚 Checking documentation..."
 if RUSTDOCFLAGS="-D warnings" cargo doc --workspace --no-deps --document-private-items; then
     echo -e "${GREEN}✅ Documentation builds without warnings${NC}"

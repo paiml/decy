@@ -1,7 +1,7 @@
 # Decy: C-to-Rust Transpiler with EXTREME Quality Standards
 
 [![Quality Gates](https://github.com/your-org/decy/actions/workflows/quality.yml/badge.svg)](https://github.com/your-org/decy/actions/workflows/quality.yml)
-[![License: MIT OR Apache-2.0](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue.svg)](LICENSE)
+[![License: MIT OR Apache-2.0](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue.svg)](https://opensource.org/licenses/MIT)
 
 Decy is a production-grade C-to-Rust transpiler that generates idiomatic, safe Rust code with minimal `unsafe` blocks (<5 per 1000 LOC). Built using EXTREME TDD methodology, Toyota Way principles, and PMAT qualification.
 
@@ -261,8 +261,6 @@ See [docs/specifications/decy-unsafe-minimization-strategy.md](docs/specificatio
 We welcome contributions! Please see:
 
 - [GETTING_STARTED.md](GETTING_STARTED.md) - Development guide
-- [CONTRIBUTING.md](CONTRIBUTING.md) - Contribution guidelines (coming soon)
-- [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) - Code of conduct (coming soon)
 
 ### Development Setup
 
@@ -291,8 +289,8 @@ git push origin feature/DECY-XXX-description
 
 Licensed under either of:
 
-- Apache License, Version 2.0 ([LICENSE-APACHE](LICENSE-APACHE) or http://www.apache.org/licenses/LICENSE-2.0)
-- MIT license ([LICENSE-MIT](LICENSE-MIT) or http://opensource.org/licenses/MIT)
+- Apache License, Version 2.0 (http://www.apache.org/licenses/LICENSE-2.0)
+- MIT license (http://opensource.org/licenses/MIT)
 
 at your option.
 
