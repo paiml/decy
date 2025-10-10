@@ -164,10 +164,10 @@ sprint_1:
       type: feature
       priority: high
       story_points: 8
-      assignee: TBD
-      status: not_started
+      assignee: Claude
+      status: in_progress
       github_issue: null
-      phase: null
+      phase: RED
 
       description: |
         Generate Rust code from HIR for simple functions.
