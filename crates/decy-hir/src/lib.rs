@@ -111,6 +111,7 @@ pub struct HirFunction {
     name: String,
     return_type: HirType,
     parameters: Vec<HirParameter>,
+    body: Option<Vec<HirStatement>>,
 }
 
 impl HirFunction {
@@ -138,6 +139,7 @@ impl HirFunction {
             name,
             return_type,
             parameters,
+            body: None,
         }
     }
 
@@ -182,8 +184,77 @@ impl HirFunction {
                 .iter()
                 .map(HirParameter::from_ast_parameter)
                 .collect(),
+            body: None,
         }
     }
+
+    /// Create a new HIR function with a body.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use decy_hir::{HirFunction, HirType, HirStatement, HirExpression};
+    ///
+    /// let func = HirFunction::new_with_body(
+    ///     "test".to_string(),
+    ///     HirType::Int,
+    ///     vec![],
+    ///     vec![
+    ///         HirStatement::VariableDeclaration {
+    ///             name: "x".to_string(),
+    ///             var_type: HirType::Int,
+    ///             initializer: Some(HirExpression::IntLiteral(5)),
+    ///         },
+    ///         HirStatement::Return(Some(HirExpression::Variable("x".to_string()))),
+    ///     ],
+    /// );
+    ///
+    /// assert_eq!(func.name(), "test");
+    /// assert_eq!(func.body().len(), 2);
+    /// ```
+    pub fn new_with_body(
+        name: String,
+        return_type: HirType,
+        parameters: Vec<HirParameter>,
+        body: Vec<HirStatement>,
+    ) -> Self {
+        Self {
+            name,
+            return_type,
+            parameters,
+            body: Some(body),
+        }
+    }
+
+    /// Get the function body.
+    pub fn body(&self) -> &[HirStatement] {
+        self.body.as_deref().unwrap_or(&[])
+    }
+}
+
+/// Represents an expression in HIR.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum HirExpression {
+    /// Integer literal
+    IntLiteral(i32),
+    /// Variable reference
+    Variable(String),
+}
+
+/// Represents a statement in HIR.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum HirStatement {
+    /// Variable declaration with optional initializer
+    VariableDeclaration {
+        /// Variable name
+        name: String,
+        /// Variable type
+        var_type: HirType,
+        /// Optional initializer expression
+        initializer: Option<HirExpression>,
+    },
+    /// Return statement with optional value
+    Return(Option<HirExpression>),
 }
 
 #[cfg(test)]
@@ -193,3 +264,7 @@ mod hir_tests;
 #[cfg(test)]
 #[path = "property_tests.rs"]
 mod property_tests;
+
+#[cfg(test)]
+#[path = "statement_tests.rs"]
+mod statement_tests;
