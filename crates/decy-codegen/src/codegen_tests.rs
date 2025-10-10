@@ -637,4 +637,105 @@ mod tests {
         assert!(code.contains("return 1;"));
         assert!(code.contains("return -1;"));
     }
+
+    // DECY-006: While loop tests (RED phase)
+
+    #[test]
+    fn test_generate_while_loop() {
+        // RED PHASE: This test will FAIL
+        let while_stmt = HirStatement::While {
+            condition: HirExpression::BinaryOp {
+                op: BinaryOperator::LessThan,
+                left: Box::new(HirExpression::Variable("x".to_string())),
+                right: Box::new(HirExpression::IntLiteral(10)),
+            },
+            body: vec![HirStatement::Return(Some(HirExpression::IntLiteral(1)))],
+        };
+
+        let codegen = CodeGenerator::new();
+        let code = codegen.generate_statement(&while_stmt);
+
+        assert!(code.contains("while x < 10"));
+        assert!(code.contains("{"));
+        assert!(code.contains("return 1;"));
+        assert!(code.contains("}"));
+    }
+
+    #[test]
+    fn test_generate_break_statement() {
+        // RED PHASE: This test will FAIL
+        let break_stmt = HirStatement::Break;
+
+        let codegen = CodeGenerator::new();
+        let code = codegen.generate_statement(&break_stmt);
+
+        assert_eq!(code, "break;");
+    }
+
+    #[test]
+    fn test_generate_continue_statement() {
+        // RED PHASE: This test will FAIL
+        let continue_stmt = HirStatement::Continue;
+
+        let codegen = CodeGenerator::new();
+        let code = codegen.generate_statement(&continue_stmt);
+
+        assert_eq!(code, "continue;");
+    }
+
+    #[test]
+    fn test_generate_while_with_break() {
+        // RED PHASE: This test will FAIL
+        let while_stmt = HirStatement::While {
+            condition: HirExpression::IntLiteral(1),
+            body: vec![
+                HirStatement::VariableDeclaration {
+                    name: "x".to_string(),
+                    var_type: HirType::Int,
+                    initializer: Some(HirExpression::IntLiteral(5)),
+                },
+                HirStatement::Break,
+            ],
+        };
+
+        let codegen = CodeGenerator::new();
+        let code = codegen.generate_statement(&while_stmt);
+
+        assert!(code.contains("while 1"));
+        assert!(code.contains("let mut x: i32 = 5;"));
+        assert!(code.contains("break;"));
+    }
+
+    #[test]
+    fn test_end_to_end_while_loop() {
+        // RED PHASE: This test will FAIL
+        let func = HirFunction::new_with_body(
+            "count_to_ten".to_string(),
+            HirType::Void,
+            vec![],
+            vec![
+                HirStatement::VariableDeclaration {
+                    name: "i".to_string(),
+                    var_type: HirType::Int,
+                    initializer: Some(HirExpression::IntLiteral(0)),
+                },
+                HirStatement::While {
+                    condition: HirExpression::BinaryOp {
+                        op: BinaryOperator::LessThan,
+                        left: Box::new(HirExpression::Variable("i".to_string())),
+                        right: Box::new(HirExpression::IntLiteral(10)),
+                    },
+                    body: vec![HirStatement::Continue],
+                },
+            ],
+        );
+
+        let codegen = CodeGenerator::new();
+        let code = codegen.generate_function(&func);
+
+        assert!(code.contains("fn count_to_ten()"));
+        assert!(code.contains("let mut i: i32 = 0;"));
+        assert!(code.contains("while i < 10"));
+        assert!(code.contains("continue;"));
+    }
 }

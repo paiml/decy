@@ -377,4 +377,78 @@ mod tests {
         let debug_str = format!("{:?}", if_stmt);
         assert!(debug_str.contains("If"));
     }
+
+    // DECY-006: While loop tests (RED phase)
+
+    #[test]
+    fn test_hir_while_loop_creation() {
+        // RED PHASE: This test will FAIL
+        let while_stmt = HirStatement::While {
+            condition: HirExpression::BinaryOp {
+                op: BinaryOperator::LessThan,
+                left: Box::new(HirExpression::Variable("x".to_string())),
+                right: Box::new(HirExpression::IntLiteral(10)),
+            },
+            body: vec![HirStatement::VariableDeclaration {
+                name: "i".to_string(),
+                var_type: HirType::Int,
+                initializer: Some(HirExpression::IntLiteral(0)),
+            }],
+        };
+
+        if let HirStatement::While { condition, body } = &while_stmt {
+            assert!(matches!(condition, HirExpression::BinaryOp { .. }));
+            assert_eq!(body.len(), 1);
+        } else {
+            panic!("Expected While statement");
+        }
+    }
+
+    #[test]
+    fn test_hir_break_statement() {
+        // RED PHASE: This test will FAIL
+        let break_stmt = HirStatement::Break;
+
+        assert!(matches!(break_stmt, HirStatement::Break));
+    }
+
+    #[test]
+    fn test_hir_continue_statement() {
+        // RED PHASE: This test will FAIL
+        let continue_stmt = HirStatement::Continue;
+
+        assert!(matches!(continue_stmt, HirStatement::Continue));
+    }
+
+    #[test]
+    fn test_while_with_break() {
+        // RED PHASE: This test will FAIL
+        let while_stmt = HirStatement::While {
+            condition: HirExpression::BinaryOp {
+                op: BinaryOperator::Equal,
+                left: Box::new(HirExpression::IntLiteral(1)),
+                right: Box::new(HirExpression::IntLiteral(1)),
+            },
+            body: vec![HirStatement::Break],
+        };
+
+        if let HirStatement::While { body, .. } = &while_stmt {
+            assert_eq!(body.len(), 1);
+            assert!(matches!(body[0], HirStatement::Break));
+        } else {
+            panic!("Expected While statement");
+        }
+    }
+
+    #[test]
+    fn test_while_statement_clone() {
+        // RED PHASE: This test will FAIL
+        let while_stmt = HirStatement::While {
+            condition: HirExpression::Variable("x".to_string()),
+            body: vec![HirStatement::Continue],
+        };
+
+        let cloned = while_stmt.clone();
+        assert_eq!(while_stmt, cloned);
+    }
 }

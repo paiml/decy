@@ -300,6 +300,17 @@ pub enum HirStatement {
         /// Else block (optional statements to execute if condition is false)
         else_block: Option<Vec<HirStatement>>,
     },
+    /// While loop with condition and body
+    While {
+        /// Loop condition
+        condition: HirExpression,
+        /// Loop body (statements to execute while condition is true)
+        body: Vec<HirStatement>,
+    },
+    /// Break statement (exit loop)
+    Break,
+    /// Continue statement (skip to next iteration)
+    Continue,
 }
 
 #[cfg(test)]
