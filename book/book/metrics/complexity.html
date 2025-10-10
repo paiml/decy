@@ -1,14 +1,14 @@
 <!DOCTYPE HTML>
-<html lang="en" class="rust sidebar-visible" dir="ltr">
+<html lang="en" class="light sidebar-visible" dir="ltr">
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Complexity Analysis - DECY: C-to-Rust Transpiler Verification Book</title>
+        <title>Complexity Analysis</title>
 
 
         <!-- Custom HTML head -->
 
-        <meta name="description" content="Comprehensive verification and testing documentation for the DECY C-to-Rust transpiler, following EXTREME TDD methodology">
+        <meta name="description" content="">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="theme-color" content="#ffffff">
 
@@ -34,7 +34,7 @@
         <!-- Provide site root and default themes to javascript -->
         <script>
             const path_to_root = "../";
-            const default_light_theme = "rust";
+            const default_light_theme = "light";
             const default_dark_theme = "navy";
             window.path_to_searchindex_js = "../searchindex.js";
         </script>
@@ -77,7 +77,7 @@
             try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
             if (theme === null || theme === undefined) { theme = default_theme; }
             const html = document.documentElement;
-            html.classList.remove('rust')
+            html.classList.remove('light')
             html.classList.add(theme);
             html.classList.add("js");
         </script>
@@ -138,17 +138,11 @@
                         </button>
                     </div>
 
-                    <h1 class="menu-title">DECY: C-to-Rust Transpiler Verification Book</h1>
+                    <h1 class="menu-title"></h1>
 
                     <div class="right-buttons">
                         <a href="../print.html" title="Print this book" aria-label="Print this book">
                             <i id="print-button" class="fa fa-print"></i>
-                        </a>
-                        <a href="https://github.com/noahgift/decy" title="Git repository" aria-label="Git repository">
-                            <i id="git-repository-button" class="fa fa-github"></i>
-                        </a>
-                        <a href="https://github.com/noahgift/decy/edit/main/book/src/metrics/complexity.md" title="Suggest an edit" aria-label="Suggest an edit" rel="edit">
-                            <i id="git-edit-button" class="fa fa-edit"></i>
                         </a>
 
                     </div>
@@ -219,7 +213,7 @@ Simplified: CC = number of decision points + 1
 </div>
 <p><strong>DECY Target</strong>: ≤10 for all functions</p>
 <h2 id="example-simple-function-cc--1"><a class="header" href="#example-simple-function-cc--1">Example: Simple Function (CC = 1)</a></h2>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>pub fn add(a: i32, b: i32) -&gt; i32 {
     a + b  // No branches = CC 1
@@ -227,7 +221,7 @@ Simplified: CC = number of decision points + 1
 <span class="boring">}</span></code></pre></pre>
 <p><strong>Complexity</strong>: 1 (simplest possible)</p>
 <h2 id="example-one-branch-cc--2"><a class="header" href="#example-one-branch-cc--2">Example: One Branch (CC = 2)</a></h2>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>pub fn abs(x: i32) -&gt; i32 {
     if x &lt; 0 {    // +1 decision point
@@ -239,7 +233,7 @@ Simplified: CC = number of decision points + 1
 <span class="boring">}</span></code></pre></pre>
 <p><strong>Complexity</strong>: 2 (1 decision point + 1 = 2)</p>
 <h2 id="example-multiple-branches-cc--4"><a class="header" href="#example-multiple-branches-cc--4">Example: Multiple Branches (CC = 4)</a></h2>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>pub fn classify(x: i32) -&gt; &amp;'static str {
     if x &lt; 0 {        // +1
@@ -255,7 +249,7 @@ Simplified: CC = number of decision points + 1
 <span class="boring">}</span></code></pre></pre>
 <p><strong>Complexity</strong>: 4 (3 decision points + 1 = 4)</p>
 <h2 id="example-loop-cc--3"><a class="header" href="#example-loop-cc--3">Example: Loop (CC = 3)</a></h2>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>pub fn sum_positive(arr: &amp;[i32]) -&gt; i32 {
     let mut total = 0;
@@ -270,7 +264,7 @@ Simplified: CC = number of decision points + 1
 <p><strong>Complexity</strong>: 3 (loop + if + 1 = 3)</p>
 <h2 id="decy-complexity-analysis"><a class="header" href="#decy-complexity-analysis">DECY Complexity Analysis</a></h2>
 <h3 id="parser-average-cc--42"><a class="header" href="#parser-average-cc--42">Parser: Average CC = 4.2</a></h3>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>// Simple: CC = 2
 pub fn is_pointer_type(ty: &amp;HirType) -&gt; bool {
@@ -297,7 +291,7 @@ pub fn parse_type(tokens: &amp;[Token]) -&gt; Result&lt;HirType&gt; {
 <span class="boring">}</span></code></pre></pre>
 <p><strong>Average</strong>: Well within target (≤10)</p>
 <h3 id="hir-average-cc--38"><a class="header" href="#hir-average-cc--38">HIR: Average CC = 3.8</a></h3>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>// Simple: CC = 1
 pub fn get_name(&amp;self) -&gt; &amp;str {
@@ -334,7 +328,7 @@ pub fn from_ast_function(ast_func: &amp;AstFunction) -&gt; Self {
 <span class="boring">}</span></code></pre></pre>
 <p><strong>Average</strong>: Excellent (well below target)</p>
 <h3 id="ownership-inference-average-cc--62"><a class="header" href="#ownership-inference-average-cc--62">Ownership Inference: Average CC = 6.2</a></h3>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>// Moderate: CC = 6
 pub fn classify_ownership(source: &amp;Source, graph: &amp;DataflowGraph) -&gt; OwnershipPattern {
@@ -360,7 +354,7 @@ pub fn classify_ownership(source: &amp;Source, graph: &amp;DataflowGraph) -&gt; 
 <span class="boring">}</span></code></pre></pre>
 <p><strong>Average</strong>: Good (within target)</p>
 <h3 id="codegen-average-cc--54"><a class="header" href="#codegen-average-cc--54">Codegen: Average CC = 5.4</a></h3>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>// Moderate: CC = 7
 pub fn generate_statement(&amp;mut self, stmt: &amp;HirStatement) -&gt; String {
@@ -476,7 +470,7 @@ decy_codegen::generate_statement             7      48
 </code></pre>
 <h2 id="reducing-complexity"><a class="header" href="#reducing-complexity">Reducing Complexity</a></h2>
 <h3 id="strategy-1-extract-functions"><a class="header" href="#strategy-1-extract-functions">Strategy 1: Extract Functions</a></h3>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>// ❌ Before: CC = 12 (too complex!)
 pub fn process_pointer(ptr: &amp;Pointer, graph: &amp;DataflowGraph) -&gt; Result&lt;RustCode&gt; {
@@ -552,7 +546,7 @@ fn generate_rust_type(ptr: &amp;Pointer, ownership: OwnershipPattern) -&gt; Stri
 <span class="boring">}</span></code></pre></pre>
 <p><strong>Result</strong>: Original CC=12 → 3 separate functions with CC=3,3,2</p>
 <h3 id="strategy-2-use-match-instead-of-if-else-chains"><a class="header" href="#strategy-2-use-match-instead-of-if-else-chains">Strategy 2: Use Match Instead of If-Else Chains</a></h3>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>// ❌ Before: CC = 6
 pub fn classify_type(ty: &amp;str) -&gt; TypeClass {
@@ -582,7 +576,7 @@ pub fn classify_type(ty: &amp;str) -&gt; TypeClass {
 <span class="boring">}</span></code></pre></pre>
 <p><strong>Result</strong>: CC reduced from 6 → 2</p>
 <h3 id="strategy-3-early-returns"><a class="header" href="#strategy-3-early-returns">Strategy 3: Early Returns</a></h3>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>// ❌ Before: CC = 5 (nested conditions)
 pub fn validate_pointer(ptr: &amp;Pointer) -&gt; Result&lt;()&gt; {
@@ -624,7 +618,7 @@ pub fn validate_pointer(ptr: &amp;Pointer) -&gt; Result&lt;()&gt; {
 <span class="boring">}</span></code></pre></pre>
 <p><strong>Result</strong>: Same CC but much more readable (linear flow)</p>
 <h3 id="strategy-4-use-iterators"><a class="header" href="#strategy-4-use-iterators">Strategy 4: Use Iterators</a></h3>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>// ❌ Before: CC = 4
 pub fn count_positive(arr: &amp;[i32]) -&gt; usize {
@@ -661,7 +655,7 @@ pub fn count_positive(arr: &amp;[i32]) -&gt; usize {
 </tbody></table>
 </div>
 <h3 id="example"><a class="header" href="#example">Example</a></h3>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>// Cyclomatic = 4, Cognitive = 7
 pub fn complex_check(x: i32, y: i32) -&gt; bool {
@@ -683,7 +677,7 @@ pub fn complex_check(x: i32, y: i32) -&gt; bool {
 <p><strong>DECY Target</strong>: Cognitive complexity ≤15</p>
 <h2 id="testing-complex-functions"><a class="header" href="#testing-complex-functions">Testing Complex Functions</a></h2>
 <p>Complex functions need more tests:</p>
-<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>// CC = 6 → needs at least 6 test cases
 pub fn classify(x: i32) -&gt; &amp;'static str {
@@ -847,19 +841,11 @@ jobs:
 
 
 
-        <script>
-            window.playground_line_numbers = true;
-        </script>
 
         <script>
             window.playground_copyable = true;
         </script>
 
-        <script src="../ace.js"></script>
-        <script src="../mode-rust.js"></script>
-        <script src="../editor.js"></script>
-        <script src="../theme-dawn.js"></script>
-        <script src="../theme-tomorrow_night.js"></script>
 
         <script src="../elasticlunr.min.js"></script>
         <script src="../mark.min.js"></script>
