@@ -184,3 +184,7 @@ impl Default for CodeGenerator {
 #[cfg(test)]
 #[path = "codegen_tests.rs"]
 mod codegen_tests;
+
+#[cfg(test)]
+#[path = "property_tests.rs"]
+mod property_tests;
