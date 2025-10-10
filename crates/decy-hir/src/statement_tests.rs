@@ -17,7 +17,12 @@ mod tests {
             initializer: Some(HirExpression::IntLiteral(5)),
         };
 
-        if let HirStatement::VariableDeclaration { name, var_type, initializer } = &var_decl {
+        if let HirStatement::VariableDeclaration {
+            name,
+            var_type,
+            initializer,
+        } = &var_decl
+        {
             assert_eq!(name, "x");
             assert_eq!(var_type, &HirType::Int);
             assert!(initializer.is_some());
@@ -35,7 +40,12 @@ mod tests {
             initializer: None,
         };
 
-        if let HirStatement::VariableDeclaration { name, var_type, initializer } = &var_decl {
+        if let HirStatement::VariableDeclaration {
+            name,
+            var_type,
+            initializer,
+        } = &var_decl
+        {
             assert_eq!(name, "y");
             assert_eq!(var_type, &HirType::Float);
             assert!(initializer.is_none());

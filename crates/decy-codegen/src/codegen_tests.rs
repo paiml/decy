@@ -186,7 +186,7 @@ mod tests {
     #[test]
     fn test_generate_variable_declaration() {
         // RED PHASE: This test will FAIL
-        use decy_hir::{HirStatement, HirExpression};
+        use decy_hir::{HirExpression, HirStatement};
 
         let var_decl = HirStatement::VariableDeclaration {
             name: "x".to_string(),
@@ -203,7 +203,7 @@ mod tests {
     #[test]
     fn test_generate_variable_without_initializer() {
         // RED PHASE: This test will FAIL
-        use decy_hir::{HirStatement};
+        use decy_hir::HirStatement;
 
         let var_decl = HirStatement::VariableDeclaration {
             name: "y".to_string(),
@@ -247,7 +247,7 @@ mod tests {
     #[test]
     fn test_generate_return_with_expression() {
         // RED PHASE: This test will FAIL
-        use decy_hir::{HirStatement, HirExpression};
+        use decy_hir::{HirExpression, HirStatement};
 
         let stmt = HirStatement::Return(Some(HirExpression::IntLiteral(0)));
 
@@ -273,7 +273,7 @@ mod tests {
     #[test]
     fn test_generate_function_with_body() {
         // RED PHASE: This test will FAIL
-        use decy_hir::{HirStatement, HirExpression};
+        use decy_hir::{HirExpression, HirStatement};
 
         let func = HirFunction::new_with_body(
             "test".to_string(),
@@ -301,7 +301,7 @@ mod tests {
     fn test_infer_mutability_default() {
         // RED PHASE: This test will FAIL
         // All C variables are mutable by default
-        use decy_hir::{HirStatement, HirExpression};
+        use decy_hir::{HirExpression, HirStatement};
 
         let var_decl = HirStatement::VariableDeclaration {
             name: "counter".to_string(),
@@ -320,7 +320,7 @@ mod tests {
     fn test_end_to_end_variable_declaration() {
         // RED PHASE: This test will FAIL
         // Test complete flow: C code concept -> HIR -> Rust code
-        use decy_hir::{HirStatement, HirExpression};
+        use decy_hir::{HirExpression, HirStatement};
 
         // Simulates: int x = 5;
         let var_decl = HirStatement::VariableDeclaration {
