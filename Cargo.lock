@@ -705,6 +705,7 @@ name = "decy-codegen"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "decy-analyzer",
  "decy-hir",
  "proc-macro2",
  "proptest",
