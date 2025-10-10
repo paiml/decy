@@ -114,6 +114,16 @@ impl CodeGenerator {
                     format!("&{}", inner_code)
                 }
             }
+            HirExpression::FunctionCall {
+                function,
+                arguments,
+            } => {
+                let args: Vec<String> = arguments
+                    .iter()
+                    .map(|arg| self.generate_expression(arg))
+                    .collect();
+                format!("{}({})", function, args.join(", "))
+            }
         }
     }
 

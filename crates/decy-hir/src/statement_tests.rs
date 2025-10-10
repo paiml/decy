@@ -519,7 +519,11 @@ mod tests {
             arguments: vec![],
         };
 
-        if let HirExpression::FunctionCall { function, arguments } = &expr {
+        if let HirExpression::FunctionCall {
+            function,
+            arguments,
+        } = &expr
+        {
             assert_eq!(function, "foo");
             assert_eq!(arguments.len(), 0);
         } else {
@@ -535,7 +539,11 @@ mod tests {
             arguments: vec![HirExpression::IntLiteral(10)],
         };
 
-        if let HirExpression::FunctionCall { function, arguments } = &expr {
+        if let HirExpression::FunctionCall {
+            function,
+            arguments,
+        } = &expr
+        {
             assert_eq!(function, "malloc");
             assert_eq!(arguments.len(), 1);
             assert!(matches!(arguments[0], HirExpression::IntLiteral(10)));
@@ -555,7 +563,11 @@ mod tests {
             ],
         };
 
-        if let HirExpression::FunctionCall { function, arguments } = &expr {
+        if let HirExpression::FunctionCall {
+            function,
+            arguments,
+        } = &expr
+        {
             assert_eq!(function, "add");
             assert_eq!(arguments.len(), 2);
         } else {
@@ -587,7 +599,11 @@ mod tests {
             }],
         };
 
-        if let HirExpression::FunctionCall { function, arguments } = &expr {
+        if let HirExpression::FunctionCall {
+            function,
+            arguments,
+        } = &expr
+        {
             assert_eq!(function, "outer");
             assert_eq!(arguments.len(), 1);
             assert!(matches!(arguments[0], HirExpression::FunctionCall { .. }));
