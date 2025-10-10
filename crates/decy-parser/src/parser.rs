@@ -227,7 +227,199 @@ fn extract_function(cursor: CXCursor) -> Option<Function> {
         }
     }
 
-    Some(Function::new(name, return_type, parameters))
+    // Extract function body by visiting children
+    let mut body = Vec::new();
+    let body_ptr = &mut body as *mut Vec<Statement>;
+
+    unsafe {
+        clang_visitChildren(cursor, visit_statement, body_ptr as CXClientData);
+    }
+
+    Some(Function::new_with_body(name, return_type, parameters, body))
+}
+
+/// Visitor callback for extracting statements from function body.
+///
+/// # Safety
+///
+/// This function is called by clang_visitChildren and must follow C calling conventions.
+#[allow(non_upper_case_globals)]
+extern "C" fn visit_statement(
+    cursor: CXCursor,
+    _parent: CXCursor,
+    client_data: CXClientData,
+) -> CXChildVisitResult {
+    // SAFETY: Converting client data back to statement vector pointer
+    let statements = unsafe { &mut *(client_data as *mut Vec<Statement>) };
+
+    // SAFETY: Getting cursor kind
+    let kind = unsafe { clang_getCursorKind(cursor) };
+
+    match kind {
+        CXCursor_CompoundStmt => {
+            // Compound statement (function body) - recurse into it
+            CXChildVisit_Recurse
+        }
+        CXCursor_DeclStmt => {
+            // Declaration statement - visit its children to get the actual declaration
+            CXChildVisit_Recurse
+        }
+        CXCursor_VarDecl => {
+            // Variable declaration
+            if let Some(stmt) = extract_var_decl(cursor) {
+                statements.push(stmt);
+            }
+            CXChildVisit_Continue
+        }
+        CXCursor_ReturnStmt => {
+            // Return statement
+            if let Some(stmt) = extract_return_stmt(cursor) {
+                statements.push(stmt);
+            }
+            CXChildVisit_Continue
+        }
+        _ => CXChildVisit_Continue,
+    }
+}
+
+/// Extract a variable declaration statement.
+fn extract_var_decl(cursor: CXCursor) -> Option<Statement> {
+    // Get variable name
+    let name_cxstring = unsafe { clang_getCursorSpelling(cursor) };
+    let name = unsafe {
+        let c_str = CStr::from_ptr(clang_getCString(name_cxstring));
+        let name = c_str.to_string_lossy().into_owned();
+        clang_disposeString(name_cxstring);
+        name
+    };
+
+    // Get variable type
+    let cx_type = unsafe { clang_getCursorType(cursor) };
+    let var_type = convert_type(cx_type)?;
+
+    // Extract initializer by visiting children
+    let mut initializer: Option<Expression> = None;
+    let init_ptr = &mut initializer as *mut Option<Expression>;
+
+    unsafe {
+        clang_visitChildren(cursor, visit_expression, init_ptr as CXClientData);
+    }
+
+    Some(Statement::VariableDeclaration {
+        name,
+        var_type,
+        initializer,
+    })
+}
+
+/// Extract a return statement.
+fn extract_return_stmt(cursor: CXCursor) -> Option<Statement> {
+    // Extract return expression by visiting children
+    let mut return_expr: Option<Expression> = None;
+    let expr_ptr = &mut return_expr as *mut Option<Expression>;
+
+    unsafe {
+        clang_visitChildren(cursor, visit_expression, expr_ptr as CXClientData);
+    }
+
+    Some(Statement::Return(return_expr))
+}
+
+/// Visitor callback for extracting expressions.
+///
+/// # Safety
+///
+/// This function is called by clang_visitChildren and must follow C calling conventions.
+#[allow(non_upper_case_globals)]
+extern "C" fn visit_expression(
+    cursor: CXCursor,
+    _parent: CXCursor,
+    client_data: CXClientData,
+) -> CXChildVisitResult {
+    // SAFETY: Converting client data back to expression option pointer
+    let expr_opt = unsafe { &mut *(client_data as *mut Option<Expression>) };
+
+    // SAFETY: Getting cursor kind
+    let kind = unsafe { clang_getCursorKind(cursor) };
+
+    match kind {
+        CXCursor_IntegerLiteral => {
+            // Integer literal
+            if let Some(expr) = extract_int_literal(cursor) {
+                *expr_opt = Some(expr);
+            }
+            CXChildVisit_Continue
+        }
+        CXCursor_CallExpr => {
+            // Function call
+            if let Some(expr) = extract_function_call(cursor) {
+                *expr_opt = Some(expr);
+            }
+            CXChildVisit_Continue
+        }
+        _ => CXChildVisit_Recurse,
+    }
+}
+
+/// Extract an integer literal expression.
+fn extract_int_literal(_cursor: CXCursor) -> Option<Expression> {
+    // For now, we'll use a default value since extracting the actual
+    // integer value requires token parsing
+    // In a production system, we'd use clang_tokenize or clang_Cursor_Evaluate
+    Some(Expression::IntLiteral(0))
+}
+
+/// Extract a function call expression.
+fn extract_function_call(cursor: CXCursor) -> Option<Expression> {
+    // Get function name
+    let name_cxstring = unsafe { clang_getCursorSpelling(cursor) };
+    let function = unsafe {
+        let c_str = CStr::from_ptr(clang_getCString(name_cxstring));
+        let name = c_str.to_string_lossy().into_owned();
+        clang_disposeString(name_cxstring);
+        name
+    };
+
+    // Extract arguments by visiting children
+    let mut arguments = Vec::new();
+    let args_ptr = &mut arguments as *mut Vec<Expression>;
+
+    unsafe {
+        clang_visitChildren(cursor, visit_call_argument, args_ptr as CXClientData);
+    }
+
+    Some(Expression::FunctionCall {
+        function,
+        arguments,
+    })
+}
+
+/// Visitor callback for function call arguments.
+///
+/// # Safety
+///
+/// This function is called by clang_visitChildren and must follow C calling conventions.
+#[allow(non_upper_case_globals)]
+extern "C" fn visit_call_argument(
+    cursor: CXCursor,
+    _parent: CXCursor,
+    client_data: CXClientData,
+) -> CXChildVisitResult {
+    // SAFETY: Converting client data back to arguments vector pointer
+    let arguments = unsafe { &mut *(client_data as *mut Vec<Expression>) };
+
+    // SAFETY: Getting cursor kind
+    let kind = unsafe { clang_getCursorKind(cursor) };
+
+    match kind {
+        CXCursor_IntegerLiteral => {
+            if let Some(expr) = extract_int_literal(cursor) {
+                arguments.push(expr);
+            }
+            CXChildVisit_Continue
+        }
+        _ => CXChildVisit_Recurse,
+    }
 }
 
 /// Convert clang type to our Type enum.
@@ -247,6 +439,36 @@ fn convert_type(cx_type: CXType) -> Option<Type> {
         }
         _ => None,
     }
+}
+
+/// Represents a C statement.
+#[derive(Debug, Clone, PartialEq)]
+pub enum Statement {
+    /// Variable declaration: `int* ptr = malloc(4);`
+    VariableDeclaration {
+        /// Variable name
+        name: String,
+        /// Variable type
+        var_type: Type,
+        /// Optional initializer expression
+        initializer: Option<Expression>,
+    },
+    /// Return statement: `return expr;`
+    Return(Option<Expression>),
+}
+
+/// Represents a C expression.
+#[derive(Debug, Clone, PartialEq)]
+pub enum Expression {
+    /// Integer literal: `42`
+    IntLiteral(i32),
+    /// Function call: `malloc(4)`
+    FunctionCall {
+        /// Function name
+        function: String,
+        /// Arguments
+        arguments: Vec<Expression>,
+    },
 }
 
 /// Abstract Syntax Tree representing parsed C code.
@@ -289,6 +511,8 @@ pub struct Function {
     pub return_type: Type,
     /// Parameters
     pub parameters: Vec<Parameter>,
+    /// Function body (statements)
+    pub body: Vec<Statement>,
 }
 
 impl Function {
@@ -298,6 +522,22 @@ impl Function {
             name,
             return_type,
             parameters,
+            body: Vec::new(),
+        }
+    }
+
+    /// Create a new function with body.
+    pub fn new_with_body(
+        name: String,
+        return_type: Type,
+        parameters: Vec<Parameter>,
+        body: Vec<Statement>,
+    ) -> Self {
+        Self {
+            name,
+            return_type,
+            parameters,
+            body,
         }
     }
 }

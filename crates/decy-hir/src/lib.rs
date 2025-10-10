@@ -178,6 +178,18 @@ impl HirFunction {
     /// assert_eq!(hir_func.name(), "test");
     /// ```
     pub fn from_ast_function(ast_func: &decy_parser::parser::Function) -> Self {
+        let body = if ast_func.body.is_empty() {
+            None
+        } else {
+            Some(
+                ast_func
+                    .body
+                    .iter()
+                    .map(HirStatement::from_ast_statement)
+                    .collect(),
+            )
+        };
+
         Self {
             name: ast_func.name.clone(),
             return_type: HirType::from_ast_type(&ast_func.return_type),
@@ -186,7 +198,7 @@ impl HirFunction {
                 .iter()
                 .map(HirParameter::from_ast_parameter)
                 .collect(),
-            body: None,
+            body,
         }
     }
 
@@ -331,6 +343,47 @@ pub enum HirStatement {
         /// Value expression to assign
         value: HirExpression,
     },
+}
+
+impl HirStatement {
+    /// Convert from parser AST statement to HIR statement.
+    pub fn from_ast_statement(ast_stmt: &decy_parser::parser::Statement) -> Self {
+        use decy_parser::parser::Statement;
+        match ast_stmt {
+            Statement::VariableDeclaration {
+                name,
+                var_type,
+                initializer,
+            } => HirStatement::VariableDeclaration {
+                name: name.clone(),
+                var_type: HirType::from_ast_type(var_type),
+                initializer: initializer.as_ref().map(HirExpression::from_ast_expression),
+            },
+            Statement::Return(expr) => {
+                HirStatement::Return(expr.as_ref().map(HirExpression::from_ast_expression))
+            }
+        }
+    }
+}
+
+impl HirExpression {
+    /// Convert from parser AST expression to HIR expression.
+    pub fn from_ast_expression(ast_expr: &decy_parser::parser::Expression) -> Self {
+        use decy_parser::parser::Expression;
+        match ast_expr {
+            Expression::IntLiteral(value) => HirExpression::IntLiteral(*value),
+            Expression::FunctionCall {
+                function,
+                arguments,
+            } => HirExpression::FunctionCall {
+                function: function.clone(),
+                arguments: arguments
+                    .iter()
+                    .map(HirExpression::from_ast_expression)
+                    .collect(),
+            },
+        }
+    }
 }
 
 #[cfg(test)]
