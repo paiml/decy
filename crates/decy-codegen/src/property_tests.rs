@@ -97,4 +97,53 @@ proptest! {
 
         prop_assert!(sig.contains(&name));
     }
+
+    // DECY-004 property tests for statements
+
+    /// Property: Generated variable declarations always start with "let mut"
+    #[test]
+    fn property_all_vars_are_mutable(
+        name in "[a-z_][a-z0-9_]{0,10}",
+        var_type in hir_type_strategy()
+    ) {
+        use decy_hir::{HirStatement};
+
+        let var_decl = HirStatement::VariableDeclaration {
+            name,
+            var_type,
+            initializer: None,
+        };
+
+        let codegen = CodeGenerator::new();
+        let code = codegen.generate_statement(&var_decl);
+
+        prop_assert!(code.starts_with("let mut"));
+    }
+
+    /// Property: Int literals are rendered as numbers
+    #[test]
+    fn property_int_literal_is_numeric(val in -1000i32..1000i32) {
+        use decy_hir::HirExpression;
+
+        let expr = HirExpression::IntLiteral(val);
+
+        let codegen = CodeGenerator::new();
+        let code = codegen.generate_expression(&expr);
+
+        // Should be parseable as i32
+        prop_assert_eq!(code.parse::<i32>().ok(), Some(val));
+    }
+
+    /// Property: Variable references preserve the name exactly
+    #[test]
+    fn property_var_ref_preserves_name(name in "[a-z_][a-z0-9_]{0,10}") {
+        use decy_hir::HirExpression;
+
+        let expr = HirExpression::Variable(name.clone());
+
+        let codegen = CodeGenerator::new();
+        let code = codegen.generate_expression(&expr);
+
+        prop_assert_eq!(code, name);
+    }
 }
