@@ -178,19 +178,15 @@ impl LifetimeAnalyzer {
                 } => {
                     // Create scope for then block
                     let then_start = index + 1;
-                    let then_scope = tree.add_scope(
-                        current_scope,
-                        (then_start, then_start + then_block.len()),
-                    );
+                    let then_scope =
+                        tree.add_scope(current_scope, (then_start, then_start + then_block.len()));
                     index = self.analyze_statements(then_block, tree, then_scope, then_start);
 
                     // Create scope for else block if present
                     if let Some(else_stmts) = else_block {
                         let else_start = index;
-                        let else_scope = tree.add_scope(
-                            current_scope,
-                            (else_start, else_start + else_stmts.len()),
-                        );
+                        let else_scope = tree
+                            .add_scope(current_scope, (else_start, else_start + else_stmts.len()));
                         index = self.analyze_statements(else_stmts, tree, else_scope, else_start);
                     }
                 }
@@ -263,9 +259,9 @@ impl LifetimeAnalyzer {
             HirExpression::Dereference(inner) | HirExpression::AddressOf(inner) => {
                 self.expression_uses_variable(inner, var_name)
             }
-            HirExpression::FunctionCall { arguments, .. } => {
-                arguments.iter().any(|arg| self.expression_uses_variable(arg, var_name))
-            }
+            HirExpression::FunctionCall { arguments, .. } => arguments
+                .iter()
+                .any(|arg| self.expression_uses_variable(arg, var_name)),
             HirExpression::IntLiteral(_) => false,
         }
     }

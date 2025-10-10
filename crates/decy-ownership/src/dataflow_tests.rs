@@ -10,16 +10,14 @@ fn test_build_dataflow_graph() {
         "test".to_string(),
         HirType::Void,
         vec![],
-        vec![
-            HirStatement::VariableDeclaration {
-                name: "ptr".to_string(),
-                var_type: HirType::Pointer(Box::new(HirType::Int)),
-                initializer: Some(HirExpression::FunctionCall {
-                    function: "malloc".to_string(),
-                    arguments: vec![HirExpression::IntLiteral(4)],
-                }),
-            },
-        ],
+        vec![HirStatement::VariableDeclaration {
+            name: "ptr".to_string(),
+            var_type: HirType::Pointer(Box::new(HirType::Int)),
+            initializer: Some(HirExpression::FunctionCall {
+                function: "malloc".to_string(),
+                arguments: vec![HirExpression::IntLiteral(4)],
+            }),
+        }],
     );
 
     let analyzer = DataflowAnalyzer::new();
@@ -68,10 +66,7 @@ fn test_track_pointer_assignments() {
         "ptr2 should have dependencies"
     );
     let deps = graph.dependencies_for("ptr2").unwrap();
-    assert!(
-        deps.contains("ptr1"),
-        "ptr2 should depend on ptr1"
-    );
+    assert!(deps.contains("ptr1"), "ptr2 should depend on ptr1");
 }
 
 #[test]
@@ -169,9 +164,7 @@ fn test_track_function_parameters() {
         )],
         vec![HirStatement::Assignment {
             target: "x".to_string(),
-            value: HirExpression::Dereference(Box::new(HirExpression::Variable(
-                "ptr".to_string(),
-            ))),
+            value: HirExpression::Dereference(Box::new(HirExpression::Variable("ptr".to_string()))),
         }],
     );
 
@@ -184,7 +177,11 @@ fn test_track_function_parameters() {
         "Should track parameter pointer"
     );
     let nodes = graph.nodes_for("ptr").unwrap();
-    assert_eq!(nodes[0].kind, NodeKind::Parameter, "Should mark as parameter");
+    assert_eq!(
+        nodes[0].kind,
+        NodeKind::Parameter,
+        "Should mark as parameter"
+    );
 }
 
 #[test]
@@ -223,17 +220,17 @@ fn test_track_dereference_operations() {
 #[test]
 fn test_empty_function() {
     // Function with no pointers
-    let func = HirFunction::new(
-        "empty".to_string(),
-        HirType::Void,
-        vec![],
-    );
+    let func = HirFunction::new("empty".to_string(), HirType::Void, vec![]);
 
     let analyzer = DataflowAnalyzer::new();
     let graph = analyzer.analyze(&func);
 
     // Should have empty graph
-    assert_eq!(graph.variables().len(), 0, "Empty function should have no tracked variables");
+    assert_eq!(
+        graph.variables().len(),
+        0,
+        "Empty function should have no tracked variables"
+    );
 }
 
 #[test]

@@ -23,7 +23,7 @@ impl BorrowGenerator {
     /// Transform a HIR type based on ownership inference.
     ///
     /// Converts C pointer types to appropriate Rust borrow types:
-    /// - Owning pointers → Box<T> (already handled by Box transformer)
+    /// - Owning pointers → `Box<T>` (already handled by Box transformer)
     /// - ImmutableBorrow → &T
     /// - MutableBorrow → &mut T
     /// - Unknown → *mut T (falls back to raw pointer)
