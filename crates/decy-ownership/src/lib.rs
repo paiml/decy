@@ -12,3 +12,4 @@ pub mod dataflow;
 pub mod inference;
 pub mod lifetime;
 pub mod lifetime_gen;
+pub mod struct_lifetime;
