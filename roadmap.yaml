@@ -478,6 +478,33 @@ sprint_3:
       type: feature
       priority: critical
       story_points: 13
+      assignee: Claude
+      status: in_progress
+      github_issue: null
+      phase: "Phase 1 Complete"
+
+      notes: |
+        Breaking this into phases due to complexity:
+        - Phase 1: Function call support (COMPLETE) ✅
+        - Phase 2: Assignment statement support (TODO)
+        - Phase 3: malloc/free pattern detection (TODO)
+        - Phase 4: Box::new() generation (TODO)
+
+      phase_1_completion:
+        completed_date: "2025-10-10"
+        actual_coverage: 96.55
+        actual_metrics:
+          coverage: "96.55%"
+          tests_passing: "146 tests (77 codegen + 59 HIR + 9 parser + 1 core)"
+          clippy_warnings: 0
+          property_tests: "4 properties x 100 cases for function calls"
+          quality_grade: "A+"
+        features_added:
+          - "HirExpression::FunctionCall variant in HIR"
+          - "Function call code generation: function_name(arg1, arg2, ...)"
+          - "Recursive argument expression generation"
+          - "10 unit tests for function calls (5 HIR + 5 codegen)"
+          - "4 property tests for function call generation"
 
       description: |
         Detect malloc/free patterns that should become Box<T>.
