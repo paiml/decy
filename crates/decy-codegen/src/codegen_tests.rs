@@ -7,16 +7,12 @@ use super::*;
 #[cfg(test)]
 mod tests {
     use super::*;
-    use decy_hir::{HirFunction, HirType, HirParameter};
+    use decy_hir::{HirFunction, HirParameter, HirType};
 
     #[test]
     fn test_generate_function_signature() {
         // RED PHASE: This test will FAIL
-        let func = HirFunction::new(
-            "main".to_string(),
-            HirType::Int,
-            vec![],
-        );
+        let func = HirFunction::new("main".to_string(), HirType::Int, vec![]);
 
         let codegen = CodeGenerator::new();
         let signature = codegen.generate_signature(&func);
@@ -83,11 +79,7 @@ mod tests {
     #[test]
     fn test_generate_void_function() {
         // RED PHASE: This test will FAIL
-        let func = HirFunction::new(
-            "print_hello".to_string(),
-            HirType::Void,
-            vec![],
-        );
+        let func = HirFunction::new("print_hello".to_string(), HirType::Void, vec![]);
 
         let codegen = CodeGenerator::new();
         let signature = codegen.generate_signature(&func);
@@ -133,10 +125,10 @@ mod tests {
         let func = HirFunction::new(
             "process".to_string(),
             HirType::Void,
-            vec![
-                HirParameter::new("data".to_string(),
-                    HirType::Pointer(Box::new(HirType::Int))),
-            ],
+            vec![HirParameter::new(
+                "data".to_string(),
+                HirType::Pointer(Box::new(HirType::Int)),
+            )],
         );
 
         let codegen = CodeGenerator::new();
@@ -177,11 +169,7 @@ mod tests {
     fn test_generated_code_compiles() {
         // RED PHASE: This test will FAIL
         // This is an integration test to ensure generated code is valid Rust
-        let func = HirFunction::new(
-            "test_fn".to_string(),
-            HirType::Int,
-            vec![],
-        );
+        let func = HirFunction::new("test_fn".to_string(), HirType::Int, vec![]);
 
         let codegen = CodeGenerator::new();
         let code = codegen.generate_function(&func);

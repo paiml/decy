@@ -59,9 +59,7 @@ impl HirType {
             Type::Float => HirType::Float,
             Type::Double => HirType::Double,
             Type::Char => HirType::Char,
-            Type::Pointer(inner) => {
-                HirType::Pointer(Box::new(HirType::from_ast_type(inner)))
-            }
+            Type::Pointer(inner) => HirType::Pointer(Box::new(HirType::from_ast_type(inner))),
         }
     }
 }

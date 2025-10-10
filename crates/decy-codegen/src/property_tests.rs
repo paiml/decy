@@ -1,7 +1,7 @@
 //! Property tests for code generator (DECY-003 REFACTOR phase).
 
 use super::*;
-use decy_hir::{HirFunction, HirType, HirParameter};
+use decy_hir::{HirFunction, HirType};
 use proptest::prelude::*;
 
 // Strategy for generating HIR types (reuse from decy-hir concepts)

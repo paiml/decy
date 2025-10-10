@@ -20,9 +20,8 @@ fn hir_type_strategy() -> impl Strategy<Value = HirType> {
 
 // Strategy for generating HirParameter
 fn hir_parameter_strategy() -> impl Strategy<Value = HirParameter> {
-    ("[a-z]{1,10}", hir_type_strategy()).prop_map(|(name, param_type)| {
-        HirParameter::new(name, param_type)
-    })
+    ("[a-z]{1,10}", hir_type_strategy())
+        .prop_map(|(name, param_type)| HirParameter::new(name, param_type))
 }
 
 // Strategy for generating HirFunction
@@ -32,9 +31,7 @@ fn hir_function_strategy() -> impl Strategy<Value = HirFunction> {
         hir_type_strategy(),
         prop::collection::vec(hir_parameter_strategy(), 0..5),
     )
-        .prop_map(|(name, return_type, parameters)| {
-            HirFunction::new(name, return_type, parameters)
-        })
+        .prop_map(|(name, return_type, parameters)| HirFunction::new(name, return_type, parameters))
 }
 
 proptest! {

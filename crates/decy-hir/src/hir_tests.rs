@@ -11,11 +11,7 @@ mod tests {
     #[test]
     fn test_hir_function_creation() {
         // RED PHASE: This test will FAIL until we define HirFunction
-        let func = HirFunction::new(
-            "main".to_string(),
-            HirType::Int,
-            vec![],
-        );
+        let func = HirFunction::new("main".to_string(), HirType::Int, vec![]);
 
         assert_eq!(func.name(), "main");
         assert_eq!(func.return_type(), &HirType::Int);
@@ -30,11 +26,7 @@ mod tests {
             HirParameter::new("b".to_string(), HirType::Int),
         ];
 
-        let func = HirFunction::new(
-            "add".to_string(),
-            HirType::Int,
-            params,
-        );
+        let func = HirFunction::new("add".to_string(), HirType::Int, params);
 
         assert_eq!(func.name(), "add");
         assert_eq!(func.parameters().len(), 2);
@@ -45,7 +37,7 @@ mod tests {
     #[test]
     fn test_hir_type_variants() {
         // RED PHASE: This test will FAIL
-        let types = vec![
+        let types = [
             HirType::Void,
             HirType::Int,
             HirType::Float,
@@ -76,11 +68,7 @@ mod tests {
     #[test]
     fn test_hir_serialization() {
         // RED PHASE: This test will FAIL
-        let func = HirFunction::new(
-            "test".to_string(),
-            HirType::Void,
-            vec![],
-        );
+        let func = HirFunction::new("test".to_string(), HirType::Void, vec![]);
 
         // Test Debug trait
         let debug_str = format!("{:?}", func);
@@ -94,7 +82,7 @@ mod tests {
     #[test]
     fn test_ast_to_hir_conversion() {
         // RED PHASE: This test will FAIL
-        use decy_parser::parser::{Function, Type, Parameter};
+        use decy_parser::parser::{Function, Parameter, Type};
 
         // Create a simple AST function
         let ast_func = Function::new(
@@ -151,7 +139,7 @@ mod tests {
 
     #[test]
     fn test_hir_parameter_from_ast() {
-        use decy_parser::parser::{Type, Parameter};
+        use decy_parser::parser::{Parameter, Type};
 
         let ast_param = Parameter::new("x".to_string(), Type::Float);
         let hir_param = HirParameter::from_ast_parameter(&ast_param);
@@ -204,7 +192,7 @@ mod tests {
 
     #[test]
     fn test_ast_to_hir_with_multiple_param_types() {
-        use decy_parser::parser::{Function, Type, Parameter};
+        use decy_parser::parser::{Function, Parameter, Type};
 
         let ast_func = Function::new(
             "multi".to_string(),
