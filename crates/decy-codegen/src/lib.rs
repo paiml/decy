@@ -101,6 +101,19 @@ impl CodeGenerator {
 
                 format!("{} {} {}", left_str, op_str, right_str)
             }
+            HirExpression::Dereference(inner) => {
+                let inner_code = self.generate_expression(inner);
+                format!("*{}", inner_code)
+            }
+            HirExpression::AddressOf(inner) => {
+                let inner_code = self.generate_expression(inner);
+                // Add parentheses for non-trivial expressions
+                if matches!(**inner, HirExpression::Dereference(_)) {
+                    format!("&({})", inner_code)
+                } else {
+                    format!("&{}", inner_code)
+                }
+            }
         }
     }
 

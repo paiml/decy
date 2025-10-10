@@ -498,9 +498,9 @@ mod tests {
     fn test_nested_dereference() {
         // RED PHASE: This test will FAIL
         // **ptr_ptr (dereference twice)
-        let expr = HirExpression::Dereference(Box::new(HirExpression::Dereference(
-            Box::new(HirExpression::Variable("ptr_ptr".to_string())),
-        )));
+        let expr = HirExpression::Dereference(Box::new(HirExpression::Dereference(Box::new(
+            HirExpression::Variable("ptr_ptr".to_string()),
+        ))));
 
         if let HirExpression::Dereference(inner) = &expr {
             assert!(matches!(**inner, HirExpression::Dereference(_)));
