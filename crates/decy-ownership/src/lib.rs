@@ -11,3 +11,4 @@ pub mod borrow_gen;
 pub mod dataflow;
 pub mod inference;
 pub mod lifetime;
+pub mod lifetime_gen;
