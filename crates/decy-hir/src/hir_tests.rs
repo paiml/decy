@@ -94,7 +94,7 @@ mod tests {
     #[test]
     fn test_ast_to_hir_conversion() {
         // RED PHASE: This test will FAIL
-        use decy_parser::parser::{Ast, Function, Type, Parameter};
+        use decy_parser::parser::{Function, Type, Parameter};
 
         // Create a simple AST function
         let ast_func = Function::new(
@@ -130,7 +130,7 @@ mod tests {
         let hir_ptr = HirType::from_ast_type(&ptr_type);
 
         if let HirType::Pointer(inner) = hir_ptr {
-            assert_eq!(*inner, Box::new(HirType::Int));
+            assert_eq!(*inner, HirType::Int);
         } else {
             panic!("Expected pointer type");
         }
