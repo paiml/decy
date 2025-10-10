@@ -27,6 +27,9 @@ sprint_1:
       priority: critical
       story_points: 8
       assignee: TBD
+      status: in_progress
+      github_issue: null  # Will be set by sync-roadmap.sh
+      phase: RED  # RED, GREEN, REFACTOR, DONE
 
       description: |
         Integrate clang-sys to parse C source code into AST.
@@ -102,6 +105,9 @@ sprint_1:
       priority: critical
       story_points: 5
       assignee: TBD
+      status: not_started
+      github_issue: null
+      phase: null
 
       description: |
         Define the HIR structure that represents C code in a Rust-friendly format.
@@ -144,6 +150,9 @@ sprint_1:
       priority: high
       story_points: 8
       assignee: TBD
+      status: not_started
+      github_issue: null
+      phase: null
 
       description: |
         Generate Rust code from HIR for simple functions.
