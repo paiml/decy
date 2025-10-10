@@ -187,18 +187,27 @@ impl CodeGenerator {
                 code.push('}');
                 code
             }
-            HirStatement::While { .. } => {
-                // RED PHASE: Placeholder - will implement in GREEN phase
-                unimplemented!("While statement generation not yet implemented")
+            HirStatement::While { condition, body } => {
+                let mut code = String::new();
+
+                // Generate while condition
+                code.push_str(&format!(
+                    "while {} {{\n",
+                    self.generate_expression(condition)
+                ));
+
+                // Generate loop body
+                for stmt in body {
+                    code.push_str("    ");
+                    code.push_str(&self.generate_statement(stmt));
+                    code.push('\n');
+                }
+
+                code.push('}');
+                code
             }
-            HirStatement::Break => {
-                // RED PHASE: Placeholder - will implement in GREEN phase
-                unimplemented!("Break statement generation not yet implemented")
-            }
-            HirStatement::Continue => {
-                // RED PHASE: Placeholder - will implement in GREEN phase
-                unimplemented!("Continue statement generation not yet implemented")
-            }
+            HirStatement::Break => "break;".to_string(),
+            HirStatement::Continue => "continue;".to_string(),
         }
     }
 
