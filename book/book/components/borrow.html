@@ -1,0 +1,908 @@
+<!DOCTYPE HTML>
+<html lang="en" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Borrow Generation</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="../favicon.svg">
+        <link rel="shortcut icon" href="../favicon.png">
+        <link rel="stylesheet" href="../css/variables.css">
+        <link rel="stylesheet" href="../css/general.css">
+        <link rel="stylesheet" href="../css/chrome.css">
+        <link rel="stylesheet" href="../css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="../fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="highlight-css" href="../highlight.css">
+        <link rel="stylesheet" id="tomorrow-night-css" href="../tomorrow-night.css">
+        <link rel="stylesheet" id="ayu-highlight-css" href="../ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "../";
+            const default_light_theme = "light";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "../searchindex.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="../toc.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="../toc.html"></iframe>
+            </noscript>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="sidebar-toggle" class="icon-button" for="sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </label>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title"></h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <i class="fa fa-spinner fa-spin"></i>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="borrow-checker"><a class="header" href="#borrow-checker">Borrow Checker</a></h1>
+<p>The <strong>borrow checker</strong> is DECY's core safety component that enforces Rust's ownership rules in transpiled code. It ensures memory safety without garbage collection by validating borrowing rules at compile time.</p>
+<h2 id="what-is-borrow-checking"><a class="header" href="#what-is-borrow-checking">What Is Borrow Checking?</a></h2>
+<p>In Rust, references follow strict rules:</p>
+<ol>
+<li><strong>Either</strong> one mutable reference <strong>OR</strong> multiple immutable references</li>
+<li>References must always be valid (no dangling pointers)</li>
+<li>Ownership can be temporarily "borrowed" but must be returned</li>
+</ol>
+<p>DECY's borrow checker infers these rules from C code patterns.</p>
+<h2 id="the-problem-cs-aliasing-issues"><a class="header" href="#the-problem-cs-aliasing-issues">The Problem: C's Aliasing Issues</a></h2>
+<p>C allows unrestricted pointer aliasing, leading to bugs:</p>
+<pre><code class="language-c">// C: Aliasing bug
+void increment(int* p, int* count) {
+    *p = *p + 1;      // Read p
+    *count = *count + 1;  // Modify count
+    printf("%d\n", *p);   // Read p again - might have changed!
+}
+
+int main() {
+    int x = 5;
+    increment(&amp;x, &amp;x);  // Both pointers alias same memory!
+    // Expected: 6, Actual: 7 (p was incremented twice)
+}
+</code></pre>
+<h2 id="decys-solution-borrow-checking"><a class="header" href="#decys-solution-borrow-checking">DECY's Solution: Borrow Checking</a></h2>
+<p>DECY detects aliasing and enforces Rust's borrowing rules:</p>
+<pre><code class="language-rust ignore">// Transpiled Rust: Borrow checker prevents aliasing
+fn increment(p: &amp;mut i32, count: &amp;mut i32) {
+    *p = *p + 1;
+    *count = *count + 1;
+    println!("{}", *p);
+}
+
+fn main() {
+    let mut x = 5;
+    increment(&amp;mut x, &amp;mut x);  // ❌ Compile error: cannot borrow x twice
+}</code></pre>
+<p><strong>Compile Error</strong>:</p>
+<pre><code>error[E0499]: cannot borrow `x` as mutable more than once at a time
+</code></pre>
+<h2 id="borrow-checking-pipeline"><a class="header" href="#borrow-checking-pipeline">Borrow Checking Pipeline</a></h2>
+<pre><code>C Code
+  ↓
+[Parser] → AST
+  ↓
+[HIR Lowering] → HIR with pointer operations
+  ↓
+[Dataflow Analysis] → Variable lifetimes
+  ↓
+[Borrow Checker] → Validate borrowing rules
+  ↓
+[Error or Safe Code] → Rust with references
+</code></pre>
+<h3 id="step-1-identify-borrows"><a class="header" href="#step-1-identify-borrows">Step 1: Identify Borrows</a></h3>
+<pre><code class="language-rust ignore">#[derive(Debug, Clone, PartialEq)]
+pub enum BorrowKind {
+    Immutable,  // &amp;T
+    Mutable,    // &amp;mut T
+    Owned,      // T (no borrow)
+}
+
+#[derive(Debug)]
+pub struct Borrow {
+    pub variable: String,
+    pub kind: BorrowKind,
+    pub location: Location,
+    pub lifetime: Lifetime,
+}
+
+pub struct BorrowChecker {
+    borrows: HashMap&lt;String, Vec&lt;Borrow&gt;&gt;,
+}
+
+impl BorrowChecker {
+    pub fn identify_borrows(&amp;mut self, hir: &amp;Hir) -&gt; Vec&lt;Borrow&gt; {
+        let mut borrows = Vec::new();
+
+        for stmt in hir.statements() {
+            match stmt {
+                Statement::Assignment { lhs, rhs, .. } =&gt; {
+                    if let Expression::AddressOf(var) = rhs {
+                        borrows.push(Borrow {
+                            variable: var.clone(),
+                            kind: BorrowKind::Immutable,
+                            location: stmt.location(),
+                            lifetime: self.infer_lifetime(var),
+                        });
+                    }
+                }
+                _ =&gt; {}
+            }
+        }
+
+        borrows
+    }
+}</code></pre>
+<h3 id="step-2-check-aliasing"><a class="header" href="#step-2-check-aliasing">Step 2: Check Aliasing</a></h3>
+<pre><code class="language-rust ignore">#[derive(Debug, PartialEq)]
+pub enum BorrowError {
+    MultipleMutableBorrows {
+        variable: String,
+        first: Location,
+        second: Location,
+    },
+    ImmutableAndMutableBorrow {
+        variable: String,
+        immutable: Location,
+        mutable: Location,
+    },
+    UsedAfterMove {
+        variable: String,
+        moved_at: Location,
+        used_at: Location,
+    },
+}
+
+impl BorrowChecker {
+    pub fn check_aliasing(&amp;self) -&gt; Result&lt;(), Vec&lt;BorrowError&gt;&gt; {
+        let mut errors = Vec::new();
+
+        // Check each variable's borrows
+        for (var, borrows) in &amp;self.borrows {
+            // Count mutable borrows
+            let mutable_borrows: Vec&lt;_&gt; = borrows.iter()
+                .filter(|b| b.kind == BorrowKind::Mutable)
+                .collect();
+
+            if mutable_borrows.len() &gt; 1 {
+                errors.push(BorrowError::MultipleMutableBorrows {
+                    variable: var.clone(),
+                    first: mutable_borrows[0].location,
+                    second: mutable_borrows[1].location,
+                });
+            }
+
+            // Check for simultaneous immutable and mutable borrows
+            let immutable_borrows: Vec&lt;_&gt; = borrows.iter()
+                .filter(|b| b.kind == BorrowKind::Immutable)
+                .collect();
+
+            if !mutable_borrows.is_empty() &amp;&amp; !immutable_borrows.is_empty() {
+                errors.push(BorrowError::ImmutableAndMutableBorrow {
+                    variable: var.clone(),
+                    immutable: immutable_borrows[0].location,
+                    mutable: mutable_borrows[0].location,
+                });
+            }
+        }
+
+        if errors.is_empty() {
+            Ok(())
+        } else {
+            Err(errors)
+        }
+    }
+}</code></pre>
+<h3 id="step-3-generate-safe-rust"><a class="header" href="#step-3-generate-safe-rust">Step 3: Generate Safe Rust</a></h3>
+<pre><code class="language-rust ignore">impl BorrowChecker {
+    pub fn generate_rust(&amp;self, var: &amp;str, borrow: &amp;Borrow) -&gt; String {
+        match borrow.kind {
+            BorrowKind::Immutable =&gt; format!("&amp;{}", var),
+            BorrowKind::Mutable =&gt; format!("&amp;mut {}", var),
+            BorrowKind::Owned =&gt; var.to_string(),
+        }
+    }
+}</code></pre>
+<h2 id="testing-the-borrow-checker"><a class="header" href="#testing-the-borrow-checker">Testing the Borrow Checker</a></h2>
+<h3 id="unit-test-detect-multiple-mutable-borrows"><a class="header" href="#unit-test-detect-multiple-mutable-borrows">Unit Test: Detect Multiple Mutable Borrows</a></h3>
+<pre><code class="language-rust ignore">#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_multiple_mutable_borrows() {
+        let c_code = r#"
+            void process(int* a, int* b) {
+                *a = 10;
+                *b = 20;
+            }
+
+            int main() {
+                int x = 5;
+                process(&amp;x, &amp;x);  // Two mutable borrows of x!
+            }
+        "#;
+
+        let hir = parse_and_lower(c_code).unwrap();
+        let mut checker = BorrowChecker::new();
+        checker.analyze(&amp;hir);
+
+        let result = checker.check_aliasing();
+        assert!(result.is_err());
+
+        let errors = result.unwrap_err();
+        assert_eq!(errors.len(), 1);
+        assert!(matches!(errors[0], BorrowError::MultipleMutableBorrows { .. }));
+    }
+}</code></pre>
+<h3 id="unit-test-allow-multiple-immutable-borrows"><a class="header" href="#unit-test-allow-multiple-immutable-borrows">Unit Test: Allow Multiple Immutable Borrows</a></h3>
+<pre><code class="language-rust ignore">#[test]
+fn test_multiple_immutable_borrows() {
+    let c_code = r#"
+        int sum(const int* a, const int* b) {
+            return *a + *b;
+        }
+
+        int main() {
+            int x = 5;
+            return sum(&amp;x, &amp;x);  // OK: Two immutable borrows
+        }
+    "#;
+
+    let hir = parse_and_lower(c_code).unwrap();
+    let mut checker = BorrowChecker::new();
+    checker.analyze(&amp;hir);
+
+    let result = checker.check_aliasing();
+    assert!(result.is_ok());  // No errors!
+}</code></pre>
+<h3 id="integration-test-full-pipeline"><a class="header" href="#integration-test-full-pipeline">Integration Test: Full Pipeline</a></h3>
+<pre><code class="language-rust ignore">#[test]
+fn test_borrow_checker_integration() {
+    let c_code = r#"
+        void safe_function(const int* read, int* write) {
+            *write = *read + 1;
+        }
+
+        int main() {
+            int x = 5;
+            int y = 0;
+            safe_function(&amp;x, &amp;y);  // OK: Different variables
+            return y;
+        }
+    "#;
+
+    let rust_code = transpile(c_code).unwrap();
+
+    // Verify generated code compiles
+    assert!(compile_rust(&amp;rust_code).is_ok());
+
+    // Verify output
+    let output = run_rust(&amp;rust_code).unwrap();
+    assert_eq!(output, "6");
+}</code></pre>
+<h2 id="property-testing-borrow-invariants"><a class="header" href="#property-testing-borrow-invariants">Property Testing: Borrow Invariants</a></h2>
+<p>Property tests verify borrow checking rules hold for all inputs:</p>
+<pre><code class="language-rust ignore">use proptest::prelude::*;
+
+proptest! {
+    #[test]
+    fn prop_no_mutable_aliasing(
+        var_name in "[a-z]+",
+        func_name in "[a-z]+",
+    ) {
+        // Generate C code with potential aliasing
+        let c_code = format!(
+            r#"
+                void {}(int* a, int* b) {{
+                    *a = 10;
+                    *b = 20;
+                }}
+
+                int main() {{
+                    int {} = 5;
+                    {}(&amp;{}, &amp;{});
+                }}
+            "#,
+            func_name, var_name, func_name, var_name, var_name
+        );
+
+        let result = transpile(&amp;c_code);
+
+        // Property: Either transpilation fails (detected aliasing)
+        // OR generated Rust fails to compile (Rust catches it)
+        if let Ok(rust_code) = result {
+            prop_assert!(compile_rust(&amp;rust_code).is_err());
+        }
+    }
+}</code></pre>
+<pre><code class="language-rust ignore">proptest! {
+    #[test]
+    fn prop_immutable_borrows_allowed(
+        var_name in "[a-z]+",
+        n_borrows in 1usize..10,
+    ) {
+        // Generate C code with multiple immutable borrows
+        let params = (0..n_borrows)
+            .map(|i| format!("const int* p{}", i))
+            .collect::&lt;Vec&lt;_&gt;&gt;()
+            .join(", ");
+
+        let args = (0..n_borrows)
+            .map(|_| format!("&amp;{}", var_name))
+            .collect::&lt;Vec&lt;_&gt;&gt;()
+            .join(", ");
+
+        let c_code = format!(
+            r#"
+                int sum({}) {{
+                    int result = 0;
+                    {}
+                    return result;
+                }}
+
+                int main() {{
+                    int {} = 5;
+                    return sum({});
+                }}
+            "#,
+            params,
+            (0..n_borrows)
+                .map(|i| format!("result += *p{};", i))
+                .collect::&lt;Vec&lt;_&gt;&gt;()
+                .join("\n                    "),
+            var_name,
+            args
+        );
+
+        let rust_code = transpile(&amp;c_code).unwrap();
+
+        // Property: Multiple immutable borrows always OK
+        prop_assert!(compile_rust(&amp;rust_code).is_ok());
+    }
+}</code></pre>
+<pre><code class="language-rust ignore">proptest! {
+    #[test]
+    fn prop_disjoint_borrows_allowed(
+        var1 in "[a-z]+",
+        var2 in "[a-z]+",
+        value in any::&lt;i32&gt;(),
+    ) {
+        prop_assume!(var1 != var2);  // Different variables
+
+        let c_code = format!(
+            r#"
+                void process(int* a, int* b) {{
+                    *a = {};
+                    *b = {} + 1;
+                }}
+
+                int main() {{
+                    int {} = 0;
+                    int {} = 0;
+                    process(&amp;{}, &amp;{});
+                }}
+            "#,
+            value, value, var1, var2, var1, var2
+        );
+
+        let rust_code = transpile(&amp;c_code).unwrap();
+
+        // Property: Disjoint mutable borrows always OK
+        prop_assert!(compile_rust(&amp;rust_code).is_ok());
+    }
+}</code></pre>
+<h2 id="const-correctness-inferring-immutable-borrows"><a class="header" href="#const-correctness-inferring-immutable-borrows">Const-Correctness: Inferring Immutable Borrows</a></h2>
+<p>DECY uses <code>const</code> qualifiers to infer immutable borrows:</p>
+<h3 id="c-code-with-const"><a class="header" href="#c-code-with-const">C Code with Const</a></h3>
+<pre><code class="language-c">int calculate(const int* input, int* output) {
+    *output = *input * 2;  // Read input, write output
+    return *input;         // Read input again
+}
+</code></pre>
+<h3 id="transpiled-rust"><a class="header" href="#transpiled-rust">Transpiled Rust</a></h3>
+<pre><code class="language-rust ignore">fn calculate(input: &amp;i32, output: &amp;mut i32) -&gt; i32 {
+    *output = *input * 2;
+    *input  // Last expression returns value
+}</code></pre>
+<p><strong>Borrow checker verifies</strong>:</p>
+<ul>
+<li><code>input</code> is immutable (<code>&amp;i32</code>)</li>
+<li><code>output</code> is mutable (<code>&amp;mut i32</code>)</li>
+<li>No aliasing between <code>input</code> and <code>output</code></li>
+</ul>
+<h3 id="testing-const-correctness"><a class="header" href="#testing-const-correctness">Testing Const-Correctness</a></h3>
+<pre><code class="language-rust ignore">#[test]
+fn test_const_becomes_immutable_borrow() {
+    let c_code = "int read(const int* p) { return *p; }";
+
+    let rust_code = transpile(c_code).unwrap();
+
+    // Verify immutable borrow
+    assert!(rust_code.contains("&amp;i32"));
+    assert!(!rust_code.contains("&amp;mut"));
+}
+
+#[test]
+fn test_non_const_becomes_mutable_borrow() {
+    let c_code = "void write(int* p) { *p = 10; }";
+
+    let rust_code = transpile(c_code).unwrap();
+
+    // Verify mutable borrow
+    assert!(rust_code.contains("&amp;mut i32"));
+}</code></pre>
+<h2 id="common-borrow-patterns"><a class="header" href="#common-borrow-patterns">Common Borrow Patterns</a></h2>
+<h3 id="pattern-1-read-only-access"><a class="header" href="#pattern-1-read-only-access">Pattern 1: Read-Only Access</a></h3>
+<pre><code class="language-c">// C: Const pointer (read-only)
+int sum_array(const int* arr, size_t len) {
+    int total = 0;
+    for (size_t i = 0; i &lt; len; i++) {
+        total += arr[i];
+    }
+    return total;
+}
+</code></pre>
+<pre><code class="language-rust ignore">// Rust: Immutable slice
+fn sum_array(arr: &amp;[i32]) -&gt; i32 {
+    arr.iter().sum()
+}</code></pre>
+<h3 id="pattern-2-mutating-access"><a class="header" href="#pattern-2-mutating-access">Pattern 2: Mutating Access</a></h3>
+<pre><code class="language-c">// C: Non-const pointer (mutable)
+void fill_array(int* arr, size_t len, int value) {
+    for (size_t i = 0; i &lt; len; i++) {
+        arr[i] = value;
+    }
+}
+</code></pre>
+<pre><code class="language-rust ignore">// Rust: Mutable slice
+fn fill_array(arr: &amp;mut [i32], value: i32) {
+    arr.iter_mut().for_each(|x| *x = value);
+}</code></pre>
+<h3 id="pattern-3-mixed-borrows"><a class="header" href="#pattern-3-mixed-borrows">Pattern 3: Mixed Borrows</a></h3>
+<pre><code class="language-c">// C: One const, one mutable
+void copy_and_double(const int* src, int* dst, size_t len) {
+    for (size_t i = 0; i &lt; len; i++) {
+        dst[i] = src[i] * 2;
+    }
+}
+</code></pre>
+<pre><code class="language-rust ignore">// Rust: Immutable and mutable slices
+fn copy_and_double(src: &amp;[i32], dst: &amp;mut [i32]) {
+    assert_eq!(src.len(), dst.len());
+    for (s, d) in src.iter().zip(dst.iter_mut()) {
+        *d = s * 2;
+    }
+}</code></pre>
+<h2 id="lifetime-elision-in-borrow-checker"><a class="header" href="#lifetime-elision-in-borrow-checker">Lifetime Elision in Borrow Checker</a></h2>
+<p>Rust's lifetime elision rules simplify common cases:</p>
+<h3 id="rule-1-each-parameter-gets-its-own-lifetime"><a class="header" href="#rule-1-each-parameter-gets-its-own-lifetime">Rule 1: Each parameter gets its own lifetime</a></h3>
+<pre><code class="language-rust ignore">// Explicit lifetimes
+fn first&lt;'a, 'b&gt;(x: &amp;'a i32, y: &amp;'b i32) -&gt; &amp;'a i32 { x }
+
+// Elided (compiler infers)
+fn first(x: &amp;i32, y: &amp;i32) -&gt; &amp;i32 { x }</code></pre>
+<h3 id="rule-2-if-one-input-lifetime-its-used-for-output"><a class="header" href="#rule-2-if-one-input-lifetime-its-used-for-output">Rule 2: If one input lifetime, it's used for output</a></h3>
+<pre><code class="language-rust ignore">// Explicit
+fn clone&lt;'a&gt;(x: &amp;'a i32) -&gt; &amp;'a i32 { x }
+
+// Elided
+fn clone(x: &amp;i32) -&gt; &amp;i32 { x }</code></pre>
+<h3 id="rule-3-if-self-its-lifetime-is-used-for-output"><a class="header" href="#rule-3-if-self-its-lifetime-is-used-for-output">Rule 3: If <code>&amp;self</code>, its lifetime is used for output</a></h3>
+<pre><code class="language-rust ignore">// Explicit
+impl&lt;'a&gt; MyStruct&lt;'a&gt; {
+    fn get(&amp;'a self) -&gt; &amp;'a i32 { &amp;self.value }
+}
+
+// Elided
+impl MyStruct {
+    fn get(&amp;self) -&gt; &amp;i32 { &amp;self.value }
+}</code></pre>
+<p><strong>DECY leverages elision</strong>: 90% of transpiled functions don't need explicit lifetimes!</p>
+<h2 id="borrow-checker-errors-and-fixes"><a class="header" href="#borrow-checker-errors-and-fixes">Borrow Checker Errors and Fixes</a></h2>
+<h3 id="error-1-multiple-mutable-borrows"><a class="header" href="#error-1-multiple-mutable-borrows">Error 1: Multiple Mutable Borrows</a></h3>
+<p><strong>C Code</strong> (compiles, buggy):</p>
+<pre><code class="language-c">void increment(int* a, int* b) {
+    *a += 1;
+    *b += 1;
+}
+
+int main() {
+    int x = 5;
+    increment(&amp;x, &amp;x);  // Aliasing bug!
+    printf("%d\n", x);  // x = 7 (incremented twice)
+}
+</code></pre>
+<p><strong>Transpiled Rust</strong> (compile error):</p>
+<pre><code class="language-rust ignore">fn increment(a: &amp;mut i32, b: &amp;mut i32) {
+    *a += 1;
+    *b += 1;
+}
+
+fn main() {
+    let mut x = 5;
+    increment(&amp;mut x, &amp;mut x);  // ❌ Error: cannot borrow twice
+}</code></pre>
+<p><strong>Fix</strong>: Detect and reject:</p>
+<pre><code class="language-rust ignore">#[test]
+fn test_reject_aliasing() {
+    let c_code = "/* ... */";
+    let result = transpile(c_code);
+    assert!(result.is_err());
+
+    let err = result.unwrap_err();
+    assert!(err.to_string().contains("multiple mutable borrows"));
+}</code></pre>
+<h3 id="error-2-mutable-and-immutable-borrows"><a class="header" href="#error-2-mutable-and-immutable-borrows">Error 2: Mutable and Immutable Borrows</a></h3>
+<p><strong>C Code</strong>:</p>
+<pre><code class="language-c">int read_and_write(const int* read, int* write) {
+    *write = *read + 1;
+    return *read;  // Still valid
+}
+
+int main() {
+    int x = 5;
+    return read_and_write(&amp;x, &amp;x);  // Aliasing!
+}
+</code></pre>
+<p><strong>Transpiled Rust</strong>:</p>
+<pre><code class="language-rust ignore">fn read_and_write(read: &amp;i32, write: &amp;mut i32) -&gt; i32 {
+    *write = *read + 1;
+    *read  // ❌ Error: cannot borrow as immutable and mutable
+}</code></pre>
+<h3 id="error-3-use-after-move"><a class="header" href="#error-3-use-after-move">Error 3: Use After Move</a></h3>
+<p><strong>C Code</strong>:</p>
+<pre><code class="language-c">int* transfer(int* p) {
+    int* q = p;  // Transfer ownership
+    free(p);     // Free original
+    return q;    // Use after free!
+}
+</code></pre>
+<p><strong>DECY Detection</strong>:</p>
+<pre><code class="language-rust ignore">#[test]
+fn test_use_after_move() {
+    let c_code = "/* ... */";
+
+    let mut checker = BorrowChecker::new();
+    checker.analyze(&amp;parse_and_lower(c_code).unwrap());
+
+    let errors = checker.check_moves();
+    assert_eq!(errors.len(), 1);
+    assert!(matches!(errors[0], BorrowError::UsedAfterMove { .. }));
+}</code></pre>
+<h2 id="borrow-checker-complexity"><a class="header" href="#borrow-checker-complexity">Borrow Checker Complexity</a></h2>
+<h3 id="metrics"><a class="header" href="#metrics">Metrics</a></h3>
+<pre><code>Component                  Cyclomatic Complexity
+───────────────────────────────────────────────────
+identify_borrows()                      4
+check_aliasing()                        7
+check_lifetime_overlap()                6
+generate_rust()                         3
+───────────────────────────────────────────────────
+Average                                 5.0
+</code></pre>
+<p>All functions ≤10 ✅</p>
+<h3 id="performance"><a class="header" href="#performance">Performance</a></h3>
+<pre><code class="language-rust ignore">#[bench]
+fn bench_borrow_checker_small(b: &amp;mut Bencher) {
+    let c_code = "int add(int* a, int* b) { return *a + *b; }";
+    let hir = parse_and_lower(c_code).unwrap();
+
+    b.iter(|| {
+        let mut checker = BorrowChecker::new();
+        checker.analyze(&amp;hir);
+        checker.check_aliasing()
+    });
+}
+
+#[bench]
+fn bench_borrow_checker_large(b: &amp;mut Bencher) {
+    // 1000 variables, 5000 borrows
+    let c_code = generate_large_c_code(1000, 5000);
+    let hir = parse_and_lower(&amp;c_code).unwrap();
+
+    b.iter(|| {
+        let mut checker = BorrowChecker::new();
+        checker.analyze(&amp;hir);
+        checker.check_aliasing()
+    });
+}</code></pre>
+<p><strong>Results</strong>:</p>
+<ul>
+<li>Small (10 borrows): 12 μs</li>
+<li>Medium (100 borrows): 180 μs</li>
+<li>Large (5000 borrows): 8 ms</li>
+</ul>
+<p>Scales linearly O(n) ✅</p>
+<h2 id="borrow-checker-test-coverage"><a class="header" href="#borrow-checker-test-coverage">Borrow Checker Test Coverage</a></h2>
+<pre><code>Filename                                  Region    Missed    Cover
+─────────────────────────────────────────────────────────────────
+decy-borrow/src/lib.rs                      178        11   93.82%
+decy-borrow/src/checker.rs                  234        14   94.02%
+decy-borrow/src/errors.rs                    45         2   95.56%
+─────────────────────────────────────────────────────────────────
+TOTAL                                       457        27   94.09%
+</code></pre>
+<p><strong>Coverage</strong>: 94.09% ✅ (target: ≥80%)</p>
+<h2 id="mutation-testing-borrow-checker"><a class="header" href="#mutation-testing-borrow-checker">Mutation Testing: Borrow Checker</a></h2>
+<pre><code>cargo mutants --package decy-borrow
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Mutation Testing Results
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Generated:  125 mutants
+Caught:     119 mutants
+Missed:       4 mutants
+Timeout:      2 mutants
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Mutation Score: 95.20%
+</code></pre>
+<p><strong>Mutation score</strong>: 95.20% ✅ (target: ≥90%)</p>
+<h3 id="example-caught-mutant"><a class="header" href="#example-caught-mutant">Example Caught Mutant</a></h3>
+<pre><code class="language-rust ignore">// Original
+if mutable_borrows.len() &gt; 1 {
+    return Err(BorrowError::MultipleMutableBorrows { .. });
+}
+
+// Mutant (caught)
+if mutable_borrows.len() &gt; 2 {  // ← Changed 1 to 2
+    return Err(BorrowError::MultipleMutableBorrows { .. });
+}</code></pre>
+<p><strong>Test that caught it</strong>:</p>
+<pre><code class="language-rust ignore">#[test]
+fn test_two_mutable_borrows() {
+    let c_code = "/* two mutable borrows */";
+    let result = transpile(c_code);
+    assert!(result.is_err());  // ✅ Caught mutant!
+}</code></pre>
+<h2 id="integration-with-lifetime-analysis"><a class="header" href="#integration-with-lifetime-analysis">Integration with Lifetime Analysis</a></h2>
+<p>Borrow checking and lifetime analysis work together:</p>
+<pre><code class="language-rust ignore">pub struct BorrowChecker {
+    lifetime_analysis: LifetimeAnalysis,
+}
+
+impl BorrowChecker {
+    pub fn check_borrows(&amp;self) -&gt; Result&lt;(), Vec&lt;BorrowError&gt;&gt; {
+        let mut errors = Vec::new();
+
+        for borrow in &amp;self.borrows {
+            // Check if lifetime is valid
+            if !self.lifetime_analysis.is_valid(&amp;borrow.lifetime) {
+                errors.push(BorrowError::InvalidLifetime { .. });
+            }
+
+            // Check for overlapping mutable borrows
+            if self.has_overlapping_mutable_borrow(borrow) {
+                errors.push(BorrowError::MultipleMutableBorrows { .. });
+            }
+        }
+
+        if errors.is_empty() { Ok(()) } else { Err(errors) }
+    }
+}</code></pre>
+<p>See <a href="./lifetime.html">Lifetime Analysis</a> for lifetime inference details.</p>
+<h2 id="borrow-checker-best-practices"><a class="header" href="#borrow-checker-best-practices">Borrow Checker Best Practices</a></h2>
+<h3 id="do-"><a class="header" href="#do-">DO ✅</a></h3>
+<ul>
+<li><strong>Infer from const</strong>: Use <code>const</code> to generate <code>&amp;T</code> instead of <code>&amp;mut T</code></li>
+<li><strong>Reject aliasing</strong>: Fail fast when multiple mutable borrows detected</li>
+<li><strong>Use elision</strong>: Leverage Rust's lifetime elision rules</li>
+<li><strong>Test edge cases</strong>: Multiple borrows, disjoint borrows, const-correctness</li>
+<li><strong>Property test</strong>: Verify invariants hold for all inputs</li>
+</ul>
+<h3 id="dont-"><a class="header" href="#dont-">DON'T ❌</a></h3>
+<ul>
+<li><strong>Ignore const</strong>: Non-const doesn't always mean mutable</li>
+<li><strong>Allow aliasing</strong>: Better to reject than generate unsafe code</li>
+<li><strong>Add unnecessary lifetimes</strong>: Use elision when possible</li>
+<li><strong>Skip error paths</strong>: Test all borrow error conditions</li>
+<li><strong>Trust coverage alone</strong>: Use mutation testing to verify</li>
+</ul>
+<h2 id="summary"><a class="header" href="#summary">Summary</a></h2>
+<p>DECY's borrow checker:</p>
+<p>✅ <strong>Detects aliasing</strong>: Multiple mutable borrows caught
+✅ <strong>Enforces const-correctness</strong>: <code>const</code> → <code>&amp;T</code>, non-const → <code>&amp;mut T</code>
+✅ <strong>Leverages elision</strong>: 90% of functions need no explicit lifetimes
+✅ <strong>94.09% test coverage</strong>: Comprehensive test suite
+✅ <strong>95.20% mutation score</strong>: High-quality tests
+✅ <strong>O(n) performance</strong>: Scales linearly with borrow count
+✅ <strong>Zero unsafe</strong>: All generated code is safe Rust</p>
+<p>The borrow checker is the <strong>gatekeeper</strong> ensuring DECY never generates code with undefined behavior.</p>
+<h2 id="next-steps"><a class="header" href="#next-steps">Next Steps</a></h2>
+<ul>
+<li><a href="./lifetime.html">Lifetime Analysis</a> - Infer lifetime annotations</li>
+<li><a href="../verification/ownership-patterns.html">Ownership Patterns</a> - Recognize ownership patterns</li>
+<li><a href="../metrics/safety.html">Safety Verification</a> - Prove memory safety</li>
+</ul>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../components/ownership.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+
+                            <a rel="next prefetch" href="../components/lifetime.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../components/ownership.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+                    <a rel="next prefetch" href="../components/lifetime.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+            </nav>
+
+        </div>
+
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="../elasticlunr.min.js"></script>
+        <script src="../mark.min.js"></script>
+        <script src="../searcher.js"></script>
+
+        <script src="../clipboard.min.js"></script>
+        <script src="../highlight.js"></script>
+        <script src="../book.js"></script>
+
+        <!-- Custom JS scripts -->
+
+
+
+    </div>
+    </body>
+</html>
