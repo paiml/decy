@@ -115,14 +115,18 @@ else
 fi
 echo ""
 
-# 8. Validate Documentation Links
+# 8. Validate Documentation Links (using PMAT)
 echo "🔗 Validating documentation links..."
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-if "$SCRIPT_DIR/validate-docs.sh"; then
-    echo -e "${GREEN}✅ Documentation links valid${NC}"
+if command -v pmat &> /dev/null; then
+    if pmat validate-docs --fail-on-error --quiet; then
+        echo -e "${GREEN}✅ Documentation links valid${NC}"
+    else
+        echo -e "${RED}❌ Broken documentation links found${NC}"
+        FAILED=1
+    fi
 else
-    echo -e "${RED}❌ Broken documentation links found${NC}"
-    FAILED=1
+    echo -e "${YELLOW}⚠️  pmat not installed, skipping link validation${NC}"
+    echo "Install with: cargo install pmat"
 fi
 echo ""
 
