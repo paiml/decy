@@ -29,7 +29,7 @@
 #![warn(clippy::all)]
 #![deny(unsafe_code)]
 
-use decy_hir::{HirExpression, HirFunction, HirStatement, HirType};
+use decy_hir::{BinaryOperator, HirExpression, HirFunction, HirStatement, HirType};
 
 /// Code generator for converting HIR to Rust source code.
 #[derive(Debug, Clone)]
@@ -80,6 +80,43 @@ impl CodeGenerator {
         match expr {
             HirExpression::IntLiteral(val) => val.to_string(),
             HirExpression::Variable(name) => name.clone(),
+            HirExpression::BinaryOp { op, left, right } => {
+                let left_code = self.generate_expression(left);
+                let right_code = self.generate_expression(right);
+                let op_str = Self::binary_operator_to_string(op);
+
+                // Add parentheses for nested binary operations
+                let left_str = if matches!(**left, HirExpression::BinaryOp { .. }) {
+                    format!("({})", left_code)
+                } else {
+                    left_code
+                };
+
+                let right_str = if matches!(**right, HirExpression::BinaryOp { .. }) {
+                    format!("({})", right_code)
+                } else {
+                    right_code
+                };
+
+                format!("{} {} {}", left_str, op_str, right_str)
+            }
+        }
+    }
+
+    /// Convert binary operator to string.
+    fn binary_operator_to_string(op: &BinaryOperator) -> &'static str {
+        match op {
+            BinaryOperator::Add => "+",
+            BinaryOperator::Subtract => "-",
+            BinaryOperator::Multiply => "*",
+            BinaryOperator::Divide => "/",
+            BinaryOperator::Modulo => "%",
+            BinaryOperator::Equal => "==",
+            BinaryOperator::NotEqual => "!=",
+            BinaryOperator::LessThan => "<",
+            BinaryOperator::GreaterThan => ">",
+            BinaryOperator::LessEqual => "<=",
+            BinaryOperator::GreaterEqual => ">=",
         }
     }
 
