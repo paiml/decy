@@ -191,3 +191,7 @@ impl HirFunction {
 #[cfg(test)]
 #[path = "hir_tests.rs"]
 mod hir_tests;
+
+#[cfg(test)]
+#[path = "property_tests.rs"]
+mod property_tests;

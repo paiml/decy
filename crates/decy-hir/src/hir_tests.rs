@@ -135,4 +135,96 @@ mod tests {
             panic!("Expected pointer type");
         }
     }
+
+    #[test]
+    fn test_hir_type_equality() {
+        // Test type equality
+        assert_eq!(HirType::Void, HirType::Void);
+        assert_eq!(HirType::Int, HirType::Int);
+        assert_ne!(HirType::Int, HirType::Float);
+
+        // Test pointer equality
+        let ptr1 = HirType::Pointer(Box::new(HirType::Int));
+        let ptr2 = HirType::Pointer(Box::new(HirType::Int));
+        assert_eq!(ptr1, ptr2);
+    }
+
+    #[test]
+    fn test_hir_parameter_from_ast() {
+        use decy_parser::parser::{Type, Parameter};
+
+        let ast_param = Parameter::new("x".to_string(), Type::Float);
+        let hir_param = HirParameter::from_ast_parameter(&ast_param);
+
+        assert_eq!(hir_param.name(), "x");
+        assert_eq!(hir_param.param_type(), &HirType::Float);
+    }
+
+    #[test]
+    fn test_hir_function_with_complex_params() {
+        let params = vec![
+            HirParameter::new("a".to_string(), HirType::Int),
+            HirParameter::new("b".to_string(), HirType::Float),
+            HirParameter::new("c".to_string(), HirType::Pointer(Box::new(HirType::Char))),
+        ];
+
+        let func = HirFunction::new("complex".to_string(), HirType::Void, params);
+
+        assert_eq!(func.name(), "complex");
+        assert_eq!(func.return_type(), &HirType::Void);
+        assert_eq!(func.parameters().len(), 3);
+        assert_eq!(func.parameters()[0].param_type(), &HirType::Int);
+        assert_eq!(func.parameters()[1].param_type(), &HirType::Float);
+
+        if let HirType::Pointer(inner) = func.parameters()[2].param_type() {
+            assert_eq!(**inner, HirType::Char);
+        } else {
+            panic!("Expected pointer type");
+        }
+    }
+
+    #[test]
+    fn test_nested_pointer_conversion() {
+        use decy_parser::parser::Type;
+
+        // Test double pointer: int**
+        let ast_double_ptr = Type::Pointer(Box::new(Type::Pointer(Box::new(Type::Int))));
+        let hir_double_ptr = HirType::from_ast_type(&ast_double_ptr);
+
+        if let HirType::Pointer(outer) = hir_double_ptr {
+            if let HirType::Pointer(inner) = *outer {
+                assert_eq!(*inner, HirType::Int);
+            } else {
+                panic!("Expected nested pointer");
+            }
+        } else {
+            panic!("Expected pointer type");
+        }
+    }
+
+    #[test]
+    fn test_ast_to_hir_with_multiple_param_types() {
+        use decy_parser::parser::{Function, Type, Parameter};
+
+        let ast_func = Function::new(
+            "multi".to_string(),
+            Type::Double,
+            vec![
+                Parameter::new("i".to_string(), Type::Int),
+                Parameter::new("f".to_string(), Type::Float),
+                Parameter::new("d".to_string(), Type::Double),
+                Parameter::new("c".to_string(), Type::Char),
+            ],
+        );
+
+        let hir_func = HirFunction::from_ast_function(&ast_func);
+
+        assert_eq!(hir_func.name(), "multi");
+        assert_eq!(hir_func.return_type(), &HirType::Double);
+        assert_eq!(hir_func.parameters().len(), 4);
+        assert_eq!(hir_func.parameters()[0].param_type(), &HirType::Int);
+        assert_eq!(hir_func.parameters()[1].param_type(), &HirType::Float);
+        assert_eq!(hir_func.parameters()[2].param_type(), &HirType::Double);
+        assert_eq!(hir_func.parameters()[3].param_type(), &HirType::Char);
+    }
 }
