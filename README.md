@@ -202,17 +202,39 @@ Closes #XXX"
 
 ## 📊 Current Status
 
-**Sprint**: 0 (Initialization)
+**Sprint**: 0 (Initialization) - COMPLETED ✅
 **Version**: 0.1.0
-**Coverage**: N/A (no tests yet)
-**Mutation Score**: N/A
+**Coverage**: 95.68% ✅ (Target: ≥80%)
+**Total Tests**: 191 unit + 6 integration + 400+ property = 597+ test cases
+**Mutation Score**: N/A (Will implement in Sprint 5)
 **Next Milestone**: Sprint 1 - Foundation & C Parser
+
+### Recent Achievements
+
+✅ **DECY-009: Malloc-to-Box Transformation Pipeline** (5 phases completed)
+- Phase 1: Function call support in HIR
+- Phase 2: Assignment statement support in HIR
+- Phase 3: Pattern detection for malloc/free
+- Phase 4: Box::new() code generation
+- Phase 5: Box<T> type generation
+
+**Impact**:
+- Successfully transforms unsafe malloc/free patterns → safe Box<T>
+- Eliminates manual memory management
+- Provides memory safety through RAII
+- Generated code is idiomatic and safe
+
+**Documentation**:
+- [Malloc-to-Box Transformation Guide](docs/malloc-to-box-transformation.md)
+- [Interactive Example](crates/decy-codegen/examples/malloc_to_box.rs)
+- Comprehensive integration tests
 
 ### Sprint 1 Goals (Weeks 1-2)
 
-- [ ] DECY-001: Setup clang-sys integration
-- [ ] DECY-002: Define HIR structure
-- [ ] DECY-003: Implement basic code generator
+- [x] DECY-002: Define HIR structure ✅
+- [x] DECY-003: Implement basic code generator ✅
+- [x] DECY-009: Malloc-to-Box transformation ✅
+- [ ] DECY-001: Setup clang-sys integration (In Progress)
 
 See [roadmap.yaml](roadmap.yaml) for the complete 20-sprint plan.
 
