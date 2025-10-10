@@ -286,7 +286,7 @@ fn test_function_parameters_not_tracked_in_tree() {
 
     // Parameters are part of function scope but not explicitly tracked as variables
     // in the scope tree (they have function-level lifetime by default)
-    assert!(scope_tree.scopes().len() >= 1);
+    assert!(!scope_tree.scopes().is_empty());
 }
 
 #[test]
@@ -405,7 +405,10 @@ fn test_complex_scope_analysis() {
     let relationships = analyzer.infer_lifetime_relationships(&lifetimes, &scope_tree);
 
     // Should successfully analyze complex nested structure
-    assert!(scope_tree.scopes().len() >= 4, "Should have multiple scopes");
+    assert!(
+        scope_tree.scopes().len() >= 4,
+        "Should have multiple scopes"
+    );
     assert!(lifetimes.len() >= 3, "Should track multiple variables");
     assert!(!relationships.is_empty(), "Should infer relationships");
 

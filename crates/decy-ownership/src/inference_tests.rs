@@ -93,9 +93,7 @@ fn test_detect_mutation() {
         )],
         vec![HirStatement::Assignment {
             target: "x".to_string(),
-            value: HirExpression::Dereference(Box::new(HirExpression::Variable(
-                "ptr".to_string(),
-            ))),
+            value: HirExpression::Dereference(Box::new(HirExpression::Variable("ptr".to_string()))),
         }],
     );
 
@@ -178,7 +176,10 @@ fn test_function_parameter_ownership() {
         "process".to_string(),
         HirType::Void,
         vec![
-            HirParameter::new("input".to_string(), HirType::Pointer(Box::new(HirType::Int))),
+            HirParameter::new(
+                "input".to_string(),
+                HirType::Pointer(Box::new(HirType::Int)),
+            ),
             HirParameter::new(
                 "output".to_string(),
                 HirType::Pointer(Box::new(HirType::Int)),
@@ -252,7 +253,11 @@ fn test_empty_function_inferences() {
     let inferencer = OwnershipInferencer::new();
     let inferences = inferencer.infer(&graph);
 
-    assert_eq!(inferences.len(), 0, "Empty function should have no inferences");
+    assert_eq!(
+        inferences.len(),
+        0,
+        "Empty function should have no inferences"
+    );
 }
 
 #[test]

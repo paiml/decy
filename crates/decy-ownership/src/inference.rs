@@ -9,7 +9,7 @@ use std::collections::HashMap;
 /// Ownership classification for a pointer.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum OwnershipKind {
-    /// Owns the data (Box<T>, Vec<T>, or owned value)
+    /// Owns the data (`Box<T>`, `Vec<T>`, or owned value)
     Owning,
     /// Immutable borrow (&T)
     ImmutableBorrow,
@@ -69,11 +69,7 @@ impl OwnershipInferencer {
     }
 
     /// Classify a single pointer's ownership.
-    fn classify_pointer(
-        &self,
-        var_name: &str,
-        graph: &DataflowGraph,
-    ) -> OwnershipKind {
+    fn classify_pointer(&self, var_name: &str, graph: &DataflowGraph) -> OwnershipKind {
         use crate::dataflow::NodeKind;
 
         // Get nodes for this variable
@@ -140,7 +136,12 @@ impl OwnershipInferencer {
     }
 
     /// Calculate confidence score for an inference.
-    fn calculate_confidence(&self, kind: &OwnershipKind, _graph: &DataflowGraph, _var_name: &str) -> f32 {
+    fn calculate_confidence(
+        &self,
+        kind: &OwnershipKind,
+        _graph: &DataflowGraph,
+        _var_name: &str,
+    ) -> f32 {
         match kind {
             OwnershipKind::Owning => {
                 // High confidence for malloc allocations
@@ -158,7 +159,12 @@ impl OwnershipInferencer {
     }
 
     /// Generate human-readable reasoning for an inference.
-    fn generate_reasoning(&self, var_name: &str, kind: &OwnershipKind, graph: &DataflowGraph) -> String {
+    fn generate_reasoning(
+        &self,
+        var_name: &str,
+        kind: &OwnershipKind,
+        graph: &DataflowGraph,
+    ) -> String {
         use crate::dataflow::NodeKind;
 
         let nodes = match graph.nodes_for(var_name) {

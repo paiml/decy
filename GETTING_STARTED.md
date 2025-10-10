@@ -544,7 +544,7 @@ mdbook serve  # View at http://localhost:3000
 ## 🎓 Learning Resources
 
 ### **EXTREME TDD**
-- Read: [Test-Driven Development by Kent Beck](https://www.amazon.com/Test-Driven-Development-Kent-Beck/dp/0321146530)
+- Read: [Test-Driven Development by Kent Beck](https://www.goodreads.com/book/show/387190.Test_Driven_Development)
 - Practice: Write tests BEFORE implementation (always)
 
 ### **Property-Based Testing**

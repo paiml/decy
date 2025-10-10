@@ -25,7 +25,7 @@ pub enum NodeKind {
     /// Assignment from another variable
     Assignment {
         /// Source variable name
-        source: String
+        source: String,
     },
     /// Dereference operation
     Dereference,
@@ -112,7 +112,9 @@ impl DataflowAnalyzer {
                     def_index: 0,
                     kind: NodeKind::Parameter,
                 };
-                graph.nodes.entry(param.name().to_string())
+                graph
+                    .nodes
+                    .entry(param.name().to_string())
                     .or_default()
                     .push(node);
             }
@@ -144,7 +146,9 @@ impl DataflowAnalyzer {
 
                         // Add dependencies if assignment from variable
                         if let NodeKind::Assignment { ref source } = kind {
-                            graph.dependencies.entry(name.clone())
+                            graph
+                                .dependencies
+                                .entry(name.clone())
                                 .or_default()
                                 .insert(source.clone());
                         }
@@ -154,9 +158,7 @@ impl DataflowAnalyzer {
                             def_index: index,
                             kind,
                         };
-                        graph.nodes.entry(name.clone())
-                            .or_default()
-                            .push(node);
+                        graph.nodes.entry(name.clone()).or_default().push(node);
                     }
                 }
             }
@@ -164,7 +166,11 @@ impl DataflowAnalyzer {
                 // Track uses of pointers in the value expression
                 self.track_expression_uses(value, graph, index);
             }
-            HirStatement::If { condition, then_block, else_block } => {
+            HirStatement::If {
+                condition,
+                then_block,
+                else_block,
+            } => {
                 self.track_expression_uses(condition, graph, index);
                 for s in then_block {
                     self.track_statement(s, graph, index);
@@ -198,11 +204,13 @@ impl DataflowAnalyzer {
             HirExpression::FunctionCall { function, .. } if function == "malloc" => {
                 NodeKind::Allocation
             }
-            HirExpression::Variable(var_name) => {
-                NodeKind::Assignment { source: var_name.clone() }
-            }
+            HirExpression::Variable(var_name) => NodeKind::Assignment {
+                source: var_name.clone(),
+            },
             HirExpression::Dereference(_) => NodeKind::Dereference,
-            _ => NodeKind::Assignment { source: "unknown".to_string() },
+            _ => NodeKind::Assignment {
+                source: "unknown".to_string(),
+            },
         }
     }
 

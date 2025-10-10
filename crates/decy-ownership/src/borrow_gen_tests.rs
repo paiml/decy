@@ -132,17 +132,11 @@ fn test_borrow_checker_validation() {
     // Both should be immutable references
     assert!(matches!(
         transformed1,
-        HirType::Reference {
-            mutable: false,
-            ..
-        }
+        HirType::Reference { mutable: false, .. }
     ));
     assert!(matches!(
         transformed2,
-        HirType::Reference {
-            mutable: false,
-            ..
-        }
+        HirType::Reference { mutable: false, .. }
     ));
 }
 
@@ -247,7 +241,8 @@ fn test_non_pointer_type_unchanged() {
     let transformed = generator.transform_type(&int_type, "x", &inferences);
 
     assert_eq!(
-        transformed, HirType::Int,
+        transformed,
+        HirType::Int,
         "Non-pointer types should remain unchanged"
     );
 }

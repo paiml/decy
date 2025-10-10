@@ -215,9 +215,10 @@ impl LifetimeAnnotator {
         } = signature.return_type
         {
             // Verify that this lifetime appears in parameters
-            let param_has_lifetime = signature.parameters.iter().any(|param| {
-                self.type_has_lifetime(&param.param_type, &ret_lifetime.name)
-            });
+            let param_has_lifetime = signature
+                .parameters
+                .iter()
+                .any(|param| self.type_has_lifetime(&param.param_type, &ret_lifetime.name));
 
             if !param_has_lifetime && !signature.lifetimes.contains(ret_lifetime) {
                 return Err(format!(
