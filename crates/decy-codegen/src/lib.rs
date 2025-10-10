@@ -157,9 +157,35 @@ impl CodeGenerator {
                     "return;".to_string()
                 }
             }
-            HirStatement::If { .. } => {
-                // RED PHASE: Placeholder - will implement in GREEN phase
-                unimplemented!("If statement generation not yet implemented")
+            HirStatement::If {
+                condition,
+                then_block,
+                else_block,
+            } => {
+                let mut code = String::new();
+
+                // Generate if condition
+                code.push_str(&format!("if {} {{\n", self.generate_expression(condition)));
+
+                // Generate then block
+                for stmt in then_block {
+                    code.push_str("    ");
+                    code.push_str(&self.generate_statement(stmt));
+                    code.push('\n');
+                }
+
+                // Generate else block if present
+                if let Some(else_stmts) = else_block {
+                    code.push_str("} else {\n");
+                    for stmt in else_stmts {
+                        code.push_str("    ");
+                        code.push_str(&self.generate_statement(stmt));
+                        code.push('\n');
+                    }
+                }
+
+                code.push('}');
+                code
             }
         }
     }
