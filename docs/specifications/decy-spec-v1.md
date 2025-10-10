@@ -688,9 +688,590 @@ proptest! {
 
 ---
 
-## 9. Book-Based Verification (Inspired by depyler)
+## 9. Test Generation (EXTREME TDD Output)
 
-### 9.1 mdBook Structure
+### 9.1 Test Generation Philosophy
+
+**Core Principle**: Every transpiled Rust function must come with a comprehensive test suite that matches or exceeds the rigor of the DECY transpiler itself.
+
+**Output for Each C Function**:
+1. **Rust Code**: The transpiled function
+2. **Unit Tests**: Function-level correctness tests
+3. **Property Tests**: Randomized edge case discovery
+4. **Mutation Tests**: Test quality verification
+5. **Doc Tests**: Example usage in documentation
+
+### 9.2 Generated Test Types
+
+#### Unit Tests
+
+For each transpiled function, generate:
+
+```rust
+// Generated from: dictobject.c::PyDict_GetItem
+pub fn py_dict_get_item(op: &PyObject, key: &PyObject) -> Option<&PyObject> {
+    // ... transpiled implementation
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_py_dict_get_item_valid_key() {
+        let dict = create_test_dict();
+        let key = create_test_key("foo");
+        let result = py_dict_get_item(&dict, &key);
+        assert!(result.is_some());
+    }
+
+    #[test]
+    fn test_py_dict_get_item_missing_key() {
+        let dict = create_test_dict();
+        let key = create_test_key("nonexistent");
+        let result = py_dict_get_item(&dict, &key);
+        assert!(result.is_none());
+    }
+
+    #[test]
+    fn test_py_dict_get_item_null_dict() {
+        let key = create_test_key("foo");
+        // Should handle gracefully
+        // Test based on C function behavior
+    }
+
+    #[test]
+    fn test_py_dict_get_item_null_key() {
+        let dict = create_test_dict();
+        // Should handle gracefully
+        // Test based on C function behavior
+    }
+}
+```
+
+**Generation Rules**:
+- **Minimum 3 tests per function**: happy path, error case, edge case
+- **Test names follow convention**: `test_<function>_<scenario>`
+- **Cover all branches**: Based on C function control flow analysis
+- **Handle error cases**: Based on C NULL checks, error returns
+
+#### Property Tests
+
+Generate property-based tests for invariants:
+
+```rust
+#[cfg(test)]
+mod property_tests {
+    use super::*;
+    use proptest::prelude::*;
+
+    proptest! {
+        #[test]
+        fn prop_dict_get_deterministic(
+            dict in arb_py_dict(),
+            key in arb_py_object()
+        ) {
+            let result1 = py_dict_get_item(&dict, &key);
+            let result2 = py_dict_get_item(&dict, &key);
+            prop_assert_eq!(result1, result2);
+        }
+
+        #[test]
+        fn prop_dict_get_never_panics(
+            dict in arb_py_dict(),
+            key in arb_py_object()
+        ) {
+            // Should never panic, even with invalid inputs
+            let _ = py_dict_get_item(&dict, &key);
+        }
+
+        #[test]
+        fn prop_dict_behavior_matches_c(
+            dict in arb_py_dict(),
+            key in arb_py_object()
+        ) {
+            let rust_result = py_dict_get_item(&dict, &key);
+            let c_result = call_original_c_function(&dict, &key);
+            prop_assert_eq!(rust_result, c_result);
+        }
+    }
+}
+```
+
+**Property Generation**:
+- **Determinism**: Same inputs → same outputs
+- **No panics**: Handles all inputs gracefully
+- **Behavior equivalence**: Matches original C function
+- **Memory safety**: No use-after-free, no leaks
+- **Minimum 5 properties per function**
+
+#### Mutation Tests
+
+Generate mutation test configuration:
+
+```toml
+# Generated mutants.toml for transpiled code
+[[mutant]]
+function = "py_dict_get_item"
+mutations = [
+    "replace_return_none_with_some",
+    "flip_boolean_conditions",
+    "replace_arithmetic_operators",
+    "remove_bounds_checks",
+]
+expected_kill_rate = 0.95  # 95%+ required
+```
+
+**Mutation Testing Goals**:
+- **Target**: ≥90% mutation kill rate on generated tests
+- **Focus areas**: Boundary conditions, error handling, null checks
+- **Auto-run**: CI/CD runs mutation tests on generated code
+
+#### Doc Tests
+
+Generate documentation with testable examples:
+
+```rust
+/// Retrieves an item from a Python dictionary.
+///
+/// # Examples
+///
+/// ```
+/// use cpython_rust::PyDict;
+///
+/// let dict = PyDict::new();
+/// dict.set_item("key", 42);
+///
+/// let value = py_dict_get_item(&dict, "key");
+/// assert_eq!(value, Some(42));
+/// ```
+///
+/// # Safety
+///
+/// This function is safe because:
+/// - All pointers converted to safe Rust references
+/// - Returns `Option` instead of null
+/// - No manual memory management required
+///
+/// # C Function Origin
+///
+/// Transpiled from `Objects/dictobject.c::PyDict_GetItem`
+///
+/// Original C signature:
+/// ```c
+/// PyObject *PyDict_GetItem(PyObject *op, PyObject *key);
+/// ```
+pub fn py_dict_get_item(op: &PyObject, key: &PyObject) -> Option<&PyObject> {
+    // ...
+}
+```
+
+**Doc Test Requirements**:
+- **Every public function has example**: Demonstrates basic usage
+- **Examples compile and run**: Via `cargo test --doc`
+- **Safety documentation**: Explains why safe (no unsafe blocks)
+- **C origin documented**: Links to original C file and function
+
+### 9.3 Test Generator Architecture
+
+```rust
+// decy-codegen/src/test_generator.rs
+
+pub struct TestGenerator {
+    config: TestGenConfig,
+}
+
+pub struct TestGenConfig {
+    pub unit_tests_per_function: usize,        // Default: 5
+    pub property_tests_per_function: usize,    // Default: 5
+    pub property_test_cases: usize,            // Default: 1000
+    pub generate_doc_tests: bool,              // Default: true
+    pub generate_mutation_config: bool,        // Default: true
+    pub behavior_equivalence_tests: bool,      // Default: true (if C available)
+}
+
+impl TestGenerator {
+    pub fn generate_tests(&self, hir_func: &HirFunction, c_func: &CFunction) -> GeneratedTests {
+        let mut tests = GeneratedTests::new();
+
+        // 1. Generate unit tests
+        tests.unit_tests = self.generate_unit_tests(hir_func, c_func);
+
+        // 2. Generate property tests
+        tests.property_tests = self.generate_property_tests(hir_func);
+
+        // 3. Generate doc tests
+        tests.doc_tests = self.generate_doc_tests(hir_func, c_func);
+
+        // 4. Generate mutation test config
+        tests.mutation_config = self.generate_mutation_config(hir_func);
+
+        // 5. Generate behavior equivalence tests (if C available)
+        if self.config.behavior_equivalence_tests {
+            tests.equivalence_tests = self.generate_equivalence_tests(hir_func, c_func);
+        }
+
+        tests
+    }
+
+    fn generate_unit_tests(&self, hir_func: &HirFunction, c_func: &CFunction) -> Vec<String> {
+        let mut tests = Vec::new();
+
+        // Analyze C function to determine test scenarios
+        let scenarios = self.analyze_test_scenarios(c_func);
+
+        for scenario in scenarios {
+            let test = match scenario {
+                TestScenario::HappyPath => self.gen_happy_path_test(hir_func),
+                TestScenario::NullInput(param) => self.gen_null_input_test(hir_func, param),
+                TestScenario::BoundaryCondition(param, bound) =>
+                    self.gen_boundary_test(hir_func, param, bound),
+                TestScenario::ErrorReturn(err) => self.gen_error_return_test(hir_func, err),
+            };
+            tests.push(test);
+        }
+
+        tests
+    }
+
+    fn analyze_test_scenarios(&self, c_func: &CFunction) -> Vec<TestScenario> {
+        let mut scenarios = vec![TestScenario::HappyPath];
+
+        // Analyze C function for NULL checks
+        for param in &c_func.parameters {
+            if param.is_pointer() {
+                scenarios.push(TestScenario::NullInput(param.name.clone()));
+            }
+        }
+
+        // Analyze for boundary conditions
+        for stmt in &c_func.body {
+            if let Some(bounds) = self.extract_boundary_conditions(stmt) {
+                scenarios.extend(bounds);
+            }
+        }
+
+        // Analyze for error returns
+        if let Some(error_paths) = self.analyze_error_returns(c_func) {
+            scenarios.extend(error_paths);
+        }
+
+        scenarios
+    }
+
+    fn generate_property_tests(&self, hir_func: &HirFunction) -> Vec<String> {
+        vec![
+            self.gen_determinism_property(hir_func),
+            self.gen_no_panic_property(hir_func),
+            self.gen_input_validation_property(hir_func),
+            self.gen_output_invariants_property(hir_func),
+            self.gen_idempotence_property(hir_func),
+        ]
+    }
+
+    fn gen_determinism_property(&self, hir_func: &HirFunction) -> String {
+        format!(
+            r#"
+            proptest! {{
+                #[test]
+                fn prop_{}_deterministic(inputs in arb_inputs()) {{
+                    let result1 = {}(inputs.clone());
+                    let result2 = {}(inputs);
+                    prop_assert_eq!(result1, result2);
+                }}
+            }}
+            "#,
+            hir_func.name(),
+            hir_func.name(),
+            hir_func.name()
+        )
+    }
+
+    fn generate_equivalence_tests(&self, hir_func: &HirFunction, c_func: &CFunction)
+        -> Vec<String>
+    {
+        // Generate FFI bindings to original C function
+        let ffi_binding = self.generate_c_ffi_binding(c_func);
+
+        // Generate equivalence test
+        vec![format!(
+            r#"
+            #[test]
+            fn test_{}_behavior_matches_c() {{
+                let inputs = create_test_inputs();
+
+                // Call Rust version
+                let rust_result = {}(&inputs);
+
+                // Call original C version via FFI
+                let c_result = unsafe {{ {}_c_ffi(&inputs) }};
+
+                assert_eq!(rust_result, c_result,
+                    "Rust implementation must match C behavior");
+            }}
+            "#,
+            hir_func.name(),
+            hir_func.name(),
+            c_func.name
+        )]
+    }
+}
+
+pub struct GeneratedTests {
+    pub unit_tests: Vec<String>,
+    pub property_tests: Vec<String>,
+    pub doc_tests: Vec<String>,
+    pub mutation_config: Option<String>,
+    pub equivalence_tests: Vec<String>,
+}
+```
+
+### 9.4 Test Coverage Targets for Generated Code
+
+**Minimum Coverage Requirements**:
+
+| Test Type | Target Coverage | Enforcement |
+|-----------|----------------|-------------|
+| Unit Tests | ≥80% line coverage | CI/CD blocks if <80% |
+| Property Tests | ≥90% mutation kill rate | CI/CD reports, manual review |
+| Doc Tests | 100% of public API | Linting failure if missing |
+| Equivalence Tests | 100% of functions (if C available) | Optional but recommended |
+
+**Per-Function Test Requirements**:
+
+```rust
+// Each generated function must have:
+// 1. At least 5 unit tests (happy, error, edge cases)
+// 2. At least 5 property tests (invariants)
+// 3. Doc test with example usage
+// 4. Mutation test configuration
+// 5. Behavior equivalence test (if C source available)
+```
+
+### 9.5 Test File Organization
+
+**Generated Structure**:
+
+```
+cpython-rust/
+├── src/
+│   └── objects/
+│       ├── dict.rs                    # Transpiled code
+│       ├── dict_tests.rs              # Unit tests (generated)
+│       └── dict_property_tests.rs     # Property tests (generated)
+├── tests/
+│   └── equivalence/
+│       └── dict_equivalence.rs        # C-Rust equivalence tests
+└── mutants.toml                       # Mutation test config
+```
+
+### 9.6 Example: Complete Generated Test Suite
+
+**From C Function**:
+```c
+// dictobject.c
+PyObject *PyDict_GetItem(PyObject *op, PyObject *key) {
+    if (!PyDict_Check(op)) {
+        return NULL;
+    }
+    // ... implementation
+}
+```
+
+**Generated Tests**:
+```rust
+// === Unit Tests (dict_tests.rs) ===
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_py_dict_get_item_valid_key() {
+        // Happy path test
+    }
+
+    #[test]
+    fn test_py_dict_get_item_missing_key() {
+        // Error case test
+    }
+
+    #[test]
+    fn test_py_dict_get_item_invalid_dict_type() {
+        // Edge case based on PyDict_Check
+    }
+
+    #[test]
+    fn test_py_dict_get_item_unicode_key() {
+        // Special case for unicode keys
+    }
+
+    #[test]
+    fn test_py_dict_get_item_hash_collision() {
+        // Edge case for hash collisions
+    }
+}
+
+// === Property Tests (dict_property_tests.rs) ===
+#[cfg(test)]
+mod property_tests {
+    use super::*;
+    use proptest::prelude::*;
+
+    proptest! {
+        #[test]
+        fn prop_get_item_deterministic(
+            dict in arb_py_dict(),
+            key in arb_py_object()
+        ) {
+            let r1 = py_dict_get_item(&dict, &key);
+            let r2 = py_dict_get_item(&dict, &key);
+            prop_assert_eq!(r1, r2);
+        }
+
+        #[test]
+        fn prop_get_item_never_panics(
+            dict in arb_py_dict(),
+            key in arb_py_object()
+        ) {
+            let _ = py_dict_get_item(&dict, &key);
+        }
+
+        #[test]
+        fn prop_get_returns_none_for_missing(
+            dict in arb_py_dict(),
+            key in arb_missing_key()
+        ) {
+            prop_assert!(py_dict_get_item(&dict, &key).is_none());
+        }
+
+        #[test]
+        fn prop_get_returns_some_for_present(
+            dict in arb_py_dict_with_keys(),
+            key in arb_existing_key()
+        ) {
+            prop_assert!(py_dict_get_item(&dict, &key).is_some());
+        }
+
+        #[test]
+        fn prop_behavior_matches_c(
+            dict in arb_py_dict(),
+            key in arb_py_object()
+        ) {
+            let rust_result = py_dict_get_item(&dict, &key);
+            let c_result = unsafe { PyDict_GetItem_c_ffi(&dict, &key) };
+            prop_assert_eq!(rust_result, c_result);
+        }
+    }
+}
+
+// === Doc Test (in dict.rs) ===
+/// Retrieves an item from a Python dictionary.
+///
+/// # Examples
+///
+/// ```
+/// use cpython_rust::{PyDict, PyObject};
+///
+/// let mut dict = PyDict::new();
+/// let key = PyObject::from_str("name");
+/// let value = PyObject::from_str("Alice");
+///
+/// dict.set_item(&key, &value);
+/// let result = py_dict_get_item(&dict, &key);
+///
+/// assert_eq!(result, Some(&value));
+/// ```
+pub fn py_dict_get_item(op: &PyObject, key: &PyObject) -> Option<&PyObject> {
+    // ...
+}
+```
+
+### 9.7 Test Generation CLI
+
+```bash
+# Generate tests for a single function
+decy generate-tests --function PyDict_GetItem --source dictobject.c
+
+# Generate tests for entire file
+decy generate-tests --file dictobject.c --output dict_tests.rs
+
+# Generate all test types
+decy generate-tests --file dictobject.c \
+    --unit-tests \
+    --property-tests \
+    --doc-tests \
+    --mutation-tests \
+    --equivalence-tests
+
+# Generate with custom configuration
+decy generate-tests --file dictobject.c \
+    --unit-tests-per-function 10 \
+    --property-tests-per-function 8 \
+    --property-test-cases 5000
+```
+
+### 9.8 Quality Gates for Generated Tests
+
+**All generated tests must pass these gates**:
+
+1. **Compilation**: All test code compiles without errors
+2. **Test Execution**: All tests pass (100% success rate)
+3. **Coverage**: Generated tests achieve ≥80% coverage of transpiled code
+4. **Mutation Score**: ≥90% mutation kill rate
+5. **Linting**: All test code passes clippy
+6. **Documentation**: All public functions have doc tests
+
+**CI/CD Enforcement**:
+```bash
+# Run in CI for every transpiled function
+cargo test --package cpython-rust --lib
+cargo test --package cpython-rust --doc
+cargo llvm-cov --package cpython-rust  # Verify ≥80%
+cargo mutants --package cpython-rust   # Verify ≥90% kill rate
+cargo clippy --package cpython-rust -- -D warnings
+```
+
+### 9.9 Test Generation Metrics
+
+**Track for each transpiled project**:
+- **Tests Generated**: Total number of test functions
+- **Test Coverage**: % of transpiled code covered
+- **Mutation Kill Rate**: % of mutations detected
+- **Equivalence Pass Rate**: % of functions matching C behavior
+- **Test Execution Time**: Time to run all generated tests
+
+**Example Metrics Dashboard**:
+```
+Project: cpython-rust
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Generated Tests:
+  Unit Tests:       2,435 (5 per function × 487 functions)
+  Property Tests:   2,435 (5 per function)
+  Doc Tests:          487 (1 per function)
+  Equivalence Tests:  481 (98.8% have C source)
+  Total Tests:      5,838
+
+Coverage:
+  Line Coverage:    94.2% (target: ≥80%) ✅
+  Branch Coverage:  87.6% (target: ≥80%) ✅
+
+Mutation Testing:
+  Mutants Generated:  4,521
+  Mutants Killed:     4,289 (94.9%) ✅
+  Mutants Survived:     232 (5.1%)
+
+Quality:
+  All Tests Pass:     ✅ 5,838/5,838
+  Clippy Warnings:    0 ✅
+  Doc Coverage:       100% ✅
+  Equivalence Match:  98.8% ✅
+```
+
+---
+
+## 10. Book-Based Verification (Inspired by depyler)
+
+### 10.1 mdBook Structure
 
 ```
 book/
@@ -837,7 +1418,7 @@ proptest! {
 
 ---
 
-## 10. MCP Agent Mode (Inspired by depyler agent)
+## 11. MCP Agent Mode (Inspired by depyler agent)
 
 ### 10.1 Background Daemon
 
@@ -894,7 +1475,7 @@ Claude can then:
 
 ---
 
-## 11. GitHub Repository Transpilation
+## 12. GitHub Repository Transpilation
 
 ### 11.1 Repository-Level Transpilation
 
@@ -1445,7 +2026,7 @@ proptest! {
 
 ---
 
-## 12. Roadmap & Sprint Planning (PMAT-Qualified)
+## 13. Roadmap & Sprint Planning (PMAT-Qualified)
 
 ### 11.1 Development Roadmap (20 Sprints)
 
@@ -1750,7 +2331,7 @@ Closes #XXX"
 
 ---
 
-## 12. Quality Gate Scripts
+## 14. Quality Gate Scripts
 
 ### 12.1 Pre-commit Hook
 
@@ -1884,7 +2465,7 @@ jobs:
 
 ---
 
-## 13. Metrics & Tracking
+## 15. Metrics & Tracking
 
 ### 13.1 Per-Ticket Metrics
 
@@ -1923,7 +2504,7 @@ Track continuously:
 
 ---
 
-## 14. Real-World Test Projects
+## 16. Real-World Test Projects
 
 ### 14.1 Target Projects
 
@@ -1959,7 +2540,7 @@ For each project:
 
 ---
 
-## 15. Implementation Phases
+## 17. Implementation Phases
 
 ### Phase 1: Foundation (Sprints 1-5, 10 weeks)
 - C parser with clang integration
@@ -1994,7 +2575,7 @@ For each project:
 
 ---
 
-## 16. Documentation Requirements
+## 18. Documentation Requirements
 
 ### 16.1 Code Documentation
 
@@ -2027,7 +2608,7 @@ For each project:
 
 ---
 
-## 17. Success Metrics
+## 19. Success Metrics
 
 ### 17.1 Technical Metrics
 
@@ -2053,7 +2634,7 @@ For each project:
 
 ---
 
-## 18. Risks & Mitigations
+## 20. Risks & Mitigations
 
 ### 18.1 Technical Risks
 
@@ -2074,7 +2655,7 @@ For each project:
 
 ---
 
-## 19. Appendix A: Tool Dependencies
+## 21. Appendix A: Tool Dependencies
 
 ### 19.1 Core Dependencies
 
@@ -2095,7 +2676,7 @@ For each project:
 
 ---
 
-## 20. Appendix B: References
+## 22. Appendix B: References
 
 ### 20.1 Inspiration Projects
 
