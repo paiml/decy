@@ -65,15 +65,27 @@ echo ""
 # 5. Check Coverage (≥80% required)
 echo "📊 Checking test coverage (≥80% required)..."
 if command -v cargo-llvm-cov &> /dev/null; then
-    COVERAGE=$(cargo llvm-cov --workspace --all-features --summary-only 2>&1 | grep -oP 'lines:\s+\K[\d.]+' | head -1 || echo "0")
-    COVERAGE_INT=${COVERAGE%.*}
+    # Run coverage and extract percentage from TOTAL line (Lines Cover column)
+    COVERAGE_OUTPUT=$(cargo llvm-cov --workspace --all-features --no-cfg-coverage 2>&1)
+    # Extract the last TOTAL line and get the last "Cover" column value (89.60%)
+    COVERAGE=$(echo "$COVERAGE_OUTPUT" | grep "^TOTAL" | tail -1 | awk '{for(i=NF;i>0;i--) if($i ~ /%/) {print $i; break}}' | tr -d '%' || echo "0")
 
-    if [ "$COVERAGE_INT" -ge 80 ]; then
-        echo -e "${GREEN}✅ Coverage: ${COVERAGE}% (≥80%)${NC}"
+    # Handle empty coverage value
+    if [ -z "$COVERAGE" ] || [ "$COVERAGE" = "0" ] || [ "$COVERAGE" = "-" ]; then
+        echo -e "${YELLOW}⚠️  Could not parse coverage percentage${NC}"
+        echo "Coverage output:"
+        echo "$COVERAGE_OUTPUT" | tail -10
     else
-        echo -e "${RED}❌ Coverage: ${COVERAGE}% (<80%)${NC}"
-        echo "Add more tests to reach 80% minimum coverage"
-        FAILED=1
+        # Extract integer part
+        COVERAGE_INT=$(echo "$COVERAGE" | cut -d'.' -f1)
+
+        if [ "$COVERAGE_INT" -ge 80 ]; then
+            echo -e "${GREEN}✅ Coverage: ${COVERAGE}% (≥80%)${NC}"
+        else
+            echo -e "${RED}❌ Coverage: ${COVERAGE}% (<80%)${NC}"
+            echo "Add more tests to reach 80% minimum coverage"
+            FAILED=1
+        fi
     fi
 else
     echo -e "${YELLOW}⚠️  cargo-llvm-cov not installed, skipping coverage check${NC}"

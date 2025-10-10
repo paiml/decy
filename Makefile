@@ -214,15 +214,35 @@ test-all: test test-doc test-examples ## Run complete test suite
 
 ##@ Quality
 
-coverage: ## Generate test coverage report (requires cargo-llvm-cov)
-	@echo "📊 Generating coverage report..."
+coverage: ## Generate comprehensive test coverage report
+	@echo "📊 Running comprehensive test coverage analysis..."
+	@echo "🔍 Checking for cargo-llvm-cov..."
+	@which cargo-llvm-cov > /dev/null 2>&1 || (echo "📦 Installing cargo-llvm-cov..." && cargo install cargo-llvm-cov --locked)
+	@echo "🧹 Cleaning old coverage data..."
+	@cargo llvm-cov clean --workspace
+	@mkdir -p target/coverage
+	@echo "🧪 Phase 1: Running tests with instrumentation (no report)..."
 	@if [ -f /etc/debian_version ]; then \
 		export LLVM_CONFIG_PATH=/usr/bin/llvm-config-14; \
 		export LIBCLANG_PATH=/usr/lib/llvm-14/lib; \
-	fi && cargo llvm-cov --workspace --all-features --html
-	@echo "✅ Coverage report generated: target/llvm-cov/html/index.html"
+		cargo llvm-cov --no-report --workspace --all-features; \
+	else \
+		cargo llvm-cov --no-report --workspace --all-features; \
+	fi
+	@echo "📊 Phase 2: Generating coverage reports..."
+	@cargo llvm-cov report --html --output-dir target/coverage/html
+	@cargo llvm-cov report --lcov --output-path target/coverage/lcov.info
+	@echo ""
+	@echo "📊 Coverage Summary:"
+	@echo "=================="
+	@cargo llvm-cov report --summary-only
+	@echo ""
+	@echo "💡 COVERAGE INSIGHTS:"
+	@echo "- HTML report: target/coverage/html/index.html"
+	@echo "- LCOV file: target/coverage/lcov.info"
+	@echo ""
 
-coverage-summary: ## Show coverage summary
+coverage-summary: ## Show coverage summary only (fast)
 	@echo "📊 Coverage summary:"
 	@if [ -f /etc/debian_version ]; then \
 		export LLVM_CONFIG_PATH=/usr/bin/llvm-config-14; \
