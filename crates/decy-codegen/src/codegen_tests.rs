@@ -7,7 +7,9 @@ use super::*;
 #[cfg(test)]
 mod tests {
     use super::*;
-    use decy_hir::{HirFunction, HirParameter, HirType};
+    use decy_hir::{
+        BinaryOperator, HirExpression, HirFunction, HirParameter, HirStatement, HirType,
+    };
 
     #[test]
     fn test_generate_function_signature() {
@@ -1074,4 +1076,320 @@ fn test_generate_box_variable_declaration() {
     assert!(code.contains("Box<i32>"));
     assert!(code.contains("Box::new"));
     assert!(!code.contains("*mut"));
+}
+
+// DECY-019: Vec code generation tests (RED phase)
+// These tests are disabled until HirType::Vec and Vec transform methods are implemented
+
+#[test]
+#[ignore = "RED phase - waiting for HirType::Vec implementation"]
+fn test_type_mapping_vec_int() {
+    // RED PHASE: Waiting for full implementation
+    // Test that HirType::Vec maps to Vec<T>
+    // Uncomment when ready:
+    // use decy_hir::HirType;
+    // let vec_type = HirType::Vec(Box::new(HirType::Int));
+    // assert_eq!(CodeGenerator::map_type(&vec_type), "Vec<i32>");
+}
+
+#[test]
+#[ignore = "RED phase - waiting for HirType::Vec implementation"]
+fn test_type_mapping_vec_char() {
+    // RED PHASE: Waiting for full implementation
+    // Uncomment when ready:
+    // use decy_hir::HirType;
+    // let vec_type = HirType::Vec(Box::new(HirType::Char));
+    // assert_eq!(CodeGenerator::map_type(&vec_type), "Vec<u8>");
+}
+
+#[test]
+#[ignore = "RED phase - waiting for HirType::Vec implementation"]
+fn test_type_mapping_vec_double() {
+    // RED PHASE: Waiting for full implementation
+    // Uncomment when ready:
+    // use decy_hir::HirType;
+    // let vec_type = HirType::Vec(Box::new(HirType::Double));
+    // assert_eq!(CodeGenerator::map_type(&vec_type), "Vec<f64>");
+}
+
+#[test]
+#[ignore = "RED phase - waiting for generate_function_with_vec_transform implementation"]
+fn test_generate_vec_with_capacity_literal() {
+    // RED PHASE: Waiting for full implementation
+    // Pattern: int* arr = malloc(10 * sizeof(int)); → let mut arr: Vec<i32> = Vec::with_capacity(10);
+    // Uncomment when ready:
+    /*
+    use decy_analyzer::patterns::PatternDetector;
+
+    let capacity = HirExpression::IntLiteral(10);
+    let sizeof_expr = HirExpression::IntLiteral(4); // sizeof(int)
+    let size_expr = HirExpression::BinaryOp {
+        op: BinaryOperator::Multiply,
+        left: Box::new(capacity),
+        right: Box::new(sizeof_expr),
+    };
+
+    let func = HirFunction::new_with_body(
+        "test".to_string(),
+        HirType::Void,
+        vec![],
+        vec![HirStatement::VariableDeclaration {
+            name: "arr".to_string(),
+            var_type: HirType::Pointer(Box::new(HirType::Int)),
+            initializer: Some(HirExpression::FunctionCall {
+                function: "malloc".to_string(),
+                arguments: vec![size_expr],
+            }),
+        }],
+    );
+
+    let codegen = CodeGenerator::new();
+    let detector = PatternDetector::new();
+    let candidates = detector.find_vec_candidates(&func);
+    let code = codegen.generate_function_with_vec_transform(&func, &candidates);
+
+    // Should transform to Vec<i32> with capacity
+    assert!(code.contains("Vec<i32>"));
+    assert!(code.contains("Vec::with_capacity(10)"));
+    assert!(!code.contains("*mut"));
+    assert!(!code.contains("malloc"));
+    */
+}
+
+#[test]
+#[ignore = "RED phase - waiting for full implementation"]
+fn test_generate_vec_with_capacity_variable() {
+    // RED PHASE: This test will FAIL
+    // Pattern: int* arr = malloc(n * sizeof(int)); → let mut arr: Vec<i32> = Vec::with_capacity(n);
+    /*
+    use decy_analyzer::patterns::PatternDetector;
+
+    let capacity = HirExpression::Variable("n".to_string());
+    let sizeof_expr = HirExpression::IntLiteral(4);
+    let size_expr = HirExpression::BinaryOp {
+        op: BinaryOperator::Multiply,
+        left: Box::new(capacity),
+        right: Box::new(sizeof_expr),
+    };
+
+    let func = HirFunction::new_with_body(
+        "allocate_array".to_string(),
+        HirType::Void,
+        vec![HirParameter::new("n".to_string(), HirType::Int)],
+        vec![HirStatement::VariableDeclaration {
+            name: "arr".to_string(),
+            var_type: HirType::Pointer(Box::new(HirType::Int)),
+            initializer: Some(HirExpression::FunctionCall {
+                function: "malloc".to_string(),
+                arguments: vec![size_expr],
+            }),
+        }],
+    );
+
+    let codegen = CodeGenerator::new();
+    let detector = PatternDetector::new();
+    let candidates = detector.find_vec_candidates(&func);
+    let code = codegen.generate_function_with_vec_transform(&func, &candidates);
+
+    assert!(code.contains("Vec<i32>"));
+    assert!(code.contains("Vec::with_capacity(n)"));
+    assert!(!code.contains("*mut"));
+    */
+}
+
+#[test]
+fn test_generate_multiple_vec_allocations() {
+    // RED PHASE: This test will FAIL
+    // Test that multiple Vec allocations are all transformed correctly
+    use decy_analyzer::patterns::PatternDetector;
+
+    let size1 = HirExpression::BinaryOp {
+        op: BinaryOperator::Multiply,
+        left: Box::new(HirExpression::IntLiteral(5)),
+        right: Box::new(HirExpression::IntLiteral(4)),
+    };
+
+    let size2 = HirExpression::BinaryOp {
+        op: BinaryOperator::Multiply,
+        left: Box::new(HirExpression::IntLiteral(20)),
+        right: Box::new(HirExpression::IntLiteral(8)),
+    };
+
+    let func = HirFunction::new_with_body(
+        "test".to_string(),
+        HirType::Void,
+        vec![],
+        vec![
+            HirStatement::VariableDeclaration {
+                name: "arr1".to_string(),
+                var_type: HirType::Pointer(Box::new(HirType::Int)),
+                initializer: Some(HirExpression::FunctionCall {
+                    function: "malloc".to_string(),
+                    arguments: vec![size1],
+                }),
+            },
+            HirStatement::VariableDeclaration {
+                name: "arr2".to_string(),
+                var_type: HirType::Pointer(Box::new(HirType::Double)),
+                initializer: Some(HirExpression::FunctionCall {
+                    function: "malloc".to_string(),
+                    arguments: vec![size2],
+                }),
+            },
+        ],
+    );
+
+    let codegen = CodeGenerator::new();
+    let detector = PatternDetector::new();
+    let candidates = detector.find_vec_candidates(&func);
+    let code = codegen.generate_function_with_vec_transform(&func, &candidates);
+
+    assert!(code.contains("arr1"));
+    assert!(code.contains("Vec<i32>"));
+    assert!(code.contains("Vec::with_capacity(5)"));
+    assert!(code.contains("arr2"));
+    assert!(code.contains("Vec<f64>"));
+    assert!(code.contains("Vec::with_capacity(20)"));
+}
+
+#[test]
+fn test_vec_and_box_together() {
+    // RED PHASE: This test will FAIL
+    // Test that Vec and Box transformations coexist in the same function
+    use decy_analyzer::patterns::PatternDetector;
+
+    let vec_size = HirExpression::BinaryOp {
+        op: BinaryOperator::Multiply,
+        left: Box::new(HirExpression::IntLiteral(10)),
+        right: Box::new(HirExpression::IntLiteral(4)),
+    };
+
+    let func = HirFunction::new_with_body(
+        "test".to_string(),
+        HirType::Void,
+        vec![],
+        vec![
+            // Box candidate: single element
+            HirStatement::VariableDeclaration {
+                name: "single".to_string(),
+                var_type: HirType::Pointer(Box::new(HirType::Int)),
+                initializer: Some(HirExpression::FunctionCall {
+                    function: "malloc".to_string(),
+                    arguments: vec![HirExpression::IntLiteral(4)],
+                }),
+            },
+            // Vec candidate: array
+            HirStatement::VariableDeclaration {
+                name: "array".to_string(),
+                var_type: HirType::Pointer(Box::new(HirType::Int)),
+                initializer: Some(HirExpression::FunctionCall {
+                    function: "malloc".to_string(),
+                    arguments: vec![vec_size],
+                }),
+            },
+        ],
+    );
+
+    let codegen = CodeGenerator::new();
+    let detector = PatternDetector::new();
+    let box_candidates = detector.find_box_candidates(&func);
+    let vec_candidates = detector.find_vec_candidates(&func);
+
+    // Apply both transformations
+    let code = codegen.generate_function_with_box_and_vec_transform(
+        &func,
+        &box_candidates,
+        &vec_candidates,
+    );
+
+    // Box transformation
+    assert!(code.contains("single"));
+    assert!(code.contains("Box<i32>"));
+
+    // Vec transformation
+    assert!(code.contains("array"));
+    assert!(code.contains("Vec<i32>"));
+    assert!(code.contains("Vec::with_capacity(10)"));
+}
+
+#[test]
+fn test_vec_type_inference_from_pointer() {
+    // RED PHASE: This test will FAIL
+    // Test that element type is correctly inferred from pointer type
+    use decy_analyzer::patterns::PatternDetector;
+
+    let test_cases = vec![
+        (HirType::Int, "Vec<i32>"),
+        (HirType::Char, "Vec<u8>"),
+        (HirType::Float, "Vec<f32>"),
+        (HirType::Double, "Vec<f64>"),
+    ];
+
+    for (element_type, expected_vec_type) in test_cases {
+        let size_expr = HirExpression::BinaryOp {
+            op: BinaryOperator::Multiply,
+            left: Box::new(HirExpression::IntLiteral(10)),
+            right: Box::new(HirExpression::IntLiteral(4)),
+        };
+
+        let func = HirFunction::new_with_body(
+            "test".to_string(),
+            HirType::Void,
+            vec![],
+            vec![HirStatement::VariableDeclaration {
+                name: "arr".to_string(),
+                var_type: HirType::Pointer(Box::new(element_type)),
+                initializer: Some(HirExpression::FunctionCall {
+                    function: "malloc".to_string(),
+                    arguments: vec![size_expr],
+                }),
+            }],
+        );
+
+        let codegen = CodeGenerator::new();
+        let detector = PatternDetector::new();
+        let candidates = detector.find_vec_candidates(&func);
+        let code = codegen.generate_function_with_vec_transform(&func, &candidates);
+
+        assert!(
+            code.contains(expected_vec_type),
+            "Expected {} in generated code, got: {}",
+            expected_vec_type,
+            code
+        );
+    }
+}
+
+#[test]
+fn test_vec_no_transform_for_non_malloc() {
+    // RED PHASE: This test will FAIL
+    // Test that non-malloc allocations are not transformed
+    use decy_analyzer::patterns::PatternDetector;
+
+    let func = HirFunction::new_with_body(
+        "test".to_string(),
+        HirType::Void,
+        vec![],
+        vec![HirStatement::VariableDeclaration {
+            name: "arr".to_string(),
+            var_type: HirType::Pointer(Box::new(HirType::Int)),
+            initializer: Some(HirExpression::FunctionCall {
+                function: "custom_alloc".to_string(),
+                arguments: vec![HirExpression::IntLiteral(40)],
+            }),
+        }],
+    );
+
+    let codegen = CodeGenerator::new();
+    let detector = PatternDetector::new();
+    let candidates = detector.find_vec_candidates(&func);
+
+    // Should find no Vec candidates
+    assert_eq!(candidates.len(), 0);
+
+    let code = codegen.generate_function_with_vec_transform(&func, &candidates);
+
+    // Should keep raw pointer since it's not a malloc pattern
+    assert!(code.contains("*mut i32"));
+    assert!(!code.contains("Vec<"));
 }
