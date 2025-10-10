@@ -275,6 +275,10 @@ pub enum HirExpression {
         /// Right operand
         right: Box<HirExpression>,
     },
+    /// Dereference operation (*ptr)
+    Dereference(Box<HirExpression>),
+    /// Address-of operation (&x)
+    AddressOf(Box<HirExpression>),
 }
 
 /// Represents a statement in HIR.
