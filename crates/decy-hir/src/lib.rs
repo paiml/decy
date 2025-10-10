@@ -322,6 +322,13 @@ pub enum HirStatement {
     Break,
     /// Continue statement (skip to next iteration)
     Continue,
+    /// Assignment statement (target = value)
+    Assignment {
+        /// Target variable name
+        target: String,
+        /// Value expression to assign
+        value: HirExpression,
+    },
 }
 
 #[cfg(test)]
