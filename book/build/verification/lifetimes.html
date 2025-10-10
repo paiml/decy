@@ -182,6 +182,438 @@
                 <div id="content" class="content">
                     <main>
                         <h1 id="lifetime-annotations"><a class="header" href="#lifetime-annotations">Lifetime Annotations</a></h1>
+<p>This chapter demonstrates how DECY automatically infers and generates Rust lifetime annotations from C code.</p>
+<h2 id="why-lifetimes"><a class="header" href="#why-lifetimes">Why Lifetimes?</a></h2>
+<p>In C, pointer relationships are implicit. The compiler doesn't track how long pointers remain valid.</p>
+<p>In Rust, lifetimes make these relationships <strong>explicit</strong> and <strong>checked at compile time</strong>, preventing:</p>
+<ul>
+<li>Use-after-free bugs</li>
+<li>Dangling pointers</li>
+<li>Double-free errors</li>
+</ul>
+<h2 id="pattern-1-single-lifetime"><a class="header" href="#pattern-1-single-lifetime">Pattern 1: Single Lifetime</a></h2>
+<p>When all references in a function have the same lifetime.</p>
+<h3 id="c-code"><a class="header" href="#c-code">C Code</a></h3>
+<pre><code class="language-c">int* get_first(int* a, int* b) {
+    return a;
+}
+</code></pre>
+<h3 id="transpiled-rust"><a class="header" href="#transpiled-rust">Transpiled Rust</a></h3>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>fn get_first&lt;'a&gt;(a: &amp;'a i32, b: &amp;'a i32) -&gt; &amp;'a i32 {
+    a
+}
+<span class="boring">}</span></code></pre></pre>
+<p>The lifetime <code>'a</code> says: "The returned reference lives as long as the input references."</p>
+<h3 id="verification"><a class="header" href="#verification">Verification</a></h3>
+<pre><code class="language-rust ignore">#[test]
+fn test_single_lifetime_annotation() {
+    let c_code = r#"
+        int* get_first(int* a, int* b) {
+            return a;
+        }
+    "#;
+
+    let rust_code = transpile(c_code).unwrap();
+
+    // Verify lifetime annotation
+    assert!(rust_code.contains("&lt;'a&gt;"));
+    assert!(rust_code.contains("&amp;'a i32"));
+
+    // Verify all parameters use same lifetime
+    assert_eq!(rust_code.matches("&amp;'a").count(), 3);  // a, b, return
+
+    // Verify compiles
+    assert!(compile_rust(&amp;rust_code).is_ok());
+}</code></pre>
+<h2 id="pattern-2-return-lifetime-tied-to-input"><a class="header" href="#pattern-2-return-lifetime-tied-to-input">Pattern 2: Return Lifetime Tied to Input</a></h2>
+<p>Most common pattern: return value lifetime matches an input parameter.</p>
+<h3 id="c-code-return-one-of-two-inputs"><a class="header" href="#c-code-return-one-of-two-inputs">C Code: Return one of two inputs</a></h3>
+<pre><code class="language-c">int* choose(int* a, int* b, int condition) {
+    if (condition) {
+        return a;
+    } else {
+        return b;
+    }
+}
+</code></pre>
+<h3 id="transpiled-rust-1"><a class="header" href="#transpiled-rust-1">Transpiled Rust</a></h3>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>fn choose&lt;'a&gt;(a: &amp;'a i32, b: &amp;'a i32, condition: i32) -&gt; &amp;'a i32 {
+    if condition != 0 {
+        a
+    } else {
+        b
+    }
+}
+<span class="boring">}</span></code></pre></pre>
+<h3 id="verification-1"><a class="header" href="#verification-1">Verification</a></h3>
+<pre><code class="language-rust ignore">#[test]
+fn test_return_lifetime_from_inputs() {
+    let c_code = r#"
+        int* choose(int* a, int* b, int condition) {
+            if (condition) {
+                return a;
+            } else {
+                return b;
+            }
+        }
+    "#;
+
+    let rust_code = transpile(c_code).unwrap();
+
+    // Verify lifetime parameter
+    assert!(rust_code.contains("fn choose&lt;'a&gt;"));
+
+    // Verify pointer parameters have lifetime
+    assert!(rust_code.contains("a: &amp;'a i32"));
+    assert!(rust_code.contains("b: &amp;'a i32"));
+
+    // Verify return has lifetime
+    assert!(rust_code.contains("-&gt; &amp;'a i32"));
+
+    // Verify non-pointer parameter has no lifetime
+    assert!(rust_code.contains("condition: i32"));
+
+    // Verify compiles
+    assert!(compile_rust(&amp;rust_code).is_ok());
+}</code></pre>
+<h2 id="pattern-3-static-lifetime"><a class="header" href="#pattern-3-static-lifetime">Pattern 3: Static Lifetime</a></h2>
+<p>String literals and global data have <code>'static</code> lifetime.</p>
+<h3 id="c-code-1"><a class="header" href="#c-code-1">C Code</a></h3>
+<pre><code class="language-c">const char* get_message() {
+    return "Hello, World!";
+}
+</code></pre>
+<h3 id="transpiled-rust-2"><a class="header" href="#transpiled-rust-2">Transpiled Rust</a></h3>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>fn get_message() -&gt; &amp;'static str {
+    "Hello, World!"
+}
+<span class="boring">}</span></code></pre></pre>
+<h3 id="verification-2"><a class="header" href="#verification-2">Verification</a></h3>
+<pre><code class="language-rust ignore">#[test]
+fn test_static_lifetime_for_literals() {
+    let c_code = r#"
+        const char* get_message() {
+            return "Hello, World!";
+        }
+    "#;
+
+    let rust_code = transpile(c_code).unwrap();
+
+    // Verify static lifetime
+    assert!(rust_code.contains("&amp;'static str"));
+
+    // Verify no lifetime parameter needed
+    assert!(!rust_code.contains("&lt;'a&gt;"));
+
+    // Verify compiles
+    assert!(compile_rust(&amp;rust_code).is_ok());
+}</code></pre>
+<h2 id="pattern-4-struct-with-lifetimes"><a class="header" href="#pattern-4-struct-with-lifetimes">Pattern 4: Struct with Lifetimes</a></h2>
+<p>Structs that hold references need lifetime annotations.</p>
+<h3 id="c-code-2"><a class="header" href="#c-code-2">C Code</a></h3>
+<pre><code class="language-c">struct Holder {
+    int* value;
+};
+
+struct Holder* create_holder(int* v) {
+    struct Holder* h = malloc(sizeof(struct Holder));
+    h-&gt;value = v;
+    return h;
+}
+</code></pre>
+<h3 id="transpiled-rust-3"><a class="header" href="#transpiled-rust-3">Transpiled Rust</a></h3>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>struct Holder&lt;'a&gt; {
+    value: &amp;'a i32,
+}
+
+fn create_holder&lt;'a&gt;(v: &amp;'a i32) -&gt; Box&lt;Holder&lt;'a&gt;&gt; {
+    Box::new(Holder { value: v })
+}
+<span class="boring">}</span></code></pre></pre>
+<h3 id="verification-3"><a class="header" href="#verification-3">Verification</a></h3>
+<pre><code class="language-rust ignore">#[test]
+fn test_struct_with_lifetime() {
+    let c_code = r#"
+        struct Holder {
+            int* value;
+        };
+
+        struct Holder* create_holder(int* v) {
+            struct Holder* h = malloc(sizeof(struct Holder));
+            h-&gt;value = v;
+            return h;
+        }
+    "#;
+
+    let rust_code = transpile(c_code).unwrap();
+
+    // Verify struct has lifetime parameter
+    assert!(rust_code.contains("struct Holder&lt;'a&gt;"));
+
+    // Verify field has lifetime
+    assert!(rust_code.contains("value: &amp;'a i32"));
+
+    // Verify function propagates lifetime
+    assert!(rust_code.contains("fn create_holder&lt;'a&gt;"));
+    assert!(rust_code.contains("-&gt; Box&lt;Holder&lt;'a&gt;&gt;"));
+
+    // Verify compiles
+    assert!(compile_rust(&amp;rust_code).is_ok());
+}</code></pre>
+<h2 id="pattern-5-no-lifetime-needed"><a class="header" href="#pattern-5-no-lifetime-needed">Pattern 5: No Lifetime Needed</a></h2>
+<p>Functions that don't return references don't need lifetime annotations.</p>
+<h3 id="c-code-3"><a class="header" href="#c-code-3">C Code</a></h3>
+<pre><code class="language-c">void process(int* p) {
+    *p = *p + 1;
+}
+</code></pre>
+<h3 id="transpiled-rust-4"><a class="header" href="#transpiled-rust-4">Transpiled Rust</a></h3>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>fn process(p: &amp;mut i32) {
+    *p = *p + 1;
+}
+<span class="boring">}</span></code></pre></pre>
+<p>No lifetime annotation needed - the function doesn't return a reference!</p>
+<h3 id="verification-4"><a class="header" href="#verification-4">Verification</a></h3>
+<pre><code class="language-rust ignore">#[test]
+fn test_no_lifetime_when_not_needed() {
+    let c_code = "void process(int* p) { *p = *p + 1; }";
+
+    let rust_code = transpile(c_code).unwrap();
+
+    // Verify no lifetime parameter
+    assert!(!rust_code.contains("&lt;'a&gt;"));
+
+    // Verify has reference parameter
+    assert!(rust_code.contains("&amp;mut i32"));
+
+    // Verify compiles
+    assert!(compile_rust(&amp;rust_code).is_ok());
+}</code></pre>
+<h2 id="property-tests-for-lifetimes"><a class="header" href="#property-tests-for-lifetimes">Property Tests for Lifetimes</a></h2>
+<h3 id="property-functions-returning-references-have-lifetimes"><a class="header" href="#property-functions-returning-references-have-lifetimes">Property: Functions Returning References Have Lifetimes</a></h3>
+<pre><code class="language-rust ignore">use proptest::prelude::*;
+
+proptest! {
+    #[test]
+    fn prop_returning_ref_has_lifetime(func_name in "[a-z]+") {
+        let c_code = format!(
+            "int* {}(int* p) {{ return p; }}",
+            func_name
+        );
+
+        let rust_code = transpile(&amp;c_code).unwrap();
+
+        // Property: Returning reference → has lifetime
+        prop_assert!(rust_code.contains("&lt;'a&gt;"));
+        prop_assert!(rust_code.contains("&amp;'a"));
+    }
+}</code></pre>
+<h3 id="property-non-returning-functions-dont-need-lifetimes"><a class="header" href="#property-non-returning-functions-dont-need-lifetimes">Property: Non-Returning Functions Don't Need Lifetimes</a></h3>
+<pre><code class="language-rust ignore">proptest! {
+    #[test]
+    fn prop_void_function_no_lifetime(func_name in "[a-z]+") {
+        let c_code = format!(
+            "void {}(int* p) {{ *p = 0; }}",
+            func_name
+        );
+
+        let rust_code = transpile(&amp;c_code).unwrap();
+
+        // Property: Not returning reference → no lifetime
+        prop_assert!(!rust_code.contains("&lt;'a&gt;"));
+    }
+}</code></pre>
+<h3 id="property-lifetime-annotations-are-valid"><a class="header" href="#property-lifetime-annotations-are-valid">Property: Lifetime Annotations Are Valid</a></h3>
+<pre><code class="language-rust ignore">proptest! {
+    #[test]
+    fn prop_lifetime_annotations_valid(c_code in valid_c_function_with_pointers()) {
+        let rust_code = transpile(&amp;c_code).unwrap();
+
+        // Property: Generated lifetime annotations must be valid Rust
+        prop_assert!(compile_rust(&amp;rust_code).is_ok());
+    }
+}</code></pre>
+<h2 id="complex-example-multiple-references"><a class="header" href="#complex-example-multiple-references">Complex Example: Multiple References</a></h2>
+<h3 id="c-code-4"><a class="header" href="#c-code-4">C Code</a></h3>
+<pre><code class="language-c">int* find_max(int* arr, int len) {
+    if (len == 0) return NULL;
+
+    int* max = &amp;arr[0];
+    for (int i = 1; i &lt; len; i++) {
+        if (arr[i] &gt; *max) {
+            max = &amp;arr[i];
+        }
+    }
+    return max;
+}
+</code></pre>
+<h3 id="transpiled-rust-5"><a class="header" href="#transpiled-rust-5">Transpiled Rust</a></h3>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>fn find_max(arr: &amp;[i32]) -&gt; Option&lt;&amp;i32&gt; {
+    if arr.is_empty() {
+        return None;
+    }
+
+    let mut max = &amp;arr[0];
+    for val in &amp;arr[1..] {
+        if val &gt; max {
+            max = val;
+        }
+    }
+    Some(max)
+}
+<span class="boring">}</span></code></pre></pre>
+<p>Note: Lifetime is elided (implicit) here - Rust's lifetime elision rules apply!</p>
+<h3 id="verification-5"><a class="header" href="#verification-5">Verification</a></h3>
+<pre><code class="language-rust ignore">#[test]
+fn test_lifetime_elision() {
+    let c_code = r#"
+        int* find_max(int* arr, int len) {
+            if (len == 0) return NULL;
+            int* max = &amp;arr[0];
+            for (int i = 1; i &lt; len; i++) {
+                if (arr[i] &gt; *max) {
+                    max = &amp;arr[i];
+                }
+            }
+            return max;
+        }
+    "#;
+
+    let rust_code = transpile(c_code).unwrap();
+
+    // Lifetime is elided - not explicitly written
+    // But it's still there implicitly!
+    assert!(rust_code.contains("-&gt; Option&lt;&amp;i32&gt;"));
+
+    // Verify compiles (borrow checker validates lifetimes)
+    assert!(compile_rust(&amp;rust_code).is_ok());
+}</code></pre>
+<h2 id="lifetime-elision-rules"><a class="header" href="#lifetime-elision-rules">Lifetime Elision Rules</a></h2>
+<p>Rust can often infer lifetimes automatically. DECY follows these rules:</p>
+<h3 id="rule-1-each-input-reference-gets-its-own-lifetime"><a class="header" href="#rule-1-each-input-reference-gets-its-own-lifetime">Rule 1: Each input reference gets its own lifetime</a></h3>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>fn foo(x: &amp;i32, y: &amp;i32)
+// Becomes: fn foo&lt;'a, 'b&gt;(x: &amp;'a i32, y: &amp;'b i32)
+<span class="boring">}</span></code></pre></pre>
+<h3 id="rule-2-if-theres-exactly-one-input-lifetime-output-gets-that-lifetime"><a class="header" href="#rule-2-if-theres-exactly-one-input-lifetime-output-gets-that-lifetime">Rule 2: If there's exactly one input lifetime, output gets that lifetime</a></h3>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>fn foo(x: &amp;i32) -&gt; &amp;i32
+// Becomes: fn foo&lt;'a&gt;(x: &amp;'a i32) -&gt; &amp;'a i32
+<span class="boring">}</span></code></pre></pre>
+<h3 id="rule-3-if-theres-a-self-parameter-output-gets-its-lifetime"><a class="header" href="#rule-3-if-theres-a-self-parameter-output-gets-its-lifetime">Rule 3: If there's a <code>&amp;self</code> parameter, output gets its lifetime</a></h3>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>fn get_value(&amp;self) -&gt; &amp;i32
+// Becomes: fn get_value&lt;'a&gt;(&amp;'a self) -&gt; &amp;'a i32
+<span class="boring">}</span></code></pre></pre>
+<p>DECY only adds explicit lifetimes when elision rules don't apply!</p>
+<h3 id="verification-6"><a class="header" href="#verification-6">Verification</a></h3>
+<pre><code class="language-rust ignore">#[test]
+fn test_lifetime_elision_rules() {
+    let test_cases = vec![
+        // Rule 2: Single input → elide lifetime
+        (
+            "int* identity(int* p) { return p; }",
+            false,  // Should NOT contain &lt;'a&gt;
+        ),
+        // Multiple inputs → explicit lifetime needed
+        (
+            "int* choose(int* a, int* b) { return a; }",
+            true,   // Should contain &lt;'a&gt;
+        ),
+    ];
+
+    for (c_code, should_have_explicit_lifetime) in test_cases {
+        let rust_code = transpile(c_code).unwrap();
+        let has_explicit = rust_code.contains("&lt;'a&gt;");
+
+        assert_eq!(
+            has_explicit, should_have_explicit_lifetime,
+            "Lifetime elision rule failed for: {}", c_code
+        );
+
+        // All should compile regardless
+        assert!(compile_rust(&amp;rust_code).is_ok());
+    }
+}</code></pre>
+<h2 id="common-lifetime-errors-prevented"><a class="header" href="#common-lifetime-errors-prevented">Common Lifetime Errors (Prevented)</a></h2>
+<p>DECY's lifetime analysis prevents these common errors:</p>
+<h3 id="error-1-dangling-pointer"><a class="header" href="#error-1-dangling-pointer">Error 1: Dangling Pointer</a></h3>
+<pre><code class="language-c">// ❌ C allows this (dangling pointer!)
+int* dangling() {
+    int x = 5;
+    return &amp;x;  // BAD: x destroyed when function returns
+}
+</code></pre>
+<p>DECY detects this and either:</p>
+<ul>
+<li>Refuses to transpile (safety error)</li>
+<li>Converts to owned type (Box<i32>)</li>
+</ul>
+<h3 id="error-2-use-after-free"><a class="header" href="#error-2-use-after-free">Error 2: Use After Free</a></h3>
+<pre><code class="language-c">// ❌ C allows this (use after free!)
+int* bad() {
+    int* p = malloc(sizeof(int));
+    free(p);
+    return p;  // BAD: p is freed
+}
+</code></pre>
+<p>DECY's dataflow analysis catches this!</p>
+<h3 id="verification-7"><a class="header" href="#verification-7">Verification</a></h3>
+<pre><code class="language-rust ignore">#[test]
+fn test_reject_dangling_pointer() {
+    let c_code = r#"
+        int* dangling() {
+            int x = 5;
+            return &amp;x;
+        }
+    "#;
+
+    let result = transpile(c_code);
+
+    // Should either error or convert to owned
+    if let Ok(rust_code) = result {
+        // If transpiled, must use Box (owned)
+        assert!(rust_code.contains("Box&lt;i32&gt;"));
+    } else {
+        // Or error is acceptable
+        assert!(result.is_err());
+    }
+}</code></pre>
+<h2 id="summary"><a class="header" href="#summary">Summary</a></h2>
+<p>Lifetime annotations ensure:</p>
+<p>✅ <strong>No dangling pointers</strong>: Compile-time guarantee
+✅ <strong>No use-after-free</strong>: Lifetime tracking prevents this
+✅ <strong>Explicit relationships</strong>: Clear pointer dependencies
+✅ <strong>Automatic inference</strong>: DECY adds lifetimes automatically
+✅ <strong>Elision when possible</strong>: Follows Rust idioms
+✅ <strong>Compile-time checked</strong>: Borrow checker validates</p>
+<p>All generated lifetime annotations:</p>
+<ul>
+<li>Compile without errors</li>
+<li>Pass borrow checker</li>
+<li>Follow Rust lifetime elision rules</li>
+<li>Are minimal (no unnecessary annotations)</li>
+</ul>
+<h2 id="next-steps"><a class="header" href="#next-steps">Next Steps</a></h2>
+<ul>
+<li><a href="./box-transform.html">Box Transformations</a> - Deep dive into malloc → Box</li>
+<li><a href="../components/parser.html">Parser Verification</a> - How C code is parsed</li>
+</ul>
 
                     </main>
 
