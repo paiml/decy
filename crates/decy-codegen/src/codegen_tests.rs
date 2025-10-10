@@ -335,4 +335,160 @@ mod tests {
         // Should produce: let mut x: i32 = 5;
         assert_eq!(rust_code, "let mut x: i32 = 5;");
     }
+
+    // DECY-007: Binary expression generation tests (RED phase)
+
+    #[test]
+    fn test_generate_addition_expression() {
+        // RED PHASE: This test will FAIL
+        use decy_hir::{BinaryOperator, HirExpression};
+
+        let expr = HirExpression::BinaryOp {
+            op: BinaryOperator::Add,
+            left: Box::new(HirExpression::Variable("a".to_string())),
+            right: Box::new(HirExpression::Variable("b".to_string())),
+        };
+
+        let codegen = CodeGenerator::new();
+        let code = codegen.generate_expression(&expr);
+
+        assert_eq!(code, "a + b");
+    }
+
+    #[test]
+    fn test_generate_comparison_expression() {
+        // RED PHASE: This test will FAIL
+        use decy_hir::{BinaryOperator, HirExpression};
+
+        let expr = HirExpression::BinaryOp {
+            op: BinaryOperator::GreaterThan,
+            left: Box::new(HirExpression::Variable("x".to_string())),
+            right: Box::new(HirExpression::IntLiteral(0)),
+        };
+
+        let codegen = CodeGenerator::new();
+        let code = codegen.generate_expression(&expr);
+
+        assert_eq!(code, "x > 0");
+    }
+
+    #[test]
+    fn test_generate_all_arithmetic_operators() {
+        // RED PHASE: This test will FAIL
+        use decy_hir::{BinaryOperator, HirExpression};
+
+        let codegen = CodeGenerator::new();
+
+        let ops_and_expected = vec![
+            (BinaryOperator::Add, "a + b"),
+            (BinaryOperator::Subtract, "a - b"),
+            (BinaryOperator::Multiply, "a * b"),
+            (BinaryOperator::Divide, "a / b"),
+            (BinaryOperator::Modulo, "a % b"),
+        ];
+
+        for (op, expected) in ops_and_expected {
+            let expr = HirExpression::BinaryOp {
+                op,
+                left: Box::new(HirExpression::Variable("a".to_string())),
+                right: Box::new(HirExpression::Variable("b".to_string())),
+            };
+
+            let code = codegen.generate_expression(&expr);
+            assert_eq!(code, expected);
+        }
+    }
+
+    #[test]
+    fn test_generate_all_comparison_operators() {
+        // RED PHASE: This test will FAIL
+        use decy_hir::{BinaryOperator, HirExpression};
+
+        let codegen = CodeGenerator::new();
+
+        let ops_and_expected = vec![
+            (BinaryOperator::Equal, "a == b"),
+            (BinaryOperator::NotEqual, "a != b"),
+            (BinaryOperator::LessThan, "a < b"),
+            (BinaryOperator::GreaterThan, "a > b"),
+            (BinaryOperator::LessEqual, "a <= b"),
+            (BinaryOperator::GreaterEqual, "a >= b"),
+        ];
+
+        for (op, expected) in ops_and_expected {
+            let expr = HirExpression::BinaryOp {
+                op,
+                left: Box::new(HirExpression::Variable("a".to_string())),
+                right: Box::new(HirExpression::Variable("b".to_string())),
+            };
+
+            let code = codegen.generate_expression(&expr);
+            assert_eq!(code, expected);
+        }
+    }
+
+    #[test]
+    fn test_generate_nested_expressions() {
+        // RED PHASE: This test will FAIL
+        // (a + b) * c
+        use decy_hir::{BinaryOperator, HirExpression};
+
+        let expr = HirExpression::BinaryOp {
+            op: BinaryOperator::Multiply,
+            left: Box::new(HirExpression::BinaryOp {
+                op: BinaryOperator::Add,
+                left: Box::new(HirExpression::Variable("a".to_string())),
+                right: Box::new(HirExpression::Variable("b".to_string())),
+            }),
+            right: Box::new(HirExpression::Variable("c".to_string())),
+        };
+
+        let codegen = CodeGenerator::new();
+        let code = codegen.generate_expression(&expr);
+
+        assert_eq!(code, "(a + b) * c");
+    }
+
+    #[test]
+    fn test_generate_expression_in_variable_declaration() {
+        // RED PHASE: This test will FAIL
+        use decy_hir::{BinaryOperator, HirExpression, HirStatement};
+
+        let var_decl = HirStatement::VariableDeclaration {
+            name: "sum".to_string(),
+            var_type: HirType::Int,
+            initializer: Some(HirExpression::BinaryOp {
+                op: BinaryOperator::Add,
+                left: Box::new(HirExpression::Variable("a".to_string())),
+                right: Box::new(HirExpression::Variable("b".to_string())),
+            }),
+        };
+
+        let codegen = CodeGenerator::new();
+        let code = codegen.generate_statement(&var_decl);
+
+        assert_eq!(code, "let mut sum: i32 = a + b;");
+    }
+
+    #[test]
+    fn test_operator_precedence_with_parentheses() {
+        // RED PHASE: This test will FAIL
+        // a * (b + c)
+        use decy_hir::{BinaryOperator, HirExpression};
+
+        let expr = HirExpression::BinaryOp {
+            op: BinaryOperator::Multiply,
+            left: Box::new(HirExpression::Variable("a".to_string())),
+            right: Box::new(HirExpression::BinaryOp {
+                op: BinaryOperator::Add,
+                left: Box::new(HirExpression::Variable("b".to_string())),
+                right: Box::new(HirExpression::Variable("c".to_string())),
+            }),
+        };
+
+        let codegen = CodeGenerator::new();
+        let code = codegen.generate_expression(&expr);
+
+        assert_eq!(code, "a * (b + c)");
+    }
 }
