@@ -97,10 +97,8 @@ fn test_multiple_functions() {
     assert!(all_rust_code.contains("fn multiply"));
 }
 
-/// This test demonstrates the FUTURE capability once we parse function bodies.
-/// Currently marked as ignored because we don't yet parse statements/expressions.
+/// This test demonstrates the complete malloc-to-Box transformation pipeline.
 #[test]
-#[ignore]
 fn test_malloc_to_box_transformation_end_to_end() {
     let c_source = r#"
         void process() {

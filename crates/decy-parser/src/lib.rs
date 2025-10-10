@@ -9,4 +9,4 @@
 
 pub mod parser;
 
-pub use parser::{Ast, CParser, Function, Parameter, Type};
+pub use parser::{Ast, CParser, Expression, Function, Parameter, Statement, Type};
