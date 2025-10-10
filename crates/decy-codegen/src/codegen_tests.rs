@@ -491,4 +491,150 @@ mod tests {
 
         assert_eq!(code, "a * (b + c)");
     }
+
+    // DECY-005: If/else statement generation tests (RED phase)
+
+    #[test]
+    fn test_generate_if_statement() {
+        // RED PHASE: This test will FAIL
+        use decy_hir::{BinaryOperator, HirExpression, HirStatement};
+
+        let if_stmt = HirStatement::If {
+            condition: HirExpression::BinaryOp {
+                op: BinaryOperator::GreaterThan,
+                left: Box::new(HirExpression::Variable("x".to_string())),
+                right: Box::new(HirExpression::IntLiteral(0)),
+            },
+            then_block: vec![HirStatement::Return(Some(HirExpression::IntLiteral(1)))],
+            else_block: None,
+        };
+
+        let codegen = CodeGenerator::new();
+        let code = codegen.generate_statement(&if_stmt);
+
+        assert!(code.contains("if x > 0"));
+        assert!(code.contains("{"));
+        assert!(code.contains("return 1;"));
+        assert!(code.contains("}"));
+    }
+
+    #[test]
+    fn test_generate_if_else_statement() {
+        // RED PHASE: This test will FAIL
+        use decy_hir::{BinaryOperator, HirExpression, HirStatement};
+
+        let if_stmt = HirStatement::If {
+            condition: HirExpression::BinaryOp {
+                op: BinaryOperator::Equal,
+                left: Box::new(HirExpression::Variable("x".to_string())),
+                right: Box::new(HirExpression::IntLiteral(0)),
+            },
+            then_block: vec![HirStatement::Return(Some(HirExpression::IntLiteral(1)))],
+            else_block: Some(vec![HirStatement::Return(Some(HirExpression::IntLiteral(
+                -1,
+            )))]),
+        };
+
+        let codegen = CodeGenerator::new();
+        let code = codegen.generate_statement(&if_stmt);
+
+        assert!(code.contains("if x == 0"));
+        assert!(code.contains("} else {"));
+        assert!(code.contains("return 1;"));
+        assert!(code.contains("return -1;"));
+    }
+
+    #[test]
+    fn test_generate_nested_if() {
+        // RED PHASE: This test will FAIL
+        use decy_hir::{BinaryOperator, HirExpression, HirStatement};
+
+        let nested_if = HirStatement::If {
+            condition: HirExpression::BinaryOp {
+                op: BinaryOperator::GreaterThan,
+                left: Box::new(HirExpression::Variable("x".to_string())),
+                right: Box::new(HirExpression::IntLiteral(0)),
+            },
+            then_block: vec![HirStatement::If {
+                condition: HirExpression::BinaryOp {
+                    op: BinaryOperator::LessThan,
+                    left: Box::new(HirExpression::Variable("x".to_string())),
+                    right: Box::new(HirExpression::IntLiteral(10)),
+                },
+                then_block: vec![HirStatement::Return(Some(HirExpression::IntLiteral(1)))],
+                else_block: None,
+            }],
+            else_block: None,
+        };
+
+        let codegen = CodeGenerator::new();
+        let code = codegen.generate_statement(&nested_if);
+
+        // Should contain both if conditions
+        assert!(code.contains("if x > 0"));
+        assert!(code.contains("if x < 10"));
+    }
+
+    #[test]
+    fn test_generate_if_with_multiple_statements() {
+        // RED PHASE: This test will FAIL
+        use decy_hir::{BinaryOperator, HirExpression, HirStatement};
+
+        let if_stmt = HirStatement::If {
+            condition: HirExpression::BinaryOp {
+                op: BinaryOperator::GreaterThan,
+                left: Box::new(HirExpression::Variable("x".to_string())),
+                right: Box::new(HirExpression::IntLiteral(0)),
+            },
+            then_block: vec![
+                HirStatement::VariableDeclaration {
+                    name: "y".to_string(),
+                    var_type: HirType::Int,
+                    initializer: Some(HirExpression::IntLiteral(1)),
+                },
+                HirStatement::Return(Some(HirExpression::Variable("y".to_string()))),
+            ],
+            else_block: None,
+        };
+
+        let codegen = CodeGenerator::new();
+        let code = codegen.generate_statement(&if_stmt);
+
+        assert!(code.contains("if x > 0"));
+        assert!(code.contains("let mut y: i32 = 1;"));
+        assert!(code.contains("return y;"));
+    }
+
+    #[test]
+    fn test_end_to_end_if_else() {
+        // RED PHASE: This test will FAIL
+        // Test complete if/else in function context
+        use decy_hir::{BinaryOperator, HirExpression, HirStatement};
+
+        let func = HirFunction::new_with_body(
+            "sign".to_string(),
+            HirType::Int,
+            vec![HirParameter::new("x".to_string(), HirType::Int)],
+            vec![HirStatement::If {
+                condition: HirExpression::BinaryOp {
+                    op: BinaryOperator::GreaterThan,
+                    left: Box::new(HirExpression::Variable("x".to_string())),
+                    right: Box::new(HirExpression::IntLiteral(0)),
+                },
+                then_block: vec![HirStatement::Return(Some(HirExpression::IntLiteral(1)))],
+                else_block: Some(vec![HirStatement::Return(Some(HirExpression::IntLiteral(
+                    -1,
+                )))]),
+            }],
+        );
+
+        let codegen = CodeGenerator::new();
+        let code = codegen.generate_function(&func);
+
+        assert!(code.contains("fn sign(x: i32) -> i32"));
+        assert!(code.contains("if x > 0"));
+        assert!(code.contains("} else {"));
+        assert!(code.contains("return 1;"));
+        assert!(code.contains("return -1;"));
+    }
 }

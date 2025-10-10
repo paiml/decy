@@ -291,6 +291,15 @@ pub enum HirStatement {
     },
     /// Return statement with optional value
     Return(Option<HirExpression>),
+    /// If statement with condition, then-block, and optional else-block
+    If {
+        /// Condition expression
+        condition: HirExpression,
+        /// Then block (statements to execute if condition is true)
+        then_block: Vec<HirStatement>,
+        /// Else block (optional statements to execute if condition is false)
+        else_block: Option<Vec<HirStatement>>,
+    },
 }
 
 #[cfg(test)]

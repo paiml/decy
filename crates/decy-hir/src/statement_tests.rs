@@ -259,4 +259,122 @@ mod tests {
         let cloned = expr.clone();
         assert_eq!(expr, cloned);
     }
+
+    // DECY-005: If/else statement tests (RED phase)
+
+    #[test]
+    fn test_hir_if_statement_creation() {
+        // RED PHASE: This test will FAIL
+        let if_stmt = HirStatement::If {
+            condition: HirExpression::BinaryOp {
+                op: BinaryOperator::GreaterThan,
+                left: Box::new(HirExpression::Variable("x".to_string())),
+                right: Box::new(HirExpression::IntLiteral(0)),
+            },
+            then_block: vec![HirStatement::Return(Some(HirExpression::IntLiteral(1)))],
+            else_block: None,
+        };
+
+        if let HirStatement::If {
+            condition,
+            then_block,
+            else_block,
+        } = &if_stmt
+        {
+            assert!(matches!(condition, HirExpression::BinaryOp { .. }));
+            assert_eq!(then_block.len(), 1);
+            assert!(else_block.is_none());
+        } else {
+            panic!("Expected If statement");
+        }
+    }
+
+    #[test]
+    fn test_hir_if_else_statement() {
+        // RED PHASE: This test will FAIL
+        let if_stmt = HirStatement::If {
+            condition: HirExpression::BinaryOp {
+                op: BinaryOperator::Equal,
+                left: Box::new(HirExpression::Variable("x".to_string())),
+                right: Box::new(HirExpression::IntLiteral(0)),
+            },
+            then_block: vec![HirStatement::Return(Some(HirExpression::IntLiteral(1)))],
+            else_block: Some(vec![HirStatement::Return(Some(HirExpression::IntLiteral(
+                -1,
+            )))]),
+        };
+
+        if let HirStatement::If {
+            condition,
+            then_block,
+            else_block,
+        } = &if_stmt
+        {
+            assert!(matches!(condition, HirExpression::BinaryOp { .. }));
+            assert_eq!(then_block.len(), 1);
+            assert!(else_block.is_some());
+            assert_eq!(else_block.as_ref().unwrap().len(), 1);
+        } else {
+            panic!("Expected If statement");
+        }
+    }
+
+    #[test]
+    fn test_nested_if_statements() {
+        // RED PHASE: This test will FAIL
+        let nested_if = HirStatement::If {
+            condition: HirExpression::BinaryOp {
+                op: BinaryOperator::GreaterThan,
+                left: Box::new(HirExpression::Variable("x".to_string())),
+                right: Box::new(HirExpression::IntLiteral(0)),
+            },
+            then_block: vec![HirStatement::If {
+                condition: HirExpression::BinaryOp {
+                    op: BinaryOperator::LessThan,
+                    left: Box::new(HirExpression::Variable("x".to_string())),
+                    right: Box::new(HirExpression::IntLiteral(10)),
+                },
+                then_block: vec![HirStatement::Return(Some(HirExpression::IntLiteral(1)))],
+                else_block: None,
+            }],
+            else_block: None,
+        };
+
+        if let HirStatement::If { then_block, .. } = &nested_if {
+            assert_eq!(then_block.len(), 1);
+            assert!(matches!(then_block[0], HirStatement::If { .. }));
+        } else {
+            panic!("Expected If statement");
+        }
+    }
+
+    #[test]
+    fn test_if_statement_clone() {
+        // RED PHASE: This test will FAIL
+        let if_stmt = HirStatement::If {
+            condition: HirExpression::BinaryOp {
+                op: BinaryOperator::GreaterThan,
+                left: Box::new(HirExpression::Variable("x".to_string())),
+                right: Box::new(HirExpression::IntLiteral(0)),
+            },
+            then_block: vec![HirStatement::Return(Some(HirExpression::IntLiteral(1)))],
+            else_block: None,
+        };
+
+        let cloned = if_stmt.clone();
+        assert_eq!(if_stmt, cloned);
+    }
+
+    #[test]
+    fn test_if_statement_debug() {
+        // RED PHASE: This test will FAIL
+        let if_stmt = HirStatement::If {
+            condition: HirExpression::Variable("x".to_string()),
+            then_block: vec![],
+            else_block: None,
+        };
+
+        let debug_str = format!("{:?}", if_stmt);
+        assert!(debug_str.contains("If"));
+    }
 }

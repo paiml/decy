@@ -157,6 +157,10 @@ impl CodeGenerator {
                     "return;".to_string()
                 }
             }
+            HirStatement::If { .. } => {
+                // RED PHASE: Placeholder - will implement in GREEN phase
+                unimplemented!("If statement generation not yet implemented")
+            }
         }
     }
 
