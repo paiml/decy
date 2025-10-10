@@ -452,6 +452,85 @@ proptest! {
         let comma_count = code.matches(',').count();
         prop_assert_eq!(comma_count, arg_count - 1);
     }
+
+    // DECY-009 Phase 2: property tests for assignment statements
+
+    /// Property: Assignment statements always contain "="
+    #[test]
+    fn property_assignment_contains_equals(
+        target in "[a-z_][a-z0-9_]{0,10}",
+        val in -100i32..100i32
+    ) {
+        use decy_hir::{HirExpression, HirStatement};
+
+        let assign_stmt = HirStatement::Assignment {
+            target,
+            value: HirExpression::IntLiteral(val),
+        };
+
+        let codegen = CodeGenerator::new();
+        let code = codegen.generate_statement(&assign_stmt);
+
+        prop_assert!(code.contains(" = "));
+    }
+
+    /// Property: Assignment statements end with semicolon
+    #[test]
+    fn property_assignment_ends_with_semicolon(
+        target in "[a-z_][a-z0-9_]{0,10}",
+        val in -100i32..100i32
+    ) {
+        use decy_hir::{HirExpression, HirStatement};
+
+        let assign_stmt = HirStatement::Assignment {
+            target,
+            value: HirExpression::IntLiteral(val),
+        };
+
+        let codegen = CodeGenerator::new();
+        let code = codegen.generate_statement(&assign_stmt);
+
+        prop_assert!(code.ends_with(';'));
+    }
+
+    /// Property: Assignment preserves target variable name
+    #[test]
+    fn property_assignment_preserves_target(
+        target in "[a-z_][a-z0-9_]{0,10}",
+        val in -100i32..100i32
+    ) {
+        use decy_hir::{HirExpression, HirStatement};
+
+        let assign_stmt = HirStatement::Assignment {
+            target: target.clone(),
+            value: HirExpression::IntLiteral(val),
+        };
+
+        let codegen = CodeGenerator::new();
+        let code = codegen.generate_statement(&assign_stmt);
+
+        prop_assert!(code.starts_with(&target));
+    }
+
+    /// Property: Assignment code generation is deterministic
+    #[test]
+    fn property_assignment_consistent(
+        target in "[a-z_][a-z0-9_]{0,10}",
+        val in -100i32..100i32
+    ) {
+        use decy_hir::{HirExpression, HirStatement};
+
+        let assign_stmt = HirStatement::Assignment {
+            target,
+            value: HirExpression::IntLiteral(val),
+        };
+
+        let codegen = CodeGenerator::new();
+        let code1 = codegen.generate_statement(&assign_stmt);
+        let code2 = codegen.generate_statement(&assign_stmt);
+
+        prop_assert_eq!(code1, code2);
+    }
 }
 
 // Regular tests for binary expressions (not property tests)
