@@ -275,6 +275,18 @@ sprint_2:
       type: feature
       priority: high
       story_points: 8
+      assignee: Claude
+      status: done
+      github_issue: null
+      phase: DONE
+      completed_date: "2025-10-10"
+      actual_coverage: 96.33
+      actual_metrics:
+        coverage: "96.33%"
+        tests_passing: "120 tests (50 codegen + 44 HIR + 9 parser + 17 doctests)"
+        clippy_warnings: 0
+        property_tests: "13 properties x 100 cases including 3 for if/else"
+        quality_grade: "A+"
 
       description: |
         Support if/else control flow.
