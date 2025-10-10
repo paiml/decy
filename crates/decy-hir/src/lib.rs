@@ -5,3 +5,7 @@
 #![warn(missing_docs)]
 #![warn(clippy::all)]
 #![deny(unsafe_code)]
+
+#[cfg(test)]
+#[path = "hir_tests.rs"]
+mod hir_tests;
