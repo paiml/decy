@@ -279,6 +279,13 @@ pub enum HirExpression {
     Dereference(Box<HirExpression>),
     /// Address-of operation (&x)
     AddressOf(Box<HirExpression>),
+    /// Function call (function_name(args...))
+    FunctionCall {
+        /// Function name
+        function: String,
+        /// Arguments
+        arguments: Vec<HirExpression>,
+    },
 }
 
 /// Represents a statement in HIR.

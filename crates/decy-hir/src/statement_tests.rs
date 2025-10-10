@@ -508,4 +508,91 @@ mod tests {
             panic!("Expected nested Dereference");
         }
     }
+
+    // DECY-009: Function call expression tests (RED phase)
+
+    #[test]
+    fn test_function_call_no_args() {
+        // RED PHASE: This test will FAIL
+        let expr = HirExpression::FunctionCall {
+            function: "foo".to_string(),
+            arguments: vec![],
+        };
+
+        if let HirExpression::FunctionCall { function, arguments } = &expr {
+            assert_eq!(function, "foo");
+            assert_eq!(arguments.len(), 0);
+        } else {
+            panic!("Expected FunctionCall");
+        }
+    }
+
+    #[test]
+    fn test_function_call_with_args() {
+        // RED PHASE: This test will FAIL
+        let expr = HirExpression::FunctionCall {
+            function: "malloc".to_string(),
+            arguments: vec![HirExpression::IntLiteral(10)],
+        };
+
+        if let HirExpression::FunctionCall { function, arguments } = &expr {
+            assert_eq!(function, "malloc");
+            assert_eq!(arguments.len(), 1);
+            assert!(matches!(arguments[0], HirExpression::IntLiteral(10)));
+        } else {
+            panic!("Expected FunctionCall");
+        }
+    }
+
+    #[test]
+    fn test_function_call_multiple_args() {
+        // RED PHASE: This test will FAIL
+        let expr = HirExpression::FunctionCall {
+            function: "add".to_string(),
+            arguments: vec![
+                HirExpression::Variable("x".to_string()),
+                HirExpression::Variable("y".to_string()),
+            ],
+        };
+
+        if let HirExpression::FunctionCall { function, arguments } = &expr {
+            assert_eq!(function, "add");
+            assert_eq!(arguments.len(), 2);
+        } else {
+            panic!("Expected FunctionCall");
+        }
+    }
+
+    #[test]
+    fn test_function_call_clone() {
+        // RED PHASE: This test will FAIL
+        let expr = HirExpression::FunctionCall {
+            function: "free".to_string(),
+            arguments: vec![HirExpression::Variable("ptr".to_string())],
+        };
+
+        let cloned = expr.clone();
+        assert_eq!(expr, cloned);
+    }
+
+    #[test]
+    fn test_nested_function_calls() {
+        // RED PHASE: This test will FAIL
+        // outer(inner())
+        let expr = HirExpression::FunctionCall {
+            function: "outer".to_string(),
+            arguments: vec![HirExpression::FunctionCall {
+                function: "inner".to_string(),
+                arguments: vec![],
+            }],
+        };
+
+        if let HirExpression::FunctionCall { function, arguments } = &expr {
+            assert_eq!(function, "outer");
+            assert_eq!(arguments.len(), 1);
+            assert!(matches!(arguments[0], HirExpression::FunctionCall { .. }));
+        } else {
+            panic!("Expected FunctionCall");
+        }
+    }
 }
