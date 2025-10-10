@@ -773,9 +773,9 @@ mod tests {
         use decy_hir::HirExpression;
 
         // **ptr_ptr
-        let expr = HirExpression::Dereference(Box::new(HirExpression::Dereference(
-            Box::new(HirExpression::Variable("ptr_ptr".to_string())),
-        )));
+        let expr = HirExpression::Dereference(Box::new(HirExpression::Dereference(Box::new(
+            HirExpression::Variable("ptr_ptr".to_string()),
+        ))));
 
         let codegen = CodeGenerator::new();
         let code = codegen.generate_expression(&expr);
@@ -789,9 +789,9 @@ mod tests {
         use decy_hir::HirExpression;
 
         // &(*ptr)
-        let expr = HirExpression::AddressOf(Box::new(HirExpression::Dereference(
-            Box::new(HirExpression::Variable("ptr".to_string())),
-        )));
+        let expr = HirExpression::AddressOf(Box::new(HirExpression::Dereference(Box::new(
+            HirExpression::Variable("ptr".to_string()),
+        ))));
 
         let codegen = CodeGenerator::new();
         let code = codegen.generate_expression(&expr);
