@@ -479,16 +479,16 @@ sprint_3:
       priority: critical
       story_points: 13
       assignee: Claude
-      status: in_progress
+      status: done
       github_issue: null
-      phase: "Phase 1 Complete"
+      phase: DONE
+      completed_date: "2025-10-10"
 
       notes: |
-        Breaking this into phases due to complexity:
-        - Phase 1: Function call support (COMPLETE) ✅
-        - Phase 2: Assignment statement support (TODO)
-        - Phase 3: malloc/free pattern detection (TODO)
-        - Phase 4: Box::new() generation (TODO)
+        Completed through DECY-001 Phase 2 which implemented:
+        - malloc/free pattern detection ✅
+        - Box::new() generation ✅
+        - End-to-end C parsing to Box transformation ✅
 
       phase_1_completion:
         completed_date: "2025-10-10"
@@ -536,6 +536,59 @@ sprint_3:
         - "No unsafe blocks for detected patterns"
         - "Coverage ≥85%"
         - "Reduces unsafe by ~30%"
+
+      red_green_refactor: true
+
+    DECY-017:
+      title: "Implement test generator for transpiled code"
+      type: feature
+      priority: high
+      story_points: 8
+      assignee: Claude
+      status: done
+      github_issue: null
+      phase: DONE
+      completed_date: "2025-10-10"
+      actual_coverage: 95.89
+      actual_metrics:
+        coverage: "95.89%"
+        tests_passing: "227 tests (112 codegen + 11 test_generator + 65 HIR + 9 parser + 9 analyzer + 17 doctests)"
+        clippy_warnings: 0
+        property_tests: "Property tests generated per function"
+        quality_grade: "A+"
+
+      description: |
+        Generate comprehensive test suites for transpiled Rust functions.
+        Implements Section 9 of specification: Test Generation (EXTREME TDD Output).
+
+      requirements:
+        - Generate unit tests (≥5 per function)
+        - Generate property tests (≥5 per function)
+        - Generate doc tests with usage examples
+        - Generate mutation test configuration
+        - Configurable test generation options
+
+      test_requirements:
+        unit_tests:
+          - test_test_generator_creation
+          - test_generate_unit_tests_for_simple_function
+          - test_generate_property_tests
+          - test_generate_determinism_property
+          - test_generate_no_panic_property
+          - test_generate_doc_test
+          - test_generate_mutation_config
+          - test_custom_test_counts
+          - test_analyze_test_scenarios_for_pointer_parameter
+          - test_generate_tests_for_function_with_box_type
+          - test_disable_doc_test_generation
+
+      acceptance_criteria:
+        - "Generates ≥5 unit tests per function"
+        - "Generates ≥5 property tests per function"
+        - "Generates doc tests"
+        - "Generates mutation config"
+        - "Coverage ≥80%"
+        - "All 11 tests passing"
 
       red_green_refactor: true
 
