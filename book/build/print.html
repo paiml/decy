@@ -2549,12 +2549,468 @@ Overall                      89.2% coverage ✅
 <li><a href="components/./ownership.html">Ownership Inference</a> - Determining ownership patterns</li>
 </ul>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="dataflow-analysis"><a class="header" href="#dataflow-analysis">Dataflow Analysis</a></h1>
+<p>Dataflow analysis tracks how data flows through a program to understand variable usage, dependencies, and potential issues like use-after-free.</p>
+<h2 id="purpose-1"><a class="header" href="#purpose-1">Purpose</a></h2>
+<p>Dataflow analysis enables:</p>
+<ol>
+<li><strong>Ownership inference</strong>: Determine which variables own their data</li>
+<li><strong>Lifetime analysis</strong>: Track when variables are created and destroyed</li>
+<li><strong>Safety checks</strong>: Detect use-after-free, double-free, null dereferences</li>
+<li><strong>Optimization</strong>: Identify dead code and unused variables</li>
+</ol>
+<h2 id="architecture-2"><a class="header" href="#architecture-2">Architecture</a></h2>
+<pre><code>HIR → Dataflow Graph Builder → Dataflow Graph → Analysis → Insights
+</code></pre>
+<h2 id="dataflow-graph"><a class="header" href="#dataflow-graph">Dataflow Graph</a></h2>
+<h3 id="node-types"><a class="header" href="#node-types">Node Types</a></h3>
+<pre><code class="language-rust ignore">#[derive(Debug, Clone, PartialEq)]
+pub enum DataflowNode {
+    // Variable declaration
+    Decl { name: String, ty: HirType },
+
+    // Assignment to variable
+    Assign { target: String, source: DataflowValue },
+
+    // Function call
+    Call { name: String, args: Vec&lt;String&gt; },
+
+    // Memory operation
+    Malloc { var: String, size: usize },
+    Free { var: String },
+
+    // Pointer operation
+    Dereference { var: String },
+    AddressOf { var: String },
+}</code></pre>
+<h3 id="example-graph"><a class="header" href="#example-graph">Example Graph</a></h3>
+<p>For this C code:</p>
+<pre><code class="language-c">int* create_array(int size) {
+    int* arr = malloc(size * sizeof(int));
+    arr[0] = 10;
+    return arr;
+}
+</code></pre>
+<p>The dataflow graph:</p>
+<pre><code>[1] Decl(arr, int*)
+[2] Malloc(arr, size*4)
+[3] Assign(arr[0], 10)
+[4] Return(arr)
+
+Dependencies:
+[2] → [1]  (malloc depends on declaration)
+[3] → [2]  (assignment depends on malloc)
+[4] → [3]  (return depends on assignment)
+</code></pre>
+<h2 id="building-the-graph"><a class="header" href="#building-the-graph">Building the Graph</a></h2>
+<h3 id="verification-test-4"><a class="header" href="#verification-test-4">Verification Test</a></h3>
+<pre><code class="language-rust ignore">#[test]
+fn test_build_dataflow_graph() {
+    let hir_func = create_malloc_function();
+
+    let graph = DataflowGraph::from_hir(&amp;hir_func).unwrap();
+
+    // Verify nodes
+    assert_eq!(graph.nodes().len(), 4);
+
+    // Verify dependencies
+    assert!(graph.has_edge(1, 0));  // malloc → decl
+    assert!(graph.has_edge(2, 1));  // assign → malloc
+    assert!(graph.has_edge(3, 2));  // return → assign
+}</code></pre>
+<h2 id="use-after-free-detection"><a class="header" href="#use-after-free-detection">Use-After-Free Detection</a></h2>
+<pre><code class="language-rust ignore">#[test]
+fn test_detect_use_after_free() {
+    let c_code = r#"
+        void bad_function() {
+            int* p = malloc(sizeof(int));
+            free(p);
+            *p = 10;  // Use after free!
+        }
+    "#;
+
+    let hir = lower_to_hir(&amp;parse(c_code).unwrap()).unwrap();
+    let graph = DataflowGraph::from_hir(&amp;hir).unwrap();
+
+    let analysis = DataflowAnalysis::new(&amp;graph);
+    let errors = analysis.check_safety();
+
+    assert_eq!(errors.len(), 1);
+    assert!(matches!(errors[0], SafetyError::UseAfterFree { .. }));
+}</code></pre>
+<h2 id="pointer-tracking"><a class="header" href="#pointer-tracking">Pointer Tracking</a></h2>
+<p>Track pointer allocations and deallocations:</p>
+<pre><code class="language-rust ignore">#[test]
+fn test_track_pointer_lifecycle() {
+    let c_code = r#"
+        int* create_int() {
+            int* p = malloc(sizeof(int));
+            *p = 42;
+            return p;
+        }
+    "#;
+
+    let hir = lower_to_hir(&amp;parse(c_code).unwrap()).unwrap();
+    let graph = DataflowGraph::from_hir(&amp;hir).unwrap();
+
+    let tracker = PointerTracker::new(&amp;graph);
+    let info = tracker.analyze_variable("p").unwrap();
+
+    assert!(info.is_allocated);
+    assert!(!info.is_freed);
+    assert!(info.escapes_scope);  // Returned from function
+}</code></pre>
+<h2 id="property-tests"><a class="header" href="#property-tests">Property Tests</a></h2>
+<h3 id="property-graph-is-acyclic"><a class="header" href="#property-graph-is-acyclic">Property: Graph is Acyclic</a></h3>
+<pre><code class="language-rust ignore">use proptest::prelude::*;
+
+proptest! {
+    #[test]
+    fn prop_dataflow_graph_is_dag(hir_func in valid_hir_function()) {
+        let graph = DataflowGraph::from_hir(&amp;hir_func).unwrap();
+
+        // Property: Dataflow graph must be a DAG (no cycles)
+        prop_assert!(!graph.has_cycle());
+    }
+}</code></pre>
+<h3 id="property-all-variables-declared-before-use"><a class="header" href="#property-all-variables-declared-before-use">Property: All Variables Declared Before Use</a></h3>
+<pre><code class="language-rust ignore">proptest! {
+    #[test]
+    fn prop_variables_declared_before_use(hir_func in valid_hir_function()) {
+        let graph = DataflowGraph::from_hir(&amp;hir_func).unwrap();
+
+        // Property: Every use has a prior declaration
+        for node in graph.nodes() {
+            if let DataflowNode::Assign { target, .. } = node {
+                prop_assert!(
+                    graph.has_prior_declaration(target),
+                    "Variable {} used before declaration", target
+                );
+            }
+        }
+    }
+}</code></pre>
+<h2 id="summary-5"><a class="header" href="#summary-5">Summary</a></h2>
+<p>Dataflow analysis provides:</p>
+<p>✅ <strong>Variable tracking</strong>: Follow data through the program
+✅ <strong>Safety checks</strong>: Detect use-after-free, double-free
+✅ <strong>Ownership hints</strong>: Identify owning vs borrowed variables
+✅ <strong>Dependency graph</strong>: Understand variable relationships</p>
+<h2 id="next-steps-6"><a class="header" href="#next-steps-6">Next Steps</a></h2>
+<ul>
+<li><a href="components/./ownership.html">Ownership Inference</a> - Using dataflow to infer ownership</li>
+<li><a href="components/./borrow.html">Borrow Generation</a> - Converting pointers to borrows</li>
+</ul>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="ownership-inference"><a class="header" href="#ownership-inference">Ownership Inference</a></h1>
+<p>Ownership inference determines which Rust ownership pattern (owning, borrowed, or raw) best represents each C pointer.</p>
+<h2 id="ownership-patterns"><a class="header" href="#ownership-patterns">Ownership Patterns</a></h2>
+<h3 id="three-categories"><a class="header" href="#three-categories">Three Categories</a></h3>
+<pre><code class="language-rust ignore">#[derive(Debug, Clone, PartialEq)]
+pub enum OwnershipPattern {
+    // Variable owns its data (Box&lt;T&gt;)
+    Owning,
+
+    // Variable borrows data (&amp;T or &amp;mut T)
+    Borrowed,
+
+    // Unsafe raw pointer (*const T or *mut T)
+    Raw,
+}</code></pre>
+<h3 id="pattern-mapping"><a class="header" href="#pattern-mapping">Pattern Mapping</a></h3>
+<div class="table-wrapper"><table><thead><tr><th>C Pattern</th><th>Ownership</th><th>Rust Type</th></tr></thead><tbody>
+<tr><td><code>malloc</code> → variable</td><td>Owning</td><td><code>Box&lt;T&gt;</code></td></tr>
+<tr><td>Function parameter pointer</td><td>Borrowed</td><td><code>&amp;T</code> or <code>&amp;mut T</code></td></tr>
+<tr><td>Returned pointer</td><td>Owning</td><td><code>Box&lt;T&gt;</code></td></tr>
+<tr><td>Pointer arithmetic</td><td>Raw</td><td><code>*mut T</code></td></tr>
+<tr><td>NULL checks</td><td>Borrowed</td><td><code>Option&lt;&amp;T&gt;</code></td></tr>
+</tbody></table>
+</div>
+<h2 id="inference-algorithm"><a class="header" href="#inference-algorithm">Inference Algorithm</a></h2>
+<h3 id="step-1-classify-by-source"><a class="header" href="#step-1-classify-by-source">Step 1: Classify by Source</a></h3>
+<pre><code class="language-rust ignore">fn classify_by_source(var: &amp;str, graph: &amp;DataflowGraph) -&gt; OwnershipPattern {
+    let source = graph.get_source(var);
+
+    match source {
+        Source::Malloc =&gt; OwnershipPattern::Owning,
+        Source::Parameter =&gt; OwnershipPattern::Borrowed,
+        Source::AddressOf(_) =&gt; OwnershipPattern::Borrowed,
+        Source::PointerArithmetic =&gt; OwnershipPattern::Raw,
+        _ =&gt; OwnershipPattern::Raw,
+    }
+}</code></pre>
+<h3 id="verification-test-5"><a class="header" href="#verification-test-5">Verification Test</a></h3>
+<pre><code class="language-rust ignore">#[test]
+fn test_malloc_is_owning() {
+    let c_code = "int* p = malloc(sizeof(int));";
+
+    let hir = lower_to_hir(&amp;parse(c_code).unwrap()).unwrap();
+    let graph = DataflowGraph::from_hir(&amp;hir).unwrap();
+    let ownership = infer_ownership(&amp;graph);
+
+    assert_eq!(ownership.get("p"), Some(&amp;OwnershipPattern::Owning));
+}
+
+#[test]
+fn test_parameter_is_borrowed() {
+    let c_code = "void func(int* p) { *p = 10; }";
+
+    let hir = lower_to_hir(&amp;parse(c_code).unwrap()).unwrap();
+    let graph = DataflowGraph::from_hir(&amp;hir).unwrap();
+    let ownership = infer_ownership(&amp;graph);
+
+    assert_eq!(ownership.get("p"), Some(&amp;OwnershipPattern::Borrowed));
+}</code></pre>
+<h2 id="mutability-inference"><a class="header" href="#mutability-inference">Mutability Inference</a></h2>
+<p>Determine if borrows should be mutable:</p>
+<pre><code class="language-rust ignore">fn infer_mutability(var: &amp;str, graph: &amp;DataflowGraph) -&gt; bool {
+    // Check if variable is ever assigned to
+    for node in graph.nodes() {
+        if let DataflowNode::Assign { target, .. } = node {
+            if target == var {
+                return true;  // Mutable
+            }
+        }
+        if let DataflowNode::Dereference { var: v } = node {
+            if v == var &amp;&amp; graph.is_lvalue(node) {
+                return true;  // Mutable (used as lvalue)
+            }
+        }
+    }
+    false  // Immutable
+}</code></pre>
+<h3 id="verification-test-6"><a class="header" href="#verification-test-6">Verification Test</a></h3>
+<pre><code class="language-rust ignore">#[test]
+fn test_infer_mutable_borrow() {
+    let c_code = "void increment(int* p) { *p = *p + 1; }";
+
+    let hir = lower_to_hir(&amp;parse(c_code).unwrap()).unwrap();
+    let graph = DataflowGraph::from_hir(&amp;hir).unwrap();
+    let analysis = OwnershipAnalysis::new(&amp;graph);
+
+    let info = analysis.analyze_variable("p").unwrap();
+
+    assert_eq!(info.pattern, OwnershipPattern::Borrowed);
+    assert!(info.is_mutable);  // Should be &amp;mut, not &amp;
+}
+
+#[test]
+fn test_infer_immutable_borrow() {
+    let c_code = "int get_value(const int* p) { return *p; }";
+
+    let hir = lower_to_hir(&amp;parse(c_code).unwrap()).unwrap();
+    let graph = DataflowGraph::from_hir(&amp;hir).unwrap();
+    let analysis = OwnershipAnalysis::new(&amp;graph);
+
+    let info = analysis.analyze_variable("p").unwrap();
+
+    assert_eq!(info.pattern, OwnershipPattern::Borrowed);
+    assert!(!info.is_mutable);  // Should be &amp;, not &amp;mut
+}</code></pre>
+<h2 id="confidence-scoring"><a class="header" href="#confidence-scoring">Confidence Scoring</a></h2>
+<p>Assign confidence to each inference:</p>
+<pre><code class="language-rust ignore">#[derive(Debug, Clone)]
+pub struct OwnershipInfo {
+    pub pattern: OwnershipPattern,
+    pub is_mutable: bool,
+    pub confidence: f64,  // 0.0 to 1.0
+    pub reasoning: Vec&lt;String&gt;,
+}
+
+fn calculate_confidence(var: &amp;str, graph: &amp;DataflowGraph) -&gt; f64 {
+    let mut confidence = 0.5;  // Start neutral
+
+    // Strong indicators increase confidence
+    if has_malloc_call(var, graph) {
+        confidence += 0.4;  // malloc → definitely owning
+    }
+    if is_function_parameter(var, graph) {
+        confidence += 0.3;  // parameters → likely borrowed
+    }
+
+    // Weak indicators
+    if has_null_check(var, graph) {
+        confidence += 0.1;
+    }
+
+    confidence.min(1.0)
+}</code></pre>
+<h3 id="verification-test-7"><a class="header" href="#verification-test-7">Verification Test</a></h3>
+<pre><code class="language-rust ignore">#[test]
+fn test_confidence_scores() {
+    let test_cases = vec![
+        ("int* p = malloc(sizeof(int));", 0.9),  // High confidence
+        ("void func(int* p) {}", 0.8),            // High confidence
+        ("int* p;", 0.5),                         // Low confidence (unknown)
+    ];
+
+    for (c_code, expected_min_confidence) in test_cases {
+        let hir = lower_to_hir(&amp;parse(c_code).unwrap()).unwrap();
+        let graph = DataflowGraph::from_hir(&amp;hir).unwrap();
+        let analysis = OwnershipAnalysis::new(&amp;graph);
+        let info = analysis.analyze_variable("p").unwrap();
+
+        assert!(
+            info.confidence &gt;= expected_min_confidence,
+            "Expected confidence ≥ {}, got {}",
+            expected_min_confidence,
+            info.confidence
+        );
+    }
+}</code></pre>
+<h2 id="property-tests-1"><a class="header" href="#property-tests-1">Property Tests</a></h2>
+<h3 id="property-malloc-always-owning"><a class="header" href="#property-malloc-always-owning">Property: malloc Always Owning</a></h3>
+<pre><code class="language-rust ignore">use proptest::prelude::*;
+
+proptest! {
+    #[test]
+    fn prop_malloc_always_owning(var_name in "[a-z]+", size in 1..1024usize) {
+        let c_code = format!("{}* {} = malloc({});", "int", var_name, size);
+
+        let hir = lower_to_hir(&amp;parse(&amp;c_code).unwrap()).unwrap();
+        let graph = DataflowGraph::from_hir(&amp;hir).unwrap();
+        let ownership = infer_ownership(&amp;graph);
+
+        // Property: All malloc allocations are owning
+        prop_assert_eq!(
+            ownership.get(&amp;var_name),
+            Some(&amp;OwnershipPattern::Owning)
+        );
+    }
+}</code></pre>
+<h3 id="property-function-parameters-borrowed"><a class="header" href="#property-function-parameters-borrowed">Property: Function Parameters Borrowed</a></h3>
+<pre><code class="language-rust ignore">proptest! {
+    #[test]
+    fn prop_parameters_borrowed(
+        func_name in "[a-z]+",
+        param_name in "[a-z]+",
+    ) {
+        let c_code = format!(
+            "void {}(int* {}) {{ *{} = 0; }}",
+            func_name, param_name, param_name
+        );
+
+        let hir = lower_to_hir(&amp;parse(&amp;c_code).unwrap()).unwrap();
+        let graph = DataflowGraph::from_hir(&amp;hir).unwrap();
+        let ownership = infer_ownership(&amp;graph);
+
+        // Property: Function parameters are borrowed
+        prop_assert_eq!(
+            ownership.get(&amp;param_name),
+            Some(&amp;OwnershipPattern::Borrowed)
+        );
+    }
+}</code></pre>
+<h2 id="escape-analysis"><a class="header" href="#escape-analysis">Escape Analysis</a></h2>
+<p>Determine if a variable escapes its scope:</p>
+<pre><code class="language-rust ignore">fn escapes_scope(var: &amp;str, graph: &amp;DataflowGraph) -&gt; bool {
+    for node in graph.nodes() {
+        if let DataflowNode::Return(expr) = node {
+            if expr.contains_var(var) {
+                return true;  // Returned from function
+            }
+        }
+        if let DataflowNode::Call { args, .. } = node {
+            if args.contains(&amp;var.to_string()) {
+                return true;  // Passed to another function
+            }
+        }
+    }
+    false
+}</code></pre>
+<h3 id="verification-test-8"><a class="header" href="#verification-test-8">Verification Test</a></h3>
+<pre><code class="language-rust ignore">#[test]
+fn test_escaping_variable() {
+    let c_code = r#"
+        int* create_int() {
+            int* p = malloc(sizeof(int));
+            return p;  // p escapes!
+        }
+    "#;
+
+    let hir = lower_to_hir(&amp;parse(c_code).unwrap()).unwrap();
+    let graph = DataflowGraph::from_hir(&amp;hir).unwrap();
+    let analysis = OwnershipAnalysis::new(&amp;graph);
+    let info = analysis.analyze_variable("p").unwrap();
+
+    assert!(info.escapes_scope);
+    assert_eq!(info.pattern, OwnershipPattern::Owning);
+}
+
+#[test]
+fn test_non_escaping_variable() {
+    let c_code = r#"
+        void process() {
+            int* p = malloc(sizeof(int));
+            free(p);  // p does not escape
+        }
+    "#;
+
+    let hir = lower_to_hir(&amp;parse(c_code).unwrap()).unwrap();
+    let graph = DataflowGraph::from_hir(&amp;hir).unwrap();
+    let analysis = OwnershipAnalysis::new(&amp;graph);
+    let info = analysis.analyze_variable("p").unwrap();
+
+    assert!(!info.escapes_scope);
+}</code></pre>
+<h2 id="reasoning-trace"><a class="header" href="#reasoning-trace">Reasoning Trace</a></h2>
+<p>Provide human-readable explanations:</p>
+<pre><code class="language-rust ignore">#[test]
+fn test_inference_reasoning() {
+    let c_code = "int* p = malloc(sizeof(int));";
+
+    let hir = lower_to_hir(&amp;parse(c_code).unwrap()).unwrap();
+    let graph = DataflowGraph::from_hir(&amp;hir).unwrap();
+    let analysis = OwnershipAnalysis::new(&amp;graph);
+    let info = analysis.analyze_variable("p").unwrap();
+
+    assert_eq!(info.pattern, OwnershipPattern::Owning);
+    assert!(info.reasoning.contains(&amp;"Allocated with malloc".to_string()));
+    assert!(info.reasoning.contains(&amp;"No evidence of borrowing".to_string()));
+}</code></pre>
+<h2 id="integration-test"><a class="header" href="#integration-test">Integration Test</a></h2>
+<p>Complete ownership inference pipeline:</p>
+<pre><code class="language-rust ignore">#[test]
+fn test_end_to_end_ownership_inference() {
+    let c_code = r#"
+        int* create_and_modify(int* input) {
+            int* output = malloc(sizeof(int));
+            *output = *input * 2;
+            return output;
+        }
+    "#;
+
+    let hir = lower_to_hir(&amp;parse(c_code).unwrap()).unwrap();
+    let graph = DataflowGraph::from_hir(&amp;hir).unwrap();
+    let ownership = infer_ownership(&amp;graph);
+
+    // input: borrowed (parameter, not modified)
+    assert_eq!(
+        ownership.get("input"),
+        Some(&amp;OwnershipPattern::Borrowed)
+    );
+
+    // output: owning (malloc, returned)
+    assert_eq!(
+        ownership.get("output"),
+        Some(&amp;OwnershipPattern::Owning)
+    );
+}</code></pre>
+<h2 id="summary-6"><a class="header" href="#summary-6">Summary</a></h2>
+<p>Ownership inference provides:</p>
+<p>✅ <strong>Pattern classification</strong>: Owning, Borrowed, or Raw
+✅ <strong>Mutability detection</strong>: &amp;T vs &amp;mut T
+✅ <strong>Confidence scoring</strong>: How certain is the inference?
+✅ <strong>Escape analysis</strong>: Does the variable leave its scope?
+✅ <strong>Reasoning traces</strong>: Why was this pattern chosen?</p>
+<h2 id="next-steps-7"><a class="header" href="#next-steps-7">Next Steps</a></h2>
+<ul>
+<li><a href="components/./borrow.html">Borrow Generation</a> - Converting inferred patterns to Rust code</li>
+<li><a href="components/./lifetime.html">Lifetime Analysis</a> - Determining lifetime annotations</li>
+</ul>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="borrow-generation"><a class="header" href="#borrow-generation">Borrow Generation</a></h1>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="lifetime-analysis"><a class="header" href="#lifetime-analysis">Lifetime Analysis</a></h1>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="code-generation-verification"><a class="header" href="#code-generation-verification">Code Generation Verification</a></h1>
 <p>Code generation is the final stage of the DECY pipeline, converting the High-level IR (HIR) with ownership and lifetime annotations into idiomatic Rust code.</p>
-<h2 id="architecture-2"><a class="header" href="#architecture-2">Architecture</a></h2>
+<h2 id="architecture-3"><a class="header" href="#architecture-3">Architecture</a></h2>
 <pre><code>HIR + Ownership + Lifetimes → CodeGenerator → Rust Source Code
 </code></pre>
 <h2 id="basic-function-generation"><a class="header" href="#basic-function-generation">Basic Function Generation</a></h2>
@@ -2584,7 +3040,7 @@ Overall                      89.2% coverage ✅
     a + b
 }
 <span class="boring">}</span></code></pre></pre>
-<h3 id="verification-test-4"><a class="header" href="#verification-test-4">Verification Test</a></h3>
+<h3 id="verification-test-9"><a class="header" href="#verification-test-9">Verification Test</a></h3>
 <pre><code class="language-rust ignore">use decy_codegen::CodeGenerator;
 
 #[test]
@@ -2611,7 +3067,7 @@ fn test_generate_simple_function() {
 <tr><td><code>const int*</code></td><td><code>*const i32</code> or <code>&amp;i32</code></td></tr>
 </tbody></table>
 </div>
-<h3 id="verification-test-5"><a class="header" href="#verification-test-5">Verification Test</a></h3>
+<h3 id="verification-test-10"><a class="header" href="#verification-test-10">Verification Test</a></h3>
 <pre><code class="language-rust ignore">#[test]
 fn test_type_mapping() {
     let codegen = CodeGenerator::new();
@@ -2642,7 +3098,7 @@ int* p = malloc(sizeof(int));
 // Generated Rust
 let mut p = Box::new(0i32);
 *p = 42;</code></pre>
-<h3 id="verification-test-6"><a class="header" href="#verification-test-6">Verification Test</a></h3>
+<h3 id="verification-test-11"><a class="header" href="#verification-test-11">Verification Test</a></h3>
 <pre><code class="language-rust ignore">#[test]
 fn test_malloc_becomes_box() {
     let hir_stmt = HirStatement::VarDecl {
@@ -2671,7 +3127,7 @@ void modify(int* p) {
 fn modify(p: &amp;mut i32) {
     *p = 10;
 }</code></pre>
-<h3 id="verification-test-7"><a class="header" href="#verification-test-7">Verification Test</a></h3>
+<h3 id="verification-test-12"><a class="header" href="#verification-test-12">Verification Test</a></h3>
 <pre><code class="language-rust ignore">#[test]
 fn test_parameter_pointer_becomes_reference() {
     let hir_func = HirFunction {
@@ -2724,7 +3180,7 @@ int* choose(int* a, int* b, int condition) {
 fn choose&lt;'a&gt;(a: &amp;'a i32, b: &amp;'a i32, condition: i32) -&gt; &amp;'a i32 {
     if condition != 0 { a } else { b }
 }</code></pre>
-<h3 id="verification-test-8"><a class="header" href="#verification-test-8">Verification Test</a></h3>
+<h3 id="verification-test-13"><a class="header" href="#verification-test-13">Verification Test</a></h3>
 <pre><code class="language-rust ignore">#[test]
 fn test_lifetime_annotation_generation() {
     let hir_func = HirFunction {
@@ -3030,7 +3486,7 @@ decy-codegen/src/formatting.rs   89.2% coverage ✅
 ───────────────────────────────────────────────
 Overall                          92.3% coverage ✅
 </code></pre>
-<h2 id="summary-5"><a class="header" href="#summary-5">Summary</a></h2>
+<h2 id="summary-7"><a class="header" href="#summary-7">Summary</a></h2>
 <p>Code generation verification ensures:</p>
 <p>✅ <strong>Correct type mapping</strong>: C types → Rust types
 ✅ <strong>Ownership patterns</strong>: malloc → Box, parameters → &amp;T
@@ -3041,7 +3497,7 @@ Overall                          92.3% coverage ✅
 ✅ <strong>Property compliance</strong>: Invariants hold for all inputs
 ✅ <strong>High coverage</strong>: ≥80% test coverage
 ✅ <strong>Mutation resistance</strong>: ≥90% mutation kill rate</p>
-<h2 id="next-steps-6"><a class="header" href="#next-steps-6">Next Steps</a></h2>
+<h2 id="next-steps-8"><a class="header" href="#next-steps-8">Next Steps</a></h2>
 <ul>
 <li><a href="components/../verification/simple-function.html">Simple Function Transpilation</a> - End-to-end examples</li>
 <li><a href="components/../metrics/coverage.html">Test Coverage</a> - Coverage reports</li>
@@ -3102,7 +3558,7 @@ fn test_transpile_add_function() {
     return result;
 }
 <span class="boring">}</span></code></pre></pre>
-<h3 id="verification-test-9"><a class="header" href="#verification-test-9">Verification Test</a></h3>
+<h3 id="verification-test-14"><a class="header" href="#verification-test-14">Verification Test</a></h3>
 <pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>#[test]
@@ -3254,7 +3710,7 @@ fn test_generated_rust_passes_clippy() {
     );
 }
 <span class="boring">}</span></code></pre></pre>
-<h2 id="summary-6"><a class="header" href="#summary-6">Summary</a></h2>
+<h2 id="summary-8"><a class="header" href="#summary-8">Summary</a></h2>
 <p>Simple function transpilation demonstrates:</p>
 <p>✅ <strong>Basic transpilation works</strong>: C functions → Rust functions
 ✅ <strong>Type mapping correct</strong>: <code>int</code> → <code>i32</code>, <code>void</code> → <code>()</code>
@@ -3263,7 +3719,7 @@ fn test_generated_rust_passes_clippy() {
 ✅ <strong>Deterministic output</strong>: Same input → same output
 ✅ <strong>Compiles</strong>: Generated Rust is valid
 ✅ <strong>Lints clean</strong>: Passes clippy with zero warnings</p>
-<h2 id="next-steps-7"><a class="header" href="#next-steps-7">Next Steps</a></h2>
+<h2 id="next-steps-9"><a class="header" href="#next-steps-9">Next Steps</a></h2>
 <ul>
 <li><a href="verification/./pointers.html">Pointer Handling</a> - How pointers become references</li>
 <li><a href="verification/./ownership-patterns.html">Ownership Patterns</a> - malloc → Box, parameters → &amp;T</li>
@@ -3679,7 +4135,7 @@ fn benchmark_pointer_transpilation(c: &amp;mut Criterion) {
 
 criterion_group!(benches, benchmark_pointer_transpilation);
 criterion_main!(benches);</code></pre>
-<h2 id="summary-7"><a class="header" href="#summary-7">Summary</a></h2>
+<h2 id="summary-9"><a class="header" href="#summary-9">Summary</a></h2>
 <p>Pointer handling demonstrates:</p>
 <p>✅ <strong>malloc → Box</strong>: Automatic memory management
 ✅ <strong>Parameters → &amp;T</strong>: Safe borrowing
@@ -3690,12 +4146,405 @@ criterion_main!(benches);</code></pre>
 ✅ <strong>No unsafe</strong>: When possible, avoid unsafe code
 ✅ <strong>Compiles</strong>: All generated code is valid Rust
 ✅ <strong>Memory safe</strong>: No leaks, dangling pointers, or double frees</p>
-<h2 id="next-steps-8"><a class="header" href="#next-steps-8">Next Steps</a></h2>
+<h2 id="next-steps-10"><a class="header" href="#next-steps-10">Next Steps</a></h2>
 <ul>
 <li><a href="verification/./ownership-patterns.html">Ownership Patterns</a> - Deep dive into ownership inference</li>
 <li><a href="verification/./lifetimes.html">Lifetime Annotations</a> - How lifetimes are determined</li>
 </ul>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="ownership-patterns"><a class="header" href="#ownership-patterns">Ownership Patterns</a></h1>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="ownership-patterns-1"><a class="header" href="#ownership-patterns-1">Ownership Patterns</a></h1>
+<p>This chapter demonstrates the three main ownership patterns DECY recognizes and how they map from C to Rust.</p>
+<h2 id="pattern-1-owning-box"><a class="header" href="#pattern-1-owning-box">Pattern 1: Owning (Box<T>)</a></h2>
+<p>When a variable <strong>owns</strong> its data, it's responsible for cleanup. In C, this means calling <code>free()</code>. In Rust, we use <code>Box&lt;T&gt;</code> for automatic cleanup.</p>
+<h3 id="pattern-malloc--return"><a class="header" href="#pattern-malloc--return">Pattern: malloc + return</a></h3>
+<pre><code class="language-c">int* create_number(int value) {
+    int* p = malloc(sizeof(int));
+    *p = value;
+    return p;
+}
+</code></pre>
+<p>Transpiled to Rust:</p>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>fn create_number(value: i32) -&gt; Box&lt;i32&gt; {
+    let mut p = Box::new(0i32);
+    *p = value;
+    p
+}
+<span class="boring">}</span></code></pre></pre>
+<h3 id="verification-8"><a class="header" href="#verification-8">Verification</a></h3>
+<pre><code class="language-rust ignore">#[test]
+fn test_owning_pattern_malloc_return() {
+    let c_code = r#"
+        int* create_number(int value) {
+            int* p = malloc(sizeof(int));
+            *p = value;
+            return p;
+        }
+    "#;
+
+    let rust_code = transpile(c_code).unwrap();
+
+    // Verify Box usage
+    assert!(rust_code.contains("Box::new"));
+    assert!(rust_code.contains("Box&lt;i32&gt;"));
+
+    // Verify no manual free
+    assert!(!rust_code.contains("free"));
+
+    // Verify compiles
+    assert!(compile_rust(&amp;rust_code).is_ok());
+}</code></pre>
+<h2 id="pattern-2-borrowed-t-or-mut-t"><a class="header" href="#pattern-2-borrowed-t-or-mut-t">Pattern 2: Borrowed (&amp;T or &amp;mut T)</a></h2>
+<p>When a variable <strong>borrows</strong> data, it doesn't own it and can't free it. In C, these are typically function parameters. In Rust, we use references.</p>
+<h3 id="pattern-function-parameter-immutable"><a class="header" href="#pattern-function-parameter-immutable">Pattern: Function parameter (immutable)</a></h3>
+<pre><code class="language-c">int get_value(const int* p) {
+    return *p;
+}
+</code></pre>
+<p>Transpiled to Rust:</p>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>fn get_value(p: &amp;i32) -&gt; i32 {
+    *p
+}
+<span class="boring">}</span></code></pre></pre>
+<h3 id="verification-9"><a class="header" href="#verification-9">Verification</a></h3>
+<pre><code class="language-rust ignore">#[test]
+fn test_borrowed_immutable_pattern() {
+    let c_code = "int get_value(const int* p) { return *p; }";
+
+    let rust_code = transpile(c_code).unwrap();
+
+    // Verify immutable reference
+    assert!(rust_code.contains("&amp;i32"));
+    assert!(!rust_code.contains("&amp;mut"));
+
+    // Verify no Box
+    assert!(!rust_code.contains("Box"));
+
+    // Verify compiles
+    assert!(compile_rust(&amp;rust_code).is_ok());
+}</code></pre>
+<h3 id="pattern-function-parameter-mutable"><a class="header" href="#pattern-function-parameter-mutable">Pattern: Function parameter (mutable)</a></h3>
+<pre><code class="language-c">void increment(int* p) {
+    *p = *p + 1;
+}
+</code></pre>
+<p>Transpiled to Rust:</p>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>fn increment(p: &amp;mut i32) {
+    *p = *p + 1;
+}
+<span class="boring">}</span></code></pre></pre>
+<h3 id="verification-10"><a class="header" href="#verification-10">Verification</a></h3>
+<pre><code class="language-rust ignore">#[test]
+fn test_borrowed_mutable_pattern() {
+    let c_code = "void increment(int* p) { *p = *p + 1; }";
+
+    let rust_code = transpile(c_code).unwrap();
+
+    // Verify mutable reference
+    assert!(rust_code.contains("&amp;mut i32"));
+
+    // Verify no Box
+    assert!(!rust_code.contains("Box"));
+
+    // Verify compiles
+    assert!(compile_rust(&amp;rust_code).is_ok());
+}</code></pre>
+<h2 id="pattern-3-mixed-owning--borrowing"><a class="header" href="#pattern-3-mixed-owning--borrowing">Pattern 3: Mixed (Owning + Borrowing)</a></h2>
+<p>Real functions often mix ownership patterns - some parameters borrowed, others owned.</p>
+<h3 id="c-code-7"><a class="header" href="#c-code-7">C Code</a></h3>
+<pre><code class="language-c">int* double_value(const int* input) {
+    int* output = malloc(sizeof(int));
+    *output = *input * 2;
+    return output;
+}
+</code></pre>
+<h3 id="transpiled-rust-7"><a class="header" href="#transpiled-rust-7">Transpiled Rust</a></h3>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>fn double_value(input: &amp;i32) -&gt; Box&lt;i32&gt; {
+    let mut output = Box::new(0i32);
+    *output = *input * 2;
+    output
+}
+<span class="boring">}</span></code></pre></pre>
+<h3 id="verification-11"><a class="header" href="#verification-11">Verification</a></h3>
+<pre><code class="language-rust ignore">#[test]
+fn test_mixed_ownership_pattern() {
+    let c_code = r#"
+        int* double_value(const int* input) {
+            int* output = malloc(sizeof(int));
+            *output = *input * 2;
+            return output;
+        }
+    "#;
+
+    let rust_code = transpile(c_code).unwrap();
+
+    // Verify input is borrowed
+    assert!(rust_code.contains("input: &amp;i32"));
+
+    // Verify output is owned
+    assert!(rust_code.contains("Box::new"));
+    assert!(rust_code.contains("-&gt; Box&lt;i32&gt;"));
+
+    // Verify compiles
+    assert!(compile_rust(&amp;rust_code).is_ok());
+}</code></pre>
+<h2 id="pattern-4-array-ownership"><a class="header" href="#pattern-4-array-ownership">Pattern 4: Array Ownership</a></h2>
+<p>Arrays have special ownership rules in C and Rust.</p>
+<h3 id="c-code-array-parameter"><a class="header" href="#c-code-array-parameter">C Code: Array parameter</a></h3>
+<pre><code class="language-c">int sum(int* arr, int len) {
+    int total = 0;
+    for (int i = 0; i &lt; len; i++) {
+        total += arr[i];
+    }
+    return total;
+}
+</code></pre>
+<h3 id="transpiled-rust-slice"><a class="header" href="#transpiled-rust-slice">Transpiled Rust (slice)</a></h3>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>fn sum(arr: &amp;[i32]) -&gt; i32 {
+    let mut total = 0;
+    for &amp;val in arr {
+        total += val;
+    }
+    total
+}
+<span class="boring">}</span></code></pre></pre>
+<h3 id="verification-12"><a class="header" href="#verification-12">Verification</a></h3>
+<pre><code class="language-rust ignore">#[test]
+fn test_array_borrowed_as_slice() {
+    let c_code = r#"
+        int sum(int* arr, int len) {
+            int total = 0;
+            for (int i = 0; i &lt; len; i++) {
+                total += arr[i];
+            }
+            return total;
+        }
+    "#;
+
+    let rust_code = transpile(c_code).unwrap();
+
+    // Verify slice usage
+    assert!(rust_code.contains("&amp;[i32]"));
+
+    // Verify idiomatic iteration
+    assert!(rust_code.contains("for &amp;val in"));
+
+    // Verify compiles
+    assert!(compile_rust(&amp;rust_code).is_ok());
+}</code></pre>
+<h2 id="pattern-5-optional-ownership-option"><a class="header" href="#pattern-5-optional-ownership-option">Pattern 5: Optional Ownership (Option<T>)</a></h2>
+<p>NULL pointers in C become Option in Rust.</p>
+<h3 id="c-code-nullable-return"><a class="header" href="#c-code-nullable-return">C Code: Nullable return</a></h3>
+<pre><code class="language-c">int* find_first_positive(int* arr, int len) {
+    for (int i = 0; i &lt; len; i++) {
+        if (arr[i] &gt; 0) {
+            return &amp;arr[i];
+        }
+    }
+    return NULL;
+}
+</code></pre>
+<h3 id="transpiled-rust-8"><a class="header" href="#transpiled-rust-8">Transpiled Rust</a></h3>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>fn find_first_positive(arr: &amp;[i32]) -&gt; Option&lt;&amp;i32&gt; {
+    for val in arr {
+        if *val &gt; 0 {
+            return Some(val);
+        }
+    }
+    None
+}
+<span class="boring">}</span></code></pre></pre>
+<h3 id="verification-13"><a class="header" href="#verification-13">Verification</a></h3>
+<pre><code class="language-rust ignore">#[test]
+fn test_nullable_becomes_option() {
+    let c_code = r#"
+        int* find_first_positive(int* arr, int len) {
+            for (int i = 0; i &lt; len; i++) {
+                if (arr[i] &gt; 0) {
+                    return &amp;arr[i];
+                }
+            }
+            return NULL;
+        }
+    "#;
+
+    let rust_code = transpile(c_code).unwrap();
+
+    // Verify Option usage
+    assert!(rust_code.contains("Option&lt;&amp;i32&gt;"));
+    assert!(rust_code.contains("Some("));
+    assert!(rust_code.contains("None"));
+
+    // Verify no NULL
+    assert!(!rust_code.contains("NULL"));
+
+    // Verify compiles
+    assert!(compile_rust(&amp;rust_code).is_ok());
+}</code></pre>
+<h2 id="property-tests-for-ownership-patterns"><a class="header" href="#property-tests-for-ownership-patterns">Property Tests for Ownership Patterns</a></h2>
+<h3 id="property-malloc-always-returns-owned-type"><a class="header" href="#property-malloc-always-returns-owned-type">Property: malloc Always Returns Owned Type</a></h3>
+<pre><code class="language-rust ignore">use proptest::prelude::*;
+
+proptest! {
+    #[test]
+    fn prop_malloc_return_is_box(func_name in "[a-z]+") {
+        let c_code = format!(
+            "int* {}() {{ return malloc(sizeof(int)); }}",
+            func_name
+        );
+
+        let rust_code = transpile(&amp;c_code).unwrap();
+
+        // Property: Functions returning malloc result return Box
+        prop_assert!(rust_code.contains("-&gt; Box&lt;i32&gt;"));
+    }
+}</code></pre>
+<h3 id="property-parameters-are-borrowed"><a class="header" href="#property-parameters-are-borrowed">Property: Parameters Are Borrowed</a></h3>
+<pre><code class="language-rust ignore">proptest! {
+    #[test]
+    fn prop_pointer_parameters_borrowed(
+        func_name in "[a-z]+",
+        param_name in "[a-z]+",
+    ) {
+        let c_code = format!(
+            "void {}(int* {}) {{ *{} = 0; }}",
+            func_name, param_name, param_name
+        );
+
+        let rust_code = transpile(&amp;c_code).unwrap();
+
+        // Property: Pointer parameters become references
+        prop_assert!(
+            rust_code.contains("&amp;i32") || rust_code.contains("&amp;mut i32"),
+            "Expected reference type, got: {}", rust_code
+        );
+    }
+}</code></pre>
+<h3 id="property-const-parameters-are-immutable"><a class="header" href="#property-const-parameters-are-immutable">Property: Const Parameters Are Immutable</a></h3>
+<pre><code class="language-rust ignore">proptest! {
+    #[test]
+    fn prop_const_params_immutable(param_name in "[a-z]+") {
+        let c_code = format!(
+            "int func(const int* {}) {{ return *{}; }}",
+            param_name, param_name
+        );
+
+        let rust_code = transpile(&amp;c_code).unwrap();
+
+        // Property: const parameters → immutable references
+        prop_assert!(rust_code.contains("&amp;i32"));
+        prop_assert!(!rust_code.contains("&amp;mut"));
+    }
+}</code></pre>
+<h2 id="complex-example-multiple-patterns"><a class="header" href="#complex-example-multiple-patterns">Complex Example: Multiple Patterns</a></h2>
+<h3 id="c-code-8"><a class="header" href="#c-code-8">C Code</a></h3>
+<pre><code class="language-c">int* process_array(const int* input, int len, int* output_len) {
+    // Count positive numbers
+    int count = 0;
+    for (int i = 0; i &lt; len; i++) {
+        if (input[i] &gt; 0) count++;
+    }
+
+    // Allocate output array
+    int* output = malloc(count * sizeof(int));
+
+    // Copy positive numbers
+    int j = 0;
+    for (int i = 0; i &lt; len; i++) {
+        if (input[i] &gt; 0) {
+            output[j++] = input[i];
+        }
+    }
+
+    *output_len = count;
+    return output;
+}
+</code></pre>
+<h3 id="transpiled-rust-9"><a class="header" href="#transpiled-rust-9">Transpiled Rust</a></h3>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>fn process_array(input: &amp;[i32], output_len: &amp;mut i32) -&gt; Box&lt;[i32]&gt; {
+    // Count positive numbers
+    let count = input.iter().filter(|&amp;&amp;x| x &gt; 0).count();
+
+    // Collect positive numbers
+    let output = input.iter()
+        .filter(|&amp;&amp;x| x &gt; 0)
+        .copied()
+        .collect::&lt;Vec&lt;_&gt;&gt;()
+        .into_boxed_slice();
+
+    *output_len = count as i32;
+    output
+}
+<span class="boring">}</span></code></pre></pre>
+<h3 id="verification-14"><a class="header" href="#verification-14">Verification</a></h3>
+<pre><code class="language-rust ignore">#[test]
+fn test_complex_ownership_patterns() {
+    let c_code = r#"
+        int* process_array(const int* input, int len, int* output_len) {
+            int count = 0;
+            for (int i = 0; i &lt; len; i++) {
+                if (input[i] &gt; 0) count++;
+            }
+            int* output = malloc(count * sizeof(int));
+            int j = 0;
+            for (int i = 0; i &lt; len; i++) {
+                if (input[i] &gt; 0) {
+                    output[j++] = input[i];
+                }
+            }
+            *output_len = count;
+            return output;
+        }
+    "#;
+
+    let rust_code = transpile(c_code).unwrap();
+
+    // Verify input is borrowed (immutable)
+    assert!(rust_code.contains("input: &amp;[i32]"));
+
+    // Verify output_len is borrowed (mutable)
+    assert!(rust_code.contains("output_len: &amp;mut i32"));
+
+    // Verify return is owned
+    assert!(rust_code.contains("-&gt; Box&lt;[i32]&gt;"));
+
+    // Verify compiles
+    assert!(compile_rust(&amp;rust_code).is_ok());
+
+    // Verify passes clippy
+    assert!(clippy_check(&amp;rust_code).is_ok());
+}</code></pre>
+<h2 id="summary-10"><a class="header" href="#summary-10">Summary</a></h2>
+<p>DECY recognizes and correctly transpiles these ownership patterns:</p>
+<p>✅ <strong>Owning (Box<T>)</strong>: malloc → Box, returned pointers
+✅ <strong>Borrowed (&amp;T)</strong>: const parameters, non-mutated pointers
+✅ <strong>Borrowed (&amp;mut T)</strong>: mutable parameters, modified pointers
+✅ <strong>Array slices (&amp;[T])</strong>: Array parameters with length
+✅ <strong>Optional (Option&lt;&amp;T&gt;)</strong>: Nullable pointers, NULL returns</p>
+<p>All patterns:</p>
+<ul>
+<li>Compile without errors</li>
+<li>Pass clippy with zero warnings</li>
+<li>Are memory safe (no leaks, no dangling pointers)</li>
+<li>Follow Rust idioms and best practices</li>
+</ul>
+<h2 id="next-steps-11"><a class="header" href="#next-steps-11">Next Steps</a></h2>
+<ul>
+<li><a href="verification/./lifetimes.html">Lifetime Annotations</a> - How lifetimes are inferred</li>
+<li><a href="verification/./box-transform.html">Box Transformations</a> - Deep dive into malloc → Box</li>
+</ul>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="lifetime-annotations"><a class="header" href="#lifetime-annotations">Lifetime Annotations</a></h1>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="box-transformations"><a class="header" href="#box-transformations">Box Transformations</a></h1>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="python-source-code"><a class="header" href="#python-source-code">Python Source Code</a></h1>
