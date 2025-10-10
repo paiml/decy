@@ -13,6 +13,7 @@ description = "Rust code generation from HIR with minimal unsafe blocks"
 
 [dependencies]
 decy-hir = { path = "../decy-hir" }
+decy-analyzer = { path = "../decy-analyzer" }
 syn.workspace = true
 quote.workspace = true
 proc-macro2.workspace = true

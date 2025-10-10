@@ -29,12 +29,14 @@
 #![warn(clippy::all)]
 #![deny(unsafe_code)]
 
+pub mod box_transform;
+
 use decy_hir::{BinaryOperator, HirExpression, HirFunction, HirStatement, HirType};
 
 /// Code generator for converting HIR to Rust source code.
 #[derive(Debug, Clone)]
 pub struct CodeGenerator {
-    // Future: add configuration options
+    box_transformer: box_transform::BoxTransformer,
 }
 
 impl CodeGenerator {
@@ -48,7 +50,14 @@ impl CodeGenerator {
     /// let codegen = CodeGenerator::new();
     /// ```
     pub fn new() -> Self {
-        Self {}
+        Self {
+            box_transformer: box_transform::BoxTransformer::new(),
+        }
+    }
+
+    /// Get the Box transformer.
+    pub fn box_transformer(&self) -> &box_transform::BoxTransformer {
+        &self.box_transformer
     }
 
     /// Map HIR type to Rust type string.
@@ -338,6 +347,81 @@ impl CodeGenerator {
             for stmt in func.body() {
                 code.push_str("    ");
                 code.push_str(&self.generate_statement(stmt));
+                code.push('\n');
+            }
+        }
+
+        code.push('}');
+        code
+    }
+
+    /// Generate a function with Box transformations applied.
+    ///
+    /// This method analyzes the function for malloc/free patterns and
+    /// transforms them into safe `Box::new()` expressions.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use decy_codegen::CodeGenerator;
+    /// use decy_hir::{HirFunction, HirType, HirStatement, HirExpression};
+    /// use decy_analyzer::patterns::PatternDetector;
+    ///
+    /// let func = HirFunction::new_with_body(
+    ///     "test".to_string(),
+    ///     HirType::Void,
+    ///     vec![],
+    ///     vec![
+    ///         HirStatement::VariableDeclaration {
+    ///             name: "ptr".to_string(),
+    ///             var_type: HirType::Pointer(Box::new(HirType::Int)),
+    ///             initializer: Some(HirExpression::FunctionCall {
+    ///                 function: "malloc".to_string(),
+    ///                 arguments: vec![HirExpression::IntLiteral(100)],
+    ///             }),
+    ///         },
+    ///     ],
+    /// );
+    ///
+    /// let codegen = CodeGenerator::new();
+    /// let detector = PatternDetector::new();
+    /// let candidates = detector.find_box_candidates(&func);
+    /// let code = codegen.generate_function_with_box_transform(&func, &candidates);
+    ///
+    /// assert!(code.contains("Box::new"));
+    /// ```
+    pub fn generate_function_with_box_transform(
+        &self,
+        func: &HirFunction,
+        candidates: &[decy_analyzer::patterns::BoxCandidate],
+    ) -> String {
+        let mut code = String::new();
+
+        // Generate signature
+        code.push_str(&self.generate_signature(func));
+        code.push_str(" {\n");
+
+        // Generate body statements if present
+        if func.body().is_empty() {
+            // Generate stub body with return statement
+            let return_stmt = self.generate_return(func.return_type());
+            if !return_stmt.is_empty() {
+                code.push_str(&return_stmt);
+                code.push('\n');
+            }
+        } else {
+            // Generate body statements with Box transformations
+            for (idx, stmt) in func.body().iter().enumerate() {
+                // Check if this statement should be transformed
+                let transformed_stmt =
+                    if let Some(candidate) = candidates.iter().find(|c| c.malloc_index == idx) {
+                        self.box_transformer.transform_statement(stmt, candidate)
+                    } else {
+                        stmt.clone()
+                    };
+
+                code.push_str("    ");
+                code.push_str(&self.generate_statement(&transformed_stmt));
                 code.push('\n');
             }
         }
