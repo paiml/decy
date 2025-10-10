@@ -372,6 +372,86 @@ proptest! {
 
         prop_assert_eq!(code1, code2);
     }
+
+    // DECY-009 property tests for function calls
+
+    /// Property: Function calls always contain parentheses
+    #[test]
+    fn property_function_call_has_parens(name in "[a-z_][a-z0-9_]{0,10}") {
+        use decy_hir::HirExpression;
+
+        let expr = HirExpression::FunctionCall {
+            function: name,
+            arguments: vec![],
+        };
+
+        let codegen = CodeGenerator::new();
+        let code = codegen.generate_expression(&expr);
+
+        prop_assert!(code.contains('('));
+        prop_assert!(code.contains(')'));
+    }
+
+    /// Property: Function call preserves function name
+    #[test]
+    fn property_function_call_preserves_name(name in "[a-z_][a-z0-9_]{0,10}") {
+        use decy_hir::HirExpression;
+
+        let expr = HirExpression::FunctionCall {
+            function: name.clone(),
+            arguments: vec![],
+        };
+
+        let codegen = CodeGenerator::new();
+        let code = codegen.generate_expression(&expr);
+
+        prop_assert!(code.starts_with(&name));
+    }
+
+    /// Property: Function calls are deterministic
+    #[test]
+    fn property_function_call_consistent(
+        name in "[a-z_][a-z0-9_]{0,10}",
+        arg_count in 0usize..5
+    ) {
+        use decy_hir::HirExpression;
+
+        let args = (0..arg_count)
+            .map(|i| HirExpression::IntLiteral(i as i32))
+            .collect::<Vec<_>>();
+
+        let expr = HirExpression::FunctionCall {
+            function: name,
+            arguments: args,
+        };
+
+        let codegen = CodeGenerator::new();
+        let code1 = codegen.generate_expression(&expr);
+        let code2 = codegen.generate_expression(&expr);
+
+        prop_assert_eq!(code1, code2);
+    }
+
+    /// Property: Function call with N args has N-1 commas
+    #[test]
+    fn property_function_call_comma_count(arg_count in 1usize..6) {
+        use decy_hir::HirExpression;
+
+        let args = (0..arg_count)
+            .map(|i| HirExpression::IntLiteral(i as i32))
+            .collect::<Vec<_>>();
+
+        let expr = HirExpression::FunctionCall {
+            function: "foo".to_string(),
+            arguments: args,
+        };
+
+        let codegen = CodeGenerator::new();
+        let code = codegen.generate_expression(&expr);
+
+        let comma_count = code.matches(',').count();
+        prop_assert_eq!(comma_count, arg_count - 1);
+    }
 }
 
 // Regular tests for binary expressions (not property tests)
