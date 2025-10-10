@@ -39,6 +39,8 @@ pub enum HirType {
     Pointer(Box<HirType>),
     /// Boxed type (Rust `Box<T>`)
     Box(Box<HirType>),
+    /// Vec type (Rust `Vec<T>`)
+    Vec(Box<HirType>),
     /// Reference type (Rust `&T` or `&mut T`)
     Reference {
         /// Inner type

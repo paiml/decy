@@ -404,6 +404,7 @@ expected_kill_rate = 0.90
             HirType::Box(inner) => {
                 format!("Box::new({})", Self::default_test_value(inner))
             }
+            HirType::Vec(_) => "Vec::new()".to_string(),
             HirType::Reference { inner, mutable: _ } => {
                 // References need to borrow from a variable
                 // Generate a reference to a default value
