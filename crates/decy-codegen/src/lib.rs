@@ -187,6 +187,18 @@ impl CodeGenerator {
                 code.push('}');
                 code
             }
+            HirStatement::While { .. } => {
+                // RED PHASE: Placeholder - will implement in GREEN phase
+                unimplemented!("While statement generation not yet implemented")
+            }
+            HirStatement::Break => {
+                // RED PHASE: Placeholder - will implement in GREEN phase
+                unimplemented!("Break statement generation not yet implemented")
+            }
+            HirStatement::Continue => {
+                // RED PHASE: Placeholder - will implement in GREEN phase
+                unimplemented!("Continue statement generation not yet implemented")
+            }
         }
     }
 
