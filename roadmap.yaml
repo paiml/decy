@@ -326,6 +326,18 @@ sprint_2:
       type: feature
       priority: high
       story_points: 8
+      assignee: Claude
+      status: done
+      github_issue: null
+      phase: DONE
+      completed_date: "2025-10-10"
+      actual_coverage: 96.54
+      actual_metrics:
+        coverage: "96.54%"
+        tests_passing: "118 tests (59 codegen + 49 HIR + 9 parser + 1 core)"
+        clippy_warnings: 0
+        property_tests: "4 properties x 100 cases for while loops"
+        quality_grade: "A+"
 
       description: |
         Support while loops.
