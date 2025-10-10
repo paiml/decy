@@ -47,7 +47,10 @@ impl BoxTransformer {
                 HirExpression::IntLiteral(0)
             }
             HirType::Char => HirExpression::IntLiteral(0),
-            _ => HirExpression::IntLiteral(0), // Fallback
+            HirType::Void | HirType::Pointer(_) | HirType::Box(_) | HirType::Reference { .. } => {
+                // Fallback for types that don't have simple defaults
+                HirExpression::IntLiteral(0)
+            }
         }
     }
 

@@ -39,6 +39,13 @@ pub enum HirType {
     Pointer(Box<HirType>),
     /// Boxed type (Rust `Box<T>`)
     Box(Box<HirType>),
+    /// Reference type (Rust `&T` or `&mut T`)
+    Reference {
+        /// Inner type
+        inner: Box<HirType>,
+        /// Whether the reference is mutable
+        mutable: bool,
+    },
 }
 
 impl HirType {

@@ -86,6 +86,13 @@ impl CodeGenerator {
             HirType::Box(inner) => {
                 format!("Box<{}>", Self::map_type(inner))
             }
+            HirType::Reference { inner, mutable } => {
+                if *mutable {
+                    format!("&mut {}", Self::map_type(inner))
+                } else {
+                    format!("&{}", Self::map_type(inner))
+                }
+            }
         }
     }
 
@@ -171,6 +178,11 @@ impl CodeGenerator {
                 // Box types should not use default values, they should be initialized with Box::new
                 // This is just a fallback
                 format!("Box::new({})", Self::default_value_for_type(inner))
+            }
+            HirType::Reference { .. } => {
+                // References cannot have default values - they must always be initialized
+                // This should never be reached in valid code
+                panic!("References must be initialized and cannot have default values")
             }
         }
     }
@@ -315,6 +327,11 @@ impl CodeGenerator {
                     "    return Box::new({});",
                     Self::default_value_for_type(inner)
                 )
+            }
+            HirType::Reference { .. } => {
+                // References in return position need concrete values
+                // This is a stub - real code should never reach here
+                "    // TODO: return proper reference".to_string()
             }
         }
     }
