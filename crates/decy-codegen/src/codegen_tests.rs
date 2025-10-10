@@ -45,50 +45,39 @@ mod tests {
     #[test]
     fn test_type_mapping_int_to_i32() {
         // RED PHASE: This test will FAIL
-        let codegen = CodeGenerator::new();
-
-        assert_eq!(codegen.map_type(&HirType::Int), "i32");
+        assert_eq!(CodeGenerator::map_type(&HirType::Int), "i32");
     }
 
     #[test]
     fn test_type_mapping_float_to_f32() {
         // RED PHASE: This test will FAIL
-        let codegen = CodeGenerator::new();
-
-        assert_eq!(codegen.map_type(&HirType::Float), "f32");
+        assert_eq!(CodeGenerator::map_type(&HirType::Float), "f32");
     }
 
     #[test]
     fn test_type_mapping_double_to_f64() {
         // RED PHASE: This test will FAIL
-        let codegen = CodeGenerator::new();
-
-        assert_eq!(codegen.map_type(&HirType::Double), "f64");
+        assert_eq!(CodeGenerator::map_type(&HirType::Double), "f64");
     }
 
     #[test]
     fn test_type_mapping_void_to_unit() {
         // RED PHASE: This test will FAIL
-        let codegen = CodeGenerator::new();
-
-        assert_eq!(codegen.map_type(&HirType::Void), "()");
+        assert_eq!(CodeGenerator::map_type(&HirType::Void), "()");
     }
 
     #[test]
     fn test_type_mapping_char_to_u8() {
         // RED PHASE: This test will FAIL
-        let codegen = CodeGenerator::new();
-
-        assert_eq!(codegen.map_type(&HirType::Char), "u8");
+        assert_eq!(CodeGenerator::map_type(&HirType::Char), "u8");
     }
 
     #[test]
     fn test_type_mapping_pointer() {
         // RED PHASE: This test will FAIL
-        let codegen = CodeGenerator::new();
         let ptr_type = HirType::Pointer(Box::new(HirType::Int));
 
-        assert_eq!(codegen.map_type(&ptr_type), "*mut i32");
+        assert_eq!(CodeGenerator::map_type(&ptr_type), "*mut i32");
     }
 
     #[test]
