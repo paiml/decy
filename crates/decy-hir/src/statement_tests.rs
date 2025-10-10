@@ -208,7 +208,7 @@ mod tests {
     #[test]
     fn test_binary_operator_variants() {
         // RED PHASE: This test will FAIL
-        let operators = vec![
+        let operators = [
             BinaryOperator::Add,
             BinaryOperator::Subtract,
             BinaryOperator::Multiply,

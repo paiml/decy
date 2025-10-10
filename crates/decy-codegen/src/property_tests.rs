@@ -146,4 +146,90 @@ proptest! {
 
         prop_assert_eq!(code, name);
     }
+
+    // DECY-007 property tests for binary expressions
+
+    /// Property: Binary expressions with same operator generate consistent code
+    #[test]
+    fn property_binary_expr_consistent(
+        val1 in -100i32..100i32,
+        val2 in -100i32..100i32
+    ) {
+        use decy_hir::{BinaryOperator, HirExpression};
+
+        let expr1 = HirExpression::BinaryOp {
+            op: BinaryOperator::Add,
+            left: Box::new(HirExpression::IntLiteral(val1)),
+            right: Box::new(HirExpression::IntLiteral(val2)),
+        };
+
+        let expr2 = HirExpression::BinaryOp {
+            op: BinaryOperator::Add,
+            left: Box::new(HirExpression::IntLiteral(val1)),
+            right: Box::new(HirExpression::IntLiteral(val2)),
+        };
+
+        let codegen = CodeGenerator::new();
+        let code1 = codegen.generate_expression(&expr1);
+        let code2 = codegen.generate_expression(&expr2);
+
+        prop_assert_eq!(code1, code2);
+    }
+}
+
+// Regular tests for binary expressions (not property tests)
+#[cfg(test)]
+mod binary_expr_tests {
+    use super::*;
+    use decy_hir::{BinaryOperator, HirExpression};
+
+    #[test]
+    fn test_binary_expr_contains_operator() {
+        let ops = [
+            (BinaryOperator::Add, "+"),
+            (BinaryOperator::Subtract, "-"),
+            (BinaryOperator::Multiply, "*"),
+            (BinaryOperator::Divide, "/"),
+            (BinaryOperator::Modulo, "%"),
+            (BinaryOperator::Equal, "=="),
+            (BinaryOperator::NotEqual, "!="),
+            (BinaryOperator::LessThan, "<"),
+            (BinaryOperator::GreaterThan, ">"),
+            (BinaryOperator::LessEqual, "<="),
+            (BinaryOperator::GreaterEqual, ">="),
+        ];
+
+        for (op, op_str) in ops {
+            let expr = HirExpression::BinaryOp {
+                op,
+                left: Box::new(HirExpression::Variable("a".to_string())),
+                right: Box::new(HirExpression::Variable("b".to_string())),
+            };
+
+            let codegen = CodeGenerator::new();
+            let code = codegen.generate_expression(&expr);
+
+            assert!(code.contains(op_str));
+        }
+    }
+
+    #[test]
+    fn test_nested_expr_has_parens() {
+        // (a + b) * c
+        let expr = HirExpression::BinaryOp {
+            op: BinaryOperator::Multiply,
+            left: Box::new(HirExpression::BinaryOp {
+                op: BinaryOperator::Add,
+                left: Box::new(HirExpression::Variable("a".to_string())),
+                right: Box::new(HirExpression::Variable("b".to_string())),
+            }),
+            right: Box::new(HirExpression::Variable("c".to_string())),
+        };
+
+        let codegen = CodeGenerator::new();
+        let code = codegen.generate_expression(&expr);
+
+        assert!(code.contains('('));
+        assert!(code.contains(')'));
+    }
 }

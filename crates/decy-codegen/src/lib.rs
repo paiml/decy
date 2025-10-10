@@ -76,6 +76,7 @@ impl CodeGenerator {
     }
 
     /// Generate code for an expression.
+    #[allow(clippy::only_used_in_recursion)]
     pub fn generate_expression(&self, expr: &HirExpression) -> String {
         match expr {
             HirExpression::IntLiteral(val) => val.to_string(),
