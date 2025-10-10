@@ -5,3 +5,7 @@
 #![warn(missing_docs)]
 #![warn(clippy::all)]
 #![deny(unsafe_code)]
+
+#[cfg(test)]
+#[path = "codegen_tests.rs"]
+mod codegen_tests;
