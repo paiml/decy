@@ -29,7 +29,7 @@
 #![warn(clippy::all)]
 #![deny(unsafe_code)]
 
-use decy_hir::{HirFunction, HirType};
+use decy_hir::{HirExpression, HirFunction, HirStatement, HirType};
 
 /// Code generator for converting HIR to Rust source code.
 #[derive(Debug, Clone)]
@@ -71,6 +71,53 @@ impl CodeGenerator {
             HirType::Char => "u8".to_string(),
             HirType::Pointer(inner) => {
                 format!("*mut {}", Self::map_type(inner))
+            }
+        }
+    }
+
+    /// Generate code for an expression.
+    pub fn generate_expression(&self, expr: &HirExpression) -> String {
+        match expr {
+            HirExpression::IntLiteral(val) => val.to_string(),
+            HirExpression::Variable(name) => name.clone(),
+        }
+    }
+
+    /// Get default value for a type (for uninitialized variables).
+    fn default_value_for_type(hir_type: &HirType) -> String {
+        match hir_type {
+            HirType::Void => "()".to_string(),
+            HirType::Int => "0".to_string(),
+            HirType::Float => "0.0".to_string(),
+            HirType::Double => "0.0".to_string(),
+            HirType::Char => "0".to_string(),
+            HirType::Pointer(_) => "std::ptr::null_mut()".to_string(),
+        }
+    }
+
+    /// Generate code for a statement.
+    pub fn generate_statement(&self, stmt: &HirStatement) -> String {
+        match stmt {
+            HirStatement::VariableDeclaration {
+                name,
+                var_type,
+                initializer,
+            } => {
+                let mut code = format!("let mut {}: {}", name, Self::map_type(var_type));
+                if let Some(init_expr) = initializer {
+                    code.push_str(&format!(" = {};", self.generate_expression(init_expr)));
+                } else {
+                    // Provide default value for uninitialized variables
+                    code.push_str(&format!(" = {};", Self::default_value_for_type(var_type)));
+                }
+                code
+            }
+            HirStatement::Return(expr_opt) => {
+                if let Some(expr) = expr_opt {
+                    format!("return {};", self.generate_expression(expr))
+                } else {
+                    "return;".to_string()
+                }
             }
         }
     }
@@ -163,11 +210,21 @@ impl CodeGenerator {
         code.push_str(&self.generate_signature(func));
         code.push_str(" {\n");
 
-        // Generate stub body with return statement
-        let return_stmt = self.generate_return(func.return_type());
-        if !return_stmt.is_empty() {
-            code.push_str(&return_stmt);
-            code.push('\n');
+        // Generate body statements if present
+        if func.body().is_empty() {
+            // Generate stub body with return statement
+            let return_stmt = self.generate_return(func.return_type());
+            if !return_stmt.is_empty() {
+                code.push_str(&return_stmt);
+                code.push('\n');
+            }
+        } else {
+            // Generate actual body statements
+            for stmt in func.body() {
+                code.push_str("    ");
+                code.push_str(&self.generate_statement(stmt));
+                code.push('\n');
+            }
         }
 
         code.push('}');
