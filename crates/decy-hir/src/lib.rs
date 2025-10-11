@@ -48,6 +48,24 @@ pub enum HirType {
         /// Whether the reference is mutable
         mutable: bool,
     },
+    /// Struct type (by name)
+    Struct(String),
+    /// Enum type (by name)
+    Enum(String),
+    /// Array type with optional size (fixed-size or unsized)
+    Array {
+        /// Element type
+        element_type: Box<HirType>,
+        /// Optional size (None for unsized arrays like function parameters)
+        size: Option<usize>,
+    },
+    /// Function pointer type (Rust `fn` type)
+    FunctionPointer {
+        /// Parameter types
+        param_types: Vec<HirType>,
+        /// Return type
+        return_type: Box<HirType>,
+    },
 }
 
 impl HirType {
@@ -72,6 +90,139 @@ impl HirType {
             Type::Char => HirType::Char,
             Type::Pointer(inner) => HirType::Pointer(Box::new(HirType::from_ast_type(inner))),
         }
+    }
+}
+
+/// Represents a struct field in HIR.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct HirStructField {
+    name: String,
+    field_type: HirType,
+}
+
+impl HirStructField {
+    /// Create a new struct field.
+    pub fn new(name: String, field_type: HirType) -> Self {
+        Self { name, field_type }
+    }
+
+    /// Get the field name.
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    /// Get the field type.
+    pub fn field_type(&self) -> &HirType {
+        &self.field_type
+    }
+}
+
+/// Represents a struct definition in HIR.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct HirStruct {
+    name: String,
+    fields: Vec<HirStructField>,
+}
+
+impl HirStruct {
+    /// Create a new struct.
+    pub fn new(name: String, fields: Vec<HirStructField>) -> Self {
+        Self { name, fields }
+    }
+
+    /// Get the struct name.
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    /// Get the struct fields.
+    pub fn fields(&self) -> &[HirStructField] {
+        &self.fields
+    }
+}
+
+/// Represents an enum variant in HIR.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct HirEnumVariant {
+    name: String,
+    value: Option<i32>,
+}
+
+impl HirEnumVariant {
+    /// Create a new enum variant.
+    pub fn new(name: String, value: Option<i32>) -> Self {
+        Self { name, value }
+    }
+
+    /// Get the variant name.
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    /// Get the variant value.
+    pub fn value(&self) -> Option<i32> {
+        self.value
+    }
+}
+
+/// Represents an enum definition in HIR.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct HirEnum {
+    name: String,
+    variants: Vec<HirEnumVariant>,
+}
+
+impl HirEnum {
+    /// Create a new enum.
+    pub fn new(name: String, variants: Vec<HirEnumVariant>) -> Self {
+        Self { name, variants }
+    }
+
+    /// Get the enum name.
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    /// Get the enum variants.
+    pub fn variants(&self) -> &[HirEnumVariant] {
+        &self.variants
+    }
+}
+
+/// Represents a typedef (type alias) in HIR.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct HirTypedef {
+    name: String,
+    underlying_type: HirType,
+}
+
+impl HirTypedef {
+    /// Create a new typedef.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use decy_hir::{HirTypedef, HirType};
+    ///
+    /// let typedef = HirTypedef::new("Integer".to_string(), HirType::Int);
+    /// assert_eq!(typedef.name(), "Integer");
+    /// assert_eq!(typedef.underlying_type(), &HirType::Int);
+    /// ```
+    pub fn new(name: String, underlying_type: HirType) -> Self {
+        Self {
+            name,
+            underlying_type,
+        }
+    }
+
+    /// Get the typedef name.
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    /// Get the underlying type.
+    pub fn underlying_type(&self) -> &HirType {
+        &self.underlying_type
     }
 }
 
@@ -287,6 +438,8 @@ pub enum BinaryOperator {
 pub enum HirExpression {
     /// Integer literal
     IntLiteral(i32),
+    /// String literal (C: "hello" → Rust: "hello")
+    StringLiteral(String),
     /// Variable reference
     Variable(String),
     /// Binary operation (left op right)
@@ -309,6 +462,36 @@ pub enum HirExpression {
         /// Arguments
         arguments: Vec<HirExpression>,
     },
+    /// Field access (obj.field)
+    FieldAccess {
+        /// Object expression
+        object: Box<HirExpression>,
+        /// Field name
+        field: String,
+    },
+    /// Pointer field access (ptr->field)
+    PointerFieldAccess {
+        /// Pointer expression
+        pointer: Box<HirExpression>,
+        /// Field name
+        field: String,
+    },
+    /// Array indexing (arr\[index\])
+    ArrayIndex {
+        /// Array expression
+        array: Box<HirExpression>,
+        /// Index expression
+        index: Box<HirExpression>,
+    },
+}
+
+/// Represents a single case in a switch statement.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SwitchCase {
+    /// Case value expression (None for default case)
+    pub value: Option<HirExpression>,
+    /// Statements to execute for this case
+    pub body: Vec<HirStatement>,
 }
 
 /// Represents a statement in HIR.
@@ -352,6 +535,26 @@ pub enum HirStatement {
         /// Value expression to assign
         value: HirExpression,
     },
+    /// For loop with optional init, condition, optional increment, and body
+    For {
+        /// Optional initialization statement (e.g., int i = 0)
+        init: Option<Box<HirStatement>>,
+        /// Loop condition expression
+        condition: HirExpression,
+        /// Optional increment statement (e.g., i++)
+        increment: Option<Box<HirStatement>>,
+        /// Loop body (statements to execute while condition is true)
+        body: Vec<HirStatement>,
+    },
+    /// Switch statement with condition, cases, and optional default case
+    Switch {
+        /// Condition expression to match against
+        condition: HirExpression,
+        /// List of case statements
+        cases: Vec<SwitchCase>,
+        /// Optional default case body
+        default_case: Option<Vec<HirStatement>>,
+    },
 }
 
 impl HirStatement {
@@ -371,6 +574,10 @@ impl HirStatement {
             Statement::Return(expr) => {
                 HirStatement::Return(expr.as_ref().map(HirExpression::from_ast_expression))
             }
+            Statement::Assignment { target, value } => HirStatement::Assignment {
+                target: target.clone(),
+                value: HirExpression::from_ast_expression(value),
+            },
         }
     }
 }
@@ -381,6 +588,12 @@ impl HirExpression {
         use decy_parser::parser::Expression;
         match ast_expr {
             Expression::IntLiteral(value) => HirExpression::IntLiteral(*value),
+            Expression::Variable(name) => HirExpression::Variable(name.clone()),
+            Expression::BinaryOp { op, left, right } => HirExpression::BinaryOp {
+                op: convert_binary_operator(*op),
+                left: Box::new(HirExpression::from_ast_expression(left)),
+                right: Box::new(HirExpression::from_ast_expression(right)),
+            },
             Expression::FunctionCall {
                 function,
                 arguments,
@@ -395,6 +608,24 @@ impl HirExpression {
     }
 }
 
+/// Convert parser BinaryOperator to HIR BinaryOperator
+fn convert_binary_operator(op: decy_parser::parser::BinaryOperator) -> BinaryOperator {
+    use decy_parser::parser::BinaryOperator as ParserOp;
+    match op {
+        ParserOp::Add => BinaryOperator::Add,
+        ParserOp::Subtract => BinaryOperator::Subtract,
+        ParserOp::Multiply => BinaryOperator::Multiply,
+        ParserOp::Divide => BinaryOperator::Divide,
+        ParserOp::Modulo => BinaryOperator::Modulo,
+        ParserOp::Equal => BinaryOperator::Equal,
+        ParserOp::NotEqual => BinaryOperator::NotEqual,
+        ParserOp::LessThan => BinaryOperator::LessThan,
+        ParserOp::GreaterThan => BinaryOperator::GreaterThan,
+        ParserOp::LessEqual => BinaryOperator::LessEqual,
+        ParserOp::GreaterEqual => BinaryOperator::GreaterEqual,
+    }
+}
+
 #[cfg(test)]
 #[path = "hir_tests.rs"]
 mod hir_tests;
@@ -406,3 +637,39 @@ mod property_tests;
 #[cfg(test)]
 #[path = "statement_tests.rs"]
 mod statement_tests;
+
+#[cfg(test)]
+#[path = "struct_tests.rs"]
+mod struct_tests;
+
+#[cfg(test)]
+#[path = "array_indexing_tests.rs"]
+mod array_indexing_tests;
+
+#[cfg(test)]
+#[path = "for_loop_tests.rs"]
+mod for_loop_tests;
+
+#[cfg(test)]
+#[path = "typedef_tests.rs"]
+mod typedef_tests;
+
+#[cfg(test)]
+#[path = "typedef_property_tests.rs"]
+mod typedef_property_tests;
+
+#[cfg(test)]
+#[path = "function_pointer_tests.rs"]
+mod function_pointer_tests;
+
+#[cfg(test)]
+#[path = "string_tests.rs"]
+mod string_tests;
+
+#[cfg(test)]
+#[path = "string_property_tests.rs"]
+mod string_property_tests;
+
+#[cfg(test)]
+#[path = "switch_tests.rs"]
+mod switch_tests;
