@@ -285,6 +285,27 @@ extern "C" fn visit_statement(
             }
             CXChildVisit_Continue
         }
+        CXCursor_IfStmt => {
+            // If statement
+            if let Some(stmt) = extract_if_stmt(cursor) {
+                statements.push(stmt);
+            }
+            CXChildVisit_Continue
+        }
+        CXCursor_ForStmt => {
+            // For loop
+            if let Some(stmt) = extract_for_stmt(cursor) {
+                statements.push(stmt);
+            }
+            CXChildVisit_Continue
+        }
+        CXCursor_WhileStmt => {
+            // While loop
+            if let Some(stmt) = extract_while_stmt(cursor) {
+                statements.push(stmt);
+            }
+            CXChildVisit_Continue
+        }
         _ => CXChildVisit_Continue,
     }
 }
@@ -415,6 +436,318 @@ fn extract_assignment_stmt(cursor: CXCursor) -> Option<Statement> {
         target,
         value: operands[1].clone(),
     })
+}
+
+/// Extract an if statement.
+fn extract_if_stmt(cursor: CXCursor) -> Option<Statement> {
+    // An if statement has 2 or 3 children:
+    // 1. Condition expression
+    // 2. Then block (compound statement)
+    // 3. Else block (optional compound statement)
+
+    #[repr(C)]
+    struct IfData {
+        condition: Option<Expression>,
+        then_block: Vec<Statement>,
+        else_block: Option<Vec<Statement>>,
+        child_index: u32,
+    }
+
+    let mut if_data = IfData {
+        condition: None,
+        then_block: Vec::new(),
+        else_block: None,
+        child_index: 0,
+    };
+
+    let data_ptr = &mut if_data as *mut IfData;
+
+    unsafe {
+        clang_visitChildren(cursor, visit_if_children, data_ptr as CXClientData);
+    }
+
+    Some(Statement::If {
+        condition: if_data.condition?,
+        then_block: if_data.then_block,
+        else_block: if_data.else_block,
+    })
+}
+
+/// Visitor for if statement children.
+#[allow(non_upper_case_globals)]
+extern "C" fn visit_if_children(
+    cursor: CXCursor,
+    _parent: CXCursor,
+    client_data: CXClientData,
+) -> CXChildVisitResult {
+    #[repr(C)]
+    struct IfData {
+        condition: Option<Expression>,
+        then_block: Vec<Statement>,
+        else_block: Option<Vec<Statement>>,
+        child_index: u32,
+    }
+
+    let if_data = unsafe { &mut *(client_data as *mut IfData) };
+    let kind = unsafe { clang_getCursorKind(cursor) };
+
+    match if_data.child_index {
+        0 => {
+            // First child: condition expression
+            // The cursor itself IS the condition, extract it directly
+            if_data.condition = match kind {
+                CXCursor_BinaryOperator => extract_binary_op(cursor),
+                CXCursor_IntegerLiteral => extract_int_literal(cursor),
+                CXCursor_DeclRefExpr => extract_variable_ref(cursor),
+                CXCursor_CallExpr => extract_function_call(cursor),
+                _ => {
+                    // For other expression types, try visiting children
+                    let mut cond_expr: Option<Expression> = None;
+                    let expr_ptr = &mut cond_expr as *mut Option<Expression>;
+                    unsafe {
+                        clang_visitChildren(cursor, visit_expression, expr_ptr as CXClientData);
+                    }
+                    cond_expr
+                }
+            };
+            if_data.child_index += 1;
+            CXChildVisit_Continue
+        }
+        1 => {
+            // Second child: then block
+            if kind == CXCursor_CompoundStmt {
+                let body_ptr = &mut if_data.then_block as *mut Vec<Statement>;
+                unsafe {
+                    clang_visitChildren(cursor, visit_statement, body_ptr as CXClientData);
+                }
+            }
+            if_data.child_index += 1;
+            CXChildVisit_Continue
+        }
+        2 => {
+            // Third child (optional): else block
+            if kind == CXCursor_CompoundStmt || kind == CXCursor_IfStmt {
+                let mut else_stmts = Vec::new();
+                let body_ptr = &mut else_stmts as *mut Vec<Statement>;
+                unsafe {
+                    clang_visitChildren(cursor, visit_statement, body_ptr as CXClientData);
+                }
+                if_data.else_block = Some(else_stmts);
+            }
+            if_data.child_index += 1;
+            CXChildVisit_Continue
+        }
+        _ => CXChildVisit_Continue,
+    }
+}
+
+/// Extract a for loop statement.
+fn extract_for_stmt(cursor: CXCursor) -> Option<Statement> {
+    // A for loop has up to 4 children:
+    // 1. Init statement (optional - could be DeclStmt or expression)
+    // 2. Condition expression (optional)
+    // 3. Increment expression (optional)
+    // 4. Body (compound statement)
+
+    #[repr(C)]
+    struct ForData {
+        init: Option<Box<Statement>>,
+        condition: Option<Expression>,
+        increment: Option<Box<Statement>>,
+        body: Vec<Statement>,
+        child_index: u32,
+    }
+
+    let mut for_data = ForData {
+        init: None,
+        condition: None,
+        increment: None,
+        body: Vec::new(),
+        child_index: 0,
+    };
+
+    let data_ptr = &mut for_data as *mut ForData;
+
+    unsafe {
+        clang_visitChildren(cursor, visit_for_children, data_ptr as CXClientData);
+    }
+
+    Some(Statement::For {
+        init: for_data.init,
+        condition: for_data.condition,
+        increment: for_data.increment,
+        body: for_data.body,
+    })
+}
+
+/// Visitor for for loop children.
+#[allow(non_upper_case_globals)]
+extern "C" fn visit_for_children(
+    cursor: CXCursor,
+    _parent: CXCursor,
+    client_data: CXClientData,
+) -> CXChildVisitResult {
+    #[repr(C)]
+    struct ForData {
+        init: Option<Box<Statement>>,
+        condition: Option<Expression>,
+        increment: Option<Box<Statement>>,
+        body: Vec<Statement>,
+        child_index: u32,
+    }
+
+    let for_data = unsafe { &mut *(client_data as *mut ForData) };
+    let kind = unsafe { clang_getCursorKind(cursor) };
+
+    match for_data.child_index {
+        0 => {
+            // First child: init statement (could be DeclStmt or NULL)
+            if kind == CXCursor_DeclStmt {
+                // Visit to get the variable declaration
+                let mut init_stmts = Vec::new();
+                let ptr = &mut init_stmts as *mut Vec<Statement>;
+                unsafe {
+                    clang_visitChildren(cursor, visit_statement, ptr as CXClientData);
+                }
+                if let Some(stmt) = init_stmts.into_iter().next() {
+                    for_data.init = Some(Box::new(stmt));
+                }
+            } else if kind == CXCursor_BinaryOperator {
+                // Assignment in init
+                if let Some(stmt) = extract_assignment_stmt(cursor) {
+                    for_data.init = Some(Box::new(stmt));
+                }
+            }
+            for_data.child_index += 1;
+            CXChildVisit_Continue
+        }
+        1 => {
+            // Second child: condition expression
+            // The cursor itself IS the condition, extract it directly
+            for_data.condition = match kind {
+                CXCursor_BinaryOperator => extract_binary_op(cursor),
+                CXCursor_IntegerLiteral => extract_int_literal(cursor),
+                CXCursor_DeclRefExpr => extract_variable_ref(cursor),
+                CXCursor_CallExpr => extract_function_call(cursor),
+                _ => {
+                    let mut cond_expr: Option<Expression> = None;
+                    let expr_ptr = &mut cond_expr as *mut Option<Expression>;
+                    unsafe {
+                        clang_visitChildren(cursor, visit_expression, expr_ptr as CXClientData);
+                    }
+                    cond_expr
+                }
+            };
+            for_data.child_index += 1;
+            CXChildVisit_Continue
+        }
+        2 => {
+            // Third child: increment statement
+            if kind == CXCursor_BinaryOperator {
+                if let Some(stmt) = extract_assignment_stmt(cursor) {
+                    for_data.increment = Some(Box::new(stmt));
+                }
+            }
+            for_data.child_index += 1;
+            CXChildVisit_Continue
+        }
+        3 => {
+            // Fourth child: body
+            if kind == CXCursor_CompoundStmt {
+                let body_ptr = &mut for_data.body as *mut Vec<Statement>;
+                unsafe {
+                    clang_visitChildren(cursor, visit_statement, body_ptr as CXClientData);
+                }
+            }
+            for_data.child_index += 1;
+            CXChildVisit_Continue
+        }
+        _ => CXChildVisit_Continue,
+    }
+}
+
+/// Extract a while loop statement.
+fn extract_while_stmt(cursor: CXCursor) -> Option<Statement> {
+    // A while loop has 2 children:
+    // 1. Condition expression
+    // 2. Body (compound statement)
+
+    #[repr(C)]
+    struct WhileData {
+        condition: Option<Expression>,
+        body: Vec<Statement>,
+        child_index: u32,
+    }
+
+    let mut while_data = WhileData {
+        condition: None,
+        body: Vec::new(),
+        child_index: 0,
+    };
+
+    let data_ptr = &mut while_data as *mut WhileData;
+
+    unsafe {
+        clang_visitChildren(cursor, visit_while_children, data_ptr as CXClientData);
+    }
+
+    Some(Statement::While {
+        condition: while_data.condition?,
+        body: while_data.body,
+    })
+}
+
+/// Visitor for while loop children.
+#[allow(non_upper_case_globals)]
+extern "C" fn visit_while_children(
+    cursor: CXCursor,
+    _parent: CXCursor,
+    client_data: CXClientData,
+) -> CXChildVisitResult {
+    #[repr(C)]
+    struct WhileData {
+        condition: Option<Expression>,
+        body: Vec<Statement>,
+        child_index: u32,
+    }
+
+    let while_data = unsafe { &mut *(client_data as *mut WhileData) };
+    let kind = unsafe { clang_getCursorKind(cursor) };
+
+    match while_data.child_index {
+        0 => {
+            // First child: condition expression
+            // The cursor itself IS the condition, extract it directly
+            while_data.condition = match kind {
+                CXCursor_BinaryOperator => extract_binary_op(cursor),
+                CXCursor_IntegerLiteral => extract_int_literal(cursor),
+                CXCursor_DeclRefExpr => extract_variable_ref(cursor),
+                CXCursor_CallExpr => extract_function_call(cursor),
+                _ => {
+                    let mut cond_expr: Option<Expression> = None;
+                    let expr_ptr = &mut cond_expr as *mut Option<Expression>;
+                    unsafe {
+                        clang_visitChildren(cursor, visit_expression, expr_ptr as CXClientData);
+                    }
+                    cond_expr
+                }
+            };
+            while_data.child_index += 1;
+            CXChildVisit_Continue
+        }
+        1 => {
+            // Second child: body
+            if kind == CXCursor_CompoundStmt {
+                let body_ptr = &mut while_data.body as *mut Vec<Statement>;
+                unsafe {
+                    clang_visitChildren(cursor, visit_statement, body_ptr as CXClientData);
+                }
+            }
+            while_data.child_index += 1;
+            CXChildVisit_Continue
+        }
+        _ => CXChildVisit_Continue,
+    }
 }
 
 /// Visitor callback for extracting expressions.
