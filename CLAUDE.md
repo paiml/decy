@@ -222,13 +222,29 @@ Every module needs 4 types of tests:
 
 All development is ticket-driven. **Never write code without a ticket in `roadmap.yaml`**.
 
+**CRITICAL**: All tickets MUST be in YAML format in `roadmap.yaml`. Markdown tickets in `docs/` are NOT allowed and will be rejected by `pmat` validation.
+
 ```yaml
 DECY-XXX:
+  title: "Short title"
   status: not_started | in_progress | done
   phase: RED | GREEN | REFACTOR | DONE
   github_issue: null | <issue_number>
   story_points: <number>
   priority: critical | high | medium | low
+  type: feature | bug | refactor | quality | docs
+  sprint: <number>
+  description: |
+    Multi-line description of the ticket.
+    What needs to be done and why.
+  acceptance_criteria:
+    - Criterion 1
+    - Criterion 2
+  test_strategy: |
+    How this will be tested (TDD approach)
+  files_modified:
+    - path/to/file1.rs
+    - path/to/file2.rs
 ```
 
 ### State Changes MUST Be Committed

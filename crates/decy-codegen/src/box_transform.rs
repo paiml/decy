@@ -51,7 +51,11 @@ impl BoxTransformer {
             | HirType::Pointer(_)
             | HirType::Box(_)
             | HirType::Vec(_)
-            | HirType::Reference { .. } => {
+            | HirType::Reference { .. }
+            | HirType::Struct(_)
+            | HirType::Enum(_)
+            | HirType::Array { .. }
+            | HirType::FunctionPointer { .. } => {
                 // Fallback for types that don't have simple defaults
                 HirExpression::IntLiteral(0)
             }

@@ -20,3 +20,8 @@ serde.workspace = true
 
 [dev-dependencies]
 proptest.workspace = true
+criterion.workspace = true
+
+[[bench]]
+name = "parser_benchmarks"
+harness = false

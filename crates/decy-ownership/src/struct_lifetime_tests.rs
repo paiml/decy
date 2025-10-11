@@ -194,3 +194,84 @@ fn test_nested_pointer_in_struct() {
         "Should detect nested pointers"
     );
 }
+
+#[test]
+fn test_pointer_converts_to_reference_with_lifetime() {
+    // Mutation testing found: deleting Pointer match arm doesn't fail tests
+    // Test that Pointer types are converted to References with lifetimes
+    let struct_fields = vec![("ptr", HirType::Pointer(Box::new(HirType::Int)))];
+
+    let lifetimes = vec![LifetimeParam::standard(0)];
+
+    let annotator = StructLifetimeAnnotator::new();
+    let annotated_fields = annotator.annotate_fields(&struct_fields, &lifetimes);
+
+    assert_eq!(annotated_fields.len(), 1);
+    assert_eq!(annotated_fields[0].name, "ptr");
+
+    // Critical: Pointer should become Reference, not Simple
+    match &annotated_fields[0].field_type {
+        AnnotatedType::Reference {
+            lifetime, mutable, ..
+        } => {
+            assert!(
+                lifetime.is_some(),
+                "Pointer should be converted to Reference with lifetime"
+            );
+            assert_eq!(lifetime.as_ref().unwrap().name, "'a");
+            assert!(
+                !(*mutable),
+                "Default pointer conversion should be immutable"
+            );
+        }
+        AnnotatedType::Simple(_) => {
+            panic!("Pointer should NOT be Simple type - should be converted to Reference")
+        }
+    }
+}
+
+#[test]
+fn test_pointer_without_lifetimes_gets_none() {
+    // Mutation testing found: deleting ! in !lifetimes.is_empty() doesn't fail
+    // Test that when no lifetimes are provided, pointer gets None lifetime
+    let struct_fields = vec![("ptr", HirType::Pointer(Box::new(HirType::Int)))];
+
+    let empty_lifetimes: Vec<LifetimeParam> = vec![];
+
+    let annotator = StructLifetimeAnnotator::new();
+    let annotated_fields = annotator.annotate_fields(&struct_fields, &empty_lifetimes);
+
+    assert_eq!(annotated_fields.len(), 1);
+
+    match &annotated_fields[0].field_type {
+        AnnotatedType::Reference { lifetime, .. } => {
+            assert!(
+                lifetime.is_none(),
+                "When no lifetimes provided, should get None lifetime"
+            );
+        }
+        _ => panic!("Expected Reference type for pointer field"),
+    }
+}
+
+#[test]
+fn test_pointer_with_lifetimes_gets_lifetime() {
+    // Test that when lifetimes ARE provided, pointer gets the lifetime
+    let struct_fields = vec![("ptr", HirType::Pointer(Box::new(HirType::Int)))];
+
+    let lifetimes = vec![LifetimeParam::standard(0)];
+
+    let annotator = StructLifetimeAnnotator::new();
+    let annotated_fields = annotator.annotate_fields(&struct_fields, &lifetimes);
+
+    match &annotated_fields[0].field_type {
+        AnnotatedType::Reference { lifetime, .. } => {
+            assert!(
+                lifetime.is_some(),
+                "When lifetimes provided, should get Some(lifetime)"
+            );
+            assert_eq!(lifetime.as_ref().unwrap().name, "'a");
+        }
+        _ => panic!("Expected Reference type for pointer field"),
+    }
+}

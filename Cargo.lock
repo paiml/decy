@@ -679,6 +679,7 @@ name = "decy-analyzer"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "criterion",
  "decy-hir",
  "petgraph",
  "proptest",
@@ -705,6 +706,7 @@ name = "decy-codegen"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "criterion",
  "decy-analyzer",
  "decy-hir",
  "decy-ownership",
@@ -787,6 +789,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "clang-sys",
+ "criterion",
  "proptest",
  "serde",
  "thiserror 1.0.69",

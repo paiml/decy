@@ -262,7 +262,17 @@ impl LifetimeAnalyzer {
             HirExpression::FunctionCall { arguments, .. } => arguments
                 .iter()
                 .any(|arg| self.expression_uses_variable(arg, var_name)),
-            HirExpression::IntLiteral(_) => false,
+            HirExpression::FieldAccess { object, .. } => {
+                self.expression_uses_variable(object, var_name)
+            }
+            HirExpression::PointerFieldAccess { pointer, .. } => {
+                self.expression_uses_variable(pointer, var_name)
+            }
+            HirExpression::ArrayIndex { array, index } => {
+                self.expression_uses_variable(array, var_name)
+                    || self.expression_uses_variable(index, var_name)
+            }
+            HirExpression::IntLiteral(_) | HirExpression::StringLiteral(_) => false,
         }
     }
 

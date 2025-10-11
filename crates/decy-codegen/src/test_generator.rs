@@ -410,6 +410,26 @@ expected_kill_rate = 0.90
                 // Generate a reference to a default value
                 format!("&{}", Self::default_test_value(inner))
             }
+            HirType::Struct(name) => {
+                format!("{}::default()", name)
+            }
+            HirType::Enum(name) => {
+                // Use first variant (placeholder - could be enhanced)
+                format!("{}::default()", name)
+            }
+            HirType::Array { element_type, size } => {
+                if let Some(n) = size {
+                    format!("[{}; {}]", Self::default_test_value(element_type), n)
+                } else {
+                    // Unsized array - needs a slice reference
+                    "&[]".to_string()
+                }
+            }
+            HirType::FunctionPointer { .. } => {
+                // Function pointers need concrete function values
+                // Return a placeholder for test generation
+                "todo!(\"Provide function pointer\")".to_string()
+            }
         }
     }
 }

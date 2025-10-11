@@ -130,4 +130,102 @@ proptest! {
 
         prop_assert_eq!(hir_func.parameters().len(), param_count);
     }
+
+    /// Property: For loop with init always includes init statement
+    #[test]
+    fn property_for_loop_with_init_has_init(
+        var_name in "[a-z]{1,5}",
+        limit in 1i32..100
+    ) {
+        let for_stmt = HirStatement::For {
+            init: Some(Box::new(HirStatement::VariableDeclaration {
+                name: var_name.clone(),
+                var_type: HirType::Int,
+                initializer: Some(HirExpression::IntLiteral(0)),
+            })),
+            condition: HirExpression::BinaryOp {
+                op: BinaryOperator::LessThan,
+                left: Box::new(HirExpression::Variable(var_name)),
+                right: Box::new(HirExpression::IntLiteral(limit)),
+            },
+            increment: None,
+            body: vec![],
+        };
+
+        if let HirStatement::For { init, .. } = for_stmt {
+            prop_assert!(init.is_some());
+        } else {
+            prop_assert!(false, "Expected For statement");
+        }
+    }
+
+    /// Property: For loop without init has None init
+    #[test]
+    fn property_for_loop_without_init_has_none(
+        var_name in "[a-z]{1,5}",
+        limit in 1i32..100
+    ) {
+        let for_stmt = HirStatement::For {
+            init: None,
+            condition: HirExpression::BinaryOp {
+                op: BinaryOperator::LessThan,
+                left: Box::new(HirExpression::Variable(var_name)),
+                right: Box::new(HirExpression::IntLiteral(limit)),
+            },
+            increment: None,
+            body: vec![],
+        };
+
+        if let HirStatement::For { init, .. } = for_stmt {
+            prop_assert!(init.is_none());
+        } else {
+            prop_assert!(false, "Expected For statement");
+        }
+    }
+
+    /// Property: For loop body length matches input
+    #[test]
+    fn property_for_loop_body_length(body_len in 0usize..10) {
+        let body: Vec<_> = (0..body_len)
+            .map(|_| HirStatement::Break)
+            .collect();
+
+        let for_stmt = HirStatement::For {
+            init: None,
+            condition: HirExpression::IntLiteral(1),
+            increment: None,
+            body: body.clone(),
+        };
+
+        if let HirStatement::For { body: loop_body, .. } = for_stmt {
+            prop_assert_eq!(loop_body.len(), body_len);
+        } else {
+            prop_assert!(false, "Expected For statement");
+        }
+    }
+
+    /// Property: For loop is cloneable and equals itself
+    #[test]
+    fn property_for_loop_clone_equals(
+        var_name in "[a-z]{1,5}",
+        limit in 1i32..100
+    ) {
+        let for_stmt = HirStatement::For {
+            init: Some(Box::new(HirStatement::VariableDeclaration {
+                name: var_name.clone(),
+                var_type: HirType::Int,
+                initializer: Some(HirExpression::IntLiteral(0)),
+            })),
+            condition: HirExpression::BinaryOp {
+                op: BinaryOperator::LessThan,
+                left: Box::new(HirExpression::Variable(var_name)),
+                right: Box::new(HirExpression::IntLiteral(limit)),
+            },
+            increment: None,
+            body: vec![],
+        };
+
+        let cloned = for_stmt.clone();
+        prop_assert_eq!(for_stmt, cloned);
+    }
 }
