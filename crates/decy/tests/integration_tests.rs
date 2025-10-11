@@ -147,7 +147,6 @@ fn test_cli_transpile_file() {
 
 /// Test transpiling a file with control flow
 #[test]
-#[ignore] // Will implement after basic cases work
 fn test_transpile_control_flow() {
     let c_code = r#"
         int max(int a, int b) {
