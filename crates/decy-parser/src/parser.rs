@@ -278,6 +278,13 @@ extern "C" fn visit_statement(
             }
             CXChildVisit_Continue
         }
+        CXCursor_BinaryOperator => {
+            // Could be an assignment statement (x = 42)
+            if let Some(stmt) = extract_assignment_stmt(cursor) {
+                statements.push(stmt);
+            }
+            CXChildVisit_Continue
+        }
         _ => CXChildVisit_Continue,
     }
 }
@@ -325,6 +332,91 @@ fn extract_return_stmt(cursor: CXCursor) -> Option<Statement> {
     Some(Statement::Return(return_expr))
 }
 
+/// Extract an assignment statement.
+fn extract_assignment_stmt(cursor: CXCursor) -> Option<Statement> {
+    // Check if this binary operator is an assignment '=' (not '==', '!=', etc.)
+    // Get the translation unit
+    let tu = unsafe { clang_Cursor_getTranslationUnit(cursor) };
+    if tu.is_null() {
+        return None;
+    }
+
+    // Get the extent (source range) of the cursor
+    let extent = unsafe { clang_getCursorExtent(cursor) };
+
+    // Tokenize to find the operator
+    let mut tokens = ptr::null_mut();
+    let mut num_tokens = 0;
+
+    unsafe {
+        clang_tokenize(tu, extent, &mut tokens, &mut num_tokens);
+    }
+
+    let mut is_assignment = false;
+
+    // Look through tokens to find '=' (and make sure it's not '==', '!=', etc.)
+    for i in 0..num_tokens {
+        unsafe {
+            let token = *tokens.add(i as usize);
+            let token_kind = clang_getTokenKind(token);
+
+            if token_kind == CXToken_Punctuation {
+                let token_cxstring = clang_getTokenSpelling(tu, token);
+                let c_str = CStr::from_ptr(clang_getCString(token_cxstring));
+                if let Ok(token_str) = c_str.to_str() {
+                    // Only accept single '=' for assignment
+                    if token_str == "=" {
+                        is_assignment = true;
+                        clang_disposeString(token_cxstring);
+                        break;
+                    } else if token_str == "=="
+                        || token_str == "!="
+                        || token_str == "<="
+                        || token_str == ">="
+                    {
+                        // This is a comparison operator, not assignment
+                        clang_disposeString(token_cxstring);
+                        break;
+                    }
+                }
+                clang_disposeString(token_cxstring);
+            }
+        }
+    }
+
+    unsafe {
+        clang_disposeTokens(tu, tokens, num_tokens);
+    }
+
+    if !is_assignment {
+        return None;
+    }
+
+    // Extract left side (target) and right side (value)
+    let mut operands: Vec<Expression> = Vec::new();
+    let operands_ptr = &mut operands as *mut Vec<Expression>;
+
+    unsafe {
+        clang_visitChildren(cursor, visit_binary_operand, operands_ptr as CXClientData);
+    }
+
+    // Assignment should have exactly 2 operands
+    if operands.len() != 2 {
+        return None;
+    }
+
+    // Left side must be a variable reference
+    let target = match &operands[0] {
+        Expression::Variable(name) => name.clone(),
+        _ => return None, // Can't assign to non-variables (yet)
+    };
+
+    Some(Statement::Assignment {
+        target,
+        value: operands[1].clone(),
+    })
+}
+
 /// Visitor callback for extracting expressions.
 ///
 /// # Safety
@@ -350,6 +442,20 @@ extern "C" fn visit_expression(
             }
             CXChildVisit_Continue
         }
+        CXCursor_DeclRefExpr => {
+            // Variable reference (e.g., "a" or "b" in "a + b")
+            if let Some(expr) = extract_variable_ref(cursor) {
+                *expr_opt = Some(expr);
+            }
+            CXChildVisit_Continue
+        }
+        CXCursor_BinaryOperator => {
+            // Binary operation (e.g., a + b)
+            if let Some(expr) = extract_binary_op(cursor) {
+                *expr_opt = Some(expr);
+            }
+            CXChildVisit_Continue
+        }
         CXCursor_CallExpr => {
             // Function call
             if let Some(expr) = extract_function_call(cursor) {
@@ -362,11 +468,191 @@ extern "C" fn visit_expression(
 }
 
 /// Extract an integer literal expression.
-fn extract_int_literal(_cursor: CXCursor) -> Option<Expression> {
-    // For now, we'll use a default value since extracting the actual
-    // integer value requires token parsing
-    // In a production system, we'd use clang_tokenize or clang_Cursor_Evaluate
-    Some(Expression::IntLiteral(0))
+fn extract_int_literal(cursor: CXCursor) -> Option<Expression> {
+    // SAFETY: Get the extent (source range) of the cursor
+    let extent = unsafe { clang_getCursorExtent(cursor) };
+
+    // SAFETY: Get the translation unit from the cursor
+    let tu = unsafe {
+        let loc = clang_getCursorLocation(cursor);
+        let mut file = ptr::null_mut();
+        let mut line = 0;
+        let mut column = 0;
+        let mut offset = 0;
+        clang_getFileLocation(loc, &mut file, &mut line, &mut column, &mut offset);
+
+        // Get the translation unit containing this cursor
+        // We need to traverse up to get it, but for now use a different approach
+        clang_Cursor_getTranslationUnit(cursor)
+    };
+
+    if tu.is_null() {
+        return Some(Expression::IntLiteral(0));
+    }
+
+    // SAFETY: Tokenize the extent
+    let mut tokens = ptr::null_mut();
+    let mut num_tokens = 0;
+
+    unsafe {
+        clang_tokenize(tu, extent, &mut tokens, &mut num_tokens);
+    }
+
+    let mut value = 0;
+
+    if num_tokens > 0 {
+        // SAFETY: Get the spelling of the first token
+        unsafe {
+            let token_cxstring = clang_getTokenSpelling(tu, *tokens);
+            let c_str = CStr::from_ptr(clang_getCString(token_cxstring));
+            if let Ok(token_str) = c_str.to_str() {
+                value = token_str.parse().unwrap_or(0);
+            }
+            clang_disposeString(token_cxstring);
+
+            // SAFETY: Dispose tokens
+            clang_disposeTokens(tu, tokens, num_tokens);
+        }
+    }
+
+    Some(Expression::IntLiteral(value))
+}
+
+/// Extract a variable reference expression.
+fn extract_variable_ref(cursor: CXCursor) -> Option<Expression> {
+    // Get variable name
+    let name_cxstring = unsafe { clang_getCursorSpelling(cursor) };
+    let name = unsafe {
+        let c_str = CStr::from_ptr(clang_getCString(name_cxstring));
+        let var_name = c_str.to_string_lossy().into_owned();
+        clang_disposeString(name_cxstring);
+        var_name
+    };
+
+    Some(Expression::Variable(name))
+}
+
+/// Extract a binary operation expression.
+fn extract_binary_op(cursor: CXCursor) -> Option<Expression> {
+    // Extract operator by tokenizing
+    let op = extract_binary_operator(cursor)?;
+
+    // Extract left and right operands by visiting children
+    let mut operands: Vec<Expression> = Vec::new();
+    let operands_ptr = &mut operands as *mut Vec<Expression>;
+
+    unsafe {
+        clang_visitChildren(cursor, visit_binary_operand, operands_ptr as CXClientData);
+    }
+
+    // Binary operators should have exactly 2 operands
+    if operands.len() != 2 {
+        return None;
+    }
+
+    Some(Expression::BinaryOp {
+        op,
+        left: Box::new(operands[0].clone()),
+        right: Box::new(operands[1].clone()),
+    })
+}
+
+/// Visitor callback for binary operator operands.
+#[allow(non_upper_case_globals)]
+extern "C" fn visit_binary_operand(
+    cursor: CXCursor,
+    _parent: CXCursor,
+    client_data: CXClientData,
+) -> CXChildVisitResult {
+    let operands = unsafe { &mut *(client_data as *mut Vec<Expression>) };
+    let kind = unsafe { clang_getCursorKind(cursor) };
+
+    match kind {
+        CXCursor_IntegerLiteral => {
+            if let Some(expr) = extract_int_literal(cursor) {
+                operands.push(expr);
+            }
+            CXChildVisit_Continue
+        }
+        CXCursor_DeclRefExpr => {
+            if let Some(expr) = extract_variable_ref(cursor) {
+                operands.push(expr);
+            }
+            CXChildVisit_Continue
+        }
+        CXCursor_BinaryOperator => {
+            // Nested binary operation
+            if let Some(expr) = extract_binary_op(cursor) {
+                operands.push(expr);
+            }
+            CXChildVisit_Continue
+        }
+        _ => CXChildVisit_Recurse,
+    }
+}
+
+/// Extract the binary operator from a cursor by tokenizing.
+#[allow(non_upper_case_globals)]
+fn extract_binary_operator(cursor: CXCursor) -> Option<BinaryOperator> {
+    // Get the translation unit
+    let tu = unsafe { clang_Cursor_getTranslationUnit(cursor) };
+    if tu.is_null() {
+        return None;
+    }
+
+    // Get the extent (source range) of the cursor
+    let extent = unsafe { clang_getCursorExtent(cursor) };
+
+    // Tokenize to find the operator
+    let mut tokens = ptr::null_mut();
+    let mut num_tokens = 0;
+
+    unsafe {
+        clang_tokenize(tu, extent, &mut tokens, &mut num_tokens);
+    }
+
+    let mut operator = None;
+
+    // Look through tokens to find the operator
+    for i in 0..num_tokens {
+        unsafe {
+            let token = *tokens.add(i as usize);
+            let token_kind = clang_getTokenKind(token);
+
+            // Only look at punctuation tokens
+            if token_kind == CXToken_Punctuation {
+                let token_cxstring = clang_getTokenSpelling(tu, token);
+                let c_str = CStr::from_ptr(clang_getCString(token_cxstring));
+                if let Ok(token_str) = c_str.to_str() {
+                    operator = match token_str {
+                        "+" => Some(BinaryOperator::Add),
+                        "-" => Some(BinaryOperator::Subtract),
+                        "*" => Some(BinaryOperator::Multiply),
+                        "/" => Some(BinaryOperator::Divide),
+                        "%" => Some(BinaryOperator::Modulo),
+                        "==" => Some(BinaryOperator::Equal),
+                        "!=" => Some(BinaryOperator::NotEqual),
+                        "<" => Some(BinaryOperator::LessThan),
+                        ">" => Some(BinaryOperator::GreaterThan),
+                        "<=" => Some(BinaryOperator::LessEqual),
+                        ">=" => Some(BinaryOperator::GreaterEqual),
+                        _ => None,
+                    };
+                    if operator.is_some() {
+                        clang_disposeString(token_cxstring);
+                        break;
+                    }
+                }
+                clang_disposeString(token_cxstring);
+            }
+        }
+    }
+
+    unsafe {
+        clang_disposeTokens(tu, tokens, num_tokens);
+    }
+
+    operator
 }
 
 /// Extract a function call expression.
@@ -455,6 +741,40 @@ pub enum Statement {
     },
     /// Return statement: `return expr;`
     Return(Option<Expression>),
+    /// Assignment statement: `x = 42;`
+    Assignment {
+        /// Target variable name
+        target: String,
+        /// Value expression to assign
+        value: Expression,
+    },
+}
+
+/// Binary operators for C expressions.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum BinaryOperator {
+    /// Addition (+)
+    Add,
+    /// Subtraction (-)
+    Subtract,
+    /// Multiplication (*)
+    Multiply,
+    /// Division (/)
+    Divide,
+    /// Modulo (%)
+    Modulo,
+    /// Equality (==)
+    Equal,
+    /// Inequality (!=)
+    NotEqual,
+    /// Less than (<)
+    LessThan,
+    /// Greater than (>)
+    GreaterThan,
+    /// Less than or equal (<=)
+    LessEqual,
+    /// Greater than or equal (>=)
+    GreaterEqual,
 }
 
 /// Represents a C expression.
@@ -462,6 +782,17 @@ pub enum Statement {
 pub enum Expression {
     /// Integer literal: `42`
     IntLiteral(i32),
+    /// Variable reference: `x`
+    Variable(String),
+    /// Binary operation: `a + b`
+    BinaryOp {
+        /// Operator
+        op: BinaryOperator,
+        /// Left operand
+        left: Box<Expression>,
+        /// Right operand
+        right: Box<Expression>,
+    },
     /// Function call: `malloc(4)`
     FunctionCall {
         /// Function name

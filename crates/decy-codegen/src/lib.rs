@@ -97,6 +97,31 @@ impl CodeGenerator {
                     format!("&{}", Self::map_type(inner))
                 }
             }
+            HirType::Struct(name) => name.clone(),
+            HirType::Enum(name) => name.clone(),
+            HirType::Array { element_type, size } => {
+                if let Some(n) = size {
+                    format!("[{}; {}]", Self::map_type(element_type), n)
+                } else {
+                    // Unsized array - use slice reference
+                    format!("[{}]", Self::map_type(element_type))
+                }
+            }
+            HirType::FunctionPointer {
+                param_types,
+                return_type,
+            } => {
+                // C: int (*func_ptr)(int, int); → Rust: fn(i32, i32) -> i32
+                let params: Vec<String> = param_types.iter().map(Self::map_type).collect();
+                let params_str = params.join(", ");
+
+                // Skip return type annotation for void
+                if matches!(**return_type, HirType::Void) {
+                    format!("fn({})", params_str)
+                } else {
+                    format!("fn({}) -> {}", params_str, Self::map_type(return_type))
+                }
+            }
         }
     }
 
@@ -105,6 +130,7 @@ impl CodeGenerator {
     pub fn generate_expression(&self, expr: &HirExpression) -> String {
         match expr {
             HirExpression::IntLiteral(val) => val.to_string(),
+            HirExpression::StringLiteral(s) => format!("\"{}\"", s),
             HirExpression::Variable(name) => name.clone(),
             HirExpression::BinaryOp { op, left, right } => {
                 let left_code = self.generate_expression(left);
@@ -149,6 +175,21 @@ impl CodeGenerator {
                     .collect();
                 format!("{}({})", function, args.join(", "))
             }
+            HirExpression::FieldAccess { object, field } => {
+                format!("{}.{}", self.generate_expression(object), field)
+            }
+            HirExpression::PointerFieldAccess { pointer, field } => {
+                // In Rust, ptr->field becomes (*ptr).field or just ptr.field
+                // The safer version is (*ptr).field for explicit dereferencing
+                format!("(*{}).{}", self.generate_expression(pointer), field)
+            }
+            HirExpression::ArrayIndex { array, index } => {
+                format!(
+                    "{}[{}]",
+                    self.generate_expression(array),
+                    self.generate_expression(index)
+                )
+            }
         }
     }
 
@@ -191,6 +232,25 @@ impl CodeGenerator {
                 // References cannot have default values - they must always be initialized
                 // This should never be reached in valid code
                 panic!("References must be initialized and cannot have default values")
+            }
+            HirType::Struct(name) => {
+                format!("{}::default()", name)
+            }
+            HirType::Enum(name) => {
+                format!("{}::default()", name)
+            }
+            HirType::Array { element_type, size } => {
+                if let Some(n) = size {
+                    format!("[{}; {}]", Self::default_value_for_type(element_type), n)
+                } else {
+                    // Unsized arrays cannot have default values - this should be initialized from parameter
+                    panic!("Unsized arrays must be initialized and cannot have default values")
+                }
+            }
+            HirType::FunctionPointer { .. } => {
+                // Function pointers cannot have meaningful default values
+                // They must be initialized with an actual function
+                panic!("Function pointers must be initialized and cannot have default values")
             }
         }
     }
@@ -272,6 +332,94 @@ impl CodeGenerator {
             HirStatement::Continue => "continue;".to_string(),
             HirStatement::Assignment { target, value } => {
                 format!("{} = {};", target, self.generate_expression(value))
+            }
+            HirStatement::For {
+                init,
+                condition,
+                increment,
+                body,
+            } => {
+                let mut code = String::new();
+
+                // Generate init statement before loop (if present)
+                if let Some(init_stmt) = init {
+                    code.push_str(&self.generate_statement(init_stmt));
+                    code.push('\n');
+                }
+
+                // Generate while loop with condition
+                code.push_str(&format!(
+                    "while {} {{\n",
+                    self.generate_expression(condition)
+                ));
+
+                // Generate loop body
+                for stmt in body {
+                    code.push_str("    ");
+                    code.push_str(&self.generate_statement(stmt));
+                    code.push('\n');
+                }
+
+                // Generate increment at end of body (if present)
+                if let Some(inc_stmt) = increment {
+                    code.push_str("    ");
+                    code.push_str(&self.generate_statement(inc_stmt));
+                    code.push('\n');
+                }
+
+                code.push('}');
+                code
+            }
+            HirStatement::Switch {
+                condition,
+                cases,
+                default_case,
+            } => {
+                let mut code = String::new();
+
+                // Generate match expression
+                code.push_str(&format!(
+                    "match {} {{\n",
+                    self.generate_expression(condition)
+                ));
+
+                // Generate each case
+                for case in cases {
+                    if let Some(value_expr) = &case.value {
+                        // Generate case pattern
+                        code.push_str(&format!(
+                            "    {} => {{\n",
+                            self.generate_expression(value_expr)
+                        ));
+
+                        // Generate case body (filter out Break statements)
+                        for stmt in &case.body {
+                            if !matches!(stmt, HirStatement::Break) {
+                                code.push_str("        ");
+                                code.push_str(&self.generate_statement(stmt));
+                                code.push('\n');
+                            }
+                        }
+
+                        code.push_str("    },\n");
+                    }
+                }
+
+                // Generate default case (or empty default if not present)
+                code.push_str("    _ => {\n");
+                if let Some(default_stmts) = default_case {
+                    for stmt in default_stmts {
+                        if !matches!(stmt, HirStatement::Break) {
+                            code.push_str("        ");
+                            code.push_str(&self.generate_statement(stmt));
+                            code.push('\n');
+                        }
+                    }
+                }
+                code.push_str("    },\n");
+
+                code.push('}');
+                code
             }
         }
     }
@@ -467,6 +615,29 @@ impl CodeGenerator {
                 // References in return position need concrete values from parameters
                 // This should be handled by lifetime-annotated code generation
                 // using generate_function_with_lifetimes() instead
+                String::new()
+            }
+            HirType::Struct(name) => {
+                format!("    return {}::default();", name)
+            }
+            HirType::Enum(name) => {
+                format!("    return {}::default();", name)
+            }
+            HirType::Array { element_type, size } => {
+                if let Some(n) = size {
+                    format!(
+                        "    return [{}; {}];",
+                        Self::default_value_for_type(element_type),
+                        n
+                    )
+                } else {
+                    // Unsized arrays in return position don't make sense
+                    String::new()
+                }
+            }
+            HirType::FunctionPointer { .. } => {
+                // Function pointers in return position need concrete function values
+                // This should be handled by the function body
                 String::new()
             }
         }
@@ -833,6 +1004,110 @@ impl CodeGenerator {
         code.push('}');
         code
     }
+
+    /// Generate a struct definition from HIR.
+    ///
+    /// Generates Rust struct code with automatic derives for Debug, Clone, PartialEq, Eq.
+    /// Handles lifetimes automatically for structs with reference fields.
+    pub fn generate_struct(&self, hir_struct: &decy_hir::HirStruct) -> String {
+        let mut code = String::new();
+
+        // Check if struct needs lifetimes (has Reference fields)
+        let needs_lifetimes = hir_struct
+            .fields()
+            .iter()
+            .any(|f| matches!(f.field_type(), HirType::Reference { .. }));
+
+        // Add derive attribute
+        code.push_str("#[derive(Debug, Clone, PartialEq, Eq)]\n");
+
+        // Add struct declaration with or without lifetime
+        if needs_lifetimes {
+            code.push_str(&format!("pub struct {}<'a> {{\n", hir_struct.name()));
+        } else {
+            code.push_str(&format!("pub struct {} {{\n", hir_struct.name()));
+        }
+
+        // Add fields
+        for field in hir_struct.fields() {
+            code.push_str(&format!(
+                "    pub {}: {},\n",
+                field.name(),
+                Self::map_type(field.field_type())
+            ));
+        }
+
+        code.push('}');
+        code
+    }
+
+    /// Generate an enum definition from HIR.
+    ///
+    /// Generates Rust enum code with automatic derives for Debug, Clone, Copy, PartialEq, Eq.
+    /// Supports both simple enums and enums with explicit integer values.
+    pub fn generate_enum(&self, hir_enum: &decy_hir::HirEnum) -> String {
+        let mut code = String::new();
+
+        // Add derive attribute (includes Copy since C enums are copyable)
+        code.push_str("#[derive(Debug, Clone, Copy, PartialEq, Eq)]\n");
+
+        // Add enum declaration
+        code.push_str(&format!("pub enum {} {{\n", hir_enum.name()));
+
+        // Add variants
+        for variant in hir_enum.variants() {
+            if let Some(value) = variant.value() {
+                code.push_str(&format!("    {} = {},\n", variant.name(), value));
+            } else {
+                code.push_str(&format!("    {},\n", variant.name()));
+            }
+        }
+
+        code.push('}');
+        code
+    }
+
+    /// Generate a typedef (type alias) from HIR.
+    ///
+    /// Generates Rust type alias code using the `type` keyword.
+    /// Handles redundant typedefs (where name matches underlying struct/enum name) as comments.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use decy_codegen::CodeGenerator;
+    /// use decy_hir::{HirTypedef, HirType};
+    ///
+    /// let codegen = CodeGenerator::new();
+    ///
+    /// // Simple typedef: typedef int Integer;
+    /// let typedef = HirTypedef::new("Integer".to_string(), HirType::Int);
+    /// let code = codegen.generate_typedef(&typedef);
+    /// assert!(code.contains("type Integer = i32"));
+    ///
+    /// // Pointer typedef: typedef int* IntPtr;
+    /// let typedef = HirTypedef::new("IntPtr".to_string(), HirType::Pointer(Box::new(HirType::Int)));
+    /// let code = codegen.generate_typedef(&typedef);
+    /// assert!(code.contains("type IntPtr = *mut i32"));
+    /// ```
+    pub fn generate_typedef(&self, typedef: &decy_hir::HirTypedef) -> String {
+        // Check for redundant typedef (struct/enum name matching typedef name)
+        match typedef.underlying_type() {
+            HirType::Struct(name) | HirType::Enum(name) if name == typedef.name() => {
+                // In Rust, struct/enum names are already types, so this is redundant
+                // Generate as a comment for documentation purposes
+                format!("// type {} = {}; (redundant in Rust)", typedef.name(), name)
+            }
+            _ => {
+                // Regular type alias
+                format!(
+                    "type {} = {};",
+                    typedef.name(),
+                    Self::map_type(typedef.underlying_type())
+                )
+            }
+        }
+    }
 }
 
 impl Default for CodeGenerator {
@@ -852,3 +1127,39 @@ mod property_tests;
 #[cfg(test)]
 #[path = "vec_property_tests.rs"]
 mod vec_property_tests;
+
+#[cfg(test)]
+#[path = "struct_codegen_tests.rs"]
+mod struct_codegen_tests;
+
+#[cfg(test)]
+#[path = "for_loop_codegen_tests.rs"]
+mod for_loop_codegen_tests;
+
+#[cfg(test)]
+#[path = "typedef_codegen_tests.rs"]
+mod typedef_codegen_tests;
+
+#[cfg(test)]
+#[path = "typedef_property_tests.rs"]
+mod typedef_property_tests;
+
+#[cfg(test)]
+#[path = "function_pointer_codegen_tests.rs"]
+mod function_pointer_codegen_tests;
+
+#[cfg(test)]
+#[path = "string_codegen_tests.rs"]
+mod string_codegen_tests;
+
+#[cfg(test)]
+#[path = "string_property_tests.rs"]
+mod string_property_tests;
+
+#[cfg(test)]
+#[path = "switch_codegen_tests.rs"]
+mod switch_codegen_tests;
+
+#[cfg(test)]
+#[path = "switch_property_tests.rs"]
+mod switch_property_tests;

@@ -27,3 +27,7 @@ serde_json.workspace = true
 [dev-dependencies]
 proptest.workspace = true
 criterion.workspace = true
+
+[[bench]]
+name = "pipeline_benchmarks"
+harness = false

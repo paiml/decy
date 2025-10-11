@@ -187,6 +187,27 @@ impl DataflowAnalyzer {
                     self.track_statement(s, graph, index);
                 }
             }
+            HirStatement::For {
+                init,
+                condition,
+                increment,
+                body,
+            } => {
+                // Track init statement
+                if let Some(init_stmt) = init {
+                    self.track_statement(init_stmt, graph, index);
+                }
+                // Track condition expression
+                self.track_expression_uses(condition, graph, index);
+                // Track loop body
+                for s in body {
+                    self.track_statement(s, graph, index);
+                }
+                // Track increment statement
+                if let Some(inc_stmt) = increment {
+                    self.track_statement(inc_stmt, graph, index);
+                }
+            }
             HirStatement::Return(expr_opt) => {
                 if let Some(expr) = expr_opt {
                     self.track_expression_uses(expr, graph, index);
@@ -194,6 +215,23 @@ impl DataflowAnalyzer {
             }
             HirStatement::Break | HirStatement::Continue => {
                 // No pointer tracking needed
+            }
+            HirStatement::Switch {
+                condition,
+                cases,
+                default_case,
+            } => {
+                self.track_expression_uses(condition, graph, index);
+                for case in cases {
+                    for stmt in &case.body {
+                        self.track_statement(stmt, graph, index);
+                    }
+                }
+                if let Some(default_stmts) = default_case {
+                    for stmt in default_stmts {
+                        self.track_statement(stmt, graph, index);
+                    }
+                }
             }
         }
     }
@@ -241,8 +279,18 @@ impl DataflowAnalyzer {
                     Self::track_expr_recursive(arg, _graph, _index);
                 }
             }
-            HirExpression::IntLiteral(_) => {
-                // No tracking needed
+            HirExpression::FieldAccess { object, .. } => {
+                Self::track_expr_recursive(object, _graph, _index);
+            }
+            HirExpression::PointerFieldAccess { pointer, .. } => {
+                Self::track_expr_recursive(pointer, _graph, _index);
+            }
+            HirExpression::ArrayIndex { array, index } => {
+                Self::track_expr_recursive(array, _graph, _index);
+                Self::track_expr_recursive(index, _graph, _index);
+            }
+            HirExpression::IntLiteral(_) | HirExpression::StringLiteral(_) => {
+                // No tracking needed for literals
             }
         }
     }

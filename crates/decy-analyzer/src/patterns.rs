@@ -564,6 +564,124 @@ mod tests {
         assert_eq!(candidates[0].variable, "arr1");
         assert_eq!(candidates[1].variable, "arr2");
     }
+
+    #[test]
+    fn test_wrong_function_name_not_detected() {
+        // Mutation testing found: changing == to != doesn't fail tests
+        // Test that non-malloc functions are NOT detected
+        let func = HirFunction::new_with_body(
+            "test".to_string(),
+            HirType::Void,
+            vec![],
+            vec![
+                HirStatement::VariableDeclaration {
+                    name: "ptr1".to_string(),
+                    var_type: HirType::Pointer(Box::new(HirType::Int)),
+                    initializer: Some(HirExpression::FunctionCall {
+                        function: "calloc".to_string(), // Not malloc!
+                        arguments: vec![HirExpression::IntLiteral(100)],
+                    }),
+                },
+                HirStatement::VariableDeclaration {
+                    name: "ptr2".to_string(),
+                    var_type: HirType::Pointer(Box::new(HirType::Int)),
+                    initializer: Some(HirExpression::FunctionCall {
+                        function: "realloc".to_string(), // Not malloc!
+                        arguments: vec![HirExpression::IntLiteral(100)],
+                    }),
+                },
+            ],
+        );
+
+        let detector = PatternDetector::new();
+        let box_candidates = detector.find_box_candidates(&func);
+        let vec_candidates = detector.find_vec_candidates(&func);
+
+        assert_eq!(
+            box_candidates.len(),
+            0,
+            "Should not detect calloc/realloc as malloc"
+        );
+        assert_eq!(
+            vec_candidates.len(),
+            0,
+            "Should not detect calloc/realloc as malloc"
+        );
+    }
+
+    #[test]
+    fn test_vec_assignment_with_array_malloc() {
+        // Mutation testing found: deleting Assignment branch in is_malloc_assignment_expr doesn't fail
+        // Test that Assignment statement with array malloc IS detected as Vec
+        let size_expr = HirExpression::BinaryOp {
+            op: decy_hir::BinaryOperator::Multiply,
+            left: Box::new(HirExpression::IntLiteral(10)),
+            right: Box::new(HirExpression::IntLiteral(4)),
+        };
+
+        let func = HirFunction::new_with_body(
+            "test".to_string(),
+            HirType::Void,
+            vec![HirParameter::new(
+                "arr".to_string(),
+                HirType::Pointer(Box::new(HirType::Int)),
+            )],
+            vec![HirStatement::Assignment {
+                target: "arr".to_string(),
+                value: HirExpression::FunctionCall {
+                    function: "malloc".to_string(),
+                    arguments: vec![size_expr],
+                },
+            }],
+        );
+
+        let detector = PatternDetector::new();
+        let vec_candidates = detector.find_vec_candidates(&func);
+
+        assert_eq!(
+            vec_candidates.len(),
+            1,
+            "Should detect array malloc in Assignment as Vec"
+        );
+        assert_eq!(vec_candidates[0].variable, "arr");
+        assert_eq!(vec_candidates[0].malloc_index, 0);
+    }
+
+    #[test]
+    fn test_assignment_with_wrong_function_not_detected() {
+        // Mutation testing found: changing function == "malloc" to != doesn't fail in Assignment
+        // Test that Assignment with non-malloc function is NOT detected
+        let size_expr = HirExpression::BinaryOp {
+            op: decy_hir::BinaryOperator::Multiply,
+            left: Box::new(HirExpression::IntLiteral(10)),
+            right: Box::new(HirExpression::IntLiteral(4)),
+        };
+
+        let func = HirFunction::new_with_body(
+            "test".to_string(),
+            HirType::Void,
+            vec![HirParameter::new(
+                "arr".to_string(),
+                HirType::Pointer(Box::new(HirType::Int)),
+            )],
+            vec![HirStatement::Assignment {
+                target: "arr".to_string(),
+                value: HirExpression::FunctionCall {
+                    function: "calloc".to_string(), // Not malloc!
+                    arguments: vec![size_expr],
+                },
+            }],
+        );
+
+        let detector = PatternDetector::new();
+        let vec_candidates = detector.find_vec_candidates(&func);
+
+        assert_eq!(
+            vec_candidates.len(),
+            0,
+            "Should not detect calloc in Assignment"
+        );
+    }
 }
 
 #[cfg(test)]
