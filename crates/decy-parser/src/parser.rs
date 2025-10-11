@@ -748,6 +748,33 @@ pub enum Statement {
         /// Value expression to assign
         value: Expression,
     },
+    /// If statement: `if (cond) { ... } else { ... }`
+    If {
+        /// Condition expression
+        condition: Expression,
+        /// Then block
+        then_block: Vec<Statement>,
+        /// Optional else block
+        else_block: Option<Vec<Statement>>,
+    },
+    /// For loop: `for (init; cond; inc) { ... }`
+    For {
+        /// Optional init statement
+        init: Option<Box<Statement>>,
+        /// Optional condition expression
+        condition: Option<Expression>,
+        /// Optional increment statement
+        increment: Option<Box<Statement>>,
+        /// Loop body
+        body: Vec<Statement>,
+    },
+    /// While loop: `while (cond) { ... }`
+    While {
+        /// Condition expression
+        condition: Expression,
+        /// Loop body
+        body: Vec<Statement>,
+    },
 }
 
 /// Binary operators for C expressions.
