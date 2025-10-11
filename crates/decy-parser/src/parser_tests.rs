@@ -369,4 +369,252 @@ mod tests {
             _ => panic!("Expected Assignment statement"),
         }
     }
+
+    #[test]
+    fn test_parse_if_statement() {
+        // DECY-029 RED PHASE: Test that if statements are parsed
+        let parser = CParser::new().expect("Parser creation failed");
+        let source = "int max(int a, int b) { if (a > b) { return a; } return b; }";
+
+        let ast = parser
+            .parse(source)
+            .expect("Parsing if statement should succeed");
+
+        let func = &ast.functions()[0];
+        assert_eq!(func.name, "max");
+        assert_eq!(func.body.len(), 2, "Should have if statement and return");
+
+        // First statement: if statement
+        match &func.body[0] {
+            Statement::If {
+                condition,
+                then_block,
+                else_block,
+            } => {
+                // Check condition: a > b
+                match condition {
+                    Expression::BinaryOp { op, left, right } => {
+                        assert_eq!(*op, BinaryOperator::GreaterThan);
+                        match **left {
+                            Expression::Variable(ref name) => assert_eq!(name, "a"),
+                            _ => panic!("Expected variable 'a'"),
+                        }
+                        match **right {
+                            Expression::Variable(ref name) => assert_eq!(name, "b"),
+                            _ => panic!("Expected variable 'b'"),
+                        }
+                    }
+                    _ => panic!("Expected binary expression for condition"),
+                }
+
+                // Check then block
+                assert_eq!(then_block.len(), 1, "Then block should have one statement");
+                match &then_block[0] {
+                    Statement::Return(Some(Expression::Variable(ref name))) => {
+                        assert_eq!(name, "a");
+                    }
+                    _ => panic!("Expected return statement in then block"),
+                }
+
+                // Check else block
+                assert!(else_block.is_none(), "Should not have else block");
+            }
+            _ => panic!("Expected If statement"),
+        }
+    }
+
+    #[test]
+    fn test_parse_if_else_statement() {
+        // DECY-029 RED PHASE: Test that if-else statements are parsed
+        let parser = CParser::new().expect("Parser creation failed");
+        let source = "int max(int a, int b) { if (a > b) { return a; } else { return b; } }";
+
+        let ast = parser
+            .parse(source)
+            .expect("Parsing if-else statement should succeed");
+
+        let func = &ast.functions()[0];
+        assert_eq!(func.body.len(), 1, "Should have one if-else statement");
+
+        match &func.body[0] {
+            Statement::If {
+                condition,
+                then_block,
+                else_block,
+            } => {
+                // Condition already tested above
+                assert!(
+                    matches!(condition, Expression::BinaryOp { .. }),
+                    "Should have comparison"
+                );
+
+                // Then block
+                assert_eq!(then_block.len(), 1);
+
+                // Else block
+                assert!(else_block.is_some(), "Should have else block");
+                let else_stmts = else_block.as_ref().unwrap();
+                assert_eq!(else_stmts.len(), 1, "Else block should have one statement");
+                match &else_stmts[0] {
+                    Statement::Return(Some(Expression::Variable(ref name))) => {
+                        assert_eq!(name, "b");
+                    }
+                    _ => panic!("Expected return statement in else block"),
+                }
+            }
+            _ => panic!("Expected If statement"),
+        }
+    }
+
+    #[test]
+    fn test_parse_for_loop() {
+        // DECY-029 RED PHASE: Test that for loops are parsed
+        let parser = CParser::new().expect("Parser creation failed");
+        let source = "int sum(int n) { int s = 0; for (int i = 0; i < n; i = i + 1) { s = s + i; } return s; }";
+
+        let ast = parser
+            .parse(source)
+            .expect("Parsing for loop should succeed");
+
+        let func = &ast.functions()[0];
+        assert_eq!(func.name, "sum");
+        assert_eq!(func.body.len(), 3, "Should have var decl, for loop, return");
+
+        // Second statement: for loop
+        match &func.body[1] {
+            Statement::For {
+                init,
+                condition,
+                increment,
+                body,
+            } => {
+                // Check init: int i = 0
+                assert!(init.is_some(), "Should have init statement");
+                match init.as_ref().unwrap().as_ref() {
+                    Statement::VariableDeclaration {
+                        name,
+                        var_type,
+                        initializer,
+                    } => {
+                        assert_eq!(name, "i");
+                        assert_eq!(*var_type, Type::Int);
+                        assert!(initializer.is_some());
+                    }
+                    _ => panic!("Expected variable declaration in init"),
+                }
+
+                // Check condition: i < n
+                assert!(condition.is_some(), "Should have condition");
+                match condition.as_ref().unwrap() {
+                    Expression::BinaryOp { op, .. } => {
+                        assert_eq!(*op, BinaryOperator::LessThan);
+                    }
+                    _ => panic!("Expected binary expression for condition"),
+                }
+
+                // Check increment: i = i + 1
+                assert!(increment.is_some(), "Should have increment");
+
+                // Check body: s = s + i
+                assert_eq!(body.len(), 1, "Loop body should have one statement");
+                match &body[0] {
+                    Statement::Assignment { target, .. } => {
+                        assert_eq!(target, "s");
+                    }
+                    _ => panic!("Expected assignment in loop body"),
+                }
+            }
+            _ => panic!("Expected For statement"),
+        }
+    }
+
+    #[test]
+    fn test_parse_nested_if() {
+        // DECY-029 RED PHASE: Test nested if statements
+        let parser = CParser::new().expect("Parser creation failed");
+        let source = r#"
+            int classify(int x) {
+                if (x > 0) {
+                    if (x > 10) {
+                        return 2;
+                    }
+                    return 1;
+                }
+                return 0;
+            }
+        "#;
+
+        let ast = parser
+            .parse(source)
+            .expect("Parsing nested if should succeed");
+
+        let func = &ast.functions()[0];
+        assert_eq!(func.name, "classify");
+        // Should have: if (outer), return
+        assert!(
+            func.body.len() >= 2,
+            "Should have at least outer if and final return"
+        );
+
+        // Outer if statement
+        match &func.body[0] {
+            Statement::If {
+                then_block,
+                else_block,
+                ..
+            } => {
+                // Then block should have nested if
+                assert!(
+                    then_block.len() >= 2,
+                    "Should have nested if and return in then block"
+                );
+                match &then_block[0] {
+                    Statement::If { .. } => {
+                        // Nested if found
+                    }
+                    _ => panic!("Expected nested If statement"),
+                }
+                assert!(else_block.is_none(), "Outer if should not have else");
+            }
+            _ => panic!("Expected outer If statement"),
+        }
+    }
+
+    #[test]
+    fn test_parse_while_loop_with_body() {
+        // DECY-029: Verify while loops parse correctly with actual body
+        let parser = CParser::new().expect("Parser creation failed");
+        let source = "int countdown(int n) { while (n > 0) { n = n - 1; } return n; }";
+
+        let ast = parser
+            .parse(source)
+            .expect("Parsing while loop should succeed");
+
+        let func = &ast.functions()[0];
+        assert_eq!(func.name, "countdown");
+        assert_eq!(func.body.len(), 2, "Should have while loop and return");
+
+        // While statement
+        match &func.body[0] {
+            Statement::While { condition, body } => {
+                // Check condition: n > 0
+                match condition {
+                    Expression::BinaryOp { op, .. } => {
+                        assert_eq!(*op, BinaryOperator::GreaterThan);
+                    }
+                    _ => panic!("Expected comparison in while condition"),
+                }
+
+                // Check body
+                assert_eq!(body.len(), 1, "While body should have one statement");
+                match &body[0] {
+                    Statement::Assignment { target, .. } => {
+                        assert_eq!(target, "n");
+                    }
+                    _ => panic!("Expected assignment in while body"),
+                }
+            }
+            _ => panic!("Expected While statement"),
+        }
+    }
 }

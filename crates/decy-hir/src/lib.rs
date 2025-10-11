@@ -578,6 +578,41 @@ impl HirStatement {
                 target: target.clone(),
                 value: HirExpression::from_ast_expression(value),
             },
+            Statement::If {
+                condition,
+                then_block,
+                else_block,
+            } => HirStatement::If {
+                condition: HirExpression::from_ast_expression(condition),
+                then_block: then_block
+                    .iter()
+                    .map(HirStatement::from_ast_statement)
+                    .collect(),
+                else_block: else_block
+                    .as_ref()
+                    .map(|block| block.iter().map(HirStatement::from_ast_statement).collect()),
+            },
+            Statement::For {
+                init,
+                condition,
+                increment,
+                body,
+            } => HirStatement::For {
+                init: init
+                    .as_ref()
+                    .map(|stmt| Box::new(HirStatement::from_ast_statement(stmt))),
+                condition: HirExpression::from_ast_expression(
+                    condition.as_ref().expect("For loop must have condition"),
+                ),
+                increment: increment
+                    .as_ref()
+                    .map(|stmt| Box::new(HirStatement::from_ast_statement(stmt))),
+                body: body.iter().map(HirStatement::from_ast_statement).collect(),
+            },
+            Statement::While { condition, body } => HirStatement::While {
+                condition: HirExpression::from_ast_expression(condition),
+                body: body.iter().map(HirStatement::from_ast_statement).collect(),
+            },
         }
     }
 }
