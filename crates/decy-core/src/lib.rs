@@ -115,9 +115,13 @@ pub fn transpile(c_code: &str) -> Result<String> {
         rust_code.push('\n');
     }
 
-    // Generate functions
+    // Generate functions with struct definitions for field type awareness
     for (func, annotated_sig) in &transformed_functions {
-        let generated = code_generator.generate_function_with_lifetimes(func, annotated_sig);
+        let generated = code_generator.generate_function_with_lifetimes_and_structs(
+            func,
+            annotated_sig,
+            &hir_structs,
+        );
         rust_code.push_str(&generated);
         rust_code.push('\n');
     }
