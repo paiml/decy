@@ -58,6 +58,13 @@ make help
 # Transpile a single C file
 decy transpile input.c -o output.rs
 
+# Interactive REPL mode (NEW in Sprint 8!)
+decy repl
+
+# Audit unsafe code in generated Rust (NEW in Sprint 8!)
+decy audit output.rs
+decy audit output.rs --verbose  # Detailed analysis
+
 # Transpile an entire GitHub repository
 decy transpile-repo https://github.com/python/cpython --output ./cpython-rust
 
@@ -73,6 +80,7 @@ decy verify --book-output ./book
 - **[Getting Started](GETTING_STARTED.md)** - Comprehensive guide for new developers
 - **[Specification](docs/specifications/decy-spec-v1.md)** - Complete technical specification
 - **[Unsafe Minimization Strategy](docs/specifications/decy-unsafe-minimization-strategy.md)** - How we reduce unsafe code
+- **[End-to-End Validation Report](VALIDATION_REPORT_E2E.md)** - Real-world C examples validation (NEW!)
 - **[Roadmap](roadmap.yaml)** - 20-sprint development plan with detailed tickets
 - **[Quality Configuration](decy-quality.toml)** - Quality gates and enforcement rules
 
@@ -202,41 +210,40 @@ Closes #XXX"
 
 ## 📊 Current Status
 
-**Sprint**: 0 (Initialization) - COMPLETED ✅
+**Sprint**: 8 - COMPLETED ✅
 **Version**: 0.1.0
-**Coverage**: 95.68% ✅ (Target: ≥80%)
-**Total Tests**: 191 unit + 6 integration + 400+ property = 597+ test cases
-**Mutation Score**: N/A (Will implement in Sprint 5)
-**Next Milestone**: Sprint 1 - Foundation & C Parser
+**Coverage**: 93.7% ✅ (Target: ≥80%)
+**Mutation Score**: 85.9% ✅ (Target: 85%+)
+**Unsafe Density**: 0.00% ✅ (Target: <5%)
+**Total Tests**: 221+ unit + integration + property tests
+**Next Milestone**: Sprint 9 - Code Generation Fixes
 
-### Recent Achievements
+### Sprint 8 Achievements (Latest)
 
-✅ **DECY-009: Malloc-to-Box Transformation Pipeline** (5 phases completed)
-- Phase 1: Function call support in HIR
-- Phase 2: Assignment statement support in HIR
-- Phase 3: Pattern detection for malloc/free
-- Phase 4: Box::new() code generation
-- Phase 5: Box<T> type generation
+✅ **Interactive REPL Mode** (DECY-037)
+- Real-time C-to-Rust transpilation with `decy repl`
+- History support, syntax highlighting
+- Instant feedback on C code snippets
 
-**Impact**:
-- Successfully transforms unsafe malloc/free patterns → safe Box<T>
-- Eliminates manual memory management
-- Provides memory safety through RAII
-- Generated code is idiomatic and safe
+✅ **Unsafe Code Auditing System** (DECY-038)
+- Analyze generated Rust for unsafe blocks
+- Confidence scoring (0-100) for elimination potential
+- Pattern detection: raw pointers, transmute, FFI, assembly
+- CLI: `decy audit <file> [--verbose]`
 
-**Documentation**:
-- [Malloc-to-Box Transformation Guide](docs/malloc-to-box-transformation.md)
-- [Interactive Example](crates/decy-codegen/examples/malloc_to_box.rs)
-- Comprehensive integration tests
+✅ **Mutation Testing Hardening**
+- Improved from 81.5% → 85.9% mutation score
+- 14 new targeted tests for edge cases
+- Enhanced visitor function coverage
 
-### Sprint 1 Goals (Weeks 1-2)
+✅ **End-to-End Validation** (DECY-039)
+- 4 real-world C examples transpiled successfully
+- **0.00% unsafe density** achieved (exceeds <5% target!)
+- Comprehensive validation report with gap analysis
 
-- [x] DECY-002: Define HIR structure ✅
-- [x] DECY-003: Implement basic code generator ✅
-- [x] DECY-009: Malloc-to-Box transformation ✅
-- [ ] DECY-001: Setup clang-sys integration (In Progress)
+**Key Finding**: Generated Rust code is **100% safe** with zero unsafe blocks!
 
-See [roadmap.yaml](roadmap.yaml) for the complete 20-sprint plan.
+See [VALIDATION_REPORT_E2E.md](VALIDATION_REPORT_E2E.md) for detailed analysis and [roadmap.yaml](roadmap.yaml) for the complete 20-sprint plan.
 
 ## 🎯 Target Projects
 
