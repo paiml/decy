@@ -56,6 +56,25 @@ pub fn transpile(c_code: &str) -> Result<String> {
         .map(HirFunction::from_ast_function)
         .collect();
 
+    // Convert structs to HIR
+    let hir_structs: Vec<decy_hir::HirStruct> = ast
+        .structs()
+        .iter()
+        .map(|s| {
+            let fields = s
+                .fields
+                .iter()
+                .map(|f| {
+                    decy_hir::HirStructField::new(
+                        f.name.clone(),
+                        decy_hir::HirType::from_ast_type(&f.field_type),
+                    )
+                })
+                .collect();
+            decy_hir::HirStruct::new(s.name.clone(), fields)
+        })
+        .collect();
+
     // Step 3: Analyze ownership and lifetimes
     let mut transformed_functions = Vec::new();
 
@@ -89,6 +108,14 @@ pub fn transpile(c_code: &str) -> Result<String> {
     let code_generator = CodeGenerator::new();
     let mut rust_code = String::new();
 
+    // Generate struct definitions first
+    for hir_struct in &hir_structs {
+        let struct_code = code_generator.generate_struct(hir_struct);
+        rust_code.push_str(&struct_code);
+        rust_code.push('\n');
+    }
+
+    // Generate functions
     for (func, annotated_sig) in &transformed_functions {
         let generated = code_generator.generate_function_with_lifetimes(func, annotated_sig);
         rust_code.push_str(&generated);
