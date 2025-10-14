@@ -329,7 +329,31 @@ extern "C" fn visit_statement(
             }
             CXChildVisit_Continue
         }
-        _ => CXChildVisit_Continue,
+        CXCursor_BreakStmt => {
+            // Break statement
+            statements.push(Statement::Break);
+            CXChildVisit_Continue
+        }
+        CXCursor_ContinueStmt => {
+            // Continue statement
+            statements.push(Statement::Continue);
+            CXChildVisit_Continue
+        }
+        CXCursor_UnaryOperator => {
+            // Could be ++/-- statement (ptr++, ++ptr, ptr--, --ptr)
+            if let Some(stmt) = extract_inc_dec_stmt(cursor) {
+                statements.push(stmt);
+            }
+            CXChildVisit_Continue
+        }
+        CXCursor_CompoundAssignOperator => {
+            // Compound assignment (+=, -=, *=, /=, %=)
+            if let Some(stmt) = extract_compound_assignment_stmt(cursor) {
+                statements.push(stmt);
+            }
+            CXChildVisit_Continue
+        }
+        _ => CXChildVisit_Recurse, // Recurse into unknown nodes to find statements
     }
 }
 
@@ -500,6 +524,193 @@ fn extract_assignment_stmt(cursor: CXCursor) -> Option<Statement> {
 
     Some(Statement::Assignment {
         target,
+        value: operands[1].clone(),
+    })
+}
+
+/// Extract an increment/decrement statement (++, --).
+fn extract_inc_dec_stmt(cursor: CXCursor) -> Option<Statement> {
+    // Get the translation unit
+    let tu = unsafe { clang_Cursor_getTranslationUnit(cursor) };
+    if tu.is_null() {
+        return None;
+    }
+
+    // Get the extent (source range) of the cursor
+    let extent = unsafe { clang_getCursorExtent(cursor) };
+
+    // Tokenize to find the operator
+    let mut tokens = ptr::null_mut();
+    let mut num_tokens = 0;
+
+    unsafe {
+        clang_tokenize(tu, extent, &mut tokens, &mut num_tokens);
+    }
+
+    let mut operator: Option<String> = None;
+    let mut operator_position = 0;
+
+    // Look through tokens to find ++ or --
+    for i in 0..num_tokens {
+        unsafe {
+            let token = *tokens.add(i as usize);
+            let token_kind = clang_getTokenKind(token);
+
+            if token_kind == CXToken_Punctuation {
+                let token_cxstring = clang_getTokenSpelling(tu, token);
+                let c_str = CStr::from_ptr(clang_getCString(token_cxstring));
+                if let Ok(token_str) = c_str.to_str() {
+                    if token_str == "++" || token_str == "--" {
+                        operator = Some(token_str.to_string()); // Clone the string before disposing
+                        operator_position = i;
+                        clang_disposeString(token_cxstring);
+                        break;
+                    }
+                }
+                clang_disposeString(token_cxstring);
+            }
+        }
+    }
+
+    // Determine if this is pre or post increment/decrement
+    // If operator comes before identifier, it's pre (++ptr)
+    // If operator comes after identifier, it's post (ptr++)
+    let is_pre = operator_position == 0;
+
+    unsafe {
+        clang_disposeTokens(tu, tokens, num_tokens);
+    }
+
+    // Extract the target variable name by visiting children
+    let mut target_name: Option<String> = None;
+
+    // Visit children to find the DeclRefExpr (variable reference)
+    extern "C" fn visit_for_target(
+        cursor: CXCursor,
+        _parent: CXCursor,
+        client_data: CXClientData,
+    ) -> CXChildVisitResult {
+        let target = unsafe { &mut *(client_data as *mut Option<String>) };
+        let kind = unsafe { clang_getCursorKind(cursor) };
+
+        if kind == CXCursor_DeclRefExpr {
+            let name_cxstring = unsafe { clang_getCursorSpelling(cursor) };
+            let name = unsafe {
+                let c_str = CStr::from_ptr(clang_getCString(name_cxstring));
+                let var_name = c_str.to_string_lossy().into_owned();
+                clang_disposeString(name_cxstring);
+                var_name
+            };
+            *target = Some(name);
+            CXChildVisit_Break
+        } else {
+            CXChildVisit_Recurse
+        }
+    }
+
+    let target_ptr = &mut target_name as *mut Option<String>;
+    unsafe {
+        clang_visitChildren(cursor, visit_for_target, target_ptr as CXClientData);
+    }
+
+    let target = target_name?;
+
+    match operator?.as_str() {
+        "++" => {
+            if is_pre {
+                Some(Statement::PreIncrement { target })
+            } else {
+                Some(Statement::PostIncrement { target })
+            }
+        }
+        "--" => {
+            if is_pre {
+                Some(Statement::PreDecrement { target })
+            } else {
+                Some(Statement::PostDecrement { target })
+            }
+        }
+        _ => None,
+    }
+}
+
+/// Extract a compound assignment statement (+=, -=, *=, /=, %=).
+fn extract_compound_assignment_stmt(cursor: CXCursor) -> Option<Statement> {
+    // Get the translation unit
+    let tu = unsafe { clang_Cursor_getTranslationUnit(cursor) };
+    if tu.is_null() {
+        return None;
+    }
+
+    // Get the extent (source range) of the cursor
+    let extent = unsafe { clang_getCursorExtent(cursor) };
+
+    // Tokenize to find the operator
+    let mut tokens = ptr::null_mut();
+    let mut num_tokens = 0;
+
+    unsafe {
+        clang_tokenize(tu, extent, &mut tokens, &mut num_tokens);
+    }
+
+    let mut operator: Option<BinaryOperator> = None;
+
+    // Look through tokens to find compound assignment operator
+    for i in 0..num_tokens {
+        unsafe {
+            let token = *tokens.add(i as usize);
+            let token_kind = clang_getTokenKind(token);
+
+            if token_kind == CXToken_Punctuation {
+                let token_cxstring = clang_getTokenSpelling(tu, token);
+                let c_str = CStr::from_ptr(clang_getCString(token_cxstring));
+                if let Ok(token_str) = c_str.to_str() {
+                    operator = match token_str {
+                        "+=" => Some(BinaryOperator::Add),
+                        "-=" => Some(BinaryOperator::Subtract),
+                        "*=" => Some(BinaryOperator::Multiply),
+                        "/=" => Some(BinaryOperator::Divide),
+                        "%=" => Some(BinaryOperator::Modulo),
+                        _ => None,
+                    };
+                    if operator.is_some() {
+                        clang_disposeString(token_cxstring);
+                        break;
+                    }
+                }
+                clang_disposeString(token_cxstring);
+            }
+        }
+    }
+
+    unsafe {
+        clang_disposeTokens(tu, tokens, num_tokens);
+    }
+
+    let op = operator?;
+
+    // Extract left side (target) and right side (value)
+    let mut operands: Vec<Expression> = Vec::new();
+    let operands_ptr = &mut operands as *mut Vec<Expression>;
+
+    unsafe {
+        clang_visitChildren(cursor, visit_binary_operand, operands_ptr as CXClientData);
+    }
+
+    // Compound assignment should have exactly 2 operands
+    if operands.len() != 2 {
+        return None;
+    }
+
+    // Left side must be a variable reference
+    let target = match &operands[0] {
+        Expression::Variable(name) => name.clone(),
+        _ => return None,
+    };
+
+    Some(Statement::CompoundAssignment {
+        target,
+        op,
         value: operands[1].clone(),
     })
 }
@@ -713,6 +924,11 @@ extern "C" fn visit_for_children(
             // Third child: increment statement
             if kind == CXCursor_BinaryOperator {
                 if let Some(stmt) = extract_assignment_stmt(cursor) {
+                    for_data.increment = Some(Box::new(stmt));
+                }
+            } else if kind == CXCursor_UnaryOperator {
+                // Handle ++/-- in increment position
+                if let Some(stmt) = extract_inc_dec_stmt(cursor) {
                     for_data.increment = Some(Box::new(stmt));
                 }
             }
@@ -1180,7 +1396,35 @@ fn extract_binary_operator(cursor: CXCursor) -> Option<BinaryOperator> {
                 }
             }
         }
-        // If no logical operators, take first candidate (original behavior)
+        // If no logical operators, find operator with lowest precedence
+        // Precedence (lowest to highest): comparisons (==, !=, <, >, <=, >=) > arithmetic (+, -) > multiplicative (*, /, %)
+        if operator.is_none() {
+            // Find first comparison operator (==, !=, <, >, <=, >=)
+            for (_, op) in &candidates {
+                if matches!(
+                    op,
+                    BinaryOperator::Equal
+                        | BinaryOperator::NotEqual
+                        | BinaryOperator::LessThan
+                        | BinaryOperator::GreaterThan
+                        | BinaryOperator::LessEqual
+                        | BinaryOperator::GreaterEqual
+                ) {
+                    operator = Some(*op);
+                    break;
+                }
+            }
+        }
+        // If no comparisons, find first additive operator (+, -)
+        if operator.is_none() {
+            for (_, op) in &candidates {
+                if matches!(op, BinaryOperator::Add | BinaryOperator::Subtract) {
+                    operator = Some(*op);
+                    break;
+                }
+            }
+        }
+        // If no additive, take first multiplicative operator (*, /, %)
         if operator.is_none() {
             operator = Some(candidates[0].1);
         }
@@ -1341,6 +1585,9 @@ fn extract_unary_op(cursor: CXCursor) -> Option<Expression> {
 
     let mut operator: Option<UnaryOperator> = None;
     let mut is_dereference = false;
+    let mut is_increment = false;
+    let mut is_decrement = false;
+    let mut operator_position = 0;
 
     // Look through tokens to find the unary operator
     for i in 0..num_tokens {
@@ -1365,6 +1612,18 @@ fn extract_unary_op(cursor: CXCursor) -> Option<Expression> {
                         }
                         "!" => {
                             operator = Some(UnaryOperator::LogicalNot);
+                            clang_disposeString(token_cxstring);
+                            break;
+                        }
+                        "++" => {
+                            is_increment = true;
+                            operator_position = i;
+                            clang_disposeString(token_cxstring);
+                            break;
+                        }
+                        "--" => {
+                            is_decrement = true;
+                            operator_position = i;
                             clang_disposeString(token_cxstring);
                             break;
                         }
@@ -1393,6 +1652,35 @@ fn extract_unary_op(cursor: CXCursor) -> Option<Expression> {
     // Handle dereference separately (maintains backward compatibility)
     if is_dereference {
         return Some(Expression::Dereference(Box::new(operand_expr)));
+    }
+
+    // Handle increment/decrement operators
+    if is_increment {
+        // Check if pre or post increment
+        let is_pre = operator_position == 0;
+        if is_pre {
+            return Some(Expression::PreIncrement {
+                operand: Box::new(operand_expr),
+            });
+        } else {
+            return Some(Expression::PostIncrement {
+                operand: Box::new(operand_expr),
+            });
+        }
+    }
+
+    if is_decrement {
+        // Check if pre or post decrement
+        let is_pre = operator_position == 0;
+        if is_pre {
+            return Some(Expression::PreDecrement {
+                operand: Box::new(operand_expr),
+            });
+        } else {
+            return Some(Expression::PostDecrement {
+                operand: Box::new(operand_expr),
+            });
+        }
     }
 
     // Handle other unary operators
@@ -1671,6 +1959,39 @@ pub enum Statement {
         /// Value expression to assign
         value: Expression,
     },
+    /// Break statement: `break;`
+    Break,
+    /// Continue statement: `continue;`
+    Continue,
+    /// Post-increment statement: `ptr++;`
+    PostIncrement {
+        /// Target variable name
+        target: String,
+    },
+    /// Pre-increment statement: `++ptr;`
+    PreIncrement {
+        /// Target variable name
+        target: String,
+    },
+    /// Post-decrement statement: `ptr--;`
+    PostDecrement {
+        /// Target variable name
+        target: String,
+    },
+    /// Pre-decrement statement: `--ptr;`
+    PreDecrement {
+        /// Target variable name
+        target: String,
+    },
+    /// Compound assignment: `ptr += offset;`, `x *= 2;`, etc.
+    CompoundAssignment {
+        /// Target variable name
+        target: String,
+        /// Binary operator to apply
+        op: BinaryOperator,
+        /// Value expression
+        value: Expression,
+    },
 }
 
 /// Unary operators for C expressions.
@@ -1767,6 +2088,26 @@ pub enum Expression {
         pointer: Box<Expression>,
         /// Field name
         field: String,
+    },
+    /// Post-increment expression: `ptr++`
+    PostIncrement {
+        /// Operand expression
+        operand: Box<Expression>,
+    },
+    /// Pre-increment expression: `++ptr`
+    PreIncrement {
+        /// Operand expression
+        operand: Box<Expression>,
+    },
+    /// Post-decrement expression: `ptr--`
+    PostDecrement {
+        /// Operand expression
+        operand: Box<Expression>,
+    },
+    /// Pre-decrement expression: `--ptr`
+    PreDecrement {
+        /// Operand expression
+        operand: Box<Expression>,
     },
 }
 
@@ -1917,3 +2258,11 @@ impl Parameter {
 #[cfg(test)]
 #[path = "parser_tests.rs"]
 mod parser_tests;
+
+#[cfg(test)]
+#[path = "pointer_arithmetic_tests.rs"]
+mod pointer_arithmetic_tests;
+
+#[cfg(test)]
+#[path = "break_continue_tests.rs"]
+mod break_continue_tests;

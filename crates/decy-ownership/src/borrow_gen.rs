@@ -3,7 +3,7 @@
 //! This module generates Rust borrow syntax (&T, &mut T) from ownership
 //! inference results, transforming C pointers into safe Rust references.
 
-use crate::inference::{OwnershipInference, OwnershipKind};
+use crate::inference::OwnershipInference;
 use decy_hir::{HirFunction, HirParameter, HirType};
 use std::collections::HashMap;
 
@@ -27,44 +27,54 @@ impl BorrowGenerator {
     /// - ImmutableBorrow → &T
     /// - MutableBorrow → &mut T
     /// - Unknown → *mut T (falls back to raw pointer)
+    ///
+    /// DECY-041: For now, keep all pointers as raw pointers to support pointer arithmetic.
+    /// Future: Detect when references are safe and when raw pointers are needed.
     pub fn transform_type(
         &self,
         hir_type: &HirType,
-        variable_name: &str,
-        inferences: &HashMap<String, OwnershipInference>,
+        _variable_name: &str,
+        _inferences: &HashMap<String, OwnershipInference>,
     ) -> HirType {
         match hir_type {
             HirType::Pointer(inner) => {
+                // DECY-041: Keep all pointers as raw pointers for now
+                // This allows pointer arithmetic to work correctly.
+                // In the future, we can be more sophisticated and only use
+                // raw pointers when pointer arithmetic is detected.
+                HirType::Pointer(inner.clone())
+
+                // Original logic (disabled for DECY-041):
                 // Look up ownership inference for this variable
-                if let Some(inference) = inferences.get(variable_name) {
-                    match inference.kind {
-                        OwnershipKind::Owning => {
-                            // Owning pointers become Box<T>
-                            HirType::Box(inner.clone())
-                        }
-                        OwnershipKind::ImmutableBorrow => {
-                            // Immutable borrows become &T
-                            HirType::Reference {
-                                inner: inner.clone(),
-                                mutable: false,
-                            }
-                        }
-                        OwnershipKind::MutableBorrow => {
-                            // Mutable borrows become &mut T
-                            HirType::Reference {
-                                inner: inner.clone(),
-                                mutable: true,
-                            }
-                        }
-                        OwnershipKind::Unknown => {
-                            // Unknown cases fall back to raw pointer
-                            HirType::Pointer(inner.clone())
-                        }
-                    }
-                } else {
-                    // No inference available, keep as pointer
-                    HirType::Pointer(inner.clone())
-                }
+                // if let Some(inference) = inferences.get(variable_name) {
+                //     match inference.kind {
+                //         OwnershipKind::Owning => {
+                //             // Owning pointers become Box<T>
+                //             HirType::Box(inner.clone())
+                //         }
+                //         OwnershipKind::ImmutableBorrow => {
+                //             // Immutable borrows become &T
+                //             HirType::Reference {
+                //                 inner: inner.clone(),
+                //                 mutable: false,
+                //             }
+                //         }
+                //         OwnershipKind::MutableBorrow => {
+                //             // Mutable borrows become &mut T
+                //             HirType::Reference {
+                //                 inner: inner.clone(),
+                //                 mutable: true,
+                //             }
+                //         }
+                //         OwnershipKind::Unknown => {
+                //             // Unknown cases fall back to raw pointer
+                //             HirType::Pointer(inner.clone())
+                //         }
+                //     }
+                // } else {
+                //     // No inference available, keep as pointer
+                //     HirType::Pointer(inner.clone())
+                // }
             }
             // Non-pointer types remain unchanged
             _ => hir_type.clone(),

@@ -688,6 +688,40 @@ impl HirStatement {
                 field: field.clone(),
                 value: HirExpression::from_ast_expression(value),
             },
+            Statement::Break => HirStatement::Break,
+            Statement::Continue => HirStatement::Continue,
+            // Increment/decrement statements are converted to assignments
+            // ptr++ becomes ptr = ptr + 1
+            Statement::PostIncrement { target } | Statement::PreIncrement { target } => {
+                HirStatement::Assignment {
+                    target: target.clone(),
+                    value: HirExpression::BinaryOp {
+                        op: BinaryOperator::Add,
+                        left: Box::new(HirExpression::Variable(target.clone())),
+                        right: Box::new(HirExpression::IntLiteral(1)),
+                    },
+                }
+            }
+            // ptr-- becomes ptr = ptr - 1
+            Statement::PostDecrement { target } | Statement::PreDecrement { target } => {
+                HirStatement::Assignment {
+                    target: target.clone(),
+                    value: HirExpression::BinaryOp {
+                        op: BinaryOperator::Subtract,
+                        left: Box::new(HirExpression::Variable(target.clone())),
+                        right: Box::new(HirExpression::IntLiteral(1)),
+                    },
+                }
+            }
+            // Compound assignments like ptr += offset become ptr = ptr + offset
+            Statement::CompoundAssignment { target, op, value } => HirStatement::Assignment {
+                target: target.clone(),
+                value: HirExpression::BinaryOp {
+                    op: convert_binary_operator(*op),
+                    left: Box::new(HirExpression::Variable(target.clone())),
+                    right: Box::new(HirExpression::from_ast_expression(value)),
+                },
+            },
         }
     }
 }
@@ -735,6 +769,18 @@ impl HirExpression {
                     pointer: Box::new(HirExpression::from_ast_expression(pointer)),
                     field: field.clone(),
                 }
+            }
+            // Increment/decrement expressions in expression context
+            // Note: For post-increment/decrement, we just return the value (semantics differ from C)
+            // ptr++ in expression becomes just ptr (simplified - proper implementation needs temporary)
+            Expression::PostIncrement { operand } | Expression::PreIncrement { operand } => {
+                // Simplified: just return the operand value
+                // Proper implementation would require statement-level side effects
+                HirExpression::from_ast_expression(operand)
+            }
+            Expression::PostDecrement { operand } | Expression::PreDecrement { operand } => {
+                // Simplified: just return the operand value
+                HirExpression::from_ast_expression(operand)
             }
         }
     }
