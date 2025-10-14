@@ -11,6 +11,7 @@ use decy_parser::CParser;
 #[test]
 fn test_simple_c_to_rust_function_parsing() {
     // Parse simple C function to verify basic pipeline
+    // DECY-AUDIT-001: Updated for main function special handling
     let c_source = "int main() { return 0; }";
 
     let parser = CParser::new().expect("Failed to create parser");
@@ -28,8 +29,12 @@ fn test_simple_c_to_rust_function_parsing() {
     let codegen = CodeGenerator::new();
     let rust_code = codegen.generate_function(&hir_func);
 
+    // DECY-AUDIT-001: main function has special handling
+    // - Signature is fn main() (no return type)
+    // - return 0 becomes std::process::exit(0)
     assert!(rust_code.contains("fn main()"));
-    assert!(rust_code.contains("i32"));
+    assert!(!rust_code.contains("-> i32")); // main should NOT have return type
+    assert!(rust_code.contains("std::process::exit(0)")); // return 0 becomes exit
 }
 
 #[test]

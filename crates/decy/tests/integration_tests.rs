@@ -41,10 +41,30 @@ fn test_transpile_minimal_c_program() {
         "Should contain main function, got: {}",
         rust_code
     );
+
+    // DECY-AUDIT-001 / REC-001: Compile the generated Rust code to verify it's valid
+    // Write to temp file and compile with rustc
+    let temp_dir = std::env::temp_dir();
+    let temp_file = temp_dir.join("test_minimal.rs");
+    fs::write(&temp_file, &rust_code).expect("Failed to write temp file");
+
+    let compile_output = Command::new("rustc")
+        .arg(&temp_file)
+        .arg("--crate-type")
+        .arg("bin")
+        .arg("-o")
+        .arg(temp_dir.join("test_minimal"))
+        .output()
+        .expect("Failed to run rustc");
+
+    // Clean up temp files
+    let _ = fs::remove_file(&temp_file);
+    let _ = fs::remove_file(temp_dir.join("test_minimal"));
+
     assert!(
-        rust_code.contains("i32") || rust_code.contains("()"),
-        "Should contain Rust types, got: {}",
-        rust_code
+        compile_output.status.success(),
+        "Generated Rust code should compile successfully. Compilation errors:\n{}",
+        String::from_utf8_lossy(&compile_output.stderr)
     );
 }
 
@@ -95,6 +115,31 @@ fn test_transpile_arithmetic_functions() {
         rust_code.contains("i32"),
         "Should use i32 type, got: {}",
         rust_code
+    );
+
+    // DECY-AUDIT-002 / REC-001: Compile as library (no main function)
+    // Write to temp file and compile with rustc
+    let temp_dir = std::env::temp_dir();
+    let temp_file = temp_dir.join("test_arithmetic.rs");
+    fs::write(&temp_file, &rust_code).expect("Failed to write temp file");
+
+    let compile_output = Command::new("rustc")
+        .arg(&temp_file)
+        .arg("--crate-type")
+        .arg("lib")
+        .arg("-o")
+        .arg(temp_dir.join("libtest_arithmetic.rlib"))
+        .output()
+        .expect("Failed to run rustc");
+
+    // Clean up temp files
+    let _ = fs::remove_file(&temp_file);
+    let _ = fs::remove_file(temp_dir.join("libtest_arithmetic.rlib"));
+
+    assert!(
+        compile_output.status.success(),
+        "Generated Rust code should compile as library. Compilation errors:\n{}",
+        String::from_utf8_lossy(&compile_output.stderr)
     );
 }
 

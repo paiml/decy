@@ -257,6 +257,18 @@ impl CodeGenerator {
 
     /// Generate code for a statement.
     pub fn generate_statement(&self, stmt: &HirStatement) -> String {
+        self.generate_statement_for_function(stmt, None)
+    }
+
+    /// Generate code for a statement, with optional function context.
+    ///
+    /// When function_name is "main", special handling applies (DECY-AUDIT-001):
+    /// - return N; becomes std::process::exit(N);
+    fn generate_statement_for_function(
+        &self,
+        stmt: &HirStatement,
+        function_name: Option<&str>,
+    ) -> String {
         match stmt {
             HirStatement::VariableDeclaration {
                 name,
@@ -273,7 +285,15 @@ impl CodeGenerator {
                 code
             }
             HirStatement::Return(expr_opt) => {
-                if let Some(expr) = expr_opt {
+                // Special handling for main function (DECY-AUDIT-001)
+                // return N; in main becomes std::process::exit(N);
+                if function_name == Some("main") {
+                    if let Some(expr) = expr_opt {
+                        format!("std::process::exit({});", self.generate_expression(expr))
+                    } else {
+                        "std::process::exit(0);".to_string()
+                    }
+                } else if let Some(expr) = expr_opt {
                     format!("return {};", self.generate_expression(expr))
                 } else {
                     "return;".to_string()
@@ -451,6 +471,14 @@ impl CodeGenerator {
         sig.push_str(&params.join(", "));
         sig.push(')');
 
+        // Special handling for main function (DECY-AUDIT-001)
+        // C's int main() must become Rust's fn main() (no return type)
+        // Rust's entry point returns () and uses std::process::exit(N) for exit codes
+        if func.name() == "main" && matches!(func.return_type(), HirType::Int) {
+            // Skip return type for main - it must be fn main()
+            return sig;
+        }
+
         // Generate return type (skip for void)
         if !matches!(func.return_type(), HirType::Void) {
             sig.push_str(&format!(" -> {}", Self::map_type(func.return_type())));
@@ -523,8 +551,16 @@ impl CodeGenerator {
         result.push_str(&params.join(", "));
         result.push(')');
 
-        // Add return type if not void
+        // Special handling for main function (DECY-AUDIT-001)
+        // C's int main() must become Rust's fn main() (no return type)
+        // Rust's entry point returns () and uses std::process::exit(N) for exit codes
         let return_type_str = self.annotated_type_to_string(&sig.return_type);
+        if sig.name == "main" && return_type_str == "i32" {
+            // Skip return type for main - it must be fn main()
+            return result;
+        }
+
+        // Add return type if not void
         if return_type_str != "()" {
             result.push_str(&format!(" -> {}", return_type_str));
         }
@@ -686,7 +722,7 @@ impl CodeGenerator {
             // Generate actual body statements
             for stmt in func.body() {
                 code.push_str("    ");
-                code.push_str(&self.generate_statement(stmt));
+                code.push_str(&self.generate_statement_for_function(stmt, Some(func.name())));
                 code.push('\n');
             }
         }
@@ -770,7 +806,7 @@ impl CodeGenerator {
             // Generate actual body statements
             for stmt in func.body() {
                 code.push_str("    ");
-                code.push_str(&self.generate_statement(stmt));
+                code.push_str(&self.generate_statement_for_function(stmt, Some(func.name())));
                 code.push('\n');
             }
         }
@@ -845,7 +881,7 @@ impl CodeGenerator {
                     };
 
                 code.push_str("    ");
-                code.push_str(&self.generate_statement(&transformed_stmt));
+                code.push_str(&self.generate_statement_for_function(&transformed_stmt, Some(func.name())));
                 code.push('\n');
             }
         }
@@ -889,7 +925,7 @@ impl CodeGenerator {
                     };
 
                 code.push_str("    ");
-                code.push_str(&self.generate_statement(&transformed_stmt));
+                code.push_str(&self.generate_statement_for_function(&transformed_stmt, Some(func.name())));
                 code.push('\n');
             }
         }
@@ -996,7 +1032,7 @@ impl CodeGenerator {
                 };
 
                 code.push_str("    ");
-                code.push_str(&self.generate_statement(&transformed_stmt));
+                code.push_str(&self.generate_statement_for_function(&transformed_stmt, Some(func.name())));
                 code.push('\n');
             }
         }

@@ -13,13 +13,14 @@ mod tests {
 
     #[test]
     fn test_generate_function_signature() {
-        // RED PHASE: This test will FAIL
+        // DECY-AUDIT-001: Updated for main function special handling
+        // main with int return type becomes fn main() (no return type)
         let func = HirFunction::new("main".to_string(), HirType::Int, vec![]);
 
         let codegen = CodeGenerator::new();
         let signature = codegen.generate_signature(&func);
 
-        assert_eq!(signature, "fn main() -> i32");
+        assert_eq!(signature, "fn main()");
     }
 
     #[test]
@@ -1393,3 +1394,38 @@ fn test_vec_no_transform_for_non_malloc() {
     assert!(code.contains("*mut i32"));
     assert!(!code.contains("Vec<"));
 }
+
+    // DECY-AUDIT-001: Main function signature should be () not -> i32 (Gemini audit finding)
+    #[test]
+    fn test_main_function_special_signature() {
+        // DECY-AUDIT-001 RED PHASE: This test will FAIL
+        // C's int main() should become Rust's fn main() (not fn main() -> i32)
+        let func = HirFunction::new("main".to_string(), HirType::Int, vec![]);
+
+        let codegen = CodeGenerator::new();
+        let signature = codegen.generate_signature(&func);
+
+        // Rust's entry point must be fn main(), NOT fn main() -> i32
+        assert_eq!(signature, "fn main()");
+    }
+
+    #[test]
+    fn test_main_function_with_return_becomes_exit() {
+        // DECY-AUDIT-001 RED PHASE: This test will FAIL
+        // return N in main should become std::process::exit(N)
+        use decy_hir::{HirExpression, HirStatement};
+
+        let func = HirFunction::new_with_body(
+            "main".to_string(),
+            HirType::Int,
+            vec![],
+            vec![HirStatement::Return(Some(HirExpression::IntLiteral(0)))],
+        );
+
+        let codegen = CodeGenerator::new();
+        let code = codegen.generate_function(&func);
+
+        assert!(code.contains("fn main()"));  // No return type
+        assert!(!code.contains("-> i32"));    // Must NOT have -> i32
+        assert!(code.contains("std::process::exit(0)"));  // return 0 becomes exit
+    }

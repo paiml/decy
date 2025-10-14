@@ -1,0 +1,71 @@
+
+audit_date: 2025-10-14
+auditor: Gemini
+project: Decy
+version: "0.1.0"
+
+summary:
+  objective: "A comprehensive audit of the Decy project's source code, documentation, testing, and development practices to verify its quality and readiness."
+  overall_finding: |
+    The Decy project exhibits an exceptionally high standard of quality and a mature development process. The 'EXTREME TDD' methodology is rigorously followed, as evidenced by the detailed roadmap, high test coverage, and clean codebase. The project successfully passes all its defined quality gates.
+
+    However, the audit revealed two key issues in the end-to-end workflow that were not caught by the existing test suites. These issues, while minor, affect the usability and correctness of the final transpiled output for common use cases.
+  recommendations:
+    - id: REC-001
+      title: "Strengthen Integration Tests"
+      description: "Update integration tests to include a compilation step for the generated Rust code. This will ensure that the transpiler's output is always valid and buildable, preventing regressions and catching translation errors earlier."
+      related_findings: [DECY-AUDIT-001, DECY-AUDIT-002]
+    - id: REC-002
+      title: "Improve CLI User Experience"
+      description: "Enhance the `decy` CLI to provide guidance to the user based on the content of the C code being transpiled. Specifically, handle the `main` function signature and detect library-only files."
+      related_findings: [DECY-AUDIT-001, DECY-AUDIT-002]
+
+methodology:
+  - "Executed all project quality gates via `make quality-gates`, which included format checks, linting, unit tests, and coverage analysis."
+  - "Manually verified the end-to-end transpilation process by building the CLI and running it on all C files in the `examples/` directory."
+  - "Attempted to compile the generated Rust code, using different compiler flags (`--crate-type lib`) based on the source file's structure."
+  - "Reviewed high-level documentation (`README.md`), the detailed project plan (`roadmap.yaml`), and the `Makefile` to understand project goals and processes."
+  - "Applied the 'Five Whys' root cause analysis technique to all identified issues."
+
+findings:
+  - id: DECY-AUDIT-001
+    type: Bug
+    severity: High
+    title: "Transpiled `main` function with `int` return type fails to compile."
+    description: |
+      The transpiler correctly identifies the `int` return type of a C `main` function but translates it to `fn main() -> i32` in Rust. This is not a valid signature for a standard Rust entry point and causes a compilation error (E0277). The project's own roadmap (DECY-001) specifies `int main() { return 0; }` as a target for parsing, but the generated code from this C snippet is not compilable.
+    reproduction_steps:
+      - "1. Create a C file named `main.c` with the content: `int main() { return 0; }`"
+      - "2. Run `make build` to ensure the `decy` executable is available."
+      - "3. Execute: `target/debug/decy transpile main.c -o main.rs`"
+      - "4. Attempt to compile the output: `rustc main.rs`"
+      - "5. Observe the compilation error: `error[E0277]: main has invalid return type i32`."
+    five_whys:
+      - "Why did compilation fail? The generated Rust `main` function returned `i32`, which is invalid."
+      - "Why was an invalid function generated? The transpiler directly translated the C `int main()` signature."
+      - "Why is a direct translation a problem? Rust's entry point rules are stricter than C's and require a type implementing the `Termination` trait."
+      - "Why didn't tests catch this? The integration tests verify that the transpilation process runs and may check the output string, but they do not attempt to compile the generated Rust code."
+      - "Why is the compilation step missing from tests? This appears to be an oversight in the test strategy, which focuses on unit-level correctness but misses the final end-to-end validation step."
+    recommendation: |
+      The transpiler should implement special handling for the `main` function. When `int main()` is detected, it should generate `fn main() -> ()`. Any `return <value>;` statements within `main` should be translated to `std::process::exit(<value>);` to produce a correct, compilable binary.
+
+  - id: DECY-AUDIT-002
+    type: Usability Issue
+    severity: Medium
+    title: "Transpiling C files without a `main` function leads to non-obvious compilation errors."
+    description: |
+      When a C file containing only library functions (and no `main` function) is transpiled, the resulting Rust code is also a library. Attempting to compile this Rust file directly with `rustc` results in an `E0601: main function not found` error. This is confusing for users, as the transpilation succeeds, but the output is not immediately usable without extra knowledge.
+    reproduction_steps:
+      - "1. Use the existing example file `examples/simple/arithmetic.c`."
+      - "2. Run `make build`."
+      - "3. Execute: `target/debug/decy transpile examples/simple/arithmetic.c -o arithmetic.rs`"
+      - "4. Attempt to compile the output as a binary: `rustc arithmetic.rs`"
+      - "5. Observe the compilation error: `error[E0601]: main function not found`."
+    five_whys:
+      - "Why did compilation fail? The code was compiled as a binary but contained no `main` function."
+      - "Why was there no `main` function? The source C file was a library file with no `main` function."
+      - "Why is this a usability issue? The tool gives no indication that the output should be treated differently (as a library)."
+      - "Why doesn't the tool provide guidance? Its current scope is limited to direct translation, without considering the user's intent (building a library vs. a binary)."
+      - "Why is user intent important? It dictates how the generated code must be compiled. A simple hint would prevent user confusion."
+    recommendation: |
+      The `decy` CLI should detect the absence of a `main` function in the source file. If none is found, it should print a warning or informational message advising the user to compile the output as a library, e.g., `Note: No main function found. To compile the output, use: rustc --crate-type=lib your_file.rs`.
