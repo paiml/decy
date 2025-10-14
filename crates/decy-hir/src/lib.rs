@@ -89,6 +89,14 @@ impl HirType {
             Type::Double => HirType::Double,
             Type::Char => HirType::Char,
             Type::Pointer(inner) => HirType::Pointer(Box::new(HirType::from_ast_type(inner))),
+            Type::Struct(name) => HirType::Struct(name.clone()),
+            Type::FunctionPointer {
+                param_types,
+                return_type,
+            } => HirType::FunctionPointer {
+                param_types: param_types.iter().map(HirType::from_ast_type).collect(),
+                return_type: Box::new(HirType::from_ast_type(return_type)),
+            },
         }
     }
 }
@@ -406,6 +414,15 @@ impl HirFunction {
     }
 }
 
+/// Unary operators for expressions.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum UnaryOperator {
+    /// Unary minus (-x)
+    Minus,
+    /// Logical NOT (!x)
+    LogicalNot,
+}
+
 /// Binary operators for expressions.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BinaryOperator {
@@ -431,6 +448,10 @@ pub enum BinaryOperator {
     LessEqual,
     /// Greater than or equal (>=)
     GreaterEqual,
+    /// Logical AND (&&)
+    LogicalAnd,
+    /// Logical OR (||)
+    LogicalOr,
 }
 
 /// Represents an expression in HIR.
@@ -455,6 +476,13 @@ pub enum HirExpression {
     Dereference(Box<HirExpression>),
     /// Address-of operation (&x)
     AddressOf(Box<HirExpression>),
+    /// Unary operation (-x, !x)
+    UnaryOp {
+        /// The operator
+        op: UnaryOperator,
+        /// Operand
+        operand: Box<HirExpression>,
+    },
     /// Function call (function_name(args...))
     FunctionCall {
         /// Function name
@@ -476,7 +504,7 @@ pub enum HirExpression {
         /// Field name
         field: String,
     },
-    /// Array indexing (arr\[index\])
+    /// Array indexing
     ArrayIndex {
         /// Array expression
         array: Box<HirExpression>,
@@ -555,6 +583,31 @@ pub enum HirStatement {
         /// Optional default case body
         default_case: Option<Vec<HirStatement>>,
     },
+    /// Pointer dereference assignment (*ptr = value)
+    DerefAssignment {
+        /// Target expression to dereference
+        target: HirExpression,
+        /// Value expression to assign
+        value: HirExpression,
+    },
+    /// Array index assignment
+    ArrayIndexAssignment {
+        /// Array expression
+        array: Box<HirExpression>,
+        /// Index expression
+        index: Box<HirExpression>,
+        /// Value expression to assign
+        value: HirExpression,
+    },
+    /// Field assignment (ptr->field = value or obj.field = value)
+    FieldAssignment {
+        /// Object/pointer expression
+        object: HirExpression,
+        /// Field name
+        field: String,
+        /// Value expression to assign
+        value: HirExpression,
+    },
 }
 
 impl HirStatement {
@@ -613,6 +666,28 @@ impl HirStatement {
                 condition: HirExpression::from_ast_expression(condition),
                 body: body.iter().map(HirStatement::from_ast_statement).collect(),
             },
+            Statement::DerefAssignment { target, value } => HirStatement::DerefAssignment {
+                target: HirExpression::from_ast_expression(target),
+                value: HirExpression::from_ast_expression(value),
+            },
+            Statement::ArrayIndexAssignment {
+                array,
+                index,
+                value,
+            } => HirStatement::ArrayIndexAssignment {
+                array: Box::new(HirExpression::from_ast_expression(array)),
+                index: Box::new(HirExpression::from_ast_expression(index)),
+                value: HirExpression::from_ast_expression(value),
+            },
+            Statement::FieldAssignment {
+                object,
+                field,
+                value,
+            } => HirStatement::FieldAssignment {
+                object: HirExpression::from_ast_expression(object),
+                field: field.clone(),
+                value: HirExpression::from_ast_expression(value),
+            },
         }
     }
 }
@@ -623,6 +698,7 @@ impl HirExpression {
         use decy_parser::parser::Expression;
         match ast_expr {
             Expression::IntLiteral(value) => HirExpression::IntLiteral(*value),
+            Expression::StringLiteral(value) => HirExpression::StringLiteral(value.clone()),
             Expression::Variable(name) => HirExpression::Variable(name.clone()),
             Expression::BinaryOp { op, left, right } => HirExpression::BinaryOp {
                 op: convert_binary_operator(*op),
@@ -639,7 +715,37 @@ impl HirExpression {
                     .map(HirExpression::from_ast_expression)
                     .collect(),
             },
+            Expression::Dereference(inner) => {
+                HirExpression::Dereference(Box::new(HirExpression::from_ast_expression(inner)))
+            }
+            Expression::UnaryOp { op, operand } => HirExpression::UnaryOp {
+                op: convert_unary_operator(*op),
+                operand: Box::new(HirExpression::from_ast_expression(operand)),
+            },
+            Expression::ArrayIndex { array, index } => HirExpression::ArrayIndex {
+                array: Box::new(HirExpression::from_ast_expression(array)),
+                index: Box::new(HirExpression::from_ast_expression(index)),
+            },
+            Expression::FieldAccess { object, field } => HirExpression::FieldAccess {
+                object: Box::new(HirExpression::from_ast_expression(object)),
+                field: field.clone(),
+            },
+            Expression::PointerFieldAccess { pointer, field } => {
+                HirExpression::PointerFieldAccess {
+                    pointer: Box::new(HirExpression::from_ast_expression(pointer)),
+                    field: field.clone(),
+                }
+            }
         }
+    }
+}
+
+/// Convert parser UnaryOperator to HIR UnaryOperator
+fn convert_unary_operator(op: decy_parser::parser::UnaryOperator) -> UnaryOperator {
+    use decy_parser::parser::UnaryOperator as ParserOp;
+    match op {
+        ParserOp::Minus => UnaryOperator::Minus,
+        ParserOp::LogicalNot => UnaryOperator::LogicalNot,
     }
 }
 
@@ -658,6 +764,8 @@ fn convert_binary_operator(op: decy_parser::parser::BinaryOperator) -> BinaryOpe
         ParserOp::GreaterThan => BinaryOperator::GreaterThan,
         ParserOp::LessEqual => BinaryOperator::LessEqual,
         ParserOp::GreaterEqual => BinaryOperator::GreaterEqual,
+        ParserOp::LogicalAnd => BinaryOperator::LogicalAnd,
+        ParserOp::LogicalOr => BinaryOperator::LogicalOr,
     }
 }
 

@@ -190,23 +190,77 @@ fn test_cli_transpile_file() {
     );
 }
 
-/// Test transpiling a file with control flow
+/// Test transpiling a file with control flow (if/else, for loops)
+/// DECY-029: Verify complete control flow transpilation with compilation
 #[test]
 fn test_transpile_control_flow() {
-    let c_code = r#"
-        int max(int a, int b) {
-            if (a > b) {
-                return a;
-            } else {
-                return b;
-            }
-        }
-    "#;
+    // Given: C code with if/else and for loops from DECY-027 examples
+    let example_path = "../../examples/moderate/control_flow.c";
+    assert!(
+        Path::new(example_path).exists(),
+        "Example file {} should exist",
+        example_path
+    );
 
-    let result = decy_core::transpile(c_code);
-    assert!(result.is_ok(), "Should transpile control flow");
+    let c_code = fs::read_to_string(example_path).expect("Failed to read example file");
+    assert!(c_code.contains("if"), "Should contain if statement");
+    assert!(c_code.contains("for"), "Should contain for loop");
+
+    // When: We transpile it
+    let result = decy_core::transpile(&c_code);
+
+    // Then: Transpilation should succeed
+    assert!(
+        result.is_ok(),
+        "Should transpile control flow, got error: {:?}",
+        result.err()
+    );
 
     let rust_code = result.unwrap();
-    assert!(rust_code.contains("fn max"), "Should contain max function");
-    assert!(rust_code.contains("if"), "Should contain if statement");
+
+    // And: Generated Rust code should contain expected elements
+    assert!(
+        rust_code.contains("fn max"),
+        "Should contain max function, got: {}",
+        rust_code
+    );
+    assert!(
+        rust_code.contains("fn factorial"),
+        "Should contain factorial function, got: {}",
+        rust_code
+    );
+    assert!(
+        rust_code.contains("if"),
+        "Should contain if statement, got: {}",
+        rust_code
+    );
+    assert!(
+        rust_code.contains("while"),
+        "Should contain while loop (for converted to while), got: {}",
+        rust_code
+    );
+
+    // DECY-029: Compile the generated code to verify control flow works
+    let temp_dir = std::env::temp_dir();
+    let temp_file = temp_dir.join("test_control_flow.rs");
+    fs::write(&temp_file, &rust_code).expect("Failed to write temp file");
+
+    let compile_output = Command::new("rustc")
+        .arg(&temp_file)
+        .arg("--crate-type")
+        .arg("lib")
+        .arg("-o")
+        .arg(temp_dir.join("libtest_control_flow.rlib"))
+        .output()
+        .expect("Failed to run rustc");
+
+    // Clean up temp files
+    let _ = fs::remove_file(&temp_file);
+    let _ = fs::remove_file(temp_dir.join("libtest_control_flow.rlib"));
+
+    assert!(
+        compile_output.status.success(),
+        "Generated Rust code with control flow should compile. Compilation errors:\n{}",
+        String::from_utf8_lossy(&compile_output.stderr)
+    );
 }

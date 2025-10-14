@@ -182,6 +182,11 @@ extern "C" fn visit_function(
         if let Some(function) = extract_function(cursor) {
             ast.add_function(function);
         }
+    } else if kind == CXCursor_TypedefDecl {
+        // Extract typedef information
+        if let Some(typedef) = extract_typedef(cursor) {
+            ast.add_typedef(typedef);
+        }
     }
 
     CXChildVisit_Continue
@@ -236,6 +241,24 @@ fn extract_function(cursor: CXCursor) -> Option<Function> {
     }
 
     Some(Function::new_with_body(name, return_type, parameters, body))
+}
+
+/// Extract typedef information from a clang cursor.
+fn extract_typedef(cursor: CXCursor) -> Option<Typedef> {
+    // SAFETY: Getting typedef name
+    let name_cxstring = unsafe { clang_getCursorSpelling(cursor) };
+    let name = unsafe {
+        let c_str = CStr::from_ptr(clang_getCString(name_cxstring));
+        let name = c_str.to_string_lossy().into_owned();
+        clang_disposeString(name_cxstring);
+        name
+    };
+
+    // SAFETY: Getting underlying type of typedef
+    let cx_type = unsafe { clang_getTypedefDeclUnderlyingType(cursor) };
+    let underlying_type = convert_type(cx_type)?;
+
+    Some(Typedef::new(name, underlying_type))
 }
 
 /// Visitor callback for extracting statements from function body.
@@ -426,7 +449,50 @@ fn extract_assignment_stmt(cursor: CXCursor) -> Option<Statement> {
         return None;
     }
 
-    // Left side must be a variable reference
+    // Check if left side is a dereference (e.g., *dst = x)
+    if let Expression::Dereference(inner) = &operands[0] {
+        return Some(Statement::DerefAssignment {
+            target: (**inner).clone(), // Extract the inner expression being dereferenced
+            value: operands[1].clone(),
+        });
+    }
+
+    // Check if left side is an array index (e.g., arr[i] = value)
+    if let Expression::ArrayIndex { array, index } = &operands[0] {
+        return Some(Statement::ArrayIndexAssignment {
+            array: array.clone(),
+            index: index.clone(),
+            value: operands[1].clone(),
+        });
+    }
+
+    // Check if left side is a field access (e.g., ptr->field = value or obj.field = value)
+    if matches!(
+        &operands[0],
+        Expression::PointerFieldAccess { .. } | Expression::FieldAccess { .. }
+    ) {
+        // Extract field name from the expression
+        let field = match &operands[0] {
+            Expression::PointerFieldAccess { field, .. } => field.clone(),
+            Expression::FieldAccess { field, .. } => field.clone(),
+            _ => unreachable!(),
+        };
+
+        // Extract object from the expression
+        let object = match &operands[0] {
+            Expression::PointerFieldAccess { pointer, .. } => (**pointer).clone(),
+            Expression::FieldAccess { object, .. } => (**object).clone(),
+            _ => unreachable!(),
+        };
+
+        return Some(Statement::FieldAssignment {
+            object,
+            field,
+            value: operands[1].clone(),
+        });
+    }
+
+    // Left side must be a variable reference for regular assignment
     let target = match &operands[0] {
         Expression::Variable(name) => name.clone(),
         _ => return None, // Can't assign to non-variables (yet)
@@ -500,6 +566,7 @@ extern "C" fn visit_if_children(
                 CXCursor_IntegerLiteral => extract_int_literal(cursor),
                 CXCursor_DeclRefExpr => extract_variable_ref(cursor),
                 CXCursor_CallExpr => extract_function_call(cursor),
+                CXCursor_UnaryOperator => extract_unary_op(cursor),
                 _ => {
                     // For other expression types, try visiting children
                     let mut cond_expr: Option<Expression> = None;
@@ -629,6 +696,7 @@ extern "C" fn visit_for_children(
                 CXCursor_IntegerLiteral => extract_int_literal(cursor),
                 CXCursor_DeclRefExpr => extract_variable_ref(cursor),
                 CXCursor_CallExpr => extract_function_call(cursor),
+                CXCursor_UnaryOperator => extract_unary_op(cursor),
                 _ => {
                     let mut cond_expr: Option<Expression> = None;
                     let expr_ptr = &mut cond_expr as *mut Option<Expression>;
@@ -723,6 +791,7 @@ extern "C" fn visit_while_children(
                 CXCursor_IntegerLiteral => extract_int_literal(cursor),
                 CXCursor_DeclRefExpr => extract_variable_ref(cursor),
                 CXCursor_CallExpr => extract_function_call(cursor),
+                CXCursor_UnaryOperator => extract_unary_op(cursor),
                 _ => {
                     let mut cond_expr: Option<Expression> = None;
                     let expr_ptr = &mut cond_expr as *mut Option<Expression>;
@@ -775,6 +844,13 @@ extern "C" fn visit_expression(
             }
             CXChildVisit_Continue
         }
+        CXCursor_StringLiteral => {
+            // String literal
+            if let Some(expr) = extract_string_literal(cursor) {
+                *expr_opt = Some(expr);
+            }
+            CXChildVisit_Continue
+        }
         CXCursor_DeclRefExpr => {
             // Variable reference (e.g., "a" or "b" in "a + b")
             if let Some(expr) = extract_variable_ref(cursor) {
@@ -792,6 +868,27 @@ extern "C" fn visit_expression(
         CXCursor_CallExpr => {
             // Function call
             if let Some(expr) = extract_function_call(cursor) {
+                *expr_opt = Some(expr);
+            }
+            CXChildVisit_Continue
+        }
+        CXCursor_UnaryOperator => {
+            // Unary operator (e.g., *ptr dereference)
+            if let Some(expr) = extract_unary_op(cursor) {
+                *expr_opt = Some(expr);
+            }
+            CXChildVisit_Continue
+        }
+        CXCursor_ArraySubscriptExpr => {
+            // Array indexing (e.g., arr[i])
+            if let Some(expr) = extract_array_index(cursor) {
+                *expr_opt = Some(expr);
+            }
+            CXChildVisit_Continue
+        }
+        CXCursor_MemberRefExpr => {
+            // Field access (e.g., ptr->field or obj.field)
+            if let Some(expr) = extract_field_access(cursor) {
                 *expr_opt = Some(expr);
             }
             CXChildVisit_Continue
@@ -851,6 +948,47 @@ fn extract_int_literal(cursor: CXCursor) -> Option<Expression> {
     Some(Expression::IntLiteral(value))
 }
 
+/// Extract a string literal expression.
+fn extract_string_literal(cursor: CXCursor) -> Option<Expression> {
+    // SAFETY: Get the extent (source range) of the cursor
+    let extent = unsafe { clang_getCursorExtent(cursor) };
+
+    // SAFETY: Get the translation unit from the cursor
+    let tu = unsafe { clang_Cursor_getTranslationUnit(cursor) };
+
+    if tu.is_null() {
+        return Some(Expression::StringLiteral(String::new()));
+    }
+
+    // SAFETY: Tokenize the extent
+    let mut tokens = ptr::null_mut();
+    let mut num_tokens = 0;
+
+    unsafe {
+        clang_tokenize(tu, extent, &mut tokens, &mut num_tokens);
+    }
+
+    let mut value = String::new();
+
+    if num_tokens > 0 {
+        // SAFETY: Get the spelling of the first token
+        unsafe {
+            let token_cxstring = clang_getTokenSpelling(tu, *tokens);
+            let c_str = CStr::from_ptr(clang_getCString(token_cxstring));
+            if let Ok(token_str) = c_str.to_str() {
+                // Remove surrounding quotes from string literal
+                value = token_str.trim_matches('"').to_string();
+            }
+            clang_disposeString(token_cxstring);
+
+            // SAFETY: Dispose tokens
+            clang_disposeTokens(tu, tokens, num_tokens);
+        }
+    }
+
+    Some(Expression::StringLiteral(value))
+}
+
 /// Extract a variable reference expression.
 fn extract_variable_ref(cursor: CXCursor) -> Option<Expression> {
     // Get variable name
@@ -907,6 +1045,12 @@ extern "C" fn visit_binary_operand(
             }
             CXChildVisit_Continue
         }
+        CXCursor_StringLiteral => {
+            if let Some(expr) = extract_string_literal(cursor) {
+                operands.push(expr);
+            }
+            CXChildVisit_Continue
+        }
         CXCursor_DeclRefExpr => {
             if let Some(expr) = extract_variable_ref(cursor) {
                 operands.push(expr);
@@ -916,6 +1060,27 @@ extern "C" fn visit_binary_operand(
         CXCursor_BinaryOperator => {
             // Nested binary operation
             if let Some(expr) = extract_binary_op(cursor) {
+                operands.push(expr);
+            }
+            CXChildVisit_Continue
+        }
+        CXCursor_UnaryOperator => {
+            // Unary operation (e.g., *ptr dereference)
+            if let Some(expr) = extract_unary_op(cursor) {
+                operands.push(expr);
+            }
+            CXChildVisit_Continue
+        }
+        CXCursor_ArraySubscriptExpr => {
+            // Array indexing (e.g., arr[i])
+            if let Some(expr) = extract_array_index(cursor) {
+                operands.push(expr);
+            }
+            CXChildVisit_Continue
+        }
+        CXCursor_MemberRefExpr => {
+            // Field access (e.g., ptr->field or obj.field)
+            if let Some(expr) = extract_field_access(cursor) {
                 operands.push(expr);
             }
             CXChildVisit_Continue
@@ -947,17 +1112,30 @@ fn extract_binary_operator(cursor: CXCursor) -> Option<BinaryOperator> {
     let mut operator = None;
 
     // Look through tokens to find the operator
+    // For compound expressions like "a > 0 && b > 0", we need to find the LAST
+    // operator (the one with lowest precedence) which represents THIS binary operation.
+    // We scan from right to left to find operators with lowest precedence first.
+    // Precedence (lowest to highest): || > && > == != > < > <= >= > + - > * / %
+
+    let mut candidates: Vec<(usize, BinaryOperator)> = Vec::new();
+    let mut found_first_operand = false;
+
     for i in 0..num_tokens {
         unsafe {
             let token = *tokens.add(i as usize);
             let token_kind = clang_getTokenKind(token);
 
-            // Only look at punctuation tokens
-            if token_kind == CXToken_Punctuation {
+            // Track when we've seen the first operand (identifier or literal)
+            if token_kind == CXToken_Identifier || token_kind == CXToken_Literal {
+                found_first_operand = true;
+            }
+
+            // Collect all operator candidates after the first operand
+            if token_kind == CXToken_Punctuation && found_first_operand {
                 let token_cxstring = clang_getTokenSpelling(tu, token);
                 let c_str = CStr::from_ptr(clang_getCString(token_cxstring));
                 if let Ok(token_str) = c_str.to_str() {
-                    operator = match token_str {
+                    let op = match token_str {
                         "+" => Some(BinaryOperator::Add),
                         "-" => Some(BinaryOperator::Subtract),
                         "*" => Some(BinaryOperator::Multiply),
@@ -969,15 +1147,42 @@ fn extract_binary_operator(cursor: CXCursor) -> Option<BinaryOperator> {
                         ">" => Some(BinaryOperator::GreaterThan),
                         "<=" => Some(BinaryOperator::LessEqual),
                         ">=" => Some(BinaryOperator::GreaterEqual),
+                        "&&" => Some(BinaryOperator::LogicalAnd),
+                        "||" => Some(BinaryOperator::LogicalOr),
                         _ => None,
                     };
-                    if operator.is_some() {
-                        clang_disposeString(token_cxstring);
-                        break;
+                    if let Some(op) = op {
+                        candidates.push((i as usize, op));
                     }
                 }
                 clang_disposeString(token_cxstring);
             }
+        }
+    }
+
+    // Select the operator with lowest precedence (appears last in our search)
+    // This handles cases like "a > 0 && b > 0" where && should be selected over >
+    if !candidates.is_empty() {
+        // Priority: || > && > comparisons > arithmetic
+        // Find the first || operator
+        for (_, op) in &candidates {
+            if matches!(op, BinaryOperator::LogicalOr) {
+                operator = Some(*op);
+                break;
+            }
+        }
+        // If no ||, find first &&
+        if operator.is_none() {
+            for (_, op) in &candidates {
+                if matches!(op, BinaryOperator::LogicalAnd) {
+                    operator = Some(*op);
+                    break;
+                }
+            }
+        }
+        // If no logical operators, take first candidate (original behavior)
+        if operator.is_none() {
+            operator = Some(candidates[0].1);
         }
     }
 
@@ -1000,8 +1205,18 @@ fn extract_function_call(cursor: CXCursor) -> Option<Expression> {
     };
 
     // Extract arguments by visiting children
-    let mut arguments = Vec::new();
-    let args_ptr = &mut arguments as *mut Vec<Expression>;
+    // We use a struct to track if we've seen the function reference yet
+    #[repr(C)]
+    struct ArgData {
+        arguments: Vec<Expression>,
+        skip_first_declref: bool,
+    }
+
+    let mut arg_data = ArgData {
+        arguments: Vec::new(),
+        skip_first_declref: true, // Skip the first DeclRefExpr (function name)
+    };
+    let args_ptr = &mut arg_data as *mut ArgData;
 
     unsafe {
         clang_visitChildren(cursor, visit_call_argument, args_ptr as CXClientData);
@@ -1009,7 +1224,7 @@ fn extract_function_call(cursor: CXCursor) -> Option<Expression> {
 
     Some(Expression::FunctionCall {
         function,
-        arguments,
+        arguments: arg_data.arguments,
     })
 }
 
@@ -1024,8 +1239,14 @@ extern "C" fn visit_call_argument(
     _parent: CXCursor,
     client_data: CXClientData,
 ) -> CXChildVisitResult {
-    // SAFETY: Converting client data back to arguments vector pointer
-    let arguments = unsafe { &mut *(client_data as *mut Vec<Expression>) };
+    #[repr(C)]
+    struct ArgData {
+        arguments: Vec<Expression>,
+        skip_first_declref: bool,
+    }
+
+    // SAFETY: Converting client data back to ArgData pointer
+    let arg_data = unsafe { &mut *(client_data as *mut ArgData) };
 
     // SAFETY: Getting cursor kind
     let kind = unsafe { clang_getCursorKind(cursor) };
@@ -1033,11 +1254,255 @@ extern "C" fn visit_call_argument(
     match kind {
         CXCursor_IntegerLiteral => {
             if let Some(expr) = extract_int_literal(cursor) {
-                arguments.push(expr);
+                arg_data.arguments.push(expr);
             }
             CXChildVisit_Continue
         }
-        _ => CXChildVisit_Recurse,
+        CXCursor_StringLiteral => {
+            if let Some(expr) = extract_string_literal(cursor) {
+                arg_data.arguments.push(expr);
+            }
+            CXChildVisit_Continue
+        }
+        CXCursor_DeclRefExpr => {
+            // Variable reference argument
+            // The first DeclRefExpr is the function being called, skip it
+            if arg_data.skip_first_declref {
+                arg_data.skip_first_declref = false;
+                CXChildVisit_Continue
+            } else {
+                if let Some(expr) = extract_variable_ref(cursor) {
+                    arg_data.arguments.push(expr);
+                }
+                CXChildVisit_Continue
+            }
+        }
+        CXCursor_BinaryOperator => {
+            // Binary operation in argument (e.g., x + 1, y * 2)
+            if let Some(expr) = extract_binary_op(cursor) {
+                arg_data.arguments.push(expr);
+            }
+            CXChildVisit_Continue
+        }
+        CXCursor_CallExpr => {
+            // Nested function call (e.g., add(add(x, 5), add(10, 20)))
+            if let Some(expr) = extract_function_call(cursor) {
+                arg_data.arguments.push(expr);
+            }
+            CXChildVisit_Continue
+        }
+        CXCursor_UnaryOperator => {
+            // Unary operation in argument (e.g., -x, !flag)
+            if let Some(expr) = extract_unary_op(cursor) {
+                arg_data.arguments.push(expr);
+            }
+            CXChildVisit_Continue
+        }
+        CXCursor_ArraySubscriptExpr => {
+            // Array indexing in argument (e.g., arr[i])
+            if let Some(expr) = extract_array_index(cursor) {
+                arg_data.arguments.push(expr);
+            }
+            CXChildVisit_Continue
+        }
+        CXCursor_MemberRefExpr => {
+            // Field access in argument (e.g., ptr->field or obj.field)
+            if let Some(expr) = extract_field_access(cursor) {
+                arg_data.arguments.push(expr);
+            }
+            CXChildVisit_Continue
+        }
+        CXCursor_UnexposedExpr | CXCursor_ParenExpr => {
+            // Unexposed expressions might wrap actual expressions, recurse into them
+            CXChildVisit_Recurse
+        }
+        _ => CXChildVisit_Continue, // Skip other unknown children
+    }
+}
+
+/// Extract a unary operator expression.
+fn extract_unary_op(cursor: CXCursor) -> Option<Expression> {
+    // Get the translation unit
+    let tu = unsafe { clang_Cursor_getTranslationUnit(cursor) };
+    if tu.is_null() {
+        return None;
+    }
+
+    // Get the extent (source range) of the cursor
+    let extent = unsafe { clang_getCursorExtent(cursor) };
+
+    // Tokenize to find the operator
+    let mut tokens = ptr::null_mut();
+    let mut num_tokens = 0;
+
+    unsafe {
+        clang_tokenize(tu, extent, &mut tokens, &mut num_tokens);
+    }
+
+    let mut operator: Option<UnaryOperator> = None;
+    let mut is_dereference = false;
+
+    // Look through tokens to find the unary operator
+    for i in 0..num_tokens {
+        unsafe {
+            let token = *tokens.add(i as usize);
+            let token_kind = clang_getTokenKind(token);
+
+            if token_kind == CXToken_Punctuation {
+                let token_cxstring = clang_getTokenSpelling(tu, token);
+                let c_str = CStr::from_ptr(clang_getCString(token_cxstring));
+                if let Ok(token_str) = c_str.to_str() {
+                    match token_str {
+                        "*" => {
+                            is_dereference = true;
+                            clang_disposeString(token_cxstring);
+                            break;
+                        }
+                        "-" => {
+                            operator = Some(UnaryOperator::Minus);
+                            clang_disposeString(token_cxstring);
+                            break;
+                        }
+                        "!" => {
+                            operator = Some(UnaryOperator::LogicalNot);
+                            clang_disposeString(token_cxstring);
+                            break;
+                        }
+                        _ => {}
+                    }
+                }
+                clang_disposeString(token_cxstring);
+            }
+        }
+    }
+
+    unsafe {
+        clang_disposeTokens(tu, tokens, num_tokens);
+    }
+
+    // Extract the operand
+    let mut operand: Option<Expression> = None;
+    let operand_ptr = &mut operand as *mut Option<Expression>;
+
+    unsafe {
+        clang_visitChildren(cursor, visit_expression, operand_ptr as CXClientData);
+    }
+
+    let operand_expr = operand?;
+
+    // Handle dereference separately (maintains backward compatibility)
+    if is_dereference {
+        return Some(Expression::Dereference(Box::new(operand_expr)));
+    }
+
+    // Handle other unary operators
+    if let Some(op) = operator {
+        return Some(Expression::UnaryOp {
+            op,
+            operand: Box::new(operand_expr),
+        });
+    }
+
+    None
+}
+
+/// Extract an array indexing expression.
+fn extract_array_index(cursor: CXCursor) -> Option<Expression> {
+    // Extract array and index expressions by visiting children
+    let mut operands: Vec<Expression> = Vec::new();
+    let operands_ptr = &mut operands as *mut Vec<Expression>;
+
+    unsafe {
+        clang_visitChildren(cursor, visit_binary_operand, operands_ptr as CXClientData);
+    }
+
+    // Array subscript should have exactly 2 operands: array and index
+    if operands.len() != 2 {
+        return None;
+    }
+
+    Some(Expression::ArrayIndex {
+        array: Box::new(operands[0].clone()),
+        index: Box::new(operands[1].clone()),
+    })
+}
+
+/// Extract a field access expression (obj.field or ptr->field).
+fn extract_field_access(cursor: CXCursor) -> Option<Expression> {
+    // Get the field name
+    let field_name_cxstring = unsafe { clang_getCursorSpelling(cursor) };
+    let field = unsafe {
+        let c_str = CStr::from_ptr(clang_getCString(field_name_cxstring));
+        let name = c_str.to_string_lossy().into_owned();
+        clang_disposeString(field_name_cxstring);
+        name
+    };
+
+    // Determine if this is -> or . by tokenizing
+    let tu = unsafe { clang_Cursor_getTranslationUnit(cursor) };
+    if tu.is_null() {
+        return None;
+    }
+
+    let extent = unsafe { clang_getCursorExtent(cursor) };
+    let mut tokens = ptr::null_mut();
+    let mut num_tokens = 0;
+
+    unsafe {
+        clang_tokenize(tu, extent, &mut tokens, &mut num_tokens);
+    }
+
+    let mut is_arrow = false;
+
+    // Look through tokens to find '->' or '.'
+    for i in 0..num_tokens {
+        unsafe {
+            let token = *tokens.add(i as usize);
+            let token_kind = clang_getTokenKind(token);
+
+            if token_kind == CXToken_Punctuation {
+                let token_cxstring = clang_getTokenSpelling(tu, token);
+                let c_str = CStr::from_ptr(clang_getCString(token_cxstring));
+                if let Ok(token_str) = c_str.to_str() {
+                    if token_str == "->" {
+                        is_arrow = true;
+                        clang_disposeString(token_cxstring);
+                        break;
+                    } else if token_str == "." {
+                        is_arrow = false;
+                        clang_disposeString(token_cxstring);
+                        break;
+                    }
+                }
+                clang_disposeString(token_cxstring);
+            }
+        }
+    }
+
+    unsafe {
+        clang_disposeTokens(tu, tokens, num_tokens);
+    }
+
+    // Extract the object/pointer expression by visiting children
+    let mut object_expr: Option<Expression> = None;
+    let expr_ptr = &mut object_expr as *mut Option<Expression>;
+
+    unsafe {
+        clang_visitChildren(cursor, visit_expression, expr_ptr as CXClientData);
+    }
+
+    let object = object_expr?;
+
+    if is_arrow {
+        Some(Expression::PointerFieldAccess {
+            pointer: Box::new(object),
+            field,
+        })
+    } else {
+        Some(Expression::FieldAccess {
+            object: Box::new(object),
+            field,
+        })
     }
 }
 
@@ -1054,7 +1519,80 @@ fn convert_type(cx_type: CXType) -> Option<Type> {
         CXType_Pointer => {
             // SAFETY: Getting pointee type
             let pointee = unsafe { clang_getPointeeType(cx_type) };
+
+            // Check if the pointee is a function - this is a function pointer
+            if pointee.kind == CXType_FunctionProto || pointee.kind == CXType_FunctionNoProto {
+                // This is a function pointer type
+                // Extract return type
+                let return_cx_type = unsafe { clang_getResultType(pointee) };
+                let return_type = convert_type(return_cx_type)?;
+
+                // Extract parameter types
+                let num_args = unsafe { clang_getNumArgTypes(pointee) };
+                let mut param_types = Vec::new();
+
+                for i in 0..num_args {
+                    let arg_type = unsafe { clang_getArgType(pointee, i as u32) };
+                    if let Some(param_type) = convert_type(arg_type) {
+                        param_types.push(param_type);
+                    }
+                }
+
+                return Some(Type::FunctionPointer {
+                    param_types,
+                    return_type: Box::new(return_type),
+                });
+            }
+
+            // Regular pointer (not function pointer)
             convert_type(pointee).map(|t| Type::Pointer(Box::new(t)))
+        }
+        CXType_FunctionProto | CXType_FunctionNoProto => {
+            // Function type (not a pointer to function, but the function type itself)
+            // This can occur in typedefs like: typedef int Func(int);
+            // Extract return type
+            let return_cx_type = unsafe { clang_getResultType(cx_type) };
+            let return_type = convert_type(return_cx_type)?;
+
+            // Extract parameter types
+            let num_args = unsafe { clang_getNumArgTypes(cx_type) };
+            let mut param_types = Vec::new();
+
+            for i in 0..num_args {
+                let arg_type = unsafe { clang_getArgType(cx_type, i as u32) };
+                if let Some(param_type) = convert_type(arg_type) {
+                    param_types.push(param_type);
+                }
+            }
+
+            Some(Type::FunctionPointer {
+                param_types,
+                return_type: Box::new(return_type),
+            })
+        }
+        CXType_Record => {
+            // SAFETY: Getting type declaration to extract struct name
+            let decl = unsafe { clang_getTypeDeclaration(cx_type) };
+            let name_cxstring = unsafe { clang_getCursorSpelling(decl) };
+            let name = unsafe {
+                let c_str = CStr::from_ptr(clang_getCString(name_cxstring));
+                let struct_name = c_str.to_string_lossy().into_owned();
+                clang_disposeString(name_cxstring);
+                struct_name
+            };
+            Some(Type::Struct(name))
+        }
+        CXType_Elaborated => {
+            // Elaborated types wrap other types (e.g., "struct Point" wraps the Record type)
+            // Get the canonical type to unwrap it
+            let canonical = unsafe { clang_getCanonicalType(cx_type) };
+            convert_type(canonical)
+        }
+        CXType_Typedef => {
+            // Typedef types wrap the actual underlying type
+            // Get the canonical type to unwrap it
+            let canonical = unsafe { clang_getCanonicalType(cx_type) };
+            convert_type(canonical)
         }
         _ => None,
     }
@@ -1108,6 +1646,40 @@ pub enum Statement {
         /// Loop body
         body: Vec<Statement>,
     },
+    /// Pointer dereference assignment: `*ptr = value;`
+    DerefAssignment {
+        /// Target expression to dereference
+        target: Expression,
+        /// Value expression to assign
+        value: Expression,
+    },
+    /// Array index assignment: `arr[i] = value;`
+    ArrayIndexAssignment {
+        /// Array expression
+        array: Box<Expression>,
+        /// Index expression
+        index: Box<Expression>,
+        /// Value expression to assign
+        value: Expression,
+    },
+    /// Field assignment: `ptr->field = value;` or `obj.field = value;`
+    FieldAssignment {
+        /// Object/pointer expression
+        object: Expression,
+        /// Field name
+        field: String,
+        /// Value expression to assign
+        value: Expression,
+    },
+}
+
+/// Unary operators for C expressions.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum UnaryOperator {
+    /// Unary minus (-x)
+    Minus,
+    /// Logical NOT (!x)
+    LogicalNot,
 }
 
 /// Binary operators for C expressions.
@@ -1135,6 +1707,10 @@ pub enum BinaryOperator {
     LessEqual,
     /// Greater than or equal (>=)
     GreaterEqual,
+    /// Logical AND (&&)
+    LogicalAnd,
+    /// Logical OR (||)
+    LogicalOr,
 }
 
 /// Represents a C expression.
@@ -1142,6 +1718,8 @@ pub enum BinaryOperator {
 pub enum Expression {
     /// Integer literal: `42`
     IntLiteral(i32),
+    /// String literal: `"hello"`
+    StringLiteral(String),
     /// Variable reference: `x`
     Variable(String),
     /// Binary operation: `a + b`
@@ -1160,12 +1738,62 @@ pub enum Expression {
         /// Arguments
         arguments: Vec<Expression>,
     },
+    /// Pointer dereference: `*ptr`
+    Dereference(Box<Expression>),
+    /// Unary operation: `-x`, `!x`
+    UnaryOp {
+        /// Operator
+        op: UnaryOperator,
+        /// Operand
+        operand: Box<Expression>,
+    },
+    /// Array indexing: `arr[i]`
+    ArrayIndex {
+        /// Array expression
+        array: Box<Expression>,
+        /// Index expression
+        index: Box<Expression>,
+    },
+    /// Struct field access: `obj.field`
+    FieldAccess {
+        /// Object expression
+        object: Box<Expression>,
+        /// Field name
+        field: String,
+    },
+    /// Pointer field access: `ptr->field`
+    PointerFieldAccess {
+        /// Pointer expression
+        pointer: Box<Expression>,
+        /// Field name
+        field: String,
+    },
+}
+
+/// Represents a C typedef declaration.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Typedef {
+    /// Typedef name (the alias)
+    pub name: String,
+    /// Underlying type being aliased
+    pub underlying_type: Type,
+}
+
+impl Typedef {
+    /// Create a new typedef.
+    pub fn new(name: String, underlying_type: Type) -> Self {
+        Self {
+            name,
+            underlying_type,
+        }
+    }
 }
 
 /// Abstract Syntax Tree representing parsed C code.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Ast {
     functions: Vec<Function>,
+    typedefs: Vec<Typedef>,
 }
 
 impl Ast {
@@ -1173,6 +1801,7 @@ impl Ast {
     pub fn new() -> Self {
         Self {
             functions: Vec::new(),
+            typedefs: Vec::new(),
         }
     }
 
@@ -1184,6 +1813,16 @@ impl Ast {
     /// Add a function to the AST.
     pub fn add_function(&mut self, function: Function) {
         self.functions.push(function);
+    }
+
+    /// Get the typedefs in the AST.
+    pub fn typedefs(&self) -> &[Typedef] {
+        &self.typedefs
+    }
+
+    /// Add a typedef to the AST.
+    pub fn add_typedef(&mut self, typedef: Typedef) {
+        self.typedefs.push(typedef);
     }
 }
 
@@ -1248,6 +1887,15 @@ pub enum Type {
     Char,
     /// Pointer to a type
     Pointer(Box<Type>),
+    /// Struct type (e.g., struct Point)
+    Struct(String),
+    /// Function pointer type (e.g., int (*callback)(int))
+    FunctionPointer {
+        /// Parameter types
+        param_types: Vec<Type>,
+        /// Return type
+        return_type: Box<Type>,
+    },
 }
 
 /// Represents a function parameter.

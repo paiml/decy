@@ -165,6 +165,11 @@ impl CodeGenerator {
                     format!("&{}", inner_code)
                 }
             }
+            HirExpression::UnaryOp { op, operand } => {
+                let op_str = Self::unary_operator_to_string(op);
+                let operand_code = self.generate_expression(operand);
+                format!("{}{}", op_str, operand_code)
+            }
             HirExpression::FunctionCall {
                 function,
                 arguments,
@@ -193,6 +198,15 @@ impl CodeGenerator {
         }
     }
 
+    /// Convert unary operator to string.
+    fn unary_operator_to_string(op: &decy_hir::UnaryOperator) -> &'static str {
+        use decy_hir::UnaryOperator;
+        match op {
+            UnaryOperator::Minus => "-",
+            UnaryOperator::LogicalNot => "!",
+        }
+    }
+
     /// Convert binary operator to string.
     fn binary_operator_to_string(op: &BinaryOperator) -> &'static str {
         match op {
@@ -207,6 +221,8 @@ impl CodeGenerator {
             BinaryOperator::GreaterThan => ">",
             BinaryOperator::LessEqual => "<=",
             BinaryOperator::GreaterEqual => ">=",
+            BinaryOperator::LogicalAnd => "&&",
+            BinaryOperator::LogicalOr => "||",
         }
     }
 
@@ -440,6 +456,38 @@ impl CodeGenerator {
 
                 code.push('}');
                 code
+            }
+            HirStatement::DerefAssignment { target, value } => {
+                format!(
+                    "*{} = {};",
+                    self.generate_expression(target),
+                    self.generate_expression(value)
+                )
+            }
+            HirStatement::ArrayIndexAssignment {
+                array,
+                index,
+                value,
+            } => {
+                format!(
+                    "{}[{}] = {};",
+                    self.generate_expression(array),
+                    self.generate_expression(index),
+                    self.generate_expression(value)
+                )
+            }
+            HirStatement::FieldAssignment {
+                object,
+                field,
+                value,
+            } => {
+                // Generate obj.field = value (works for both ptr->field and obj.field in Rust)
+                format!(
+                    "{}.{} = {};",
+                    self.generate_expression(object),
+                    field,
+                    self.generate_expression(value)
+                )
             }
         }
     }
@@ -881,7 +929,9 @@ impl CodeGenerator {
                     };
 
                 code.push_str("    ");
-                code.push_str(&self.generate_statement_for_function(&transformed_stmt, Some(func.name())));
+                code.push_str(
+                    &self.generate_statement_for_function(&transformed_stmt, Some(func.name())),
+                );
                 code.push('\n');
             }
         }
@@ -925,7 +975,9 @@ impl CodeGenerator {
                     };
 
                 code.push_str("    ");
-                code.push_str(&self.generate_statement_for_function(&transformed_stmt, Some(func.name())));
+                code.push_str(
+                    &self.generate_statement_for_function(&transformed_stmt, Some(func.name())),
+                );
                 code.push('\n');
             }
         }
@@ -1032,7 +1084,9 @@ impl CodeGenerator {
                 };
 
                 code.push_str("    ");
-                code.push_str(&self.generate_statement_for_function(&transformed_stmt, Some(func.name())));
+                code.push_str(
+                    &self.generate_statement_for_function(&transformed_stmt, Some(func.name())),
+                );
                 code.push('\n');
             }
         }
