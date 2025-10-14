@@ -36,17 +36,19 @@ use decy_hir::{BinaryOperator, HirExpression, HirFunction, HirStatement, HirType
 use decy_ownership::lifetime_gen::{AnnotatedSignature, AnnotatedType};
 use std::collections::HashMap;
 
-/// Type context for tracking variable types during code generation.
-/// Used to detect pointer arithmetic and other type-specific operations.
+/// Type context for tracking variable types and struct definitions during code generation.
+/// Used to detect pointer arithmetic, null pointer assignments, and other type-specific operations.
 #[derive(Debug, Clone)]
 struct TypeContext {
     variables: HashMap<String, HirType>,
+    structs: HashMap<String, Vec<(String, HirType)>>, // struct_name -> [(field_name, field_type)]
 }
 
 impl TypeContext {
     fn new() -> Self {
         Self {
             variables: HashMap::new(),
+            structs: HashMap::new(),
         }
     }
 
@@ -64,8 +66,46 @@ impl TypeContext {
         self.variables.insert(name, var_type);
     }
 
+    fn add_struct(&mut self, struct_def: &decy_hir::HirStruct) {
+        let fields: Vec<(String, HirType)> = struct_def
+            .fields()
+            .iter()
+            .map(|f| (f.name().to_string(), f.field_type().clone()))
+            .collect();
+        self.structs.insert(struct_def.name().to_string(), fields);
+    }
+
     fn get_type(&self, name: &str) -> Option<&HirType> {
         self.variables.get(name)
+    }
+
+    fn get_field_type(&self, object_expr: &HirExpression, field_name: &str) -> Option<HirType> {
+        // Get the type of the object expression
+        let object_type = match object_expr {
+            HirExpression::Variable(var_name) => self.get_type(var_name)?,
+            _ => return None,
+        };
+
+        // Extract the struct name from the type
+        let struct_name = match object_type {
+            HirType::Struct(name) => name,
+            HirType::Pointer(inner) => {
+                // If it's a pointer to a struct, dereference it
+                if let HirType::Struct(name) = &**inner {
+                    name
+                } else {
+                    return None;
+                }
+            }
+            _ => return None,
+        };
+
+        // Look up the field type in the struct definition
+        let fields = self.structs.get(struct_name)?;
+        fields
+            .iter()
+            .find(|(name, _)| name == field_name)
+            .map(|(_, field_type)| field_type.clone())
     }
 
     fn is_pointer(&self, name: &str) -> bool {
@@ -689,12 +729,14 @@ impl CodeGenerator {
                 field,
                 value,
             } => {
+                // Look up field type for null pointer detection
+                let field_type = ctx.get_field_type(object, field);
                 // Generate obj.field = value (works for both ptr->field and obj.field in Rust)
                 format!(
                     "{}.{} = {};",
                     self.generate_expression_with_context(object, ctx),
                     field,
-                    self.generate_expression_with_context(value, ctx)
+                    self.generate_expression_with_target_type(value, ctx, field_type.as_ref())
                 )
             }
         }
@@ -1047,6 +1089,19 @@ impl CodeGenerator {
         func: &HirFunction,
         sig: &AnnotatedSignature,
     ) -> String {
+        self.generate_function_with_lifetimes_and_structs(func, sig, &[])
+    }
+
+    /// Generate a complete function from HIR with lifetime annotations and struct definitions.
+    ///
+    /// Takes the HIR function, its annotated signature, and struct definitions to generate
+    /// Rust code with proper lifetime annotations and field type awareness for null pointer detection.
+    pub fn generate_function_with_lifetimes_and_structs(
+        &self,
+        func: &HirFunction,
+        sig: &AnnotatedSignature,
+        structs: &[decy_hir::HirStruct],
+    ) -> String {
         let mut code = String::new();
 
         // Generate signature with lifetimes
@@ -1055,6 +1110,11 @@ impl CodeGenerator {
 
         // DECY-041: Initialize type context with function parameters for pointer arithmetic
         let mut ctx = TypeContext::from_function(func);
+
+        // Add struct definitions to context for field type lookup
+        for struct_def in structs {
+            ctx.add_struct(struct_def);
+        }
 
         // Generate body statements if present
         if func.body().is_empty() {
