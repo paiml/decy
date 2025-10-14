@@ -187,6 +187,11 @@ extern "C" fn visit_function(
         if let Some(typedef) = extract_typedef(cursor) {
             ast.add_typedef(typedef);
         }
+    } else if kind == CXCursor_StructDecl {
+        // Extract struct information
+        if let Some(struct_def) = extract_struct(cursor) {
+            ast.add_struct(struct_def);
+        }
     }
 
     CXChildVisit_Continue
@@ -259,6 +264,70 @@ fn extract_typedef(cursor: CXCursor) -> Option<Typedef> {
     let underlying_type = convert_type(cx_type)?;
 
     Some(Typedef::new(name, underlying_type))
+}
+
+/// Extract struct information from a clang cursor.
+fn extract_struct(cursor: CXCursor) -> Option<Struct> {
+    // SAFETY: Getting struct name
+    let name_cxstring = unsafe { clang_getCursorSpelling(cursor) };
+    let name = unsafe {
+        let c_str = CStr::from_ptr(clang_getCString(name_cxstring));
+        let name = c_str.to_string_lossy().into_owned();
+        clang_disposeString(name_cxstring);
+        name
+    };
+
+    // Skip anonymous structs
+    if name.is_empty() {
+        return None;
+    }
+
+    // Extract struct fields by visiting children
+    let mut fields = Vec::new();
+    let fields_ptr = &mut fields as *mut Vec<StructField>;
+
+    unsafe {
+        clang_visitChildren(cursor, visit_struct_fields, fields_ptr as CXClientData);
+    }
+
+    Some(Struct::new(name, fields))
+}
+
+/// Visitor callback for struct fields.
+///
+/// # Safety
+///
+/// This function is called by clang_visitChildren and must follow C calling conventions.
+#[allow(non_upper_case_globals)]
+extern "C" fn visit_struct_fields(
+    cursor: CXCursor,
+    _parent: CXCursor,
+    client_data: CXClientData,
+) -> CXChildVisitResult {
+    // SAFETY: Converting client data back to fields vector pointer
+    let fields = unsafe { &mut *(client_data as *mut Vec<StructField>) };
+
+    // SAFETY: Getting cursor kind
+    let kind = unsafe { clang_getCursorKind(cursor) };
+
+    if kind == CXCursor_FieldDecl {
+        // Get field name
+        let name_cxstring = unsafe { clang_getCursorSpelling(cursor) };
+        let name = unsafe {
+            let c_str = CStr::from_ptr(clang_getCString(name_cxstring));
+            let name = c_str.to_string_lossy().into_owned();
+            clang_disposeString(name_cxstring);
+            name
+        };
+
+        // Get field type
+        let cx_type = unsafe { clang_getCursorType(cursor) };
+        if let Some(field_type) = convert_type(cx_type) {
+            fields.push(StructField::new(name, field_type));
+        }
+    }
+
+    CXChildVisit_Continue
 }
 
 /// Visitor callback for extracting statements from function body.
@@ -2130,11 +2199,44 @@ impl Typedef {
     }
 }
 
+/// Represents a struct field.
+#[derive(Debug, Clone, PartialEq)]
+pub struct StructField {
+    /// Field name
+    pub name: String,
+    /// Field type
+    pub field_type: Type,
+}
+
+impl StructField {
+    /// Create a new struct field.
+    pub fn new(name: String, field_type: Type) -> Self {
+        Self { name, field_type }
+    }
+}
+
+/// Represents a struct definition.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Struct {
+    /// Struct name
+    pub name: String,
+    /// Struct fields
+    pub fields: Vec<StructField>,
+}
+
+impl Struct {
+    /// Create a new struct.
+    pub fn new(name: String, fields: Vec<StructField>) -> Self {
+        Self { name, fields }
+    }
+}
+
 /// Abstract Syntax Tree representing parsed C code.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Ast {
     functions: Vec<Function>,
     typedefs: Vec<Typedef>,
+    structs: Vec<Struct>,
 }
 
 impl Ast {
@@ -2143,6 +2245,7 @@ impl Ast {
         Self {
             functions: Vec::new(),
             typedefs: Vec::new(),
+            structs: Vec::new(),
         }
     }
 
@@ -2164,6 +2267,16 @@ impl Ast {
     /// Add a typedef to the AST.
     pub fn add_typedef(&mut self, typedef: Typedef) {
         self.typedefs.push(typedef);
+    }
+
+    /// Get the structs in the AST.
+    pub fn structs(&self) -> &[Struct] {
+        &self.structs
+    }
+
+    /// Add a struct to the AST.
+    pub fn add_struct(&mut self, struct_def: Struct) {
+        self.structs.push(struct_def);
     }
 }
 
