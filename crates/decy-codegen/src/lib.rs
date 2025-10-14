@@ -111,6 +111,35 @@ impl TypeContext {
     fn is_pointer(&self, name: &str) -> bool {
         matches!(self.get_type(name), Some(HirType::Pointer(_)))
     }
+
+    /// Infer the type of an expression based on the context.
+    /// Returns None if the type cannot be inferred.
+    fn infer_expression_type(&self, expr: &HirExpression) -> Option<HirType> {
+        match expr {
+            HirExpression::Variable(name) => self.get_type(name).cloned(),
+            HirExpression::Dereference(inner) => {
+                // If inner is *mut T, then *inner is T
+                if let Some(HirType::Pointer(pointee_type)) = self.infer_expression_type(inner) {
+                    Some(*pointee_type)
+                } else {
+                    None
+                }
+            }
+            HirExpression::ArrayIndex { array, index: _ } => {
+                // If array is [T; N] or *mut T, then array[i] is T
+                if let Some(array_type) = self.infer_expression_type(array) {
+                    match array_type {
+                        HirType::Array { element_type, .. } => Some(*element_type),
+                        HirType::Pointer(element_type) => Some(*element_type),
+                        _ => None,
+                    }
+                } else {
+                    None
+                }
+            }
+            _ => None,
+        }
+    }
 }
 
 /// Code generator for converting HIR to Rust source code.
@@ -728,10 +757,13 @@ impl CodeGenerator {
                 code
             }
             HirStatement::DerefAssignment { target, value } => {
+                // Infer the type of *target for null pointer detection
+                let target_type = ctx
+                    .infer_expression_type(&HirExpression::Dereference(Box::new(target.clone())));
                 format!(
                     "*{} = {};",
                     self.generate_expression_with_context(target, ctx),
-                    self.generate_expression_with_context(value, ctx)
+                    self.generate_expression_with_target_type(value, ctx, target_type.as_ref())
                 )
             }
             HirStatement::ArrayIndexAssignment {
@@ -739,11 +771,17 @@ impl CodeGenerator {
                 index,
                 value,
             } => {
+                // Infer the type of array[index] for null pointer detection
+                let target_expr = HirExpression::ArrayIndex {
+                    array: array.clone(),
+                    index: index.clone(),
+                };
+                let target_type = ctx.infer_expression_type(&target_expr);
                 format!(
                     "{}[{}] = {};",
                     self.generate_expression_with_context(array, ctx),
                     self.generate_expression_with_context(index, ctx),
-                    self.generate_expression_with_context(value, ctx)
+                    self.generate_expression_with_target_type(value, ctx, target_type.as_ref())
                 )
             }
             HirStatement::FieldAssignment {
