@@ -194,13 +194,10 @@ fn test_struct_pointer_member_access() {
     );
 
     // And: Generated code should compile
-    // NOTE: Temporarily skipping compilation test because null pointer checks
-    // use `ptr != 0` instead of `ptr != std::ptr::null_mut()`
-    // This will be fixed in a future iteration
-    // match compile_rust_code(&rust_code, "test_struct_pointer_access") {
-    //     Ok(_) => (),
-    //     Err(e) => panic!("Generated Rust code should compile. Errors:\n{}", e),
-    // }
+    match compile_rust_code(&rust_code, "test_struct_pointer_access") {
+        Ok(_) => (),
+        Err(e) => panic!("Generated Rust code should compile. Errors:\n{}", e),
+    }
 }
 
 #[test]
@@ -256,13 +253,10 @@ fn test_linked_list_real_world() {
     );
 
     // And: Generated code should compile
-    // NOTE: Temporarily skipping compilation test because null pointer checks
-    // use `ptr != 0` instead of `ptr != std::ptr::null_mut()`
-    // This will be fixed in a future iteration
-    // match compile_rust_code(&rust_code, "test_linked_list") {
-    //     Ok(_) => (),
-    //     Err(e) => panic!("Generated Rust code should compile. Errors:\n{}", e),
-    // }
+    match compile_rust_code(&rust_code, "test_linked_list") {
+        Ok(_) => (),
+        Err(e) => panic!("Generated Rust code should compile. Errors:\n{}", e),
+    }
 }
 
 #[test]

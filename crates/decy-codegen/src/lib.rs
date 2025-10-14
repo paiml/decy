@@ -177,6 +177,29 @@ impl CodeGenerator {
             HirExpression::StringLiteral(s) => format!("\"{}\"", s),
             HirExpression::Variable(name) => name.clone(),
             HirExpression::BinaryOp { op, left, right } => {
+                // Check for pointer comparison with 0 (null pointer comparison)
+                // ptr == 0 or ptr != 0 should become ptr == std::ptr::null_mut() or ptr != std::ptr::null_mut()
+                if matches!(op, BinaryOperator::Equal | BinaryOperator::NotEqual) {
+                    // Check if left is a pointer and right is 0
+                    if let HirExpression::Variable(var_name) = &**left {
+                        if ctx.is_pointer(var_name) {
+                            if let HirExpression::IntLiteral(0) = **right {
+                                let op_str = Self::binary_operator_to_string(op);
+                                return format!("{} {} std::ptr::null_mut()", var_name, op_str);
+                            }
+                        }
+                    }
+                    // Check if right is a pointer and left is 0 (0 == ptr or 0 != ptr)
+                    if let HirExpression::Variable(var_name) = &**right {
+                        if ctx.is_pointer(var_name) {
+                            if let HirExpression::IntLiteral(0) = **left {
+                                let op_str = Self::binary_operator_to_string(op);
+                                return format!("std::ptr::null_mut() {} {}", op_str, var_name);
+                            }
+                        }
+                    }
+                }
+
                 let left_code = self.generate_expression_with_context(left, ctx);
                 let right_code = self.generate_expression_with_context(right, ctx);
                 let op_str = Self::binary_operator_to_string(op);
