@@ -481,15 +481,16 @@ impl CodeGenerator {
         stmt: &HirStatement,
         function_name: Option<&str>,
     ) -> String {
-        self.generate_statement_with_context(stmt, function_name, &mut TypeContext::new())
+        self.generate_statement_with_context(stmt, function_name, &mut TypeContext::new(), None)
     }
 
-    /// Generate code for a statement with type context for pointer arithmetic.
+    /// Generate code for a statement with type context for pointer arithmetic and return type for null pointer detection.
     fn generate_statement_with_context(
         &self,
         stmt: &HirStatement,
         function_name: Option<&str>,
         ctx: &mut TypeContext,
+        return_type: Option<&HirType>,
     ) -> String {
         match stmt {
             HirStatement::VariableDeclaration {
@@ -526,9 +527,10 @@ impl CodeGenerator {
                         "std::process::exit(0);".to_string()
                     }
                 } else if let Some(expr) = expr_opt {
+                    // Pass return type as target type hint for null pointer detection
                     format!(
                         "return {};",
-                        self.generate_expression_with_context(expr, ctx)
+                        self.generate_expression_with_target_type(expr, ctx, return_type)
                     )
                 } else {
                     "return;".to_string()
@@ -550,7 +552,12 @@ impl CodeGenerator {
                 // Generate then block
                 for stmt in then_block {
                     code.push_str("    ");
-                    code.push_str(&self.generate_statement_with_context(stmt, function_name, ctx));
+                    code.push_str(&self.generate_statement_with_context(
+                        stmt,
+                        function_name,
+                        ctx,
+                        return_type,
+                    ));
                     code.push('\n');
                 }
 
@@ -563,6 +570,7 @@ impl CodeGenerator {
                             stmt,
                             function_name,
                             ctx,
+                            return_type,
                         ));
                         code.push('\n');
                     }
@@ -583,7 +591,12 @@ impl CodeGenerator {
                 // Generate loop body
                 for stmt in body {
                     code.push_str("    ");
-                    code.push_str(&self.generate_statement_with_context(stmt, function_name, ctx));
+                    code.push_str(&self.generate_statement_with_context(
+                        stmt,
+                        function_name,
+                        ctx,
+                        return_type,
+                    ));
                     code.push('\n');
                 }
 
@@ -615,6 +628,7 @@ impl CodeGenerator {
                         init_stmt,
                         function_name,
                         ctx,
+                        return_type,
                     ));
                     code.push('\n');
                 }
@@ -628,7 +642,12 @@ impl CodeGenerator {
                 // Generate loop body
                 for stmt in body {
                     code.push_str("    ");
-                    code.push_str(&self.generate_statement_with_context(stmt, function_name, ctx));
+                    code.push_str(&self.generate_statement_with_context(
+                        stmt,
+                        function_name,
+                        ctx,
+                        return_type,
+                    ));
                     code.push('\n');
                 }
 
@@ -639,6 +658,7 @@ impl CodeGenerator {
                         inc_stmt,
                         function_name,
                         ctx,
+                        return_type,
                     ));
                     code.push('\n');
                 }
@@ -676,6 +696,7 @@ impl CodeGenerator {
                                     stmt,
                                     function_name,
                                     ctx,
+                                    return_type,
                                 ));
                                 code.push('\n');
                             }
@@ -695,6 +716,7 @@ impl CodeGenerator {
                                 stmt,
                                 function_name,
                                 ctx,
+                                return_type,
                             ));
                             code.push('\n');
                         }
@@ -1125,13 +1147,14 @@ impl CodeGenerator {
                 code.push('\n');
             }
         } else {
-            // Generate actual body statements with type context
+            // Generate actual body statements with type context and return type
             for stmt in func.body() {
                 code.push_str("    ");
                 code.push_str(&self.generate_statement_with_context(
                     stmt,
                     Some(func.name()),
                     &mut ctx,
+                    Some(func.return_type()),
                 ));
                 code.push('\n');
             }
