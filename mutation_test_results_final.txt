@@ -1,0 +1,33 @@
+Found 205 mutants to test
+ok       Unmutated baseline in 10.5s build + 0.4s test
+ INFO Auto-set test timeout to 20s
+MISSED   crates/decy-parser/src/parser.rs:788:17: delete match arm CXCursor_IntegerLiteral in visit_while_children in 0.5s build + 0.4s test
+MISSED   crates/decy-parser/src/parser.rs:102:38: replace || with && in CParser::parse in 14.6s build + 0.5s test
+MISSED   crates/decy-parser/src/parser.rs:789:17: delete match arm CXCursor_DeclRefExpr in visit_while_children in 14.6s build + 0.5s test
+MISSED   crates/decy-parser/src/parser.rs:601:33: replace += with *= in visit_if_children in 0.7s build + 0.5s test
+MISSED   crates/decy-parser/src/parser.rs:679:28: replace == with != in visit_for_children in 0.5s build + 0.4s test
+MISSED   crates/decy-parser/src/parser.rs:1547:9: delete match arm CXType_FunctionProto | CXType_FunctionNoProto in convert_type in 0.7s build + 0.5s test
+MISSED   crates/decy-parser/src/parser.rs:812:36: replace += with -= in visit_while_children in 0.7s build + 0.6s test
+MISSED   crates/decy-parser/src/parser.rs:791:17: delete match arm CXCursor_UnaryOperator in visit_while_children in 0.6s build + 0.4s test
+MISSED   crates/decy-parser/src/parser.rs:1468:41: replace == with != in extract_field_access in 0.6s build + 0.5s test
+MISSED   crates/decy-parser/src/parser.rs:812:36: replace += with *= in visit_while_children in 0.7s build + 0.4s test
+MISSED   crates/decy-parser/src/parser.rs:601:33: replace += with -= in visit_if_children in 0.6s build + 0.4s test
+MISSED   crates/decy-parser/src/parser.rs:565:17: delete match arm CXCursor_CallExpr in visit_if_children in 0.5s build + 0.4s test
+MISSED   crates/decy-parser/src/parser.rs:727:34: replace += with -= in visit_for_children in 0.7s build + 0.4s test
+MISSED   crates/decy-parser/src/parser.rs:566:17: delete match arm CXCursor_UnaryOperator in visit_if_children in 0.7s build + 0.4s test
+MISSED   crates/decy-parser/src/parser.rs:564:17: delete match arm CXCursor_DeclRefExpr in visit_if_children in 0.5s build + 0.6s test
+MISSED   crates/decy-parser/src/parser.rs:970:19: replace > with >= in extract_string_literal in 0.6s build + 0.6s test
+MISSED   crates/decy-parser/src/parser.rs:419:25: replace || with && in extract_assignment_stmt in 0.6s build + 0.5s test
+MISSED   crates/decy-parser/src/parser.rs:693:17: delete match arm CXCursor_IntegerLiteral in visit_for_children in 0.8s build + 0.4s test
+MISSED   crates/decy-parser/src/parser.rs:417:25: replace || with && in extract_assignment_stmt in 0.7s build + 0.4s test
+MISSED   crates/decy-parser/src/parser.rs:694:17: delete match arm CXCursor_DeclRefExpr in visit_for_children in 0.6s build + 0.6s test
+MISSED   crates/decy-parser/src/parser.rs:158:9: replace <impl Drop for CParser>::drop with () in 0.7s build + 0.6s test
+MISSED   crates/decy-parser/src/parser.rs:1045:9: delete match arm CXCursor_StringLiteral in visit_binary_operand in 0.7s build + 0.4s test
+MISSED   crates/decy-parser/src/parser.rs:727:34: replace += with *= in visit_for_children in 0.7s build + 0.4s test
+MISSED   crates/decy-parser/src/parser.rs:695:17: delete match arm CXCursor_CallExpr in visit_for_children in 0.7s build + 0.5s test
+MISSED   crates/decy-parser/src/parser.rs:418:25: replace || with && in extract_assignment_stmt in 0.9s build + 0.4s test
+MISSED   crates/decy-parser/src/parser.rs:696:17: delete match arm CXCursor_UnaryOperator in visit_for_children in 0.8s build + 0.4s test
+MISSED   crates/decy-parser/src/parser.rs:930:19: replace > with >= in extract_int_literal in 0.6s build + 0.5s test
+MISSED   crates/decy-parser/src/parser.rs:593:54: replace == with != in visit_if_children in 0.6s build + 0.5s test
+MISSED   crates/decy-parser/src/parser.rs:151:9: replace CParser::parse_file -> Result<Ast> with Ok(Default::default()) in 0.7s build + 0.4s test
+205 mutants tested in 1m 12s: 29 missed, 155 caught, 21 unviable

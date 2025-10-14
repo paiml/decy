@@ -259,6 +259,9 @@ impl LifetimeAnalyzer {
             HirExpression::Dereference(inner) | HirExpression::AddressOf(inner) => {
                 self.expression_uses_variable(inner, var_name)
             }
+            HirExpression::UnaryOp { operand, .. } => {
+                self.expression_uses_variable(operand, var_name)
+            }
             HirExpression::FunctionCall { arguments, .. } => arguments
                 .iter()
                 .any(|arg| self.expression_uses_variable(arg, var_name)),

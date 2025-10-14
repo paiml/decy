@@ -166,6 +166,30 @@ impl DataflowAnalyzer {
                 // Track uses of pointers in the value expression
                 self.track_expression_uses(value, graph, index);
             }
+            HirStatement::DerefAssignment { target, value } => {
+                // Track uses of pointers in both target and value expressions
+                self.track_expression_uses(target, graph, index);
+                self.track_expression_uses(value, graph, index);
+            }
+            HirStatement::ArrayIndexAssignment {
+                array,
+                index: idx,
+                value,
+            } => {
+                // Track uses of pointers in array, index, and value expressions
+                self.track_expression_uses(array, graph, index);
+                self.track_expression_uses(idx, graph, index);
+                self.track_expression_uses(value, graph, index);
+            }
+            HirStatement::FieldAssignment {
+                object,
+                field: _,
+                value,
+            } => {
+                // Track uses of pointers in object and value expressions
+                self.track_expression_uses(object, graph, index);
+                self.track_expression_uses(value, graph, index);
+            }
             HirStatement::If {
                 condition,
                 then_block,
@@ -266,6 +290,9 @@ impl DataflowAnalyzer {
             }
             HirExpression::Dereference(inner) => {
                 Self::track_expr_recursive(inner, _graph, _index);
+            }
+            HirExpression::UnaryOp { operand, .. } => {
+                Self::track_expr_recursive(operand, _graph, _index);
             }
             HirExpression::BinaryOp { left, right, .. } => {
                 Self::track_expr_recursive(left, _graph, _index);

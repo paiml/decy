@@ -13,6 +13,7 @@ description = "CLI tool for C-to-Rust transpilation with EXTREME quality standar
 
 [dependencies]
 decy-core = { path = "../decy-core" }
+decy-verify = { path = "../decy-verify" }
 decy-agent = { path = "../decy-agent" }
 decy-mcp = { path = "../decy-mcp" }
 decy-repo = { path = "../decy-repo" }
@@ -27,6 +28,7 @@ indicatif.workspace = true
 console.workspace = true
 serde.workspace = true
 serde_json.workspace = true
+rustyline = "13.0"
 
 [dev-dependencies]
 proptest.workspace = true
