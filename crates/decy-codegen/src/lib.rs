@@ -172,8 +172,28 @@ impl CodeGenerator {
     /// Generate code for an expression with type context for pointer arithmetic.
     #[allow(clippy::only_used_in_recursion)]
     fn generate_expression_with_context(&self, expr: &HirExpression, ctx: &TypeContext) -> String {
+        self.generate_expression_with_target_type(expr, ctx, None)
+    }
+
+    /// Generate code for an expression with optional target type hint for null pointer detection.
+    /// If target_type is Some(HirType::Pointer(_)) and expr is IntLiteral(0), generates std::ptr::null_mut().
+    #[allow(clippy::only_used_in_recursion)]
+    fn generate_expression_with_target_type(
+        &self,
+        expr: &HirExpression,
+        ctx: &TypeContext,
+        target_type: Option<&HirType>,
+    ) -> String {
         match expr {
-            HirExpression::IntLiteral(val) => val.to_string(),
+            HirExpression::IntLiteral(val) => {
+                // Check if assigning 0 to a pointer type
+                if *val == 0 {
+                    if let Some(HirType::Pointer(_)) = target_type {
+                        return "std::ptr::null_mut()".to_string();
+                    }
+                }
+                val.to_string()
+            }
             HirExpression::StringLiteral(s) => format!("\"{}\"", s),
             HirExpression::Variable(name) => name.clone(),
             HirExpression::BinaryOp { op, left, right } => {
@@ -442,9 +462,10 @@ impl CodeGenerator {
 
                 let mut code = format!("let mut {}: {}", name, Self::map_type(var_type));
                 if let Some(init_expr) = initializer {
+                    // Pass var_type as target type hint for null pointer detection
                     code.push_str(&format!(
                         " = {};",
-                        self.generate_expression_with_context(init_expr, ctx)
+                        self.generate_expression_with_target_type(init_expr, ctx, Some(var_type))
                     ));
                 } else {
                     // Provide default value for uninitialized variables
@@ -532,10 +553,12 @@ impl CodeGenerator {
             HirStatement::Break => "break;".to_string(),
             HirStatement::Continue => "continue;".to_string(),
             HirStatement::Assignment { target, value } => {
+                // Look up target type in context for null pointer detection
+                let target_type = ctx.get_type(target);
                 format!(
                     "{} = {};",
                     target,
-                    self.generate_expression_with_context(value, ctx)
+                    self.generate_expression_with_target_type(value, ctx, target_type)
                 )
             }
             HirStatement::For {
