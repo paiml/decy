@@ -34,6 +34,44 @@ pub mod test_generator;
 
 use decy_hir::{BinaryOperator, HirExpression, HirFunction, HirStatement, HirType};
 use decy_ownership::lifetime_gen::{AnnotatedSignature, AnnotatedType};
+use std::collections::HashMap;
+
+/// Type context for tracking variable types during code generation.
+/// Used to detect pointer arithmetic and other type-specific operations.
+#[derive(Debug, Clone)]
+struct TypeContext {
+    variables: HashMap<String, HirType>,
+}
+
+impl TypeContext {
+    fn new() -> Self {
+        Self {
+            variables: HashMap::new(),
+        }
+    }
+
+    fn from_function(func: &HirFunction) -> Self {
+        let mut ctx = Self::new();
+        // Add parameters to context
+        for param in func.parameters() {
+            ctx.variables
+                .insert(param.name().to_string(), param.param_type().clone());
+        }
+        ctx
+    }
+
+    fn add_variable(&mut self, name: String, var_type: HirType) {
+        self.variables.insert(name, var_type);
+    }
+
+    fn get_type(&self, name: &str) -> Option<&HirType> {
+        self.variables.get(name)
+    }
+
+    fn is_pointer(&self, name: &str) -> bool {
+        matches!(self.get_type(name), Some(HirType::Pointer(_)))
+    }
+}
 
 /// Code generator for converting HIR to Rust source code.
 #[derive(Debug, Clone)]
@@ -128,36 +166,92 @@ impl CodeGenerator {
     /// Generate code for an expression.
     #[allow(clippy::only_used_in_recursion)]
     pub fn generate_expression(&self, expr: &HirExpression) -> String {
+        self.generate_expression_with_context(expr, &TypeContext::new())
+    }
+
+    /// Generate code for an expression with type context for pointer arithmetic.
+    #[allow(clippy::only_used_in_recursion)]
+    fn generate_expression_with_context(&self, expr: &HirExpression, ctx: &TypeContext) -> String {
         match expr {
             HirExpression::IntLiteral(val) => val.to_string(),
             HirExpression::StringLiteral(s) => format!("\"{}\"", s),
             HirExpression::Variable(name) => name.clone(),
             HirExpression::BinaryOp { op, left, right } => {
-                let left_code = self.generate_expression(left);
-                let right_code = self.generate_expression(right);
+                let left_code = self.generate_expression_with_context(left, ctx);
+                let right_code = self.generate_expression_with_context(right, ctx);
                 let op_str = Self::binary_operator_to_string(op);
 
                 // Add parentheses for nested binary operations
                 let left_str = if matches!(**left, HirExpression::BinaryOp { .. }) {
                     format!("({})", left_code)
                 } else {
-                    left_code
+                    left_code.clone()
                 };
 
                 let right_str = if matches!(**right, HirExpression::BinaryOp { .. }) {
                     format!("({})", right_code)
                 } else {
-                    right_code
+                    right_code.clone()
                 };
+
+                // DECY-041: Detect pointer arithmetic using type context
+                if matches!(op, BinaryOperator::Add | BinaryOperator::Subtract) {
+                    if let HirExpression::Variable(var_name) = &**left {
+                        if ctx.is_pointer(var_name) {
+                            // This is pointer arithmetic - generate unsafe pointer method calls
+                            return match op {
+                                BinaryOperator::Add => {
+                                    format!(
+                                        "unsafe {{ {}.wrapping_add({} as usize) }}",
+                                        left_str, right_str
+                                    )
+                                }
+                                BinaryOperator::Subtract => {
+                                    // Check if right is also a pointer (ptr - ptr) or integer (ptr - offset)
+                                    if let HirExpression::Variable(right_var) = &**right {
+                                        if ctx.is_pointer(right_var) {
+                                            // ptr - ptr: calculate difference (returns isize, cast to i32 for C compatibility)
+                                            format!(
+                                                "unsafe {{ {}.offset_from({}) as i32 }}",
+                                                left_str, right_str
+                                            )
+                                        } else {
+                                            // ptr - integer offset
+                                            format!(
+                                                "unsafe {{ {}.wrapping_sub({} as usize) }}",
+                                                left_str, right_str
+                                            )
+                                        }
+                                    } else {
+                                        // ptr - integer offset (literal or expression)
+                                        format!(
+                                            "unsafe {{ {}.wrapping_sub({} as usize) }}",
+                                            left_str, right_str
+                                        )
+                                    }
+                                }
+                                _ => unreachable!(),
+                            };
+                        }
+                    }
+                }
 
                 format!("{} {} {}", left_str, op_str, right_str)
             }
             HirExpression::Dereference(inner) => {
-                let inner_code = self.generate_expression(inner);
+                let inner_code = self.generate_expression_with_context(inner, ctx);
+
+                // DECY-041: Check if dereferencing a raw pointer - if so, wrap in unsafe
+                if let HirExpression::Variable(var_name) = &**inner {
+                    if ctx.is_pointer(var_name) {
+                        return format!("unsafe {{ *{} }}", inner_code);
+                    }
+                }
+
                 format!("*{}", inner_code)
             }
             HirExpression::AddressOf(inner) => {
-                let inner_code = self.generate_expression(inner);
+                let inner_code = self.generate_expression_with_context(inner, ctx);
                 // Add parentheses for non-trivial expressions
                 if matches!(**inner, HirExpression::Dereference(_)) {
                     format!("&({})", inner_code)
@@ -167,7 +261,7 @@ impl CodeGenerator {
             }
             HirExpression::UnaryOp { op, operand } => {
                 let op_str = Self::unary_operator_to_string(op);
-                let operand_code = self.generate_expression(operand);
+                let operand_code = self.generate_expression_with_context(operand, ctx);
                 format!("{}{}", op_str, operand_code)
             }
             HirExpression::FunctionCall {
@@ -176,24 +270,43 @@ impl CodeGenerator {
             } => {
                 let args: Vec<String> = arguments
                     .iter()
-                    .map(|arg| self.generate_expression(arg))
+                    .map(|arg| self.generate_expression_with_context(arg, ctx))
                     .collect();
                 format!("{}({})", function, args.join(", "))
             }
             HirExpression::FieldAccess { object, field } => {
-                format!("{}.{}", self.generate_expression(object), field)
+                format!(
+                    "{}.{}",
+                    self.generate_expression_with_context(object, ctx),
+                    field
+                )
             }
             HirExpression::PointerFieldAccess { pointer, field } => {
                 // In Rust, ptr->field becomes (*ptr).field or just ptr.field
                 // The safer version is (*ptr).field for explicit dereferencing
-                format!("(*{}).{}", self.generate_expression(pointer), field)
+                format!(
+                    "(*{}).{}",
+                    self.generate_expression_with_context(pointer, ctx),
+                    field
+                )
             }
             HirExpression::ArrayIndex { array, index } => {
-                format!(
-                    "{}[{}]",
-                    self.generate_expression(array),
-                    self.generate_expression(index)
-                )
+                let array_code = self.generate_expression_with_context(array, ctx);
+                let index_code = self.generate_expression_with_context(index, ctx);
+
+                // DECY-041: Check if array is a raw pointer - if so, use unsafe pointer arithmetic
+                if let HirExpression::Variable(var_name) = &**array {
+                    if ctx.is_pointer(var_name) {
+                        // Raw pointer indexing: arr[i] becomes unsafe { *arr.add(i as usize) }
+                        return format!(
+                            "unsafe {{ *{}.add({} as usize) }}",
+                            array_code, index_code
+                        );
+                    }
+                }
+
+                // Regular array/slice indexing
+                format!("{}[{}]", array_code, index_code)
             }
         }
     }
@@ -285,15 +398,31 @@ impl CodeGenerator {
         stmt: &HirStatement,
         function_name: Option<&str>,
     ) -> String {
+        self.generate_statement_with_context(stmt, function_name, &mut TypeContext::new())
+    }
+
+    /// Generate code for a statement with type context for pointer arithmetic.
+    fn generate_statement_with_context(
+        &self,
+        stmt: &HirStatement,
+        function_name: Option<&str>,
+        ctx: &mut TypeContext,
+    ) -> String {
         match stmt {
             HirStatement::VariableDeclaration {
                 name,
                 var_type,
                 initializer,
             } => {
+                // Add variable to type context for pointer arithmetic detection
+                ctx.add_variable(name.clone(), var_type.clone());
+
                 let mut code = format!("let mut {}: {}", name, Self::map_type(var_type));
                 if let Some(init_expr) = initializer {
-                    code.push_str(&format!(" = {};", self.generate_expression(init_expr)));
+                    code.push_str(&format!(
+                        " = {};",
+                        self.generate_expression_with_context(init_expr, ctx)
+                    ));
                 } else {
                     // Provide default value for uninitialized variables
                     code.push_str(&format!(" = {};", Self::default_value_for_type(var_type)));
@@ -305,12 +434,18 @@ impl CodeGenerator {
                 // return N; in main becomes std::process::exit(N);
                 if function_name == Some("main") {
                     if let Some(expr) = expr_opt {
-                        format!("std::process::exit({});", self.generate_expression(expr))
+                        format!(
+                            "std::process::exit({});",
+                            self.generate_expression_with_context(expr, ctx)
+                        )
                     } else {
                         "std::process::exit(0);".to_string()
                     }
                 } else if let Some(expr) = expr_opt {
-                    format!("return {};", self.generate_expression(expr))
+                    format!(
+                        "return {};",
+                        self.generate_expression_with_context(expr, ctx)
+                    )
                 } else {
                     "return;".to_string()
                 }
@@ -323,12 +458,15 @@ impl CodeGenerator {
                 let mut code = String::new();
 
                 // Generate if condition
-                code.push_str(&format!("if {} {{\n", self.generate_expression(condition)));
+                code.push_str(&format!(
+                    "if {} {{\n",
+                    self.generate_expression_with_context(condition, ctx)
+                ));
 
                 // Generate then block
                 for stmt in then_block {
                     code.push_str("    ");
-                    code.push_str(&self.generate_statement(stmt));
+                    code.push_str(&self.generate_statement_with_context(stmt, function_name, ctx));
                     code.push('\n');
                 }
 
@@ -337,7 +475,11 @@ impl CodeGenerator {
                     code.push_str("} else {\n");
                     for stmt in else_stmts {
                         code.push_str("    ");
-                        code.push_str(&self.generate_statement(stmt));
+                        code.push_str(&self.generate_statement_with_context(
+                            stmt,
+                            function_name,
+                            ctx,
+                        ));
                         code.push('\n');
                     }
                 }
@@ -351,13 +493,13 @@ impl CodeGenerator {
                 // Generate while condition
                 code.push_str(&format!(
                     "while {} {{\n",
-                    self.generate_expression(condition)
+                    self.generate_expression_with_context(condition, ctx)
                 ));
 
                 // Generate loop body
                 for stmt in body {
                     code.push_str("    ");
-                    code.push_str(&self.generate_statement(stmt));
+                    code.push_str(&self.generate_statement_with_context(stmt, function_name, ctx));
                     code.push('\n');
                 }
 
@@ -367,7 +509,11 @@ impl CodeGenerator {
             HirStatement::Break => "break;".to_string(),
             HirStatement::Continue => "continue;".to_string(),
             HirStatement::Assignment { target, value } => {
-                format!("{} = {};", target, self.generate_expression(value))
+                format!(
+                    "{} = {};",
+                    target,
+                    self.generate_expression_with_context(value, ctx)
+                )
             }
             HirStatement::For {
                 init,
@@ -379,27 +525,35 @@ impl CodeGenerator {
 
                 // Generate init statement before loop (if present)
                 if let Some(init_stmt) = init {
-                    code.push_str(&self.generate_statement(init_stmt));
+                    code.push_str(&self.generate_statement_with_context(
+                        init_stmt,
+                        function_name,
+                        ctx,
+                    ));
                     code.push('\n');
                 }
 
                 // Generate while loop with condition
                 code.push_str(&format!(
                     "while {} {{\n",
-                    self.generate_expression(condition)
+                    self.generate_expression_with_context(condition, ctx)
                 ));
 
                 // Generate loop body
                 for stmt in body {
                     code.push_str("    ");
-                    code.push_str(&self.generate_statement(stmt));
+                    code.push_str(&self.generate_statement_with_context(stmt, function_name, ctx));
                     code.push('\n');
                 }
 
                 // Generate increment at end of body (if present)
                 if let Some(inc_stmt) = increment {
                     code.push_str("    ");
-                    code.push_str(&self.generate_statement(inc_stmt));
+                    code.push_str(&self.generate_statement_with_context(
+                        inc_stmt,
+                        function_name,
+                        ctx,
+                    ));
                     code.push('\n');
                 }
 
@@ -416,7 +570,7 @@ impl CodeGenerator {
                 // Generate match expression
                 code.push_str(&format!(
                     "match {} {{\n",
-                    self.generate_expression(condition)
+                    self.generate_expression_with_context(condition, ctx)
                 ));
 
                 // Generate each case
@@ -425,14 +579,18 @@ impl CodeGenerator {
                         // Generate case pattern
                         code.push_str(&format!(
                             "    {} => {{\n",
-                            self.generate_expression(value_expr)
+                            self.generate_expression_with_context(value_expr, ctx)
                         ));
 
                         // Generate case body (filter out Break statements)
                         for stmt in &case.body {
                             if !matches!(stmt, HirStatement::Break) {
                                 code.push_str("        ");
-                                code.push_str(&self.generate_statement(stmt));
+                                code.push_str(&self.generate_statement_with_context(
+                                    stmt,
+                                    function_name,
+                                    ctx,
+                                ));
                                 code.push('\n');
                             }
                         }
@@ -447,7 +605,11 @@ impl CodeGenerator {
                     for stmt in default_stmts {
                         if !matches!(stmt, HirStatement::Break) {
                             code.push_str("        ");
-                            code.push_str(&self.generate_statement(stmt));
+                            code.push_str(&self.generate_statement_with_context(
+                                stmt,
+                                function_name,
+                                ctx,
+                            ));
                             code.push('\n');
                         }
                     }
@@ -460,8 +622,8 @@ impl CodeGenerator {
             HirStatement::DerefAssignment { target, value } => {
                 format!(
                     "*{} = {};",
-                    self.generate_expression(target),
-                    self.generate_expression(value)
+                    self.generate_expression_with_context(target, ctx),
+                    self.generate_expression_with_context(value, ctx)
                 )
             }
             HirStatement::ArrayIndexAssignment {
@@ -471,9 +633,9 @@ impl CodeGenerator {
             } => {
                 format!(
                     "{}[{}] = {};",
-                    self.generate_expression(array),
-                    self.generate_expression(index),
-                    self.generate_expression(value)
+                    self.generate_expression_with_context(array, ctx),
+                    self.generate_expression_with_context(index, ctx),
+                    self.generate_expression_with_context(value, ctx)
                 )
             }
             HirStatement::FieldAssignment {
@@ -484,9 +646,9 @@ impl CodeGenerator {
                 // Generate obj.field = value (works for both ptr->field and obj.field in Rust)
                 format!(
                     "{}.{} = {};",
-                    self.generate_expression(object),
+                    self.generate_expression_with_context(object, ctx),
                     field,
-                    self.generate_expression(value)
+                    self.generate_expression_with_context(value, ctx)
                 )
             }
         }
@@ -589,8 +751,11 @@ impl CodeGenerator {
             .parameters
             .iter()
             .map(|p| {
+                // DECY-041: Add mut for all parameters to match C semantics
+                // In C, parameters are mutable by default (can be reassigned)
+                // DECY-FUTURE: More sophisticated analysis to only add mut when needed
                 format!(
-                    "{}: {}",
+                    "mut {}: {}",
                     p.name,
                     self.annotated_type_to_string(&p.param_type)
                 )
@@ -842,6 +1007,9 @@ impl CodeGenerator {
         code.push_str(&self.generate_annotated_signature(sig));
         code.push_str(" {\n");
 
+        // DECY-041: Initialize type context with function parameters for pointer arithmetic
+        let mut ctx = TypeContext::from_function(func);
+
         // Generate body statements if present
         if func.body().is_empty() {
             // Generate stub body with return statement
@@ -851,10 +1019,14 @@ impl CodeGenerator {
                 code.push('\n');
             }
         } else {
-            // Generate actual body statements
+            // Generate actual body statements with type context
             for stmt in func.body() {
                 code.push_str("    ");
-                code.push_str(&self.generate_statement_for_function(stmt, Some(func.name())));
+                code.push_str(&self.generate_statement_with_context(
+                    stmt,
+                    Some(func.name()),
+                    &mut ctx,
+                ));
                 code.push('\n');
             }
         }
