@@ -7,7 +7,9 @@ use decy_hir::{HirExpression, HirFunction, HirParameter, HirStatement, HirType};
 
 #[test]
 fn test_generate_immutable_borrow() {
-    // Test that ImmutableBorrow inference generates &T type
+    // DECY-041: Test that pointers are now preserved as raw pointers for pointer arithmetic
+    // Old behavior: ImmutableBorrow inference generated &T type
+    // New behavior: All pointers stay as *mut T to support pointer arithmetic
     let generator = BorrowGenerator::new();
 
     let ptr_type = HirType::Pointer(Box::new(HirType::Int));
@@ -26,17 +28,16 @@ fn test_generate_immutable_borrow() {
 
     assert_eq!(
         transformed,
-        HirType::Reference {
-            inner: Box::new(HirType::Int),
-            mutable: false,
-        },
-        "ImmutableBorrow should generate &T"
+        HirType::Pointer(Box::new(HirType::Int)),
+        "DECY-041: Pointers are preserved as *mut T for pointer arithmetic support"
     );
 }
 
 #[test]
 fn test_generate_mutable_borrow() {
-    // Test that MutableBorrow inference generates &mut T type
+    // DECY-041: Test that pointers are now preserved as raw pointers for pointer arithmetic
+    // Old behavior: MutableBorrow inference generated &mut T type
+    // New behavior: All pointers stay as *mut T to support pointer arithmetic
     let generator = BorrowGenerator::new();
 
     let ptr_type = HirType::Pointer(Box::new(HirType::Int));
@@ -55,17 +56,16 @@ fn test_generate_mutable_borrow() {
 
     assert_eq!(
         transformed,
-        HirType::Reference {
-            inner: Box::new(HirType::Int),
-            mutable: true,
-        },
-        "MutableBorrow should generate &mut T"
+        HirType::Pointer(Box::new(HirType::Int)),
+        "DECY-041: Pointers are preserved as *mut T for pointer arithmetic support"
     );
 }
 
 #[test]
 fn test_generate_borrowed_parameter() {
-    // Test that function parameters are transformed based on inference
+    // DECY-041: Test that pointer parameters are preserved as raw pointers
+    // Old behavior: Parameters transformed to references based on inference
+    // New behavior: All pointer parameters stay as *mut T to support pointer arithmetic
     let generator = BorrowGenerator::new();
 
     let params = vec![HirParameter::new(
@@ -89,24 +89,22 @@ fn test_generate_borrowed_parameter() {
     assert_eq!(transformed_params.len(), 1);
     assert_eq!(
         transformed_params[0].param_type(),
-        &HirType::Reference {
-            inner: Box::new(HirType::Int),
-            mutable: false,
-        },
-        "Parameter should be transformed to &T"
+        &HirType::Pointer(Box::new(HirType::Int)),
+        "DECY-041: Pointer parameters are preserved as *mut T for pointer arithmetic support"
     );
 }
 
 #[test]
 fn test_borrow_checker_validation() {
-    // Test that generated borrow types follow borrow checker rules
-    // This is a simplified test - real validation would be more complex
+    // DECY-041: Test that pointers are preserved as raw pointers
+    // Old behavior: Generated references to follow borrow checker rules
+    // New behavior: All pointers stay as *mut T to support pointer arithmetic
     let generator = BorrowGenerator::new();
 
     let ptr_type = HirType::Pointer(Box::new(HirType::Int));
     let mut inferences = HashMap::new();
 
-    // Multiple immutable borrows are allowed
+    // Multiple immutable borrows inference (but preserved as raw pointers)
     inferences.insert(
         "data1".to_string(),
         OwnershipInference {
@@ -129,20 +127,16 @@ fn test_borrow_checker_validation() {
     let transformed1 = generator.transform_type(&ptr_type, "data1", &inferences);
     let transformed2 = generator.transform_type(&ptr_type, "data2", &inferences);
 
-    // Both should be immutable references
-    assert!(matches!(
-        transformed1,
-        HirType::Reference { mutable: false, .. }
-    ));
-    assert!(matches!(
-        transformed2,
-        HirType::Reference { mutable: false, .. }
-    ));
+    // DECY-041: Both should be raw pointers for pointer arithmetic support
+    assert!(matches!(transformed1, HirType::Pointer(..)));
+    assert!(matches!(transformed2, HirType::Pointer(..)));
 }
 
 #[test]
 fn test_end_to_end_borrow_generation() {
-    // End-to-end test: analyze function, infer ownership, generate borrow code
+    // DECY-041: End-to-end test with pointer arithmetic support
+    // Old behavior: analyze function, infer ownership, generate references
+    // New behavior: pointers are preserved as raw pointers for pointer arithmetic
     let func = HirFunction::new_with_body(
         "read_only".to_string(),
         HirType::Int,
@@ -172,15 +166,18 @@ fn test_end_to_end_borrow_generation() {
     assert!(
         matches!(
             transformed_func.parameters()[0].param_type(),
-            HirType::Reference { mutable: false, .. }
+            HirType::Pointer(..)
         ),
-        "Read-only parameter should be transformed to &T"
+        "DECY-041: Pointer parameters are preserved as *mut T for pointer arithmetic support"
     );
 }
 
 #[test]
 fn test_owning_pointer_becomes_box() {
-    // Test that Owning pointers are transformed to Box<T>
+    // DECY-041: Test that pointers are preserved as raw pointers
+    // Old behavior: Owning pointers transformed to Box<T>
+    // New behavior: All pointers stay as *mut T to support pointer arithmetic
+    // Future: Could optimize owning pointers to Box<T> when no pointer arithmetic detected
     let generator = BorrowGenerator::new();
 
     let ptr_type = HirType::Pointer(Box::new(HirType::Int));
@@ -199,8 +196,8 @@ fn test_owning_pointer_becomes_box() {
 
     assert_eq!(
         transformed,
-        HirType::Box(Box::new(HirType::Int)),
-        "Owning pointer should become Box<T>"
+        HirType::Pointer(Box::new(HirType::Int)),
+        "DECY-041: All pointers preserved as *mut T for pointer arithmetic support"
     );
 }
 
@@ -251,8 +248,9 @@ fn test_non_pointer_type_unchanged() {
 
 #[test]
 fn test_multiple_immutable_borrows_allowed() {
-    // Test that multiple immutable borrows of the same data are allowed
-    // This follows Rust's borrow checker rules: multiple &T are ok
+    // DECY-041: Test that pointer parameters are preserved as raw pointers
+    // Old behavior: Multiple immutable borrows generated &T references
+    // New behavior: All pointers stay as *mut T to support pointer arithmetic
     let generator = BorrowGenerator::new();
 
     let params = vec![
@@ -285,23 +283,17 @@ fn test_multiple_immutable_borrows_allowed() {
 
     let transformed = generator.transform_parameters(&params, &inferences);
 
-    // Both should be immutable references - this is valid Rust
+    // DECY-041: Both should be raw pointers for pointer arithmetic support
     assert_eq!(transformed.len(), 2);
-    assert!(matches!(
-        transformed[0].param_type(),
-        HirType::Reference { mutable: false, .. }
-    ));
-    assert!(matches!(
-        transformed[1].param_type(),
-        HirType::Reference { mutable: false, .. }
-    ));
+    assert!(matches!(transformed[0].param_type(), HirType::Pointer(..)));
+    assert!(matches!(transformed[1].param_type(), HirType::Pointer(..)));
 }
 
 #[test]
 fn test_mutable_borrow_prevents_other_borrows() {
-    // Test detection of borrow checker violations
-    // In Rust, if you have &mut T, you can't have any other borrows
-    // This test verifies we can detect potential conflicts
+    // DECY-041: Test that pointer parameters are preserved as raw pointers
+    // Old behavior: Generated &mut T and &T references (conflict detection future enhancement)
+    // New behavior: All pointers stay as *mut T to support pointer arithmetic
     let generator = BorrowGenerator::new();
 
     let func = HirFunction::new_with_body(
@@ -339,21 +331,23 @@ fn test_mutable_borrow_prevents_other_borrows() {
 
     let transformed = generator.transform_function(&func, &inferences);
 
-    // Should generate both borrows (conflict detection is a future enhancement)
+    // DECY-041: Both should be raw pointers for pointer arithmetic support
     assert_eq!(transformed.parameters().len(), 2);
     assert!(matches!(
         transformed.parameters()[0].param_type(),
-        HirType::Reference { mutable: true, .. }
+        HirType::Pointer(..)
     ));
     assert!(matches!(
         transformed.parameters()[1].param_type(),
-        HirType::Reference { mutable: false, .. }
+        HirType::Pointer(..)
     ));
 }
 
 #[test]
 fn test_nested_pointer_types() {
-    // Test handling of nested pointer types (int** → &&T)
+    // DECY-041: Test that nested pointers are preserved as raw pointers
+    // Old behavior: int** → &&T (nested references)
+    // New behavior: All pointers stay as *mut T to support pointer arithmetic
     let generator = BorrowGenerator::new();
 
     let nested_ptr_type = HirType::Pointer(Box::new(HirType::Pointer(Box::new(HirType::Int))));
@@ -370,14 +364,16 @@ fn test_nested_pointer_types() {
 
     let transformed = generator.transform_type(&nested_ptr_type, "data", &inferences);
 
-    // Nested pointers: outer pointer becomes reference
-    assert!(matches!(transformed, HirType::Reference { .. }));
+    // DECY-041: Nested pointers stay as raw pointers for pointer arithmetic support
+    assert!(matches!(transformed, HirType::Pointer(..)));
 }
 
 #[test]
 fn test_lifetime_aware_borrow_generation() {
-    // Test that borrow generation is prepared for lifetime annotations
-    // Future phase: add lifetime tracking to inferences
+    // DECY-041: Test that pointers are preserved for pointer arithmetic
+    // Old behavior: Lifetime-aware reference generation
+    // New behavior: All pointers stay as *mut T to support pointer arithmetic
+    // Future phase: add lifetime tracking for when references can be safely used
     let func = HirFunction::new_with_body(
         "get_value".to_string(),
         HirType::Pointer(Box::new(HirType::Int)),
@@ -399,24 +395,21 @@ fn test_lifetime_aware_borrow_generation() {
     let generator = BorrowGenerator::new();
     let transformed = generator.transform_function(&func, &inferences);
 
-    // Parameter should be transformed to borrow
+    // DECY-041: Parameter should be preserved as raw pointer
     assert!(matches!(
         transformed.parameters()[0].param_type(),
-        HirType::Reference { .. }
+        HirType::Pointer(..)
     ));
 
-    // Return type should also be a reference (since it returns the parameter)
-    // NOTE: This test documents current behavior - return type transformation
-    // will be enhanced in future phases
-    assert!(matches!(
-        transformed.return_type(),
-        HirType::Pointer(..) | HirType::Reference { .. }
-    ));
+    // Return type should also be preserved as pointer
+    assert!(matches!(transformed.return_type(), HirType::Pointer(..)));
 }
 
 #[test]
 fn test_high_confidence_borrows_prioritized() {
-    // Test that high-confidence inferences are trusted more
+    // DECY-041: Test that pointers are preserved regardless of confidence
+    // Old behavior: High-confidence inferences generated references
+    // New behavior: All pointers stay as *mut T to support pointer arithmetic
     let generator = BorrowGenerator::new();
 
     let ptr_type = HirType::Pointer(Box::new(HirType::Int));
@@ -433,13 +426,11 @@ fn test_high_confidence_borrows_prioritized() {
 
     let transformed = generator.transform_type(&ptr_type, "data", &inferences);
 
-    // High confidence should still generate correct borrow
+    // DECY-041: Even high confidence stays as raw pointer for pointer arithmetic
     assert_eq!(
         transformed,
-        HirType::Reference {
-            inner: Box::new(HirType::Int),
-            mutable: false,
-        }
+        HirType::Pointer(Box::new(HirType::Int)),
+        "DECY-041: All pointers preserved as *mut T for pointer arithmetic support"
     );
 }
 
@@ -479,7 +470,9 @@ mod property_tests {
         fn prop_immutable_borrow_generates_non_mutable_reference(
             var_name in "[a-z][a-z0-9_]{0,10}",
         ) {
-            // Property: ImmutableBorrow always generates non-mutable reference
+            // DECY-041: Property: ImmutableBorrow inference preserves raw pointers
+            // Old behavior: Always generated non-mutable reference
+            // New behavior: All pointers stay as *mut T to support pointer arithmetic
             let generator = BorrowGenerator::new();
             let ptr_type = HirType::Pointer(Box::new(HirType::Int));
             let mut inferences = HashMap::new();
@@ -495,18 +488,18 @@ mod property_tests {
 
             let transformed = generator.transform_type(&ptr_type, &var_name, &inferences);
 
-            let is_immutable_ref = matches!(
-                transformed,
-                HirType::Reference { mutable: false, .. }
-            );
-            prop_assert!(is_immutable_ref);
+            // DECY-041: Should preserve as raw pointer for pointer arithmetic
+            let is_raw_ptr = matches!(transformed, HirType::Pointer(..));
+            prop_assert!(is_raw_ptr);
         }
 
         #[test]
         fn prop_mutable_borrow_generates_mutable_reference(
             var_name in "[a-z][a-z0-9_]{0,10}",
         ) {
-            // Property: MutableBorrow always generates mutable reference
+            // DECY-041: Property: MutableBorrow inference preserves raw pointers
+            // Old behavior: Always generated mutable reference
+            // New behavior: All pointers stay as *mut T to support pointer arithmetic
             let generator = BorrowGenerator::new();
             let ptr_type = HirType::Pointer(Box::new(HirType::Int));
             let mut inferences = HashMap::new();
@@ -522,18 +515,18 @@ mod property_tests {
 
             let transformed = generator.transform_type(&ptr_type, &var_name, &inferences);
 
-            let is_mutable_ref = matches!(
-                transformed,
-                HirType::Reference { mutable: true, .. }
-            );
-            prop_assert!(is_mutable_ref);
+            // DECY-041: Should preserve as raw pointer for pointer arithmetic
+            let is_raw_ptr = matches!(transformed, HirType::Pointer(..));
+            prop_assert!(is_raw_ptr);
         }
 
         #[test]
         fn prop_owning_generates_box(
             var_name in "[a-z][a-z0-9_]{0,10}",
         ) {
-            // Property: Owning pointers always become Box<T>
+            // DECY-041: Property: Owning inference preserves raw pointers
+            // Old behavior: Owning pointers always became Box<T>
+            // New behavior: All pointers stay as *mut T to support pointer arithmetic
             let generator = BorrowGenerator::new();
             let ptr_type = HirType::Pointer(Box::new(HirType::Int));
             let mut inferences = HashMap::new();
@@ -549,7 +542,8 @@ mod property_tests {
 
             let transformed = generator.transform_type(&ptr_type, &var_name, &inferences);
 
-            prop_assert!(matches!(transformed, HirType::Box(..)));
+            // DECY-041: Should preserve as raw pointer for pointer arithmetic
+            prop_assert!(matches!(transformed, HirType::Pointer(..)));
         }
 
         #[test]
@@ -580,7 +574,9 @@ mod property_tests {
             var_name in "[a-z][a-z0-9_]{0,10}",
             confidence in 0.0f32..1.0f32,
         ) {
-            // Property: Same input produces same output
+            // DECY-041: Property: Same input produces same output (now raw pointers)
+            // Old behavior: Deterministic reference generation
+            // New behavior: Deterministic raw pointer preservation
             let generator = BorrowGenerator::new();
             let ptr_type = HirType::Pointer(Box::new(HirType::Int));
             let mut inferences = HashMap::new();

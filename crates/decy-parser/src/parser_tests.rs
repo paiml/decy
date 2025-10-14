@@ -2892,4 +2892,259 @@ mod tests {
             _ => panic!("Expected if statement"),
         }
     }
+
+    // DECY-040: Comparison Operator Parsing Tests (RED PHASE)
+    // These tests will FAIL because comparison operators are being misparsed
+
+    #[test]
+    fn test_less_than_operator() {
+        // RED: Test that < is correctly parsed
+        let parser = CParser::new().expect("Parser creation failed");
+        let source = "int test(int a, int b) { if (a < b) { return 1; } return 0; }";
+
+        let ast = parser.parse(source).expect("Parsing should succeed");
+        let func = &ast.functions()[0];
+
+        match &func.body[0] {
+            Statement::If { condition, .. } => match condition {
+                Expression::BinaryOp { op, .. } => {
+                    assert_eq!(
+                        *op,
+                        BinaryOperator::LessThan,
+                        "Should parse < as LessThan, not {:?}",
+                        op
+                    );
+                }
+                _ => panic!("Expected binary operation in condition"),
+            },
+            _ => panic!("Expected if statement"),
+        }
+    }
+
+    #[test]
+    fn test_greater_than_operator() {
+        // RED: Test that > is correctly parsed
+        let parser = CParser::new().expect("Parser creation failed");
+        let source = "int test(int a, int b) { if (a > b) { return 1; } return 0; }";
+
+        let ast = parser.parse(source).expect("Parsing should succeed");
+        let func = &ast.functions()[0];
+
+        match &func.body[0] {
+            Statement::If { condition, .. } => match condition {
+                Expression::BinaryOp { op, .. } => {
+                    assert_eq!(
+                        *op,
+                        BinaryOperator::GreaterThan,
+                        "Should parse > as GreaterThan, not {:?}",
+                        op
+                    );
+                }
+                _ => panic!("Expected binary operation in condition"),
+            },
+            _ => panic!("Expected if statement"),
+        }
+    }
+
+    #[test]
+    fn test_less_than_or_equal_operator() {
+        // RED: Test that <= is correctly parsed (CRITICAL BUG - currently becomes *)
+        let parser = CParser::new().expect("Parser creation failed");
+        let source = "int test(int a, int b) { if (a <= b) { return 1; } return 0; }";
+
+        let ast = parser.parse(source).expect("Parsing should succeed");
+        let func = &ast.functions()[0];
+
+        match &func.body[0] {
+            Statement::If { condition, .. } => match condition {
+                Expression::BinaryOp { op, .. } => {
+                    assert_eq!(
+                        *op,
+                        BinaryOperator::LessEqual,
+                        "CRITICAL: Should parse <= as LessEqual, not {:?} (currently becomes Multiply!)",
+                        op
+                    );
+                }
+                _ => panic!("Expected binary operation in condition"),
+            },
+            _ => panic!("Expected if statement"),
+        }
+    }
+
+    #[test]
+    fn test_greater_than_or_equal_operator() {
+        // RED: Test that >= is correctly parsed
+        let parser = CParser::new().expect("Parser creation failed");
+        let source = "int test(int a, int b) { if (a >= b) { return 1; } return 0; }";
+
+        let ast = parser.parse(source).expect("Parsing should succeed");
+        let func = &ast.functions()[0];
+
+        match &func.body[0] {
+            Statement::If { condition, .. } => match condition {
+                Expression::BinaryOp { op, .. } => {
+                    assert_eq!(
+                        *op,
+                        BinaryOperator::GreaterEqual,
+                        "Should parse >= as GreaterEqual, not {:?}",
+                        op
+                    );
+                }
+                _ => panic!("Expected binary operation in condition"),
+            },
+            _ => panic!("Expected if statement"),
+        }
+    }
+
+    #[test]
+    fn test_equality_operator() {
+        // RED: Test that == is correctly parsed (CRITICAL BUG - currently becomes %)
+        let parser = CParser::new().expect("Parser creation failed");
+        let source = "int test(int a, int b) { if (a == b) { return 1; } return 0; }";
+
+        let ast = parser.parse(source).expect("Parsing should succeed");
+        let func = &ast.functions()[0];
+
+        match &func.body[0] {
+            Statement::If { condition, .. } => match condition {
+                Expression::BinaryOp { op, .. } => {
+                    assert_eq!(
+                        *op,
+                        BinaryOperator::Equal,
+                        "CRITICAL: Should parse == as Equal, not {:?} (currently becomes Modulo!)",
+                        op
+                    );
+                }
+                _ => panic!("Expected binary operation in condition"),
+            },
+            _ => panic!("Expected if statement"),
+        }
+    }
+
+    #[test]
+    fn test_inequality_operator() {
+        // RED: Test that != is correctly parsed
+        let parser = CParser::new().expect("Parser creation failed");
+        let source = "int test(int a, int b) { if (a != b) { return 1; } return 0; }";
+
+        let ast = parser.parse(source).expect("Parsing should succeed");
+        let func = &ast.functions()[0];
+
+        match &func.body[0] {
+            Statement::If { condition, .. } => match condition {
+                Expression::BinaryOp { op, .. } => {
+                    assert_eq!(
+                        *op,
+                        BinaryOperator::NotEqual,
+                        "Should parse != as NotEqual, not {:?}",
+                        op
+                    );
+                }
+                _ => panic!("Expected binary operation in condition"),
+            },
+            _ => panic!("Expected if statement"),
+        }
+    }
+
+    #[test]
+    fn test_all_comparison_operators_in_sequence() {
+        // RED: Test all comparison operators in one function
+        let parser = CParser::new().expect("Parser creation failed");
+        let source = r#"
+            int test_all(int a, int b) {
+                if (a < b) return 1;
+                if (a > b) return 2;
+                if (a <= b) return 3;
+                if (a >= b) return 4;
+                if (a == b) return 5;
+                if (a != b) return 6;
+                return 0;
+            }
+        "#;
+
+        let ast = parser.parse(source).expect("Parsing should succeed");
+        let func = &ast.functions()[0];
+
+        // Check each if statement has correct operator
+        let expected_ops = [
+            BinaryOperator::LessThan,
+            BinaryOperator::GreaterThan,
+            BinaryOperator::LessEqual,
+            BinaryOperator::GreaterEqual,
+            BinaryOperator::Equal,
+            BinaryOperator::NotEqual,
+        ];
+
+        for (i, expected_op) in expected_ops.iter().enumerate() {
+            match &func.body[i] {
+                Statement::If { condition, .. } => match condition {
+                    Expression::BinaryOp { op, .. } => {
+                        assert_eq!(
+                            op, expected_op,
+                            "If statement {} should have operator {:?}, got {:?}",
+                            i, expected_op, op
+                        );
+                    }
+                    _ => panic!("Expected binary operation in if statement {}", i),
+                },
+                _ => panic!("Expected if statement at position {}", i),
+            }
+        }
+    }
+
+    #[test]
+    fn test_comparison_in_while_loop() {
+        // RED: Test that comparison operators work in while loops
+        let parser = CParser::new().expect("Parser creation failed");
+        let source = "void loop(int n) { while (n <= 10) { n = n + 1; } }";
+
+        let ast = parser.parse(source).expect("Parsing should succeed");
+        let func = &ast.functions()[0];
+
+        match &func.body[0] {
+            Statement::While { condition, .. } => match condition {
+                Expression::BinaryOp { op, .. } => {
+                    assert_eq!(
+                        *op,
+                        BinaryOperator::LessEqual,
+                        "While condition should use <=, not {:?}",
+                        op
+                    );
+                }
+                _ => panic!("Expected binary operation in while condition"),
+            },
+            _ => panic!("Expected while statement"),
+        }
+    }
+
+    #[test]
+    fn test_comparison_in_for_loop() {
+        // RED: Test that comparison operators work in for loops
+        let parser = CParser::new().expect("Parser creation failed");
+        let source = "void count() { for (int i = 0; i < 10; i = i + 1) { } }";
+
+        let ast = parser.parse(source).expect("Parsing should succeed");
+        let func = &ast.functions()[0];
+
+        match &func.body[0] {
+            Statement::For { condition, .. } => {
+                if let Some(cond_expr) = condition {
+                    match cond_expr {
+                        Expression::BinaryOp { op, .. } => {
+                            assert_eq!(
+                                *op,
+                                BinaryOperator::LessThan,
+                                "For condition should use <, not {:?}",
+                                op
+                            );
+                        }
+                        _ => panic!("Expected binary operation in for condition"),
+                    }
+                } else {
+                    panic!("For loop should have condition");
+                }
+            }
+            _ => panic!("Expected for statement"),
+        }
+    }
 }
