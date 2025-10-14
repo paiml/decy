@@ -394,13 +394,28 @@ impl CodeGenerator {
                 )
             }
             HirExpression::PointerFieldAccess { pointer, field } => {
-                // In Rust, ptr->field becomes (*ptr).field or just ptr.field
-                // The safer version is (*ptr).field for explicit dereferencing
-                format!(
-                    "(*{}).{}",
-                    self.generate_expression_with_context(pointer, ctx),
-                    field
-                )
+                // In Rust, ptr->field becomes (*ptr).field
+                // However, if the pointer is already a field access (ptr->field1->field2),
+                // we should generate (*ptr).field1.field2 not (*(*ptr).field1).field2
+                match &**pointer {
+                    // If the pointer is itself a field access expression, we can chain with .
+                    HirExpression::PointerFieldAccess { .. }
+                    | HirExpression::FieldAccess { .. } => {
+                        format!(
+                            "{}.{}",
+                            self.generate_expression_with_context(pointer, ctx),
+                            field
+                        )
+                    }
+                    // For other expressions (variables, array index, etc), we need explicit deref
+                    _ => {
+                        format!(
+                            "(*{}).{}",
+                            self.generate_expression_with_context(pointer, ctx),
+                            field
+                        )
+                    }
+                }
             }
             HirExpression::ArrayIndex { array, index } => {
                 let array_code = self.generate_expression_with_context(array, ctx);
