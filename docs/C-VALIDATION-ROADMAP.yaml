@@ -10,12 +10,12 @@ roadmap:
 
   statistics:
     total_tasks: 150
-    completed: 51
+    completed: 52
     partial_support: 0
     in_progress: 0
     blocked: 1
-    not_started: 98
-    coverage_percent: 34
+    not_started: 97
+    coverage_percent: 35
 
 extreme_tdd_workflow:
   description: "Standard workflow for each task"
@@ -1199,6 +1199,33 @@ chapters:
         unsafe_blocks: 0
         note: "Documentation-only task - variadic functions transform to slices (homogeneous), macros (format strings), or tuples (fixed arity). C's runtime variadic replaced with compile-time type safety."
 
+      - id: "FUNC-INLINE"
+        title: "Document inline functions"
+        status: "completed"
+        priority: "medium"
+        version: "v0.36.0"
+        examples:
+          - c: "inline int add(int a, int b) { return a + b; }"
+            rust: "#[inline] fn add(a: i32, b: i32) -> i32 { a + b }"
+            note: "C99 inline keyword → Rust #[inline] attribute"
+          - c: "static inline int max(int a, int b) { return (a > b) ? a : b; }"
+            rust: "#[inline] fn max(a: i32, b: i32) -> i32 { if a > b { a } else { b } }"
+            note: "static inline → #[inline] with appropriate visibility"
+          - c: "inline __attribute__((always_inline)) int double_value(int x) { return x * 2; }"
+            rust: "#[inline(always)] fn double_value(x: i32) -> i32 { x * 2 }"
+            note: "GCC always_inline → #[inline(always)]"
+          - c: "__attribute__((noinline)) int complex_calculation(int x) { return x * x + x * 2 + 1; }"
+            rust: "#[inline(never)] fn complex_calculation(x: i32) -> i32 { x * x + x * 2 + 1 }"
+            note: "GCC noinline → #[inline(never)]"
+        validation_reference: "ISO C99 §6.7.4 (new in C99), NOT in K&R (pre-C99)"
+        test_name: "test_inline_functions"
+        sprint: 5
+        completed_date: "2025-10-15"
+        tests_added: 16
+        coverage: "100%"
+        unsafe_blocks: 0
+        note: "C99 inline functions → Rust #[inline] attribute. Both are optimization hints (not guarantees). Rust compiler excellent at auto-inlining without hints. const fn provides compile-time evaluation (more powerful). Generic functions implicitly inline-eligible. All transformations SAFE (0 unsafe blocks)."
+
   - id: 7
     name: "Standard Library (C99 §7)"
     description: "stdio, stdlib, string, etc."
@@ -1642,21 +1669,21 @@ next_steps:
 
 status:
   overall: "IN_PROGRESS"
-  completion_percent: 34
-  completed_tasks: 51
+  completion_percent: 35
+  completed_tasks: 52
   in_progress_tasks: 0
   blocked_tasks: 1
-  not_started_tasks: 98
+  not_started_tasks: 97
   total_tasks: 150
   methodology: "EXTREME TDD (RED-GREEN-REFACTOR) + Ownership Inference"
   goal: "100% C99 language coverage with <5 unsafe blocks per 1000 LOC"
   last_completed:
-    task_id: "TYPE-FLEXIBLE-ARRAY"
-    title: "flexible array members documentation"
-    version: "v0.35.0"
+    task_id: "FUNC-INLINE"
+    title: "inline functions documentation"
+    version: "v0.36.0"
     date: "2025-10-15"
     unsafe_blocks_added: 0
-    tests_added: 14
+    tests_added: 16
     coverage: "100%"
   current_sprint: 5
   current_unsafe_count_per_1000_loc: 0
