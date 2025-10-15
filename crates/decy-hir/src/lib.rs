@@ -423,6 +423,22 @@ pub enum UnaryOperator {
     Minus,
     /// Logical NOT (!x)
     LogicalNot,
+    /// Post-increment (x++)
+    /// Returns old value, then increments
+    /// Reference: ISO C99 §6.5.2.4, K&R §2.8
+    PostIncrement,
+    /// Post-decrement (x--)
+    /// Returns old value, then decrements
+    /// Reference: ISO C99 §6.5.2.4, K&R §2.8
+    PostDecrement,
+    /// Pre-increment (++x)
+    /// Increments first, then returns new value
+    /// Reference: ISO C99 §6.5.3.1, K&R §2.8
+    PreIncrement,
+    /// Pre-decrement (--x)
+    /// Decrements first, then returns new value
+    /// Reference: ISO C99 §6.5.3.1, K&R §2.8
+    PreDecrement,
 }
 
 /// Binary operators for expressions.

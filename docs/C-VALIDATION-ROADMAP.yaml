@@ -5,17 +5,17 @@ roadmap:
   methodology: "EXTREME TDD (Test-First, RED-GREEN-REFACTOR)"
   reference: "ISO C99 Standard (ISO/IEC 9899:1999) + K&R C (2nd Edition)"
   status: "IN_PROGRESS"
-  completion: "16%"
+  completion: "17%"
   unsafe_blocks_per_1000_loc_target: "<5"
 
   statistics:
     total_tasks: 150
-    completed: 24
+    completed: 25
     partial_support: 0
     in_progress: 0
     blocked: 0
-    not_started: 126
-    coverage_percent: 16
+    not_started: 125
+    coverage_percent: 17
 
 extreme_tdd_workflow:
   description: "Standard workflow for each task"
@@ -1131,8 +1131,10 @@ high_priority_next_tasks:
     - id: "EXPR-POSTFIX-INCR"
       title: "Post-increment/decrement"
       priority: 7
-      status: "🔴 NOT STARTED (Sprint 2)"
+      status: "✅ COMPLETED (Sprint 2)"
       unsafe_reduction: "None (already safe)"
+      completed_date: "2025-10-15"
+      tests_added: 8
 
     - id: "EXPR-UNARY-INCR"
       title: "Pre-increment/decrement"
@@ -1224,20 +1226,20 @@ next_steps:
 
 status:
   overall: "IN_PROGRESS"
-  completion_percent: 16
-  completed_tasks: 24
+  completion_percent: 17
+  completed_tasks: 25
   in_progress_tasks: 0
-  not_started_tasks: 126
+  not_started_tasks: 125
   total_tasks: 150
   methodology: "EXTREME TDD (RED-GREEN-REFACTOR) + Ownership Inference"
   goal: "100% C99 language coverage with <5 unsafe blocks per 1000 LOC"
   last_completed:
-    task_id: "TYPE-ARRAY-VLA"
-    title: "VLA → Vec transformation"
-    version: "v0.9.0"
+    task_id: "EXPR-POSTFIX-INCR"
+    title: "Post-increment/decrement transformation"
+    version: "v0.10.0"
     date: "2025-10-15"
     unsafe_blocks_added: 0
-    tests_added: 7
+    tests_added: 8
     coverage: "100%"
   current_sprint: 2
   current_unsafe_count_per_1000_loc: 0
