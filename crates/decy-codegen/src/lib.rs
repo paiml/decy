@@ -473,11 +473,34 @@ impl CodeGenerator {
                 function,
                 arguments,
             } => {
-                let args: Vec<String> = arguments
-                    .iter()
-                    .map(|arg| self.generate_expression_with_context(arg, ctx))
-                    .collect();
-                format!("{}({})", function, args.join(", "))
+                // Special handling for standard library functions
+                match function.as_str() {
+                    // strlen(s) → s.len()
+                    // Reference: K&R §B3, ISO C99 §7.21.6.3
+                    "strlen" => {
+                        if arguments.len() == 1 {
+                            format!(
+                                "{}.len()",
+                                self.generate_expression_with_context(&arguments[0], ctx)
+                            )
+                        } else {
+                            // Invalid strlen call - shouldn't happen, but handle gracefully
+                            let args: Vec<String> = arguments
+                                .iter()
+                                .map(|arg| self.generate_expression_with_context(arg, ctx))
+                                .collect();
+                            format!("{}({})", function, args.join(", "))
+                        }
+                    }
+                    // Default: pass through function call as-is
+                    _ => {
+                        let args: Vec<String> = arguments
+                            .iter()
+                            .map(|arg| self.generate_expression_with_context(arg, ctx))
+                            .collect();
+                        format!("{}({})", function, args.join(", "))
+                    }
+                }
             }
             HirExpression::FieldAccess { object, field } => {
                 format!(
