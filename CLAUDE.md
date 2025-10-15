@@ -216,6 +216,178 @@ Every module needs 4 types of tests:
    - Location: `examples/*_demo.rs`
    - Working, runnable examples demonstrating usage
 
+### CLI Contract Testing (MANDATORY)
+
+**CRITICAL**: Following ruchy's proven pattern, ALL CLI commands MUST have comprehensive contract tests.
+
+**Why CLI Testing Matters**:
+- **User-facing**: CLI is the primary interface - bugs directly impact users
+- **Regression prevention**: Changes to internal code must not break CLI contracts
+- **Documentation validation**: Tests prove CLI documentation is accurate
+- **Exit code contracts**: Non-zero exit codes must be consistent and documented
+
+**Testing Pattern** (from ../ruchy/tests/cli_contract_*.rs):
+
+```rust
+use assert_cmd::Command;
+use predicates::prelude::*;
+use tempfile::TempDir;
+
+/// Helper: Create decy command
+fn decy_cmd() -> Command {
+    Command::cargo_bin("decy").expect("Failed to find decy binary")
+}
+
+/// Helper: Create temp file with content
+fn create_temp_file(dir: &TempDir, name: &str, content: &str) -> std::path::PathBuf {
+    let path = dir.path().join(name);
+    std::fs::write(&path, content).expect("Failed to write temp file");
+    path
+}
+
+#[test]
+fn cli_transpile_valid_file_exits_zero() {
+    let temp = TempDir::new().unwrap();
+    let file = create_temp_file(&temp, "test.c", "int main() { return 0; }");
+
+    decy_cmd()
+        .arg("transpile")
+        .arg(&file)
+        .assert()
+        .success(); // Exit code 0
+}
+
+#[test]
+fn cli_transpile_invalid_syntax_exits_nonzero() {
+    let temp = TempDir::new().unwrap();
+    let file = create_temp_file(&temp, "bad.c", "int main( { }"); // Malformed
+
+    decy_cmd()
+        .arg("transpile")
+        .arg(&file)
+        .assert()
+        .failure() // Exit code != 0
+        .stderr(predicate::str::is_empty().not()); // stderr has error
+}
+
+#[test]
+fn cli_transpile_missing_file_exits_nonzero() {
+    decy_cmd()
+        .arg("transpile")
+        .arg("nonexistent_file.c")
+        .assert()
+        .failure()
+        .stderr(
+            predicate::str::contains("not found")
+                .or(predicate::str::contains("No such file"))
+        );
+}
+```
+
+**CLI Test Requirements** (MANDATORY for each command):
+
+1. **Exit Codes**:
+   - Success case → exit code 0
+   - Invalid input → exit code 1
+   - File not found → exit code 1
+   - Internal error → exit code 2
+
+2. **stdout/stderr**:
+   - Success messages go to stdout
+   - Error messages go to stderr
+   - Machine-readable output on stdout (JSON, etc.)
+   - Human-readable errors on stderr
+
+3. **Error Messages**:
+   - Include filename when applicable
+   - Include line:column for syntax errors
+   - Actionable guidance ("Try X" or "See Y")
+   - No cryptic stack traces
+
+4. **Edge Cases**:
+   - Empty file handling
+   - Whitespace-only files
+   - Comment-only files
+   - Multiple input files
+   - Stdin input (when applicable)
+
+**Test Organization**:
+
+```
+tests/
+├── cli_contract_transpile.rs   # decy transpile <file>
+├── cli_contract_check.rs        # decy check <file>
+├── cli_contract_parse.rs        # decy parse <file>
+├── cli_contract_analyze.rs      # decy analyze <file>
+└── cli_testing_tools.rs         # Shared helpers
+```
+
+**Example Test Suite** (decy transpile):
+
+```rust
+// ============================================================================
+// CLI CONTRACT TESTS: EXIT CODES
+// ============================================================================
+
+#[test]
+fn cli_transpile_valid_c_file_exits_zero();
+
+#[test]
+fn cli_transpile_invalid_syntax_exits_nonzero();
+
+#[test]
+fn cli_transpile_missing_file_exits_nonzero();
+
+// ============================================================================
+// CLI CONTRACT TESTS: STDOUT/STDERR
+// ============================================================================
+
+#[test]
+fn cli_transpile_valid_file_writes_rust_to_stdout();
+
+#[test]
+fn cli_transpile_error_writes_stderr();
+
+#[test]
+fn cli_transpile_warning_writes_stderr_but_succeeds();
+
+// ============================================================================
+// CLI CONTRACT TESTS: ERROR MESSAGES
+// ============================================================================
+
+#[test]
+fn cli_transpile_error_includes_filename();
+
+#[test]
+fn cli_transpile_error_includes_line_number();
+
+#[test]
+fn cli_transpile_error_suggests_fix();
+
+// ============================================================================
+// CLI CONTRACT TESTS: EDGE CASES
+// ============================================================================
+
+#[test]
+fn cli_transpile_empty_file_errors();
+
+#[test]
+fn cli_transpile_whitespace_only_errors();
+
+#[test]
+fn cli_transpile_comment_only_valid();
+
+#[test]
+fn cli_transpile_multiple_files_transpiles_all();
+
+#[test]
+fn cli_transpile_stdin_works();
+```
+
+**Never Use**: `std::process::Command` directly - always use `assert_cmd` for CLI testing.
+
+**Reference**: See `../ruchy/tests/cli_contract_*.rs` (2,116 lines of CLI tests) for complete examples.
+
 ## C Language Validation (NORTH STAR)
 
 ### Validation Reference: C99 + K&R C
