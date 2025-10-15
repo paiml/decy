@@ -10,11 +10,11 @@ roadmap:
 
   statistics:
     total_tasks: 150
-    completed: 37
+    completed: 38
     partial_support: 0
     in_progress: 0
     blocked: 1
-    not_started: 112
+    not_started: 111
     coverage_percent: 25
 
 extreme_tdd_workflow:
@@ -1088,14 +1088,24 @@ chapters:
 
       - id: "PREP-IFDEF"
         title: "Document #ifdef → cfg"
-        status: "not_started"
+        status: "completed"
         priority: "low"
+        version: "v0.23.0"
         examples:
           - c: "#ifdef DEBUG ... #endif"
             rust: "#[cfg(debug_assertions)] { ... }"
+          - c: "#ifdef __linux__ ... #endif"
+            rust: "#[cfg(target_os = \"linux\")] { ... }"
+          - c: "#if defined(X) && !defined(Y) ... #endif"
+            rust: "#[cfg(all(feature = \"x\", not(feature = \"y\")))] { ... }"
         validation_reference: "K&R §4.11, ISO C99 §6.10.1"
-        test_name: "test_ifdef_to_cfg"
+        test_name: "test_ifdef_documentation"
         sprint: 4
+        completed_date: "2025-10-15"
+        tests_added: 13
+        coverage: "100%"
+        unsafe_blocks: 0
+        note: "Documentation-only task - #ifdef/#ifndef become cfg attributes. Rust cfg is type-aware (evaluated during compilation) unlike C's text-based preprocessor. Supports debug_assertions, target_os, target_arch, features (Cargo.toml), test, and complex combinators (all, any, not)."
 
 completed_features:
   - title: "Basic types (int, float, char)"
@@ -1329,20 +1339,20 @@ next_steps:
 status:
   overall: "IN_PROGRESS"
   completion_percent: 25
-  completed_tasks: 37
+  completed_tasks: 38
   in_progress_tasks: 0
   blocked_tasks: 1
-  not_started_tasks: 112
+  not_started_tasks: 111
   total_tasks: 150
   methodology: "EXTREME TDD (RED-GREEN-REFACTOR) + Ownership Inference"
   goal: "100% C99 language coverage with <5 unsafe blocks per 1000 LOC"
   last_completed:
-    task_id: "STMT-GOTO"
-    title: "goto elimination transformation documentation"
-    version: "v0.22.0"
+    task_id: "PREP-IFDEF"
+    title: "conditional compilation #ifdef transformation documentation"
+    version: "v0.23.0"
     date: "2025-10-15"
     unsafe_blocks_added: 0
-    tests_added: 12
+    tests_added: 13
     coverage: "100%"
   current_sprint: 4
   current_unsafe_count_per_1000_loc: 0
