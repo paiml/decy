@@ -10,12 +10,12 @@ roadmap:
 
   statistics:
     total_tasks: 150
-    completed: 48
+    completed: 49
     partial_support: 0
     in_progress: 0
     blocked: 1
-    not_started: 101
-    coverage_percent: 32
+    not_started: 100
+    coverage_percent: 33
 
 extreme_tdd_workflow:
   description: "Standard workflow for each task"
@@ -613,6 +613,36 @@ chapters:
             coverage: "100%"
             unsafe_blocks: 0
             note: "Type aliases for primitives, pointers (with lifetimes), structs, arrays, function pointers. Rust newtype pattern provides stronger typing than C typedef. All transformations are safe (0 unsafe blocks)."
+
+      - id: "3.7"
+        name: "Initialization (C99 §6.7.8)"
+        tasks:
+          - id: "TYPE-INIT-DESIGNATED"
+            title: "Document designated initializers"
+            status: "completed"
+            priority: "high"
+            version: "v0.33.0"
+            examples:
+              - c: "struct Point p = { .x = 10, .y = 20 };"
+                rust: "let p = Point { x: 10, y: 20 };"
+                note: "Designated initializer → struct literal"
+              - c: "struct Point p = { .x = 10 };"
+                rust: "let p = Point { x: 10, ..Default::default() };"
+                note: "Partial initialization → Default trait"
+              - c: "int arr[5] = { [0] = 1, [4] = 5 };"
+                rust: "let mut arr = [0; 5]; arr[0] = 1; arr[4] = 5;"
+                note: "Array designators → manual initialization"
+              - c: "struct Outer o = { .inner = { .x = 1 } };"
+                rust: "let o = Outer { inner: Inner { x: 1 } };"
+                note: "Nested designated initializers"
+            validation_reference: "ISO C99 §6.7.8.17-38 (new in C99), NOT in K&R (pre-C99)"
+            test_name: "test_designated_initializers"
+            sprint: 5
+            completed_date: "2025-10-15"
+            tests_added: 16
+            coverage: "100%"
+            unsafe_blocks: 0
+            note: "C99 designated initializers → Rust struct literals. Syntax: .field = value → field: value. Partial init requires Default trait. No array designators (manual init). Order independent. Type-safe field names."
 
   - id: 4
     name: "Expressions (C99 §6.5)"
@@ -1561,21 +1591,21 @@ next_steps:
 
 status:
   overall: "IN_PROGRESS"
-  completion_percent: 32
-  completed_tasks: 48
+  completion_percent: 33
+  completed_tasks: 49
   in_progress_tasks: 0
   blocked_tasks: 1
-  not_started_tasks: 101
+  not_started_tasks: 100
   total_tasks: 150
   methodology: "EXTREME TDD (RED-GREEN-REFACTOR) + Ownership Inference"
   goal: "100% C99 language coverage with <5 unsafe blocks per 1000 LOC"
   last_completed:
-    task_id: "TYPE-FUNC-PTR"
-    title: "function pointers documentation"
-    version: "v0.32.0"
+    task_id: "TYPE-INIT-DESIGNATED"
+    title: "designated initializers documentation"
+    version: "v0.33.0"
     date: "2025-10-15"
     unsafe_blocks_added: 0
-    tests_added: 17
+    tests_added: 16
     coverage: "100%"
   current_sprint: 5
   current_unsafe_count_per_1000_loc: 0
