@@ -10,11 +10,11 @@ roadmap:
 
   statistics:
     total_tasks: 150
-    completed: 55
+    completed: 56
     partial_support: 0
     in_progress: 0
     blocked: 1
-    not_started: 94
+    not_started: 93
     coverage_percent: 37
 
 extreme_tdd_workflow:
@@ -365,6 +365,33 @@ chapters:
             coverage: "100%"
             unsafe_blocks: 0
             note: "C99 bool → Rust bool (built-in). Same size (1 byte), same semantics. No implicit int conversions (type-safe). No bitwise operators on bool. Pre-C99 int flags → explicit bool."
+
+          - id: "TYPE-BASIC-LONGLONG"
+            title: "Document long long type"
+            status: "completed"
+            priority: "high"
+            version: "v0.40.0"
+            examples:
+              - c: "long long x = 42LL;"
+                rust: "let x: i64 = 42;"
+                note: "C99 long long → Rust i64 (exactly 64 bits)"
+              - c: "unsigned long long y = 42ULL;"
+                rust: "let y: u64 = 42;"
+                note: "Unsigned variant"
+              - c: "long long timestamp = 1609459200000000000LL;"
+                rust: "let timestamp: i64 = 1609459200000000000;"
+                note: "Common use: nanosecond timestamps"
+              - c: "long long file_size = 5368709120LL;"
+                rust: "let file_size: i64 = 5368709120;"
+                note: "Common use: file sizes > 4GB"
+            validation_reference: "ISO C99 §6.2.5 (new in C99), NOT in K&R (pre-C99)"
+            test_name: "test_long_long_type"
+            sprint: 5
+            completed_date: "2025-10-15"
+            tests_added: 16
+            coverage: "100%"
+            unsafe_blocks: 0
+            note: "C89/K&R had no standard 64-bit type. C99 added long long (at least 64 bits). Rust i64/u64 exactly 64 bits. C signed overflow = undefined behavior, Rust panics in debug/wraps in release. Use checked/wrapping methods. Common uses: timestamps, file sizes, large counters. 64-bit arithmetic native on modern CPUs."
 
       - id: "3.2"
         name: "Derived Types - Pointers (C99 §6.7.5.1)"
@@ -1748,20 +1775,20 @@ next_steps:
 status:
   overall: "IN_PROGRESS"
   completion_percent: 37
-  completed_tasks: 55
+  completed_tasks: 56
   in_progress_tasks: 0
   blocked_tasks: 1
-  not_started_tasks: 94
+  not_started_tasks: 93
   total_tasks: 150
   methodology: "EXTREME TDD (RED-GREEN-REFACTOR) + Ownership Inference"
   goal: "100% C99 language coverage with <5 unsafe blocks per 1000 LOC"
   last_completed:
-    task_id: "STMT-MIXED-DECL"
-    title: "mixed declarations and code documentation"
-    version: "v0.39.0"
+    task_id: "TYPE-BASIC-LONGLONG"
+    title: "long long type documentation"
+    version: "v0.40.0"
     date: "2025-10-15"
     unsafe_blocks_added: 0
-    tests_added: 15
+    tests_added: 16
     coverage: "100%"
   current_sprint: 5
   current_unsafe_count_per_1000_loc: 0
