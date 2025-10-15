@@ -21,27 +21,34 @@ fn test_simple_strlen() {
     let func = HirFunction::new_with_body(
         "test".to_string(),
         HirType::Void,
-        vec![HirParameter::new("s".to_string(), HirType::Pointer(Box::new(HirType::Char)))],
-        vec![
-            HirStatement::VariableDeclaration {
-                name: "len".to_string(),
-                var_type: HirType::Int, // size_t maps to usize in Rust
-                initializer: Some(HirExpression::FunctionCall {
-                    function: "strlen".to_string(),
-                    arguments: vec![HirExpression::Variable("s".to_string())],
-                }),
-            },
-        ],
+        vec![HirParameter::new(
+            "s".to_string(),
+            HirType::Pointer(Box::new(HirType::Char)),
+        )],
+        vec![HirStatement::VariableDeclaration {
+            name: "len".to_string(),
+            var_type: HirType::Int, // size_t maps to usize in Rust
+            initializer: Some(HirExpression::FunctionCall {
+                function: "strlen".to_string(),
+                arguments: vec![HirExpression::Variable("s".to_string())],
+            }),
+        }],
     );
 
     let codegen = CodeGenerator::new();
     let result = codegen.generate_function(&func);
 
     // Verify strlen is transformed to .len()
-    assert!(result.contains("s.len()"), "Should transform strlen(s) to s.len()");
+    assert!(
+        result.contains("s.len()"),
+        "Should transform strlen(s) to s.len()"
+    );
 
     // Should NOT contain C strlen function
-    assert!(!result.contains("strlen("), "Should not contain C strlen function");
+    assert!(
+        !result.contains("strlen("),
+        "Should not contain C strlen function"
+    );
 
     // Verify no unsafe blocks
     assert!(!result.contains("unsafe"));
@@ -59,21 +66,22 @@ fn test_strlen_in_expression() {
     let func = HirFunction::new_with_body(
         "test".to_string(),
         HirType::Void,
-        vec![HirParameter::new("s".to_string(), HirType::Pointer(Box::new(HirType::Char)))],
-        vec![
-            HirStatement::If {
-                condition: HirExpression::BinaryOp {
-                    op: decy_hir::BinaryOperator::GreaterThan,
-                    left: Box::new(HirExpression::FunctionCall {
-                        function: "strlen".to_string(),
-                        arguments: vec![HirExpression::Variable("s".to_string())],
-                    }),
-                    right: Box::new(HirExpression::IntLiteral(10)),
-                },
-                then_block: vec![],
-                else_block: None,
+        vec![HirParameter::new(
+            "s".to_string(),
+            HirType::Pointer(Box::new(HirType::Char)),
+        )],
+        vec![HirStatement::If {
+            condition: HirExpression::BinaryOp {
+                op: decy_hir::BinaryOperator::GreaterThan,
+                left: Box::new(HirExpression::FunctionCall {
+                    function: "strlen".to_string(),
+                    arguments: vec![HirExpression::Variable("s".to_string())],
+                }),
+                right: Box::new(HirExpression::IntLiteral(10)),
             },
-        ],
+            then_block: vec![],
+            else_block: None,
+        }],
     );
 
     let codegen = CodeGenerator::new();
@@ -103,13 +111,14 @@ fn test_strlen_in_return() {
     let func = HirFunction::new_with_body(
         "get_length".to_string(),
         HirType::Int,
-        vec![HirParameter::new("s".to_string(), HirType::Pointer(Box::new(HirType::Char)))],
-        vec![
-            HirStatement::Return(Some(HirExpression::FunctionCall {
-                function: "strlen".to_string(),
-                arguments: vec![HirExpression::Variable("s".to_string())],
-            })),
-        ],
+        vec![HirParameter::new(
+            "s".to_string(),
+            HirType::Pointer(Box::new(HirType::Char)),
+        )],
+        vec![HirStatement::Return(Some(HirExpression::FunctionCall {
+            function: "strlen".to_string(),
+            arguments: vec![HirExpression::Variable("s".to_string())],
+        }))],
     );
 
     let codegen = CodeGenerator::new();
@@ -136,16 +145,14 @@ fn test_strlen_with_string_literal() {
         "test".to_string(),
         HirType::Void,
         vec![],
-        vec![
-            HirStatement::VariableDeclaration {
-                name: "len".to_string(),
-                var_type: HirType::Int,
-                initializer: Some(HirExpression::FunctionCall {
-                    function: "strlen".to_string(),
-                    arguments: vec![HirExpression::StringLiteral("hello".to_string())],
-                }),
-            },
-        ],
+        vec![HirStatement::VariableDeclaration {
+            name: "len".to_string(),
+            var_type: HirType::Int,
+            initializer: Some(HirExpression::FunctionCall {
+                function: "strlen".to_string(),
+                arguments: vec![HirExpression::StringLiteral("hello".to_string())],
+            }),
+        }],
     );
 
     let codegen = CodeGenerator::new();
@@ -175,23 +182,21 @@ fn test_multiple_strlen_calls() {
             HirParameter::new("s1".to_string(), HirType::Pointer(Box::new(HirType::Char))),
             HirParameter::new("s2".to_string(), HirType::Pointer(Box::new(HirType::Char))),
         ],
-        vec![
-            HirStatement::VariableDeclaration {
-                name: "total".to_string(),
-                var_type: HirType::Int,
-                initializer: Some(HirExpression::BinaryOp {
-                    op: decy_hir::BinaryOperator::Add,
-                    left: Box::new(HirExpression::FunctionCall {
-                        function: "strlen".to_string(),
-                        arguments: vec![HirExpression::Variable("s1".to_string())],
-                    }),
-                    right: Box::new(HirExpression::FunctionCall {
-                        function: "strlen".to_string(),
-                        arguments: vec![HirExpression::Variable("s2".to_string())],
-                    }),
+        vec![HirStatement::VariableDeclaration {
+            name: "total".to_string(),
+            var_type: HirType::Int,
+            initializer: Some(HirExpression::BinaryOp {
+                op: decy_hir::BinaryOperator::Add,
+                left: Box::new(HirExpression::FunctionCall {
+                    function: "strlen".to_string(),
+                    arguments: vec![HirExpression::Variable("s1".to_string())],
                 }),
-            },
-        ],
+                right: Box::new(HirExpression::FunctionCall {
+                    function: "strlen".to_string(),
+                    arguments: vec![HirExpression::Variable("s2".to_string())],
+                }),
+            }),
+        }],
     );
 
     let codegen = CodeGenerator::new();
@@ -221,33 +226,34 @@ fn test_strlen_in_loop() {
     let func = HirFunction::new_with_body(
         "test".to_string(),
         HirType::Void,
-        vec![HirParameter::new("s".to_string(), HirType::Pointer(Box::new(HirType::Char)))],
-        vec![
-            HirStatement::For {
-                init: Some(Box::new(HirStatement::VariableDeclaration {
-                    name: "i".to_string(),
-                    var_type: HirType::Int,
-                    initializer: Some(HirExpression::IntLiteral(0)),
-                })),
-                condition: HirExpression::BinaryOp {
-                    op: decy_hir::BinaryOperator::LessThan,
-                    left: Box::new(HirExpression::Variable("i".to_string())),
-                    right: Box::new(HirExpression::FunctionCall {
-                        function: "strlen".to_string(),
-                        arguments: vec![HirExpression::Variable("s".to_string())],
-                    }),
-                },
-                increment: Some(Box::new(HirStatement::Assignment {
-                    target: "i".to_string(),
-                    value: HirExpression::BinaryOp {
-                        op: decy_hir::BinaryOperator::Add,
-                        left: Box::new(HirExpression::Variable("i".to_string())),
-                        right: Box::new(HirExpression::IntLiteral(1)),
-                    },
-                })),
-                body: vec![],
+        vec![HirParameter::new(
+            "s".to_string(),
+            HirType::Pointer(Box::new(HirType::Char)),
+        )],
+        vec![HirStatement::For {
+            init: Some(Box::new(HirStatement::VariableDeclaration {
+                name: "i".to_string(),
+                var_type: HirType::Int,
+                initializer: Some(HirExpression::IntLiteral(0)),
+            })),
+            condition: HirExpression::BinaryOp {
+                op: decy_hir::BinaryOperator::LessThan,
+                left: Box::new(HirExpression::Variable("i".to_string())),
+                right: Box::new(HirExpression::FunctionCall {
+                    function: "strlen".to_string(),
+                    arguments: vec![HirExpression::Variable("s".to_string())],
+                }),
             },
-        ],
+            increment: Some(Box::new(HirStatement::Assignment {
+                target: "i".to_string(),
+                value: HirExpression::BinaryOp {
+                    op: decy_hir::BinaryOperator::Add,
+                    left: Box::new(HirExpression::Variable("i".to_string())),
+                    right: Box::new(HirExpression::IntLiteral(1)),
+                },
+            })),
+            body: vec![],
+        }],
     );
 
     let codegen = CodeGenerator::new();
@@ -273,21 +279,22 @@ fn test_strlen_zero_comparison() {
     let func = HirFunction::new_with_body(
         "test".to_string(),
         HirType::Void,
-        vec![HirParameter::new("s".to_string(), HirType::Pointer(Box::new(HirType::Char)))],
-        vec![
-            HirStatement::If {
-                condition: HirExpression::BinaryOp {
-                    op: decy_hir::BinaryOperator::Equal,
-                    left: Box::new(HirExpression::FunctionCall {
-                        function: "strlen".to_string(),
-                        arguments: vec![HirExpression::Variable("s".to_string())],
-                    }),
-                    right: Box::new(HirExpression::IntLiteral(0)),
-                },
-                then_block: vec![],
-                else_block: None,
+        vec![HirParameter::new(
+            "s".to_string(),
+            HirType::Pointer(Box::new(HirType::Char)),
+        )],
+        vec![HirStatement::If {
+            condition: HirExpression::BinaryOp {
+                op: decy_hir::BinaryOperator::Equal,
+                left: Box::new(HirExpression::FunctionCall {
+                    function: "strlen".to_string(),
+                    arguments: vec![HirExpression::Variable("s".to_string())],
+                }),
+                right: Box::new(HirExpression::IntLiteral(0)),
             },
-        ],
+            then_block: vec![],
+            else_block: None,
+        }],
     );
 
     let codegen = CodeGenerator::new();
