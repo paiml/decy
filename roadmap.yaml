@@ -2343,6 +2343,100 @@ sprint_8:
 
       red_green_refactor: true
 
+    DECY-043:
+      title: "Fix nested struct field access code generation"
+      type: bug
+      priority: high
+      story_points: 2
+      assignee: Claude
+      status: done
+      github_issue: null
+      phase: DONE
+      completed_date: "2025-10-15"
+      actual_coverage: 89.79
+      actual_metrics:
+        coverage: "89.79%"
+        tests_passing: "479 total (all passing, including nested struct compilation test)"
+        clippy_warnings: 0
+        quality_grade: "A+"
+
+      description: |
+        Fix code generation bug where nested struct field access like r->bottom_right.x
+        was generating incorrect Rust code (*(*r).bottom_right).x instead of the correct
+        (*r).bottom_right.x. This prevented compilation of C code with nested struct members.
+
+      requirements:
+        - Detect when pointer is already a field access expression ✅
+        - Generate simple field chaining for nested access ✅
+        - Preserve explicit dereference for simple pointer access ✅
+        - Enable compilation test for nested structs ✅
+
+      test_requirements:
+        unit_tests:
+          - test_nested_structs (compilation enabled) ✅
+          - Manual validation with test files ✅
+
+      acceptance_criteria:
+        - "r->p.x generates (*r).p.x" ✅
+        - "r->bottom_right.x generates (*r).bottom_right.x" ✅
+        - "All 479 tests pass" ✅
+        - "Coverage 89.79%" ✅
+        - "0 clippy warnings" ✅
+        - "Generated code compiles with rustc" ✅
+
+      implementation_details:
+        problem:
+          - "Nested field access generating extra dereferences"
+          - "r->bottom_right.x became (*(*r).bottom_right).x"
+          - "Prevented compilation of nested struct code"
+
+        root_cause:
+          - "PointerFieldAccess unconditionally wrapping in (*...)"
+          - "Parser creates nested PointerFieldAccess expressions"
+          - "Each level added another dereference wrapper"
+
+        solution:
+          - "Pattern match on pointer expression type"
+          - "If pointer is PointerFieldAccess or FieldAccess: chain with ."
+          - "Otherwise: wrap in (*...) for explicit dereference"
+
+        files_modified:
+          - "crates/decy-codegen/src/lib.rs: Updated PointerFieldAccess generation (lines 396-418)"
+          - "crates/decy/tests/struct_integration_test.rs: Enabled compilation test (line 302)"
+
+      before_after:
+        before:
+          c_code: "r->bottom_right.x"
+          generated: "(*(*r).bottom_right).x"
+          result: "❌ Compilation error"
+
+        after:
+          c_code: "r->bottom_right.x"
+          generated: "(*r).bottom_right.x"
+          result: "✅ Compiles successfully"
+
+      test_validation:
+        simple_nested:
+          input: "r->p.x"
+          output: "(*r).p.x"
+          status: "✅ Correct"
+
+        complex_nested:
+          input: "r->bottom_right.x - r->top_left.x"
+          output: "(*r).bottom_right.x - (*r).top_left.x"
+          status: "✅ Correct"
+
+      impact:
+        - "Unblocks nested struct field access (common in C)"
+        - "All struct integration tests now pass with compilation"
+        - "Real-world readiness improvement for struct-heavy code"
+
+      commits:
+        - "3d5beb2: Fix nested struct field access code generation"
+        - "ed66964: Enable compilation test for nested structs"
+
+      red_green_refactor: true
+
 # Quality Metrics Tracking
 quality_metrics:
   tracked_per_sprint:
