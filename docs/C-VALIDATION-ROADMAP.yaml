@@ -10,12 +10,12 @@ roadmap:
 
   statistics:
     total_tasks: 150
-    completed: 33
+    completed: 34
     partial_support: 0
     in_progress: 0
     blocked: 1
-    not_started: 116
-    coverage_percent: 22
+    not_started: 115
+    coverage_percent: 23
 
 extreme_tdd_workflow:
   description: "Standard workflow for each task"
@@ -895,14 +895,20 @@ chapters:
 
           - id: "STDLIB-SCANF"
             title: "Document scanf → read from stdin"
-            status: "not_started"
+            status: "completed"
             priority: "low"
+            version: "v0.19.0"
             examples:
               - c: "scanf(\"%d\", &x);"
-                rust: "// Use std::io::stdin()"
+                rust: "io::stdin().read_line(&mut buffer).unwrap(); let x: i32 = buffer.trim().parse().unwrap();"
             validation_reference: "K&R §7.4, ISO C99 §7.19.6.2"
-            test_name: "test_scanf_transformation"
+            test_name: "test_scanf_documentation"
             sprint: 3
+            completed_date: "2025-10-15"
+            tests_added: 14
+            coverage: "100%"
+            unsafe_blocks: 0
+            note: "Documentation-only task - scanf transforms to stdin().read_line() + parse(), eliminating buffer overflow risks"
 
       - id: "7.2"
         name: "stdlib.h (C99 §7.20)"
@@ -1254,8 +1260,10 @@ high_priority_next_tasks:
     - id: "STDLIB-SCANF"
       title: "scanf → stdin reading"
       priority: 16
-      status: "🔴 NOT STARTED (Sprint 3)"
-      unsafe_reduction: "Type-safe parsing"
+      status: "✅ COMPLETED (Sprint 3)"
+      unsafe_reduction: "Type-safe parsing + buffer overflow prevention"
+      completed_date: "2025-10-15"
+      tests_added: 14
 
     - id: "FUNC-VARIADIC"
       title: "Variadic functions"
@@ -1294,20 +1302,20 @@ next_steps:
 status:
   overall: "IN_PROGRESS"
   completion_percent: 21
-  completed_tasks: 33
+  completed_tasks: 34
   in_progress_tasks: 0
   blocked_tasks: 1
-  not_started_tasks: 116
+  not_started_tasks: 115
   total_tasks: 150
   methodology: "EXTREME TDD (RED-GREEN-REFACTOR) + Ownership Inference"
   goal: "100% C99 language coverage with <5 unsafe blocks per 1000 LOC"
   last_completed:
-    task_id: "PREP-DEFINE-MACRO"
-    title: "#define macro transformation documentation"
-    version: "v0.18.0"
+    task_id: "STDLIB-SCANF"
+    title: "scanf transformation documentation"
+    version: "v0.19.0"
     date: "2025-10-15"
     unsafe_blocks_added: 0
-    tests_added: 16
+    tests_added: 14
     coverage: "100%"
   current_sprint: 2
   current_unsafe_count_per_1000_loc: 0
