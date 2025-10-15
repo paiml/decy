@@ -522,6 +522,13 @@ pub enum HirExpression {
     NullLiteral,
     /// NULL check expression (p != NULL → is_some(), p == NULL → is_none())
     IsNotNull(Box<HirExpression>),
+    /// calloc(count, sizeof(T)) → vec![0; count]
+    Calloc {
+        /// Number of elements to allocate
+        count: Box<HirExpression>,
+        /// Element type
+        element_type: Box<HirType>,
+    },
 }
 
 /// Represents a single case in a switch statement.

@@ -510,6 +510,25 @@ impl CodeGenerator {
                 let inner_code = self.generate_expression_with_context(inner, ctx);
                 format!("if let Some(_) = {}", inner_code)
             }
+            HirExpression::Calloc {
+                count,
+                element_type,
+            } => {
+                // calloc(n, sizeof(T)) → vec![0T; n]
+                // Generate zero-initialized vec![default; count]
+                let count_code = self.generate_expression_with_context(count, ctx);
+
+                // Get default value with type suffix for clarity
+                let default_value = match element_type.as_ref() {
+                    HirType::Int => "0i32",
+                    HirType::Float => "0.0f32",
+                    HirType::Double => "0.0f64",
+                    HirType::Char => "0u8",
+                    _ => &Self::default_value_for_type(element_type),
+                };
+
+                format!("vec![{}; {}]", default_value, count_code)
+            }
         }
     }
 

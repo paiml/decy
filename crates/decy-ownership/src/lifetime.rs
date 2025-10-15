@@ -280,6 +280,10 @@ impl LifetimeAnalyzer {
             | HirExpression::Sizeof { .. }
             | HirExpression::NullLiteral => false,
             HirExpression::IsNotNull(inner) => self.expression_uses_variable(inner, var_name),
+            HirExpression::Calloc { count, .. } => {
+                // Check if count expression uses the variable
+                self.expression_uses_variable(count, var_name)
+            }
         }
     }
 
