@@ -405,6 +405,10 @@ expected_kill_rate = 0.90
                 format!("Box::new({})", Self::default_test_value(inner))
             }
             HirType::Vec(_) => "Vec::new()".to_string(),
+            HirType::Option(inner) => {
+                // Option types can be Some or None - use Some for test values
+                format!("Some({})", Self::default_test_value(inner))
+            }
             HirType::Reference { inner, mutable: _ } => {
                 // References need to borrow from a variable
                 // Generate a reference to a default value
