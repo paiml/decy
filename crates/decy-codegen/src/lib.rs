@@ -1953,6 +1953,64 @@ impl CodeGenerator {
             }
         }
     }
+
+    /// Generate a constant declaration from HIR.
+    ///
+    /// Transforms C `#define` macro constants to Rust `const` declarations.
+    /// C #define constants are compile-time text substitutions that map naturally
+    /// to Rust's const with compile-time evaluation.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use decy_codegen::CodeGenerator;
+    /// use decy_hir::{HirConstant, HirType, HirExpression};
+    ///
+    /// let codegen = CodeGenerator::new();
+    ///
+    /// // Integer constant: #define MAX 100 → const MAX: i32 = 100;
+    /// let constant = HirConstant::new(
+    ///     "MAX".to_string(),
+    ///     HirType::Int,
+    ///     HirExpression::IntLiteral(100),
+    /// );
+    /// let code = codegen.generate_constant(&constant);
+    /// assert!(code.contains("const MAX: i32 = 100"));
+    ///
+    /// // String constant: #define MSG "Hello" → const MSG: &str = "Hello";
+    /// let constant = HirConstant::new(
+    ///     "MSG".to_string(),
+    ///     HirType::Pointer(Box::new(HirType::Char)),
+    ///     HirExpression::StringLiteral("Hello".to_string()),
+    /// );
+    /// let code = codegen.generate_constant(&constant);
+    /// assert!(code.contains("const MSG: &str = \"Hello\""));
+    /// ```
+    ///
+    /// # Safety
+    ///
+    /// This transformation introduces 0 unsafe blocks, maintaining the goal of
+    /// <5 unsafe blocks per 1000 LOC.
+    ///
+    /// Reference: K&R §4.11, ISO C99 §6.10.3
+    pub fn generate_constant(&self, constant: &decy_hir::HirConstant) -> String {
+        // Map char* to &str for string constants
+        let rust_type = if matches!(
+            constant.const_type(),
+            HirType::Pointer(inner) if matches!(**inner, HirType::Char)
+        ) {
+            "&str".to_string()
+        } else {
+            Self::map_type(constant.const_type())
+        };
+
+        format!(
+            "const {}: {} = {};",
+            constant.name(),
+            rust_type,
+            self.generate_expression(constant.value())
+        )
+    }
 }
 
 impl Default for CodeGenerator {
