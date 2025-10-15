@@ -2437,6 +2437,176 @@ sprint_8:
 
       red_green_refactor: true
 
+    DECY-044:
+      title: "Fix parser handling of malloc(sizeof(T)) expressions"
+      type: bug
+      priority: critical
+      story_points: 3
+      assignee: Claude
+      status: done
+      github_issue: null
+      phase: DONE
+      completed_date: "2025-10-15"
+      actual_coverage: 89.72
+      actual_metrics:
+        coverage: "89.72%"
+        tests_passing: "212 total (all passing, including 9 sizeof tests)"
+        clippy_warnings: 0
+        quality_grade: "A+"
+
+      description: |
+        Fix critical parser bug where malloc(sizeof(int)) expressions were incorrectly
+        parsed, causing the malloc function call to be lost and only the sizeof
+        expression to be extracted as the initializer. This prevented proper detection
+        of malloc patterns for ownership inference.
+
+      requirements:
+        - Fix CXCursor_UnexposedExpr handling in visit_expression() ✅
+        - Ensure sizeof detection works in all contexts ✅
+        - Preserve malloc function call wrapper ✅
+        - Pass all existing sizeof tests ✅
+
+      test_requirements:
+        unit_tests:
+          - test_parse_sizeof_expression ✅
+          - test_parse_sizeof_struct ✅
+        property_tests:
+          - 6 sizeof property tests ✅
+        integration_tests:
+          - test_struct_with_sizeof ✅
+          - test_malloc_to_box_transformation_end_to_end ✅
+
+      acceptance_criteria:
+        - "malloc(sizeof(int)) parsed as FunctionCall with Sizeof argument" ✅
+        - "All 9 sizeof tests pass" ✅
+        - "All 212 workspace tests pass" ✅
+        - "Coverage 89.72%" ✅
+        - "0 clippy warnings" ✅
+
+      implementation_details:
+        problem:
+          - "malloc(sizeof(int)) losing malloc call"
+          - "Parser returning Sizeof instead of FunctionCall"
+          - "extract_sizeof() tokenizing entire subtree"
+
+        root_cause:
+          - "CXCursor_UnexposedExpr (ImplicitCastExpr wrapper) calling extract_sizeof()"
+          - "extract_sizeof() searches entire subtree for 'sizeof' keyword"
+          - "Returned Sizeof immediately, preventing CallExpr visitation"
+
+        solution:
+          - "Changed CXCursor_UnexposedExpr to always recurse first"
+          - "Allows ImplicitCastExpr to unwrap and reach CallExpr"
+          - "Sizeof still detected in correct contexts:"
+          - "  - CXCursor_UnaryExpr (kind 136) for return statements"
+          - "  - visit_call_argument() for function arguments"
+          - "  - visit_binary_operand() for binary expressions"
+
+        files_modified:
+          - "crates/decy-parser/src/parser.rs: Fixed visit_expression() (line 1181)"
+          - "crates/decy-hir/src/lib.rs: Fixed rustdoc HTML tag (line 514)"
+
+      before_after:
+        before:
+          c_code: "int* ptr = malloc(sizeof(int));"
+          parsed: "Sizeof { type_name: \"int\" }"
+          result: "❌ Malloc call lost"
+
+        after:
+          c_code: "int* ptr = malloc(sizeof(int));"
+          parsed: "FunctionCall { function: \"malloc\", arguments: [Sizeof { type_name: \"int\" }] }"
+          result: "✅ Correct structure"
+
+      test_validation:
+        sizeof_tests:
+          parser: "2/2 passing ✅"
+          property: "6/6 passing ✅"
+          integration: "1/1 passing ✅"
+
+        malloc_tests:
+          end_to_end: "test_malloc_to_box_transformation_end_to_end passing ✅"
+
+      impact:
+        - "Unblocks malloc pattern detection with sizeof"
+        - "Enables ownership inference for common malloc(sizeof(T)) pattern"
+        - "Critical for Box transformation"
+
+      commits:
+        - "efd0e6c: Fix parser handling of malloc(sizeof(T)) expressions"
+
+      red_green_refactor: true
+
+    DECY-045:
+      title: "Comprehensive sizeof edge case testing and validation"
+      type: quality
+      priority: medium
+      story_points: 2
+      assignee: null
+      status: not_started
+      github_issue: null
+      phase: RED
+
+      description: |
+        Add comprehensive testing for sizeof edge cases discovered during DECY-044.
+        Ensure all sizeof patterns work correctly in various contexts and combinations.
+
+      requirements:
+        - Test sizeof with complex types (struct pointers, arrays)
+        - Test sizeof in nested expressions
+        - Test sizeof with type casts
+        - Test sizeof in macro-like patterns
+        - Add property tests for sizeof composability
+
+      test_requirements:
+        unit_tests:
+          - test_sizeof_with_struct_pointer
+          - test_sizeof_with_array_type
+          - test_sizeof_in_nested_call
+          - test_sizeof_with_typedef
+          - test_multiple_sizeof_in_expression
+
+        property_tests:
+          - property_sizeof_in_any_expression_context
+          - property_sizeof_composable_with_arithmetic
+          - property_nested_sizeof_never_panics
+
+        examples:
+          - examples/sizeof_patterns.c
+
+      acceptance_criteria:
+        - "All edge cases documented and tested"
+        - "Property tests cover composition scenarios"
+        - "Coverage maintained ≥89%"
+        - "0 clippy warnings"
+
+      edge_cases_to_test:
+        - "malloc(sizeof(struct Data))"
+        - "malloc(sizeof(struct Data*))"
+        - "malloc(N * sizeof(int))"
+        - "malloc(sizeof(int) * N)"
+        - "foo(sizeof(a), sizeof(b))"
+        - "return sizeof(x) + sizeof(y)"
+        - "sizeof(typedef_name)"
+
+      implementation_strategy:
+        red_phase:
+          - "Write tests for each edge case"
+          - "Document expected parser output"
+          - "Commit: [RED] DECY-045: Add sizeof edge case tests"
+
+        green_phase:
+          - "Verify all tests pass (should already pass after DECY-044)"
+          - "Fix any failing cases"
+          - "Commit: [GREEN] DECY-045: Validate sizeof edge cases"
+
+        refactor_phase:
+          - "Add property tests for composition"
+          - "Document sizeof handling in CLAUDE.md"
+          - "Commit: [REFACTOR] DECY-045: Complete sizeof validation"
+
+      related_tickets:
+        - "DECY-044: Fixed the core sizeof parsing bug"
+
 # Quality Metrics Tracking
 quality_metrics:
   tracked_per_sprint:
