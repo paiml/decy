@@ -47,6 +47,10 @@ impl BoxTransformer {
                 HirExpression::IntLiteral(0)
             }
             HirType::Char => HirExpression::IntLiteral(0),
+            HirType::Option(_) => {
+                // Option types default to None
+                HirExpression::NullLiteral
+            }
             HirType::Void
             | HirType::Pointer(_)
             | HirType::Box(_)
