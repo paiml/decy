@@ -531,6 +531,125 @@ proptest! {
 
         prop_assert_eq!(code1, code2);
     }
+
+    // DECY-044 property tests for sizeof operator
+
+    /// Property: Sizeof always contains "size_of"
+    #[test]
+    fn property_sizeof_contains_size_of(
+        type_name in prop_oneof![
+            Just("int".to_string()),
+            Just("float".to_string()),
+            Just("double".to_string()),
+            Just("char".to_string()),
+            Just("struct Data".to_string()),
+        ]
+    ) {
+        use decy_hir::HirExpression;
+
+        let expr = HirExpression::Sizeof {
+            type_name,
+        };
+
+        let codegen = CodeGenerator::new();
+        let code = codegen.generate_expression(&expr);
+
+        prop_assert!(code.contains("size_of"));
+    }
+
+    /// Property: Sizeof always contains "std::mem"
+    #[test]
+    fn property_sizeof_contains_std_mem(
+        type_name in prop_oneof![
+            Just("int".to_string()),
+            Just("float".to_string()),
+            Just("double".to_string()),
+        ]
+    ) {
+        use decy_hir::HirExpression;
+
+        let expr = HirExpression::Sizeof {
+            type_name,
+        };
+
+        let codegen = CodeGenerator::new();
+        let code = codegen.generate_expression(&expr);
+
+        prop_assert!(code.contains("std::mem"));
+    }
+
+    /// Property: Sizeof always casts to i32
+    #[test]
+    fn property_sizeof_casts_to_i32(
+        type_name in prop_oneof![
+            Just("int".to_string()),
+            Just("char".to_string()),
+            Just("struct Point".to_string()),
+        ]
+    ) {
+        use decy_hir::HirExpression;
+
+        let expr = HirExpression::Sizeof {
+            type_name,
+        };
+
+        let codegen = CodeGenerator::new();
+        let code = codegen.generate_expression(&expr);
+
+        prop_assert!(code.contains("as i32"));
+    }
+
+    /// Property: Sizeof code generation is deterministic
+    #[test]
+    fn property_sizeof_consistent(
+        type_name in prop_oneof![
+            Just("int".to_string()),
+            Just("float".to_string()),
+            Just("struct Data".to_string()),
+        ]
+    ) {
+        use decy_hir::HirExpression;
+
+        let expr = HirExpression::Sizeof {
+            type_name,
+        };
+
+        let codegen = CodeGenerator::new();
+        let code1 = codegen.generate_expression(&expr);
+        let code2 = codegen.generate_expression(&expr);
+
+        prop_assert_eq!(code1, code2);
+    }
+
+    /// Property: Sizeof type mapping is consistent
+    #[test]
+    fn property_sizeof_type_mapping_consistent(
+        type_name in prop_oneof![
+            Just("int".to_string()),
+            Just("float".to_string()),
+            Just("double".to_string()),
+            Just("char".to_string()),
+        ]
+    ) {
+        let codegen = CodeGenerator::new();
+        let first = codegen.map_sizeof_type(&type_name);
+        let second = codegen.map_sizeof_type(&type_name);
+
+        prop_assert_eq!(first, second);
+    }
+
+    /// Property: Sizeof strips "struct " prefix for struct types
+    #[test]
+    fn property_sizeof_strips_struct_prefix(
+        struct_name in "[A-Z][a-zA-Z0-9_]{0,10}"
+    ) {
+        let type_name = format!("struct {}", struct_name);
+        let codegen = CodeGenerator::new();
+        let mapped = codegen.map_sizeof_type(&type_name);
+
+        prop_assert!(!mapped.contains("struct"));
+        prop_assert_eq!(mapped, struct_name);
+    }
 }
 
 // Regular tests for binary expressions (not property tests)
