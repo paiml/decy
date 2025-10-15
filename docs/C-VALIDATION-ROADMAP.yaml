@@ -5,17 +5,17 @@ roadmap:
   methodology: "EXTREME TDD (Test-First, RED-GREEN-REFACTOR)"
   reference: "ISO C99 Standard (ISO/IEC 9899:1999) + K&R C (2nd Edition)"
   status: "IN_PROGRESS"
-  completion: "18%"
+  completion: "19%"
   unsafe_blocks_per_1000_loc_target: "<5"
 
   statistics:
     total_tasks: 150
-    completed: 27
+    completed: 28
     partial_support: 0
     in_progress: 0
     blocked: 0
-    not_started: 123
-    coverage_percent: 18
+    not_started: 122
+    coverage_percent: 19
 
 extreme_tdd_workflow:
   description: "Standard workflow for each task"
@@ -960,7 +960,8 @@ chapters:
         tasks:
           - id: "STDLIB-STRLEN"
             title: "Document strlen → .len()"
-            status: "not_started"
+            status: "completed"
+            version: "v0.13.0"
             priority: "medium"
             examples:
               - c: "size_t len = strlen(s);"
@@ -968,6 +969,10 @@ chapters:
             validation_reference: "K&R §B3, ISO C99 §7.21.6.3"
             test_name: "test_strlen_to_len"
             sprint: 2
+            completed_date: "2025-10-15"
+            tests_added: 8
+            coverage: "100%"
+            unsafe_blocks: 0
 
           - id: "STDLIB-STRCPY"
             title: "Document strcpy → String/clone"
@@ -1180,8 +1185,10 @@ high_priority_next_tasks:
     - id: "STDLIB-STRLEN"
       title: "strlen → .len()"
       priority: 13
-      status: "🔴 NOT STARTED (Sprint 2)"
+      status: "✅ COMPLETED (Sprint 2)"
       unsafe_reduction: "None (already safe)"
+      completed_date: "2025-10-15"
+      tests_added: 8
 
     - id: "STDLIB-STRCPY"
       title: "strcpy → String/clone"
@@ -1237,20 +1244,20 @@ next_steps:
 
 status:
   overall: "IN_PROGRESS"
-  completion_percent: 18
-  completed_tasks: 27
+  completion_percent: 19
+  completed_tasks: 28
   in_progress_tasks: 0
-  not_started_tasks: 123
+  not_started_tasks: 122
   total_tasks: 150
   methodology: "EXTREME TDD (RED-GREEN-REFACTOR) + Ownership Inference"
   goal: "100% C99 language coverage with <5 unsafe blocks per 1000 LOC"
   last_completed:
-    task_id: "EXPR-ASSIGN-COMPOUND"
-    title: "Compound assignment operators (+=, -=, *=, /=, %=) via HIR expansion"
-    version: "v0.12.0"
+    task_id: "STDLIB-STRLEN"
+    title: "strlen → .len() transformation"
+    version: "v0.13.0"
     date: "2025-10-15"
     unsafe_blocks_added: 0
-    tests_added: 12
+    tests_added: 8
     coverage: "100%"
   current_sprint: 2
   current_unsafe_count_per_1000_loc: 0
