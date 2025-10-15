@@ -236,6 +236,67 @@ impl HirTypedef {
     }
 }
 
+/// Represents a constant declaration in HIR (from C #define or const).
+///
+/// # Examples
+///
+/// ```
+/// use decy_hir::{HirConstant, HirType, HirExpression};
+///
+/// let constant = HirConstant::new(
+///     "MAX".to_string(),
+///     HirType::Int,
+///     HirExpression::IntLiteral(100),
+/// );
+/// assert_eq!(constant.name(), "MAX");
+/// assert_eq!(constant.const_type(), &HirType::Int);
+/// ```
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct HirConstant {
+    name: String,
+    const_type: HirType,
+    value: HirExpression,
+}
+
+impl HirConstant {
+    /// Create a new constant.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use decy_hir::{HirConstant, HirType, HirExpression};
+    ///
+    /// let constant = HirConstant::new(
+    ///     "PI".to_string(),
+    ///     HirType::Float,
+    ///     HirExpression::IntLiteral(3), // Simplified for example
+    /// );
+    /// assert_eq!(constant.name(), "PI");
+    /// ```
+    pub fn new(name: String, const_type: HirType, value: HirExpression) -> Self {
+        Self {
+            name,
+            const_type,
+            value,
+        }
+    }
+
+    /// Get the constant name.
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    /// Get the constant type.
+    pub fn const_type(&self) -> &HirType {
+        &self.const_type
+    }
+
+    /// Get the constant value expression.
+    pub fn value(&self) -> &HirExpression {
+        &self.value
+    }
+}
+
 /// Represents a function parameter in HIR.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct HirParameter {
