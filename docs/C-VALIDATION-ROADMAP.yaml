@@ -10,12 +10,12 @@ roadmap:
 
   statistics:
     total_tasks: 150
-    completed: 44
+    completed: 45
     partial_support: 0
     in_progress: 0
     blocked: 1
-    not_started: 105
-    coverage_percent: 29
+    not_started: 104
+    coverage_percent: 30
 
 extreme_tdd_workflow:
   description: "Standard workflow for each task"
@@ -773,6 +773,30 @@ chapters:
             validation_reference: "K&R §2.6, ISO C99 §6.5.14"
             test_name: "test_logical_or"
 
+          - id: "EXPR-TERNARY"
+            title: "Document ternary operator (? :)"
+            status: "completed"
+            priority: "high"
+            version: "v0.28.0"
+            examples:
+              - c: "max = (a > b) ? a : b;"
+                rust: "let max = if a > b { a } else { b };"
+                note: "If expression replaces ternary"
+              - c: "result = (x >= 90) ? 'A' : (x >= 80) ? 'B' : 'C';"
+                rust: "let result = if x >= 90 { 'A' } else if x >= 80 { 'B' } else { 'C' };"
+                note: "Nested ternary → if-else-if chain (more readable)"
+              - c: "value = ptr ? ptr->data : default;"
+                rust: "let value = ptr.map(|p| p.data).unwrap_or(default);"
+                note: "Option methods for null checks"
+            validation_reference: "K&R §2.11, ISO C99 §6.5.15"
+            test_name: "test_ternary_operator"
+            sprint: 5
+            completed_date: "2025-10-15"
+            tests_added: 17
+            coverage: "100%"
+            unsafe_blocks: 0
+            note: "Ternary operator → if expression (SAFE). Both are expressions that return values. If expression more readable for nested conditions. Short-circuits like C ternary. Type-safe: both branches must match types."
+
       - id: "4.7"
         name: "Assignment Operators (C99 §6.5.16)"
         tasks:
@@ -1429,21 +1453,21 @@ next_steps:
 
 status:
   overall: "IN_PROGRESS"
-  completion_percent: 29
-  completed_tasks: 44
+  completion_percent: 30
+  completed_tasks: 45
   in_progress_tasks: 0
   blocked_tasks: 1
-  not_started_tasks: 105
+  not_started_tasks: 104
   total_tasks: 150
   methodology: "EXTREME TDD (RED-GREEN-REFACTOR) + Ownership Inference"
   goal: "100% C99 language coverage with <5 unsafe blocks per 1000 LOC"
   last_completed:
-    task_id: "TYPE-UNION"
-    title: "union documentation"
-    version: "v0.27.0"
+    task_id: "EXPR-TERNARY"
+    title: "ternary operator documentation"
+    version: "v0.28.0"
     date: "2025-10-15"
     unsafe_blocks_added: 0
-    tests_added: 16
+    tests_added: 17
     coverage: "100%"
   current_sprint: 5
   current_unsafe_count_per_1000_loc: 0
