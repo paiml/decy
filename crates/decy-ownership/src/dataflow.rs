@@ -318,8 +318,12 @@ impl DataflowAnalyzer {
             }
             HirExpression::IntLiteral(_)
             | HirExpression::StringLiteral(_)
-            | HirExpression::Sizeof { .. } => {
-                // No tracking needed for literals or sizeof
+            | HirExpression::Sizeof { .. }
+            | HirExpression::NullLiteral => {
+                // No tracking needed for literals, sizeof, or NULL
+            }
+            HirExpression::IsNotNull(inner) => {
+                Self::track_expr_recursive(inner, _graph, _index);
             }
         }
     }
