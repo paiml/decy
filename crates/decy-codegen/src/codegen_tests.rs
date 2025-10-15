@@ -38,7 +38,7 @@ mod tests {
         let codegen = CodeGenerator::new();
         let signature = codegen.generate_signature(&func);
 
-        assert_eq!(signature, "fn add(a: i32, b: i32) -> i32");
+        assert_eq!(signature, "fn add(mut a: i32, mut b: i32) -> i32");
     }
 
     #[test]
@@ -106,7 +106,7 @@ mod tests {
         let code = codegen.generate_function(&func);
 
         // Should generate a complete function with stub body
-        assert!(code.contains("fn add(a: i32, b: i32) -> i32"));
+        assert!(code.contains("fn add(mut a: i32, mut b: i32) -> i32"));
         assert!(code.contains("{")); // Has body
         assert!(code.contains("}")); // Closes body
     }
@@ -137,7 +137,7 @@ mod tests {
         let codegen = CodeGenerator::new();
         let signature = codegen.generate_signature(&func);
 
-        assert_eq!(signature, "fn process(data: *mut i32)");
+        assert_eq!(signature, "fn process(mut data: *mut i32)");
     }
 
     #[test]
@@ -634,7 +634,7 @@ mod tests {
         let codegen = CodeGenerator::new();
         let code = codegen.generate_function(&func);
 
-        assert!(code.contains("fn sign(x: i32) -> i32"));
+        assert!(code.contains("fn sign(mut x: i32) -> i32"));
         assert!(code.contains("if x > 0"));
         assert!(code.contains("} else {"));
         assert!(code.contains("return 1;"));

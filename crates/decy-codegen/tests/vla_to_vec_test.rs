@@ -104,7 +104,7 @@ fn test_vla_with_expression_size() {
 ///      int arr[size];
 ///    }
 ///
-/// Rust: fn allocate_array(size: i32) {
+/// Rust: fn allocate_array(mut size: i32) {
 ///         let arr = vec![0i32; size];
 ///       }
 #[test]
@@ -131,7 +131,7 @@ fn test_vla_with_parameter_size() {
     let result = codegen.generate_function(&func);
 
     // Expected: Vec with parameter
-    assert!(result.contains("fn allocate_array(size: i32)"));
+    assert!(result.contains("fn allocate_array(mut size: i32)"));
     assert!(result.contains("let mut arr = vec![0i32; size]"));
 
     // Verify no unsafe blocks

@@ -16,7 +16,7 @@ use decy_hir::{HirExpression, HirFunction, HirParameter, HirStatement, HirType, 
 ///      }
 ///    }
 ///
-/// Rust: fn test_switch(x: i32) -> i32 {
+/// Rust: fn test_switch(mut x: i32) -> i32 {
 ///         match x {
 ///           1 => { return 10; },
 ///           _ => { return 0; }
@@ -44,7 +44,7 @@ fn test_simple_switch_statement() {
     let result = codegen.generate_function(&func);
 
     // Verify function signature
-    assert!(result.contains("fn test_switch(x: i32) -> i32"));
+    assert!(result.contains("fn test_switch(mut x: i32) -> i32"));
 
     // Verify match statement
     assert!(result.contains("match x"));
