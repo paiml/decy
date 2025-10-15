@@ -288,6 +288,11 @@ impl LifetimeAnalyzer {
                 // Check if size expression uses the variable
                 self.expression_uses_variable(size, var_name)
             }
+            HirExpression::Realloc { pointer, new_size } => {
+                // Check if pointer or new_size expressions use the variable
+                self.expression_uses_variable(pointer, var_name)
+                    || self.expression_uses_variable(new_size, var_name)
+            }
         }
     }
 

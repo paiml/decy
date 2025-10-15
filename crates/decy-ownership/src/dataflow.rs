@@ -339,6 +339,11 @@ impl DataflowAnalyzer {
                 // Track the size expression (may use variables)
                 Self::track_expr_recursive(size, _graph, _index);
             }
+            HirExpression::Realloc { pointer, new_size } => {
+                // Track both pointer and new_size expressions
+                Self::track_expr_recursive(pointer, _graph, _index);
+                Self::track_expr_recursive(new_size, _graph, _index);
+            }
         }
     }
 
