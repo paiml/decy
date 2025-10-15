@@ -492,6 +492,29 @@ impl CodeGenerator {
                             format!("{}({})", function, args.join(", "))
                         }
                     }
+                    // strcpy(dest, src) → src.to_string()
+                    // Reference: K&R §B3, ISO C99 §7.21.3.1
+                    // strcpy copies src to dest and returns dest pointer.
+                    // In Rust, we transform to String operation: src.to_string()
+                    // This prevents buffer overflow (the primary safety benefit)
+                    "strcpy" => {
+                        if arguments.len() == 2 {
+                            // strcpy(dest, src) → src.to_string()
+                            // We generate the source string operation
+                            // The destination assignment is handled by the statement context
+                            format!(
+                                "{}.to_string()",
+                                self.generate_expression_with_context(&arguments[1], ctx)
+                            )
+                        } else {
+                            // Invalid strcpy call - shouldn't happen, but handle gracefully
+                            let args: Vec<String> = arguments
+                                .iter()
+                                .map(|arg| self.generate_expression_with_context(arg, ctx))
+                                .collect();
+                            format!("{}({})", function, args.join(", "))
+                        }
+                    }
                     // Default: pass through function call as-is
                     _ => {
                         let args: Vec<String> = arguments
