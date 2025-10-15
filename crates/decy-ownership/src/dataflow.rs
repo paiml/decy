@@ -257,6 +257,11 @@ impl DataflowAnalyzer {
                     }
                 }
             }
+            HirStatement::Free { pointer } => {
+                // Track free() call - marks the pointer as freed
+                // Future: detect use-after-free by tracking subsequent uses
+                self.track_expression_uses(pointer, graph, index);
+            }
         }
     }
 
@@ -266,6 +271,7 @@ impl DataflowAnalyzer {
             HirExpression::FunctionCall { function, .. } if function == "malloc" => {
                 NodeKind::Allocation
             }
+            HirExpression::Malloc { .. } => NodeKind::Allocation,
             HirExpression::Variable(var_name) => NodeKind::Assignment {
                 source: var_name.clone(),
             },
@@ -328,6 +334,10 @@ impl DataflowAnalyzer {
             HirExpression::Calloc { count, .. } => {
                 // Track the count expression (may use variables)
                 Self::track_expr_recursive(count, _graph, _index);
+            }
+            HirExpression::Malloc { size } => {
+                // Track the size expression (may use variables)
+                Self::track_expr_recursive(size, _graph, _index);
             }
         }
     }
