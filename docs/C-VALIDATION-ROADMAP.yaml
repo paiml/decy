@@ -10,12 +10,12 @@ roadmap:
 
   statistics:
     total_tasks: 150
-    completed: 56
+    completed: 57
     partial_support: 0
     in_progress: 0
     blocked: 1
-    not_started: 93
-    coverage_percent: 37
+    not_started: 92
+    coverage_percent: 38
 
 extreme_tdd_workflow:
   description: "Standard workflow for each task"
@@ -288,6 +288,30 @@ chapters:
                 rust: "println!(\"Value: {}\", x);"
             validation_reference: "K&R §2.3, ISO C99 §6.4.5"
             test_name: "test_string_literal_transformation"
+
+          - id: "LEX-CONST-HEXFLOAT"
+            title: "Document hexadecimal floating-point literals"
+            status: "completed"
+            priority: "medium"
+            version: "v0.41.0"
+            examples:
+              - c: "double x = 0x1.8p3;"
+                rust: "let x: f64 = 12.0;  // 1.5 * 2^3"
+                note: "Rust has no hex float syntax, compute or use from_bits()"
+              - c: "double pi = 0x1.921fb54442d18p1;"
+                rust: "let pi = f64::from_bits(0x400921fb54442d18);"
+                note: "Use from_bits() for exact IEEE 754 representation"
+              - c: "float f = 0x1.0p0f;"
+                rust: "let f: f32 = 1.0;"
+                note: "f suffix → f32 type"
+            validation_reference: "ISO C99 §6.4.4.2 (new in C99), NOT in K&R (pre-C99)"
+            test_name: "test_hexadecimal_float_literals"
+            sprint: 5
+            completed_date: "2025-10-15"
+            tests_added: 15
+            coverage: "100%"
+            unsafe_blocks: 0
+            note: "C89/K&R: Only decimal float literals. C99: Added hex float literals (0x1.8p3). Rust: NO hex float syntax (compute or from_bits()). Format: 0x<mantissa>p<exponent> = mantissa × 2^exponent. Purpose: exact binary representation without decimal rounding. Useful for constants, bit-exact values, IEEE 754 patterns. Common in scientific/low-level computing."
 
   - id: 3
     name: "Types (C99 §6.2.5, §6.7)"
@@ -1774,21 +1798,21 @@ next_steps:
 
 status:
   overall: "IN_PROGRESS"
-  completion_percent: 37
-  completed_tasks: 56
+  completion_percent: 38
+  completed_tasks: 57
   in_progress_tasks: 0
   blocked_tasks: 1
-  not_started_tasks: 93
+  not_started_tasks: 92
   total_tasks: 150
   methodology: "EXTREME TDD (RED-GREEN-REFACTOR) + Ownership Inference"
   goal: "100% C99 language coverage with <5 unsafe blocks per 1000 LOC"
   last_completed:
-    task_id: "TYPE-BASIC-LONGLONG"
-    title: "long long type documentation"
-    version: "v0.40.0"
+    task_id: "LEX-CONST-HEXFLOAT"
+    title: "hexadecimal floating-point literals documentation"
+    version: "v0.41.0"
     date: "2025-10-15"
     unsafe_blocks_added: 0
-    tests_added: 16
+    tests_added: 15
     coverage: "100%"
   current_sprint: 5
   current_unsafe_count_per_1000_loc: 0
