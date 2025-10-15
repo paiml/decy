@@ -1179,24 +1179,23 @@ extern "C" fn visit_expression(
             CXChildVisit_Continue
         }
         CXCursor_UnexposedExpr => {
-            // Unexposed expressions might be sizeof
-            if let Some(expr) = extract_sizeof(cursor) {
-                *expr_opt = Some(expr);
-            } else {
-                // Otherwise, recurse into it
-                return CXChildVisit_Recurse;
-            }
-            CXChildVisit_Continue
+            // Unexposed expressions might wrap other expressions (like ImplicitCastExpr wrapping CallExpr)
+            // Recurse first to check if there's a more specific expression inside
+            CXChildVisit_Recurse
+        }
+        CXCursor_ParenExpr => {
+            // Parenthesized expressions wrap other expressions, recurse
+            CXChildVisit_Recurse
         }
         136 => {
-            // CXCursor_UnaryExpr - includes sizeof, alignof, etc.
+            // CXCursor_UnaryExpr - could be sizeof or other unary expr
             if let Some(expr) = extract_sizeof(cursor) {
                 *expr_opt = Some(expr);
+                CXChildVisit_Continue
             } else {
-                // Otherwise, recurse (might be another unary expression)
-                return CXChildVisit_Recurse;
+                // Not sizeof, recurse for other unary expressions
+                CXChildVisit_Recurse
             }
-            CXChildVisit_Continue
         }
         _ => CXChildVisit_Recurse,
     }
@@ -1389,6 +1388,24 @@ extern "C" fn visit_binary_operand(
                 operands.push(expr);
             }
             CXChildVisit_Continue
+        }
+        CXCursor_UnexposedExpr | CXCursor_ParenExpr => {
+            // Unexposed expressions might be sizeof or wrap other expressions
+            if let Some(expr) = extract_sizeof(cursor) {
+                operands.push(expr);
+                CXChildVisit_Continue
+            } else {
+                CXChildVisit_Recurse
+            }
+        }
+        136 => {
+            // CXCursor_UnaryExpr - includes sizeof, alignof, etc.
+            if let Some(expr) = extract_sizeof(cursor) {
+                operands.push(expr);
+                CXChildVisit_Continue
+            } else {
+                CXChildVisit_Recurse
+            }
         }
         _ => CXChildVisit_Recurse,
     }
@@ -1646,8 +1663,22 @@ extern "C" fn visit_call_argument(
             CXChildVisit_Continue
         }
         CXCursor_UnexposedExpr | CXCursor_ParenExpr => {
-            // Unexposed expressions might wrap actual expressions, recurse into them
-            CXChildVisit_Recurse
+            // Unexposed expressions might wrap actual expressions or be sizeof, try to extract
+            if let Some(expr) = extract_sizeof(cursor) {
+                arg_data.arguments.push(expr);
+                CXChildVisit_Continue
+            } else {
+                CXChildVisit_Recurse
+            }
+        }
+        136 => {
+            // CXCursor_UnaryExpr - includes sizeof, alignof, etc.
+            if let Some(expr) = extract_sizeof(cursor) {
+                arg_data.arguments.push(expr);
+                CXChildVisit_Continue
+            } else {
+                CXChildVisit_Recurse
+            }
         }
         _ => CXChildVisit_Continue, // Skip other unknown children
     }
