@@ -339,6 +339,33 @@ chapters:
             validation_reference: "K&R §2.2, ISO C99 §6.2.5"
             test_name: "test_void_type_mapping"
 
+          - id: "TYPE-BASIC-BOOL"
+            title: "Document boolean type"
+            status: "completed"
+            priority: "high"
+            version: "v0.31.0"
+            examples:
+              - c: "#include <stdbool.h>\nbool flag = true;"
+                rust: "let flag = true;"
+                note: "Built-in bool type, no header needed"
+              - c: "int flag = 1; if (flag) {}"
+                rust: "let flag = true; if flag {}"
+                note: "Pre-C99 int as bool → explicit bool"
+              - c: "int x = (int)flag;"
+                rust: "let x = flag as i32;"
+                note: "Explicit conversion required"
+              - c: "bool b = (x != 0);"
+                rust: "let b = x != 0;"
+                note: "Explicit comparison for int to bool"
+            validation_reference: "ISO C99 §7.16 (stdbool.h), K&R (pre-C99)"
+            test_name: "test_bool_type"
+            sprint: 5
+            completed_date: "2025-10-15"
+            tests_added: 20
+            coverage: "100%"
+            unsafe_blocks: 0
+            note: "C99 bool → Rust bool (built-in). Same size (1 byte), same semantics. No implicit int conversions (type-safe). No bitwise operators on bool. Pre-C99 int flags → explicit bool."
+
       - id: "3.2"
         name: "Derived Types - Pointers (C99 §6.7.5.1)"
         tasks:
