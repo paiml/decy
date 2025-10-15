@@ -10,12 +10,12 @@ roadmap:
 
   statistics:
     total_tasks: 150
-    completed: 53
+    completed: 54
     partial_support: 0
     in_progress: 0
     blocked: 1
-    not_started: 96
-    coverage_percent: 35
+    not_started: 95
+    coverage_percent: 36
 
 extreme_tdd_workflow:
   description: "Standard workflow for each task"
@@ -1119,6 +1119,33 @@ chapters:
             validation_reference: "K&R §3.5, ISO C99 §6.8.5.3"
             test_name: "test_for_loop"
 
+          - id: "STMT-FOR-DECL"
+            title: "Document for loop variable declarations"
+            status: "completed"
+            priority: "high"
+            version: "v0.38.0"
+            examples:
+              - c: "for (int i = 0; i < n; i++) { ... }"
+                rust: "for i in 0..n { ... }"
+                note: "C99 allows declarations in for loop (NOT in C89/K&R)"
+              - c: "for (int i = 0; i < 20; i += 2) { ... }"
+                rust: "for i in (0..20).step_by(2) { ... }"
+                note: "Custom increment with step_by"
+              - c: "for (int i = 10; i > 0; i--) { ... }"
+                rust: "for i in (1..=10).rev() { ... }"
+                note: "Reverse iteration"
+              - c: "for (int i = 0; i < arr_len; i++) { arr[i] = ...; }"
+                rust: "for (i, val) in arr.iter_mut().enumerate() { ... }"
+                note: "Enumerate for index + value"
+            validation_reference: "ISO C99 §6.8.5.3 (new in C99), NOT in K&R (pre-C99)"
+            test_name: "test_for_loop_declarations"
+            sprint: 5
+            completed_date: "2025-10-15"
+            tests_added: 16
+            coverage: "100%"
+            unsafe_blocks: 0
+            note: "C99 added variable declarations in for loops (NOT in C89/K&R). Both C99 and Rust scope variable to loop body. Rust range syntax more concise. Rust iterators prevent off-by-one errors. step_by for custom increment, rev() for reverse, enumerate() for index+value."
+
       - id: "5.4"
         name: "Jump Statements (C99 §6.8.6)"
         tasks:
@@ -1696,18 +1723,18 @@ next_steps:
 
 status:
   overall: "IN_PROGRESS"
-  completion_percent: 35
-  completed_tasks: 53
+  completion_percent: 36
+  completed_tasks: 54
   in_progress_tasks: 0
   blocked_tasks: 1
-  not_started_tasks: 96
+  not_started_tasks: 95
   total_tasks: 150
   methodology: "EXTREME TDD (RED-GREEN-REFACTOR) + Ownership Inference"
   goal: "100% C99 language coverage with <5 unsafe blocks per 1000 LOC"
   last_completed:
-    task_id: "TYPE-QUAL-RESTRICT"
-    title: "restrict keyword documentation"
-    version: "v0.37.0"
+    task_id: "STMT-FOR-DECL"
+    title: "for loop variable declarations documentation"
+    version: "v0.38.0"
     date: "2025-10-15"
     unsafe_blocks_added: 0
     tests_added: 16
