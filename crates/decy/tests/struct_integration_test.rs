@@ -299,13 +299,10 @@ fn test_nested_structs() {
     );
 
     // And: Generated code should compile
-    // NOTE: Temporarily skipping compilation test for nested structs
-    // because nested field access generates (*(*r).field).x instead of (*r).field.x
-    // This will be fixed in DECY-042 phase 2
-    // match compile_rust_code(&rust_code, "test_nested_structs") {
-    //     Ok(_) => (),
-    //     Err(e) => panic!("Generated Rust code should compile. Errors:\n{}", e),
-    // }
+    match compile_rust_code(&rust_code, "test_nested_structs") {
+        Ok(_) => (),
+        Err(e) => panic!("Generated Rust code should compile. Errors:\n{}", e),
+    }
 }
 
 #[test]
