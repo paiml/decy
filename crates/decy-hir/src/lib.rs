@@ -529,6 +529,11 @@ pub enum HirExpression {
         /// Element type
         element_type: Box<HirType>,
     },
+    /// malloc(size) → Box::new(default) or Vec::with_capacity(n)
+    Malloc {
+        /// Size expression (typically sizeof(T) or n * sizeof(T))
+        size: Box<HirExpression>,
+    },
 }
 
 /// Represents a single case in a switch statement.
@@ -625,6 +630,11 @@ pub enum HirStatement {
         field: String,
         /// Value expression to assign
         value: HirExpression,
+    },
+    /// Free statement (free(ptr) → automatic drop via RAII)
+    Free {
+        /// Pointer expression to free
+        pointer: HirExpression,
     },
 }
 
