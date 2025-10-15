@@ -534,6 +534,13 @@ pub enum HirExpression {
         /// Size expression (typically sizeof(T) or n * sizeof(T))
         size: Box<HirExpression>,
     },
+    /// realloc(ptr, new_size) → Vec::resize or Vec::reserve
+    Realloc {
+        /// Pointer to reallocate
+        pointer: Box<HirExpression>,
+        /// New size expression (typically n * sizeof(T))
+        new_size: Box<HirExpression>,
+    },
 }
 
 /// Represents a single case in a switch statement.

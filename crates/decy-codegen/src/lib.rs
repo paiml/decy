@@ -550,6 +550,36 @@ impl CodeGenerator {
                     "Box::new(0i32)".to_string()
                 }
             }
+            HirExpression::Realloc { pointer, new_size } => {
+                // realloc(ptr, new_size) transformation depends on context:
+                // 1. realloc(NULL, size) → treat as malloc (Vec allocation)
+                // 2. realloc(ptr, 0) → treat as free (RAII comment or clear)
+                // 3. realloc(ptr, new_size) → vec.resize(new_count, default)
+                //
+                // Since we're generating an expression here, we'll return a placeholder
+                // The actual transformation should happen in Assignment statement handling
+                // For now, just generate a comment indicating this needs special handling
+
+                // Check if pointer is NULL → malloc equivalent
+                if matches!(**pointer, HirExpression::NullLiteral) {
+                    // realloc(NULL, size) → vec![default; count]
+                    if let HirExpression::BinaryOp {
+                        op: decy_hir::BinaryOperator::Multiply,
+                        left,
+                        ..
+                    } = new_size.as_ref()
+                    {
+                        let count_code = self.generate_expression_with_context(left, ctx);
+                        format!("vec![0i32; {}]", count_code)
+                    } else {
+                        "Vec::new()".to_string()
+                    }
+                } else {
+                    // realloc(ptr, size) - this should be handled at statement level
+                    // For expression context, return the pointer unchanged as a placeholder
+                    self.generate_expression_with_context(pointer, ctx)
+                }
+            }
         }
     }
 
@@ -812,13 +842,75 @@ impl CodeGenerator {
             HirStatement::Break => "break;".to_string(),
             HirStatement::Continue => "continue;".to_string(),
             HirStatement::Assignment { target, value } => {
-                // Look up target type in context for null pointer detection
-                let target_type = ctx.get_type(target);
-                format!(
-                    "{} = {};",
-                    target,
-                    self.generate_expression_with_target_type(value, ctx, target_type)
-                )
+                // Special handling for realloc() → Vec::resize/truncate/clear
+                if let HirExpression::Realloc { pointer, new_size } = value {
+                    // target is a String (variable name) in Assignment statements
+                    let target_var = target.clone();
+
+                    // Check if target is a Vec type to get element type
+                    let element_type = if let Some(HirType::Vec(inner)) = ctx.get_type(&target_var)
+                    {
+                        inner.as_ref().clone()
+                    } else {
+                        // Fallback: assume i32
+                        HirType::Int
+                    };
+
+                    // Check special cases:
+                    // 1. realloc(ptr, 0) → clear or RAII comment
+                    if let HirExpression::IntLiteral(0) = **new_size {
+                        return format!("{}.clear(); // Free equivalent: clear vector", target_var);
+                    }
+
+                    // 2. realloc(NULL, size) → should not appear in assignment (would be in initializer)
+                    //    but handle it gracefully if it does
+                    if matches!(**pointer, HirExpression::NullLiteral) {
+                        // This is essentially malloc - but in assignment context, we'll treat it as resize from 0
+                        if let HirExpression::BinaryOp {
+                            op: decy_hir::BinaryOperator::Multiply,
+                            left,
+                            ..
+                        } = new_size.as_ref()
+                        {
+                            let count_code = self.generate_expression_with_context(left, ctx);
+                            let default_value = Self::default_value_for_type(&element_type);
+                            return format!(
+                                "{}.resize({}, {})",
+                                target_var, count_code, default_value
+                            );
+                        }
+                    }
+
+                    // 3. realloc(ptr, new_size) → vec.resize(new_count, default)
+                    // Extract count from new_size (typically n * sizeof(T))
+                    if let HirExpression::BinaryOp {
+                        op: decy_hir::BinaryOperator::Multiply,
+                        left,
+                        ..
+                    } = new_size.as_ref()
+                    {
+                        let count_code = self.generate_expression_with_context(left, ctx);
+                        let default_value = Self::default_value_for_type(&element_type);
+                        format!("{}.resize({}, {});", target_var, count_code, default_value)
+                    } else {
+                        // Fallback: if new_size is not n * sizeof(T), generate direct resize
+                        // This handles edge cases where size isn't n * sizeof(T)
+                        let size_expr = self.generate_expression_with_context(new_size, ctx);
+                        let default_value = Self::default_value_for_type(&element_type);
+                        format!(
+                            "{}.resize({} as usize, {});",
+                            target_var, size_expr, default_value
+                        )
+                    }
+                } else {
+                    // Regular assignment (not realloc)
+                    let target_type = ctx.get_type(target);
+                    format!(
+                        "{} = {};",
+                        target,
+                        self.generate_expression_with_target_type(value, ctx, target_type)
+                    )
+                }
             }
             HirStatement::For {
                 init,
