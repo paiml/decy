@@ -529,6 +529,27 @@ impl CodeGenerator {
 
                 format!("vec![{}; {}]", default_value, count_code)
             }
+            HirExpression::Malloc { size } => {
+                // malloc(size) should have been transformed to Box or Vec by analyzer
+                // If we're generating this directly, treat it as Box::new(default)
+                // Note: The proper transformation should happen at HIR level via PatternDetector
+
+                // Try to detect if this is an array allocation (n * sizeof(T))
+                // If so, generate Vec::with_capacity
+                if let HirExpression::BinaryOp {
+                    op: decy_hir::BinaryOperator::Multiply,
+                    left,
+                    ..
+                } = size.as_ref()
+                {
+                    // This looks like n * sizeof(T) → Vec::with_capacity(n)
+                    let capacity_code = self.generate_expression_with_context(left, ctx);
+                    format!("Vec::with_capacity({})", capacity_code)
+                } else {
+                    // Single allocation → Box::new(default)
+                    "Box::new(0i32)".to_string()
+                }
+            }
         }
     }
 
@@ -564,10 +585,10 @@ impl CodeGenerator {
     fn default_value_for_type(hir_type: &HirType) -> String {
         match hir_type {
             HirType::Void => "()".to_string(),
-            HirType::Int => "0".to_string(),
-            HirType::Float => "0.0".to_string(),
-            HirType::Double => "0.0".to_string(),
-            HirType::Char => "0".to_string(),
+            HirType::Int => "0i32".to_string(),
+            HirType::Float => "0.0f32".to_string(),
+            HirType::Double => "0.0f64".to_string(),
+            HirType::Char => "0u8".to_string(),
             HirType::Pointer(_) => "std::ptr::null_mut()".to_string(),
             HirType::Box(inner) => {
                 // Box types should not use default values, they should be initialized with Box::new
@@ -645,11 +666,54 @@ impl CodeGenerator {
 
                 let mut code = format!("let mut {}: {}", name, Self::map_type(var_type));
                 if let Some(init_expr) = initializer {
-                    // Pass var_type as target type hint for null pointer detection
-                    code.push_str(&format!(
-                        " = {};",
-                        self.generate_expression_with_target_type(init_expr, ctx, Some(var_type))
-                    ));
+                    // Special handling for Malloc expressions - use var_type to generate correct Box::new
+                    if matches!(init_expr, HirExpression::Malloc { .. }) {
+                        // Malloc → Box::new or Vec (depending on var_type)
+                        match var_type {
+                            HirType::Box(inner) => {
+                                code.push_str(&format!(
+                                    " = Box::new({});",
+                                    Self::default_value_for_type(inner)
+                                ));
+                            }
+                            HirType::Vec(_) => {
+                                // Extract capacity from malloc size expression
+                                if let HirExpression::Malloc { size } = init_expr {
+                                    if let HirExpression::BinaryOp {
+                                        op: decy_hir::BinaryOperator::Multiply,
+                                        left,
+                                        ..
+                                    } = size.as_ref()
+                                    {
+                                        let capacity_code =
+                                            self.generate_expression_with_context(left, ctx);
+                                        code.push_str(&format!(
+                                            " = Vec::with_capacity({});",
+                                            capacity_code
+                                        ));
+                                    } else {
+                                        code.push_str(" = Vec::new();");
+                                    }
+                                } else {
+                                    code.push_str(" = Vec::new();");
+                                }
+                            }
+                            _ => {
+                                // Default to Box::new(0i32) for other types
+                                code.push_str(" = Box::new(0i32);");
+                            }
+                        }
+                    } else {
+                        // Pass var_type as target type hint for null pointer detection
+                        code.push_str(&format!(
+                            " = {};",
+                            self.generate_expression_with_target_type(
+                                init_expr,
+                                ctx,
+                                Some(var_type)
+                            )
+                        ));
+                    }
                 } else {
                     // Provide default value for uninitialized variables
                     code.push_str(&format!(" = {};", Self::default_value_for_type(var_type)));
@@ -910,6 +974,19 @@ impl CodeGenerator {
                     self.generate_expression_with_context(object, ctx),
                     field,
                     self.generate_expression_with_target_type(value, ctx, field_type.as_ref())
+                )
+            }
+            HirStatement::Free { pointer } => {
+                // free(ptr) → automatic drop via RAII
+                // Generate a comment explaining that the memory will be deallocated automatically
+                // when the variable goes out of scope
+                let pointer_name = match pointer {
+                    HirExpression::Variable(name) => name.clone(),
+                    _ => self.generate_expression_with_context(pointer, ctx),
+                };
+                format!(
+                    "// Memory for '{}' deallocated automatically by RAII",
+                    pointer_name
                 )
             }
         }

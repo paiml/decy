@@ -284,6 +284,10 @@ impl LifetimeAnalyzer {
                 // Check if count expression uses the variable
                 self.expression_uses_variable(count, var_name)
             }
+            HirExpression::Malloc { size } => {
+                // Check if size expression uses the variable
+                self.expression_uses_variable(size, var_name)
+            }
         }
     }
 

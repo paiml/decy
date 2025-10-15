@@ -217,8 +217,8 @@ mod tests {
         let codegen = CodeGenerator::new();
         let code = codegen.generate_statement(&var_decl);
 
-        // Uninitialized variables get default value
-        assert_eq!(code, "let mut y: f32 = 0.0;");
+        // Uninitialized variables get default value with type suffix
+        assert_eq!(code, "let mut y: f32 = 0.0f32;");
     }
 
     #[test]
