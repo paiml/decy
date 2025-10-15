@@ -691,6 +691,39 @@ impl CodeGenerator {
                 var_type,
                 initializer,
             } => {
+                // Check for VLA pattern: Array with size: None and an initializer
+                // C99 VLA: int arr[n]; where n is runtime-determined
+                // Rust: let arr = vec![0i32; n];
+                if let HirType::Array {
+                    element_type,
+                    size: None,
+                } = var_type
+                {
+                    // This is a VLA - transform to Vec
+                    if let Some(size_expr) = initializer {
+                        // VLA → Vec
+                        let size_code = self.generate_expression_with_context(size_expr, ctx);
+                        let default_value = match element_type.as_ref() {
+                            HirType::Int => "0i32",
+                            HirType::Float => "0.0f32",
+                            HirType::Double => "0.0f64",
+                            HirType::Char => "0u8",
+                            _ => &Self::default_value_for_type(element_type),
+                        };
+
+                        // Register the variable as Vec type in context
+                        ctx.add_variable(
+                            name.clone(),
+                            HirType::Vec(Box::new(element_type.as_ref().clone())),
+                        );
+
+                        return format!(
+                            "let mut {} = vec![{}; {}];",
+                            name, default_value, size_code
+                        );
+                    }
+                }
+
                 // Add variable to type context for pointer arithmetic detection
                 ctx.add_variable(name.clone(), var_type.clone());
 
