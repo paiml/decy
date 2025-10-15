@@ -3147,4 +3147,63 @@ mod tests {
             _ => panic!("Expected for statement"),
         }
     }
+
+    #[test]
+    fn test_parse_sizeof_expression() {
+        // RED PHASE: Test for sizeof operator
+        let parser = CParser::new().expect("Parser creation failed");
+        let source = "int get_size() { return sizeof(int); }";
+
+        let ast = parser.parse(source).expect("Parsing sizeof should succeed");
+
+        assert_eq!(ast.functions().len(), 1, "Should parse one function");
+
+        let func = &ast.functions()[0];
+        assert_eq!(func.name, "get_size");
+        assert_eq!(func.body.len(), 1, "Function should have one statement");
+
+        // Check return statement contains sizeof expression
+        match &func.body[0] {
+            Statement::Return(Some(expr)) => match expr {
+                Expression::Sizeof { type_name } => {
+                    assert_eq!(type_name, "int", "sizeof should be for int type");
+                }
+                _ => panic!("Expected Sizeof expression, got {:?}", expr),
+            },
+            _ => panic!("Expected return statement with sizeof expression"),
+        }
+    }
+
+    #[test]
+    fn test_parse_sizeof_struct() {
+        // RED PHASE: Test for sizeof with struct type
+        let parser = CParser::new().expect("Parser creation failed");
+        let source = r#"
+            struct Data {
+                int value;
+            };
+            int get_struct_size() { return sizeof(struct Data); }
+        "#;
+
+        let ast = parser
+            .parse(source)
+            .expect("Parsing sizeof struct should succeed");
+
+        assert_eq!(ast.functions().len(), 1, "Should parse one function");
+
+        let func = &ast.functions()[0];
+        match &func.body[0] {
+            Statement::Return(Some(expr)) => match expr {
+                Expression::Sizeof { type_name } => {
+                    assert!(
+                        type_name.contains("Data"),
+                        "sizeof should be for Data struct, got: {}",
+                        type_name
+                    );
+                }
+                _ => panic!("Expected Sizeof expression"),
+            },
+            _ => panic!("Expected return statement with sizeof"),
+        }
+    }
 }

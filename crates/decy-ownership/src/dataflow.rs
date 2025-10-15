@@ -316,8 +316,10 @@ impl DataflowAnalyzer {
                 Self::track_expr_recursive(array, _graph, _index);
                 Self::track_expr_recursive(index, _graph, _index);
             }
-            HirExpression::IntLiteral(_) | HirExpression::StringLiteral(_) => {
-                // No tracking needed for literals
+            HirExpression::IntLiteral(_)
+            | HirExpression::StringLiteral(_)
+            | HirExpression::Sizeof { .. } => {
+                // No tracking needed for literals or sizeof
             }
         }
     }

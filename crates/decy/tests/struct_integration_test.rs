@@ -334,17 +334,14 @@ fn test_struct_with_sizeof() {
     println!("Generated Rust code:\n{}", rust_code);
 
     // And: Should convert sizeof to std::mem::size_of
-    // NOTE: Temporarily skipping this assertion because sizeof is not yet implemented
-    // This will be fixed in DECY-042 phase 2
-    // assert!(
-    //     rust_code.contains("size_of") || rust_code.contains("std::mem"),
-    //     "Should use Rust's size_of equivalent"
-    // );
+    assert!(
+        rust_code.contains("size_of") || rust_code.contains("std::mem"),
+        "Should use Rust's size_of equivalent"
+    );
 
     // And: Generated code should compile
-    // NOTE: Temporarily skipping compilation test because sizeof returns empty
-    // match compile_rust_code(&rust_code, "test_sizeof") {
-    //     Ok(_) => (),
-    //     Err(e) => panic!("Generated Rust code should compile. Errors:\n{}", e),
-    // }
+    match compile_rust_code(&rust_code, "test_sizeof") {
+        Ok(_) => (),
+        Err(e) => panic!("Generated Rust code should compile. Errors:\n{}", e),
+    }
 }
