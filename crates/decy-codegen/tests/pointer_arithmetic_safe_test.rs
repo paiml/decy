@@ -9,7 +9,7 @@
 //! CRITICAL: This transformation is the most important for achieving <5 unsafe blocks per 1000 LOC.
 
 use decy_codegen::CodeGenerator;
-use decy_hir::{HirExpression, HirFunction, HirParameter, HirStatement, HirType, BinaryOperator};
+use decy_hir::{BinaryOperator, HirExpression, HirFunction, HirParameter, HirStatement, HirType};
 
 /// Test simple pointer addition → slice indexing
 ///
@@ -133,7 +133,10 @@ fn test_pointer_difference_to_index_difference() {
         "distance".to_string(),
         HirType::Int,
         vec![
-            HirParameter::new("start".to_string(), HirType::Pointer(Box::new(HirType::Int))),
+            HirParameter::new(
+                "start".to_string(),
+                HirType::Pointer(Box::new(HirType::Int)),
+            ),
             HirParameter::new("end".to_string(), HirType::Pointer(Box::new(HirType::Int))),
         ],
         vec![HirStatement::Return(Some(HirExpression::BinaryOp {
@@ -372,7 +375,7 @@ fn test_pointer_arithmetic_transformation_unsafe_count() {
     let codegen = CodeGenerator::new();
 
     // Test multiple pointer arithmetic scenarios
-    let test_cases = vec![
+    let test_cases = [
         // ptr + offset
         HirExpression::BinaryOp {
             op: BinaryOperator::Add,
