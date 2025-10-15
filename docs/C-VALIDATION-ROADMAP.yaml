@@ -5,17 +5,17 @@ roadmap:
   methodology: "EXTREME TDD (Test-First, RED-GREEN-REFACTOR)"
   reference: "ISO C99 Standard (ISO/IEC 9899:1999) + K&R C (2nd Edition)"
   status: "IN_PROGRESS"
-  completion: "19%"
+  completion: "20%"
   unsafe_blocks_per_1000_loc_target: "<5"
 
   statistics:
     total_tasks: 150
-    completed: 29
+    completed: 30
     partial_support: 0
     in_progress: 0
     blocked: 0
-    not_started: 121
-    coverage_percent: 19
+    not_started: 120
+    coverage_percent: 20
 
 extreme_tdd_workflow:
   description: "Standard workflow for each task"
@@ -436,7 +436,8 @@ chapters:
 
           - id: "TYPE-STRUCT-NESTED"
             title: "Document nested structs"
-            status: "not_started"
+            status: "completed"
+            version: "v0.15.0"
             priority: "medium"
             examples:
               - c: "struct Outer { struct Inner { int x; } inner; };"
@@ -444,6 +445,10 @@ chapters:
             validation_reference: "K&R §6.2, ISO C99 §6.7.2.1"
             test_name: "test_nested_struct"
             sprint: 2
+            completed_date: "2025-10-15"
+            tests_added: 9
+            coverage: "100%"
+            unsafe_blocks: 0
 
       - id: "3.5"
         name: "Type Qualifiers (C99 §6.7.3)"
@@ -1206,8 +1211,10 @@ high_priority_next_tasks:
     - id: "TYPE-STRUCT-NESTED"
       title: "Nested structs"
       priority: 15
-      status: "🔴 NOT STARTED (Sprint 2)"
+      status: "✅ COMPLETED (Sprint 2)"
       unsafe_reduction: "None (already safe)"
+      completed_date: "2025-10-15"
+      tests_added: 9
 
     - id: "STDLIB-SCANF"
       title: "scanf → stdin reading"
@@ -1251,17 +1258,17 @@ next_steps:
 
 status:
   overall: "IN_PROGRESS"
-  completion_percent: 19
-  completed_tasks: 29
+  completion_percent: 20
+  completed_tasks: 30
   in_progress_tasks: 0
-  not_started_tasks: 121
+  not_started_tasks: 120
   total_tasks: 150
   methodology: "EXTREME TDD (RED-GREEN-REFACTOR) + Ownership Inference"
   goal: "100% C99 language coverage with <5 unsafe blocks per 1000 LOC"
   last_completed:
-    task_id: "STDLIB-STRCPY"
-    title: "strcpy → String/clone transformation"
-    version: "v0.14.0"
+    task_id: "TYPE-STRUCT-NESTED"
+    title: "Nested struct transformation"
+    version: "v0.15.0"
     date: "2025-10-15"
     unsafe_blocks_added: 0
     tests_added: 9
