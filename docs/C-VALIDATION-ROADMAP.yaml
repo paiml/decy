@@ -10,12 +10,12 @@ roadmap:
 
   statistics:
     total_tasks: 150
-    completed: 45
+    completed: 46
     partial_support: 0
     in_progress: 0
     blocked: 1
-    not_started: 104
-    coverage_percent: 30
+    not_started: 103
+    coverage_percent: 31
 
 extreme_tdd_workflow:
   description: "Standard workflow for each task"
@@ -655,6 +655,33 @@ chapters:
             validation_reference: "K&R §5.4, ISO C99 §6.5.3.4"
             test_name: "test_sizeof_expression"
             completed_ticket: "DECY-044"
+
+          - id: "EXPR-CAST"
+            title: "Document cast operators"
+            status: "completed"
+            priority: "high"
+            version: "v0.29.0"
+            examples:
+              - c: "int i = (int)3.14;"
+                rust: "let i = 3.14 as i32;"
+                note: "Numeric cast uses as operator (SAFE)"
+              - c: "unsigned u = (unsigned)-1;"
+                rust: "let u = -1i32 as u32;"
+                note: "Wrapping is well-defined"
+              - c: "int bits = *(int*)&f;"
+                rust: "let bits = f.to_bits();"
+                note: "Type punning has safe methods"
+              - c: "void* vp = (void*)ptr;"
+                rust: "let vp = ptr as *const ();"
+                note: "Pointer casts safe to create, unsafe to deref"
+            validation_reference: "K&R §2.7, ISO C99 §6.5.4"
+            test_name: "test_cast_operators"
+            sprint: 5
+            completed_date: "2025-10-15"
+            tests_added: 20
+            coverage: "100%"
+            unsafe_blocks: 0
+            note: "Cast operators → as operator (SAFE for most casts). Numeric conversions explicit and well-defined. Type punning has safe methods (to_bits). Only transmute requires unsafe. From/Into traits for struct conversions."
 
       - id: "4.4"
         name: "Arithmetic Operators (C99 §6.5.5-6.5.7)"
@@ -1453,21 +1480,21 @@ next_steps:
 
 status:
   overall: "IN_PROGRESS"
-  completion_percent: 30
-  completed_tasks: 45
+  completion_percent: 31
+  completed_tasks: 46
   in_progress_tasks: 0
   blocked_tasks: 1
-  not_started_tasks: 104
+  not_started_tasks: 103
   total_tasks: 150
   methodology: "EXTREME TDD (RED-GREEN-REFACTOR) + Ownership Inference"
   goal: "100% C99 language coverage with <5 unsafe blocks per 1000 LOC"
   last_completed:
-    task_id: "EXPR-TERNARY"
-    title: "ternary operator documentation"
-    version: "v0.28.0"
+    task_id: "EXPR-CAST"
+    title: "cast operators documentation"
+    version: "v0.29.0"
     date: "2025-10-15"
     unsafe_blocks_added: 0
-    tests_added: 17
+    tests_added: 20
     coverage: "100%"
   current_sprint: 5
   current_unsafe_count_per_1000_loc: 0
