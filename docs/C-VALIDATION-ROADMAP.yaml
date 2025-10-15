@@ -10,11 +10,11 @@ roadmap:
 
   statistics:
     total_tasks: 150
-    completed: 28
+    completed: 29
     partial_support: 0
     in_progress: 0
     blocked: 0
-    not_started: 122
+    not_started: 121
     coverage_percent: 19
 
 extreme_tdd_workflow:
@@ -976,7 +976,8 @@ chapters:
 
           - id: "STDLIB-STRCPY"
             title: "Document strcpy → String/clone"
-            status: "not_started"
+            status: "completed"
+            version: "v0.14.0"
             priority: "medium"
             examples:
               - c: "strcpy(dest, src);"
@@ -984,6 +985,10 @@ chapters:
             validation_reference: "K&R §B3, ISO C99 §7.21.3.1"
             test_name: "test_strcpy_transformation"
             sprint: 2
+            completed_date: "2025-10-15"
+            tests_added: 9
+            coverage: "100%"
+            unsafe_blocks: 0
 
   - id: 8
     name: "Preprocessor (C99 §6.10)"
@@ -1193,8 +1198,10 @@ high_priority_next_tasks:
     - id: "STDLIB-STRCPY"
       title: "strcpy → String/clone"
       priority: 14
-      status: "🔴 NOT STARTED (Sprint 2)"
+      status: "✅ COMPLETED (Sprint 2)"
       unsafe_reduction: "Buffer overflow prevention"
+      completed_date: "2025-10-15"
+      tests_added: 9
 
     - id: "TYPE-STRUCT-NESTED"
       title: "Nested structs"
@@ -1245,19 +1252,19 @@ next_steps:
 status:
   overall: "IN_PROGRESS"
   completion_percent: 19
-  completed_tasks: 28
+  completed_tasks: 29
   in_progress_tasks: 0
-  not_started_tasks: 122
+  not_started_tasks: 121
   total_tasks: 150
   methodology: "EXTREME TDD (RED-GREEN-REFACTOR) + Ownership Inference"
   goal: "100% C99 language coverage with <5 unsafe blocks per 1000 LOC"
   last_completed:
-    task_id: "STDLIB-STRLEN"
-    title: "strlen → .len() transformation"
-    version: "v0.13.0"
+    task_id: "STDLIB-STRCPY"
+    title: "strcpy → String/clone transformation"
+    version: "v0.14.0"
     date: "2025-10-15"
     unsafe_blocks_added: 0
-    tests_added: 8
+    tests_added: 9
     coverage: "100%"
   current_sprint: 2
   current_unsafe_count_per_1000_loc: 0
