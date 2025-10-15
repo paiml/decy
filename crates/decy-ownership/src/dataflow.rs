@@ -325,6 +325,10 @@ impl DataflowAnalyzer {
             HirExpression::IsNotNull(inner) => {
                 Self::track_expr_recursive(inner, _graph, _index);
             }
+            HirExpression::Calloc { count, .. } => {
+                // Track the count expression (may use variables)
+                Self::track_expr_recursive(count, _graph, _index);
+            }
         }
     }
 
