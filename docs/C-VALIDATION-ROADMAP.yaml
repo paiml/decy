@@ -1,0 +1,1199 @@
+---
+roadmap:
+  title: "C Language Validation Roadmap - EXTREME TDD"
+  goal: "Document every C construct transformation to idiomatic Rust with minimal unsafe"
+  methodology: "EXTREME TDD (Test-First, RED-GREEN-REFACTOR)"
+  reference: "ISO C99 Standard (ISO/IEC 9899:1999) + K&R C (2nd Edition)"
+  status: "IN_PROGRESS"
+  completion: "12%"
+  unsafe_blocks_per_1000_loc_target: "<5"
+
+  statistics:
+    total_tasks: 150
+    completed: 18
+    partial_support: 0
+    in_progress: 1
+    blocked: 0
+    not_started: 131
+    coverage_percent: 12
+
+extreme_tdd_workflow:
+  description: "Standard workflow for each task"
+  steps:
+    - id: 1
+      name: "RED"
+      description: "Write failing test first"
+      example: |
+        #[test]
+        fn test_<feature>_transformation() {
+            let c_code = "<C input>";
+            let expected_rust = "<expected rust>";
+
+            let result = transpile(c_code)?;
+            assert_eq!(result, expected_rust);
+
+            // Verify unsafe block count
+            let unsafe_count = count_unsafe_blocks(&result);
+            assert!(unsafe_count <= MAX_UNSAFE_PER_MODULE);
+        }
+
+    - id: 2
+      name: "GREEN"
+      description: "Implement transformation"
+      substeps:
+        - "Update parser for C construct (decy-parser)"
+        - "Update HIR representation (decy-hir)"
+        - "Update analyzer for safety checks (decy-analyzer)"
+        - "Update ownership inference (decy-ownership)"
+        - "Update codegen (decy-codegen)"
+        - "Verify safety properties (decy-verify)"
+
+    - id: 3
+      name: "REFACTOR"
+      description: "Clean up implementation and minimize unsafe"
+      substeps:
+        - "Extract common patterns"
+        - "Add helper functions"
+        - "Document edge cases"
+        - "Reduce unsafe blocks through better ownership inference"
+        - "Add SAFETY comments to remaining unsafe blocks"
+
+    - id: 4
+      name: "DOCUMENT"
+      description: "Add to examples and documentation"
+      substeps:
+        - "Update examples/"
+        - "Add to test fixtures"
+        - "Update CHANGELOG.md"
+        - "Document unsafe rationale if any remain"
+
+stop_the_line_protocol:
+  description: "ANDON CORD - Pull when validation reveals bugs"
+  trigger_conditions:
+    - "Transpiled code doesn't compile"
+    - "Transpiled code has different behavior than C"
+    - "Unsafe block count exceeds target"
+    - "Parser fails on valid C99 construct"
+    - "Ownership inference creates memory leak"
+    - "Verification stage fails safety checks"
+
+  procedure:
+    - step: 1
+      action: "STOP all feature development immediately"
+      responsible: "Developer who discovered issue"
+
+    - step: 2
+      action: "Create P0 ticket in roadmap.yaml"
+      template: |
+        P0-<CONSTRUCT>-<NUMBER>:
+          title: "[P0] Fix <construct> transpilation bug"
+          type: bug
+          priority: critical
+          story_points: <estimated>
+          status: in_progress
+          phase: RED
+          discovered_during_validation: true
+          validation_reference: "<ISO C99 section or K&R page>"
+          c_input: |
+            <failing C code>
+          expected_rust: |
+            <correct Rust output>
+          actual_rust: |
+            <buggy Rust output or error>
+          safety_impact: "<memory safety, undefined behavior, etc.>"
+
+    - step: 3
+      action: "Apply EXTREME TDD fix (RED-GREEN-REFACTOR)"
+      requirements:
+        - "Must add failing test first (RED)"
+        - "Must fix with minimal implementation (GREEN)"
+        - "Must meet quality gates (REFACTOR)"
+        - "Must verify unsafe count didn't increase"
+
+    - step: 4
+      action: "Resume validation only after fix verified"
+      verification_checklist:
+        - "All tests pass (make test)"
+        - "Quality gates pass (make quality-gates)"
+        - "Coverage ≥80% (≥90% for decy-ownership)"
+        - "Unsafe count ≤5 per 1000 LOC"
+        - "Original validation case passes"
+
+validation_references:
+  primary:
+    - name: "ISO C99 Standard"
+      identifier: "ISO/IEC 9899:1999"
+      sections: 300+
+      url: "https://www.open-std.org/jtc1/sc22/wg14/www/docs/n1256.pdf"
+      coverage: "Complete C language specification"
+
+    - name: "K&R C (2nd Edition)"
+      authors: "Brian Kernighan, Dennis Ritchie"
+      isbn: "0131103628"
+      chapters: 8
+      appendix_sections: 6
+      coverage: "Canonical C reference with examples"
+
+  supplementary:
+    - name: "GCC Documentation"
+      url: "https://gcc.gnu.org/onlinedocs/gcc/"
+      coverage: "Extensions and compiler-specific behavior"
+
+    - name: "Clang Documentation"
+      url: "https://clang.llvm.org/docs/"
+      coverage: "AST structure and libclang API"
+
+unsafe_minimization_strategy:
+  description: "4-phase strategy to reduce unsafe blocks"
+  target: "<5 unsafe blocks per 1000 LOC"
+
+  phases:
+    - id: 1
+      name: "Pattern-Based"
+      description: "Detect common patterns and generate safe Rust"
+      target_reduction: "100% → 50%"
+      patterns:
+        - "malloc/free → Box::new()"
+        - "calloc/free → Vec::with_capacity()"
+        - "Array allocation → Vec"
+        - "String allocation → String/CString"
+      status: "IN_PROGRESS"
+
+    - id: 2
+      name: "Ownership Inference"
+      description: "Infer ownership from pointer usage"
+      target_reduction: "50% → 20%"
+      techniques:
+        - "Classify pointers: owning vs borrowing"
+        - "Detect unique ownership → Box"
+        - "Detect shared read-only → &T"
+        - "Detect exclusive mutable → &mut T"
+        - "Build pointer dataflow graph"
+      status: "IN_PROGRESS"
+      critical_crate: "decy-ownership"
+
+    - id: 3
+      name: "Lifetime Inference"
+      description: "Infer lifetimes from C variable scopes"
+      target_reduction: "20% → 10%"
+      techniques:
+        - "Map C scope to Rust lifetime"
+        - "Generate lifetime annotations"
+        - "Validate lifetime constraints"
+      status: "NOT_STARTED"
+
+    - id: 4
+      name: "Safe Wrappers"
+      description: "Wrap remaining unsafe in safe abstractions"
+      target_reduction: "10% → <5%"
+      techniques:
+        - "Create safe wrapper functions"
+        - "Add SAFETY comments for audit trail"
+        - "Document invariants"
+      status: "NOT_STARTED"
+
+chapters:
+  # Based on ISO C99 Standard structure
+
+  - id: 1
+    name: "Scope & Terms (C99 §1-4)"
+    description: "Foundational definitions and conformance"
+    tasks:
+      - id: "SCOPE-001"
+        title: "Document C99 conformance scope"
+        status: "completed"
+        version: "v0.1.0"
+        notes: "DECY targets C99 as baseline, with selective GCC extensions"
+        validation_reference: "ISO C99 §1-2"
+
+  - id: 2
+    name: "Lexical Elements (C99 §6.4)"
+    description: "Tokens, keywords, identifiers, constants"
+    sections:
+      - id: "2.1"
+        name: "Keywords (C99 §6.4.1)"
+        tasks:
+          - id: "LEX-KW-001"
+            title: "Document C keywords to Rust keywords mapping"
+            status: "completed"
+            version: "v0.1.0"
+            examples:
+              - c: "int x;"
+                rust: "let x: i32;"
+              - c: "const int MAX = 100;"
+                rust: "const MAX: i32 = 100;"
+              - c: "return 0;"
+                rust: "return 0;"
+            validation_reference: "K&R §2.1, ISO C99 §6.4.1"
+
+      - id: "2.2"
+        name: "Identifiers (C99 §6.4.2)"
+        tasks:
+          - id: "LEX-ID-001"
+            title: "Document identifier naming rules"
+            status: "completed"
+            version: "v0.1.0"
+            notes: "C identifiers map to Rust snake_case for variables/functions, PascalCase for types"
+            validation_reference: "K&R §2.2, ISO C99 §6.4.2"
+
+      - id: "2.3"
+        name: "Constants (C99 §6.4.4)"
+        tasks:
+          - id: "LEX-CONST-INT"
+            title: "Document integer constants"
+            status: "completed"
+            version: "v0.1.0"
+            examples:
+              - c: "int x = 42;"
+                rust: "let x: i32 = 42;"
+              - c: "long y = 42L;"
+                rust: "let y: i64 = 42;"
+              - c: "unsigned int z = 42U;"
+                rust: "let z: u32 = 42;"
+            validation_reference: "K&R §2.3, ISO C99 §6.4.4.1"
+            test_name: "test_integer_literal_transformation"
+
+          - id: "LEX-CONST-FLOAT"
+            title: "Document floating-point constants"
+            status: "completed"
+            version: "v0.1.0"
+            examples:
+              - c: "float pi = 3.14f;"
+                rust: "let pi: f32 = 3.14;"
+              - c: "double e = 2.718;"
+                rust: "let e: f64 = 2.718;"
+            validation_reference: "K&R §2.3, ISO C99 §6.4.4.2"
+            test_name: "test_float_literal_transformation"
+
+          - id: "LEX-CONST-CHAR"
+            title: "Document character constants"
+            status: "completed"
+            version: "v0.2.0"
+            examples:
+              - c: "char c = 'A';"
+                rust: "let c: u8 = b'A';"
+              - c: "char newline = '\\n';"
+                rust: "let newline: u8 = b'\\n';"
+            validation_reference: "K&R §2.3, ISO C99 §6.4.4.4"
+            test_name: "test_char_literal_transformation"
+
+          - id: "LEX-CONST-STR"
+            title: "Document string literals"
+            status: "completed"
+            version: "v0.2.0"
+            examples:
+              - c: "char* msg = \"Hello\";"
+                rust: "let msg: &str = \"Hello\";"
+              - c: "printf(\"Value: %d\\n\", x);"
+                rust: "println!(\"Value: {}\", x);"
+            validation_reference: "K&R §2.3, ISO C99 §6.4.5"
+            test_name: "test_string_literal_transformation"
+
+  - id: 3
+    name: "Types (C99 §6.2.5, §6.7)"
+    description: "Basic types, derived types, type qualifiers"
+    sections:
+      - id: "3.1"
+        name: "Basic Types (C99 §6.2.5)"
+        tasks:
+          - id: "TYPE-BASIC-INT"
+            title: "Document integer types"
+            status: "completed"
+            version: "v0.1.0"
+            examples:
+              - c: "char c;"
+                rust: "let c: i8;"
+              - c: "short s;"
+                rust: "let s: i16;"
+              - c: "int i;"
+                rust: "let i: i32;"
+              - c: "long l;"
+                rust: "let l: i64;"
+              - c: "unsigned int u;"
+                rust: "let u: u32;"
+            validation_reference: "K&R §2.2, ISO C99 §6.2.5"
+            test_name: "test_integer_type_mapping"
+
+          - id: "TYPE-BASIC-FLOAT"
+            title: "Document floating-point types"
+            status: "completed"
+            version: "v0.1.0"
+            examples:
+              - c: "float f;"
+                rust: "let f: f32;"
+              - c: "double d;"
+                rust: "let d: f64;"
+            validation_reference: "K&R §2.2, ISO C99 §6.2.5"
+            test_name: "test_float_type_mapping"
+
+          - id: "TYPE-BASIC-VOID"
+            title: "Document void type"
+            status: "completed"
+            version: "v0.1.0"
+            examples:
+              - c: "void func(void) {}"
+                rust: "fn func() {}"
+              - c: "void* ptr;"
+                rust: "let ptr: *mut u8;"
+                note: "void* requires unsafe handling"
+            validation_reference: "K&R §2.2, ISO C99 §6.2.5"
+            test_name: "test_void_type_mapping"
+
+      - id: "3.2"
+        name: "Derived Types - Pointers (C99 §6.7.5.1)"
+        tasks:
+          - id: "TYPE-PTR-BASIC"
+            title: "Document basic pointer types"
+            status: "completed"
+            version: "v0.3.0"
+            examples:
+              - c: "int* p;"
+                rust: "let p: &i32;"
+                note: "Or &mut i32 or Box<i32> depending on ownership"
+            validation_reference: "K&R §5.1, ISO C99 §6.7.5.1"
+            test_name: "test_pointer_type_basic"
+            ownership_inference: "CRITICAL"
+
+          - id: "TYPE-PTR-MALLOC"
+            title: "Document malloc/free pattern → Box"
+            status: "completed"
+            version: "v0.3.0"
+            examples:
+              - c: "int* p = malloc(sizeof(int)); free(p);"
+                rust: "let p = Box::new(0i32);"
+                unsafe_count: 0
+            validation_reference: "K&R §8.7, ISO C99 §7.20.3"
+            test_name: "test_malloc_to_box_transformation"
+            completed_ticket: "DECY-044"
+
+          - id: "TYPE-PTR-ARRAY"
+            title: "Document array allocation → Vec"
+            status: "completed"
+            version: "v0.3.0"
+            examples:
+              - c: "int* arr = malloc(n * sizeof(int)); free(arr);"
+                rust: "let arr = vec![0i32; n];"
+                unsafe_count: 0
+            validation_reference: "K&R §5.2, ISO C99 §6.7.5.2"
+            test_name: "test_array_malloc_to_vec"
+
+          - id: "TYPE-PTR-NULL"
+            title: "Document NULL → Option"
+            status: "in_progress"
+            version: "v0.4.0"
+            examples:
+              - c: "int* p = NULL; if (p) { ... }"
+                rust: "let p: Option<Box<i32>> = None; if let Some(p) = p { ... }"
+                unsafe_count: 0
+            validation_reference: "K&R §5.4, ISO C99 §7.17"
+            test_name: "test_null_to_option"
+            sprint: 1
+
+      - id: "3.3"
+        name: "Derived Types - Arrays (C99 §6.7.5.2)"
+        tasks:
+          - id: "TYPE-ARRAY-FIXED"
+            title: "Document fixed-size arrays"
+            status: "completed"
+            version: "v0.2.0"
+            examples:
+              - c: "int arr[10];"
+                rust: "let arr: [i32; 10] = [0; 10];"
+            validation_reference: "K&R §5.2, ISO C99 §6.7.5.2"
+            test_name: "test_fixed_array_transformation"
+
+          - id: "TYPE-ARRAY-VLA"
+            title: "Document variable-length arrays → Vec"
+            status: "not_started"
+            priority: "high"
+            examples:
+              - c: "int n = 10; int arr[n];"
+                rust: "let n = 10; let arr = vec![0i32; n];"
+            validation_reference: "ISO C99 §6.7.5.2 (VLA)"
+            test_name: "test_vla_to_vec"
+            sprint: 2
+
+      - id: "3.4"
+        name: "Derived Types - Structs (C99 §6.7.2.1)"
+        tasks:
+          - id: "TYPE-STRUCT-BASIC"
+            title: "Document struct definition"
+            status: "completed"
+            version: "v0.3.0"
+            examples:
+              - c: "struct Point { int x; int y; };"
+                rust: "struct Point { x: i32, y: i32 }"
+            validation_reference: "K&R §6.1, ISO C99 §6.7.2.1"
+            test_name: "test_struct_definition"
+
+          - id: "TYPE-STRUCT-NESTED"
+            title: "Document nested structs"
+            status: "not_started"
+            priority: "medium"
+            examples:
+              - c: "struct Outer { struct Inner { int x; } inner; };"
+                rust: "struct Inner { x: i32 } struct Outer { inner: Inner }"
+            validation_reference: "K&R §6.2, ISO C99 §6.7.2.1"
+            test_name: "test_nested_struct"
+            sprint: 2
+
+      - id: "3.5"
+        name: "Type Qualifiers (C99 §6.7.3)"
+        tasks:
+          - id: "TYPE-QUAL-CONST"
+            title: "Document const qualifier"
+            status: "completed"
+            version: "v0.1.0"
+            examples:
+              - c: "const int MAX = 100;"
+                rust: "const MAX: i32 = 100;"
+              - c: "const int* p;"
+                rust: "let p: &i32;"
+            validation_reference: "K&R §A8.2, ISO C99 §6.7.3"
+            test_name: "test_const_qualifier"
+
+          - id: "TYPE-QUAL-VOLATILE"
+            title: "Document volatile → unsafe or atomic"
+            status: "not_started"
+            priority: "low"
+            examples:
+              - c: "volatile int flag;"
+                rust: "// Requires unsafe or std::sync::atomic"
+            validation_reference: "K&R §A8.2, ISO C99 §6.7.3"
+            test_name: "test_volatile_qualifier"
+            sprint: 3
+            note: "May require unsafe block"
+
+  - id: 4
+    name: "Expressions (C99 §6.5)"
+    description: "Operators, precedence, evaluation"
+    sections:
+      - id: "4.1"
+        name: "Primary Expressions (C99 §6.5.1)"
+        tasks:
+          - id: "EXPR-PRIMARY-ID"
+            title: "Document identifier expressions"
+            status: "completed"
+            version: "v0.1.0"
+            validation_reference: "K&R §2.1, ISO C99 §6.5.1"
+
+      - id: "4.2"
+        name: "Postfix Operators (C99 §6.5.2)"
+        tasks:
+          - id: "EXPR-POSTFIX-ARRAY"
+            title: "Document array subscripting"
+            status: "completed"
+            version: "v0.2.0"
+            examples:
+              - c: "arr[i]"
+                rust: "arr[i]"
+            validation_reference: "K&R §5.2, ISO C99 §6.5.2.1"
+            test_name: "test_array_subscript"
+
+          - id: "EXPR-POSTFIX-CALL"
+            title: "Document function calls"
+            status: "completed"
+            version: "v0.1.0"
+            examples:
+              - c: "func(x, y)"
+                rust: "func(x, y)"
+            validation_reference: "K&R §4.2, ISO C99 §6.5.2.2"
+            test_name: "test_function_call"
+
+          - id: "EXPR-POSTFIX-MEMBER"
+            title: "Document struct member access"
+            status: "completed"
+            version: "v0.3.0"
+            examples:
+              - c: "point.x"
+                rust: "point.x"
+              - c: "point->x"
+                rust: "point.x"
+                note: "Pointer dereference eliminated with ownership"
+            validation_reference: "K&R §6.1, ISO C99 §6.5.2.3"
+            test_name: "test_member_access"
+
+          - id: "EXPR-POSTFIX-INCR"
+            title: "Document post-increment/decrement"
+            status: "not_started"
+            priority: "medium"
+            examples:
+              - c: "x++"
+                rust: "{ let tmp = x; x += 1; tmp }"
+              - c: "x--"
+                rust: "{ let tmp = x; x -= 1; tmp }"
+            validation_reference: "K&R §2.8, ISO C99 §6.5.2.4"
+            test_name: "test_postfix_increment"
+            sprint: 2
+
+      - id: "4.3"
+        name: "Unary Operators (C99 §6.5.3)"
+        tasks:
+          - id: "EXPR-UNARY-INCR"
+            title: "Document pre-increment/decrement"
+            status: "not_started"
+            priority: "medium"
+            examples:
+              - c: "++x"
+                rust: "{ x += 1; x }"
+              - c: "--x"
+                rust: "{ x -= 1; x }"
+            validation_reference: "K&R §2.8, ISO C99 §6.5.3.1"
+            test_name: "test_prefix_increment"
+            sprint: 2
+
+          - id: "EXPR-UNARY-ADDR"
+            title: "Document address-of operator (&)"
+            status: "completed"
+            version: "v0.3.0"
+            examples:
+              - c: "&x"
+                rust: "&x"
+                note: "Safe borrow in Rust"
+            validation_reference: "K&R §5.1, ISO C99 §6.5.3.2"
+            test_name: "test_address_of"
+
+          - id: "EXPR-UNARY-DEREF"
+            title: "Document dereference operator (*)"
+            status: "completed"
+            version: "v0.3.0"
+            examples:
+              - c: "*p"
+                rust: "*p"
+                note: "Safe with references, may need unsafe with raw pointers"
+            validation_reference: "K&R §5.1, ISO C99 §6.5.3.2"
+            test_name: "test_dereference"
+
+          - id: "EXPR-UNARY-SIZEOF"
+            title: "Document sizeof operator"
+            status: "completed"
+            version: "v0.3.0"
+            examples:
+              - c: "sizeof(int)"
+                rust: "std::mem::size_of::<i32>()"
+              - c: "sizeof(x)"
+                rust: "std::mem::size_of_val(&x)"
+            validation_reference: "K&R §5.4, ISO C99 §6.5.3.4"
+            test_name: "test_sizeof_expression"
+            completed_ticket: "DECY-044"
+
+      - id: "4.4"
+        name: "Arithmetic Operators (C99 §6.5.5-6.5.7)"
+        tasks:
+          - id: "EXPR-ARITH-BINARY"
+            title: "Document binary arithmetic"
+            status: "completed"
+            version: "v0.1.0"
+            examples:
+              - c: "a + b"
+                rust: "a + b"
+              - c: "a * b"
+                rust: "a * b"
+              - c: "a / b"
+                rust: "a / b"
+                note: "Rust panics on division by zero (safer)"
+            validation_reference: "K&R §2.5, ISO C99 §6.5.5-6"
+            test_name: "test_arithmetic_operators"
+
+          - id: "EXPR-ARITH-PTR"
+            title: "Document pointer arithmetic → slice indexing"
+            status: "not_started"
+            priority: "high"
+            examples:
+              - c: "p + 1"
+                rust: "&arr[i + 1]"
+                note: "Eliminate pointer arithmetic with slices"
+            validation_reference: "K&R §5.3, ISO C99 §6.5.6"
+            test_name: "test_pointer_arithmetic"
+            sprint: 3
+            ownership_inference: "CRITICAL"
+
+      - id: "4.5"
+        name: "Comparison Operators (C99 §6.5.8-6.5.9)"
+        tasks:
+          - id: "EXPR-CMP-RELATIONAL"
+            title: "Document relational operators"
+            status: "completed"
+            version: "v0.1.0"
+            examples:
+              - c: "a < b"
+                rust: "a < b"
+              - c: "a >= b"
+                rust: "a >= b"
+            validation_reference: "K&R §2.6, ISO C99 §6.5.8"
+            test_name: "test_relational_operators"
+
+          - id: "EXPR-CMP-EQUALITY"
+            title: "Document equality operators"
+            status: "completed"
+            version: "v0.1.0"
+            examples:
+              - c: "a == b"
+                rust: "a == b"
+              - c: "a != b"
+                rust: "a != b"
+            validation_reference: "K&R §2.6, ISO C99 §6.5.9"
+            test_name: "test_equality_operators"
+
+      - id: "4.6"
+        name: "Logical Operators (C99 §6.5.13-6.5.14)"
+        tasks:
+          - id: "EXPR-LOGICAL-AND"
+            title: "Document logical AND (&&)"
+            status: "completed"
+            version: "v0.2.0"
+            examples:
+              - c: "a && b"
+                rust: "a && b"
+            validation_reference: "K&R §2.6, ISO C99 §6.5.13"
+            test_name: "test_logical_and"
+
+          - id: "EXPR-LOGICAL-OR"
+            title: "Document logical OR (||)"
+            status: "completed"
+            version: "v0.2.0"
+            examples:
+              - c: "a || b"
+                rust: "a || b"
+            validation_reference: "K&R §2.6, ISO C99 §6.5.14"
+            test_name: "test_logical_or"
+
+      - id: "4.7"
+        name: "Assignment Operators (C99 §6.5.16)"
+        tasks:
+          - id: "EXPR-ASSIGN-SIMPLE"
+            title: "Document simple assignment"
+            status: "completed"
+            version: "v0.1.0"
+            examples:
+              - c: "x = 5"
+                rust: "x = 5"
+            validation_reference: "K&R §2.10, ISO C99 §6.5.16"
+            test_name: "test_simple_assignment"
+
+          - id: "EXPR-ASSIGN-COMPOUND"
+            title: "Document compound assignment"
+            status: "not_started"
+            priority: "medium"
+            examples:
+              - c: "x += 5"
+                rust: "x += 5"
+              - c: "x *= 2"
+                rust: "x *= 2"
+            validation_reference: "K&R §2.10, ISO C99 §6.5.16"
+            test_name: "test_compound_assignment"
+            sprint: 2
+
+  - id: 5
+    name: "Statements (C99 §6.8)"
+    description: "Control flow, iteration, jumps"
+    sections:
+      - id: "5.1"
+        name: "Expression Statements (C99 §6.8.3)"
+        tasks:
+          - id: "STMT-EXPR"
+            title: "Document expression statements"
+            status: "completed"
+            version: "v0.1.0"
+            examples:
+              - c: "x = 5;"
+                rust: "x = 5;"
+            validation_reference: "K&R §3.2, ISO C99 §6.8.3"
+            test_name: "test_expression_statement"
+
+      - id: "5.2"
+        name: "Selection Statements (C99 §6.8.4)"
+        tasks:
+          - id: "STMT-IF"
+            title: "Document if statements"
+            status: "completed"
+            version: "v0.2.0"
+            examples:
+              - c: "if (x > 0) { ... }"
+                rust: "if x > 0 { ... }"
+              - c: "if (x) { ... } else { ... }"
+                rust: "if x != 0 { ... } else { ... }"
+            validation_reference: "K&R §3.2, ISO C99 §6.8.4.1"
+            test_name: "test_if_statement"
+
+          - id: "STMT-SWITCH"
+            title: "Document switch → match"
+            status: "not_started"
+            priority: "high"
+            examples:
+              - c: "switch (x) { case 1: ...; break; default: ...; }"
+                rust: "match x { 1 => { ... }, _ => { ... } }"
+            validation_reference: "K&R §3.4, ISO C99 §6.8.4.2"
+            test_name: "test_switch_to_match"
+            sprint: 2
+
+      - id: "5.3"
+        name: "Iteration Statements (C99 §6.8.5)"
+        tasks:
+          - id: "STMT-WHILE"
+            title: "Document while loops"
+            status: "completed"
+            version: "v0.2.0"
+            examples:
+              - c: "while (x < 10) { ... }"
+                rust: "while x < 10 { ... }"
+            validation_reference: "K&R §3.5, ISO C99 §6.8.5.1"
+            test_name: "test_while_loop"
+
+          - id: "STMT-FOR"
+            title: "Document for loops"
+            status: "completed"
+            version: "v0.2.0"
+            examples:
+              - c: "for (int i = 0; i < n; i++) { ... }"
+                rust: "for i in 0..n { ... }"
+            validation_reference: "K&R §3.5, ISO C99 §6.8.5.3"
+            test_name: "test_for_loop"
+
+      - id: "5.4"
+        name: "Jump Statements (C99 §6.8.6)"
+        tasks:
+          - id: "STMT-RETURN"
+            title: "Document return statements"
+            status: "completed"
+            version: "v0.1.0"
+            examples:
+              - c: "return 0;"
+                rust: "return 0;"
+            validation_reference: "K&R §4.1, ISO C99 §6.8.6.4"
+            test_name: "test_return_statement"
+
+          - id: "STMT-BREAK"
+            title: "Document break statements"
+            status: "completed"
+            version: "v0.2.0"
+            examples:
+              - c: "break;"
+                rust: "break;"
+            validation_reference: "K&R §3.7, ISO C99 §6.8.6.3"
+            test_name: "test_break_statement"
+
+          - id: "STMT-CONTINUE"
+            title: "Document continue statements"
+            status: "completed"
+            version: "v0.2.0"
+            examples:
+              - c: "continue;"
+                rust: "continue;"
+            validation_reference: "K&R §3.7, ISO C99 §6.8.6.2"
+            test_name: "test_continue_statement"
+
+          - id: "STMT-GOTO"
+            title: "Document goto → eliminate or loop/match"
+            status: "not_started"
+            priority: "low"
+            examples:
+              - c: "goto label; ... label: ..."
+                rust: "// Restructure as loop or match"
+            validation_reference: "K&R §3.8, ISO C99 §6.8.6.1"
+            test_name: "test_goto_elimination"
+            sprint: 4
+            note: "Prefer elimination over labeled break"
+
+  - id: 6
+    name: "Functions (C99 §6.9.1)"
+    description: "Function declarations, definitions, parameters"
+    tasks:
+      - id: "FUNC-DECL"
+        title: "Document function declarations"
+        status: "completed"
+        version: "v0.1.0"
+        examples:
+          - c: "int add(int a, int b);"
+            rust: "fn add(a: i32, b: i32) -> i32;"
+        validation_reference: "K&R §4.1, ISO C99 §6.9.1"
+        test_name: "test_function_declaration"
+
+      - id: "FUNC-DEF"
+        title: "Document function definitions"
+        status: "completed"
+        version: "v0.1.0"
+        examples:
+          - c: "int add(int a, int b) { return a + b; }"
+            rust: "fn add(a: i32, b: i32) -> i32 { a + b }"
+        validation_reference: "K&R §4.1, ISO C99 §6.9.1"
+        test_name: "test_function_definition"
+
+      - id: "FUNC-VOID-PARAMS"
+        title: "Document void parameter lists"
+        status: "completed"
+        version: "v0.1.0"
+        examples:
+          - c: "void init(void) { ... }"
+            rust: "fn init() { ... }"
+        validation_reference: "K&R §4.1, ISO C99 §6.9.1"
+        test_name: "test_void_parameters"
+
+      - id: "FUNC-VARIADIC"
+        title: "Document variadic functions"
+        status: "not_started"
+        priority: "low"
+        examples:
+          - c: "int printf(const char* fmt, ...);"
+            rust: "// Use macro or explicit Vec<T>"
+        validation_reference: "K&R §7.3, ISO C99 §6.9.1, §7.15"
+        test_name: "test_variadic_functions"
+        sprint: 4
+        note: "May require macro generation"
+
+  - id: 7
+    name: "Standard Library (C99 §7)"
+    description: "stdio, stdlib, string, etc."
+    sections:
+      - id: "7.1"
+        name: "stdio.h (C99 §7.19)"
+        tasks:
+          - id: "STDLIB-PRINTF"
+            title: "Document printf → println!"
+            status: "completed"
+            version: "v0.2.0"
+            examples:
+              - c: "printf(\"Value: %d\\n\", x);"
+                rust: "println!(\"Value: {}\", x);"
+            validation_reference: "K&R §7.2, ISO C99 §7.19.6.1"
+            test_name: "test_printf_to_println"
+
+          - id: "STDLIB-SCANF"
+            title: "Document scanf → read from stdin"
+            status: "not_started"
+            priority: "low"
+            examples:
+              - c: "scanf(\"%d\", &x);"
+                rust: "// Use std::io::stdin()"
+            validation_reference: "K&R §7.4, ISO C99 §7.19.6.2"
+            test_name: "test_scanf_transformation"
+            sprint: 3
+
+      - id: "7.2"
+        name: "stdlib.h (C99 §7.20)"
+        tasks:
+          - id: "STDLIB-MALLOC"
+            title: "Document malloc → Box/Vec"
+            status: "completed"
+            version: "v0.3.0"
+            examples:
+              - c: "int* p = malloc(sizeof(int));"
+                rust: "let p = Box::new(0i32);"
+            validation_reference: "K&R §8.7, ISO C99 §7.20.3.3"
+            test_name: "test_malloc_to_box"
+            completed_ticket: "DECY-044"
+
+          - id: "STDLIB-FREE"
+            title: "Document free → automatic Drop"
+            status: "completed"
+            version: "v0.3.0"
+            examples:
+              - c: "free(p);"
+                rust: "// Automatic when Box/Vec goes out of scope"
+            validation_reference: "K&R §8.7, ISO C99 §7.20.3.2"
+            test_name: "test_free_elimination"
+
+          - id: "STDLIB-CALLOC"
+            title: "Document calloc → Vec::with_capacity"
+            status: "not_started"
+            priority: "high"
+            examples:
+              - c: "int* arr = calloc(n, sizeof(int));"
+                rust: "let arr = vec![0i32; n];"
+            validation_reference: "ISO C99 §7.20.3.1"
+            test_name: "test_calloc_to_vec"
+            sprint: 1
+
+          - id: "STDLIB-REALLOC"
+            title: "Document realloc → Vec methods"
+            status: "not_started"
+            priority: "medium"
+            examples:
+              - c: "p = realloc(p, new_size);"
+                rust: "vec.resize(new_size, default);"
+            validation_reference: "ISO C99 §7.20.3.4"
+            test_name: "test_realloc_to_vec_resize"
+            sprint: 2
+
+      - id: "7.3"
+        name: "string.h (C99 §7.21)"
+        tasks:
+          - id: "STDLIB-STRLEN"
+            title: "Document strlen → .len()"
+            status: "not_started"
+            priority: "medium"
+            examples:
+              - c: "size_t len = strlen(s);"
+                rust: "let len = s.len();"
+            validation_reference: "K&R §B3, ISO C99 §7.21.6.3"
+            test_name: "test_strlen_to_len"
+            sprint: 2
+
+          - id: "STDLIB-STRCPY"
+            title: "Document strcpy → String/clone"
+            status: "not_started"
+            priority: "medium"
+            examples:
+              - c: "strcpy(dest, src);"
+                rust: "dest = src.to_string();"
+            validation_reference: "K&R §B3, ISO C99 §7.21.3.1"
+            test_name: "test_strcpy_transformation"
+            sprint: 2
+
+  - id: 8
+    name: "Preprocessor (C99 §6.10)"
+    description: "#define, #include, #ifdef, etc."
+    tasks:
+      - id: "PREP-INCLUDE"
+        title: "Document #include → use statements"
+        status: "not_started"
+        priority: "high"
+        examples:
+          - c: "#include <stdio.h>"
+            rust: "// Built-in, no import needed"
+          - c: "#include \"myheader.h\""
+            rust: "mod mymodule;"
+        validation_reference: "K&R §4.11, ISO C99 §6.10.2"
+        test_name: "test_include_to_use"
+        sprint: 3
+
+      - id: "PREP-DEFINE-CONST"
+        title: "Document #define constants → const"
+        status: "not_started"
+        priority: "high"
+        examples:
+          - c: "#define MAX 100"
+            rust: "const MAX: i32 = 100;"
+        validation_reference: "K&R §4.11, ISO C99 §6.10.3"
+        test_name: "test_define_const"
+        sprint: 2
+
+      - id: "PREP-DEFINE-MACRO"
+        title: "Document #define macros → functions or macros"
+        status: "not_started"
+        priority: "medium"
+        examples:
+          - c: "#define SQR(x) ((x) * (x))"
+            rust: "fn sqr(x: i32) -> i32 { x * x }"
+        validation_reference: "K&R §4.11, ISO C99 §6.10.3"
+        test_name: "test_define_macro_to_function"
+        sprint: 3
+
+      - id: "PREP-IFDEF"
+        title: "Document #ifdef → cfg"
+        status: "not_started"
+        priority: "low"
+        examples:
+          - c: "#ifdef DEBUG ... #endif"
+            rust: "#[cfg(debug_assertions)] { ... }"
+        validation_reference: "K&R §4.11, ISO C99 §6.10.1"
+        test_name: "test_ifdef_to_cfg"
+        sprint: 4
+
+completed_features:
+  - title: "Basic types (int, float, char)"
+    version: "v0.1.0"
+    tasks: ["TYPE-BASIC-INT", "TYPE-BASIC-FLOAT"]
+    tests: 5
+    methodology: "EXTREME TDD"
+    unsafe_blocks: 0
+
+  - title: "Integer and float literals"
+    version: "v0.1.0"
+    tasks: ["LEX-CONST-INT", "LEX-CONST-FLOAT"]
+    tests: 6
+    methodology: "EXTREME TDD"
+    unsafe_blocks: 0
+
+  - title: "Basic arithmetic and comparison operators"
+    version: "v0.1.0"
+    tasks: ["EXPR-ARITH-BINARY", "EXPR-CMP-RELATIONAL", "EXPR-CMP-EQUALITY"]
+    tests: 8
+    methodology: "EXTREME TDD"
+    unsafe_blocks: 0
+
+  - title: "Function declarations and definitions"
+    version: "v0.1.0"
+    tasks: ["FUNC-DECL", "FUNC-DEF", "FUNC-VOID-PARAMS"]
+    tests: 4
+    methodology: "EXTREME TDD"
+    unsafe_blocks: 0
+
+  - title: "Control flow (if, while, for)"
+    version: "v0.2.0"
+    tasks: ["STMT-IF", "STMT-WHILE", "STMT-FOR"]
+    tests: 12
+    methodology: "EXTREME TDD"
+    unsafe_blocks: 0
+
+  - title: "Pointers and malloc/free → Box"
+    version: "v0.3.0"
+    tasks: ["TYPE-PTR-MALLOC", "STDLIB-MALLOC", "STDLIB-FREE"]
+    tests: 9
+    methodology: "EXTREME TDD + Ownership Inference"
+    unsafe_blocks: 0
+    critical_ticket: "DECY-044"
+
+  - title: "sizeof operator"
+    version: "v0.3.0"
+    tasks: ["EXPR-UNARY-SIZEOF"]
+    tests: 9
+    methodology: "EXTREME TDD + Property Testing"
+    unsafe_blocks: 0
+    critical_ticket: "DECY-044"
+
+high_priority_next_tasks:
+  description: "Next 20 tasks to implement"
+  tasks:
+    - id: "TYPE-PTR-NULL"
+      title: "NULL → Option<T>"
+      priority: 1
+      status: "🟡 IN PROGRESS (Sprint 1)"
+      ownership_inference_impact: "HIGH"
+      unsafe_reduction: "Eliminates null pointer dereferences"
+
+    - id: "STDLIB-CALLOC"
+      title: "calloc → Vec::with_capacity"
+      priority: 2
+      status: "🔴 NOT STARTED (Sprint 1)"
+      ownership_inference_impact: "HIGH"
+      unsafe_reduction: "Pattern-based allocation"
+
+    - id: "STMT-SWITCH"
+      title: "switch → match"
+      priority: 3
+      status: "🔴 NOT STARTED (Sprint 2)"
+      unsafe_reduction: "None (already safe)"
+
+    - id: "TYPE-ARRAY-VLA"
+      title: "Variable-length arrays → Vec"
+      priority: 4
+      status: "🔴 NOT STARTED (Sprint 2)"
+      unsafe_reduction: "Stack overflow prevention"
+
+    - id: "EXPR-ARITH-PTR"
+      title: "Pointer arithmetic → slice indexing"
+      priority: 5
+      status: "🔴 NOT STARTED (Sprint 3)"
+      ownership_inference_impact: "CRITICAL"
+      unsafe_reduction: "Eliminates pointer arithmetic"
+
+    - id: "STDLIB-REALLOC"
+      title: "realloc → Vec::resize"
+      priority: 6
+      status: "🔴 NOT STARTED (Sprint 2)"
+      ownership_inference_impact: "MEDIUM"
+      unsafe_reduction: "Pattern-based reallocation"
+
+    - id: "EXPR-POSTFIX-INCR"
+      title: "Post-increment/decrement"
+      priority: 7
+      status: "🔴 NOT STARTED (Sprint 2)"
+      unsafe_reduction: "None (already safe)"
+
+    - id: "EXPR-UNARY-INCR"
+      title: "Pre-increment/decrement"
+      priority: 8
+      status: "🔴 NOT STARTED (Sprint 2)"
+      unsafe_reduction: "None (already safe)"
+
+    - id: "EXPR-ASSIGN-COMPOUND"
+      title: "Compound assignment (+=, *=, etc.)"
+      priority: 9
+      status: "🔴 NOT STARTED (Sprint 2)"
+      unsafe_reduction: "None (already safe)"
+
+    - id: "PREP-DEFINE-CONST"
+      title: "#define constants → const"
+      priority: 10
+      status: "🔴 NOT STARTED (Sprint 2)"
+      unsafe_reduction: "None (already safe)"
+
+    - id: "PREP-INCLUDE"
+      title: "#include → use statements"
+      priority: 11
+      status: "🔴 NOT STARTED (Sprint 3)"
+      unsafe_reduction: "None (module system)"
+
+    - id: "PREP-DEFINE-MACRO"
+      title: "#define macros → functions or macros"
+      priority: 12
+      status: "🔴 NOT STARTED (Sprint 3)"
+      unsafe_reduction: "Type safety from functions"
+
+    - id: "STDLIB-STRLEN"
+      title: "strlen → .len()"
+      priority: 13
+      status: "🔴 NOT STARTED (Sprint 2)"
+      unsafe_reduction: "None (already safe)"
+
+    - id: "STDLIB-STRCPY"
+      title: "strcpy → String/clone"
+      priority: 14
+      status: "🔴 NOT STARTED (Sprint 2)"
+      unsafe_reduction: "Buffer overflow prevention"
+
+    - id: "TYPE-STRUCT-NESTED"
+      title: "Nested structs"
+      priority: 15
+      status: "🔴 NOT STARTED (Sprint 2)"
+      unsafe_reduction: "None (already safe)"
+
+    - id: "STDLIB-SCANF"
+      title: "scanf → stdin reading"
+      priority: 16
+      status: "🔴 NOT STARTED (Sprint 3)"
+      unsafe_reduction: "Type-safe parsing"
+
+    - id: "FUNC-VARIADIC"
+      title: "Variadic functions"
+      priority: 17
+      status: "🔴 NOT STARTED (Sprint 4)"
+      unsafe_reduction: "Type safety from macros or Vec"
+
+    - id: "STMT-GOTO"
+      title: "goto elimination"
+      priority: 18
+      status: "🔴 NOT STARTED (Sprint 4)"
+      unsafe_reduction: "Structured control flow"
+
+    - id: "TYPE-QUAL-VOLATILE"
+      title: "volatile → atomic"
+      priority: 19
+      status: "🔴 NOT STARTED (Sprint 3)"
+      unsafe_reduction: "May require unsafe (atomic operations)"
+
+    - id: "DECY-045"
+      title: "Comprehensive sizeof edge case testing"
+      priority: 20
+      status: "🔴 NOT STARTED"
+      type: "quality"
+      unsafe_reduction: "Prevents parser bugs"
+
+next_steps:
+  - "Start with TYPE-PTR-NULL (NULL → Option) in Sprint 1"
+  - "Follow EXTREME TDD religiously (RED-GREEN-REFACTOR)"
+  - "Pull ANDON CORD immediately when bugs found during validation"
+  - "Track unsafe block count per sprint (target: <5 per 1000 LOC)"
+  - "Use STOP THE LINE protocol for all validation failures"
+  - "Document all transformations with C99/K&R references"
+  - "Prioritize ownership inference improvements in decy-ownership crate"
+
+status:
+  overall: "IN_PROGRESS"
+  completion_percent: 12
+  completed_tasks: 18
+  in_progress_tasks: 1
+  not_started_tasks: 131
+  total_tasks: 150
+  methodology: "EXTREME TDD (RED-GREEN-REFACTOR) + Ownership Inference"
+  goal: "100% C99 language coverage with <5 unsafe blocks per 1000 LOC"
+  last_completed:
+    task_id: "DECY-044"
+    title: "Fix parser handling of malloc(sizeof(T))"
+    version: "v0.3.0"
+    date: "2025-10-15"
+    unsafe_blocks_added: 0
+  current_sprint: 1
+  current_unsafe_count_per_1000_loc: 0
+  target_unsafe_count_per_1000_loc: 5
