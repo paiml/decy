@@ -10,12 +10,12 @@ roadmap:
 
   statistics:
     total_tasks: 150
-    completed: 36
+    completed: 37
     partial_support: 0
     in_progress: 0
     blocked: 1
-    not_started: 113
-    coverage_percent: 24
+    not_started: 112
+    coverage_percent: 25
 
 extreme_tdd_workflow:
   description: "Standard workflow for each task"
@@ -825,15 +825,24 @@ chapters:
 
           - id: "STMT-GOTO"
             title: "Document goto → eliminate or loop/match"
-            status: "not_started"
+            status: "completed"
             priority: "low"
+            version: "v0.22.0"
             examples:
-              - c: "goto label; ... label: ..."
-                rust: "// Restructure as loop or match"
+              - c: "if (err) goto cleanup; ... cleanup: free(p);"
+                rust: "let p = Box::new(0); // RAII cleanup via Drop"
+              - c: "for (...) { if (found) goto done; } done: ..."
+                rust: "'outer: for ... { break 'outer; }"
+              - c: "state1: ... goto state2; state2: ..."
+                rust: "loop { match state { State1 => ..., State2 => ... } }"
             validation_reference: "K&R §3.8, ISO C99 §6.8.6.1"
-            test_name: "test_goto_elimination"
+            test_name: "test_goto_documentation"
             sprint: 4
-            note: "Prefer elimination over labeled break"
+            completed_date: "2025-10-15"
+            tests_added: 12
+            coverage: "100%"
+            unsafe_blocks: 0
+            note: "Documentation-only task - goto eliminated via Result+RAII (error handling), labeled break (nested loops), loop+match (state machines), loop+continue (retry logic), if restructuring (forward jumps). Rust has NO goto statement."
 
   - id: 6
     name: "Functions (C99 §6.9.1)"
@@ -1288,8 +1297,10 @@ high_priority_next_tasks:
     - id: "STMT-GOTO"
       title: "goto elimination"
       priority: 18
-      status: "🔴 NOT STARTED (Sprint 4)"
-      unsafe_reduction: "Structured control flow"
+      status: "✅ COMPLETED (Sprint 4)"
+      unsafe_reduction: "Structured control flow (0 unsafe blocks)"
+      completed_date: "2025-10-15"
+      tests_added: 12
 
     - id: "TYPE-QUAL-VOLATILE"
       title: "volatile → atomic"
@@ -1317,21 +1328,21 @@ next_steps:
 
 status:
   overall: "IN_PROGRESS"
-  completion_percent: 24
-  completed_tasks: 36
+  completion_percent: 25
+  completed_tasks: 37
   in_progress_tasks: 0
   blocked_tasks: 1
-  not_started_tasks: 113
+  not_started_tasks: 112
   total_tasks: 150
   methodology: "EXTREME TDD (RED-GREEN-REFACTOR) + Ownership Inference"
   goal: "100% C99 language coverage with <5 unsafe blocks per 1000 LOC"
   last_completed:
-    task_id: "FUNC-VARIADIC"
-    title: "variadic functions transformation documentation"
-    version: "v0.21.0"
+    task_id: "STMT-GOTO"
+    title: "goto elimination transformation documentation"
+    version: "v0.22.0"
     date: "2025-10-15"
     unsafe_blocks_added: 0
-    tests_added: 11
+    tests_added: 12
     coverage: "100%"
   current_sprint: 4
   current_unsafe_count_per_1000_loc: 0
