@@ -112,6 +112,10 @@ impl TypeContext {
         matches!(self.get_type(name), Some(HirType::Pointer(_)))
     }
 
+    fn is_option(&self, name: &str) -> bool {
+        matches!(self.get_type(name), Some(HirType::Option(_)))
+    }
+
     /// Infer the type of an expression based on the context.
     /// Returns None if the type cannot be inferred.
     fn infer_expression_type(&self, expr: &HirExpression) -> Option<HirType> {
@@ -196,6 +200,9 @@ impl CodeGenerator {
             }
             HirType::Vec(inner) => {
                 format!("Vec<{}>", Self::map_type(inner))
+            }
+            HirType::Option(inner) => {
+                format!("Option<{}>", Self::map_type(inner))
             }
             HirType::Reference { inner, mutable } => {
                 if *mutable {
@@ -292,9 +299,33 @@ impl CodeGenerator {
             HirExpression::StringLiteral(s) => format!("\"{}\"", s),
             HirExpression::Variable(name) => name.clone(),
             HirExpression::BinaryOp { op, left, right } => {
-                // Check for pointer comparison with 0 (null pointer comparison)
-                // ptr == 0 or ptr != 0 should become ptr == std::ptr::null_mut() or ptr != std::ptr::null_mut()
+                // Check for Option comparison with NULL → is_none() / is_some()
+                // p == NULL → p.is_none(), p != NULL → p.is_some()
                 if matches!(op, BinaryOperator::Equal | BinaryOperator::NotEqual) {
+                    // Check if left is an Option and right is NULL
+                    if let HirExpression::Variable(var_name) = &**left {
+                        if ctx.is_option(var_name) && matches!(**right, HirExpression::NullLiteral)
+                        {
+                            return match op {
+                                BinaryOperator::Equal => format!("{}.is_none()", var_name),
+                                BinaryOperator::NotEqual => format!("{}.is_some()", var_name),
+                                _ => unreachable!(),
+                            };
+                        }
+                    }
+                    // Check if right is an Option and left is NULL (NULL == p or NULL != p)
+                    if let HirExpression::Variable(var_name) = &**right {
+                        if ctx.is_option(var_name) && matches!(**left, HirExpression::NullLiteral) {
+                            return match op {
+                                BinaryOperator::Equal => format!("{}.is_none()", var_name),
+                                BinaryOperator::NotEqual => format!("{}.is_some()", var_name),
+                                _ => unreachable!(),
+                            };
+                        }
+                    }
+
+                    // Check for pointer comparison with 0 (null pointer comparison)
+                    // ptr == 0 or ptr != 0 should become ptr == std::ptr::null_mut() or ptr != std::ptr::null_mut()
                     // Check if left is a pointer and right is 0
                     if let HirExpression::Variable(var_name) = &**left {
                         if ctx.is_pointer(var_name) {
@@ -468,6 +499,17 @@ impl CodeGenerator {
                 let rust_type = self.map_sizeof_type(type_name);
                 format!("std::mem::size_of::<{}>() as i32", rust_type)
             }
+            HirExpression::NullLiteral => {
+                // NULL → None
+                "None".to_string()
+            }
+            HirExpression::IsNotNull(inner) => {
+                // p != NULL → if let Some(p) = p
+                // This is a helper expression for generating Option checks
+                // In actual codegen, we transform if (p) to if let Some(_) = p
+                let inner_code = self.generate_expression_with_context(inner, ctx);
+                format!("if let Some(_) = {}", inner_code)
+            }
         }
     }
 
@@ -516,6 +558,10 @@ impl CodeGenerator {
             HirType::Vec(_) => {
                 // Vec types default to empty Vec
                 "Vec::new()".to_string()
+            }
+            HirType::Option(_) => {
+                // Option types default to None
+                "None".to_string()
             }
             HirType::Reference { .. } => {
                 // References cannot have default values - they must always be initialized
@@ -1056,6 +1102,7 @@ impl CodeGenerator {
                 )
             }
             HirType::Vec(_) => "    return Vec::new();".to_string(),
+            HirType::Option(_) => "    return None;".to_string(),
             HirType::Reference { .. } => {
                 // References in return position need concrete values from parameters
                 // This should be handled by lifetime-annotated code generation
@@ -1119,6 +1166,9 @@ impl CodeGenerator {
         code.push_str(&self.generate_signature(func));
         code.push_str(" {\n");
 
+        // Initialize type context for tracking variable types across statements
+        let mut ctx = TypeContext::from_function(func);
+
         // Generate body statements if present
         if func.body().is_empty() {
             // Generate stub body with return statement
@@ -1128,10 +1178,15 @@ impl CodeGenerator {
                 code.push('\n');
             }
         } else {
-            // Generate actual body statements
+            // Generate actual body statements with persistent context
             for stmt in func.body() {
                 code.push_str("    ");
-                code.push_str(&self.generate_statement_for_function(stmt, Some(func.name())));
+                code.push_str(&self.generate_statement_with_context(
+                    stmt,
+                    Some(func.name()),
+                    &mut ctx,
+                    Some(func.return_type()),
+                ));
                 code.push('\n');
             }
         }

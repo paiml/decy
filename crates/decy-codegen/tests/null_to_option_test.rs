@@ -178,9 +178,7 @@ fn test_null_pointer_parameter() {
             HirType::Option(Box::new(HirType::Box(Box::new(HirType::Int)))),
         )],
         vec![HirStatement::If {
-            condition: HirExpression::IsNotNull(Box::new(HirExpression::Variable(
-                "p".to_string(),
-            ))),
+            condition: HirExpression::IsNotNull(Box::new(HirExpression::Variable("p".to_string()))),
             then_block: vec![HirStatement::Return(None)],
             else_block: None,
         }],
@@ -256,5 +254,8 @@ fn test_null_transformation_unsafe_count() {
 
     // Count unsafe blocks (should be 0)
     let unsafe_count = result.matches("unsafe").count();
-    assert_eq!(unsafe_count, 0, "NULL → Option transformation should not introduce unsafe blocks");
+    assert_eq!(
+        unsafe_count, 0,
+        "NULL → Option transformation should not introduce unsafe blocks"
+    );
 }
