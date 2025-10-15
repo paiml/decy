@@ -216,6 +216,50 @@ Every module needs 4 types of tests:
    - Location: `examples/*_demo.rs`
    - Working, runnable examples demonstrating usage
 
+## C Language Validation (NORTH STAR)
+
+### Validation Reference: C99 + K&R C
+
+**CRITICAL**: DECY uses **C99/K&R C as the validation north star**, following the same approach as the bashrs sister project (which uses GNU Bash Manual).
+
+See `docs/C-VALIDATION-ROADMAP.yaml` for:
+- 150 C language constructs mapped to Rust
+- ISO C99 and K&R C section references for each construct
+- STOP THE LINE (Andon Cord) protocol for validation bugs
+- Unsafe minimization tracking per construct
+- EXTREME TDD validation workflow
+
+### STOP THE LINE Protocol (Andon Cord)
+
+When validation against C99/K&R reveals a bug:
+
+1. **STOP** all feature development immediately
+2. **Create P0 ticket** in `roadmap.yaml` with:
+   - C99/K&R reference section
+   - Failing C code
+   - Expected vs actual Rust output
+   - Safety impact
+3. **Apply EXTREME TDD fix** (RED-GREEN-REFACTOR)
+4. **Verify** unsafe count didn't increase
+5. **Resume** validation only after fix verified
+
+**Example P0 ticket template** (from `C-VALIDATION-ROADMAP.yaml`):
+```yaml
+P0-<CONSTRUCT>-<NUMBER>:
+  title: "[P0] Fix <construct> transpilation bug"
+  type: bug
+  priority: critical
+  discovered_during_validation: true
+  validation_reference: "ISO C99 §6.x.x or K&R Chapter X"
+  c_input: |
+    <failing C code>
+  expected_rust: |
+    <correct Rust output>
+  actual_rust: |
+    <buggy Rust output or error>
+  safety_impact: "<memory safety, undefined behavior, etc.>"
+```
+
 ## PMAT: Roadmap-Driven Development
 
 ### Single Source of Truth: `roadmap.yaml`
@@ -346,6 +390,7 @@ HIR is serializable for debugging: `cargo test -- --nocapture` shows HIR.
 
 - `docs/specifications/decy-spec-v1.md` - Complete technical specification (1,127 lines)
 - `docs/specifications/decy-unsafe-minimization-strategy.md` - Unsafe reduction strategy
+- `docs/C-VALIDATION-ROADMAP.yaml` - **VALIDATION NORTH STAR** (C99/K&R reference-driven validation)
 - `GETTING_STARTED.md` - Developer onboarding guide
 - `INSTALL.md` - Installation troubleshooting
 
