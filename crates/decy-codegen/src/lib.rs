@@ -429,9 +429,45 @@ impl CodeGenerator {
                 }
             }
             HirExpression::UnaryOp { op, operand } => {
-                let op_str = Self::unary_operator_to_string(op);
-                let operand_code = self.generate_expression_with_context(operand, ctx);
-                format!("{}{}", op_str, operand_code)
+                use decy_hir::UnaryOperator;
+                match op {
+                    // Post-increment: x++ → { let tmp = x; x += 1; tmp }
+                    // Returns old value before incrementing
+                    UnaryOperator::PostIncrement => {
+                        let operand_code = self.generate_expression_with_context(operand, ctx);
+                        format!(
+                            "{{ let tmp = {}; {} += 1; tmp }}",
+                            operand_code, operand_code
+                        )
+                    }
+                    // Post-decrement: x-- → { let tmp = x; x -= 1; tmp }
+                    // Returns old value before decrementing
+                    UnaryOperator::PostDecrement => {
+                        let operand_code = self.generate_expression_with_context(operand, ctx);
+                        format!(
+                            "{{ let tmp = {}; {} -= 1; tmp }}",
+                            operand_code, operand_code
+                        )
+                    }
+                    // Pre-increment: ++x → { x += 1; x }
+                    // Increments first, then returns new value
+                    UnaryOperator::PreIncrement => {
+                        let operand_code = self.generate_expression_with_context(operand, ctx);
+                        format!("{{ {} += 1; {} }}", operand_code, operand_code)
+                    }
+                    // Pre-decrement: --x → { x -= 1; x }
+                    // Decrements first, then returns new value
+                    UnaryOperator::PreDecrement => {
+                        let operand_code = self.generate_expression_with_context(operand, ctx);
+                        format!("{{ {} -= 1; {} }}", operand_code, operand_code)
+                    }
+                    // Simple prefix operators
+                    _ => {
+                        let op_str = Self::unary_operator_to_string(op);
+                        let operand_code = self.generate_expression_with_context(operand, ctx);
+                        format!("{}{}", op_str, operand_code)
+                    }
+                }
             }
             HirExpression::FunctionCall {
                 function,
@@ -589,6 +625,14 @@ impl CodeGenerator {
         match op {
             UnaryOperator::Minus => "-",
             UnaryOperator::LogicalNot => "!",
+            // Post/Pre-increment/decrement are handled as block expressions
+            // in generate_expression_with_context, so should never reach here
+            UnaryOperator::PostIncrement
+            | UnaryOperator::PostDecrement
+            | UnaryOperator::PreIncrement
+            | UnaryOperator::PreDecrement => {
+                unreachable!("Increment/decrement operators should be handled as block expressions")
+            }
         }
     }
 
@@ -1135,11 +1179,13 @@ impl CodeGenerator {
         let mut sig = format!("fn {}", func.name());
 
         // Generate parameters
+        // In C, parameters are mutable by default (can be reassigned)
+        // Add mut to match C semantics
         sig.push('(');
         let params: Vec<String> = func
             .parameters()
             .iter()
-            .map(|p| format!("{}: {}", p.name(), Self::map_type(p.param_type())))
+            .map(|p| format!("mut {}: {}", p.name(), Self::map_type(p.param_type())))
             .collect();
         sig.push_str(&params.join(", "));
         sig.push(')');
@@ -1376,7 +1422,7 @@ impl CodeGenerator {
     /// let codegen = CodeGenerator::new();
     /// let code = codegen.generate_function(&func);
     ///
-    /// assert!(code.contains("fn add(a: i32, b: i32) -> i32"));
+    /// assert!(code.contains("fn add(mut a: i32, mut b: i32) -> i32"));
     /// assert!(code.contains("{"));
     /// assert!(code.contains("}"));
     /// ```

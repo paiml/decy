@@ -164,7 +164,7 @@ fn test_null_inequality_comparison() {
 /// Test NULL pointer function parameter → Option<Box<T>>
 ///
 /// C: void func(int* p) { if (p) { ... } }
-/// Rust: fn func(p: Option<Box<i32>>) { if let Some(p) = p { ... } }
+/// Rust: fn func(mut p: Option<Box<i32>>) { if let Some(p) = p { ... } }
 ///
 /// Reference: K&R §5.4, ISO C99 §7.17
 #[test]
@@ -188,7 +188,7 @@ fn test_null_pointer_parameter() {
     let result = codegen.generate_function(&func);
 
     // Expected Rust output
-    assert!(result.contains("fn func(p: Option<Box<i32>>)"));
+    assert!(result.contains("fn func(mut p: Option<Box<i32>>)"));
     assert!(result.contains("if let Some"));
 
     // Verify no unsafe blocks
