@@ -10,11 +10,11 @@ roadmap:
 
   statistics:
     total_tasks: 150
-    completed: 52
+    completed: 53
     partial_support: 0
     in_progress: 0
     blocked: 1
-    not_started: 97
+    not_started: 96
     coverage_percent: 35
 
 extreme_tdd_workflow:
@@ -610,6 +610,33 @@ chapters:
             coverage: "100%"
             unsafe_blocks: 0
             note: "Documentation task - Atomic types are SAFE (0 unsafe), MMIO operations require unsafe. C volatile does NOT provide atomicity."
+
+          - id: "TYPE-QUAL-RESTRICT"
+            title: "Document restrict keyword"
+            status: "completed"
+            priority: "high"
+            version: "v0.37.0"
+            examples:
+              - c: "void copy(int* restrict dest, const int* restrict src, size_t n);"
+                rust: "fn copy(dest: &mut [i32], src: &[i32])"
+                note: "C restrict promise → Rust borrow checker enforcement"
+              - c: "int* restrict ptr = malloc(n * sizeof(int));"
+                rust: "let ptr = vec![0; n];"
+                note: "Exclusive ownership guaranteed"
+              - c: "void add(int* restrict a, int* restrict b, int* restrict c) { *a = *b + *c; }"
+                rust: "fn add(a: &mut i32, b: &i32, c: &i32) { *a = *b + *c; }"
+                note: "Borrow checker enforces non-aliasing"
+              - c: "const int* restrict arr;"
+                rust: "&[i32]"
+                note: "Immutable non-aliasing reference"
+            validation_reference: "ISO C99 §6.7.3.1 (new in C99), NOT in K&R (pre-C99)"
+            test_name: "test_restrict_keyword"
+            sprint: 5
+            completed_date: "2025-10-15"
+            tests_added: 16
+            coverage: "100%"
+            unsafe_blocks: 0
+            note: "C99 restrict keyword → Rust borrow checker. C restrict is PROMISE (not verified), Rust borrow checker ENFORCES non-aliasing. Violations: C = undefined behavior, Rust = compile error. Rust provides STRONGER guarantees. Same optimization benefits. &mut is conceptually 'restrict by default'."
 
       - id: "3.6"
         name: "Type Definitions (C99 §6.7.7)"
@@ -1670,17 +1697,17 @@ next_steps:
 status:
   overall: "IN_PROGRESS"
   completion_percent: 35
-  completed_tasks: 52
+  completed_tasks: 53
   in_progress_tasks: 0
   blocked_tasks: 1
-  not_started_tasks: 97
+  not_started_tasks: 96
   total_tasks: 150
   methodology: "EXTREME TDD (RED-GREEN-REFACTOR) + Ownership Inference"
   goal: "100% C99 language coverage with <5 unsafe blocks per 1000 LOC"
   last_completed:
-    task_id: "FUNC-INLINE"
-    title: "inline functions documentation"
-    version: "v0.36.0"
+    task_id: "TYPE-QUAL-RESTRICT"
+    title: "restrict keyword documentation"
+    version: "v0.37.0"
     date: "2025-10-15"
     unsafe_blocks_added: 0
     tests_added: 16
