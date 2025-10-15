@@ -41,6 +41,8 @@ pub enum HirType {
     Box(Box<HirType>),
     /// Vec type (Rust `Vec<T>`)
     Vec(Box<HirType>),
+    /// Option type (Rust `Option<T>`) - for NULL pointer handling
+    Option(Box<HirType>),
     /// Reference type (Rust `&T` or `&mut T`)
     Reference {
         /// Inner type
@@ -516,6 +518,10 @@ pub enum HirExpression {
         /// Type name as a string (e.g., "int", "struct Data")
         type_name: String,
     },
+    /// NULL literal (NULL → None)
+    NullLiteral,
+    /// NULL check expression (p != NULL → is_some(), p == NULL → is_none())
+    IsNotNull(Box<HirExpression>),
 }
 
 /// Represents a single case in a switch statement.
