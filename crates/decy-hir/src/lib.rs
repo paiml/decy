@@ -511,7 +511,7 @@ pub enum HirExpression {
         /// Index expression
         index: Box<HirExpression>,
     },
-    /// Sizeof expression (sizeof(T) → std::mem::size_of::<T>())
+    /// Sizeof expression (sizeof(T) → `std::mem::size_of::<T>()`)
     Sizeof {
         /// Type name as a string (e.g., "int", "struct Data")
         type_name: String,
