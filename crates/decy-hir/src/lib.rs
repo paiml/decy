@@ -511,6 +511,11 @@ pub enum HirExpression {
         /// Index expression
         index: Box<HirExpression>,
     },
+    /// Sizeof expression (sizeof(T) → std::mem::size_of::<T>())
+    Sizeof {
+        /// Type name as a string (e.g., "int", "struct Data")
+        type_name: String,
+    },
 }
 
 /// Represents a single case in a switch statement.
@@ -782,6 +787,9 @@ impl HirExpression {
                 // Simplified: just return the operand value
                 HirExpression::from_ast_expression(operand)
             }
+            Expression::Sizeof { type_name } => HirExpression::Sizeof {
+                type_name: type_name.clone(),
+            },
         }
     }
 }

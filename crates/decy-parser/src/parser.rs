@@ -1178,6 +1178,26 @@ extern "C" fn visit_expression(
             }
             CXChildVisit_Continue
         }
+        CXCursor_UnexposedExpr => {
+            // Unexposed expressions might be sizeof
+            if let Some(expr) = extract_sizeof(cursor) {
+                *expr_opt = Some(expr);
+            } else {
+                // Otherwise, recurse into it
+                return CXChildVisit_Recurse;
+            }
+            CXChildVisit_Continue
+        }
+        136 => {
+            // CXCursor_UnaryExpr - includes sizeof, alignof, etc.
+            if let Some(expr) = extract_sizeof(cursor) {
+                *expr_opt = Some(expr);
+            } else {
+                // Otherwise, recurse (might be another unary expression)
+                return CXChildVisit_Recurse;
+            }
+            CXChildVisit_Continue
+        }
         _ => CXChildVisit_Recurse,
     }
 }
@@ -1863,6 +1883,67 @@ fn extract_field_access(cursor: CXCursor) -> Option<Expression> {
     }
 }
 
+/// Extract a sizeof expression.
+fn extract_sizeof(cursor: CXCursor) -> Option<Expression> {
+    // Get the translation unit
+    let tu = unsafe { clang_Cursor_getTranslationUnit(cursor) };
+    if tu.is_null() {
+        return None;
+    }
+
+    // Get the extent (source range) of the cursor
+    let extent = unsafe { clang_getCursorExtent(cursor) };
+
+    // Tokenize to find "sizeof" keyword
+    let mut tokens = ptr::null_mut();
+    let mut num_tokens = 0;
+
+    unsafe {
+        clang_tokenize(tu, extent, &mut tokens, &mut num_tokens);
+    }
+
+    let mut is_sizeof = false;
+    let mut type_name = String::new();
+
+    // Look through tokens to find "sizeof" keyword and extract type name
+    for i in 0..num_tokens {
+        unsafe {
+            let token = *tokens.add(i as usize);
+            let token_kind = clang_getTokenKind(token);
+            let token_cxstring = clang_getTokenSpelling(tu, token);
+            let c_str = CStr::from_ptr(clang_getCString(token_cxstring));
+
+            if let Ok(token_str) = c_str.to_str() {
+                if token_str == "sizeof" {
+                    is_sizeof = true;
+                } else if is_sizeof
+                    && (token_kind == CXToken_Identifier || token_kind == CXToken_Keyword)
+                    && token_str != "("
+                    && token_str != ")"
+                {
+                    // This is part of the type name (e.g., "int", "Data", "struct")
+                    if !type_name.is_empty() {
+                        type_name.push(' ');
+                    }
+                    type_name.push_str(token_str);
+                }
+            }
+
+            clang_disposeString(token_cxstring);
+        }
+    }
+
+    unsafe {
+        clang_disposeTokens(tu, tokens, num_tokens);
+    }
+
+    if is_sizeof && !type_name.is_empty() {
+        Some(Expression::Sizeof { type_name })
+    } else {
+        None
+    }
+}
+
 /// Convert clang type to our Type enum.
 #[allow(non_upper_case_globals)]
 fn convert_type(cx_type: CXType) -> Option<Type> {
@@ -2177,6 +2258,11 @@ pub enum Expression {
     PreDecrement {
         /// Operand expression
         operand: Box<Expression>,
+    },
+    /// Sizeof expression: `sizeof(int)` or `sizeof(struct Data)`
+    Sizeof {
+        /// Type name as a string (e.g., "int", "struct Data")
+        type_name: String,
     },
 }
 

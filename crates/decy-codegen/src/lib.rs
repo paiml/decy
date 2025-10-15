@@ -232,6 +232,32 @@ impl CodeGenerator {
         }
     }
 
+    /// Map C type name from sizeof to Rust type string.
+    ///
+    /// Handles type names as strings from sizeof expressions.
+    /// Examples: "int" → "i32", "struct Data" → "Data"
+    fn map_sizeof_type(&self, c_type_name: &str) -> String {
+        let trimmed = c_type_name.trim();
+
+        // Handle basic C types
+        match trimmed {
+            "int" => "i32".to_string(),
+            "float" => "f32".to_string(),
+            "double" => "f64".to_string(),
+            "char" => "u8".to_string(),
+            "void" => "()".to_string(),
+            _ => {
+                // Handle "struct TypeName" → "TypeName"
+                if let Some(struct_name) = trimmed.strip_prefix("struct ") {
+                    struct_name.trim().to_string()
+                } else {
+                    // Keep custom type names as-is
+                    trimmed.to_string()
+                }
+            }
+        }
+    }
+
     /// Generate code for an expression.
     #[allow(clippy::only_used_in_recursion)]
     pub fn generate_expression(&self, expr: &HirExpression) -> String {
@@ -434,6 +460,13 @@ impl CodeGenerator {
 
                 // Regular array/slice indexing
                 format!("{}[{}]", array_code, index_code)
+            }
+            HirExpression::Sizeof { type_name } => {
+                // sizeof(int) → std::mem::size_of::<i32>() as i32
+                // sizeof(struct Data) → std::mem::size_of::<Data>() as i32
+                // Note: size_of returns usize, but C's sizeof returns int (typically i32)
+                let rust_type = self.map_sizeof_type(type_name);
+                format!("std::mem::size_of::<{}>() as i32", rust_type)
             }
         }
     }
