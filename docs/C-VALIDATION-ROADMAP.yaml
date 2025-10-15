@@ -5,17 +5,17 @@ roadmap:
   methodology: "EXTREME TDD (Test-First, RED-GREEN-REFACTOR)"
   reference: "ISO C99 Standard (ISO/IEC 9899:1999) + K&R C (2nd Edition)"
   status: "IN_PROGRESS"
-  completion: "12%"
+  completion: "13%"
   unsafe_blocks_per_1000_loc_target: "<5"
 
   statistics:
     total_tasks: 150
-    completed: 18
+    completed: 20
     partial_support: 0
-    in_progress: 1
+    in_progress: 0
     blocked: 0
-    not_started: 131
-    coverage_percent: 12
+    not_started: 130
+    coverage_percent: 13
 
 extreme_tdd_workflow:
   description: "Standard workflow for each task"
@@ -379,7 +379,7 @@ chapters:
 
           - id: "TYPE-PTR-NULL"
             title: "Document NULL → Option"
-            status: "in_progress"
+            status: "completed"
             version: "v0.4.0"
             examples:
               - c: "int* p = NULL; if (p) { ... }"
@@ -388,6 +388,9 @@ chapters:
             validation_reference: "K&R §5.4, ISO C99 §7.17"
             test_name: "test_null_to_option"
             sprint: 1
+            completed_date: "2025-10-15"
+            tests_added: 7
+            coverage: "100%"
 
       - id: "3.3"
         name: "Derived Types - Arrays (C99 §6.7.5.2)"
@@ -895,7 +898,8 @@ chapters:
 
           - id: "STDLIB-CALLOC"
             title: "Document calloc → Vec::with_capacity"
-            status: "not_started"
+            status: "completed"
+            version: "v0.5.0"
             priority: "high"
             examples:
               - c: "int* arr = calloc(n, sizeof(int));"
@@ -903,6 +907,9 @@ chapters:
             validation_reference: "ISO C99 §7.20.3.1"
             test_name: "test_calloc_to_vec"
             sprint: 1
+            completed_date: "2025-10-15"
+            tests_added: 7
+            coverage: "100%"
 
           - id: "STDLIB-REALLOC"
             title: "Document realloc → Vec methods"
@@ -1048,16 +1055,20 @@ high_priority_next_tasks:
     - id: "TYPE-PTR-NULL"
       title: "NULL → Option<T>"
       priority: 1
-      status: "🟡 IN PROGRESS (Sprint 1)"
+      status: "✅ COMPLETED (Sprint 1)"
       ownership_inference_impact: "HIGH"
       unsafe_reduction: "Eliminates null pointer dereferences"
+      completed_date: "2025-10-15"
+      tests_added: 7
 
     - id: "STDLIB-CALLOC"
       title: "calloc → Vec::with_capacity"
       priority: 2
-      status: "🔴 NOT STARTED (Sprint 1)"
+      status: "✅ COMPLETED (Sprint 1)"
       ownership_inference_impact: "HIGH"
       unsafe_reduction: "Pattern-based allocation"
+      completed_date: "2025-10-15"
+      tests_added: 7
 
     - id: "STMT-SWITCH"
       title: "switch → match"
@@ -1181,19 +1192,21 @@ next_steps:
 
 status:
   overall: "IN_PROGRESS"
-  completion_percent: 12
-  completed_tasks: 18
-  in_progress_tasks: 1
-  not_started_tasks: 131
+  completion_percent: 13
+  completed_tasks: 20
+  in_progress_tasks: 0
+  not_started_tasks: 130
   total_tasks: 150
   methodology: "EXTREME TDD (RED-GREEN-REFACTOR) + Ownership Inference"
   goal: "100% C99 language coverage with <5 unsafe blocks per 1000 LOC"
   last_completed:
-    task_id: "DECY-044"
-    title: "Fix parser handling of malloc(sizeof(T))"
-    version: "v0.3.0"
+    task_id: "STDLIB-CALLOC"
+    title: "calloc → Vec transformation"
+    version: "v0.5.0"
     date: "2025-10-15"
     unsafe_blocks_added: 0
+    tests_added: 7
+    coverage: "100%"
   current_sprint: 1
   current_unsafe_count_per_1000_loc: 0
   target_unsafe_count_per_1000_loc: 5
