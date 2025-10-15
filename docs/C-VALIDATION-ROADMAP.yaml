@@ -10,12 +10,12 @@ roadmap:
 
   statistics:
     total_tasks: 150
-    completed: 41
+    completed: 42
     partial_support: 0
     in_progress: 0
     blocked: 1
-    not_started: 108
-    coverage_percent: 27
+    not_started: 107
+    coverage_percent: 28
 
 extreme_tdd_workflow:
   description: "Standard workflow for each task"
@@ -643,6 +643,34 @@ chapters:
             blocked_reason: "Requires ownership inference infrastructure (pointer dataflow, array detection, pointer classification)"
             implementation_plan: "docs/EXPR-ARITH-PTR-implementation-plan.md"
             note: "RED phase complete - paused pending ownership inference foundation"
+
+          - id: "EXPR-BITWISE"
+            title: "Document bitwise operators"
+            status: "completed"
+            version: "v0.25.0"
+            priority: "high"
+            examples:
+              - c: "a & b"
+                rust: "a & b"
+              - c: "a | b"
+                rust: "a | b"
+              - c: "a ^ b"
+                rust: "a ^ b"
+              - c: "~a"
+                rust: "!a"
+                note: "C uses ~, Rust uses ! for bitwise NOT"
+              - c: "a << n"
+                rust: "a << n"
+              - c: "a >> n"
+                rust: "a >> n"
+            validation_reference: "K&R §2.9, ISO C99 §6.5.10-6.5.12"
+            test_name: "test_bitwise_operators"
+            sprint: 5
+            completed_date: "2025-10-15"
+            tests_added: 16
+            coverage: "100%"
+            unsafe_blocks: 0
+            note: "Bitwise operators (&, |, ^, ~, <<, >>) for bit manipulation, flags, masks. All operations are safe. Syntax identical to C except NOT (~→!). Type-safe signed/unsigned handling."
 
       - id: "4.5"
         name: "Comparison Operators (C99 §6.5.8-6.5.9)"
@@ -1350,22 +1378,22 @@ next_steps:
 
 status:
   overall: "IN_PROGRESS"
-  completion_percent: 27
-  completed_tasks: 41
+  completion_percent: 28
+  completed_tasks: 42
   in_progress_tasks: 0
   blocked_tasks: 1
-  not_started_tasks: 108
+  not_started_tasks: 107
   total_tasks: 150
   methodology: "EXTREME TDD (RED-GREEN-REFACTOR) + Ownership Inference"
   goal: "100% C99 language coverage with <5 unsafe blocks per 1000 LOC"
   last_completed:
-    task_id: "DECY-045"
-    title: "comprehensive sizeof edge case testing"
-    version: "v0.24.0"
+    task_id: "EXPR-BITWISE"
+    title: "bitwise operators documentation"
+    version: "v0.25.0"
     date: "2025-10-15"
     unsafe_blocks_added: 0
-    tests_added: 24
+    tests_added: 16
     coverage: "100%"
-  current_sprint: 4
+  current_sprint: 5
   current_unsafe_count_per_1000_loc: 0
   target_unsafe_count_per_1000_loc: 5
