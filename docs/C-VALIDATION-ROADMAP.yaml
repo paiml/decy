@@ -10,11 +10,11 @@ roadmap:
 
   statistics:
     total_tasks: 150
-    completed: 46
+    completed: 47
     partial_support: 0
     in_progress: 0
     blocked: 1
-    not_started: 103
+    not_started: 102
     coverage_percent: 31
 
 extreme_tdd_workflow:
@@ -473,6 +473,33 @@ chapters:
             coverage: "100%"
             unsafe_blocks: 0
             note: "Unions transform to enums (SAFE) for type safety. Discriminated unions become enums with built-in tag. FFI unions use #[repr(C)] union (unsafe to read). Option/Result replace common tagged union patterns."
+
+          - id: "TYPE-ENUM"
+            title: "Document enum types"
+            status: "completed"
+            priority: "high"
+            version: "v0.30.0"
+            examples:
+              - c: "enum Color { RED, GREEN, BLUE };"
+                rust: "#[repr(i32)] enum Color { Red, Green, Blue }"
+                note: "Type-safe enum with C representation"
+              - c: "enum Status { OK = 0, ERROR = 1 };"
+                rust: "#[repr(i32)] enum Status { Ok = 0, Error = 1 }"
+                note: "Explicit values preserved"
+              - c: "int val = status;"
+                rust: "let val = status as i32;"
+                note: "Explicit conversion required"
+              - c: "enum { MAX = 100 };"
+                rust: "const MAX: i32 = 100;"
+                note: "Anonymous enum → const declarations"
+            validation_reference: "K&R §2.3, ISO C99 §6.7.2.2"
+            test_name: "test_enum_types"
+            sprint: 5
+            completed_date: "2025-10-15"
+            tests_added: 18
+            coverage: "100%"
+            unsafe_blocks: 0
+            note: "C enums → Rust enums with #[repr(i32)] for C ABI. Type-safe (cannot mix with int). Exhaustiveness checking in match. Can carry data (more powerful than C). Anonymous enums → const declarations."
 
       - id: "3.5"
         name: "Type Qualifiers (C99 §6.7.3)"
@@ -1481,20 +1508,20 @@ next_steps:
 status:
   overall: "IN_PROGRESS"
   completion_percent: 31
-  completed_tasks: 46
+  completed_tasks: 47
   in_progress_tasks: 0
   blocked_tasks: 1
-  not_started_tasks: 103
+  not_started_tasks: 102
   total_tasks: 150
   methodology: "EXTREME TDD (RED-GREEN-REFACTOR) + Ownership Inference"
   goal: "100% C99 language coverage with <5 unsafe blocks per 1000 LOC"
   last_completed:
-    task_id: "EXPR-CAST"
-    title: "cast operators documentation"
-    version: "v0.29.0"
+    task_id: "TYPE-ENUM"
+    title: "enum types documentation"
+    version: "v0.30.0"
     date: "2025-10-15"
     unsafe_blocks_added: 0
-    tests_added: 20
+    tests_added: 18
     coverage: "100%"
   current_sprint: 5
   current_unsafe_count_per_1000_loc: 0
