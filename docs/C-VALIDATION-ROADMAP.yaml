@@ -10,12 +10,12 @@ roadmap:
 
   statistics:
     total_tasks: 150
-    completed: 60
+    completed: 61
     partial_support: 0
     in_progress: 0
     blocked: 1
-    not_started: 89
-    coverage_percent: 40
+    not_started: 88
+    coverage_percent: 41
 
 extreme_tdd_workflow:
   description: "Standard workflow for each task"
@@ -509,6 +509,39 @@ chapters:
                 rust: "let arr: [i32; 10] = [0; 10];"
             validation_reference: "K&R §5.2, ISO C99 §6.7.5.2"
             test_name: "test_fixed_array_transformation"
+
+          - id: "TYPE-ARRAY-INIT"
+            title: "Document array initialization patterns"
+            status: "completed"
+            priority: "high"
+            version: "v0.46.0"
+            examples:
+              - c: "int arr[10] = {0};"
+                rust: "let arr: [i32; 10] = [0; 10];"
+                note: "Zero initialization (all elements)"
+              - c: "int arr[10] = {1, 2, 3};"
+                rust: "let arr = [1, 2, 3, 0, 0, 0, 0, 0, 0, 0];"
+                note: "Partial init: C zeros rest, Rust needs explicit"
+              - c: "int arr[] = {1, 2, 3};"
+                rust: "let arr = [1, 2, 3];"
+                note: "Implicit size from initializer"
+              - c: "char str[] = \"hello\";"
+                rust: "let str = \"hello\";"
+                note: "String literal (different: C has null terminator)"
+              - c: "int matrix[2][2] = {{1,2},{3,4}};"
+                rust: "let matrix: [[i32; 2]; 2] = [[1,2],[3,4]];"
+                note: "Multidimensional array initialization"
+              - c: "const int lookup[3] = {10, 20, 30};"
+                rust: "const LOOKUP: [i32; 3] = [10, 20, 30];"
+                note: "Const array initialization"
+            validation_reference: "K&R §4.9, ISO C99 §6.7.8"
+            test_name: "test_array_initialization"
+            sprint: 5
+            completed_date: "2025-10-16"
+            tests_added: 15
+            coverage: "100%"
+            unsafe_blocks: 0
+            note: "Array initialization patterns: zero init ({0}), partial init (rest zeroed in C), full init, implicit size, string literals (include null in C), multidimensional, const arrays, struct arrays. C partial initialization zeros remaining elements implicitly. Rust requires explicit initialization. C allows array-to-pointer decay (implicit, unsafe). Rust requires explicit slices (safe). All transformations SAFE (0 unsafe blocks)."
 
           - id: "TYPE-ARRAY-VLA"
             title: "Document variable-length arrays → Vec"
@@ -1879,21 +1912,21 @@ next_steps:
 
 status:
   overall: "IN_PROGRESS"
-  completion_percent: 40
-  completed_tasks: 60
+  completion_percent: 41
+  completed_tasks: 61
   in_progress_tasks: 0
   blocked_tasks: 1
-  not_started_tasks: 89
+  not_started_tasks: 88
   total_tasks: 150
   methodology: "EXTREME TDD (RED-GREEN-REFACTOR) + Ownership Inference"
   goal: "100% C99 language coverage with <5 unsafe blocks per 1000 LOC"
   last_completed:
-    task_id: "EXPR-SHORT-CIRCUIT"
-    title: "short-circuit evaluation documentation"
-    version: "v0.45.0"
+    task_id: "TYPE-ARRAY-INIT"
+    title: "array initialization patterns documentation"
+    version: "v0.46.0"
     date: "2025-10-16"
     unsafe_blocks_added: 0
-    tests_added: 13
+    tests_added: 15
     coverage: "100%"
   current_sprint: 5
   current_unsafe_count_per_1000_loc: 0
