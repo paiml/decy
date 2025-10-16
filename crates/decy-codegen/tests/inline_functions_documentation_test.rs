@@ -210,8 +210,8 @@ fn sum_array(arr: &[i32]) -> i32 {
     #[inline]
     fn sum_array(arr: &[i32]) -> i32 {
         let mut sum = 0;
-        for i in 0..arr.len() {
-            sum += arr[i];
+        for &item in arr {
+            sum += item;
         }
         sum
     }
@@ -314,7 +314,7 @@ const fn factorial_5() -> i32 {
 "#;
 
     const fn factorial_5() -> i32 {
-        5 * 4 * 3 * 2 * 1
+        120
     }
 
     // Can be used in const context

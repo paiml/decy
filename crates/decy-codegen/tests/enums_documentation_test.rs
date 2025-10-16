@@ -57,7 +57,7 @@ fn test_enum_simple() {
 
     let color = Color::Red;
     match color {
-        Color::Red => assert!(true, "Pattern matching works"),
+        Color::Red => { /* Pattern matching works */ }
         _ => panic!("Wrong color"),
     }
 }

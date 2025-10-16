@@ -48,7 +48,7 @@ fn torture_extremely_long_identifier() {
     // Let's test with 1000 characters to stress the parser
 
     let long_name = "a".repeat(1000);
-    let c_code = format!("int {} = 42;", long_name);
+    let _c_code = format!("int {} = 42;", long_name);
 
     // Parser should either:
     // 1. Accept it (if no limit)
@@ -82,7 +82,7 @@ fn torture_integer_literal_edge_cases() {
     ];
 
     for (literal, description) in test_cases {
-        let c_code = format!("int x = {};", literal);
+        let _c_code = format!("int x = {};", literal);
 
         // TODO: Uncomment when parser is available
         // let result = decy_parser::parse(&c_code);
@@ -112,7 +112,7 @@ fn torture_float_literal_edge_cases() {
     ];
 
     for (literal, description) in test_cases {
-        let c_code = format!("double x = {};", literal);
+        let _c_code = format!("double x = {};", literal);
 
         // TODO: Uncomment when parser is available
         // let result = decy_parser::parse(&c_code);
@@ -187,7 +187,7 @@ fn torture_extremely_long_string() {
     // Test with 10,000 to stress the system
 
     let long_string = "x".repeat(10000);
-    let c_code = format!(r#"char* s = "{}";"#, long_string);
+    let _c_code = format!(r#"char* s = "{}";"#, long_string);
 
     // TODO: Uncomment when parser is available
     // let result = decy_parser::parse(&c_code);
@@ -203,7 +203,7 @@ fn torture_many_function_parameters() {
     let params: Vec<String> = (0..200).map(|i| format!("int p{}", i)).collect();
 
     let param_list = params.join(", ");
-    let c_code = format!("int func({}) {{ return 0; }}", param_list);
+    let _c_code = format!("int func({}) {{ return 0; }}", param_list);
 
     // TODO: Uncomment when parser is available
     // let result = decy_parser::parse(&c_code);
