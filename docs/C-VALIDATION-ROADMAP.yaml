@@ -10,12 +10,12 @@ roadmap:
 
   statistics:
     total_tasks: 150
-    completed: 62
+    completed: 63
     partial_support: 0
     in_progress: 0
     blocked: 1
-    not_started: 87
-    coverage_percent: 41
+    not_started: 86
+    coverage_percent: 42
 
 extreme_tdd_workflow:
   description: "Standard workflow for each task"
@@ -948,6 +948,42 @@ chapters:
                 note: "Safe with references, may need unsafe with raw pointers"
             validation_reference: "K&R §5.1, ISO C99 §6.5.3.2"
             test_name: "test_dereference"
+
+          - id: "EXPR-ADDR-DEREF-PATTERNS"
+            title: "Document address-of and dereference patterns"
+            status: "completed"
+            priority: "high"
+            version: "v0.48.0"
+            examples:
+              - c: "int* ptr = &x;"
+                rust: "let ptr: &i32 = &x;"
+                note: "Address-of creates reference (safe)"
+              - c: "int value = *ptr;"
+                rust: "let value = *ptr;"
+                note: "Dereference read (safe with &T)"
+              - c: "*ptr = 20;"
+                rust: "*ptr = 20;"
+                note: "Dereference write (needs &mut T)"
+              - c: "int** pp = &ptr;"
+                rust: "let pp: &&i32 = &&x;"
+                note: "Double indirection with references"
+              - c: "void func(int* p) { *p = 5; }"
+                rust: "fn func(p: &mut i32) { *p = 5; }"
+                note: "Pointer parameters → mutable references"
+              - c: "const int* cp = &x;"
+                rust: "let cp: &i32 = &x;"
+                note: "Const pointer → immutable reference (default)"
+              - c: "int* p = &arr[i];"
+                rust: "let p = &arr[i];"
+                note: "Address of array element"
+            validation_reference: "K&R §5.1, ISO C99 §6.5.3.2"
+            test_name: "test_address_of_dereference"
+            sprint: 5
+            completed_date: "2025-10-16"
+            tests_added: 15
+            coverage: "100%"
+            unsafe_blocks: 0
+            note: "Address-of (&) and dereference (*) operators: C creates raw pointers (can be null, no lifetime tracking), Rust creates references (never null, borrow checker enforces lifetimes). C pointers: int* (mutable by default). Rust: &T (immutable) or &mut T (mutable, explicit). Dereference for reading safe with &T. Dereference for writing requires &mut T. Double indirection works with references. Pointer parameters become references. Const pointers map to immutable references. All reference operations SAFE (0 unsafe blocks). Raw pointers exist but require unsafe to dereference."
 
           - id: "EXPR-UNARY-SIZEOF"
             title: "Document sizeof operator"
@@ -1945,21 +1981,21 @@ next_steps:
 
 status:
   overall: "IN_PROGRESS"
-  completion_percent: 41
-  completed_tasks: 62
+  completion_percent: 42
+  completed_tasks: 63
   in_progress_tasks: 0
   blocked_tasks: 1
-  not_started_tasks: 87
+  not_started_tasks: 86
   total_tasks: 150
   methodology: "EXTREME TDD (RED-GREEN-REFACTOR) + Ownership Inference"
   goal: "100% C99 language coverage with <5 unsafe blocks per 1000 LOC"
   last_completed:
-    task_id: "EXPR-MEMBER-ACCESS-PATTERNS"
-    title: "struct member access patterns documentation"
-    version: "v0.47.0"
+    task_id: "EXPR-ADDR-DEREF-PATTERNS"
+    title: "address-of and dereference patterns documentation"
+    version: "v0.48.0"
     date: "2025-10-16"
     unsafe_blocks_added: 0
-    tests_added: 14
+    tests_added: 15
     coverage: "100%"
   current_sprint: 5
   current_unsafe_count_per_1000_loc: 0
