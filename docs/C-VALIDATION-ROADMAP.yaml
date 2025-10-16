@@ -10,11 +10,11 @@ roadmap:
 
   statistics:
     total_tasks: 150
-    completed: 64
+    completed: 65
     partial_support: 0
     in_progress: 0
     blocked: 1
-    not_started: 85
+    not_started: 84
     coverage_percent: 43
 
 extreme_tdd_workflow:
@@ -905,6 +905,51 @@ chapters:
             tests_added: 8
             coverage: "100%"
             unsafe_blocks: 0
+
+          - id: "EXPR-INCR-DECR-PATTERNS"
+            title: "Document increment/decrement operator patterns"
+            status: "completed"
+            priority: "high"
+            version: "v0.50.0"
+            examples:
+              - c: "int y = x++;"
+                rust: "let y = { let tmp = x; x += 1; tmp };"
+                note: "Post-increment: returns old value, then increments"
+              - c: "int y = ++x;"
+                rust: "let y = { x += 1; x };"
+                note: "Pre-increment: increments first, then returns new value"
+              - c: "int y = x--;"
+                rust: "let y = { let tmp = x; x -= 1; tmp };"
+                note: "Post-decrement: returns old value, then decrements"
+              - c: "int y = --x;"
+                rust: "let y = { x -= 1; x };"
+                note: "Pre-decrement: decrements first, then returns new value"
+              - c: "for (int i = 0; i < n; i++) { ... }"
+                rust: "for i in 0..n { ... }"
+                note: "Loop counter pattern (idiomatic Rust range)"
+              - c: "result = x++ + 10;"
+                rust: "result = { let tmp = x; x += 1; tmp } + 10;"
+                note: "Post-increment in expression (uses old value)"
+              - c: "result = ++x + 10;"
+                rust: "result = { x += 1; x } + 10;"
+                note: "Pre-increment in expression (uses new value)"
+              - c: "arr[i++]"
+                rust: "arr[{ let tmp = i; i += 1; tmp }]"
+                note: "Array indexing with post-increment (use index, then increment)"
+              - c: "arr[--i]"
+                rust: "arr[{ i -= 1; i }]"
+                note: "Array indexing with pre-decrement (decrement first, then use)"
+              - c: "while (n > 0) { sum += n--; }"
+                rust: "while n > 0 { sum += { let tmp = n; n -= 1; tmp }; }"
+                note: "Decrement in loop (countdown pattern)"
+            validation_reference: "K&R §2.8, ISO C99 §6.5.2.4 (post), §6.5.3.1 (pre)"
+            test_name: "test_increment_decrement_documentation"
+            sprint: 5
+            completed_date: "2025-10-16"
+            tests_added: 16
+            coverage: "100%"
+            unsafe_blocks: 0
+            note: "Increment/decrement operators (++/--): Rust has NO native ++/-- operators. Post-increment (x++) returns old value, then increments. Pre-increment (++x) increments first, then returns new value. Same for decrement. C allows undefined behavior with multiple modifications in single expression (x++ + x++). Rust block expressions enforce sequencing (SAFE). All transformations use block expressions with explicit steps. Requires mutable variables (mut). Common patterns: loop counters, array indexing, sequence operations. Post uses tmp variable to save old value. Pre directly uses new value after increment. All transformations SAFE (0 unsafe blocks). Rust ranges (0..n) preferred for simple loops."
 
       - id: "4.3"
         name: "Unary Operators (C99 §6.5.3)"
@@ -2024,20 +2069,20 @@ next_steps:
 status:
   overall: "IN_PROGRESS"
   completion_percent: 43
-  completed_tasks: 64
+  completed_tasks: 65
   in_progress_tasks: 0
   blocked_tasks: 1
-  not_started_tasks: 85
+  not_started_tasks: 84
   total_tasks: 150
   methodology: "EXTREME TDD (RED-GREEN-REFACTOR) + Ownership Inference"
   goal: "100% C99 language coverage with <5 unsafe blocks per 1000 LOC"
   last_completed:
-    task_id: "DECL-MULTIPLE"
-    title: "multiple variable declarations documentation"
-    version: "v0.49.0"
+    task_id: "EXPR-INCR-DECR-PATTERNS"
+    title: "increment/decrement operators documentation"
+    version: "v0.50.0"
     date: "2025-10-16"
     unsafe_blocks_added: 0
-    tests_added: 13
+    tests_added: 16
     coverage: "100%"
   current_sprint: 5
   current_unsafe_count_per_1000_loc: 0
