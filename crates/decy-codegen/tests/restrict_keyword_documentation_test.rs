@@ -42,9 +42,8 @@ fn copy(dest: &mut [i32], src: &[i32]) {
 "#;
 
     fn copy(dest: &mut [i32], src: &[i32]) {
-        for i in 0..src.len().min(dest.len()) {
-            dest[i] = src[i];
-        }
+        let len = src.len().min(dest.len());
+        dest[..len].copy_from_slice(&src[..len]);
     }
 
     let src = [1, 2, 3, 4, 5];
@@ -250,8 +249,8 @@ fn sum_array(arr: &[i32]) -> i32 {
 
     fn sum_array(arr: &[i32]) -> i32 {
         let mut sum = 0;
-        for i in 0..arr.len() {
-            sum += arr[i];
+        for &item in arr {
+            sum += item;
         }
         sum
     }
@@ -308,8 +307,8 @@ fn zero_array(arr: &mut [i32]) {
 "#;
 
     fn zero_array(arr: &mut [i32]) {
-        for i in 0..arr.len() {
-            arr[i] = 0;
+        for item in arr {
+            *item = 0;
         }
     }
 

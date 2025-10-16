@@ -176,6 +176,7 @@ mod compound_literals_documentation_tests {
         let c_code = "(struct RGB){ .r = 255, .g = 128, .b = 0 }";
         let rust_equivalent = "RGB { r: 255, g: 128, b: 0 }";
 
+        #[allow(clippy::upper_case_acronyms)]
         struct RGB {
             r: u8,
             g: u8,
@@ -340,6 +341,7 @@ p.x = 10;
         #[derive(Debug)]
         struct Point {
             x: i32,
+            #[allow(dead_code)]
             y: i32,
         }
 
@@ -520,6 +522,7 @@ Rust Struct/Array Literal Rules:
         #[derive(Debug)]
         struct Point {
             x: i32,
+            #[allow(dead_code)]
             y: i32,
         }
 

@@ -48,7 +48,7 @@ proptest! {
         // prop_assert!(result.is_ok(), "Valid identifier rejected: {}", name);
 
         // For now, verify identifier pattern
-        prop_assert!(name.len() > 0);
+        prop_assert!(!name.is_empty());
         prop_assert!(name.chars().next().unwrap().is_alphabetic() || name.starts_with('_'));
     }
 }
@@ -120,7 +120,7 @@ proptest! {
         // prop_assert!(result.is_ok(), "Valid type rejected: {}", type_name);
 
         // For now, verify type names
-        prop_assert!(type_name.len() > 0);
+        prop_assert!(!type_name.is_empty());
     }
 }
 
@@ -163,7 +163,7 @@ proptest! {
         // prop_assert!(result.is_ok(), "Valid operator rejected: {}", op);
 
         // For now, verify operator format
-        prop_assert!(op.len() > 0);
+        prop_assert!(!op.is_empty());
         prop_assert!(left > 0);
         prop_assert!(right > 0);
     }

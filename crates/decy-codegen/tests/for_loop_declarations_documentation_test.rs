@@ -286,8 +286,8 @@ for &val in &arr {
 
     // Index-based
     let mut sum1 = 0;
-    for i in 0..arr.len() {
-        sum1 += arr[i];
+    for &item in &arr {
+        sum1 += item;
     }
 
     // Direct iteration

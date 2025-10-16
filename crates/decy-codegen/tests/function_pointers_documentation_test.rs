@@ -492,6 +492,7 @@ void (*fp2)(void) = (void (*)(void))fp1;  // DANGEROUS
     ///
     /// Reference: ISO C99 §6.5.9
     #[test]
+    #[allow(ambiguous_wide_pointer_comparisons)]
     fn test_function_pointer_comparison() {
         let c_code = "if (fp1 == fp2) { ... }";
         let rust_equivalent = "if fp1 == fp2 { ... }";
@@ -530,7 +531,7 @@ void (*fp2)(void) = (void (*)(void))fp1;  // DANGEROUS
         }
 
         let fp: fn(i32, f32, &str) -> i32 = complex_func;
-        let result = fp(10, 3.14, "hello");
+        let result = fp(10, 3.0, "hello");
         assert_eq!(result, 18, "Multiple parameters work"); // 10 + 3 + 5
 
         assert!(c_code.contains("int, float, char*"));
@@ -555,8 +556,8 @@ void map(int* arr, int len, int (*f)(int)) {
         let rust_equivalent = "fn map(arr: &mut [i32], f: fn(i32) -> i32)";
 
         fn map(arr: &mut [i32], f: fn(i32) -> i32) {
-            for i in 0..arr.len() {
-                arr[i] = f(arr[i]);
+            for item in arr.iter_mut() {
+                *item = f(*item);
             }
         }
 
@@ -569,7 +570,7 @@ void map(int* arr, int len, int (*f)(int)) {
         assert_eq!(data, [2, 4, 6, 8, 10], "Map function works");
 
         // More idiomatic Rust would use iterators:
-        let data2: Vec<i32> = vec![1, 2, 3, 4, 5].iter().map(|&x| double(x)).collect();
+        let data2: Vec<i32> = [1, 2, 3, 4, 5].iter().map(|&x| double(x)).collect();
         assert_eq!(data2, vec![2, 4, 6, 8, 10]);
 
         assert!(c_code.contains("int (*f)(int)"));
@@ -607,6 +608,7 @@ void map(int* arr, int len, int (*f)(int)) {
     /// This test documents all the transformation rules and important differences
     /// between C function pointers and Rust fn types.
     #[test]
+    #[allow(ambiguous_wide_pointer_comparisons)]
     fn test_function_pointer_transformation_rules_summary() {
         let c_summary = r#"
 C Function Pointer Rules:

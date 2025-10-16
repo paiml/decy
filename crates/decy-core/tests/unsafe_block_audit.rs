@@ -57,14 +57,10 @@ fn unsafe_per_1000_loc(rust_code: &str) -> f64 {
 /// Check if an unsafe block has a SAFETY comment
 fn has_safety_comment_before(rust_code: &str, unsafe_pos: usize) -> bool {
     // Look backward from unsafe position for SAFETY comment
-    let before = &rust_code[..unsafe_pos];
+    let _before = &rust_code[..unsafe_pos];
 
     // Look for // SAFETY: or /* SAFETY: within previous 200 characters
-    let search_start = if unsafe_pos > 200 {
-        unsafe_pos - 200
-    } else {
-        0
-    };
+    let search_start = unsafe_pos.saturating_sub(200);
     let search_region = &rust_code[search_start..unsafe_pos];
 
     search_region.contains("// SAFETY:") || search_region.contains("/* SAFETY:")
@@ -279,7 +275,7 @@ fn audit_generated_code_unsafe() {
     // This test would analyze output from decy-codegen
 
     // Example: transpile a typical C program and audit the output
-    let c_code = r#"
+    let _c_code = r#"
 #include <stdio.h>
 
 int add(int a, int b) {
