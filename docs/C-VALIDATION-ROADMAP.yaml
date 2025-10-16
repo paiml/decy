@@ -10,11 +10,11 @@ roadmap:
 
   statistics:
     total_tasks: 150
-    completed: 61
+    completed: 62
     partial_support: 0
     in_progress: 0
     blocked: 1
-    not_started: 88
+    not_started: 87
     coverage_percent: 41
 
 extreme_tdd_workflow:
@@ -854,6 +854,39 @@ chapters:
                 note: "Pointer dereference eliminated with ownership"
             validation_reference: "K&R §6.1, ISO C99 §6.5.2.3"
             test_name: "test_member_access"
+
+          - id: "EXPR-MEMBER-ACCESS-PATTERNS"
+            title: "Document struct member access patterns"
+            status: "completed"
+            priority: "high"
+            version: "v0.47.0"
+            examples:
+              - c: "struct.field"
+                rust: "struct.field"
+                note: "Direct member access (same syntax)"
+              - c: "ptr->field"
+                rust: "point.field"
+                note: "Arrow operator eliminated with ownership"
+              - c: "(*ptr).field"
+                rust: "ptr.field"
+                note: "Auto-deref in Rust (cleaner)"
+              - c: "outer.inner.field"
+                rust: "outer.inner.field"
+                note: "Nested member access (same)"
+              - c: "arr[i].field"
+                rust: "arr[i].field"
+                note: "Array of structs (same)"
+              - c: "node->next->data"
+                rust: "node.next.data"
+                note: "Pointer chain eliminated with references"
+            validation_reference: "K&R §6.1-6.3, ISO C99 §6.5.2.3"
+            test_name: "test_struct_member_access"
+            sprint: 5
+            completed_date: "2025-10-16"
+            tests_added: 14
+            coverage: "100%"
+            unsafe_blocks: 0
+            note: "Struct member access: C has dot (.) and arrow (->), Rust uses dot for both. Arrow operator ptr->field is shorthand for (*ptr).field in C. Rust eliminates arrow with ownership and auto-deref. References use dot operator (automatic dereferencing). No null pointer dereferences in safe Rust. Nested access and array access have same syntax. Pointer chains use references or Box (ownership-based). All basic member access transformations SAFE (0 unsafe for direct access, some pointer patterns may need unsafe in current transpiler)."
 
           - id: "EXPR-POSTFIX-INCR"
             title: "Document post-increment/decrement"
@@ -1913,20 +1946,20 @@ next_steps:
 status:
   overall: "IN_PROGRESS"
   completion_percent: 41
-  completed_tasks: 61
+  completed_tasks: 62
   in_progress_tasks: 0
   blocked_tasks: 1
-  not_started_tasks: 88
+  not_started_tasks: 87
   total_tasks: 150
   methodology: "EXTREME TDD (RED-GREEN-REFACTOR) + Ownership Inference"
   goal: "100% C99 language coverage with <5 unsafe blocks per 1000 LOC"
   last_completed:
-    task_id: "TYPE-ARRAY-INIT"
-    title: "array initialization patterns documentation"
-    version: "v0.46.0"
+    task_id: "EXPR-MEMBER-ACCESS-PATTERNS"
+    title: "struct member access patterns documentation"
+    version: "v0.47.0"
     date: "2025-10-16"
     unsafe_blocks_added: 0
-    tests_added: 15
+    tests_added: 14
     coverage: "100%"
   current_sprint: 5
   current_unsafe_count_per_1000_loc: 0
