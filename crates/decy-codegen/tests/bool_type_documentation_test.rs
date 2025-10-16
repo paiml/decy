@@ -77,7 +77,7 @@ fn test_int_as_bool() {
     // Demonstrate bool (not int)
     let flag = true;
     if flag {
-        assert!(true, "Condition evaluated");
+        // Condition evaluated
     }
 }
 
@@ -105,8 +105,8 @@ fn test_bool_literals() {
     // Demonstrate literals
     let b = true;
     let b2 = false;
-    assert_eq!(b, true, "true literal");
-    assert_eq!(b2, false, "false literal");
+    assert!(b, "true literal");
+    assert!(!b2, "false literal");
 }
 
 /// Document bool in conditionals
@@ -133,12 +133,13 @@ fn test_bool_in_conditionals() {
     // Demonstrate conditionals
     let flag = true;
     if flag {
-        assert!(true, "Condition true");
+        // Condition evaluated
     }
 
     // Redundant comparison (works but not idiomatic)
+    #[allow(clippy::bool_comparison)]
     if flag == true {
-        assert!(true, "Explicit comparison");
+        // Explicit comparison (not recommended)
     }
 }
 
@@ -170,13 +171,13 @@ fn test_bool_operators() {
     let b = false;
 
     let and_result = a && b;
-    assert_eq!(and_result, false, "true && false = false");
+    assert!(!and_result, "true && false = false");
 
     let or_result = a || b;
-    assert_eq!(or_result, true, "true || false = true");
+    assert!(or_result, "true || false = true");
 
     let not_result = !a;
-    assert_eq!(not_result, false, "!true = false");
+    assert!(!not_result, "!true = false");
 }
 
 /// Document boolean short-circuit evaluation
@@ -206,8 +207,9 @@ fn test_bool_short_circuit() {
     let flag = false;
 
     // This doesn't panic because second part not evaluated
+    #[allow(clippy::diverging_sub_expression)]
     let result = flag && panic!("Should not reach here");
-    assert_eq!(result, false, "Short-circuit prevents panic");
+    assert!(!result, "Short-circuit prevents panic");
 }
 
 /// Document int to bool conversion
@@ -233,11 +235,11 @@ fn test_int_to_bool_conversion() {
     // Demonstrate explicit conversion
     let x = 5;
     let b = x != 0;
-    assert_eq!(b, true, "Non-zero is true");
+    assert!(b, "Non-zero is true");
 
     let x = 0;
     let b = x != 0;
-    assert_eq!(b, false, "Zero is false");
+    assert!(!b, "Zero is false");
 }
 
 /// Document bool to int conversion
@@ -334,8 +336,8 @@ fn test_bool_as_return() {
         x > 0
     }
 
-    assert_eq!(is_valid(5), true, "Positive is valid");
-    assert_eq!(is_valid(-1), false, "Negative is invalid");
+    assert!(is_valid(5), "Positive is valid");
+    assert!(!is_valid(-1), "Negative is invalid");
 }
 
 /// Document bool in struct fields
@@ -402,8 +404,8 @@ fn test_bool_array() {
     let mut flags = [false; 10];
     flags[5] = true;
 
-    assert_eq!(flags[5], true, "Array element set to true");
-    assert_eq!(flags[0], false, "Other elements are false");
+    assert!(flags[5], "Array element set to true");
+    assert!(!flags[0], "Other elements are false");
 }
 
 /// Document sizeof bool
@@ -453,14 +455,14 @@ fn test_bool_negation() {
     // Demonstrate negation
     let flag = true;
     let opposite = !flag;
-    assert_eq!(opposite, false, "Negation of true is false");
+    assert!(!opposite, "Negation of true is false");
 
     if !flag {
         panic!("Should not execute");
     }
 
     if !opposite {
-        assert!(true, "Negated condition works");
+        // Negated condition works
     }
 }
 
@@ -489,13 +491,14 @@ fn test_bool_comparison_antipattern() {
     let flag = true;
 
     // Non-idiomatic (works but not recommended)
+    #[allow(clippy::bool_comparison)]
     if flag == true {
-        assert!(true, "Redundant comparison");
+        // Redundant comparison
     }
 
     // Idiomatic
     if flag {
-        assert!(true, "Direct usage");
+        // Direct usage
     }
 
     // For false, use negation
@@ -530,7 +533,7 @@ fn test_bool_pointer() {
     let ptr = &mut flag;
     *ptr = true;
 
-    assert_eq!(flag, true, "Modified through reference");
+    assert!(flag, "Modified through reference");
 }
 
 /// Document bool with bitwise operators (type error in Rust)
@@ -560,7 +563,7 @@ fn test_bool_no_bitwise() {
     let flag2 = false;
 
     let result = flag1 && flag2;
-    assert_eq!(result, false, "Logical AND");
+    assert!(!result, "Logical AND");
 
     // If bitwise really needed, convert to int
     let bitwise = (flag1 as i32) & (flag2 as i32);
@@ -593,7 +596,7 @@ fn test_c99_underscore_bool() {
 
     // Rust only has built-in bool
     let flag = true;
-    assert_eq!(flag, true, "Built-in bool type");
+    assert!(flag, "Built-in bool type");
 }
 
 /// Verify that boolean transformations introduce no unsafe blocks
@@ -657,18 +660,18 @@ fn test_bool_transformation_unsafe_count() {
 fn test_bool_transformation_rules_summary() {
     // Rule 1: Built-in bool type
     let flag = true;
-    assert_eq!(flag, true, "Built-in bool");
+    assert!(flag, "Built-in bool");
 
     // Rule 2: Logical operators work the same
     let a = true;
     let b = false;
     let result = a && b;
-    assert_eq!(result, false, "Logical AND");
+    assert!(!result, "Logical AND");
 
     // Rule 3: Explicit conversions
     let x = 5;
     let is_nonzero = x != 0;
-    assert_eq!(is_nonzero, true, "Explicit int to bool");
+    assert!(is_nonzero, "Explicit int to bool");
 
     let as_int = flag as i32;
     assert_eq!(as_int, 1, "Explicit bool to int");

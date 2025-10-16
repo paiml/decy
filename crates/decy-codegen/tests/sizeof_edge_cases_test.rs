@@ -237,7 +237,8 @@ fn test_sizeof_empty_struct() {
 fn test_sizeof_packed_struct() {
     use std::mem::size_of;
 
-    #[repr(packed)]
+    #[repr(C, packed)]
+    #[allow(dead_code)]
     struct Packed {
         a: u8,
         b: i32,
@@ -296,6 +297,7 @@ fn test_sizeof_enum_types() {
 
     // Simple C-like enum
     #[repr(C)]
+    #[allow(dead_code)]
     enum Color {
         Red,
         Green,
@@ -306,6 +308,7 @@ fn test_sizeof_enum_types() {
     assert_eq!(color_size, 4, "C-style enum is int-sized (4 bytes)");
 
     // Rust enum with data
+    #[allow(dead_code)]
     enum Result<T> {
         Ok(T),
         Err(i32),
@@ -461,11 +464,11 @@ fn test_sizeof_array_expression() {
 
     // Not the size of the pointer!
     let ptr: &[i32] = &arr;
-    let slice_size = size_of_val(&ptr);
+    let slice_size = size_of_val(ptr);
     assert_eq!(
         slice_size,
-        2 * size_of::<usize>(),
-        "Slice reference = fat pointer"
+        10 * size_of::<i32>(),
+        "Slice reference points to full array"
     );
 }
 

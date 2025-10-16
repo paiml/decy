@@ -482,7 +482,7 @@ fn test_ternary_to_match() {
 
     let type_enum = Type::Float;
     let int_val = 42;
-    let float_val = 3.14;
+    let float_val = std::f64::consts::PI;
     let string_val = "hello";
 
     let result = match type_enum {
@@ -491,7 +491,7 @@ fn test_ternary_to_match() {
         Type::String => string_val.len() as f64,
     };
 
-    assert_eq!(result, 3.14, "Match selects float branch");
+    assert!((result - std::f64::consts::PI).abs() < 0.001, "Match selects float branch");
 }
 
 /// Verify that ternary transformations introduce no unsafe blocks

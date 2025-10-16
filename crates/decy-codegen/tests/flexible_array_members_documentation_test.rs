@@ -236,6 +236,7 @@ buf->data[i] = value;  // Direct array access
         let rust_equivalent = "buf.data[i] = value;  // Bounds-checked access";
 
         struct Buffer {
+            #[allow(dead_code)]
             length: usize,
             data: Vec<u8>,
         }
@@ -436,6 +437,7 @@ Rust: No such restrictions
         // Rust: multiple Vecs, any position
         struct MultiBuffer {
             data1: Vec<u8>, // First Vec (allowed in Rust)
+            #[allow(dead_code)]
             length: usize,
             data2: Vec<u8>, // Second Vec (allowed in Rust)
         }
@@ -589,6 +591,7 @@ Rust Transformation Patterns:
 
         // Most common pattern: Vec
         struct BufferVec {
+            #[allow(dead_code)]
             length: usize,
             data: Vec<u8>,
         }
@@ -601,6 +604,7 @@ Rust Transformation Patterns:
 
         // Alternative: slice reference
         struct BufferRef<'a> {
+            #[allow(dead_code)]
             length: usize,
             data: &'a [u8],
         }

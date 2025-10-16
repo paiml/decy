@@ -104,6 +104,7 @@ fn test_bitwise_or_operator() {
 ///
 /// Reference: K&R §2.9, ISO C99 §6.5.12
 #[test]
+#[allow(clippy::identity_op)]
 fn test_bitwise_xor_operator() {
     let c_code = "int result = a ^ b;";
     let rust_equivalent = "let result = a ^ b;";
@@ -172,6 +173,7 @@ fn test_bitwise_not_operator() {
 ///
 /// Reference: K&R §2.9, ISO C99 §6.5.7
 #[test]
+#[allow(clippy::identity_op)]
 fn test_left_shift_operator() {
     let c_code = "int result = a << 2;";
     let rust_equivalent = "let result = a << 2;";
@@ -208,6 +210,7 @@ fn test_left_shift_operator() {
 ///
 /// Reference: K&R §2.9, ISO C99 §6.5.7
 #[test]
+#[allow(clippy::identity_op)]
 fn test_right_shift_operator() {
     let c_code = "int result = a >> 2;";
     let rust_equivalent = "let result = a >> 2;";

@@ -45,7 +45,7 @@ fn test_cast_float_to_int() {
     assert!(rust_equivalent.contains("as"), "Rust uses as operator");
 
     // Demonstrate float to int cast
-    let f = 3.14;
+    let f = std::f64::consts::PI;
     let i = f as i32;
     assert_eq!(i, 3, "Float truncated to int");
 }
@@ -266,7 +266,7 @@ fn test_cast_remove_const() {
     // Demonstrate const to mut cast (creating is safe, using is unsafe)
     let value = 42;
     let const_ptr = &value as *const i32;
-    let _mut_ptr = const_ptr as *const i32 as *mut i32;
+    let _mut_ptr = const_ptr as *mut i32;
     // Note: Actually mutating would be undefined behavior
 }
 
@@ -465,13 +465,13 @@ fn test_cast_type_punning() {
     assert!(rust_safe.contains("to_bits"), "Rust has safe alternative");
 
     // Demonstrate safe type punning
-    let f = 3.14f32;
+    let f = std::f32::consts::PI;
     let bits = f.to_bits();
-    assert_eq!(bits, 0x4048f5c3, "Float bits extracted safely");
+    assert_eq!(bits, 0x40490fdb, "Float bits extracted safely");
 
     // Demonstrate unsafe transmute (avoid if possible)
-    let bits_unsafe: u32 = unsafe { std::mem::transmute(f) };
-    assert_eq!(bits_unsafe, 0x4048f5c3, "Transmute works but unsafe");
+    let bits_unsafe: u32 = unsafe { std::mem::transmute::<f32, u32>(f) };
+    assert_eq!(bits_unsafe, 0x40490fdb, "Transmute works but unsafe");
 }
 
 /// Document struct cast (not allowed in Rust)
@@ -602,7 +602,7 @@ fn test_cast_transformation_safety() {
 #[test]
 fn test_cast_transformation_rules_summary() {
     // Rule 1: Numeric casts are safe
-    let f = 3.14;
+    let f = std::f64::consts::PI;
     let i = f as i32;
     assert_eq!(i, 3, "Numeric cast is safe");
 
@@ -629,7 +629,7 @@ fn test_cast_transformation_rules_summary() {
     );
 
     // Rule 6: Type punning has safe alternatives
-    let f = 3.14f32;
+    let f = std::f32::consts::PI;
     let bits = f.to_bits();
     assert!(bits != 0, "Safe type punning with to_bits()");
 }

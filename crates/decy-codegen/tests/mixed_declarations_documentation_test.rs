@@ -556,7 +556,7 @@ fn function() {
     const THRESHOLD: i32 = 100;
 
     if x > THRESHOLD {
-        assert!(true, "Above threshold");
+        // Above threshold
     }
 }
 

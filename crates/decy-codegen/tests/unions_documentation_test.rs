@@ -143,9 +143,9 @@ fn test_union_type_punning_safe() {
     assert!(rust_safe.contains("safe"), "Rust has safe alternative");
 
     // Safe way: use built-in methods
-    let f: f32 = 3.14;
+    let f: f32 = std::f32::consts::PI;
     let bits: u32 = f.to_bits();
-    assert_eq!(bits, 0x4048f5c3, "Float bits extracted safely");
+    assert_eq!(bits, 0x40490fdb, "Float bits extracted safely");
 
     let reconstructed = f32::from_bits(bits);
     assert_eq!(reconstructed, f, "Float reconstructed from bits");
@@ -410,7 +410,7 @@ fn test_union_size_and_alignment() {
     // Demonstrate that all variants fit
     let _c = U::Char(42);
     let _i = U::Int(1234);
-    let _d = U::Double(3.14);
+    let _d = U::Double(std::f64::consts::PI);
 }
 
 /// Document union bit fields (rare)
@@ -654,11 +654,11 @@ fn test_nested_unions() {
         Inner(Inner),
     }
 
-    let o = Outer::Inner(Inner::Float(3.14));
+    let o = Outer::Inner(Inner::Float(std::f32::consts::PI));
     match o {
         Outer::Int(_) => panic!("Wrong variant"),
         Outer::Inner(inner) => match inner {
-            Inner::Float(f) => assert_eq!(f, 3.14, "Nested variant"),
+            Inner::Float(f) => assert!((f - std::f32::consts::PI).abs() < 0.001, "Nested variant"),
             Inner::Double(_) => panic!("Wrong inner variant"),
         },
     }

@@ -213,6 +213,7 @@ mod designated_initializers_documentation_tests {
         let rust_equivalent = "let color = RGB { r: 255, g: 128, b: 0 };";
 
         #[derive(Debug, PartialEq)]
+        #[allow(clippy::upper_case_acronyms)]
         struct RGB {
             r: u8,
             g: u8,
