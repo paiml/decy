@@ -10,12 +10,12 @@ roadmap:
 
   statistics:
     total_tasks: 150
-    completed: 78
+    completed: 79
     partial_support: 0
     in_progress: 0
     blocked: 1
-    not_started: 71
-    coverage_percent: 52
+    not_started: 70
+    coverage_percent: 53
 
 extreme_tdd_workflow:
   description: "Standard workflow for each task"
@@ -1425,25 +1425,47 @@ chapters:
             title: "Document ternary operator (? :)"
             status: "completed"
             priority: "high"
-            version: "v0.28.0"
+            version: "v0.62.0"
             examples:
               - c: "max = (a > b) ? a : b;"
                 rust: "let max = if a > b { a } else { b };"
-                note: "If expression replaces ternary"
-              - c: "result = (x >= 90) ? 'A' : (x >= 80) ? 'B' : 'C';"
-                rust: "let result = if x >= 90 { 'A' } else if x >= 80 { 'B' } else { 'C' };"
-                note: "Nested ternary → if-else-if chain (more readable)"
-              - c: "value = ptr ? ptr->data : default;"
-                rust: "let value = ptr.map(|p| p.data).unwrap_or(default);"
-                note: "Option methods for null checks"
+                note: "Simple ternary → if expression (same short-circuit)"
+              - c: "sign = (x >= 0) ? 1 : -1;"
+                rust: "let sign = if x >= 0 { 1 } else { -1 };"
+                note: "Sign determination pattern"
+              - c: "return (x >= 0) ? x : -x;"
+                rust: "if x >= 0 { x } else { -x }"
+                note: "Ternary in return → if expression as implicit return"
+              - c: "grade = (x >= 90) ? 'A' : (x >= 80) ? 'B' : 'C';"
+                rust: "let grade = if x >= 90 { 'A' } else if x >= 80 { 'B' } else { 'C' };"
+                note: "Nested ternary → if-else-if chain (MUCH more readable)"
+              - c: "grade = (x >= 90) ? 'A' : (x >= 80) ? 'B' : (x >= 70) ? 'C' : 'F';"
+                rust: "let grade = if x >= 90 { 'A' } else if x >= 80 { 'B' } else if x >= 70 { 'C' } else { 'F' };"
+                note: "Deeply nested ternary dramatically more readable as if-else-if"
+              - c: "result = is_cached() ? get_cached() : compute();"
+                rust: "let result = if is_cached() { get_cached() } else { compute() };"
+                note: "Function calls: short-circuit preserved, only one called"
+              - c: "value = (ptr != NULL) ? ptr->data : default;"
+                rust: "let value = if let Some(ptr) = opt { ptr.data } else { default };"
+                note: "NULL check → Option pattern matching (safe)"
+              - c: "result = (b != 0) ? a / b : 0;"
+                rust: "let result = if b != 0 { a / b } else { 0 };"
+                note: "Zero check guard (prevent division by zero)"
+              - c: "clamped = (x < MIN) ? MIN : (x > MAX) ? MAX : x;"
+                rust: "let clamped = if x < MIN { MIN } else if x > MAX { MAX } else { x };"
+                note: "Clamp/bounds check pattern (three-way decision)"
+              - c: "is_valid = (x >= 0 && x < 100) ? 1 : 0;"
+                rust: "let is_valid = x >= 0 && x < 100;"
+                note: "Boolean result: unnecessary ternary eliminated (type safety)"
             validation_reference: "K&R §2.11, ISO C99 §6.5.15"
             test_name: "test_ternary_operator"
+            test_file: "ternary_operator_documentation_test.rs"
             sprint: 5
-            completed_date: "2025-10-15"
+            completed_date: "2025-10-17"
             tests_added: 17
             coverage: "100%"
             unsafe_blocks: 0
-            note: "Ternary operator → if expression (SAFE). Both are expressions that return values. If expression more readable for nested conditions. Short-circuits like C ternary. Type-safe: both branches must match types."
+            note: "COMPREHENSIVE DOCUMENTATION: Ternary operator (? :) → if expression (SAFE, 100% coverage). Critical differences: (1) Rust if expressions are TYPE-SAFE (both branches must match types, C allows implicit conversions), (2) Condition must be bool in Rust (C allows any integer), (3) If-else-if chains dramatically more readable than nested ternaries, (4) Option pattern matching replaces NULL checks safely. Short-circuit evaluation preserved. All transformations safe (0 unsafe blocks). Test file demonstrates: simple max/min, sign determination, return expressions, nested grades (3-4 levels), function calls, NULL/zero checks, clamping, boolean simplification, array initialization, printing, pointer truthy checks, sign extension, default values. Syntax difference makes nested conditions vastly more maintainable."
 
           - id: "EXPR-COMMA"
             title: "Document comma operator"
@@ -2505,12 +2527,12 @@ status:
   methodology: "EXTREME TDD (RED-GREEN-REFACTOR) + Ownership Inference"
   goal: "100% C99 language coverage with <5 unsafe blocks per 1000 LOC"
   last_completed:
-    task_id: "EXPR-CMP-RELATIONAL/EQUALITY"
-    title: "Comparison operators (<, >, <=, >=, ==, !=) documentation"
-    version: "v0.61.0"
+    task_id: "EXPR-TERNARY"
+    title: "Ternary operator (? :) comprehensive documentation"
+    version: "v0.62.0"
     date: "2025-10-17"
     unsafe_blocks_added: 0
-    tests_added: 15
+    tests_added: 17
     coverage: "100%"
   current_sprint: 5
   current_unsafe_count_per_1000_loc: 0
