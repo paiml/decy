@@ -10,12 +10,12 @@ roadmap:
 
   statistics:
     total_tasks: 150
-    completed: 76
+    completed: 78
     partial_support: 0
     in_progress: 0
     blocked: 1
-    not_started: 73
-    coverage_percent: 51
+    not_started: 71
+    coverage_percent: 52
 
 extreme_tdd_workflow:
   description: "Standard workflow for each task"
@@ -1265,26 +1265,65 @@ chapters:
           - id: "EXPR-CMP-RELATIONAL"
             title: "Document relational operators"
             status: "completed"
-            version: "v0.1.0"
+            priority: "high"
+            version: "v0.61.0"
             examples:
-              - c: "a < b"
-                rust: "a < b"
-              - c: "a >= b"
-                rust: "a >= b"
+              - c: "if (a < b) { smaller = a; }"
+                rust: "if a < b { smaller = a; }"
+                note: "Less than: same syntax, returns bool in Rust (not int)"
+              - c: "if (a > b) { larger = a; }"
+                rust: "if a > b { larger = a; }"
+                note: "Greater than: common for max/sorting operations"
+              - c: "if (a <= b) { process(); }"
+                rust: "if a <= b { process(); }"
+                note: "Less than or equal: inclusive lower bound"
+              - c: "if (a >= b) { process(); }"
+                rust: "if a >= b { process(); }"
+                note: "Greater than or equal: inclusive upper bound"
+              - c: "if (x >= MIN && x <= MAX) { in_range = 1; }"
+                rust: "if x >= MIN && x <= MAX { in_range = true; }"
+                note: "Range check: combining comparisons for validation"
+              - c: "int min = (a < b) ? a : b;"
+                rust: "let min = if a < b { a } else { b };"
+                note: "Finding min/max: ternary → if expression"
             validation_reference: "K&R §2.6, ISO C99 §6.5.8"
-            test_name: "test_relational_operators"
+            test_name: "test_comparison_operators_documentation"
+            sprint: 5
+            completed_date: "2025-10-17"
+            tests_added: 15
+            coverage: "100%"
+            unsafe_blocks: 0
+            note: "Relational operators (<, >, <=, >=): Same syntax in C and Rust. Return type: C returns int (0 or 1), Rust returns bool (type-safe). Type requirements: Rust requires PartialOrd trait. Common patterns: range checking, loop bounds, finding min/max, sorting. All transformations type-safe (0 unsafe blocks). Combined with equality operators in single test file."
 
           - id: "EXPR-CMP-EQUALITY"
             title: "Document equality operators"
             status: "completed"
-            version: "v0.1.0"
+            priority: "high"
+            version: "v0.61.0"
             examples:
-              - c: "a == b"
-                rust: "a == b"
-              - c: "a != b"
-                rust: "a != b"
+              - c: "if (a == b) { handle_equal(); }"
+                rust: "if a == b { handle_equal(); }"
+                note: "Equality: same syntax, returns bool in Rust"
+              - c: "if (a != b) { handle_different(); }"
+                rust: "if a != b { handle_different(); }"
+                note: "Inequality: common for sentinel/NULL checks"
+              - c: "if (ptr != NULL && value != 0) { ... }"
+                rust: "if let Some(ptr) = opt { if value != 0 { ... } }"
+                note: "NULL check: C uses !=, Rust uses Option pattern"
+              - c: "if (strcmp(str1, str2) == 0) { strings_equal(); }"
+                rust: "if str1 == str2 { strings_equal(); }"
+                note: "String comparison: C needs strcmp, Rust uses direct =="
+              - c: "int is_equal = (a == b);"
+                rust: "let is_equal = a == b;"
+                note: "Comparison as value: C stores int, Rust stores bool"
             validation_reference: "K&R §2.6, ISO C99 §6.5.9"
-            test_name: "test_equality_operators"
+            test_name: "test_comparison_operators_documentation"
+            sprint: 5
+            completed_date: "2025-10-17"
+            tests_added: 15
+            coverage: "100%"
+            unsafe_blocks: 0
+            note: "Equality operators (==, !=): Same syntax in C and Rust. Return type: C returns int (0 or 1), Rust returns bool (type-safe). Type requirements: Rust requires PartialEq trait. String comparison: C needs strcmp function, Rust supports direct == (more intuitive). NULL checks: C uses ptr != NULL, Rust uses Option pattern. Common patterns: sentinel checks, validation, loop termination. All transformations type-safe (0 unsafe blocks). Combined with relational operators in single test file."
 
       - id: "4.6"
         name: "Logical Operators (C99 §6.5.13-6.5.14)"
@@ -2466,9 +2505,9 @@ status:
   methodology: "EXTREME TDD (RED-GREEN-REFACTOR) + Ownership Inference"
   goal: "100% C99 language coverage with <5 unsafe blocks per 1000 LOC"
   last_completed:
-    task_id: "EXPR-LOGICAL-AND/OR"
-    title: "Logical operators (&&, ||) documentation"
-    version: "v0.60.0"
+    task_id: "EXPR-CMP-RELATIONAL/EQUALITY"
+    title: "Comparison operators (<, >, <=, >=, ==, !=) documentation"
+    version: "v0.61.0"
     date: "2025-10-17"
     unsafe_blocks_added: 0
     tests_added: 15
