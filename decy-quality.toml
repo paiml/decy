@@ -55,6 +55,12 @@ cyclomatic_threshold = 10            # Max cyclomatic complexity
 cognitive_threshold = 15             # Max cognitive complexity
 max_function_lines = 100             # Max lines per function
 max_file_lines = 500                 # Max lines per file
+entropy_threshold = 0.8              # Max entropy (randomness) - 80%
+
+# Technical Debt Grade (PMAT TDG)
+[technical_debt]
+minimum_grade = "C"                  # Minimum acceptable grade (A-F scale)
+fail_on_d_or_below = true            # Block commits with D, E, or F grades
 
 # Linting (Zero Warnings)
 [linting]
@@ -123,7 +129,10 @@ clippy = { enabled = true, deny_warnings = true }
 fmt = { enabled = true }
 satd = { enabled = true }
 tests = { enabled = true, require_pass = true }
-complexity = { enabled = true }
+complexity = { enabled = true, max_cyclomatic = 10 }
+entropy = { enabled = true, threshold = 0.8 }
+pmat_complexity = { enabled = true, max_cyclomatic = 10 }
+pmat_tdg = { enabled = true, minimum_grade = "C" }
 mutation = { enabled = false }       # Too slow for pre-commit, run in CI
 
 # CI/CD Requirements

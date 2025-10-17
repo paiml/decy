@@ -105,6 +105,122 @@ else
 fi
 echo ""
 
+# 6a. Check PMAT Entropy
+echo "🎲 Checking PMAT entropy..."
+if command -v pmat &> /dev/null; then
+    # Check entropy for all staged Rust files
+    STAGED_FILES=$(git diff --cached --name-only --diff-filter=ACM | grep -E '\.rs$' || true)
+    if [ -n "$STAGED_FILES" ]; then
+        ENTROPY_FAILED=0
+        for file in $STAGED_FILES; do
+            if [ -f "$file" ]; then
+                # pmat entropy returns 0 if entropy is acceptable
+                if ! pmat entropy "$file" --threshold 0.8 --quiet; then
+                    echo -e "${RED}❌ High entropy detected in: $file${NC}"
+                    ENTROPY_FAILED=1
+                fi
+            fi
+        done
+
+        if [ $ENTROPY_FAILED -eq 0 ]; then
+            echo -e "${GREEN}✅ Entropy check passed (all files <80% threshold)${NC}"
+        else
+            echo -e "${RED}❌ Entropy check failed${NC}"
+            echo "Files have high entropy (randomness). Consider:"
+            echo "  - Breaking down complex logic"
+            echo "  - Adding meaningful comments"
+            echo "  - Improving code structure"
+            FAILED=1
+        fi
+    else
+        echo -e "${GREEN}✅ No Rust files to check${NC}"
+    fi
+else
+    echo -e "${YELLOW}⚠️  pmat not installed, skipping entropy check${NC}"
+    echo "Install with: cargo install pmat"
+fi
+echo ""
+
+# 6b. Check PMAT Complexity (Cyclomatic <10)
+echo "🔢 Checking PMAT complexity (cyclomatic <10)..."
+if command -v pmat &> /dev/null; then
+    # Check complexity for all staged Rust files
+    STAGED_FILES=$(git diff --cached --name-only --diff-filter=ACM | grep -E '\.rs$' || true)
+    if [ -n "$STAGED_FILES" ]; then
+        COMPLEXITY_FAILED=0
+        for file in $STAGED_FILES; do
+            if [ -f "$file" ]; then
+                # pmat complexity --max-cyclomatic 10 returns non-zero if any function exceeds threshold
+                if ! pmat complexity "$file" --max-cyclomatic 10 --quiet; then
+                    echo -e "${RED}❌ High complexity detected in: $file${NC}"
+                    COMPLEXITY_FAILED=1
+                fi
+            fi
+        done
+
+        if [ $COMPLEXITY_FAILED -eq 0 ]; then
+            echo -e "${GREEN}✅ Complexity check passed (all functions ≤10)${NC}"
+        else
+            echo -e "${RED}❌ Complexity check failed (functions >10 cyclomatic complexity)${NC}"
+            echo "Refactor complex functions to reduce cyclomatic complexity:"
+            echo "  - Extract helper functions"
+            echo "  - Simplify control flow"
+            echo "  - Break down large functions"
+            echo "  - Use early returns"
+            FAILED=1
+        fi
+    else
+        echo -e "${GREEN}✅ No Rust files to check${NC}"
+    fi
+else
+    echo -e "${YELLOW}⚠️  pmat not installed, skipping complexity check${NC}"
+    echo "Install with: cargo install pmat"
+fi
+echo ""
+
+# 6c. Check PMAT TDG (Technical Debt Grade)
+echo "📈 Checking PMAT TDG (Technical Debt Grade)..."
+if command -v pmat &> /dev/null; then
+    # Check TDG for all staged Rust files
+    STAGED_FILES=$(git diff --cached --name-only --diff-filter=ACM | grep -E '\.rs$' || true)
+    if [ -n "$STAGED_FILES" ]; then
+        TDG_FAILED=0
+        for file in $STAGED_FILES; do
+            if [ -f "$file" ]; then
+                # pmat tdg returns grade A-F, fail if below threshold
+                TDG_OUTPUT=$(pmat tdg "$file" 2>&1 || true)
+                # Extract grade (assumes format like "Grade: A" or just "A")
+                GRADE=$(echo "$TDG_OUTPUT" | grep -oE '[A-F]' | head -1 || echo "F")
+
+                # Fail if grade is D, E, or F
+                if [[ "$GRADE" == "D" || "$GRADE" == "E" || "$GRADE" == "F" ]]; then
+                    echo -e "${RED}❌ Poor TDG in: $file (Grade: $GRADE)${NC}"
+                    TDG_FAILED=1
+                fi
+            fi
+        done
+
+        if [ $TDG_FAILED -eq 0 ]; then
+            echo -e "${GREEN}✅ TDG check passed (all files grade A-C)${NC}"
+        else
+            echo -e "${RED}❌ TDG check failed (files with grade D-F)${NC}"
+            echo "Improve technical debt grade by:"
+            echo "  - Reducing complexity"
+            echo "  - Lowering entropy"
+            echo "  - Adding documentation"
+            echo "  - Removing SATD comments"
+            echo "  - Improving code structure"
+            FAILED=1
+        fi
+    else
+        echo -e "${GREEN}✅ No Rust files to check${NC}"
+    fi
+else
+    echo -e "${YELLOW}⚠️  pmat not installed, skipping TDG check${NC}"
+    echo "Install with: cargo install pmat"
+fi
+echo ""
+
 # 7. Build Check
 echo "🔨 Running build check..."
 if cargo build --workspace --all-features; then
@@ -157,6 +273,9 @@ else
     echo "  • 0 SATD comments (TODO/FIXME/HACK)"
     echo "  • All tests passing"
     echo "  • Code formatted"
+    echo "  • PMAT entropy < 80%"
+    echo "  • PMAT cyclomatic complexity ≤ 10"
+    echo "  • PMAT TDG grade ≥ C (no D, E, F)"
     echo "  • Documentation complete"
     echo ""
     exit 1
