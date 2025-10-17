@@ -10,11 +10,11 @@ roadmap:
 
   statistics:
     total_tasks: 150
-    completed: 87
+    completed: 88
     partial_support: 0
     in_progress: 0
     blocked: 1
-    not_started: 62
+    not_started: 61
     coverage_percent: 58
 
 extreme_tdd_workflow:
@@ -537,15 +537,51 @@ chapters:
           - id: "TYPE-BASIC-VOID"
             title: "Document void type"
             status: "completed"
-            version: "v0.1.0"
+            version: "v0.71.0"
+            test_file: "crates/decy/tests/void_type_documentation_test.rs"
             examples:
-              - c: "void func(void) {}"
-                rust: "fn func() {}"
+              - c: "void print(void) { }"
+                rust: "fn print() { }"
+                note: "void return → omit return type (implicit unit type ())"
+              - c: "int get_value(void);"
+                rust: "fn get_value() -> i32;"
+                note: "void parameters → empty () (no parameters)"
               - c: "void* ptr;"
                 rust: "let ptr: *mut u8;"
-                note: "void* requires unsafe handling"
+                note: "void* → *mut u8 (generic pointer becomes byte pointer)"
+              - c: "void process(void* data);"
+                rust: "fn process(data: *mut u8);"
+                note: "void* parameter → *mut u8 (explicit type)"
+              - c: "void* allocate(size_t size);"
+                rust: "fn allocate(size: usize) -> *mut u8;"
+                note: "void* return → *mut u8 (explicit return type)"
+              - c: "int* p = (int*)void_ptr;"
+                rust: "let p: *mut i32 = void_ptr as *mut i32;"
+                note: "void* cast: C implicit → Rust explicit (as cast required)"
+              - c: "void* buffer = malloc(100);"
+                rust: "let buffer: *mut u8 = unsafe { allocate(100) };"
+                note: "malloc returns void*, unsafe required in Rust"
+              - c: "void copy(void* dest, const void* src);"
+                rust: "fn copy(dest: *mut u8, src: *const u8);"
+                note: "const void* → *const u8 (read-only pointer)"
+              - c: "void* ptr = NULL; if (ptr == NULL) { }"
+                rust: "let ptr: *mut u8 = std::ptr::null_mut(); if ptr.is_null() { }"
+                note: "NULL → null_mut(), null check via is_null() method"
+              - c: "void func(int x) { if (x < 0) return; }"
+                rust: "fn func(x: i32) { if x < 0 { return; } }"
+                note: "Early return from void function: same syntax"
             validation_reference: "K&R §2.2, ISO C99 §6.2.5"
-            test_name: "test_void_type_mapping"
+            test_name: "test_void_type_transformation_summary"
+            critical_safety_differences:
+              - "void return → omit type (implicit ()), void params → empty ()"
+              - "void* generic pointer → *mut u8 (NO implicit conversions in Rust)"
+              - "void* casts: C implicit → Rust EXPLICIT (as cast required, visible)"
+              - "Pointer operations REQUIRE unsafe blocks (dereference, allocation)"
+              - "NULL → null_mut()/null(), check via is_null() method (type-safe)"
+            tests_added: 15
+            coverage: "100%"
+            unsafe_blocks: "Required for void* operations"
+            note: "COMPREHENSIVE DOCUMENTATION: void type all C patterns. CRITICAL SAFETY: (1) void return/params: C void keyword → Rust omit type (implicit unit ()), cleaner syntax, (2) void* generic pointer: C implicitly converts to any pointer type (type-unsafe), Rust *mut u8 requires EXPLICIT casts (as *mut T), (3) Type safety: C void* bypasses type system (convenient but unsafe), Rust preserves types (explicit casts visible in code), (4) Unsafe operations: C dereference void* after cast, Rust REQUIRES unsafe blocks (explicit danger), (5) NULL handling: C NULL macro, Rust null_mut()/is_null() (type-safe methods). Transformations: void return→omit, void params→(), void*→*mut u8, const void*→*const u8, casts require explicit as, malloc/operations require unsafe. Test file demonstrates void return, void params, void* pointers, casts, malloc patterns, memcpy/qsort signatures, NULL handling, early returns, struct fields. Unsafe required for pointer operations."
 
           - id: "TYPE-BASIC-BOOL"
             title: "Document boolean type"
@@ -2742,9 +2778,9 @@ high_priority_next_tasks:
       priority: 20
       status: "✅ COMPLETED (Sprint 4)"
   last_completed:
-    task_id: "TYPE-BASIC-FLOAT"
-    title: "Floating-point types comprehensive documentation"
-    version: "v0.70.0"
+    task_id: "TYPE-BASIC-VOID"
+    title: "void type comprehensive documentation"
+    version: "v0.71.0"
     date: "2025-10-17"
     unsafe_blocks_added: 0
     tests_added: 15
@@ -2758,17 +2794,17 @@ high_priority_next_tasks:
 status:
   overall: "IN_PROGRESS"
   completion_percent: 58
-  completed_tasks: 87
+  completed_tasks: 88
   in_progress_tasks: 0
   blocked_tasks: 1
-  not_started_tasks: 62
+  not_started_tasks: 61
   total_tasks: 150
   methodology: "EXTREME TDD (RED-GREEN-REFACTOR) + Ownership Inference"
   goal: "100% C99 language coverage with <5 unsafe blocks per 1000 LOC"
   last_completed:
-    task_id: "TYPE-BASIC-FLOAT"
-    title: "Floating-point types comprehensive documentation"
-    version: "v0.70.0"
+    task_id: "TYPE-BASIC-VOID"
+    title: "void type comprehensive documentation"
+    version: "v0.71.0"
     date: "2025-10-17"
     unsafe_blocks_added: 0
     tests_added: 15
