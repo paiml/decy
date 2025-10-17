@@ -10,12 +10,12 @@ roadmap:
 
   statistics:
     total_tasks: 150
-    completed: 84
+    completed: 85
     partial_support: 0
     in_progress: 0
     blocked: 1
-    not_started: 65
-    coverage_percent: 55
+    not_started: 64
+    coverage_percent: 56
 
 extreme_tdd_workflow:
   description: "Standard workflow for each task"
@@ -280,14 +280,51 @@ chapters:
           - id: "LEX-CONST-FLOAT"
             title: "Document floating-point constants"
             status: "completed"
-            version: "v0.1.0"
+            version: "v0.68.0"
+            test_file: "crates/decy/tests/floating_point_literals_documentation_test.rs"
             examples:
-              - c: "float pi = 3.14f;"
-                rust: "let pi: f32 = 3.14;"
-              - c: "double e = 2.718;"
-                rust: "let e: f64 = 2.718;"
+              - c: "double x = 3.14;"
+                rust: "let x: f64 = 3.14;"
+                note: "Simple decimal: double → f64 (default type)"
+              - c: "float x = 3.14f;"
+                rust: "let x: f32 = 3.14;"
+                note: "Float suffix: f → f32 type annotation or 3.14f32"
+              - c: "double x = 1.5e10;"
+                rust: "let x: f64 = 1.5e10;"
+                note: "Scientific notation: same syntax (e10 means ×10^10)"
+              - c: "double x = 2.3e-5;"
+                rust: "let x: f64 = 2.3e-5;"
+                note: "Negative exponent: e-5 means ×10^-5, same syntax"
+              - c: "double x = .5;"
+                rust: "let x: f64 = 0.5;"
+                note: "CRITICAL: C allows .5 (no leading zero), Rust REQUIRES 0.5"
+              - c: "double x = 5.;"
+                rust: "let x: f64 = 5.0;"
+                note: "Trailing decimal: C allows 5., Rust prefers explicit 5.0"
+              - c: "double inf = INFINITY;"
+                rust: "let inf = f64::INFINITY;"
+                note: "Special values: INFINITY macro → f64::INFINITY constant"
+              - c: "double nan = NAN;"
+                rust: "let nan = f64::NAN;"
+                note: "NaN constant: NAN macro → f64::NAN"
+              - c: "if (isnan(x)) { ... }"
+                rust: "if x.is_nan() { ... }"
+                note: "NaN check: isnan() function → is_nan() method"
+              - c: "if (isinf(x)) { ... }"
+                rust: "if x.is_infinite() { ... }"
+                note: "Infinity check: isinf() → is_infinite() method"
             validation_reference: "K&R §2.3, ISO C99 §6.4.4.2"
-            test_name: "test_float_literal_transformation"
+            test_name: "test_floating_point_literals_transformation_summary"
+            critical_safety_differences:
+              - "Leading zero REQUIRED in Rust (.5 is compile error, must be 0.5)"
+              - "Special values via constants (f64::INFINITY, f64::NAN), not macros"
+              - "NaN checks via methods (is_nan()), not == comparison (always false)"
+              - "Default f64 (64-bit) matches C double, explicit f32 for float"
+              - "IEEE 754 compliance in both, but Rust methods more type-safe"
+            tests_added: 16
+            coverage: "100%"
+            unsafe_blocks: 0
+            note: "COMPREHENSIVE DOCUMENTATION: Floating-point literals all patterns. CRITICAL SAFETY: (1) Leading zero REQUIRED: C .5 valid, Rust COMPILE ERROR (must be 0.5), (2) Special values: C INFINITY/NAN macros → Rust f64::INFINITY/f64::NAN constants (no header), (3) NaN checks: C isnan() → Rust is_nan() method (== comparison ALWAYS false per IEEE 754), (4) Infinity checks: isinf() → is_infinite() method, (5) Type-safe: f32 vs f64 explicit. Transformations: decimal same, scientific same (1.5e10), .5→0.5 (add leading zero), 5.→5.0 (explicit), f suffix→f32 type, INFINITY→f64::INFINITY, NAN→f64::NAN, isnan()→is_nan(), isinf()→is_infinite(). Test file demonstrates simple decimals, scientific notation, special values, NaN/infinity checks, negative zero, IEEE 754 compliance. All safe (0 unsafe)."
 
           - id: "LEX-CONST-CHAR"
             title: "Document character constants"
@@ -2631,12 +2668,12 @@ high_priority_next_tasks:
       priority: 20
       status: "✅ COMPLETED (Sprint 4)"
   last_completed:
-    task_id: "LEX-CONST-INT"
-    title: "Integer literals comprehensive documentation"
-    version: "v0.67.0"
+    task_id: "LEX-CONST-FLOAT"
+    title: "Floating-point literals comprehensive documentation"
+    version: "v0.68.0"
     date: "2025-10-17"
     unsafe_blocks_added: 0
-    tests_added: 17
+    tests_added: 16
     coverage: "100%"
   - "Pull ANDON CORD immediately when bugs found during validation"
   - "Track unsafe block count per sprint (target: <5 per 1000 LOC)"
@@ -2646,21 +2683,21 @@ high_priority_next_tasks:
 
 status:
   overall: "IN_PROGRESS"
-  completion_percent: 46
-  completed_tasks: 69
+  completion_percent: 56
+  completed_tasks: 85
   in_progress_tasks: 0
   blocked_tasks: 1
-  not_started_tasks: 80
+  not_started_tasks: 64
   total_tasks: 150
   methodology: "EXTREME TDD (RED-GREEN-REFACTOR) + Ownership Inference"
   goal: "100% C99 language coverage with <5 unsafe blocks per 1000 LOC"
   last_completed:
-    task_id: "LEX-CONST-CHAR"
-    title: "Character literals comprehensive documentation"
-    version: "v0.66.0"
+    task_id: "LEX-CONST-FLOAT"
+    title: "Floating-point literals comprehensive documentation"
+    version: "v0.68.0"
     date: "2025-10-17"
     unsafe_blocks_added: 0
-    tests_added: 15
+    tests_added: 16
     coverage: "100%"
   current_sprint: 5
   current_unsafe_count_per_1000_loc: 0
