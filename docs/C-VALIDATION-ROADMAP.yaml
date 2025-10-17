@@ -10,12 +10,12 @@ roadmap:
 
   statistics:
     total_tasks: 150
-    completed: 88
+    completed: 89
     partial_support: 0
     in_progress: 0
     blocked: 1
-    not_started: 61
-    coverage_percent: 58
+    not_started: 60
+    coverage_percent: 59
 
 extreme_tdd_workflow:
   description: "Standard workflow for each task"
@@ -1720,12 +1720,51 @@ chapters:
           - id: "EXPR-ASSIGN-SIMPLE"
             title: "Document simple assignment"
             status: "completed"
-            version: "v0.1.0"
+            version: "v0.72.0"
+            test_file: "crates/decy/tests/simple_assignment_documentation_test.rs"
             examples:
-              - c: "x = 5"
-                rust: "x = 5"
+              - c: "int x = 0; x = 5;"
+                rust: "let mut x = 0; x = 5;"
+                note: "Simple assignment: Rust requires mut keyword (immutable by default)"
+              - c: "int i; float f = 3.14; i = f;"
+                rust: "let mut i: i32; let f: f32 = 3.14; i = f as i32;"
+                note: "Type conversion: C implicit → Rust EXPLICIT cast required"
+              - c: "x = a + b * c;"
+                rust: "x = a + b * c;"
+                note: "Assignment from expression: same syntax"
+              - c: "int arr[10]; arr[0] = 42;"
+                rust: "let mut arr: [i32; 10]; arr[0] = 42;"
+                note: "Array element: array must be mut"
+              - c: "struct Point p; p.x = 10;"
+                rust: "let mut p: Point; p.x = 10;"
+                note: "Struct field: struct must be mut"
+              - c: "int* ptr; *ptr = 42;"
+                rust: "let ptr: *mut i32; unsafe { *ptr = 42; }"
+                note: "Pointer dereference: unsafe required in Rust"
+              - c: "int a, b, c; a = b = c = 5;"
+                rust: "let mut a: i32; let mut b: i32; let mut c: i32; c = 5; b = 5; a = 5;"
+                note: "Chained assignment: C allows chaining, Rust must split (cannot chain)"
+              - c: "if ((x = get_value()) != 0) { }"
+                rust: "x = get_value(); if x != 0 { }"
+                note: "Assignment in condition: C allows (common bug source), Rust must separate"
+              - c: "const int x = 5;"
+                rust: "let x = 5;"
+                note: "Immutability: C const vs Rust let (immutable by default)"
+              - c: "int max; max = (a > b) ? a : b;"
+                rust: "let max = if a > b { a } else { b };"
+                note: "Assignment from ternary: Rust if expression, can use let directly"
             validation_reference: "K&R §2.10, ISO C99 §6.5.16"
-            test_name: "test_simple_assignment"
+            test_name: "test_simple_assignment_transformation_summary"
+            critical_safety_differences:
+              - "Mutability: C mutable by default, Rust IMMUTABLE by default (requires mut)"
+              - "Assignment as statement: C returns value (can chain), Rust returns () (cannot chain)"
+              - "Assignment in conditions: C allows (bug-prone), Rust COMPILE ERROR"
+              - "Type conversions: C implicit, Rust EXPLICIT cast required (type-safe)"
+              - "Pointer dereference: C direct, Rust requires unsafe block"
+            tests_added: 16
+            coverage: "100%"
+            unsafe_blocks: "Required for pointer dereference only"
+            note: "COMPREHENSIVE DOCUMENTATION: Simple assignment all C patterns. CRITICAL SAFETY: (1) Mutability: C variables mutable by default, Rust IMMUTABLE by default (prevents accidental modification), requires mut keyword for reassignment, (2) Assignment as expression: C assignment returns value (allows chaining x=y=5), Rust returns () unit type (COMPILE ERROR on chain), prevents complex assignment expressions, (3) Assignment in conditions: C allows if((x=foo())!=0) (common source of = vs == bugs), Rust COMPILE ERROR (must separate assignment and condition), (4) Type safety: C implicit conversions (int=float truncates silently), Rust EXPLICIT cast required (visible, intentional), (5) Chained assignments: C right-to-left evaluation (a=b=c=5 valid), Rust must split into separate statements (clearer intent). Transformations: simple assignment requires mut, type conversions need explicit cast, chained assignments split, assignment-in-condition separate, pointer dereference unsafe. Test file demonstrates all assignment patterns, mutability requirements, type conversions, chaining issues, condition assignments, const/immutable. Unsafe only for pointer operations."
 
           - id: "EXPR-ASSIGN-COMPOUND"
             title: "Document compound assignment"
@@ -2778,12 +2817,12 @@ high_priority_next_tasks:
       priority: 20
       status: "✅ COMPLETED (Sprint 4)"
   last_completed:
-    task_id: "TYPE-BASIC-VOID"
-    title: "void type comprehensive documentation"
-    version: "v0.71.0"
+    task_id: "EXPR-ASSIGN-SIMPLE"
+    title: "Simple assignment comprehensive documentation"
+    version: "v0.72.0"
     date: "2025-10-17"
     unsafe_blocks_added: 0
-    tests_added: 15
+    tests_added: 16
     coverage: "100%"
   - "Pull ANDON CORD immediately when bugs found during validation"
   - "Track unsafe block count per sprint (target: <5 per 1000 LOC)"
@@ -2793,21 +2832,21 @@ high_priority_next_tasks:
 
 status:
   overall: "IN_PROGRESS"
-  completion_percent: 58
-  completed_tasks: 88
+  completion_percent: 59
+  completed_tasks: 89
   in_progress_tasks: 0
   blocked_tasks: 1
-  not_started_tasks: 61
+  not_started_tasks: 60
   total_tasks: 150
   methodology: "EXTREME TDD (RED-GREEN-REFACTOR) + Ownership Inference"
   goal: "100% C99 language coverage with <5 unsafe blocks per 1000 LOC"
   last_completed:
-    task_id: "TYPE-BASIC-VOID"
-    title: "void type comprehensive documentation"
-    version: "v0.71.0"
+    task_id: "EXPR-ASSIGN-SIMPLE"
+    title: "Simple assignment comprehensive documentation"
+    version: "v0.72.0"
     date: "2025-10-17"
     unsafe_blocks_added: 0
-    tests_added: 15
+    tests_added: 16
     coverage: "100%"
   current_sprint: 5
   current_unsafe_count_per_1000_loc: 0
