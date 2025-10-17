@@ -10,11 +10,11 @@ roadmap:
 
   statistics:
     total_tasks: 150
-    completed: 67
+    completed: 68
     partial_support: 0
     in_progress: 0
     blocked: 1
-    not_started: 82
+    not_started: 81
     coverage_percent: 45
 
 extreme_tdd_workflow:
@@ -1130,6 +1130,51 @@ chapters:
             validation_reference: "K&R §2.5, ISO C99 §6.5.5-6"
             test_name: "test_arithmetic_operators"
 
+          - id: "EXPR-ARITH-BINARY-PATTERNS"
+            title: "Document binary arithmetic operator patterns"
+            status: "completed"
+            priority: "high"
+            version: "v0.53.0"
+            examples:
+              - c: "sum = a + b;"
+                rust: "sum = a + b;"
+                note: "Addition (same syntax)"
+              - c: "diff = a - b;"
+                rust: "diff = a - b;"
+                note: "Subtraction (same syntax)"
+              - c: "product = a * b;"
+                rust: "product = a * b;"
+                note: "Multiplication (same syntax)"
+              - c: "quotient = a / b;"
+                rust: "quotient = a / b;"
+                note: "Division (C undefined for /0, Rust panics - safe)"
+              - c: "remainder = a % b;"
+                rust: "remainder = a % b;"
+                note: "Modulus (C undefined for %0, Rust panics - safe)"
+              - c: "result = a + b * c;"
+                rust: "result = a + b * c;"
+                note: "Precedence: * before + (same in both)"
+              - c: "result = (a + b) * c;"
+                rust: "result = (a + b) * c;"
+                note: "Parentheses force evaluation order"
+              - c: "result = 7 / 2;"
+                rust: "result = 7 / 2;"
+                note: "Integer division truncates (3, not 3.5)"
+              - c: "remainder = -17 % 5;"
+                rust: "remainder = -17 % 5;"
+                note: "Modulus sign matches dividend (-2)"
+              - c: "formula = a*x*x + b*x + c;"
+                rust: "formula = a*x*x + b*x + c;"
+                note: "Compound expressions work identically"
+            validation_reference: "K&R §2.5, ISO C99 §6.5.5 (multiplicative), §6.5.6 (additive)"
+            test_name: "test_binary_arithmetic_documentation"
+            sprint: 5
+            completed_date: "2025-10-16"
+            tests_added: 16
+            coverage: "100%"
+            unsafe_blocks: 0
+            note: "Binary arithmetic operators (+, -, *, /, %): Same syntax in C and Rust. Key difference: C has undefined behavior for division/modulus by zero, Rust panics (safe). Operator precedence identical (* / % before + -). Integer division truncates toward zero in both. Modulus sign matches dividend (first operand). Rust stricter on type mixing (requires explicit casts). Integer overflow: C undefined (signed) or wraps (unsigned), Rust panics in debug, wraps in release. All transformations SAFE (0 unsafe blocks). Performance identical (same machine instructions)."
+
           - id: "EXPR-ARITH-PTR"
             title: "Document pointer arithmetic → slice indexing"
             status: "blocked"
@@ -2153,20 +2198,20 @@ next_steps:
 status:
   overall: "IN_PROGRESS"
   completion_percent: 45
-  completed_tasks: 67
+  completed_tasks: 68
   in_progress_tasks: 0
   blocked_tasks: 1
-  not_started_tasks: 82
+  not_started_tasks: 81
   total_tasks: 150
   methodology: "EXTREME TDD (RED-GREEN-REFACTOR) + Ownership Inference"
   goal: "100% C99 language coverage with <5 unsafe blocks per 1000 LOC"
   last_completed:
-    task_id: "STMT-WHILE-PATTERNS"
-    title: "while loop patterns documentation"
-    version: "v0.52.0"
+    task_id: "EXPR-ARITH-BINARY-PATTERNS"
+    title: "binary arithmetic operators documentation"
+    version: "v0.53.0"
     date: "2025-10-16"
     unsafe_blocks_added: 0
-    tests_added: 15
+    tests_added: 16
     coverage: "100%"
   current_sprint: 5
   current_unsafe_count_per_1000_loc: 0
