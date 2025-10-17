@@ -10,12 +10,12 @@ roadmap:
 
   statistics:
     total_tasks: 150
-    completed: 107
+    completed: 108
     partial_support: 0
     in_progress: 0
     blocked: 1
-    not_started: 42
-    coverage_percent: 71
+    not_started: 41
+    coverage_percent: 72
 
 extreme_tdd_workflow:
   description: "Standard workflow for each task"
@@ -738,14 +738,55 @@ chapters:
           - id: "TYPE-PTR-MALLOC"
             title: "Document malloc/free pattern → Box"
             status: "completed"
-            version: "v0.3.0"
+            version: "v0.89.0"
             examples:
-              - c: "int* p = malloc(sizeof(int)); free(p);"
-                rust: "let p = Box::new(0i32);"
+              - c: "int* p = malloc(sizeof(int)); *p = 42; free(p);"
+                rust: "let mut p = Box::new(0i32); *p = 42;"
+                note: "Basic malloc/free → Box::new, automatic deallocation"
                 unsafe_count: 0
+              - c: "if (p == NULL) { return -1; }"
+                rust: "// Box::new panics on OOM (idiomatic Rust)"
+                note: "NULL check removed, Rust panics on allocation failure"
+              - c: "struct Point* p = malloc(sizeof(struct Point)); p->x = 10; free(p);"
+                rust: "let mut p = Box::new(Point { x: 0, y: 0 }); p.x = 10;"
+                note: "Struct allocation, arrow becomes dot (auto-deref)"
+              - c: "int* create() { return malloc(sizeof(int)); }"
+                rust: "fn create() -> Box<i32> { Box::new(0) }"
+                note: "Return value → Box<T>, ownership transfer"
+              - c: "struct Node { int* data; }; n.data = malloc(sizeof(int)); free(n.data);"
+                rust: "struct Node { data: Box<i32> }; let n = Node { data: Box::new(0) };"
+                note: "Struct field → Box field, automatic cleanup"
+              - c: "int* q = p; free(q);"
+                rust: "let q = p; // p moved, can't use p anymore"
+                note: "Assignment → move semantics, prevents use-after-free"
+              - c: "if (cond) { p = malloc(...); } if (p != NULL) { free(p); }"
+                rust: "let p: Option<Box<i32>> = if cond { Some(Box::new(0)) } else { None };"
+                note: "Conditional allocation → Option<Box<T>>, NULL safety"
+              - c: "int* p = calloc(1, sizeof(int));"
+                rust: "let p = Box::new(0i32);"
+                note: "calloc → Box::new(0), explicit zero-init"
+              - c: "int** pp = malloc(sizeof(int*)); *pp = malloc(sizeof(int)); free(*pp); free(pp);"
+                rust: "let mut pp = Box::new(Box::new(0i32));"
+                note: "Nested allocations → Box<Box<T>>, correct deallocation order"
+              - c: "for (...) { int* p = malloc(...); free(p); }"
+                rust: "for i in 0..n { let p = Box::new(0); }"
+                note: "Loop-local allocation, automatic cleanup per iteration"
+              - c: "FuncPtr* p = malloc(sizeof(FuncPtr)); *p = &my_func; free(p);"
+                rust: "let mut p: Box<FuncPtr> = Box::new(my_function);"
+                note: "Function pointer allocation, no & needed in Rust"
+              - c: "struct LargeData { int values[1000]; }; struct LargeData* p = malloc(sizeof(struct LargeData));"
+                rust: "let p = Box::new(LargeData { values: [0; 1000] });"
+                note: "Large struct stays on heap, prevents stack overflow"
             validation_reference: "K&R §8.7, ISO C99 §7.20.3"
             test_name: "test_malloc_to_box_transformation"
-            completed_ticket: "DECY-044"
+            test_file: "malloc_free_to_box_documentation_test.rs"
+            completed_ticket: "DECY-089"
+            sprint: 2
+            completed_date: "2025-10-17"
+            tests_added: 17
+            coverage: "100%"
+            unsafe_blocks: 0
+            note: "CRITICAL TRANSFORMATION: malloc/free → Box is the foundation of unsafe code reduction. Eliminates manual memory management bugs (use-after-free, double-free, leaks). 100% safe transformation (0 unsafe blocks). Box::new() provides RAII (automatic deallocation), ownership tracking (borrow checker prevents errors), type safety (no void* casting), move semantics (prevents use-after-free). Key differences: (1) C allocates uninitialized, Rust initializes in Box::new, (2) C manual free(), Rust automatic Drop, (3) C NULL on failure, Rust panics on OOM, (4) C void* with casting, Rust type-safe, (5) C no ownership tracking, Rust move semantics. Patterns: Basic malloc/free → Box::new, NULL check removed (idiom), struct allocation → Box::new(struct), return value → Box<T> transfer, struct field → Box field, assignment → move, conditional → Option<Box<T>>, calloc → Box::new(0), nested malloc → Box<Box<T>>, loop allocation → per-iteration Box. Test file demonstrates all patterns with 17 comprehensive tests."
 
           - id: "TYPE-PTR-ARRAY"
             title: "Document array allocation → Vec"
