@@ -150,9 +150,7 @@ int main() {
 
     // Verify string literal handling
     assert!(
-        rust_code.contains("str")
-            || rust_code.contains("hello")
-            || rust_code.contains("fn main"),
+        rust_code.contains("str") || rust_code.contains("hello") || rust_code.contains("fn main"),
         "Expected string literal or variable"
     );
 }
@@ -199,9 +197,7 @@ int main() {
 
     // Verify multidimensional array
     assert!(
-        rust_code.contains("matrix")
-            || rust_code.contains("[")
-            || rust_code.contains("fn main"),
+        rust_code.contains("matrix") || rust_code.contains("[") || rust_code.contains("fn main"),
         "Expected multidimensional array or main"
     );
 }

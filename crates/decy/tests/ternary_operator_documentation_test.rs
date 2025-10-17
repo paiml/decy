@@ -283,7 +283,8 @@ let result = if is_cached() { get_cached_value() } else { compute_expensive() };
         // 2. Short-circuit: only one function called
         // 3. Performance optimization pattern
         assert!(c_code.contains("is_cached() ? get_cached_value() : compute_expensive()"));
-        assert!(rust_expected.contains("if is_cached() { get_cached_value() } else { compute_expensive() }"));
+        assert!(rust_expected
+            .contains("if is_cached() { get_cached_value() } else { compute_expensive() }"));
     }
 
     /// Test 8: Ternary for NULL check (C pattern)
