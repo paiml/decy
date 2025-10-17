@@ -10,11 +10,11 @@ roadmap:
 
   statistics:
     total_tasks: 150
-    completed: 73
+    completed: 74
     partial_support: 0
     in_progress: 0
     blocked: 1
-    not_started: 76
+    not_started: 75
     coverage_percent: 49
 
 extreme_tdd_workflow:
@@ -503,12 +503,47 @@ chapters:
           - id: "TYPE-ARRAY-FIXED"
             title: "Document fixed-size arrays"
             status: "completed"
-            version: "v0.2.0"
+            priority: "high"
+            version: "v0.59.0"
             examples:
-              - c: "int arr[10];"
+              - c: "int arr[10] = {0};"
                 rust: "let arr: [i32; 10] = [0; 10];"
+                note: "Zero init: C {0} → Rust [0; 10] (explicit repeat syntax)"
+              - c: "int arr[5] = {1, 2, 3, 4, 5};"
+                rust: "let arr: [i32; 5] = [1, 2, 3, 4, 5];"
+                note: "Explicit values: same literal syntax in both"
+              - c: "int val = arr[5];"
+                rust: "let val = arr[5];  // Bounds checked at runtime"
+                note: "Array access: C no bounds check (UNSAFE), Rust panics on out-of-bounds (SAFE)"
+              - c: "arr[3] = 42;"
+                rust: "arr[3] = 42;  // Requires mut"
+                note: "Array modification: Rust requires mut keyword for writes"
+              - c: "void process(int arr[], int len) { ... } process(data, 10);"
+                rust: "fn process(arr: &[i32]) { ... } process(&data);"
+                note: "Function param: C loses size (unsafe), Rust slice preserves size (safe)"
+              - c: "int matrix[3][4] = {0};"
+                rust: "let matrix: [[i32; 4]; 3] = [[0; 4]; 3];"
+                note: "Multidimensional: type syntax [[inner; cols]; rows]"
+              - c: "for (int i = 0; i < 10; i++) { arr[i] = i; }"
+                rust: "for i in 0..10 { arr[i] = i; }"
+                note: "Iteration: manual indexing works, but .iter_mut() more idiomatic"
+              - c: "int sum = 0; for (int i = 0; i < 5; i++) { sum += arr[i]; }"
+                rust: "let sum: i32 = arr.iter().sum();"
+                note: "Sum pattern: Rust iterator .sum() more idiomatic than manual loop"
+              - c: "const int lookup[5] = {10, 20, 30, 40, 50};"
+                rust: "const LOOKUP: [i32; 5] = [10, 20, 30, 40, 50];"
+                note: "Const array: compile-time constant, Rust uses SCREAMING_CASE"
+              - c: "float values[5] = {1.0, 2.0, 3.0, 4.0, 5.0};"
+                rust: "let values: [f32; 5] = [1.0, 2.0, 3.0, 4.0, 5.0];"
+                note: "Different types: works with any Copy type (C float → Rust f32)"
             validation_reference: "K&R §5.2, ISO C99 §6.7.5.2"
-            test_name: "test_fixed_array_transformation"
+            test_name: "test_fixed_array_documentation"
+            sprint: 5
+            completed_date: "2025-10-17"
+            tests_added: 15
+            coverage: "100%"
+            unsafe_blocks: 0
+            note: "Fixed-size arrays: Stack-allocated, compile-time size. Critical safety differences: C arrays uninitialized by default (UNDEFINED VALUES), Rust requires initialization (compile error otherwise). C has NO bounds checking (buffer overflow possible), Rust checks bounds at runtime (panics on out-of-bounds - safe crash). C arrays decay to pointers implicitly (loses size information), Rust requires explicit slice conversion (preserves size). Function parameters: C int arr[] loses size (caller must pass length separately), Rust &[T] slice preserves size. Multidimensional: C [rows][cols], Rust [[T; cols]; rows]. Iteration: manual indexing works in both, Rust .iter() and .iter_mut() more idiomatic and safer. Copy: Rust arrays impl Copy if T: Copy (simple assignment copies). Const arrays: compile-time constants for lookup tables. All transformations enforce memory safety (0 unsafe blocks)."
 
           - id: "TYPE-ARRAY-INIT"
             title: "Document array initialization patterns"
@@ -2388,12 +2423,12 @@ status:
   methodology: "EXTREME TDD (RED-GREEN-REFACTOR) + Ownership Inference"
   goal: "100% C99 language coverage with <5 unsafe blocks per 1000 LOC"
   last_completed:
-    task_id: "STMT-FOR"
-    title: "For loop patterns documentation"
-    version: "v0.58.0"
+    task_id: "TYPE-ARRAY-FIXED"
+    title: "Fixed-size array patterns documentation"
+    version: "v0.59.0"
     date: "2025-10-17"
     unsafe_blocks_added: 0
-    tests_added: 16
+    tests_added: 15
     coverage: "100%"
   current_sprint: 5
   current_unsafe_count_per_1000_loc: 0
