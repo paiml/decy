@@ -94,9 +94,7 @@ int main() {
 
     // Verify pre-increment pattern
     assert!(
-        rust_code.contains("x")
-            || rust_code.contains("y")
-            || rust_code.contains("fn main"),
+        rust_code.contains("x") || rust_code.contains("y") || rust_code.contains("fn main"),
         "Expected pre-increment or variables"
     );
 }
@@ -143,9 +141,7 @@ int main() {
 
     // Verify pre-decrement pattern
     assert!(
-        rust_code.contains("x")
-            || rust_code.contains("y")
-            || rust_code.contains("fn main"),
+        rust_code.contains("x") || rust_code.contains("y") || rust_code.contains("fn main"),
         "Expected pre-decrement or variables"
     );
 }
@@ -261,9 +257,7 @@ int main() {
 
     // Verify pre-increment in expression
     assert!(
-        rust_code.contains("x")
-            || rust_code.contains("result")
-            || rust_code.contains("fn main"),
+        rust_code.contains("x") || rust_code.contains("result") || rust_code.contains("fn main"),
         "Expected expression with pre-increment"
     );
 }
@@ -415,9 +409,7 @@ int main() {
 
     // Verify increment with function parameter
     assert!(
-        rust_code.contains("increment")
-            || rust_code.contains("n")
-            || rust_code.contains("fn main"),
+        rust_code.contains("increment") || rust_code.contains("n") || rust_code.contains("fn main"),
         "Expected function with increment"
     );
 }

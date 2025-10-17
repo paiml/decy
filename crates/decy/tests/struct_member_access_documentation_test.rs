@@ -250,9 +250,7 @@ int main() {
 
     // Verify member access with function
     assert!(
-        rust_code.contains("get_x")
-            || rust_code.contains("Point")
-            || rust_code.contains("fn main"),
+        rust_code.contains("get_x") || rust_code.contains("Point") || rust_code.contains("fn main"),
         "Expected function with struct parameter"
     );
 }
@@ -350,9 +348,7 @@ int main() {
 
     // Verify typedef struct member access
     assert!(
-        rust_code.contains("Data")
-            || rust_code.contains("value")
-            || rust_code.contains("fn main"),
+        rust_code.contains("Data") || rust_code.contains("value") || rust_code.contains("fn main"),
         "Expected typedef struct or member access"
     );
 }
@@ -386,9 +382,7 @@ int main() {
 
     // Verify deeply nested access
     assert!(
-        rust_code.contains("Level")
-            || rust_code.contains("value")
-            || rust_code.contains("fn main"),
+        rust_code.contains("Level") || rust_code.contains("value") || rust_code.contains("fn main"),
         "Expected nested struct definitions"
     );
 }

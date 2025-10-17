@@ -102,9 +102,7 @@ int main() {
 
     // Verify if-else
     assert!(
-        rust_code.contains("if")
-            || rust_code.contains("else")
-            || rust_code.contains("fn main"),
+        rust_code.contains("if") || rust_code.contains("else") || rust_code.contains("fn main"),
         "Expected if-else statement"
     );
 }
@@ -201,9 +199,7 @@ int main() {
 
     // Verify complex condition
     assert!(
-        rust_code.contains("if")
-            || rust_code.contains("&&")
-            || rust_code.contains("fn main"),
+        rust_code.contains("if") || rust_code.contains("&&") || rust_code.contains("fn main"),
         "Expected if with complex condition"
     );
 }
@@ -229,9 +225,7 @@ int main() {
 
     // Verify if with return (guard clause)
     assert!(
-        rust_code.contains("if")
-            || rust_code.contains("return")
-            || rust_code.contains("fn main"),
+        rust_code.contains("if") || rust_code.contains("return") || rust_code.contains("fn main"),
         "Expected if with return"
     );
 }
@@ -288,9 +282,7 @@ int main() {
 
     // Verify if-else without braces
     assert!(
-        rust_code.contains("if")
-            || rust_code.contains("else")
-            || rust_code.contains("fn main"),
+        rust_code.contains("if") || rust_code.contains("else") || rust_code.contains("fn main"),
         "Expected if-else without braces"
     );
 }
@@ -317,9 +309,7 @@ int main() {
 
     // Verify variable declaration in if
     assert!(
-        rust_code.contains("if")
-            || rust_code.contains("temp")
-            || rust_code.contains("fn main"),
+        rust_code.contains("if") || rust_code.contains("temp") || rust_code.contains("fn main"),
         "Expected variable declaration in if"
     );
 }
@@ -682,10 +672,7 @@ fn test_if_else_documentation_summary() {
     println!("Rust advantage: If as expression, prevents assignment bugs");
     println!("======================================\n");
 
-    assert_eq!(
-        unsafe_blocks, 0,
-        "All if/else transformations must be safe"
-    );
+    assert_eq!(unsafe_blocks, 0, "All if/else transformations must be safe");
     assert!(
         total_tests >= 10,
         "Need at least 10 tests for comprehensive coverage"

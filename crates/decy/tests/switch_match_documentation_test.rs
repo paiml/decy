@@ -339,9 +339,7 @@ int main() {
 
     // Verify variable declarations in cases
     assert!(
-        rust_code.contains("temp")
-            || rust_code.contains("result")
-            || rust_code.contains("fn main"),
+        rust_code.contains("temp") || rust_code.contains("result") || rust_code.contains("fn main"),
         "Expected variable declarations in switch cases"
     );
 }
@@ -455,9 +453,7 @@ int main() {
 
     // Verify state machine pattern
     assert!(
-        rust_code.contains("state")
-            || rust_code.contains("next")
-            || rust_code.contains("fn main"),
+        rust_code.contains("state") || rust_code.contains("next") || rust_code.contains("fn main"),
         "Expected state machine pattern"
     );
 }
