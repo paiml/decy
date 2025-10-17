@@ -308,7 +308,7 @@ int* p = arr;
 int x = p[i];
 "#;
 
-        let rust_expected = r#"
+        let _rust_expected = r#"
 let p = &arr[0];
 let x = arr[i];  // Or use slice
 "#;
