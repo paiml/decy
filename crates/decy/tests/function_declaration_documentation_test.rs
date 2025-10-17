@@ -79,8 +79,9 @@
 //!   ```
 //! - **Rust**: Order independent within module
 //!   ```rust
-//!   fn main() { helper(); }  // Can call before definition
-//!   fn helper() { }
+//!   # fn helper() { }
+//!   // Can call before definition (no forward declaration needed)
+//!   helper();
 //!   ```
 //!
 //! ## Transformation Strategy
