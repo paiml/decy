@@ -10,12 +10,12 @@ roadmap:
 
   statistics:
     total_tasks: 150
-    completed: 66
+    completed: 67
     partial_support: 0
     in_progress: 0
     blocked: 1
-    not_started: 83
-    coverage_percent: 44
+    not_started: 82
+    coverage_percent: 45
 
 extreme_tdd_workflow:
   description: "Standard workflow for each task"
@@ -1472,6 +1472,48 @@ chapters:
             validation_reference: "K&R §3.5, ISO C99 §6.8.5.1"
             test_name: "test_while_loop"
 
+          - id: "STMT-WHILE-PATTERNS"
+            title: "Document while loop patterns"
+            status: "completed"
+            priority: "high"
+            version: "v0.52.0"
+            examples:
+              - c: "while (x < 10) { x++; }"
+                rust: "while x < 10 { x += 1; }"
+                note: "Basic while loop (pre-test, may execute 0 times)"
+              - c: "while (x < 5 && y > 0) { ... }"
+                rust: "while x < 5 && y > 0 { ... }"
+                note: "Complex condition with logical operators"
+              - c: "while (1) { if (done) break; }"
+                rust: "while true { if done { break; } }"
+                note: "Infinite loop with break (C int → Rust bool)"
+              - c: "while (i < len) { if (skip) continue; process(i); i++; }"
+                rust: "while i < len { if skip { continue; } process(i); i += 1; }"
+                note: "Continue skips to next iteration"
+              - c: "while (has_next()) { process(); }"
+                rust: "while has_next() { process(); }"
+                note: "Function call in condition"
+              - c: "while (i < len) { sum += arr[i]; i++; }"
+                rust: "while i < len { sum += arr[i]; i += 1; }"
+                note: "Array processing pattern"
+              - c: "while (arr[i] != 0) { process(arr[i]); i++; }"
+                rust: "while arr[i] != 0 { process(arr[i]); i += 1; }"
+                note: "Sentinel value pattern (loop until special value)"
+              - c: "int found = 0; while (!found && i < n) { ... }"
+                rust: "let mut found = false; while !found && i < n { ... }"
+                note: "Boolean flag pattern (C int → Rust bool)"
+              - c: "while (i < 10) { while (j < 10) { ... } }"
+                rust: "while i < 10 { while j < 10 { ... } }"
+                note: "Nested while loops"
+            validation_reference: "K&R §3.5, ISO C99 §6.8.5.1"
+            test_name: "test_while_loop_documentation"
+            sprint: 5
+            completed_date: "2025-10-16"
+            tests_added: 15
+            coverage: "100%"
+            unsafe_blocks: 0
+            note: "While loops: Pre-test loop (condition checked BEFORE body, may execute 0 times). C and Rust have similar syntax. Key difference: C allows int as bool (0=false, non-zero=true), Rust requires explicit bool. C while (1) → Rust while true or loop. C while (ptr) → Rust while ptr.is_some(). Both support break/continue. Common patterns: countdown, array processing, sentinel values, boolean flags, nested loops, function call conditions. All transformations SAFE (0 unsafe blocks). Type-safe boolean conditions prevent common C bugs."
+
           - id: "STMT-DO-WHILE"
             title: "Document do-while loops"
             status: "completed"
@@ -2110,18 +2152,18 @@ next_steps:
 
 status:
   overall: "IN_PROGRESS"
-  completion_percent: 44
-  completed_tasks: 66
+  completion_percent: 45
+  completed_tasks: 67
   in_progress_tasks: 0
   blocked_tasks: 1
-  not_started_tasks: 83
+  not_started_tasks: 82
   total_tasks: 150
   methodology: "EXTREME TDD (RED-GREEN-REFACTOR) + Ownership Inference"
   goal: "100% C99 language coverage with <5 unsafe blocks per 1000 LOC"
   last_completed:
-    task_id: "STMT-SWITCH-PATTERNS"
-    title: "switch/match statement patterns documentation"
-    version: "v0.51.0"
+    task_id: "STMT-WHILE-PATTERNS"
+    title: "while loop patterns documentation"
+    version: "v0.52.0"
     date: "2025-10-16"
     unsafe_blocks_added: 0
     tests_added: 15
