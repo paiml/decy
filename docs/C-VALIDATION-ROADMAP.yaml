@@ -10,12 +10,12 @@ roadmap:
 
   statistics:
     total_tasks: 150
-    completed: 101
+    completed: 102
     partial_support: 0
     in_progress: 0
     blocked: 1
-    not_started: 48
-    coverage_percent: 67
+    not_started: 47
+    coverage_percent: 68
 
 extreme_tdd_workflow:
   description: "Standard workflow for each task"
@@ -2351,12 +2351,42 @@ chapters:
           - id: "STMT-WHILE"
             title: "Document while loops"
             status: "completed"
-            version: "v0.2.0"
+            version: "v0.83.0"
             examples:
-              - c: "while (x < 10) { ... }"
-                rust: "while x < 10 { ... }"
+              - c: "while (x < 10) { x++; }"
+                rust: "while x < 10 { x += 1; }"
+              - c: "int running = 1; while (running) { running = 0; }"
+                rust: "let mut running = true; while running { running = false; }"
+              - c: "while (x < 100) { if (x == 50) { break; } x++; }"
+                rust: "while x < 100 { if x == 50 { break; } x += 1; }"
+              - c: "while (x < 10) { x++; if (x % 2 == 0) { continue; } }"
+                rust: "while x < 10 { x += 1; if x % 2 == 0 { continue; } }"
+              - c: "while (1) { if (done) break; }"
+                rust: "loop { if done { break; } }"
+              - c: "while (x < 10 && y > 0) { x++; y--; }"
+                rust: "while x < 10 && y > 0 { x += 1; y -= 1; }"
+              - c: "while ((c = getchar()) != EOF) { putchar(c); }"
+                rust: "loop { let c = getchar(); if c == EOF { break; } putchar(c); }"
+              - c: "int n = 10; while (n > 0) { n--; }"
+                rust: "let mut n = 10; while n > 0 { n -= 1; }"
+              - c: "while (i < rows) { while (j < cols) { j++; } i++; }"
+                rust: "while i < rows { while j < cols { j += 1; } i += 1; }"
+              - c: "Node* current = head; while (current) { current = current->next; }"
+                rust: "let mut current = head; while current.is_some() { current = current.next; }"
+              - c: "while (is_busy());"
+                rust: "while is_busy() {}"
+              - c: "while (!done) { work(); }"
+                rust: "while !done { work(); }"
+              - c: "int i = 0; while (str[i] != '\\0') { i++; }"
+                rust: "let mut i = 0; while str[i] != '\\0' { i += 1; }"
             validation_reference: "K&R §3.5, ISO C99 §6.8.5.1"
             test_name: "test_while_loop"
+            sprint: 9
+            completed_date: "2025-10-17"
+            tests_added: 17
+            coverage: "100%"
+            unsafe_blocks: 0
+            note: "Documentation-only task - while loops transform directly with critical differences: no parentheses, bool-only conditions, assignment-in-condition → loop+break"
 
           - id: "STMT-WHILE-PATTERNS"
             title: "Document while loop patterns"
