@@ -10,12 +10,12 @@ roadmap:
 
   statistics:
     total_tasks: 150
-    completed: 65
+    completed: 66
     partial_support: 0
     in_progress: 0
     blocked: 1
-    not_started: 84
-    coverage_percent: 43
+    not_started: 83
+    coverage_percent: 44
 
 extreme_tdd_workflow:
   description: "Standard workflow for each task"
@@ -1417,6 +1417,48 @@ chapters:
             coverage: "100%"
             unsafe_blocks: 0
 
+          - id: "STMT-SWITCH-PATTERNS"
+            title: "Document switch/match statement patterns"
+            status: "completed"
+            priority: "high"
+            version: "v0.51.0"
+            examples:
+              - c: "switch (x) { case 1: y=10; break; default: y=0; }"
+                rust: "match x { 1 => { y = 10; }, _ => { y = 0; } }"
+                note: "Basic switch with break → match arm (no break needed)"
+              - c: "switch (x) { case 1: return 10; }"
+                rust: "match x { 1 => { return 10; }, _ => {} }"
+                note: "Return in case (no break needed), Rust adds wildcard"
+              - c: "switch (status) { case 200: ... case 404: ... default: ... }"
+                rust: "match status { 200 => { ... }, 404 => { ... }, _ => { ... } }"
+                note: "Multiple distinct cases"
+              - c: "switch (x + 1) { case 2: ... }"
+                rust: "match x + 1 { 2 => { ... }, _ => {} }"
+                note: "Expression as condition"
+              - c: "switch (c) { case 'a': ... break; }"
+                rust: "match c { b'a' => { ... }, _ => {} }"
+                note: "Character cases (byte literal in Rust)"
+              - c: "case 1:\ncase 2:\n  action();\n  break;"
+                rust: "1 | 2 => { action(); }"
+                note: "C fallthrough → Rust OR pattern"
+              - c: "for (...) { switch (i) { case 0: continue; } }"
+                rust: "for ... { match i { 0 => { continue; }, _ => {} } }"
+                note: "Continue in switch within loop"
+              - c: "switch (state) { case INIT: next=RUN; break; }"
+                rust: "match state { INIT => { next = RUN; }, _ => {} }"
+                note: "State machine pattern"
+              - c: "switch (code) { case -1: ... case 0: ... }"
+                rust: "match code { -1 => { ... }, 0 => { ... }, _ => {} }"
+                note: "Negative case values"
+            validation_reference: "K&R §3.4, ISO C99 §6.8.4.2"
+            test_name: "test_switch_match_documentation"
+            sprint: 5
+            completed_date: "2025-10-16"
+            tests_added: 15
+            coverage: "100%"
+            unsafe_blocks: 0
+            note: "Switch → Match: C switch is statement with fallthrough (error-prone), Rust match is expression with no fallthrough (safe). C requires break to prevent fallthrough, Rust never falls through. C allows non-exhaustive switch, Rust requires wildcard (_) for exhaustiveness. C intentional fallthrough (case 1: case 2:) → Rust OR pattern (1 | 2). Match is expression (can return value). No break statements in Rust (not needed). Empty cases become empty blocks. Return in case needs no break. Expression conditions supported. Character cases use byte literals. State machines natural with match. All transformations SAFE (0 unsafe blocks). Key advantage: prevents fallthrough bugs (major C pitfall)."
+
       - id: "5.3"
         name: "Iteration Statements (C99 §6.8.5)"
         tasks:
@@ -2068,21 +2110,21 @@ next_steps:
 
 status:
   overall: "IN_PROGRESS"
-  completion_percent: 43
-  completed_tasks: 65
+  completion_percent: 44
+  completed_tasks: 66
   in_progress_tasks: 0
   blocked_tasks: 1
-  not_started_tasks: 84
+  not_started_tasks: 83
   total_tasks: 150
   methodology: "EXTREME TDD (RED-GREEN-REFACTOR) + Ownership Inference"
   goal: "100% C99 language coverage with <5 unsafe blocks per 1000 LOC"
   last_completed:
-    task_id: "EXPR-INCR-DECR-PATTERNS"
-    title: "increment/decrement operators documentation"
-    version: "v0.50.0"
+    task_id: "STMT-SWITCH-PATTERNS"
+    title: "switch/match statement patterns documentation"
+    version: "v0.51.0"
     date: "2025-10-16"
     unsafe_blocks_added: 0
-    tests_added: 16
+    tests_added: 15
     coverage: "100%"
   current_sprint: 5
   current_unsafe_count_per_1000_loc: 0
