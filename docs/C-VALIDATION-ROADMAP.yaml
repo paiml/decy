@@ -10,11 +10,11 @@ roadmap:
 
   statistics:
     total_tasks: 150
-    completed: 106
+    completed: 107
     partial_support: 0
     in_progress: 0
     blocked: 1
-    not_started: 43
+    not_started: 42
     coverage_percent: 71
 
 extreme_tdd_workflow:
@@ -258,9 +258,35 @@ chapters:
           - id: "LEX-ID-001"
             title: "Document identifier naming rules"
             status: "completed"
-            version: "v0.1.0"
-            notes: "C identifiers map to Rust snake_case for variables/functions, PascalCase for types"
+            version: "v0.88.0"
+            examples:
+              - c: "int myVariable; void processData() { }"
+                rust: "let my_variable: i32; fn process_data() { }"
+              - c: "typedef struct point Point; typedef int my_int_t;"
+                rust: "struct Point { } type MyInt = i32;"
+              - c: "#define MAX_SIZE 100; const int DEFAULT = 42;"
+                rust: "const MAX_SIZE: usize = 100; const DEFAULT: i32 = 42;"
+              - c: "static int counter = 0;"
+                rust: "static COUNTER: i32 = 0;"
+              - c: "enum Color { RED, GREEN, BLUE };"
+                rust: "enum Color { Red, Green, Blue }"
+              - c: "int httpStatus; typedef struct HTTPRequest HTTPRequest;"
+                rust: "let http_status: i32; struct HttpRequest { }"
+              - c: "int value1; struct Point2D { int x; };"
+                rust: "let value1: i32; struct Point2d { x: i32 }"
+              - c: "int type = 42; int match = 10;"
+                rust: "let r#type = 42; let r#match = 10;"
+              - c: "int nCount; char* pszName; bool bEnabled;"
+                rust: "let count: i32; let name: &str; let enabled: bool;"
+              - c: "struct Person { char firstName[50]; int userId; };"
+                rust: "struct Person { first_name: [u8; 50], user_id: i32 }"
             validation_reference: "K&R §2.2, ISO C99 §6.4.2"
+            sprint: 9
+            completed_date: "2025-10-17"
+            tests_added: 17
+            coverage: "100%"
+            unsafe_blocks: 0
+            note: "Documentation-only task - naming conventions fundamental to C→Rust transformation. Rules: variables/functions→snake_case, types→PascalCase, constants/statics→SCREAMING_SNAKE_CASE, enum variants→PascalCase. Enforced by clippy (warnings). Hungarian notation removed. Keywords→r# raw identifiers."
 
       - id: "2.3"
         name: "Constants (C99 §6.4.4)"
