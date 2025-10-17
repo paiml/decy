@@ -10,12 +10,12 @@ roadmap:
 
   statistics:
     total_tasks: 150
-    completed: 94
+    completed: 95
     partial_support: 0
     in_progress: 0
     blocked: 1
-    not_started: 55
-    coverage_percent: 62
+    not_started: 54
+    coverage_percent: 63
 
 extreme_tdd_workflow:
   description: "Standard workflow for each task"
@@ -1147,12 +1147,61 @@ chapters:
           - id: "EXPR-POSTFIX-ARRAY"
             title: "Document array subscripting"
             status: "completed"
-            version: "v0.2.0"
+            version: "v0.78.0"
             examples:
-              - c: "arr[i]"
-                rust: "arr[i]"
+              - c: "int x = arr[i];"
+                rust: "let x = arr[i];"
+                note: "Simple subscript (same syntax)"
+              - c: "arr[i] = 42;"
+                rust: "arr[i] = 42;"
+                note: "Assignment (same syntax)"
+              - c: "int first = arr[0];"
+                rust: "let first = arr[0];"
+                note: "Constant index (zero-based)"
+              - c: "int sum = arr[i] + arr[j];"
+                rust: "let sum = arr[i] + arr[j];"
+                note: "In expression (same)"
+              - c: "int val = matrix[i][j];"
+                rust: "let val = matrix[i][j];"
+                note: "Multi-dimensional (same)"
+              - c: "int x = arr[i + 1];"
+                rust: "let x = arr[i + 1];"
+                note: "Expression index (same)"
+              - c: "for (int i = 0; i < n; i++) { sum += arr[i]; }"
+                rust: "for i in 0..n { sum += arr[i]; }"
+                note: "In loop (same pattern)"
+              - c: "int* p = arr; int x = p[i];"
+                rust: "let p = &arr[..]; let x = p[i];"
+                note: "Pointer subscript → slice"
+              - c: "if (i < len) { x = arr[i]; }"
+                rust: "if let Some(&x) = arr.get(i) { }"
+                note: "Manual check → get() method"
+              - c: "// No slice syntax"
+                rust: "let slice = &arr[2..5];"
+                note: "Rust slice syntax (Rust-specific)"
+              - c: "int x = arr[i % size];"
+                rust: "let x = arr[i % size];"
+                note: "Modulo for circular (same)"
+              - c: "int val = table[row][col];"
+                rust: "let val = table[row][col];"
+                note: "2D separate indices (same)"
+              - c: "int x = arr[i++];"
+                rust: "let x = arr[i]; i += 1;"
+                note: "Post-increment → separate"
+              - c: "// No bounds check (UB)"
+                rust: "// Bounds checked in debug (panic)"
+                note: "Rust safer in debug mode"
+              - c: "d.values[i]"
+                rust: "d.values[i]"
+                note: "Array in struct field (same)"
             validation_reference: "K&R §5.2, ISO C99 §6.5.2.1"
             test_name: "test_array_subscript"
+            sprint: 1
+            completed_date: "2025-10-17"
+            tests_added: 16
+            coverage: "100%"
+            unsafe_blocks: 0
+            note: "SAFETY: Array subscripting transforms safely. Key differences: bounds checking in debug mode (panic), get() method returns Option (always safe), slice syntax for subarray access, no negative indices (usize only). C has undefined behavior on out-of-bounds, Rust catches in debug."
 
           - id: "EXPR-COMPOUND-LITERAL"
             title: "Document compound literals"
@@ -3046,12 +3095,12 @@ high_priority_next_tasks:
       priority: 20
       status: "✅ COMPLETED (Sprint 4)"
   last_completed:
-    task_id: "STMT-IF"
-    title: "If statements comprehensive documentation"
-    version: "v0.77.0"
+    task_id: "EXPR-POSTFIX-ARRAY"
+    title: "Array subscripting comprehensive documentation"
+    version: "v0.78.0"
     date: "2025-10-17"
     unsafe_blocks_added: 0
-    tests_added: 17
+    tests_added: 16
     coverage: "100%"
   - "Pull ANDON CORD immediately when bugs found during validation"
   - "Track unsafe block count per sprint (target: <5 per 1000 LOC)"
@@ -3061,21 +3110,21 @@ high_priority_next_tasks:
 
 status:
   overall: "IN_PROGRESS"
-  completion_percent: 62
-  completed_tasks: 94
+  completion_percent: 63
+  completed_tasks: 95
   in_progress_tasks: 0
   blocked_tasks: 1
-  not_started_tasks: 55
+  not_started_tasks: 54
   total_tasks: 150
   methodology: "EXTREME TDD (RED-GREEN-REFACTOR) + Ownership Inference"
   goal: "100% C99 language coverage with <5 unsafe blocks per 1000 LOC"
   last_completed:
-    task_id: "STMT-IF"
-    title: "If statements comprehensive documentation"
-    version: "v0.77.0"
+    task_id: "EXPR-POSTFIX-ARRAY"
+    title: "Array subscripting comprehensive documentation"
+    version: "v0.78.0"
     date: "2025-10-17"
     unsafe_blocks_added: 0
-    tests_added: 17
+    tests_added: 16
     coverage: "100%"
   current_sprint: 5
   current_unsafe_count_per_1000_loc: 0
