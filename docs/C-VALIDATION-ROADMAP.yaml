@@ -10,11 +10,11 @@ roadmap:
 
   statistics:
     total_tasks: 150
-    completed: 83
+    completed: 84
     partial_support: 0
     in_progress: 0
     blocked: 1
-    not_started: 66
+    not_started: 65
     coverage_percent: 55
 
 extreme_tdd_workflow:
@@ -242,16 +242,40 @@ chapters:
           - id: "LEX-CONST-INT"
             title: "Document integer constants"
             status: "completed"
-            version: "v0.1.0"
+            version: "v0.67.0"
             examples:
               - c: "int x = 42;"
                 rust: "let x: i32 = 42;"
-              - c: "long y = 42L;"
-                rust: "let y: i64 = 42;"
-              - c: "unsigned int z = 42U;"
-                rust: "let z: u32 = 42;"
+                note: "Decimal: same syntax, int → i32"
+              - c: "int octal = 052;"
+                rust: "let octal: i32 = 0o52;"
+                note: "Octal: leading 0 → 0o prefix (SAFER, no confusion with decimal)"
+              - c: "int hex = 0x2A;"
+                rust: "let hex: i32 = 0x2A;"
+                note: "Hexadecimal: same 0x prefix"
+              - c: "unsigned int u = 42U;"
+                rust: "let u: u32 = 42;"
+                note: "Unsigned: U suffix → u32 type (or 42u32)"
+              - c: "long l = 42L;"
+                rust: "let l: i64 = 42;"
+                note: "Long: L suffix → i64 (or 42i64)"
+              - c: "unsigned long ul = 42UL;"
+                rust: "let ul: u64 = 42;"
+                note: "Unsigned long: UL → u64 (or 42u64)"
+              - c: "long long ll = 42LL;"
+                rust: "let ll: i64 = 42;"
+                note: "Long long: LL → i64 (or 42i64)"
+              - c: "unsigned long long ull = 42ULL;"
+                rust: "let ull: u64 = 42;"
+                note: "Unsigned long long: ULL → u64 (or 42u64)"
             validation_reference: "K&R §2.3, ISO C99 §6.4.4.1"
             test_name: "test_integer_literal_transformation"
+            test_file: "integer_literals_documentation_test.rs"
+            completed_date: "2025-10-17"
+            tests_added: 17
+            coverage: "100%"
+            unsafe_blocks: 0
+            note: "COMPREHENSIVE DOCUMENTATION: Integer literals all bases and suffixes. CRITICAL SAFETY: (1) Octal literals: C leading 0 is ERROR-PRONE (042 = 34 decimal, NOT 42!), Rust 0o prefix explicit and safe, (2) Binary literals: Rust has 0b (NOT in C99), (3) Underscores: Rust 1_000_000 for readability (NOT in C), (4) Type suffixes: C limited (U/L/LL), Rust precise (i8/i32/u64/etc). Transformations: decimal same, octal 052→0o52, hex same, U→u32, L→i64, UL→u64, LL→i64, ULL→u64. Test file demonstrates all bases (decimal, octal, hex, binary), all C suffixes, Rust features (underscores, type suffixes), max values, negative numbers. All safe (0 unsafe)."
 
           - id: "LEX-CONST-FLOAT"
             title: "Document floating-point constants"
@@ -2606,14 +2630,14 @@ high_priority_next_tasks:
       title: "Comprehensive sizeof edge case testing"
       priority: 20
       status: "✅ COMPLETED (Sprint 4)"
-      type: "quality"
-      unsafe_reduction: "Prevents parser bugs (0 unsafe blocks)"
-      completed_date: "2025-10-15"
-      tests_added: 24
-
-next_steps:
-  - "Start with TYPE-PTR-NULL (NULL → Option) in Sprint 1"
-  - "Follow EXTREME TDD religiously (RED-GREEN-REFACTOR)"
+  last_completed:
+    task_id: "LEX-CONST-INT"
+    title: "Integer literals comprehensive documentation"
+    version: "v0.67.0"
+    date: "2025-10-17"
+    unsafe_blocks_added: 0
+    tests_added: 17
+    coverage: "100%"
   - "Pull ANDON CORD immediately when bugs found during validation"
   - "Track unsafe block count per sprint (target: <5 per 1000 LOC)"
   - "Use STOP THE LINE protocol for all validation failures"
