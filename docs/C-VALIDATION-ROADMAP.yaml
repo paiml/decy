@@ -10,12 +10,12 @@ roadmap:
 
   statistics:
     total_tasks: 150
-    completed: 104
+    completed: 105
     partial_support: 0
     in_progress: 0
     blocked: 1
-    not_started: 45
-    coverage_percent: 69
+    not_started: 44
+    coverage_percent: 70
 
 extreme_tdd_workflow:
   description: "Standard workflow for each task"
@@ -643,14 +643,45 @@ chapters:
           - id: "TYPE-PTR-BASIC"
             title: "Document basic pointer types"
             status: "completed"
-            version: "v0.3.0"
+            version: "v0.86.0"
             examples:
-              - c: "int* p;"
+              - c: "int* p = &x;"
+                rust: "let p: &i32 = &x;"
+              - c: "int* p = &x; *p = 10;"
+                rust: "let p: &mut i32 = &mut x; *p = 10;"
+              - c: "float* pf; double* pd; char* pc;"
+                rust: "let pf: &f32; let pd: &f64; let pc: &u8;"
+              - c: "struct Point* p;"
+                rust: "let p: &Point;"
+              - c: "int* p = NULL;"
+                rust: "let p: Option<Box<i32>> = None;"
+              - c: "int* p = malloc(sizeof(int));"
+                rust: "let p = Box::new(0);"
+              - c: "void increment(int* p) { (*p)++; }"
+                rust: "fn increment(p: &mut i32) { *p += 1; }"
+              - c: "int** pp;"
+                rust: "let pp: &&i32;"
+              - c: "const int* p;"
                 rust: "let p: &i32;"
-                note: "Or &mut i32 or Box<i32> depending on ownership"
+              - c: "int* p = arr;"
+                rust: "let p: &[i32] = &arr;"
+              - c: "int* get_value() { static int x = 42; return &x; }"
+                rust: "fn get_value() -> &'static i32 { static X: i32 = 42; &X }"
+              - c: "void* p;"
+                rust: "let p: *const std::ffi::c_void;"
+              - c: "int (*func_ptr)(int, int);"
+                rust: "let func_ptr: fn(i32, i32) -> i32;"
+              - c: "struct Node { struct Node* next; };"
+                rust: "struct Node { next: Option<Box<Node>> }"
             validation_reference: "K&R §5.1, ISO C99 §6.7.5.1"
             test_name: "test_pointer_type_basic"
             ownership_inference: "CRITICAL"
+            sprint: 9
+            completed_date: "2025-10-17"
+            tests_added: 17
+            coverage: "100%"
+            unsafe_blocks: 0
+            note: "Documentation-only task - CRITICAL for ownership inference. Three pointer types in Rust: &T (borrow), &mut T (mutable borrow), Box<T> (owned). NULL → Option. Lifetime tracking prevents dangling pointers."
 
           - id: "TYPE-PTR-MALLOC"
             title: "Document malloc/free pattern → Box"
