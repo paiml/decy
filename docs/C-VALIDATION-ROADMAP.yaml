@@ -10,12 +10,12 @@ roadmap:
 
   statistics:
     total_tasks: 150
-    completed: 105
+    completed: 106
     partial_support: 0
     in_progress: 0
     blocked: 1
-    not_started: 44
-    coverage_percent: 70
+    not_started: 43
+    coverage_percent: 71
 
 extreme_tdd_workflow:
   description: "Standard workflow for each task"
@@ -216,15 +216,41 @@ chapters:
           - id: "LEX-KW-001"
             title: "Document C keywords to Rust keywords mapping"
             status: "completed"
-            version: "v0.1.0"
+            version: "v0.87.0"
             examples:
-              - c: "int x;"
-                rust: "let x: i32;"
+              - c: "int x; char c; float f; double d;"
+                rust: "let x: i32; let c: u8; let f: f32; let d: f64;"
+              - c: "void function() { }"
+                rust: "fn function() { }"
               - c: "const int MAX = 100;"
                 rust: "const MAX: i32 = 100;"
-              - c: "return 0;"
-                rust: "return 0;"
+              - c: "static int counter = 0;"
+                rust: "static COUNTER: i32 = 0;"
+              - c: "if (x > 0) { } else { }"
+                rust: "if x > 0 { } else { }"
+              - c: "while (x < 10) { }"
+                rust: "while x < 10 { }"
+              - c: "for (int i = 0; i < n; i++) { }"
+                rust: "for i in 0..n { }"
+              - c: "break; continue; return;"
+                rust: "break; continue; return;"
+              - c: "struct Point { int x; };"
+                rust: "struct Point { x: i32 }"
+              - c: "enum Color { RED, GREEN };"
+                rust: "enum Color { Red, Green }"
+              - c: "switch (x) { case 1: break; default: break; }"
+                rust: "match x { 1 => { break; }, _ => { break; } }"
+              - c: "sizeof(int)"
+                rust: "std::mem::size_of::<i32>()"
+              - c: "typedef int Integer;"
+                rust: "type Integer = i32;"
             validation_reference: "K&R §2.1, ISO C99 §6.4.1"
+            sprint: 9
+            completed_date: "2025-10-17"
+            tests_added: 17
+            coverage: "100%"
+            unsafe_blocks: 0
+            note: "Documentation-only task - fundamental C to Rust keyword mappings. Key transformations: int→i32 (explicit width), switch→match (pattern matching), sizeof→function, typedef→type. Control flow keywords mostly same but no parentheses in Rust."
 
       - id: "2.2"
         name: "Identifiers (C99 §6.4.2)"
