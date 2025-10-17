@@ -10,12 +10,12 @@ roadmap:
 
   statistics:
     total_tasks: 150
-    completed: 71
+    completed: 72
     partial_support: 0
     in_progress: 0
     blocked: 1
-    not_started: 78
-    coverage_percent: 47
+    not_started: 77
+    coverage_percent: 48
 
 extreme_tdd_workflow:
   description: "Standard workflow for each task"
@@ -1758,12 +1758,47 @@ chapters:
           - id: "STMT-CONTINUE"
             title: "Document continue statements"
             status: "completed"
-            version: "v0.2.0"
+            priority: "high"
+            version: "v0.57.0"
             examples:
-              - c: "continue;"
-                rust: "continue;"
+              - c: "for (int i = 0; i < n; i++) { if (arr[i] < 0) continue; process(arr[i]); }"
+                rust: "for i in 0..n { if arr[i] < 0 { continue; } process(arr[i]); }"
+                note: "Simple continue: identical syntax, skip to next iteration"
+              - c: "for (i = 0; i < n; i++) { if (arr[i] == SKIP) continue; if (arr[i] == 0) continue; process(arr[i]); }"
+                rust: "for i in 0..n { if arr[i] == SKIP { continue; } if arr[i] == 0 { continue; } process(arr[i]); }"
+                note: "Filter pattern: multiple continues for sequential filtering"
+              - c: "while (has_data()) { int val = get_next(); if (is_invalid(val)) continue; process(val); }"
+                rust: "while has_data() { let val = get_next(); if is_invalid(val) { continue; } process(val); }"
+                note: "While loop continue: validation pattern, skip invalid data"
+              - c: "while (1) { int val = read(); if (val == 0) continue; if (val < 0) break; process(val); }"
+                rust: "loop { let val = read(); if val == 0 { continue; } if val < 0 { break; } process(val); }"
+                note: "Infinite loop: C while(1) → Rust loop, continue and break together"
+              - c: "for (i = 0; i < n; i++) { if (arr[i] < MIN || arr[i] > MAX) continue; process(arr[i]); }"
+                rust: "for i in 0..n { if arr[i] < MIN || arr[i] > MAX { continue; } process(arr[i]); }"
+                note: "Complex condition: range check with logical operators"
+              - c: "for (i = 0; i < n; i++) { count++; if (arr[i] == 0) continue; process(arr[i]); }"
+                rust: "for i in 0..n { count += 1; if arr[i] == 0 { continue; } process(arr[i]); }"
+                note: "Partial processing: continue after some operations, not always at start"
+              - c: "for (i = 0; i < n; i++) { for (j = 0; j < m; j++) { if (matrix[i][j] == 0) continue; process(matrix[i][j]); } }"
+                rust: "for i in 0..n { for j in 0..m { if matrix[i][j] == 0 { continue; } process(matrix[i][j]); } }"
+                note: "Nested loops: continue only affects innermost loop (same in both)"
+              - c: "int skip = 0; for (i = 0; i < n; i++) { for (j = 0; j < m; j++) { if (condition) { skip = 1; break; } } if (skip) { skip = 0; continue; } process(i); }"
+                rust: "'outer: for i in 0..n { for j in 0..m { if condition { continue 'outer; } } process(i); }"
+                note: "Labeled continue (Rust): C needs flag + break + continue, Rust skips outer iteration directly"
+              - c: "for (i = 0; i < n; i++) { if (!is_valid(arr[i])) continue; if (arr[i] == NULL) continue; process(arr[i]); }"
+                rust: "for i in 0..n { if !is_valid(arr[i]) { continue; } if arr[i].is_none() { continue; } process(arr[i]); }"
+                note: "Validation pattern: skip items that fail validation checks"
+              - c: "for (i = 0; i < len; i++) { char c = str[i]; if (c == ' ') continue; if (c == '\\t') continue; process(c); }"
+                rust: "for i in 0..len { let c = str[i]; if c == b' ' { continue; } if c == b'\\t' { continue; } process(c); }"
+                note: "Character processing: skip whitespace characters"
             validation_reference: "K&R §3.7, ISO C99 §6.8.6.2"
-            test_name: "test_continue_statement"
+            test_name: "test_continue_statement_documentation"
+            sprint: 5
+            completed_date: "2025-10-17"
+            tests_added: 15
+            coverage: "100%"
+            unsafe_blocks: 0
+            note: "Continue statements: Skip to next iteration of loop. C and Rust have identical syntax for simple cases. Common in filter/skip patterns, validation, guard clauses. Both skip to next iteration of innermost loop only. Labeled continue (Rust only): skip outer loop iteration from inner loop directly - more concise than C flag pattern. C requires flag variable + break + outer continue check (verbose). Rust 'outer: continue 'outer eliminates flag variables. For loop: C jumps to increment then condition, Rust advances iterator. While loop: both jump back to condition check. Iterator patterns: Rust can use .filter() instead of explicit continue (more functional). All transformations type-safe (0 unsafe blocks). Continue complementary to break: break exits loop, continue skips to next iteration."
 
           - id: "STMT-GOTO"
             title: "Document goto → eliminate or loop/match"
@@ -2318,9 +2353,9 @@ status:
   methodology: "EXTREME TDD (RED-GREEN-REFACTOR) + Ownership Inference"
   goal: "100% C99 language coverage with <5 unsafe blocks per 1000 LOC"
   last_completed:
-    task_id: "STMT-BREAK"
-    title: "Break statement patterns documentation"
-    version: "v0.56.0"
+    task_id: "STMT-CONTINUE"
+    title: "Continue statement patterns documentation"
+    version: "v0.57.0"
     date: "2025-10-17"
     unsafe_blocks_added: 0
     tests_added: 15
