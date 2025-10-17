@@ -10,12 +10,12 @@ roadmap:
 
   statistics:
     total_tasks: 150
-    completed: 95
+    completed: 96
     partial_support: 0
     in_progress: 0
     blocked: 1
-    not_started: 54
-    coverage_percent: 63
+    not_started: 53
+    coverage_percent: 64
 
 extreme_tdd_workflow:
   description: "Standard workflow for each task"
@@ -1512,15 +1512,62 @@ chapters:
           - id: "EXPR-UNARY-SIZEOF"
             title: "Document sizeof operator"
             status: "completed"
-            version: "v0.3.0"
+            version: "v0.79.0"
             examples:
               - c: "sizeof(int)"
                 rust: "std::mem::size_of::<i32>()"
+                note: "Type form → generic function"
               - c: "sizeof(x)"
                 rust: "std::mem::size_of_val(&x)"
+                note: "Expression form → reference required"
+              - c: "int arr[10]; sizeof(arr)"
+                rust: "let arr: [i32; 10]; std::mem::size_of_val(&arr)"
+                note: "Full array size (no decay)"
+              - c: "sizeof(arr) / sizeof(arr[0])"
+                rust: "arr.len()"
+                note: "Array length idiom simplified"
+              - c: "sizeof(struct Point)"
+                rust: "std::mem::size_of::<Point>()"
+                note: "User-defined type"
+              - c: "sizeof(int*)"
+                rust: "std::mem::size_of::<*const i32>()"
+                note: "Pointer size"
+              - c: "malloc(10 * sizeof(int))"
+                rust: "Vec::with_capacity(10)"
+                note: "Size calculation implicit in Vec"
+              - c: "sizeof(char)"
+                rust: "std::mem::size_of::<u8>()"
+                note: "Always 1 byte"
+              - c: "int matrix[3][4]; sizeof(matrix)"
+                rust: "let matrix: [[i32; 4]; 3]; std::mem::size_of_val(&matrix)"
+                note: "Multi-dimensional array"
+              - c: "if (sizeof(void*) == 8)"
+                rust: "if std::mem::size_of::<*const ()>() == 8"
+                note: "Compile-time constant in condition"
+              - c: "typedef int MyInt; sizeof(MyInt)"
+                rust: "type MyInt = i32; std::mem::size_of::<MyInt>()"
+                note: "Type alias"
+              - c: "struct S { char c; int i; }; sizeof(struct S)"
+                rust: "#[repr(C)] struct S { c: u8, i: i32 } std::mem::size_of::<S>()"
+                note: "Struct with padding (repr(C) for C layout)"
+              - c: "#define BUFFER_SIZE sizeof(struct Packet)"
+                rust: "const BUFFER_SIZE: usize = std::mem::size_of::<Packet>();"
+                note: "Macro → const"
+              - c: "int x; sizeof x"
+                rust: "let x: i32; std::mem::size_of_val(&x)"
+                note: "sizeof without parentheses (rare)"
+              - c: "char buffer[sizeof(struct Data)]"
+                rust: "let buffer: [u8; std::mem::size_of::<Data>()]"
+                note: "sizeof in array size"
             validation_reference: "K&R §5.4, ISO C99 §6.5.3.4"
-            test_name: "test_sizeof_expression"
+            test_name: "test_sizeof_operator"
             completed_ticket: "DECY-044"
+            sprint: 5
+            completed_date: "2025-10-17"
+            tests_added: 16
+            coverage: "100%"
+            unsafe_blocks: 0
+            note: "sizeof operator (C99 §6.5.3.4): C compile-time operator returning size in bytes. Returns size_t. Syntax: sizeof(type) or sizeof expression. Parentheses required for types, optional for expressions. Rust uses std::mem::size_of::<T>() for types, std::mem::size_of_val(&x) for values. Returns usize. Always compile-time for size_of::<T>(). Critical: array sizeof gives full size (no decay). Common idiom sizeof(arr)/sizeof(arr[0]) → arr.len(). Struct padding preserved with repr(C). All transformations SAFE (0 unsafe blocks). Rust prevents incomplete types via type system."
 
           - id: "EXPR-CAST"
             title: "Document cast operators"
@@ -3095,9 +3142,9 @@ high_priority_next_tasks:
       priority: 20
       status: "✅ COMPLETED (Sprint 4)"
   last_completed:
-    task_id: "EXPR-POSTFIX-ARRAY"
-    title: "Array subscripting comprehensive documentation"
-    version: "v0.78.0"
+    task_id: "EXPR-UNARY-SIZEOF"
+    title: "sizeof operator comprehensive documentation"
+    version: "v0.79.0"
     date: "2025-10-17"
     unsafe_blocks_added: 0
     tests_added: 16
@@ -3110,11 +3157,11 @@ high_priority_next_tasks:
 
 status:
   overall: "IN_PROGRESS"
-  completion_percent: 63
-  completed_tasks: 95
+  completion_percent: 64
+  completed_tasks: 96
   in_progress_tasks: 0
   blocked_tasks: 1
-  not_started_tasks: 54
+  not_started_tasks: 53
   total_tasks: 150
   methodology: "EXTREME TDD (RED-GREEN-REFACTOR) + Ownership Inference"
   goal: "100% C99 language coverage with <5 unsafe blocks per 1000 LOC"
