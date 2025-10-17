@@ -10,12 +10,12 @@ roadmap:
 
   statistics:
     total_tasks: 150
-    completed: 68
+    completed: 69
     partial_support: 0
     in_progress: 0
     blocked: 1
-    not_started: 81
-    coverage_percent: 45
+    not_started: 80
+    coverage_percent: 46
 
 extreme_tdd_workflow:
   description: "Standard workflow for each task"
@@ -1444,6 +1444,48 @@ chapters:
             validation_reference: "K&R §3.2, ISO C99 §6.8.4.1"
             test_name: "test_if_statement"
 
+          - id: "STMT-IF-PATTERNS"
+            title: "Document if/else statement patterns"
+            status: "completed"
+            priority: "high"
+            version: "v0.54.0"
+            examples:
+              - c: "if (x > 0) { y = 1; }"
+                rust: "if x > 0 { y = 1; }"
+                note: "Simple if (boolean condition required in Rust)"
+              - c: "if (x > 0) { y = 1; } else { y = 0; }"
+                rust: "if x > 0 { y = 1; } else { y = 0; }"
+                note: "If-else (same structure)"
+              - c: "if (x >= 90) ... else if (x >= 80) ... else ..."
+                rust: "if x >= 90 ... else if x >= 80 ... else ..."
+                note: "Else-if chain (same structure)"
+              - c: "if (x > 0) { if (y > 0) { ... } }"
+                rust: "if x > 0 { if y > 0 { ... } }"
+                note: "Nested if statements"
+              - c: "if (x > 0 && y > 0) { ... }"
+                rust: "if x > 0 && y > 0 { ... }"
+                note: "Complex condition with logical operators"
+              - c: "if (error) { return -1; }"
+                rust: "if error { return -1; }"
+                note: "Guard clause (early return)"
+              - c: "if (x) stmt;"
+                rust: "if x != 0 { stmt; }"
+                note: "C int as bool → Rust explicit comparison"
+              - c: "int r; if (c) r=1; else r=0;"
+                rust: "let r = if c { 1 } else { 0 };"
+                note: "Rust if as expression (can return value)"
+              - c: "if (x = 5) { ... }"
+                rust: "Compile error in Rust"
+                note: "Assignment in condition prevented (common C bug)"
+            validation_reference: "K&R §3.2, ISO C99 §6.8.4.1"
+            test_name: "test_if_else_documentation"
+            sprint: 5
+            completed_date: "2025-10-16"
+            tests_added: 16
+            coverage: "100%"
+            unsafe_blocks: 0
+            note: "If/else statements: Nearly identical syntax in C and Rust. Key difference: C allows int as bool (0=false, non-zero=true), Rust requires explicit bool. Rust if is expression (can return value), C if is statement only. Rust always requires braces (prevents dangling else bugs). Rust prevents assignment in condition (compile error for if (x = 5)). Same else-binding rule (else binds to nearest if). All comparison and logical operators work identically. Common patterns: simple if, if-else, else-if chains, nested conditions, guard clauses. All transformations SAFE (0 unsafe blocks). Type-safe boolean conditions prevent common C bugs."
+
           - id: "STMT-SWITCH"
             title: "Document switch → match"
             status: "completed"
@@ -2197,18 +2239,18 @@ next_steps:
 
 status:
   overall: "IN_PROGRESS"
-  completion_percent: 45
-  completed_tasks: 68
+  completion_percent: 46
+  completed_tasks: 69
   in_progress_tasks: 0
   blocked_tasks: 1
-  not_started_tasks: 81
+  not_started_tasks: 80
   total_tasks: 150
   methodology: "EXTREME TDD (RED-GREEN-REFACTOR) + Ownership Inference"
   goal: "100% C99 language coverage with <5 unsafe blocks per 1000 LOC"
   last_completed:
-    task_id: "EXPR-ARITH-BINARY-PATTERNS"
-    title: "binary arithmetic operators documentation"
-    version: "v0.53.0"
+    task_id: "STMT-IF-PATTERNS"
+    title: "if/else statement patterns documentation"
+    version: "v0.54.0"
     date: "2025-10-16"
     unsafe_blocks_added: 0
     tests_added: 16
