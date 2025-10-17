@@ -10,12 +10,12 @@ roadmap:
 
   statistics:
     total_tasks: 150
-    completed: 89
+    completed: 90
     partial_support: 0
     in_progress: 0
     blocked: 1
-    not_started: 60
-    coverage_percent: 59
+    not_started: 59
+    coverage_percent: 60
 
 extreme_tdd_workflow:
   description: "Standard workflow for each task"
@@ -1090,12 +1090,51 @@ chapters:
           - id: "EXPR-POSTFIX-CALL"
             title: "Document function calls"
             status: "completed"
-            version: "v0.1.0"
+            version: "v0.73.0"
+            test_file: "crates/decy/tests/function_call_documentation_test.rs"
             examples:
-              - c: "func(x, y)"
-                rust: "func(x, y)"
+              - c: "int result = add(x, y);"
+                rust: "let result = add(x, y);"
+                note: "Simple call: same syntax, return value assigned"
+              - c: "print_message();"
+                rust: "print_message();"
+                note: "Void function: same syntax, no return value"
+              - c: "result = calculate(a, b, c, d);"
+                rust: "let result = calculate(a, b, c, d);"
+                note: "Multiple arguments: comma-separated, same syntax"
+              - c: "result = outer(inner(x));"
+                rust: "let result = outer(inner(x));"
+                note: "Nested calls: inner evaluated first, same syntax"
+              - c: "if (is_valid()) { }"
+                rust: "if is_valid() { }"
+                note: "As condition: parentheses optional in Rust"
+              - c: "void process(int x) { } process(val);"
+                rust: "fn process(x: i32) { } process(val);"
+                note: "Pass by value: copy semantics (i32 is Copy)"
+              - c: "void modify(int* x) { } modify(&val);"
+                rust: "fn modify(x: &mut i32) { } modify(&mut val);"
+                note: "Pass by reference: pointer → &mut, address-of → borrow"
+              - c: "foo();"
+                rust: "let _ = foo();"
+                note: "Ignored return: C allows, Rust warns unless explicit (let _)"
+              - c: "int (*func_ptr)(int); func_ptr(42);"
+                rust: "let func_ptr: fn(i32) -> i32; func_ptr(42);"
+                note: "Function pointer: same call syntax, different type syntax"
+              - c: "process(transform(input));"
+                rust: "process(transform(input));"
+                note: "Chained calls: sequential processing, same evaluation order"
             validation_reference: "K&R §4.2, ISO C99 §6.5.2.2"
-            test_name: "test_function_call"
+            test_name: "test_function_call_transformation_summary"
+            critical_safety_differences:
+              - "Argument evaluation: C unspecified (pre-C99), Rust GUARANTEED left-to-right"
+              - "Pass by reference: C pointers (int*), Rust references (&mut i32) type-safe"
+              - "Return value usage: C can ignore, Rust WARNS unless explicit (let _)"
+              - "Ownership: Rust moves non-Copy types, C always copies"
+              - "No variadic functions: Rust uses macros (println!) or slices"
+            tests_added: 15
+            coverage: "100%"
+            unsafe_blocks: 0
+            note: "COMPREHENSIVE DOCUMENTATION: Function calls all C patterns. CRITICAL SAFETY: (1) Evaluation order: C unspecified (pre-C99), Rust GUARANTEED left-to-right (predictable side effects), (2) Pass by reference: C uses pointers (int* x, &val), Rust uses references (&mut i32, &mut val) with borrow checker (prevents dangling pointers), (3) Return value usage: C allows ignoring return values (common error source), Rust WARNS unless explicitly ignored (let _ = foo()), (4) Ownership semantics: C always copies (pass by value), Rust moves non-Copy types (prevents use-after-free), (5) Variadic functions: C supports (printf), Rust uses macros (println!) or slices (type-safe, compile-time checked). Transformations: same syntax for most calls, pointer→&mut for pass-by-reference, let _ for ignored returns, fn type for function pointers. Test file demonstrates simple calls, void functions, multiple/no arguments, nested calls, expressions, conditions, pass by value/reference, literals, loops, ignored returns, function pointers, chaining. All safe (0 unsafe)."
 
           - id: "EXPR-POSTFIX-MEMBER"
             title: "Document struct member access"
@@ -2817,12 +2856,12 @@ high_priority_next_tasks:
       priority: 20
       status: "✅ COMPLETED (Sprint 4)"
   last_completed:
-    task_id: "EXPR-ASSIGN-SIMPLE"
-    title: "Simple assignment comprehensive documentation"
-    version: "v0.72.0"
+    task_id: "EXPR-POSTFIX-CALL"
+    title: "Function call comprehensive documentation"
+    version: "v0.73.0"
     date: "2025-10-17"
     unsafe_blocks_added: 0
-    tests_added: 16
+    tests_added: 15
     coverage: "100%"
   - "Pull ANDON CORD immediately when bugs found during validation"
   - "Track unsafe block count per sprint (target: <5 per 1000 LOC)"
@@ -2832,21 +2871,21 @@ high_priority_next_tasks:
 
 status:
   overall: "IN_PROGRESS"
-  completion_percent: 59
-  completed_tasks: 89
+  completion_percent: 60
+  completed_tasks: 90
   in_progress_tasks: 0
   blocked_tasks: 1
-  not_started_tasks: 60
+  not_started_tasks: 59
   total_tasks: 150
   methodology: "EXTREME TDD (RED-GREEN-REFACTOR) + Ownership Inference"
   goal: "100% C99 language coverage with <5 unsafe blocks per 1000 LOC"
   last_completed:
-    task_id: "EXPR-ASSIGN-SIMPLE"
-    title: "Simple assignment comprehensive documentation"
-    version: "v0.72.0"
+    task_id: "EXPR-POSTFIX-CALL"
+    title: "Function call comprehensive documentation"
+    version: "v0.73.0"
     date: "2025-10-17"
     unsafe_blocks_added: 0
-    tests_added: 16
+    tests_added: 15
     coverage: "100%"
   current_sprint: 5
   current_unsafe_count_per_1000_loc: 0
