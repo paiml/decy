@@ -10,12 +10,12 @@ roadmap:
 
   statistics:
     total_tasks: 150
-    completed: 108
+    completed: 109
     partial_support: 0
     in_progress: 0
     blocked: 1
-    not_started: 41
-    coverage_percent: 72
+    not_started: 40
+    coverage_percent: 73
 
 extreme_tdd_workflow:
   description: "Standard workflow for each task"
@@ -791,13 +791,58 @@ chapters:
           - id: "TYPE-PTR-ARRAY"
             title: "Document array allocation → Vec"
             status: "completed"
-            version: "v0.3.0"
+            version: "v0.90.0"
             examples:
-              - c: "int* arr = malloc(n * sizeof(int)); free(arr);"
-                rust: "let arr = vec![0i32; n];"
+              - c: "int* arr = malloc(n * sizeof(int)); for (...) arr[i] = i; free(arr);"
+                rust: "let mut arr = vec![0i32; n]; for i in 0..n { arr[i] = i; }"
+                note: "Basic array allocation → vec![], automatic deallocation"
                 unsafe_count: 0
+              - c: "int* arr = calloc(n, sizeof(int));"
+                rust: "let arr = vec![0i32; n];"
+                note: "calloc → vec![0; n], zero-initialized"
+              - c: "if (arr == NULL) { return -1; }"
+                rust: "// vec![] panics on OOM (idiomatic)"
+                note: "NULL check removed, Rust panics on allocation failure"
+              - c: "struct Array { int* data; size_t len; };"
+                rust: "struct Array { data: Vec<i32> }"
+                note: "Struct field → Vec field, length built-in (.len())"
+              - c: "int* create() { return malloc(n * sizeof(int)); }"
+                rust: "fn create() -> Vec<i32> { vec![0; n] }"
+                note: "Return value → Vec<T>, ownership transfer"
+              - c: "arr = realloc(arr, new_size * sizeof(int));"
+                rust: "arr.reserve(additional);"
+                note: "realloc → Vec::reserve, automatic resizing"
+              - c: "int** matrix = malloc(rows * sizeof(int*)); for (...) matrix[i] = malloc(cols * sizeof(int));"
+                rust: "let matrix = vec![vec![0i32; cols]; rows];"
+                note: "2D array → Vec<Vec<T>>, automatic deallocation of all rows"
+              - c: "int* arr2 = arr1; free(arr1);"
+                rust: "let arr2 = arr1; // arr1 moved, or: arr1.clone() for copy"
+                note: "Assignment → move semantics or clone()"
+              - c: "void process(int* arr, size_t len) { }"
+                rust: "fn process(arr: &[i32]) { }"
+                note: "Parameter → slice reference, length built-in"
+              - c: "for (...) { if (len >= capacity) { arr = realloc(...); } arr[len++] = val; }"
+                rust: "for i in 0..n { arr.push(i); }"
+                note: "Dynamic growth → Vec::push, automatic resizing"
+              - c: "for (...) arr[i] = 42;"
+                rust: "let arr = vec![42i32; n];"
+                note: "Initialization loop → vec![val; n], single line"
+              - c: "int** ptrs = malloc(...); for (...) ptrs[i] = malloc(...);"
+                rust: "let mut ptrs: Vec<Box<i32>> = Vec::with_capacity(n);"
+                note: "Array of pointers → Vec<Box<T>>"
+              - c: "char* buffer = malloc(BUFFER_SIZE);"
+                rust: "let mut buffer = vec![0u8; BUFFER_SIZE];"
+                note: "Buffer allocation → vec![0u8; size]"
             validation_reference: "K&R §5.2, ISO C99 §6.7.5.2"
             test_name: "test_array_malloc_to_vec"
+            test_file: "array_malloc_to_vec_documentation_test.rs"
+            completed_ticket: "DECY-090"
+            sprint: 2
+            completed_date: "2025-10-17"
+            tests_added: 17
+            coverage: "100%"
+            unsafe_blocks: 0
+            note: "CRITICAL TRANSFORMATION: Array malloc → Vec is essential for buffer overflow prevention. Eliminates buffer overflow vulnerabilities (automatic bounds checking), use-after-free, memory leaks. 100% safe transformation (0 unsafe blocks). Vec<T> provides RAII (automatic deallocation), automatic bounds checking (panics on overflow), built-in length tracking (no separate len variable), growable arrays (push/reserve), ownership tracking (borrow checker). Key differences: (1) C no bounds checking (UNDEFINED BEHAVIOR on overflow), Rust panics safely, (2) C manual length tracking, Rust built-in .len(), (3) C uninitialized memory, Rust initialized in vec![], (4) C realloc (error-prone), Rust automatic growth, (5) C manual free(), Rust automatic Drop. Patterns: Basic malloc → vec![], calloc → vec![0; n], NULL check removed, struct field → Vec field (no len), return value → Vec<T>, realloc → Vec::reserve, 2D array → Vec<Vec<T>>, assignment → move/clone, parameter → &[T] slice, dynamic growth → push(), explicit init → vec![val; n], pointer array → Vec<Box<T>>, buffer → vec![0u8; size]. Test file demonstrates all patterns with 17 comprehensive tests."
 
           - id: "TYPE-PTR-NULL"
             title: "Document NULL → Option"
