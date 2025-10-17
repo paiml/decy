@@ -10,11 +10,11 @@ roadmap:
 
   statistics:
     total_tasks: 150
-    completed: 70
+    completed: 71
     partial_support: 0
     in_progress: 0
     blocked: 1
-    not_started: 79
+    not_started: 78
     coverage_percent: 47
 
 extreme_tdd_workflow:
@@ -1713,12 +1713,47 @@ chapters:
           - id: "STMT-BREAK"
             title: "Document break statements"
             status: "completed"
-            version: "v0.2.0"
+            priority: "high"
+            version: "v0.56.0"
             examples:
-              - c: "break;"
-                rust: "break;"
+              - c: "for (int i = 0; i < n; i++) { if (condition) break; }"
+                rust: "for i in 0..n { if condition { break; } }"
+                note: "Simple loop break: identical syntax in both languages"
+              - c: "while (1) { process(); if (done) break; }"
+                rust: "loop { process(); if done { break; } }"
+                note: "Infinite loop with break: C while(1) → Rust loop"
+              - c: "switch (x) { case 1: handle(); break; case 2: process(); break; }"
+                rust: "match x { 1 => handle(), 2 => process(), _ => {} }"
+                note: "C switch REQUIRES break, Rust match doesn't (no fallthrough)"
+              - c: "int found = 0; for (...) { for (...) { if (match) { found = 1; break; } } if (found) break; }"
+                rust: "'outer: for ... { for ... { if match { break 'outer; } } }"
+                note: "Nested loops: C needs flag variable, Rust has labeled break"
+              - c: "for (int i = 0; i < len; i++) { if (arr[i] == target) { result = i; break; } }"
+                rust: "for i in 0..len { if arr[i] == target { result = i; break; } }"
+                note: "Search pattern: break when found (same in both)"
+              - c: "while (has_data()) { int val = read(); if (val == ERROR) break; process(val); }"
+                rust: "while has_data() { let val = read(); if val == ERROR { break; } process(val); }"
+                note: "Error detection: early exit on error condition"
+              - c: "int count = 0; while (1) { process(); count++; if (count >= MAX) break; }"
+                rust: "let mut count = 0; loop { process(); count += 1; if count >= MAX { break; } }"
+                note: "Limit check: break when counter reaches limit"
+              - c: "while (running) { if (check_early()) break; step1(); if (should_stop()) break; step2(); }"
+                rust: "while running { if check_early() { break; } step1(); if should_stop() { break; } step2(); }"
+                note: "Multiple breaks: different exit conditions at different points"
+              - c: "int result = -1; for (int i = 0; i < n; i++) { if (arr[i] > 0) { result = arr[i]; break; } }"
+                rust: "let result = 'search: loop { for i in 0..n { if arr[i] > 0 { break 'search arr[i]; } } break -1; };"
+                note: "Break with value (Rust only): C needs variable, Rust can break with value"
+              - c: "for (int i = 0; i < n; i++) { if (arr[i] == x) { arr[i] = NEW; found_index = i; break; } }"
+                rust: "for i in 0..n { if arr[i] == x { arr[i] = NEW; found_index = i; break; } }"
+                note: "Modify then break: multiple statements before break"
             validation_reference: "K&R §3.7, ISO C99 §6.8.6.3"
-            test_name: "test_break_statement"
+            test_name: "test_break_statement_documentation"
+            sprint: 5
+            completed_date: "2025-10-17"
+            tests_added: 15
+            coverage: "100%"
+            unsafe_blocks: 0
+            note: "Break statements: Used to exit loops and switch statements. C and Rust have similar break syntax for simple loops, but key differences exist. C switch REQUIRES break after each case (prevents fallthrough bugs), Rust match doesn't need break (no fallthrough possible). Nested loops: C requires flag variable + two breaks, Rust has labeled break ('outer:) for direct outer loop exit - more concise and clear. Break with value: Rust only feature, can break with value from loop expression (more functional style). C needs variable to store result before break. Common patterns: search and exit, error detection, limit checks, nested loop exit. All transformations type-safe (0 unsafe blocks). Rust labeled break eliminates need for flag variables in nested loops."
 
           - id: "STMT-CONTINUE"
             title: "Document continue statements"
@@ -2283,12 +2318,12 @@ status:
   methodology: "EXTREME TDD (RED-GREEN-REFACTOR) + Ownership Inference"
   goal: "100% C99 language coverage with <5 unsafe blocks per 1000 LOC"
   last_completed:
-    task_id: "STMT-RETURN"
-    title: "Return statement patterns documentation"
-    version: "v0.55.0"
+    task_id: "STMT-BREAK"
+    title: "Break statement patterns documentation"
+    version: "v0.56.0"
     date: "2025-10-17"
     unsafe_blocks_added: 0
-    tests_added: 17
+    tests_added: 15
     coverage: "100%"
   current_sprint: 5
   current_unsafe_count_per_1000_loc: 0
