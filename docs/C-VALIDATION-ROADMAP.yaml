@@ -10,12 +10,12 @@ roadmap:
 
   statistics:
     total_tasks: 150
-    completed: 72
+    completed: 73
     partial_support: 0
     in_progress: 0
     blocked: 1
-    not_started: 77
-    coverage_percent: 48
+    not_started: 76
+    coverage_percent: 49
 
 extreme_tdd_workflow:
   description: "Standard workflow for each task"
@@ -1628,12 +1628,47 @@ chapters:
           - id: "STMT-FOR"
             title: "Document for loops"
             status: "completed"
-            version: "v0.2.0"
+            priority: "high"
+            version: "v0.58.0"
             examples:
-              - c: "for (int i = 0; i < n; i++) { ... }"
-                rust: "for i in 0..n { ... }"
+              - c: "for (int i = 0; i < 10; i++) { process(i); }"
+                rust: "for i in 0..10 { process(i); }"
+                note: "Simple counting: C three-part syntax → Rust range (more concise)"
+              - c: "for (int i = 0; i <= 10; i++) { process(i); }"
+                rust: "for i in 0..=10 { process(i); }"
+                note: "Inclusive range: C <= → Rust ..= (explicit, prevents off-by-one errors)"
+              - c: "for (int i = 0; i < 20; i += 2) { process(i); }"
+                rust: "for i in (0..20).step_by(2) { process(i); }"
+                note: "Custom step: C += 2 → Rust .step_by(2) method"
+              - c: "for (int i = 10; i > 0; i--) { process(i); }"
+                rust: "for i in (1..=10).rev() { process(i); }"
+                note: "Reverse iteration: C decrement → Rust .rev() method"
+              - c: "for (int i = 0; i < arr_len; i++) { sum += arr[i]; }"
+                rust: "for &item in arr.iter() { sum += item; }"
+                note: "Array iteration: C manual index → Rust iterator (safer, no bounds checking)"
+              - c: "for (int i = 0; i < arr_len; i++) { printf(\"%d: %d\", i, arr[i]); }"
+                rust: "for (i, &item) in arr.iter().enumerate() { println!(\"{}: {}\", i, item); }"
+                note: "Index + value: C manual → Rust .enumerate() (provides both)"
+              - c: "for (int i = 0; i < n; i++) { for (int j = 0; j < m; j++) { matrix[i][j] = i * m + j; } }"
+                rust: "for i in 0..n { for j in 0..m { matrix[i][j] = i * m + j; } }"
+                note: "Nested loops: structure preserved, Rust range syntax cleaner"
+              - c: "for (int i = 0; i < n; i++) { if (arr[i] == target) break; }"
+                rust: "for i in 0..n { if arr[i] == target { break; } }"
+                note: "Loop with break: early exit works same in both"
+              - c: "for (int i = 0; i < n; i++) { if (arr[i] < 0) continue; sum += arr[i]; }"
+                rust: "for i in 0..n { if arr[i] < 0 { continue; } sum += arr[i]; }"
+                note: "Loop with continue: filter pattern works same in both"
+              - c: "for (;;) { process(); if (done) break; }"
+                rust: "loop { process(); if done { break; } }"
+                note: "Infinite loop: C for(;;) → Rust loop keyword (more idiomatic)"
             validation_reference: "K&R §3.5, ISO C99 §6.8.5.3"
-            test_name: "test_for_loop"
+            test_name: "test_for_loop_documentation"
+            sprint: 5
+            completed_date: "2025-10-17"
+            tests_added: 16
+            coverage: "100%"
+            unsafe_blocks: 0
+            note: "For loops: C uses three-part syntax (init; condition; increment), Rust uses iterator-based range syntax (more concise and safer). Rust ranges: 0..n (exclusive), 0..=n (inclusive) - explicit syntax prevents off-by-one errors. Custom step: C uses += in increment, Rust uses .step_by() method. Reverse: C uses decrement, Rust uses .rev() method. Array iteration: C requires manual indexing (error-prone), Rust iterators guarantee safe access (no bounds checking needed). Enumerate: C needs separate index variable, Rust .enumerate() provides both index and value. Nested loops: both languages support, Rust syntax cleaner. Break/continue: work identically in both. Infinite loop: C for(;;) → Rust loop (more idiomatic). Iterator patterns: Rust can use functional style (.sum(), .filter(), .map()) instead of explicit loops - more expressive. All transformations type-safe (0 unsafe blocks). Rust for loops prevent common C bugs: off-by-one errors, out-of-bounds access, uninitialized loop variables."
 
           - id: "STMT-FOR-DECL"
             title: "Document for loop variable declarations"
@@ -2353,12 +2388,12 @@ status:
   methodology: "EXTREME TDD (RED-GREEN-REFACTOR) + Ownership Inference"
   goal: "100% C99 language coverage with <5 unsafe blocks per 1000 LOC"
   last_completed:
-    task_id: "STMT-CONTINUE"
-    title: "Continue statement patterns documentation"
-    version: "v0.57.0"
+    task_id: "STMT-FOR"
+    title: "For loop patterns documentation"
+    version: "v0.58.0"
     date: "2025-10-17"
     unsafe_blocks_added: 0
-    tests_added: 15
+    tests_added: 16
     coverage: "100%"
   current_sprint: 5
   current_unsafe_count_per_1000_loc: 0
