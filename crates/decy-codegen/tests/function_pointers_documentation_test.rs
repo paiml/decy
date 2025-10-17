@@ -493,6 +493,7 @@ void (*fp2)(void) = (void (*)(void))fp1;  // DANGEROUS
     /// Reference: ISO C99 §6.5.9
     #[test]
     #[allow(ambiguous_wide_pointer_comparisons)]
+    #[allow(unpredictable_function_pointer_comparisons)]
     fn test_function_pointer_comparison() {
         let c_code = "if (fp1 == fp2) { ... }";
         let rust_equivalent = "if fp1 == fp2 { ... }";
@@ -609,6 +610,7 @@ void map(int* arr, int len, int (*f)(int)) {
     /// between C function pointers and Rust fn types.
     #[test]
     #[allow(ambiguous_wide_pointer_comparisons)]
+    #[allow(unpredictable_function_pointer_comparisons)]
     fn test_function_pointer_transformation_rules_summary() {
         let c_summary = r#"
 C Function Pointer Rules:
