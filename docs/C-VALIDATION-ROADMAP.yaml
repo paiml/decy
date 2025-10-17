@@ -10,12 +10,12 @@ roadmap:
 
   statistics:
     total_tasks: 150
-    completed: 86
+    completed: 87
     partial_support: 0
     in_progress: 0
     blocked: 1
-    not_started: 63
-    coverage_percent: 57
+    not_started: 62
+    coverage_percent: 58
 
 extreme_tdd_workflow:
   description: "Standard workflow for each task"
@@ -488,14 +488,51 @@ chapters:
           - id: "TYPE-BASIC-FLOAT"
             title: "Document floating-point types"
             status: "completed"
-            version: "v0.1.0"
+            version: "v0.70.0"
+            test_file: "crates/decy/tests/floating_point_types_documentation_test.rs"
             examples:
               - c: "float f;"
                 rust: "let f: f32;"
+                note: "float → f32, exactly 32 bits (single precision, 6-7 digits)"
               - c: "double d;"
                 rust: "let d: f64;"
+                note: "double → f64, exactly 64 bits (double precision, 15-17 digits)"
+              - c: "long double ld;"
+                rust: "let ld: f64;"
+                note: "long double → f64 (conservative, may lose precision on some platforms)"
+              - c: "float pi = 3.14f;"
+                rust: "let pi: f32 = 3.14;"
+                note: "float with value: f suffix in C → type annotation in Rust"
+              - c: "double e = 2.71828;"
+                rust: "let e: f64 = 2.71828;"
+                note: "double with value: no suffix (default), f64 natural fit"
+              - c: "float f = 1.5f; double d = f;"
+                rust: "let f: f32 = 1.5; let d: f64 = f as f64;"
+                note: "Conversion: C implicit float→double, Rust explicit cast required"
+              - c: "double inf = INFINITY;"
+                rust: "let inf = f64::INFINITY;"
+                note: "Special values: INFINITY macro → f64::INFINITY constant"
+              - c: "double nan = NAN;"
+                rust: "let nan = f64::NAN;"
+                note: "NaN: NAN macro → f64::NAN constant"
+              - c: "double speed = 3.0e8;"
+                rust: "let speed: f64 = 3.0e8;"
+                note: "Scientific notation: same syntax, double/f64 default"
+              - c: "float small = 1.5e-10f;"
+                rust: "let small: f32 = 1.5e-10;"
+                note: "Scientific with float: f suffix → f32 type annotation"
             validation_reference: "K&R §2.2, ISO C99 §6.2.5"
-            test_name: "test_float_type_mapping"
+            test_name: "test_floating_point_types_transformation_summary"
+            critical_safety_differences:
+              - "EXACT sizes in Rust (f32/f64), C types typically same but not guaranteed"
+              - "long double size VARIES by platform (80/128 bits), Rust f64 always 64 bits"
+              - "NO implicit conversions: C allows float→double, Rust COMPILE ERROR (needs cast)"
+              - "Special values via constants (f64::INFINITY/NAN), not macros (no header)"
+              - "Default type f64 matches C double (literals inferred as f64)"
+            tests_added: 15
+            coverage: "100%"
+            unsafe_blocks: 0
+            note: "COMPREHENSIVE DOCUMENTATION: Floating-point types all C variants. CRITICAL SAFETY: (1) Exact sizes: C float typically 32 bits, double 64 bits (implementation-defined), Rust f32/f64 EXACT sizes guaranteed, (2) long double portability: C varies (80 bits x86, 128 bits ARM/POWER), Rust maps to f64 (portable but may lose precision), (3) NO implicit conversions: C allows implicit float→double widening, Rust COMPILE ERROR (requires explicit cast), (4) Special values: C INFINITY/NAN macros (need <math.h>), Rust f64::INFINITY/NAN built-in constants (no header), (5) Type hierarchy: C float ≤ double ≤ long double, Rust f32 < f64 (no extended precision in std). Transformations: float→f32, double→f64, long double→f64 (conservative), conversions require explicit cast. Test file demonstrates all C float types (float/double/long double), initialization, conversions, special values (infinity/NaN), scientific notation, zero values. All safe (0 unsafe)."
 
           - id: "TYPE-BASIC-VOID"
             title: "Document void type"
@@ -2705,12 +2742,12 @@ high_priority_next_tasks:
       priority: 20
       status: "✅ COMPLETED (Sprint 4)"
   last_completed:
-    task_id: "TYPE-BASIC-INT"
-    title: "Integer types comprehensive documentation"
-    version: "v0.69.0"
+    task_id: "TYPE-BASIC-FLOAT"
+    title: "Floating-point types comprehensive documentation"
+    version: "v0.70.0"
     date: "2025-10-17"
     unsafe_blocks_added: 0
-    tests_added: 17
+    tests_added: 15
     coverage: "100%"
   - "Pull ANDON CORD immediately when bugs found during validation"
   - "Track unsafe block count per sprint (target: <5 per 1000 LOC)"
@@ -2720,21 +2757,21 @@ high_priority_next_tasks:
 
 status:
   overall: "IN_PROGRESS"
-  completion_percent: 57
-  completed_tasks: 86
+  completion_percent: 58
+  completed_tasks: 87
   in_progress_tasks: 0
   blocked_tasks: 1
-  not_started_tasks: 63
+  not_started_tasks: 62
   total_tasks: 150
   methodology: "EXTREME TDD (RED-GREEN-REFACTOR) + Ownership Inference"
   goal: "100% C99 language coverage with <5 unsafe blocks per 1000 LOC"
   last_completed:
-    task_id: "TYPE-BASIC-INT"
-    title: "Integer types comprehensive documentation"
-    version: "v0.69.0"
+    task_id: "TYPE-BASIC-FLOAT"
+    title: "Floating-point types comprehensive documentation"
+    version: "v0.70.0"
     date: "2025-10-17"
     unsafe_blocks_added: 0
-    tests_added: 17
+    tests_added: 15
     coverage: "100%"
   current_sprint: 5
   current_unsafe_count_per_1000_loc: 0
