@@ -10,11 +10,11 @@ roadmap:
 
   statistics:
     total_tasks: 150
-    completed: 100
+    completed: 101
     partial_support: 0
     in_progress: 0
     blocked: 1
-    not_started: 49
+    not_started: 48
     coverage_percent: 67
 
 extreme_tdd_workflow:
@@ -2768,12 +2768,48 @@ chapters:
           - id: "STDLIB-PRINTF"
             title: "Document printf → println!"
             status: "completed"
-            version: "v0.2.0"
+            version: "v0.82.0"
             examples:
+              - c: "printf(\"Hello, World!\\n\");"
+                rust: "println!(\"Hello, World!\");"
+              - c: "printf(\"Hello\");"
+                rust: "print!(\"Hello\");"
               - c: "printf(\"Value: %d\\n\", x);"
                 rust: "println!(\"Value: {}\", x);"
+              - c: "printf(\"Hello, %s!\\n\", name);"
+                rust: "println!(\"Hello, {}!\", name);"
+              - c: "printf(\"Pi: %f\\n\", pi);"
+                rust: "println!(\"Pi: {}\", pi);"
+              - c: "printf(\"Char: %c\\n\", ch);"
+                rust: "println!(\"Char: {}\", ch);"
+              - c: "printf(\"Name: %s, Age: %d, Score: %f\\n\", name, age, score);"
+                rust: "println!(\"Name: {}, Age: {}, Score: {}\", name, age, score);"
+              - c: "printf(\"%5d\\n\", x);"
+                rust: "println!(\"{:5}\", x);"
+              - c: "printf(\"%.2f\\n\", pi);"
+                rust: "println!(\"{:.2}\", pi);"
+              - c: "printf(\"%05d\\n\", x);"
+                rust: "println!(\"{:05}\", x);"
+              - c: "printf(\"Hex: %x\\n\", value);"
+                rust: "println!(\"Hex: {:x}\", value);"
+              - c: "printf(\"Hex: %X\\n\", value);"
+                rust: "println!(\"Hex: {:X}\", value);"
+              - c: "printf(\"Pointer: %p\\n\", ptr);"
+                rust: "println!(\"Pointer: {:p}\", ptr);"
+              - c: "if (x > 0) { printf(\"Positive: %d\\n\", x); }"
+                rust: "if x > 0 { println!(\"Positive: {}\", x); }"
+              - c: "for (int i = 0; i < n; i++) { printf(\"Index: %d\\n\", i); }"
+                rust: "for i in 0..n { println!(\"Index: {}\", i); }"
+              - c: "printf(\"Starting program...\\n\");"
+                rust: "println!(\"Starting program...\");"
             validation_reference: "K&R §7.2, ISO C99 §7.19.6.1"
             test_name: "test_printf_to_println"
+            sprint: 9
+            completed_date: "2025-10-17"
+            tests_added: 17
+            coverage: "100%"
+            unsafe_blocks: 0
+            note: "Documentation-only task - printf transforms to println!/print!, providing type safety and buffer overflow protection"
 
           - id: "STDLIB-SCANF"
             title: "Document scanf → read from stdin"
