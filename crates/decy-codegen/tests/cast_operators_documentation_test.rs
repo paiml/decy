@@ -469,9 +469,9 @@ fn test_cast_type_punning() {
     let bits = f.to_bits();
     assert_eq!(bits, 0x40490fdb, "Float bits extracted safely");
 
-    // Demonstrate unsafe transmute (avoid if possible)
-    let bits_unsafe: u32 = unsafe { f.to_bits() };
-    assert_eq!(bits_unsafe, 0x40490fdb, "to_bits() is actually safe, no transmute needed");
+    // Note: to_bits() is the safe alternative to transmute
+    // In old code, you might see: unsafe { std::mem::transmute::<f32, u32>(f) }
+    // But to_bits() is preferred (safe and explicit)
 }
 
 /// Document struct cast (not allowed in Rust)
