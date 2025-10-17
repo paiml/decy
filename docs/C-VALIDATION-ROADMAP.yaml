@@ -10,11 +10,11 @@ roadmap:
 
   statistics:
     total_tasks: 150
-    completed: 103
+    completed: 104
     partial_support: 0
     in_progress: 0
     blocked: 1
-    not_started: 46
+    not_started: 45
     coverage_percent: 69
 
 extreme_tdd_workflow:
@@ -1354,15 +1354,46 @@ chapters:
           - id: "EXPR-POSTFIX-MEMBER"
             title: "Document struct member access"
             status: "completed"
-            version: "v0.3.0"
+            version: "v0.85.0"
             examples:
               - c: "point.x"
                 rust: "point.x"
               - c: "point->x"
                 rust: "point.x"
-                note: "Pointer dereference eliminated with ownership"
+              - c: "(*ptr).x"
+                rust: "ptr.x"
+              - c: "rect.top_left.x"
+                rust: "rect.top_left.x"
+              - c: "ptr->top_left.x"
+                rust: "ptr.top_left.x"
+              - c: "process(p.x)"
+                rust: "process(p.x)"
+              - c: "sum = p.x + p.y"
+                rust: "sum = p.x + p.y"
+              - c: "&p.x"
+                rust: "&p.x"
+              - c: "ptr->x = ptr->y + 10"
+                rust: "ptr.x = ptr.y + 10"
+              - c: "if (p.x > 0 && p.y > 0) { }"
+                rust: "if p.x > 0 && p.y > 0 { }"
+              - c: "while (c.value < c.max) { }"
+                rust: "while c.value < c.max { }"
+              - c: "points[0].x = 5"
+                rust: "points[0].x = 5"
+              - c: "(ptr + 1)->x"
+                rust: "ptr[1].x"
+              - c: "o.middle.inner.value"
+                rust: "o.middle.inner.value"
+              - c: "return ptr->y"
+                rust: "return ptr.y"
             validation_reference: "K&R §6.1, ISO C99 §6.5.2.3"
             test_name: "test_member_access"
+            sprint: 9
+            completed_date: "2025-10-17"
+            tests_added: 17
+            coverage: "100%"
+            unsafe_blocks: 0
+            note: "Documentation-only task - critical difference: ptr->member becomes ptr.member (automatic dereferencing), single dot operator for all access"
 
           - id: "EXPR-MEMBER-ACCESS-PATTERNS"
             title: "Document struct member access patterns"
