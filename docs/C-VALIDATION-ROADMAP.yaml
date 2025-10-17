@@ -10,12 +10,12 @@ roadmap:
 
   statistics:
     total_tasks: 150
-    completed: 102
+    completed: 103
     partial_support: 0
     in_progress: 0
     blocked: 1
-    not_started: 47
-    coverage_percent: 68
+    not_started: 46
+    coverage_percent: 69
 
 extreme_tdd_workflow:
   description: "Standard workflow for each task"
@@ -864,12 +864,40 @@ chapters:
           - id: "TYPE-STRUCT-BASIC"
             title: "Document struct definition"
             status: "completed"
-            version: "v0.3.0"
+            version: "v0.84.0"
             examples:
               - c: "struct Point { int x; int y; };"
                 rust: "struct Point { x: i32, y: i32 }"
+              - c: "typedef struct { int x; int y; } Point;"
+                rust: "struct Point { x: i32, y: i32 }"
+              - c: "struct Point p = { 10, 20 };"
+                rust: "let p = Point { x: 10, y: 20 };"
+              - c: "p.x = 10;"
+                rust: "p.x = 10;"
+              - c: "ptr->x = 10;"
+                rust: "ptr.x = 10;"
+              - c: "struct Node { int data; struct Node* next; };"
+                rust: "struct Node { data: i32, next: Option<Box<Node>> }"
+              - c: "struct Matrix { int data[10][10]; };"
+                rust: "struct Matrix { data: [[i32; 10]; 10] }"
+              - c: "void process(struct Point p) { }"
+                rust: "fn process(p: Point) { }"
+              - c: "void process(struct Point* p) { p->x; }"
+                rust: "fn process(p: &Point) { p.x; }"
+              - c: "struct Point p = { .x = 10, .y = 20 };"
+                rust: "let p = Point { x: 10, y: 20 };"
+              - c: "struct Handler { void (*callback)(int); };"
+                rust: "struct Handler { callback: fn(i32) }"
+              - c: "struct Rectangle { struct Point top_left; };"
+                rust: "struct Rectangle { top_left: Point }"
             validation_reference: "K&R §6.1, ISO C99 §6.7.2.1"
             test_name: "test_struct_definition"
+            sprint: 9
+            completed_date: "2025-10-17"
+            tests_added: 17
+            coverage: "100%"
+            unsafe_blocks: 0
+            note: "Documentation-only task - structs transform with key differences: no 'struct' keyword in usage, ptr-> becomes ., typedef eliminated, all fields must be initialized"
 
           - id: "TYPE-STRUCT-NESTED"
             title: "Document nested structs"
