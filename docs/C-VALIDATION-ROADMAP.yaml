@@ -10,11 +10,11 @@ roadmap:
 
   statistics:
     total_tasks: 150
-    completed: 82
+    completed: 83
     partial_support: 0
     in_progress: 0
     blocked: 1
-    not_started: 67
+    not_started: 66
     coverage_percent: 55
 
 extreme_tdd_workflow:
@@ -268,14 +268,37 @@ chapters:
           - id: "LEX-CONST-CHAR"
             title: "Document character constants"
             status: "completed"
-            version: "v0.2.0"
+            version: "v0.66.0"
             examples:
               - c: "char c = 'A';"
                 rust: "let c: u8 = b'A';"
+                note: "Simple ASCII: char → u8, use b'A' byte literal syntax"
               - c: "char newline = '\\n';"
                 rust: "let newline: u8 = b'\\n';"
+                note: "Escape sequences: same syntax (\\n, \\t, \\0, \\\\, \\')"
+              - c: "char null = '\\0';"
+                rust: "let null: u8 = b'\\0';"
+                note: "Null character: C string terminator, same in Rust"
+              - c: "if (c >= 'a' && c <= 'z') { ... }"
+                rust: "if c >= b'a' && c <= b'z' { ... }"
+                note: "Range checks: byte literals in comparisons (b'a', b'z')"
+              - c: "int digit = c - '0';"
+                rust: "let digit = (c - b'0') as i32;"
+                note: "Character arithmetic: explicit cast required"
+              - c: "switch (c) { case 'a': return 1; ... }"
+                rust: "match c { b'a' => 1, ... }"
+                note: "Pattern matching: byte literals in match arms"
+              - c: "char vowels[] = {'a', 'e', 'i', 'o', 'u'};"
+                rust: "let vowels: [u8; 5] = [b'a', b'e', b'i', b'o', b'u'];"
+                note: "Character arrays: byte literal arrays [u8; N]"
             validation_reference: "K&R §2.3, ISO C99 §6.4.4.4"
             test_name: "test_char_literal_transformation"
+            test_file: "character_literals_documentation_test.rs"
+            completed_date: "2025-10-17"
+            tests_added: 15
+            coverage: "100%"
+            unsafe_blocks: 0
+            note: "COMPREHENSIVE DOCUMENTATION: Character literals with 100% coverage. CRITICAL TYPE DIFFERENCES: (1) C char is 8-bit integer (signed or unsigned, implementation-defined), Rust has TWO types: char (32-bit Unicode) and u8 (8-bit byte), (2) ASCII C code: char → u8 with b'A' byte literal syntax, (3) Unicode C code: wchar_t → char (full Unicode support), (4) C characters are integers (arithmetic allowed), Rust requires explicit casts for arithmetic, (5) Same escape sequences: \\n, \\t, \\0, \\\\, \\', plus Rust Unicode \\u{...}. Transformation: C char 'A' → Rust b'A' for ASCII (byte literal). Range checks: 'a'..'z' → b'a'..b'z'. Character arithmetic: c - '0' → (c - b'0') as i32 (explicit cast). Pattern matching: case 'a' → b'a' in match. Test file demonstrates: simple ASCII, escape sequences, null character, range checks (lowercase, uppercase, digits), arithmetic, switch/match, character arrays, digit conversion, uppercase checks. All transformations safe (0 unsafe blocks). Rust more type-safe with distinct char (Unicode) and u8 (byte) types."
 
           - id: "LEX-CONST-STR"
             title: "Document string literals"
@@ -2608,9 +2631,9 @@ status:
   methodology: "EXTREME TDD (RED-GREEN-REFACTOR) + Ownership Inference"
   goal: "100% C99 language coverage with <5 unsafe blocks per 1000 LOC"
   last_completed:
-    task_id: "LEX-CONST-STR"
-    title: "String literals comprehensive documentation"
-    version: "v0.65.0"
+    task_id: "LEX-CONST-CHAR"
+    title: "Character literals comprehensive documentation"
+    version: "v0.66.0"
     date: "2025-10-17"
     unsafe_blocks_added: 0
     tests_added: 15
