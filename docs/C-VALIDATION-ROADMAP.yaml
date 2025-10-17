@@ -10,12 +10,12 @@ roadmap:
 
   statistics:
     total_tasks: 150
-    completed: 80
+    completed: 81
     partial_support: 0
     in_progress: 0
     blocked: 1
-    not_started: 69
-    coverage_percent: 53
+    not_started: 68
+    coverage_percent: 54
 
 extreme_tdd_workflow:
   description: "Standard workflow for each task"
@@ -2034,32 +2034,55 @@ chapters:
       - id: "FUNC-DECL"
         title: "Document function declarations"
         status: "completed"
-        version: "v0.1.0"
+        version: "v0.64.0"
         examples:
-          - c: "int add(int a, int b);"
-            rust: "fn add(a: i32, b: i32) -> i32;"
+          - c: "int add(int a, int b) { return a + b; }"
+            rust: "fn add(a: i32, b: i32) -> i32 { a + b }"
+            note: "Simple function: implicit return (no semicolon)"
+          - c: "void print(int x) { printf(\"%d\", x); }"
+            rust: "fn print(x: i32) { println!(\"{}\", x); }"
+            note: "Void function: omit return type (defaults to unit ())"
+          - c: "int get_value(void) { return 42; }"
+            rust: "fn get_value() -> i32 { 42 }"
+            note: "No parameters: empty () (not void)"
+          - c: "int divide(int a, int b) { if (b == 0) return -1; return a / b; }"
+            rust: "fn divide(a: i32, b: i32) -> i32 { if b == 0 { return -1; } a / b }"
+            note: "Early return: explicit return keyword, final value implicit"
+          - c: "int is_even(int x) { return x % 2 == 0; }"
+            rust: "fn is_even(x: i32) -> bool { x % 2 == 0 }"
+            note: "Boolean: return bool (not int), simplify to direct expression"
+          - c: "float avg(float a, float b) { return (a + b) / 2.0f; }"
+            rust: "fn avg(a: f32, b: f32) -> f32 { (a + b) / 2.0 }"
+            note: "Floating point: float → f32, double → f64"
+          - c: "int fib(int n) { if (n <= 1) return n; return fib(n-1) + fib(n-2); }"
+            rust: "fn fib(n: i32) -> i32 { if n <= 1 { return n; } fib(n-1) + fib(n-2) }"
+            note: "Recursion: same pattern, works identically"
+          - c: "int sum(int arr[], int n) { int s = 0; for (int i = 0; i < n; i++) s += arr[i]; return s; }"
+            rust: "fn sum(arr: &[i32]) -> i32 { let mut s = 0; for &item in arr { s += item; } s }"
+            note: "Array parameter: pointer+length → slice (&[T]), no separate length needed"
+          - c: "static int helper(int x) { return x * 2; }"
+            rust: "fn helper(x: i32) -> i32 { x * 2 }"
+            note: "Static function: module-private by default (no pub), static keyword not needed"
         validation_reference: "K&R §4.1, ISO C99 §6.9.1"
         test_name: "test_function_declaration"
+        test_file: "function_declaration_documentation_test.rs"
+        completed_date: "2025-10-17"
+        tests_added: 17
+        coverage: "100%"
+        unsafe_blocks: 0
+        note: "COMPREHENSIVE DOCUMENTATION: Function declarations and definitions with 100% coverage. Critical differences: (1) Rust has no separate declarations (definition = declaration, modules replace headers), (2) void → omit return type (defaults to unit ()), (3) No parameters: empty () not void, (4) Implicit returns idiomatic (expression without semicolon), explicit return for early exits, (5) No forward declarations needed (order independent within module), (6) Array parameters: pointer+length → slices (&[T]) with built-in length. Same syntax for calls. Type-safe parameters (no implicit conversions). Test file demonstrates: simple returns, void functions, no parameters, multiple parameters, early returns, booleans, floats/doubles, mixed types, function composition, complex bodies, recursion, multiple return paths, array parameters, static functions. All transformations safe (0 unsafe blocks). Rust more concise and type-safe."
 
       - id: "FUNC-DEF"
         title: "Document function definitions"
         status: "completed"
-        version: "v0.1.0"
-        examples:
-          - c: "int add(int a, int b) { return a + b; }"
-            rust: "fn add(a: i32, b: i32) -> i32 { a + b }"
-        validation_reference: "K&R §4.1, ISO C99 §6.9.1"
-        test_name: "test_function_definition"
+        version: "v0.64.0"
+        note: "Combined with FUNC-DECL (v0.64.0) - Rust has no distinction between declaration and definition"
 
       - id: "FUNC-VOID-PARAMS"
         title: "Document void parameter lists"
         status: "completed"
-        version: "v0.1.0"
-        examples:
-          - c: "void init(void) { ... }"
-            rust: "fn init() { ... }"
-        validation_reference: "K&R §4.1, ISO C99 §6.9.1"
-        test_name: "test_void_parameters"
+        version: "v0.64.0"
+        note: "Combined with FUNC-DECL (v0.64.0) - covered in comprehensive function documentation"
 
       - id: "FUNC-VARIADIC"
         title: "Document variadic functions"
@@ -2559,12 +2582,12 @@ status:
   methodology: "EXTREME TDD (RED-GREEN-REFACTOR) + Ownership Inference"
   goal: "100% C99 language coverage with <5 unsafe blocks per 1000 LOC"
   last_completed:
-    task_id: "EXPR-ASSIGN-COMPOUND"
-    title: "Compound assignment operators (+=, -=, *=, /=, %=, &=, |=, ^=, <<=, >>=) comprehensive documentation"
-    version: "v0.63.0"
+    task_id: "FUNC-DECL"
+    title: "Function declarations and definitions comprehensive documentation"
+    version: "v0.64.0"
     date: "2025-10-17"
     unsafe_blocks_added: 0
-    tests_added: 15
+    tests_added: 17
     coverage: "100%"
   current_sprint: 5
   current_unsafe_count_per_1000_loc: 0
