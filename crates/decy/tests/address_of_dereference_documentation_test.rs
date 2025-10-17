@@ -592,7 +592,10 @@ fn test_address_of_dereference_documentation_summary() {
 
     println!("\n=== Address-of & Dereference Documentation Summary ===");
     println!("Total tests: {}", total_tests);
-    println!("Unsafe blocks (references): {}", unsafe_blocks_for_references);
+    println!(
+        "Unsafe blocks (references): {}",
+        unsafe_blocks_for_references
+    );
     println!("Coverage target: {}%", coverage_target);
     println!("Feature: C99 §6.5.3.2 Address-of & Dereference");
     println!("Reference: K&R §5.1");

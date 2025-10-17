@@ -10,12 +10,12 @@ roadmap:
 
   statistics:
     total_tasks: 150
-    completed: 85
+    completed: 86
     partial_support: 0
     in_progress: 0
     blocked: 1
-    not_started: 64
-    coverage_percent: 56
+    not_started: 63
+    coverage_percent: 57
 
 extreme_tdd_workflow:
   description: "Standard workflow for each task"
@@ -433,20 +433,57 @@ chapters:
           - id: "TYPE-BASIC-INT"
             title: "Document integer types"
             status: "completed"
-            version: "v0.1.0"
+            version: "v0.69.0"
+            test_file: "crates/decy/tests/integer_types_documentation_test.rs"
             examples:
               - c: "char c;"
                 rust: "let c: i8;"
+                note: "char → i8 (signed by default), 8-bit integer"
+              - c: "unsigned char uc;"
+                rust: "let uc: u8;"
+                note: "unsigned char → u8, common for bytes/ASCII (0-255)"
+              - c: "signed char sc;"
+                rust: "let sc: i8;"
+                note: "signed char → i8 (explicit), disambiguates char signedness"
               - c: "short s;"
                 rust: "let s: i16;"
+                note: "short → i16, exactly 16 bits (C: at least 16)"
+              - c: "unsigned short us;"
+                rust: "let us: u16;"
+                note: "unsigned short → u16, common for ports/IDs"
               - c: "int i;"
                 rust: "let i: i32;"
+                note: "int → i32 (most common), exactly 32 bits"
+              - c: "unsigned int ui;"
+                rust: "let ui: u32;"
+                note: "unsigned int → u32, non-negative values"
               - c: "long l;"
                 rust: "let l: i64;"
-              - c: "unsigned int u;"
-                rust: "let u: u32;"
+                note: "long → i64 (conservative), exactly 64 bits (C: at least 32)"
+              - c: "unsigned long ul;"
+                rust: "let ul: u64;"
+                note: "unsigned long → u64, large unsigned values"
+              - c: "long long ll;"
+                rust: "let ll: i64;"
+                note: "long long → i64, C99 type (at least 64 bits)"
+              - c: "unsigned long long ull;"
+                rust: "let ull: u64;"
+                note: "unsigned long long → u64, maximum unsigned range"
+              - c: "signed int si;"
+                rust: "let si: i32;"
+                note: "signed int → i32 (signed is default for int)"
             validation_reference: "K&R §2.2, ISO C99 §6.2.5"
-            test_name: "test_integer_type_mapping"
+            test_name: "test_integer_types_transformation_summary"
+            critical_safety_differences:
+              - "EXACT sizes guaranteed in Rust (i8/i16/i32/i64), C has minimums"
+              - "char signedness IMPLEMENTATION-DEFINED in C, explicit i8/u8 in Rust"
+              - "NO implicit conversions in Rust (compile error), C auto-converts"
+              - "Overflow panics in debug (C UNDEFINED BEHAVIOR for signed)"
+              - "Size hierarchy preserved: i8 < i16 < i32 < i64"
+            tests_added: 17
+            coverage: "100%"
+            unsafe_blocks: 0
+            note: "COMPREHENSIVE DOCUMENTATION: Integer types all C variants. CRITICAL SAFETY: (1) Size guarantees: C types have minimums (int ≥16 bits, typically 32), Rust EXACT sizes (i32 always 32 bits), (2) char signedness: C IMPLEMENTATION-DEFINED (may be signed or unsigned), Rust explicit (i8 or u8), (3) NO implicit conversions: C allows implicit int→long, Rust COMPILE ERROR (requires explicit cast), (4) Overflow behavior: C signed overflow UNDEFINED BEHAVIOR, Rust panics in debug/wraps in release (well-defined), (5) Type promotion: C promotes to int automatically, Rust types must match exactly. Transformations: char→i8, unsigned char→u8, short→i16, int→i32, long→i64, long long→i64, unsigned variants→u prefix (u8/u16/u32/u64). Test file demonstrates all C integer types (char/short/int/long/long long), signed/unsigned variants, multiple declarations, initialization, size hierarchy. All safe (0 unsafe)."
 
           - id: "TYPE-BASIC-FLOAT"
             title: "Document floating-point types"
@@ -2668,12 +2705,12 @@ high_priority_next_tasks:
       priority: 20
       status: "✅ COMPLETED (Sprint 4)"
   last_completed:
-    task_id: "LEX-CONST-FLOAT"
-    title: "Floating-point literals comprehensive documentation"
-    version: "v0.68.0"
+    task_id: "TYPE-BASIC-INT"
+    title: "Integer types comprehensive documentation"
+    version: "v0.69.0"
     date: "2025-10-17"
     unsafe_blocks_added: 0
-    tests_added: 16
+    tests_added: 17
     coverage: "100%"
   - "Pull ANDON CORD immediately when bugs found during validation"
   - "Track unsafe block count per sprint (target: <5 per 1000 LOC)"
@@ -2683,21 +2720,21 @@ high_priority_next_tasks:
 
 status:
   overall: "IN_PROGRESS"
-  completion_percent: 56
-  completed_tasks: 85
+  completion_percent: 57
+  completed_tasks: 86
   in_progress_tasks: 0
   blocked_tasks: 1
-  not_started_tasks: 64
+  not_started_tasks: 63
   total_tasks: 150
   methodology: "EXTREME TDD (RED-GREEN-REFACTOR) + Ownership Inference"
   goal: "100% C99 language coverage with <5 unsafe blocks per 1000 LOC"
   last_completed:
-    task_id: "LEX-CONST-FLOAT"
-    title: "Floating-point literals comprehensive documentation"
-    version: "v0.68.0"
+    task_id: "TYPE-BASIC-INT"
+    title: "Integer types comprehensive documentation"
+    version: "v0.69.0"
     date: "2025-10-17"
     unsafe_blocks_added: 0
-    tests_added: 16
+    tests_added: 17
     coverage: "100%"
   current_sprint: 5
   current_unsafe_count_per_1000_loc: 0

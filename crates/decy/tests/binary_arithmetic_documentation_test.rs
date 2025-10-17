@@ -227,9 +227,7 @@ int main() {
 
     // Verify operator precedence
     assert!(
-        rust_code.contains("+")
-            || rust_code.contains("*")
-            || rust_code.contains("fn main"),
+        rust_code.contains("+") || rust_code.contains("*") || rust_code.contains("fn main"),
         "Expected expression with precedence"
     );
 }
@@ -280,9 +278,7 @@ int main() {
 
     // Verify negative number arithmetic
     assert!(
-        rust_code.contains("a")
-            || rust_code.contains("b")
-            || rust_code.contains("fn main"),
+        rust_code.contains("a") || rust_code.contains("b") || rust_code.contains("fn main"),
         "Expected negative number arithmetic"
     );
 }
@@ -305,9 +301,7 @@ int main() {
 
     // Verify modulus with negatives
     assert!(
-        rust_code.contains("%")
-            || rust_code.contains("a")
-            || rust_code.contains("fn main"),
+        rust_code.contains("%") || rust_code.contains("a") || rust_code.contains("fn main"),
         "Expected modulus with negative numbers"
     );
 }
