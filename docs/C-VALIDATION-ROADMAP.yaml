@@ -10,11 +10,11 @@ roadmap:
 
   statistics:
     total_tasks: 150
-    completed: 93
+    completed: 94
     partial_support: 0
     in_progress: 0
     blocked: 1
-    not_started: 56
+    not_started: 55
     coverage_percent: 62
 
 extreme_tdd_workflow:
@@ -2047,14 +2047,61 @@ chapters:
           - id: "STMT-IF"
             title: "Document if statements"
             status: "completed"
-            version: "v0.2.0"
+            version: "v0.77.0"
             examples:
-              - c: "if (x > 0) { ... }"
-                rust: "if x > 0 { ... }"
-              - c: "if (x) { ... } else { ... }"
-                rust: "if x != 0 { ... } else { ... }"
+              - c: "if (x > 0) { printf(\"positive\\n\"); }"
+                rust: "if x > 0 { println!(\"positive\"); }"
+                note: "Simple if (remove parens, keep comparison)"
+              - c: "if (x) { do_something(); }"
+                rust: "if x != 0 { do_something(); }"
+                note: "Implicit bool → explicit comparison"
+              - c: "if (x > 0) { y = 1; } else { y = -1; }"
+                rust: "if x > 0 { y = 1; } else { y = -1; }"
+                note: "If-else (same structure)"
+              - c: "if (x > 0) { r = 1; } else if (x < 0) { r = -1; } else { r = 0; }"
+                rust: "if x > 0 { r = 1; } else if x < 0 { r = -1; } else { r = 0; }"
+                note: "If-else if-else chain (same)"
+              - c: "int y; if (x > 0) { y = 1; } else { y = -1; }"
+                rust: "let y = if x > 0 { 1 } else { -1 };"
+                note: "If as expression (Rust can assign)"
+              - c: "if (x > 0) { if (y > 0) { printf(\"both\\n\"); } }"
+                rust: "if x > 0 { if y > 0 { println!(\"both\"); } }"
+                note: "Nested if (braces clarify)"
+              - c: "if (x <= 0) { return -1; }"
+                rust: "if x <= 0 { return -1; }"
+                note: "Early return guard clause (same)"
+              - c: "if (x > 0 && y > 0) { printf(\"both\\n\"); }"
+                rust: "if x > 0 && y > 0 { println!(\"both\"); }"
+                note: "Logical AND (same)"
+              - c: "if (x < 0 || y < 0) { printf(\"one\\n\"); }"
+                rust: "if x < 0 || y < 0 { println!(\"one\"); }"
+                note: "Logical OR (same)"
+              - c: "if (!(x > 0)) { printf(\"not pos\\n\"); }"
+                rust: "if !(x > 0) { println!(\"not pos\"); }"
+                note: "Negation (parens optional in Rust)"
+              - c: "if (ptr != NULL) { use_ptr(ptr); }"
+                rust: "if !ptr.is_null() { use_ptr(ptr); }"
+                note: "Pointer check (NULL → is_null())"
+              - c: "if (x > 0) printf(\"pos\\n\");"
+                rust: "if x > 0 { println!(\"pos\"); }"
+                note: "Single statement (braces required in Rust)"
+              - c: "if (x == 0) { printf(\"zero\\n\"); }"
+                rust: "if x == 0 { println!(\"zero\"); }"
+                note: "Equality (same)"
+              - c: "if (x != 0) { process(x); }"
+                rust: "if x != 0 { process(x); }"
+                note: "Inequality (same)"
+              - c: "// C if is statement (no value)"
+                rust: "let result: i32 = if condition { 42 } else { 0 };"
+                note: "If expression with type inference"
             validation_reference: "K&R §3.2, ISO C99 §6.8.4.1"
             test_name: "test_if_statement"
+            sprint: 1
+            completed_date: "2025-10-17"
+            tests_added: 17
+            coverage: "100%"
+            unsafe_blocks: 0
+            note: "SAFETY: If statements transform safely. Key differences: condition must be bool (no implicit conversion), parentheses optional, braces required, if is expression (can return value), no dangling else ambiguity. Prevents = vs == bugs in conditions."
 
           - id: "STMT-IF-PATTERNS"
             title: "Document if/else statement patterns"
@@ -2999,12 +3046,12 @@ high_priority_next_tasks:
       priority: 20
       status: "✅ COMPLETED (Sprint 4)"
   last_completed:
-    task_id: "STMT-EXPR"
-    title: "Expression statements comprehensive documentation"
-    version: "v0.76.0"
+    task_id: "STMT-IF"
+    title: "If statements comprehensive documentation"
+    version: "v0.77.0"
     date: "2025-10-17"
     unsafe_blocks_added: 0
-    tests_added: 16
+    tests_added: 17
     coverage: "100%"
   - "Pull ANDON CORD immediately when bugs found during validation"
   - "Track unsafe block count per sprint (target: <5 per 1000 LOC)"
@@ -3015,20 +3062,20 @@ high_priority_next_tasks:
 status:
   overall: "IN_PROGRESS"
   completion_percent: 62
-  completed_tasks: 93
+  completed_tasks: 94
   in_progress_tasks: 0
   blocked_tasks: 1
-  not_started_tasks: 56
+  not_started_tasks: 55
   total_tasks: 150
   methodology: "EXTREME TDD (RED-GREEN-REFACTOR) + Ownership Inference"
   goal: "100% C99 language coverage with <5 unsafe blocks per 1000 LOC"
   last_completed:
-    task_id: "STMT-EXPR"
-    title: "Expression statements comprehensive documentation"
-    version: "v0.76.0"
+    task_id: "STMT-IF"
+    title: "If statements comprehensive documentation"
+    version: "v0.77.0"
     date: "2025-10-17"
     unsafe_blocks_added: 0
-    tests_added: 16
+    tests_added: 17
     coverage: "100%"
   current_sprint: 5
   current_unsafe_count_per_1000_loc: 0
