@@ -10,12 +10,12 @@ roadmap:
 
   statistics:
     total_tasks: 150
-    completed: 110
+    completed: 111
     partial_support: 0
     in_progress: 0
     blocked: 1
-    not_started: 39
-    coverage_percent: 73
+    not_started: 38
+    coverage_percent: 74
 
 extreme_tdd_workflow:
   description: "Standard workflow for each task"
@@ -2560,20 +2560,64 @@ chapters:
           - id: "STMT-SWITCH"
             title: "Document switch → match"
             status: "completed"
-            version: "v0.8.0"
+            version: "v0.92.0"
             priority: "high"
             examples:
-              - c: "switch (x) { case 1: ...; break; default: ...; }"
-                rust: "match x { 1 => { ... }, _ => { ... } }"
-              - c: "switch (x) { case 1: return 10; case 2: return 20; }"
-                rust: "match x { 1 => { return 10; }, 2 => { return 20; }, _ => {} }"
+              - c: "switch (x) { case 1: y=10; break; default: y=0; }"
+                rust: "let y = match x { 1 => 10, _ => 0 };"
+                note: "Basic switch → match, expression-based"
+              - c: "switch (x) { case 1: return 10; }"
+                rust: "match x { 1 => 10, _ => 0 }"
+                note: "Return values → match expression"
+              - c: "switch (x) { case 1: case 2: case 3: break; }"
+                rust: "match x { 1 | 2 | 3 => {}, _ => {} }"
+                note: "Multiple cases → pattern alternatives |"
+              - c: "switch (x) { case 1: break; }"
+                rust: "match x { 1 => {}, _ => panic!() }"
+                note: "No default → _ required (exhaustiveness)"
+              - c: "switch (x) { case 1: break; }"
+                rust: "match x { 1 => {}, _ => {} }"
+                note: "Empty case → empty arm {}"
+              - c: "switch (c) { case 'a': break; }"
+                rust: "match c { b'a' => {}, _ => {} }"
+                note: "Character switch → byte literal"
+              - c: "switch (x) { case 1: switch (y) { } break; }"
+                rust: "match x { 1 => match y { _ => {} }, _ => {} }"
+                note: "Nested switch → nested match"
+              - c: "switch (x) { case 0: case 1: case 2: break; }"
+                rust: "match x { 0..=2 => {}, _ => {} }"
+                note: "Consecutive values → range pattern ..="
+              - c: "switch (color) { case RED: break; case GREEN: break; }"
+                rust: "match color { Color::Red => {}, Color::Green => {}, Color::Blue => {} }"
+                note: "Enum switch → exhaustive enum match"
+              - c: "switch (x) { case 1: { int t=x*2; } break; }"
+                rust: "match x { 1 => { let t=x*2; t+1 }, _ => 0 }"
+                note: "Blocks in case → blocks in arm"
+              - c: "for (...) { switch (x) { case 0: continue; } }"
+                rust: "for ... { match x { 0 => continue, _ => {} } }"
+                note: "Loop control → preserved in match"
+              - c: "switch (x) { case 1: if (y>10) {...} break; }"
+                rust: "match x { 1 if y>10 => {...}, 1 => {...}, _ => {} }"
+                note: "Complex conditions → pattern guards"
+              - c: "switch (x) { case 1: /* forgot break */ case 2: break; }"
+                rust: "match x { 1 => {}, 2 => {}, _ => {} }"
+                note: "Fall-through bug prevented (no fall-through in Rust)"
+              - c: "switch (flag) { case 0: x=0; break; case 1: x=1; break; }"
+                rust: "let x = if flag != 0 { 1 } else { 0 };"
+                note: "Boolean switch → if-else (more idiomatic)"
+              - c: "#define ERR 1; switch (x) { case ERR: break; }"
+                rust: "const ERR: i32 = 1; match x { ERR => {}, _ => {} }"
+                note: "Macros → constants in patterns"
             validation_reference: "K&R §3.4, ISO C99 §6.8.4.2"
             test_name: "test_switch_to_match"
+            test_file: "switch_to_match_documentation_test.rs"
+            completed_ticket: "DECY-092"
             sprint: 2
-            completed_date: "2025-10-15"
-            tests_added: 15
+            completed_date: "2025-10-17"
+            tests_added: 17
             coverage: "100%"
             unsafe_blocks: 0
+            note: "IMPORTANT TRANSFORMATION: switch → match eliminates fall-through bugs and adds exhaustiveness checking. 100% safe transformation (0 unsafe blocks). Rust match provides no fall-through (each arm isolated, prevents common C bug where break is forgotten), exhaustiveness checking (compiler ensures all cases handled), expression-based (returns values, more functional), pattern matching power (ranges, guards, destructuring beyond C's integer-only), no break needed (cleaner syntax). Key differences: (1) C implicit fall-through (dangerous), Rust no fall-through (safer), (2) C break required, Rust not needed, (3) C default optional (can miss cases), Rust exhaustiveness enforced (_ arm required), (4) C statement-based, Rust expression-based (returns value), (5) C constant integers only, Rust rich patterns (ranges, guards, destructuring). Patterns: Basic switch → match expression, return → match value, multiple cases → |, no default → _ required, empty → {}, char → byte literal, nested → composition, range → ..=, enum → exhaustive, blocks → arm blocks, loop control → preserved, guards → if patterns, fall-through prevented, boolean → if-else, macros → constants. Test file demonstrates all patterns with 17 comprehensive tests covering complete switch transformation."
 
           - id: "STMT-SWITCH-PATTERNS"
             title: "Document switch/match statement patterns"
