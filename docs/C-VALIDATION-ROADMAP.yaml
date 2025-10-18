@@ -10,12 +10,12 @@ roadmap:
 
   statistics:
     total_tasks: 150
-    completed: 111
+    completed: 112
     partial_support: 0
     in_progress: 0
     blocked: 1
-    not_started: 38
-    coverage_percent: 74
+    not_started: 37
+    coverage_percent: 75
 
 extreme_tdd_workflow:
   description: "Standard workflow for each task"
@@ -3279,18 +3279,61 @@ chapters:
           - id: "STDLIB-STRLEN"
             title: "Document strlen → .len()"
             status: "completed"
-            version: "v0.13.0"
+            version: "v0.93.0"
             priority: "medium"
             examples:
               - c: "size_t len = strlen(s);"
                 rust: "let len = s.len();"
+                note: "Basic strlen → .len(), O(n) → O(1) performance"
+              - c: "if (s != NULL) { len = strlen(s); }"
+                rust: "let len = s.len();"
+                note: "NULL check eliminated, type system prevents null"
+              - c: "if (strlen(s) == 0) { }"
+                rust: "if s.is_empty() { }"
+                note: "Empty check → is_empty(), more idiomatic"
+              - c: "if (strlen(s) > 0) { }"
+                rust: "if !s.is_empty() { }"
+                note: "Non-empty check → !is_empty()"
+              - c: "for (int i = 0; i < strlen(s); i++) { }"
+                rust: "for i in 0..s.len() { }"
+                note: "Loop condition: O(n²) → O(n), critical optimization"
+              - c: "size_t len = strlen(s); for (...; i < len; ...) { }"
+                rust: "for i in 0..s.len() { }"
+                note: "No need to cache - .len() already O(1)"
+              - c: "if (strlen(s1) == strlen(s2)) { }"
+                rust: "if s1.len() == s2.len() { }"
+                note: "Length comparison, both O(1) in Rust"
+              - c: "char* copy = malloc(strlen(s) + 1);"
+                rust: "let copy = s.to_string();"
+                note: "+1 for NULL terminator not needed"
+              - c: "int total = strlen(s1) + strlen(s2);"
+                rust: "let total = s1.len() + s2.len();"
+                note: "Arithmetic with lengths"
+              - c: "int r = (strlen(s) > 10) ? 1 : 0;"
+                rust: "let r = if s.len() > 10 { 1 } else { 0 };"
+                note: "Ternary → if expression"
+              - c: "size_t get_length(char* s) { return strlen(s); }"
+                rust: "fn get_length(s: &str) -> usize { s.len() }"
+                note: "Function return: size_t → usize, char* → &str"
+              - c: "size_t len = strlen(\"hello\");"
+                rust: "let len = \"hello\".len();"
+                note: "Literal length, compile-time constant in Rust"
+              - c: "if (i < strlen(s)) { char c = s[i]; }"
+                rust: "if i < s.len() { let c = s.as_bytes()[i]; }"
+                note: "Bounds checking with length"
+              - c: "char* s = \"café\"; strlen(s);"
+                rust: "let s = \"café\"; s.len() /* bytes */ or s.chars().count() /* chars */"
+                note: "UTF-8: byte length vs character count distinction"
             validation_reference: "K&R §B3, ISO C99 §7.21.6.3"
             test_name: "test_strlen_to_len"
+            test_file: "strlen_to_len_documentation_test.rs"
+            completed_ticket: "DECY-093"
             sprint: 2
-            completed_date: "2025-10-15"
-            tests_added: 8
+            completed_date: "2025-10-17"
+            tests_added: 17
             coverage: "100%"
             unsafe_blocks: 0
+            note: "IMPORTANT TRANSFORMATION: strlen → .len() provides major performance improvement (O(n) → O(1)) and NULL safety. 100% safe transformation (0 unsafe blocks). Rust .len() provides instant length query (length stored, no scanning), NULL safety (strings cannot be null in Rust), UTF-8 awareness (byte length vs character count), type safety (works on &str, &[u8], Vec, etc.), no caching needed (always O(1)). Key differences: (1) C O(n) must scan to NULL terminator, Rust O(1) length stored, (2) C strlen(NULL) crashes (UB), Rust type system prevents null, (3) C byte length only, Rust .len() for bytes AND .chars().count() for characters, (4) C char* only, Rust works on multiple types, (5) C manual caching required for performance, Rust no cache needed (built-in O(1)). Critical performance issue in C: calling strlen in loop condition creates O(n²) complexity - Rust .len() is always O(1) so no performance penalty. Patterns: Basic strlen → .len(), NULL check → eliminated, empty → is_empty(), non-empty → !is_empty(), in loop → O(1), cached → no cache needed, comparison → .len() ==, +1 buffer → to_string(), arithmetic → works, ternary → if expression, return → usize, literal → compile-time, bounds → safe, UTF-8 → byte vs char. Test file demonstrates all patterns with 17 comprehensive tests."
 
           - id: "STDLIB-STRCPY"
             title: "Document strcpy → String/clone"
