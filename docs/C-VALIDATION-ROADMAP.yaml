@@ -10,11 +10,11 @@ roadmap:
 
   statistics:
     total_tasks: 150
-    completed: 112
+    completed: 113
     partial_support: 0
     in_progress: 0
     blocked: 1
-    not_started: 37
+    not_started: 36
     coverage_percent: 75
 
 extreme_tdd_workflow:
@@ -1728,13 +1728,60 @@ chapters:
           - id: "EXPR-UNARY-ADDR"
             title: "Document address-of operator (&)"
             status: "completed"
-            version: "v0.3.0"
+            version: "v0.94.0"
             examples:
-              - c: "&x"
-                rust: "&x"
-                note: "Safe borrow in Rust"
-            validation_reference: "K&R §5.1, ISO C99 §6.5.3.2"
-            test_name: "test_address_of"
+              - c: "int* p = &x;"
+                rust: "let p: &i32 = &x;"
+                note: "FOUNDATIONAL: Immutable borrow, syntax similar but semantics fundamentally different"
+              - c: "int* p = &x; *p = 20;"
+                rust: "let p: &mut i32 = &mut x;"
+                note: "Mutable borrow required for mutation, both variable and borrow must be mut"
+              - c: "void increment(int* p) { (*p)++; }"
+                rust: "fn increment(p: &mut i32) { *p += 1; }"
+                note: "Function parameter: int* → &mut i32 for mutation"
+              - c: "int* p = &arr[2];"
+                rust: "let p: &mut i32 = &mut arr[2];"
+                note: "Array element address, bounds-checked in Rust"
+              - c: "int* px = &p.x;"
+                rust: "let px: &mut i32 = &mut p.x;"
+                note: "Struct field address, borrows only the field"
+              - c: "int* p1 = &x; int* p2 = &x;"
+                rust: "let p1: &i32 = &x; let p2: &i32 = &x;"
+                note: "CRITICAL: Multiple immutable borrows allowed (aliasing safe for reads)"
+              - c: "int* p1 = &x; int* p2 = &x; *p1 = 20;"
+                rust: "// COMPILE ERROR: cannot borrow as mutable more than once"
+                note: "CRITICAL: Rust prevents mutable aliasing (exclusive mutable XOR shared immutable)"
+              - c: "int* dangerous() { int x = 42; return &x; }"
+                rust: "// COMPILE ERROR: `x` does not live long enough"
+                note: "CRITICAL: Rust prevents dangling pointers via lifetime checking"
+              - c: "int* get_larger(int* a, int* b) { return (*a > *b) ? a : b; }"
+                rust: "fn get_larger<'a>(a: &'a i32, b: &'a i32) -> &'a i32 { if *a > *b { a } else { b } }"
+                note: "Explicit lifetime annotation ensures returned reference is valid"
+              - c: "const int* p = &x;"
+                rust: "let p: &i32 = &x;"
+                note: "const in C → default immutability in Rust (no const keyword needed)"
+              - c: "int** pp = &p;"
+                rust: "let pp: &mut &mut i32 = &mut p;"
+                note: "Pointer to pointer → reference to reference"
+              - c: "int* p = (x > y) ? &x : &y;"
+                rust: "let p: &mut i32 = if x > y { &mut x } else { &mut y };"
+                note: "Ternary with & → if expression with &mut"
+              - c: "int* p = arr;"
+                rust: "let p: &[i32] = &arr;"
+                note: "Array decay to pointer → slice reference"
+              - c: "const char* p = &s[0];"
+                rust: "let p: &u8 = &s.as_bytes()[0];"
+                note: "String character address requires as_bytes() in Rust"
+              - c: "volatile int* reg = 0x40000000; *reg = 42;"
+                rust: "unsafe { ptr::write_volatile(reg, 42); }"
+                note: "Volatile access requires unsafe (hardware register access)"
+              - c: "if (p != NULL) { *p; }"
+                rust: "if let Some(val) = p { *val }"
+                note: "NULL check → Option pattern match for compile-time null safety"
+            validation_reference: "K&R §5.1 (Pointers and Addresses), ISO C99 §6.5.3.2 (Address operator)"
+            test_file: "crates/decy/tests/address_of_documentation_test.rs"
+            tests_added: 17
+            note: "FOUNDATIONAL TRANSFORMATION: C's address-of creates raw pointers; Rust's borrowing creates lifetime-bound references. Key safety guarantees: (1) No dangling pointers via lifetime checking, (2) No data races via exclusive mutable XOR shared immutable, (3) Type safety. Zero unsafe blocks needed for address-of in safe contexts. This is the foundation of Rust's memory safety - understanding & vs &mut is critical."
 
           - id: "EXPR-UNARY-DEREF"
             title: "Document dereference operator (*)"
