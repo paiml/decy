@@ -10,12 +10,12 @@ roadmap:
 
   statistics:
     total_tasks: 150
-    completed: 114
+    completed: 115
     partial_support: 0
     in_progress: 0
     blocked: 1
-    not_started: 35
-    coverage_percent: 76
+    not_started: 34
+    coverage_percent: 77
 
 extreme_tdd_workflow:
   description: "Standard workflow for each task"
@@ -3301,17 +3301,61 @@ chapters:
           - id: "STDLIB-FREE"
             title: "Document free → automatic Drop"
             status: "completed"
-            version: "v0.6.0"
+            version: "v0.96.0"
             examples:
-              - c: "free(p);"
-                rust: "// Automatic when Box/Vec goes out of scope"
-            validation_reference: "K&R §8.7, ISO C99 §7.20.3.2"
-            test_name: "test_free_elimination"
+              - c: "int* p = malloc(sizeof(int)); free(p);"
+                rust: "let p = Box::new(0i32); // Automatic drop"
+                note: "CRITICAL: free() → automatic Drop via RAII, no explicit deallocation needed"
+              - c: "free(p); free(p);"
+                rust: "// COMPILE ERROR: value used after move"
+                note: "CRITICAL: Double-free prevented by ownership system"
+              - c: "free(p); printf(\"%d\", *p);"
+                rust: "// COMPILE ERROR: value borrowed after move"
+                note: "CRITICAL: Use-after-free prevented by ownership system"
+              - c: "int* arr = malloc(n * sizeof(int)); free(arr);"
+                rust: "let arr = vec![0; n]; // Vec automatically deallocates"
+                note: "Array allocation → Vec with automatic drop"
+              - c: "if (p != NULL) { free(p); }"
+                rust: "let p: Option<Box<i32>> = ...; // Automatic drop"
+                note: "Conditional free → Option with automatic drop"
+              - c: "struct Point* p = malloc(...); free(p);"
+                rust: "let p = Box::new(Point { ... }); // Automatic drop"
+                note: "Struct allocation with automatic deallocation"
+              - c: "free(n2); free(n1);"
+                rust: "// n1 drops, automatically drops n2 (recursive)"
+                note: "Nested allocations → automatic recursive drop via ownership"
+              - c: "// BUG: forgot free(data) in function"
+                rust: "// Vec automatically drops - cannot forget"
+                note: "CRITICAL: Memory leak prevention via compiler-enforced drops"
+              - c: "if (error) return -1; // forgot free before return"
+                rust: "if error { return -1; } // Vec drops automatically"
+                note: "Early return paths → automatic drop on all paths"
+              - c: "longjmp(env, 1); // skips free - leak"
+                rust: "panic!(\"Error\"); // Vec drops during unwinding"
+                note: "Exception safety: panic unwinds and drops safely"
+              - c: "free(big_buffer); // explicit early free"
+                rust: "drop(big_buffer); // explicit early drop"
+                note: "Both allow explicit early deallocation (Rust's is safer)"
+              - c: "{ int* p = malloc(...); free(p); }"
+                rust: "{ let p = Box::new(...); } // Automatic at scope end"
+                note: "Scope-based deallocation via RAII"
+              - c: "free(NULL); // safe no-op"
+                rust: "drop(None); // safe no-op"
+                note: "NULL/None safety: both handle gracefully"
+              - c: "custom_free(p); // matching allocator"
+                rust: "impl Drop for CustomBox { ... } // Custom Drop trait"
+                note: "Custom allocators → custom Drop trait implementation"
+              - c: "a->next = NULL; free(a); free(b);"
+                rust: "// Weak references prevent cycles, Rc handles counting"
+                note: "Circular references → Rc/Weak for automatic cycle handling"
+            validation_reference: "K&R §8.7 (Storage Allocator), ISO C99 §7.20.3.2 (The free function)"
+            test_file: "crates/decy/tests/free_to_drop_documentation_test.rs"
+            tests_added: 17
             sprint: 1
-            completed_date: "2025-10-15"
-            tests_added: 8
+            completed_date: "2025-10-18"
             coverage: "100%"
             unsafe_blocks: 0
+            note: "CRITICAL TRANSFORMATION: Eliminates entire class of memory safety bugs. C's free() requires manual tracking on all code paths; Rust's Drop trait provides automatic RAII-based deallocation. Safety guarantees: (1) No use-after-free (ownership prevents access), (2) No double-free (ownership ensures single deallocation), (3) No memory leaks (compiler enforces drops), (4) Exception-safe (panic unwinds safely). This is fundamental to Rust's memory safety story."
 
           - id: "STDLIB-CALLOC"
             title: "Document calloc → vec![0; n]"
