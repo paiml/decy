@@ -10,11 +10,11 @@ roadmap:
 
   statistics:
     total_tasks: 150
-    completed: 109
+    completed: 110
     partial_support: 0
     in_progress: 0
     blocked: 1
-    not_started: 40
+    not_started: 39
     coverage_percent: 73
 
 extreme_tdd_workflow:
@@ -847,17 +847,61 @@ chapters:
           - id: "TYPE-PTR-NULL"
             title: "Document NULL → Option"
             status: "completed"
-            version: "v0.4.0"
+            version: "v0.91.0"
             examples:
-              - c: "int* p = NULL; if (p) { ... }"
-                rust: "let p: Option<Box<i32>> = None; if let Some(p) = p { ... }"
+              - c: "int* p = NULL;"
+                rust: "let p: Option<Box<i32>> = None;"
+                note: "NULL initialization → None, explicit optionality"
                 unsafe_count: 0
+              - c: "if (p != NULL) { *p = 42; }"
+                rust: "if let Some(ref mut boxed) = p { **boxed = 42; }"
+                note: "NULL check → if let Some, pattern matching"
+              - c: "if (p == NULL) { return -1; }"
+                rust: "if p.is_none() { return -1; }"
+                note: "NULL equality → is_none(), explicit check"
+              - c: "if (p) { *p = 42; }"
+                rust: "if let Some(ref mut boxed) = p { **boxed = 42; }"
+                note: "Implicit NULL check → explicit pattern matching"
+              - c: "if (!p) { return -1; }"
+                rust: "if p.is_none() { return -1; }"
+                note: "Negated check → is_none(), clearer intent"
+              - c: "int v = (p != NULL) ? *p : 0;"
+                rust: "let v = p.map(|b| *b).unwrap_or(0);"
+                note: "Ternary → unwrap_or, functional style"
+              - c: "p = NULL;"
+                rust: "p = None;"
+                note: "NULL assignment → None, explicit invalidation"
+              - c: "int* find() { return NULL; }"
+                rust: "fn find() -> Option<Box<i32>> { None }"
+                note: "Return NULL → return None, explicit in type"
+              - c: "void f(int* p) { if (p != NULL) { } }"
+                rust: "fn f(p: Option<&mut i32>) { if let Some(val) = p { } }"
+                note: "Optional parameter → Option<&T>, explicit in signature"
+              - c: "struct Node { struct Node* next; }; n.next = NULL;"
+                rust: "struct Node { next: Option<Box<Node>> }; n.next = None;"
+                note: "Struct field → Option<Box<T>>, self-referential safety"
+              - c: "while (p != NULL) { p = p->next; }"
+                rust: "while let Some(ref node) = p { p = node.next.clone(); }"
+                note: "Loop condition → while let Some, safe traversal"
+              - c: "if (p == NULL) { x = 0; } else { x = *p; }"
+                rust: "let x = match p { Some(b) => *b, None => 0 };"
+                note: "if-else → match, exhaustive pattern matching"
+              - c: "int* result = p1; if (!result) result = p2;"
+                rust: "let result = p1.or(p2);"
+                note: "NULL coalescing → .or(), chained alternatives"
+              - c: "if (p == NULL) { return NULL; } *p = 42;"
+                rust: "let mut p = get_value()?; *p = 42;"
+                note: "Early return → ? operator, error propagation"
             validation_reference: "K&R §5.4, ISO C99 §7.17"
             test_name: "test_null_to_option"
-            sprint: 1
-            completed_date: "2025-10-15"
-            tests_added: 7
+            test_file: "null_to_option_documentation_test.rs"
+            completed_ticket: "DECY-091"
+            sprint: 2
+            completed_date: "2025-10-17"
+            tests_added: 17
             coverage: "100%"
+            unsafe_blocks: 0
+            note: "CRITICAL TRANSFORMATION: NULL → Option eliminates the 'billion-dollar mistake' (Tony Hoare). Prevents null pointer dereference vulnerabilities. 100% safe transformation (0 unsafe blocks). Option<T> provides type system enforcement (compiler prevents forgetting NULL checks), pattern matching (explicit, exhaustive handling), safe methods (unwrap_or, is_none, is_some, ? operator). Key differences: (1) C all pointers implicitly nullable (hidden danger), Rust explicit Option type (type says 'might be absent'), (2) C manual NULL checks (easy to forget), Rust compiler-enforced (compile error if not checked), (3) C comparison operators (==, !=, implicit if), Rust pattern matching (if let Some, match, is_some/is_none), (4) C ternary for defaults, Rust built-in methods (unwrap_or, unwrap_or_default), (5) C NULL dereference is UNDEFINED BEHAVIOR (segfault), Rust compile error (cannot dereference Option). Patterns: NULL init → None, NULL check → if let Some/is_none(), ternary → unwrap_or, assignment → None, return → Option<T>, parameter → Option<&T>, struct field → Option<Box<T>>, while loop → while let Some, if-else → match, coalescing → .or(), early return → ? operator. Test file demonstrates all patterns with 17 comprehensive tests covering the complete NULL safety transformation."
 
           - id: "TYPE-FUNC-PTR"
             title: "Document function pointers"
