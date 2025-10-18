@@ -10,12 +10,12 @@ roadmap:
 
   statistics:
     total_tasks: 150
-    completed: 113
+    completed: 114
     partial_support: 0
     in_progress: 0
     blocked: 1
-    not_started: 36
-    coverage_percent: 75
+    not_started: 35
+    coverage_percent: 76
 
 extreme_tdd_workflow:
   description: "Standard workflow for each task"
@@ -1786,13 +1786,57 @@ chapters:
           - id: "EXPR-UNARY-DEREF"
             title: "Document dereference operator (*)"
             status: "completed"
-            version: "v0.3.0"
+            version: "v0.95.0"
             examples:
-              - c: "*p"
-                rust: "*p"
-                note: "Safe with references, may need unsafe with raw pointers"
-            validation_reference: "K&R §5.1, ISO C99 §6.5.3.2"
-            test_name: "test_dereference"
+              - c: "int y = *p;"
+                rust: "let y: i32 = *p;"
+                note: "COMPANION TO &: Basic dereference, safe with references"
+              - c: "int* p = &x; *p = 20;"
+                rust: "let p: &mut i32 = &mut x; *p = 20;"
+                note: "Dereference for mutation requires &mut"
+              - c: "*p += 10; *p *= 2;"
+                rust: "*p += 10; *p *= 2;"
+                note: "Compound assignment through dereference works the same"
+              - c: "int x = *(p + 2);"
+                rust: "let x: i32 = arr[2];"
+                note: "CRITICAL: *(p + offset) → arr[index] for safety (bounds-checked)"
+              - c: "int y = **pp;"
+                rust: "let y: i32 = **pp;"
+                note: "Double dereference works identically"
+              - c: "int a = (*p).x; int b = p->x;"
+                rust: "let a: i32 = (*p).x; let b: i32 = p.x;"
+                note: "CRITICAL: Rust has auto-deref, no need for -> operator"
+              - c: "let length = (*s).len;"
+                rust: "let length = s.len();"
+                note: "Auto-deref for method calls (idiomatic Rust)"
+              - c: "int* p = NULL; int x = *p;"
+                rust: "// COMPILE ERROR: Cannot create null reference"
+                note: "CRITICAL: NULL dereference prevented, use Option<&T>"
+              - c: "int* p; { int x = 42; p = &x; } int y = *p;"
+                rust: "// COMPILE ERROR: `x` does not live long enough"
+                note: "CRITICAL: Dangling pointer dereference prevented via lifetime checking"
+              - c: "int a = p[2]; int b = *(p + 2);"
+                rust: "let a: i32 = p[2];"
+                note: "Array subscript and pointer arithmetic are equivalent in C, both → indexing in Rust"
+              - c: "int result = (*func_ptr)(3, 4);"
+                rust: "let result: i32 = (*func_ptr)(3, 4);"
+                note: "Function pointer dereference (both allow implicit deref)"
+              - c: "int sum = *px + *py;"
+                rust: "let sum: i32 = *px + *py;"
+                note: "Dereference in expressions works the same"
+              - c: "int* p = (int*)0x12345678; int x = *p;"
+                rust: "let x: i32 = unsafe { *p };"
+                note: "CRITICAL: Raw pointer dereference requires unsafe block"
+              - c: "volatile int* reg = 0x40000000; int val = *reg;"
+                rust: "let val = unsafe { ptr::read_volatile(reg) };"
+                note: "Volatile dereference requires unsafe and explicit functions"
+              - c: "int temp = *a; *a = *b; *b = temp;"
+                rust: "let temp = *a; *a = *b; *b = temp;"
+                note: "Swap pattern works the same (or use std::mem::swap)"
+            validation_reference: "K&R §5.1 (Pointers and Addresses), ISO C99 §6.5.3.2 (Indirection operator)"
+            test_file: "crates/decy/tests/dereference_documentation_test.rs"
+            tests_added: 17
+            note: "FOUNDATIONAL TRANSFORMATION: Companion to address-of operator. C's * dereferences raw pointers (unsafe); Rust's * dereferences lifetime-bound references (safe). Key safety: (1) No NULL dereference (use Option), (2) No dangling pointer dereference (lifetime checking), (3) Auto-deref for fields/methods (p.x instead of (*p).x), (4) Raw pointer deref requires unsafe. Zero unsafe blocks for safe reference dereferencing."
 
           - id: "EXPR-ADDR-DEREF-PATTERNS"
             title: "Document address-of and dereference patterns"
