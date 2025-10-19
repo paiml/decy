@@ -2893,12 +2893,12 @@ mod tests {
         }
     }
 
-    // DECY-040: Comparison Operator Parsing Tests (RED PHASE)
-    // These tests will FAIL because comparison operators are being misparsed
+    // DECY-040: Comparison Operator Parsing Tests
+    // Verifies that all comparison operators (<, >, <=, >=, ==, !=) are correctly parsed
 
     #[test]
     fn test_less_than_operator() {
-        // RED: Test that < is correctly parsed
+        // Test that < is correctly parsed as LessThan operator
         let parser = CParser::new().expect("Parser creation failed");
         let source = "int test(int a, int b) { if (a < b) { return 1; } return 0; }";
 
@@ -2923,7 +2923,7 @@ mod tests {
 
     #[test]
     fn test_greater_than_operator() {
-        // RED: Test that > is correctly parsed
+        // Test that > is correctly parsed as GreaterThan operator
         let parser = CParser::new().expect("Parser creation failed");
         let source = "int test(int a, int b) { if (a > b) { return 1; } return 0; }";
 
@@ -2948,7 +2948,7 @@ mod tests {
 
     #[test]
     fn test_less_than_or_equal_operator() {
-        // RED: Test that <= is correctly parsed (CRITICAL BUG - currently becomes *)
+        // Test that <= is correctly parsed as LessEqual operator
         let parser = CParser::new().expect("Parser creation failed");
         let source = "int test(int a, int b) { if (a <= b) { return 1; } return 0; }";
 
@@ -2961,7 +2961,7 @@ mod tests {
                     assert_eq!(
                         *op,
                         BinaryOperator::LessEqual,
-                        "CRITICAL: Should parse <= as LessEqual, not {:?} (currently becomes Multiply!)",
+                        "Should parse <= as LessEqual, not {:?}",
                         op
                     );
                 }
@@ -2973,7 +2973,7 @@ mod tests {
 
     #[test]
     fn test_greater_than_or_equal_operator() {
-        // RED: Test that >= is correctly parsed
+        // Test that >= is correctly parsed as GreaterEqual operator
         let parser = CParser::new().expect("Parser creation failed");
         let source = "int test(int a, int b) { if (a >= b) { return 1; } return 0; }";
 
@@ -2998,7 +2998,7 @@ mod tests {
 
     #[test]
     fn test_equality_operator() {
-        // RED: Test that == is correctly parsed (CRITICAL BUG - currently becomes %)
+        // Test that == is correctly parsed as Equal operator
         let parser = CParser::new().expect("Parser creation failed");
         let source = "int test(int a, int b) { if (a == b) { return 1; } return 0; }";
 
@@ -3023,7 +3023,7 @@ mod tests {
 
     #[test]
     fn test_inequality_operator() {
-        // RED: Test that != is correctly parsed
+        // Test that != is correctly parsed as NotEqual operator
         let parser = CParser::new().expect("Parser creation failed");
         let source = "int test(int a, int b) { if (a != b) { return 1; } return 0; }";
 
@@ -3048,7 +3048,7 @@ mod tests {
 
     #[test]
     fn test_all_comparison_operators_in_sequence() {
-        // RED: Test all comparison operators in one function
+        // Test all comparison operators in one function
         let parser = CParser::new().expect("Parser creation failed");
         let source = r#"
             int test_all(int a, int b) {
@@ -3094,7 +3094,7 @@ mod tests {
 
     #[test]
     fn test_comparison_in_while_loop() {
-        // RED: Test that comparison operators work in while loops
+        // Test that comparison operators work in while loops
         let parser = CParser::new().expect("Parser creation failed");
         let source = "void loop(int n) { while (n <= 10) { n = n + 1; } }";
 
@@ -3119,7 +3119,7 @@ mod tests {
 
     #[test]
     fn test_comparison_in_for_loop() {
-        // RED: Test that comparison operators work in for loops
+        // Test that comparison operators work in for loops
         let parser = CParser::new().expect("Parser creation failed");
         let source = "void count() { for (int i = 0; i < 10; i = i + 1) { } }";
 
