@@ -297,6 +297,127 @@ impl HirConstant {
     }
 }
 
+/// Represents a C macro definition in HIR.
+///
+/// C macros come in two forms:
+/// - Object-like: `#define MAX 100` (simple text substitution)
+/// - Function-like: `#define SQR(x) ((x) * (x))` (macro with parameters)
+///
+/// In Rust, these typically become:
+/// - Object-like → `const` declarations
+/// - Function-like → `fn` (inline functions) or `macro_rules!` (if truly necessary)
+///
+/// # Examples
+///
+/// ```
+/// use decy_hir::{HirMacroDefinition, HirType, HirExpression};
+///
+/// // Object-like macro: #define MAX 100
+/// let macro_def = HirMacroDefinition::new_object_like(
+///     "MAX".to_string(),
+///     "100".to_string(),
+/// );
+/// assert_eq!(macro_def.name(), "MAX");
+/// assert!(!macro_def.is_function_like());
+///
+/// // Function-like macro: #define SQR(x) ((x) * (x))
+/// let macro_def2 = HirMacroDefinition::new_function_like(
+///     "SQR".to_string(),
+///     vec!["x".to_string()],
+///     "((x) * (x))".to_string(),
+/// );
+/// assert_eq!(macro_def2.name(), "SQR");
+/// assert!(macro_def2.is_function_like());
+/// assert_eq!(macro_def2.parameters(), &["x"]);
+/// ```
+///
+/// Reference: K&R §4.11, ISO C99 §6.10.3
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct HirMacroDefinition {
+    /// Macro name (e.g., "MAX", "SQR")
+    name: String,
+    /// Parameters for function-like macros (empty for object-like macros)
+    parameters: Vec<String>,
+    /// Macro body as a token string (unparsed)
+    /// This will be expanded during codegen
+    body: String,
+}
+
+impl HirMacroDefinition {
+    /// Create a new object-like macro (no parameters).
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use decy_hir::HirMacroDefinition;
+    ///
+    /// // #define MAX 100
+    /// let macro_def = HirMacroDefinition::new_object_like(
+    ///     "MAX".to_string(),
+    ///     "100".to_string(),
+    /// );
+    /// assert_eq!(macro_def.name(), "MAX");
+    /// assert!(!macro_def.is_function_like());
+    /// ```
+    pub fn new_object_like(name: String, body: String) -> Self {
+        Self {
+            name,
+            parameters: vec![],
+            body,
+        }
+    }
+
+    /// Create a new function-like macro (with parameters).
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use decy_hir::HirMacroDefinition;
+    ///
+    /// // #define SQR(x) ((x) * (x))
+    /// let macro_def = HirMacroDefinition::new_function_like(
+    ///     "SQR".to_string(),
+    ///     vec!["x".to_string()],
+    ///     "((x) * (x))".to_string(),
+    /// );
+    /// assert_eq!(macro_def.name(), "SQR");
+    /// assert!(macro_def.is_function_like());
+    /// assert_eq!(macro_def.parameters(), &["x"]);
+    /// ```
+    pub fn new_function_like(name: String, parameters: Vec<String>, body: String) -> Self {
+        Self {
+            name,
+            parameters,
+            body,
+        }
+    }
+
+    /// Get the macro name.
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    /// Get the macro parameters (empty for object-like macros).
+    pub fn parameters(&self) -> &[String] {
+        &self.parameters
+    }
+
+    /// Get the macro body (unparsed token string).
+    pub fn body(&self) -> &str {
+        &self.body
+    }
+
+    /// Check if this is a function-like macro (has parameters).
+    pub fn is_function_like(&self) -> bool {
+        !self.parameters.is_empty()
+    }
+
+    /// Check if this is an object-like macro (no parameters).
+    pub fn is_object_like(&self) -> bool {
+        self.parameters.is_empty()
+    }
+}
+
 /// Represents a function parameter in HIR.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct HirParameter {
@@ -977,3 +1098,7 @@ mod string_property_tests;
 #[cfg(test)]
 #[path = "switch_tests.rs"]
 mod switch_tests;
+
+#[cfg(test)]
+#[path = "macro_definition_tests.rs"]
+mod macro_definition_tests;
