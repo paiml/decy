@@ -24,11 +24,7 @@ fn test_parse_object_like_macro_simple() {
     let ast = parser.parse(c_code).expect("Failed to parse");
 
     // Verify macro was parsed (currently returns 0 macros)
-    assert_eq!(
-        ast.macros().len(),
-        1,
-        "Should parse 1 macro definition"
-    );
+    assert_eq!(ast.macros().len(), 1, "Should parse 1 macro definition");
 
     let macro_def = &ast.macros()[0];
     assert_eq!(macro_def.name(), "MAX");
@@ -126,11 +122,7 @@ fn test_parse_multiple_macros() {
     let parser = CParser::new().expect("Failed to create parser");
     let ast = parser.parse(c_code).expect("Failed to parse");
 
-    assert_eq!(
-        ast.macros().len(),
-        3,
-        "Should parse 3 macro definitions"
-    );
+    assert_eq!(ast.macros().len(), 3, "Should parse 3 macro definitions");
 
     // Check first macro (PI)
     let pi_macro = &ast.macros()[0];
