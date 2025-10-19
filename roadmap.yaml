@@ -2616,19 +2616,26 @@ sprint_8:
         - "DECY-044: Fixed the core sizeof parsing bug"
 
 sprint_9:
-  name: "Preprocessor Foundation - Complex Macro Expansion"
+  name: "Preprocessor Foundation - Macro Support (Phase 1)"
   duration: "2 weeks"
   goals:
-    - Implement complex macro expansion (nested calls, recursive)
-    - Add conditional compilation (#if/#ifdef basic support)
-    - Enable parsing of common C header patterns
-    - Achieve 80% coverage of preprocessor directives
-  story_points: 26
+    - Complete DECY-098 RED phase (comprehensive tests) ✅
+    - Add HIR representation for macros (DECY-098a)
+    - Parse #define directives (DECY-098b)
+    - Simple macro expansion - constants (DECY-098c)
+    - Function-like macro expansion - basic (DECY-098d)
+  story_points: 32
+  story_points_breakdown:
+    DECY-098: 13 (RED complete)
+    DECY-098a: 3 (HIR representation)
+    DECY-098b: 5 (Parser support)
+    DECY-098c: 3 (Constant macros)
+    DECY-098d: 8 (Function-like macros)
   status: in_progress
 
   tickets:
     DECY-098:
-      title: "Complex macro expansion with nested calls and recursion"
+      title: "[RED COMPLETE] Complex macro expansion with nested calls and recursion"
       type: feature
       priority: critical
       story_points: 13
@@ -2636,28 +2643,167 @@ sprint_9:
       status: in_progress
       github_issue: null
       phase: RED
+      completion: "RED phase complete - 14 comprehensive tests created (12 ignored, awaiting GREEN phase implementation)"
 
       description: |
-        Implement full support for complex C macro expansion including:
-        - Nested macro calls: MAX(a, MIN(b, c))
-        - Recursive macro expansion (with proper recursion detection)
-        - Macro hygiene (avoid variable capture)
-        - Multiple evaluation detection and warnings
+        RED phase: ✅ COMPLETE - Created 14 comprehensive tests for complex macro expansion
 
-        This is the foundation for real-world C header file parsing.
+        Test coverage created:
+        - Nested macro calls: MAX(a, MIN(b, c))
+        - Recursive macro detection (direct and indirect)
+        - Multiple evaluation warnings
+        - Macro → inline function transformation
+        - Macro → generic function transformation
+        - Statement macros → std::mem::swap
+        - Macro hygiene verification
+        - Empty arguments handling
+        - Multi-argument macros
+
+        GREEN phase: Split into smaller tickets (DECY-098a through DECY-098d)
+        - Full implementation requires HIR support, parser changes, and expansion engine
+        - Breaking into achievable increments following EXTREME TDD
 
       requirements:
-        - Parse #define with parameters
-        - Expand macros in expressions
-        - Detect recursive macro definitions
-        - Handle nested macro calls
-        - Transform to Rust functions or macro_rules!
-        - Warn about multiple evaluation issues
+        - ✅ Write comprehensive tests (14 tests created)
+        - ⏳ Parse #define with parameters (moved to DECY-098a)
+        - ⏳ Expand macros in expressions (moved to DECY-098b)
+        - ⏳ Detect recursive macro definitions (moved to DECY-098c)
+        - ⏳ Handle nested macro calls (moved to DECY-098d)
 
       references:
         - "K&R §4.11: Macro Substitution"
         - "K&R §A12.3: Macro Replacement"
         - "ISO C99 §6.10.3: Macro Replacement"
+
+      files_created:
+        - crates/decy-codegen/tests/complex_macro_expansion_test.rs
+
+    DECY-098a:
+      title: "[NEW] Add HIR representation for macro definitions"
+      type: feature
+      priority: critical
+      story_points: 3
+      assignee: Claude
+      status: not_started
+      github_issue: null
+      phase: NOT_STARTED
+
+      description: |
+        Add data structures to HIR for representing macro definitions.
+        This is the foundation for macro parsing and expansion.
+
+        Requirements:
+        - Add MacroDefinition to HIR
+        - Support object-like macros: #define MAX 100
+        - Support function-like macros: #define SQR(x) ((x)*(x))
+        - Store macro body as token stream or AST
+
+      acceptance_criteria:
+        - HirItem::MacroDefinition enum variant exists
+        - Can represent both object-like and function-like macros
+        - Unit tests for macro representation
+        - Documentation with examples
+
+      test_strategy: |
+        Unit tests in decy-hir/src/hir.rs:
+        - test_macro_definition_object_like()
+        - test_macro_definition_function_like()
+        - test_macro_definition_with_multiple_params()
+
+    DECY-098b:
+      title: "[NEW] Parse #define directives in decy-parser"
+      type: feature
+      priority: critical
+      story_points: 5
+      assignee: Claude
+      status: not_started
+      github_issue: null
+      phase: NOT_STARTED
+
+      description: |
+        Extend clang-sys parser to extract #define directives.
+        Currently parser only extracts functions, typedefs, structs.
+
+        Requirements:
+        - Visit CXCursor_MacroDefinition cursors in clang AST
+        - Extract macro name, parameters, body
+        - Convert to HirItem::MacroDefinition
+        - Handle both object-like and function-like macros
+
+      acceptance_criteria:
+        - Parser extracts #define directives
+        - Creates MacroDefinition HIR nodes
+        - Tests parse simple and parameterized macros
+        - Coverage ≥80%
+
+      test_strategy: |
+        Integration tests in decy-parser/tests:
+        - test_parse_object_like_macro()
+        - test_parse_function_like_macro()
+        - test_parse_multi_param_macro()
+        - Property test: parse any valid #define
+
+    DECY-098c:
+      title: "[NEW] Simple macro expansion in codegen (constants only)"
+      type: feature
+      priority: high
+      story_points: 3
+      assignee: Claude
+      status: not_started
+      github_issue: null
+      phase: NOT_STARTED
+
+      description: |
+        Implement simplest macro expansion: object-like macros (constants).
+        Example: #define MAX 100 → const MAX: i32 = 100;
+
+        This establishes the macro expansion pattern without complexity
+        of parameter substitution or nested expansion.
+
+      acceptance_criteria:
+        - Object-like macros generate const declarations
+        - Type inference for numeric literals
+        - Enable 2 tests from complex_macro_expansion_test.rs
+        - Coverage ≥85%
+
+      test_strategy: |
+        - Enable test_constant_macro_expansion()
+        - Enable test_multiple_constant_macros()
+        - Property test: any numeric constant macro
+
+    DECY-098d:
+      title: "[NEW] Function-like macro expansion (basic)"
+      type: feature
+      priority: high
+      story_points: 8
+      assignee: Claude
+      status: not_started
+      github_issue: null
+      phase: NOT_STARTED
+
+      description: |
+        Implement function-like macro expansion without nesting.
+        Example: #define SQR(x) ((x)*(x)) → fn sqr(x: i32) -> i32 { x * x }
+
+        This ticket implements parameter substitution and transformation
+        to Rust functions, but does NOT handle nested macro calls yet.
+
+      acceptance_criteria:
+        - Function-like macros generate inline functions
+        - Parameter substitution works correctly
+        - Type inference from usage
+        - Multiple evaluation detection (emit warnings)
+        - Enable 4-5 tests from complex_macro_expansion_test.rs
+        - Coverage ≥85%
+
+      test_strategy: |
+        - Enable test_simple_expression_macro_to_inline_function()
+        - Enable test_macro_with_multiple_evaluations_warns()
+        - Enable test_statement_macro_to_swap()
+        - Property test: any single-param macro
+
+      references:
+        - See define_macro_documentation_test.rs for transformation rules
 
 # Quality Metrics Tracking
 quality_metrics:
