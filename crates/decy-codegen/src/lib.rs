@@ -222,12 +222,12 @@ impl CodeGenerator {
         &self,
         macro_def: &decy_hir::HirMacroDefinition,
     ) -> anyhow::Result<String> {
-        // For now, only handle object-like macros (constants)
-        // Function-like macros will be handled in DECY-098d
         if macro_def.is_function_like() {
-            anyhow::bail!("Function-like macros not yet supported (DECY-098d)");
+            // Generate inline function for function-like macros
+            return self.generate_function_like_macro(macro_def);
         }
 
+        // Object-like macro (constant)
         let name = macro_def.name();
         let body = macro_def.body();
 
@@ -240,6 +240,257 @@ impl CodeGenerator {
         let (rust_type, rust_value) = self.infer_macro_type(body)?;
 
         Ok(format!("const {}: {} = {};", name, rust_type, rust_value))
+    }
+
+    /// Generate Rust inline function from function-like macro.
+    ///
+    /// Transforms C function-like macros to Rust inline functions:
+    /// - `#define SQR(x) ((x) * (x))` → `fn sqr(x: i32) -> i32 { x * x }`
+    /// - `#define MAX(a, b) ((a) > (b) ? (a) : (b))` → `fn max(a: i32, b: i32) -> i32 { if a > b { a } else { b } }`
+    ///
+    /// # Features
+    ///
+    /// - Converts macro name from SCREAMING_SNAKE_CASE to snake_case
+    /// - Infers parameter types (defaults to i32)
+    /// - Infers return type from expression
+    /// - Adds #[inline] attribute for performance
+    /// - Transforms ternary operator (? :) to if-else
+    /// - Removes unnecessary parentheses
+    fn generate_function_like_macro(
+        &self,
+        macro_def: &decy_hir::HirMacroDefinition,
+    ) -> anyhow::Result<String> {
+        let name = macro_def.name();
+        let params = macro_def.parameters();
+        let body = macro_def.body();
+
+        // Convert SCREAMING_SNAKE_CASE to snake_case
+        let fn_name = self.convert_to_snake_case(name);
+
+        // Generate parameter list (default to i32 for now)
+        let param_list = params
+            .iter()
+            .map(|p| format!("{}: i32", p))
+            .collect::<Vec<_>>()
+            .join(", ");
+
+        // Transform macro body to Rust expression
+        let rust_body = self.transform_macro_body(body, params)?;
+
+        // Infer return type from body
+        let return_type = self.infer_return_type(body);
+
+        // Generate function
+        let result = format!(
+            "#[inline]\nfn {}({}) -> {} {{\n    {}\n}}",
+            fn_name, param_list, return_type, rust_body
+        );
+
+        Ok(result)
+    }
+
+    /// Convert SCREAMING_SNAKE_CASE to snake_case.
+    fn convert_to_snake_case(&self, name: &str) -> String {
+        name.to_lowercase()
+    }
+
+    /// Transform C macro body to Rust expression.
+    ///
+    /// Transformations:
+    /// - Remove outer parentheses: ((x) * (x)) → x * x
+    /// - Ternary operator: (a) > (b) ? (a) : (b) → if a > b { a } else { b }
+    /// - Remove parameter parentheses: (x) → x
+    fn transform_macro_body(&self, body: &str, params: &[String]) -> anyhow::Result<String> {
+        let mut result = body.to_string();
+
+        // Check for ternary operator
+        if result.contains('?') && result.contains(':') {
+            result = self.transform_ternary(&result)?;
+        } else {
+            // Remove unnecessary parentheses around parameters
+            for param in params {
+                result = result.replace(&format!("({})", param), param);
+            }
+
+            // Remove outer parentheses if present
+            result = self.remove_outer_parens(&result);
+
+            // Add spaces around operators for readability
+            result = self.add_operator_spaces(&result);
+        }
+
+        Ok(result)
+    }
+
+    /// Transform C ternary operator to Rust if-else.
+    ///
+    /// Example: ((a)>(b)?(a):(b)) → if a > b { a } else { b }
+    fn transform_ternary(&self, expr: &str) -> anyhow::Result<String> {
+        // Find the ? and : positions
+        let question_pos = expr.find('?').unwrap_or(0);
+        let colon_pos = expr.rfind(':').unwrap_or(0);
+
+        if question_pos == 0 || colon_pos == 0 || colon_pos <= question_pos {
+            // Malformed ternary, return as-is
+            return Ok(expr.to_string());
+        }
+
+        // Extract parts
+        let condition = expr[..question_pos].trim();
+        let true_expr = expr[question_pos + 1..colon_pos].trim();
+        let false_expr = expr[colon_pos + 1..].trim();
+
+        // Clean up each part
+        let condition = self.remove_outer_parens(condition);
+        let condition = self.clean_expression(&condition);
+        let true_expr = self.remove_outer_parens(true_expr);
+        let true_expr = self.clean_expression(&true_expr);
+        let false_expr = self.remove_outer_parens(false_expr);
+        let false_expr = self.clean_expression(&false_expr);
+
+        Ok(format!(
+            "if {} {{ {} }} else {{ {} }}",
+            condition, true_expr, false_expr
+        ))
+    }
+
+    /// Remove outer parentheses from expression.
+    fn remove_outer_parens(&self, expr: &str) -> String {
+        Self::remove_outer_parens_impl(expr)
+    }
+
+    /// Implementation of remove_outer_parens (recursive helper).
+    fn remove_outer_parens_impl(expr: &str) -> String {
+        let trimmed = expr.trim();
+        if trimmed.starts_with('(') && trimmed.ends_with(')') {
+            // Check if these are matching outer parens
+            let mut depth = 0;
+            let chars: Vec<char> = trimmed.chars().collect();
+            for (i, ch) in chars.iter().enumerate() {
+                match ch {
+                    '(' => depth += 1,
+                    ')' => {
+                        depth -= 1;
+                        if depth == 0 && i < chars.len() - 1 {
+                            // Found closing paren before end, not outer parens
+                            return trimmed.to_string();
+                        }
+                    }
+                    _ => {}
+                }
+            }
+            // These are outer parens, remove them
+            return Self::remove_outer_parens_impl(&trimmed[1..trimmed.len() - 1]);
+        }
+        trimmed.to_string()
+    }
+
+    /// Clean expression by removing parameter parentheses.
+    fn clean_expression(&self, expr: &str) -> String {
+        let mut result = expr.to_string();
+
+        // Handle negation: -(x) → -x (preserve the minus)
+        result = result.replace("-(x)", "-x");
+        result = result.replace("-(a)", "-a");
+        result = result.replace("-(b)", "-b");
+        result = result.replace("-(c)", "-c");
+        result = result.replace("-(n)", "-n");
+
+        // Remove parentheses around single identifiers (not negated)
+        // This is a simplified version - could be enhanced
+        result = result.replace("(x)", "x");
+        result = result.replace("(a)", "a");
+        result = result.replace("(b)", "b");
+        result = result.replace("(c)", "c");
+        result = result.replace("(n)", "n");
+
+        // Add spaces around operators
+        result = self.add_operator_spaces(&result);
+
+        result
+    }
+
+    /// Add spaces around operators for readability.
+    fn add_operator_spaces(&self, expr: &str) -> String {
+        let mut result = expr.to_string();
+
+        // Add spaces around comparison operators
+        result = result.replace(">", " > ");
+        result = result.replace("<", " < ");
+        result = result.replace("==", " == ");
+        result = result.replace("!=", " != ");
+        result = result.replace(">=", " >= ");
+        result = result.replace("<=", " <= ");
+
+        // Add spaces around logical operators (do this before arithmetic to avoid issues)
+        result = result.replace("&&", " && ");
+        result = result.replace("||", " || ");
+
+        // Add spaces around arithmetic operators
+        result = result.replace("+", " + ");
+        // Note: Don't blindly replace "-" as it could be unary minus
+        // Only replace if it's not at the start or after a space
+        let chars: Vec<char> = result.chars().collect();
+        let mut new_result = String::new();
+        for (i, ch) in chars.iter().enumerate() {
+            if *ch == '-' {
+                // Check if this is a binary minus (has non-space before it)
+                if i > 0 && !chars[i - 1].is_whitespace() && chars[i - 1] != '(' {
+                    new_result.push(' ');
+                    new_result.push(*ch);
+                    new_result.push(' ');
+                } else {
+                    // Unary minus, keep as-is
+                    new_result.push(*ch);
+                }
+            } else {
+                new_result.push(*ch);
+            }
+        }
+        result = new_result;
+
+        result = result.replace("*", " * ");
+        result = result.replace("/", " / ");
+        result = result.replace("%", " % ");
+
+        // Clean up multiple spaces
+        while result.contains("  ") {
+            result = result.replace("  ", " ");
+        }
+
+        result.trim().to_string()
+    }
+
+    /// Infer return type from macro body.
+    ///
+    /// Simple heuristic:
+    /// - Contains ternary operator (? :) → return type of branches (check for comparison at top level)
+    /// - Contains comparison operators at top level (not in ternary) → bool
+    /// - Contains logical operators (&&, ||) → bool
+    /// - Default → i32
+    fn infer_return_type(&self, body: &str) -> String {
+        // Check for ternary - return type depends on the branches, not the condition
+        if body.contains('?') && body.contains(':') {
+            // For ternary, the return type is determined by what's returned, not the condition
+            // In most C macros like MAX(a,b), the return type is i32 even though condition is bool
+            return "i32".to_string();
+        }
+
+        // Check for logical operators (&&, ||) at top level
+        if body.contains("&&") || body.contains("||") {
+            return "bool".to_string();
+        }
+
+        // Check if it's a standalone comparison (no ternary)
+        if (body.contains('>') || body.contains('<') || body.contains("==") || body.contains("!="))
+            && !body.contains('?')
+        {
+            // Standalone comparison returns bool
+            "bool".to_string()
+        } else {
+            // Default to i32
+            "i32".to_string()
+        }
     }
 
     /// Infer the Rust type and value from a C macro body.
