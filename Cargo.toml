@@ -28,7 +28,7 @@ categories = ["development-tools", "compilers", "command-line-utilities"]
 
 [workspace.dependencies]
 # Core dependencies
-clang-sys = "1.7"
+clang-sys = { version = "1.7", features = ["clang_3_9"] }
 syn = { version = "2.0", features = ["full", "parsing"] }
 quote = "1.0"
 proc-macro2 = "1.0"
