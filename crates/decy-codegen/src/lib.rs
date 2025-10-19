@@ -168,6 +168,147 @@ impl CodeGenerator {
         }
     }
 
+    /// Generate Rust code for a macro definition.
+    ///
+    /// Transforms C #define macros to Rust const declarations (for object-like macros)
+    /// or inline functions (for function-like macros).
+    ///
+    /// # Supported Macro Types (DECY-098c)
+    ///
+    /// **Object-like macros** (constants) are fully supported:
+    /// - `#define MAX 100` → `const MAX: i32 = 100;`
+    /// - `#define PI 3.14159` → `const PI: f64 = 3.14159;`
+    /// - `#define GREETING "Hello"` → `const GREETING: &str = "Hello";`
+    ///
+    /// **Function-like macros** are not yet supported (DECY-098d):
+    /// - `#define SQR(x) ((x) * (x))` → Error
+    ///
+    /// # Type Inference
+    ///
+    /// Types are automatically inferred from the macro body:
+    /// - String literals → `&str`
+    /// - Character literals → `char`
+    /// - Floating point → `f64`
+    /// - Integers (including hex/octal) → `i32`
+    ///
+    /// # Edge Cases
+    ///
+    /// - Empty macros generate comments: `#define EMPTY` → `// Empty macro: EMPTY`
+    /// - Macro names are preserved exactly (SCREAMING_SNAKE_CASE maintained)
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - The macro is function-like (not yet implemented)
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use decy_codegen::CodeGenerator;
+    /// use decy_hir::HirMacroDefinition;
+    ///
+    /// let generator = CodeGenerator::new();
+    /// let macro_def = HirMacroDefinition::new_object_like("MAX".to_string(), "100".to_string());
+    /// let rust_code = generator.generate_macro(&macro_def).unwrap();
+    /// assert!(rust_code.contains("const MAX"));
+    /// # Ok::<(), anyhow::Error>(())
+    /// ```
+    ///
+    /// # Reference
+    ///
+    /// - K&R §4.11: Macro Substitution
+    /// - ISO C99 §6.10.3: Macro replacement
+    pub fn generate_macro(
+        &self,
+        macro_def: &decy_hir::HirMacroDefinition,
+    ) -> anyhow::Result<String> {
+        // For now, only handle object-like macros (constants)
+        // Function-like macros will be handled in DECY-098d
+        if macro_def.is_function_like() {
+            anyhow::bail!("Function-like macros not yet supported (DECY-098d)");
+        }
+
+        let name = macro_def.name();
+        let body = macro_def.body();
+
+        // Handle empty macros
+        if body.is_empty() {
+            return Ok(format!("// Empty macro: {}", name));
+        }
+
+        // Infer type from macro body
+        let (rust_type, rust_value) = self.infer_macro_type(body)?;
+
+        Ok(format!("const {}: {} = {};", name, rust_type, rust_value))
+    }
+
+    /// Infer the Rust type and value from a C macro body.
+    ///
+    /// This function analyzes the macro body string and determines the appropriate
+    /// Rust type and formatted value.
+    ///
+    /// # Type Inference Rules
+    ///
+    /// - String literals (`"text"`) → `&str`
+    /// - Character literals (`'c'`) → `char`
+    /// - Floating point (contains `.` or `e`/`E`) → `f64`
+    /// - Hexadecimal (`0xFF`) → `i32` (preserves hex format)
+    /// - Octal (`0755`) → `i32` (preserves octal format)
+    /// - Integers (parseable as i32) → `i32`
+    /// - Default (expressions) → `i32`
+    ///
+    /// # Returns
+    ///
+    /// Returns a tuple of (rust_type, rust_value) where:
+    /// - `rust_type`: The Rust type as a string (e.g., "i32", "&str")
+    /// - `rust_value`: The formatted value (e.g., "100", "\"Hello\"")
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use decy_codegen::CodeGenerator;
+    /// let generator = CodeGenerator::new();
+    /// // This is a private method, but tested through generate_macro
+    /// # Ok::<(), anyhow::Error>(())
+    /// ```
+    fn infer_macro_type(&self, body: &str) -> anyhow::Result<(String, String)> {
+        let body = body.trim();
+
+        // String literal: "..." → &str
+        if body.starts_with('"') && body.ends_with('"') {
+            return Ok(("&str".to_string(), body.to_string()));
+        }
+
+        // Character literal: '...' → char
+        if body.starts_with('\'') && body.ends_with('\'') {
+            return Ok(("char".to_string(), body.to_string()));
+        }
+
+        // Floating point: contains '.' or 'e'/'E' → f64
+        if body.contains('.') || body.contains('e') || body.contains('E') {
+            return Ok(("f64".to_string(), body.to_string()));
+        }
+
+        // Hexadecimal: 0x... or 0X... → i32 (keep hex format)
+        if body.starts_with("0x") || body.starts_with("0X") {
+            return Ok(("i32".to_string(), body.to_string()));
+        }
+
+        // Octal: 0... → i32
+        if body.starts_with('0') && body.len() > 1 && body.chars().nth(1).unwrap().is_ascii_digit()
+        {
+            return Ok(("i32".to_string(), body.to_string()));
+        }
+
+        // Try to parse as integer (handles negative numbers too)
+        if body.parse::<i32>().is_ok() {
+            return Ok(("i32".to_string(), body.to_string()));
+        }
+
+        // Default: treat as i32 expression
+        Ok(("i32".to_string(), body.to_string()))
+    }
+
     /// Get the Box transformer.
     pub fn box_transformer(&self) -> &box_transform::BoxTransformer {
         &self.box_transformer
