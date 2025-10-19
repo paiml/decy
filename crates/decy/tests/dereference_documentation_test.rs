@@ -507,25 +507,25 @@ swap(&mut x, &mut y);
         // Summary of dereference transformations
 
         // C patterns
-        let c_patterns = vec![
-            "*p",              // Basic dereference
-            "*p = value",      // Dereference for assignment
-            "**pp",            // Double dereference
-            "*(p + offset)",   // Dereference with pointer arithmetic
-            "(*p).field",      // Struct field via explicit deref
-            "p->field",        // Struct field via arrow (syntactic sugar)
-            "*NULL",           // NULL dereference (UB)
+        let c_patterns = [
+            "*p",            // Basic dereference
+            "*p = value",    // Dereference for assignment
+            "**pp",          // Double dereference
+            "*(p + offset)", // Dereference with pointer arithmetic
+            "(*p).field",    // Struct field via explicit deref
+            "p->field",      // Struct field via arrow (syntactic sugar)
+            "*NULL",         // NULL dereference (UB)
         ];
 
         // Rust patterns
-        let rust_patterns = vec![
-            "*p",              // Basic dereference (safe with &)
-            "*p = value",      // Dereference for assignment (needs &mut)
-            "**pp",            // Double dereference (safe with &&)
-            "arr[offset]",     // Indexing (safer than pointer arithmetic)
-            "(*p).field",      // Explicit deref (works)
-            "p.field",         // Auto-deref (idiomatic)
-            // No equivalent for NULL deref (use Option)
+        let rust_patterns = [
+            "*p",          // Basic dereference (safe with &)
+            "*p = value",  // Dereference for assignment (needs &mut)
+            "**pp",        // Double dereference (safe with &&)
+            "arr[offset]", // Indexing (safer than pointer arithmetic)
+            "(*p).field",  // Explicit deref (works)
+            "p.field",     // Auto-deref (idiomatic)
+                           // No equivalent for NULL deref (use Option)
         ];
 
         // Validation checks

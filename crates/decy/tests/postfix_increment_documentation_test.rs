@@ -55,7 +55,10 @@ x += 1;
         assert!(rust_expected.contains("x += 1"));
 
         // Note: When used as statement, no need to save old value
-        assert!(rust_expected.contains("let mut x"), "Variable must be mutable");
+        assert!(
+            rust_expected.contains("let mut x"),
+            "Variable must be mutable"
+        );
     }
 
     #[test]
@@ -468,29 +471,31 @@ let y = (tmp1 * 2) + (tmp2 * 3);  // Clear: (5 * 2) + (6 * 3) = 28
         // Summary of post-increment/decrement transformations
 
         // C patterns
-        let c_patterns = vec![
-            "x++",                    // Post-increment
-            "x--",                    // Post-decrement
-            "arr[i++]",              // Array index with increment
-            "for (i=0; i<n; i++)",   // Loop increment
-            "*p++",                  // Pointer increment
-            "return x++",            // Return old value
-            "f(x++)",                // Function argument
+        let c_patterns = [
+            "x++",                 // Post-increment
+            "x--",                 // Post-decrement
+            "arr[i++]",            // Array index with increment
+            "for (i=0; i<n; i++)", // Loop increment
+            "*p++",                // Pointer increment
+            "return x++",          // Return old value
+            "f(x++)",              // Function argument
         ];
 
         // Rust patterns
-        let rust_patterns = vec![
-            "x += 1",                              // Simple increment
-            "x -= 1",                              // Simple decrement
-            "arr[i]; i += 1",                     // Explicit array access
-            "for i in 0..n",                      // Iterator (idiomatic)
-            "arr[index]; index += 1",             // Explicit indexing
-            "let old = x; x += 1; old",          // Return old value
-            "{ let tmp = x; x += 1; tmp }",      // Expression form
+        let rust_patterns = [
+            "x += 1",                       // Simple increment
+            "x -= 1",                       // Simple decrement
+            "arr[i]; i += 1",               // Explicit array access
+            "for i in 0..n",                // Iterator (idiomatic)
+            "arr[index]; index += 1",       // Explicit indexing
+            "let old = x; x += 1; old",     // Return old value
+            "{ let tmp = x; x += 1; tmp }", // Expression form
         ];
 
         // Validation
-        assert!(c_patterns.iter().all(|p| p.contains("++") || p.contains("--")));
+        assert!(c_patterns
+            .iter()
+            .all(|p| p.contains("++") || p.contains("--")));
         assert!(rust_patterns.iter().any(|p| p.contains("+= 1")));
 
         // Key semantic differences
