@@ -2354,6 +2354,63 @@ pub struct Ast {
     functions: Vec<Function>,
     typedefs: Vec<Typedef>,
     structs: Vec<Struct>,
+    macros: Vec<MacroDefinition>,
+}
+
+/// Represents a C macro definition (#define).
+#[derive(Debug, Clone, PartialEq)]
+pub struct MacroDefinition {
+    /// Macro name
+    pub name: String,
+    /// Parameters (empty for object-like macros)
+    pub parameters: Vec<String>,
+    /// Macro body (unparsed)
+    pub body: String,
+}
+
+impl MacroDefinition {
+    /// Create a new object-like macro.
+    pub fn new_object_like(name: String, body: String) -> Self {
+        Self {
+            name,
+            parameters: vec![],
+            body,
+        }
+    }
+
+    /// Create a new function-like macro.
+    pub fn new_function_like(name: String, parameters: Vec<String>, body: String) -> Self {
+        Self {
+            name,
+            parameters,
+            body,
+        }
+    }
+
+    /// Get the macro name.
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    /// Get the macro parameters.
+    pub fn parameters(&self) -> &[String] {
+        &self.parameters
+    }
+
+    /// Get the macro body.
+    pub fn body(&self) -> &str {
+        &self.body
+    }
+
+    /// Check if this is a function-like macro.
+    pub fn is_function_like(&self) -> bool {
+        !self.parameters.is_empty()
+    }
+
+    /// Check if this is an object-like macro.
+    pub fn is_object_like(&self) -> bool {
+        self.parameters.is_empty()
+    }
 }
 
 impl Ast {
@@ -2363,6 +2420,7 @@ impl Ast {
             functions: Vec::new(),
             typedefs: Vec::new(),
             structs: Vec::new(),
+            macros: Vec::new(),
         }
     }
 
@@ -2394,6 +2452,16 @@ impl Ast {
     /// Add a struct to the AST.
     pub fn add_struct(&mut self, struct_def: Struct) {
         self.structs.push(struct_def);
+    }
+
+    /// Get the macro definitions in the AST.
+    pub fn macros(&self) -> &[MacroDefinition] {
+        &self.macros
+    }
+
+    /// Add a macro definition to the AST.
+    pub fn add_macro(&mut self, macro_def: MacroDefinition) {
+        self.macros.push(macro_def);
     }
 }
 
