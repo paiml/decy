@@ -2679,14 +2679,15 @@ sprint_9:
         - crates/decy-codegen/tests/complex_macro_expansion_test.rs
 
     DECY-098a:
-      title: "[NEW] Add HIR representation for macro definitions"
+      title: "[GREEN COMPLETE] Add HIR representation for macro definitions"
       type: feature
       priority: critical
       story_points: 3
       assignee: Claude
-      status: not_started
+      status: done
       github_issue: null
-      phase: NOT_STARTED
+      phase: GREEN
+      completion: "GREEN phase complete - HirMacroDefinition struct with 11 unit tests + 3 doctests"
 
       description: |
         Add data structures to HIR for representing macro definitions.
