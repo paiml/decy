@@ -26,6 +26,7 @@
 - [Ownership Patterns](./verification/ownership-patterns.md)
 - [Lifetime Annotations](./verification/lifetimes.md)
 - [Box Transformations](./verification/box-transform.md)
+- [Macro Expansion](./verification/macro-expansion.md)
 
 # Real-World Examples
 
