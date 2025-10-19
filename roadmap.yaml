@@ -2618,20 +2618,22 @@ sprint_8:
 sprint_9:
   name: "Preprocessor Foundation - Macro Support (Phase 1)"
   duration: "2 weeks"
+  completion_date: "2025-10-19"
   goals:
     - Complete DECY-098 RED phase (comprehensive tests) ✅
-    - Add HIR representation for macros (DECY-098a)
-    - Parse #define directives (DECY-098b)
-    - Simple macro expansion - constants (DECY-098c)
-    - Function-like macro expansion - basic (DECY-098d)
+    - Add HIR representation for macros (DECY-098a) ✅
+    - Parse #define directives (DECY-098b) ✅
+    - Simple macro expansion - constants (DECY-098c) ✅
+    - Function-like macro expansion - basic (DECY-098d) ✅
   story_points: 32
+  story_points_completed: 32
   story_points_breakdown:
-    DECY-098: 13 (RED complete)
-    DECY-098a: 3 (HIR representation)
-    DECY-098b: 5 (Parser support)
-    DECY-098c: 3 (Constant macros)
-    DECY-098d: 8 (Function-like macros)
-  status: in_progress
+    DECY-098: 13 (RED complete) ✅
+    DECY-098a: 3 (HIR representation) ✅
+    DECY-098b: 5 (Parser support) ✅
+    DECY-098c: 3 (Constant macros) ✅
+    DECY-098d: 8 (Function-like macros) ✅
+  status: done
 
   tickets:
     DECY-098:
@@ -2761,14 +2763,15 @@ sprint_9:
         - crates/decy-parser/tests/macro_property_tests.rs: 10 property tests
 
     DECY-098c:
-      title: "[NEW] Simple macro expansion in codegen (constants only)"
+      title: "[COMPLETE] Simple macro expansion in codegen (constants only)"
       type: feature
       priority: high
       story_points: 3
       assignee: Claude
-      status: not_started
+      status: done
       github_issue: null
-      phase: NOT_STARTED
+      phase: DONE
+      completion: "All phases complete - RED, GREEN, REFACTOR ✅ (10 integration tests + 10 property tests = 2,560 cases)"
 
       description: |
         Implement simplest macro expansion: object-like macros (constants).
@@ -2789,14 +2792,15 @@ sprint_9:
         - Property test: any numeric constant macro
 
     DECY-098d:
-      title: "[NEW] Function-like macro expansion (basic)"
+      title: "[COMPLETE] Function-like macro expansion (basic)"
       type: feature
       priority: high
       story_points: 8
       assignee: Claude
-      status: not_started
+      status: done
       github_issue: null
-      phase: NOT_STARTED
+      phase: DONE
+      completion: "All phases complete - RED, GREEN, REFACTOR ✅ (10 integration tests + 10 property tests = 2,560 cases, ternary transformation, type inference)"
 
       description: |
         Implement function-like macro expansion without nesting.
