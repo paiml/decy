@@ -84,6 +84,10 @@ drop(p);  // Explicit drop
 
         // Validates: Rust prevents double free at compile time
         assert!(rust_compilation_error.contains("value used after move"));
+
+        // Validates: Safe version uses Box::new and drop
+        assert!(rust_safe.contains("Box::new"));
+        assert!(rust_safe.contains("drop(p)"));
     }
 
     #[test]
@@ -114,7 +118,11 @@ println!("{}", value);  // Use copied value, not freed memory
 
         // Validates: C allows use after free
         assert!(c_code.contains("free(p)"));
-        assert!(c_code.contains("*p)"));  // Used after free
+        assert!(c_code.contains("*p)")); // Used after free
+
+        // Validates: Rust safe pattern copies value before drop
+        assert!(rust_safe.contains("let value = *p"));
+        assert!(rust_safe.contains("Use copied value"));
 
         // Validates: Rust prevents use after free
         assert!(rust_compilation_error.contains("borrowed after move"));
@@ -245,7 +253,7 @@ let n1 = Box::new(Node { value: 1, next: Some(n2) });
         // Validates: Multiple frees → automatic recursive drop
         assert!(c_code.contains("free(n1)"));
         assert!(c_code.contains("free(n2)"));
-        assert!(rust_expected.contains("drops"));  // Automatic drops
+        assert!(rust_expected.contains("drops")); // Automatic drops
         assert!(rust_expected.contains("recursive"));
     }
 
@@ -310,7 +318,7 @@ for _ in 0..1000 {
 "#;
 
         // Validates: C function has comment mentioning free but doesn't actually call it
-        assert!(c_code.contains("forgot to free(data)"));  // Comment mentions it
+        assert!(c_code.contains("forgot to free(data)")); // Comment mentions it
         assert!(c_code.contains("memory leak"));
 
         // Validates: Rust prevents leaks automatically
@@ -572,7 +580,7 @@ let b = Rc::new(Node { next: Some(Rc::downgrade(&a)) });
         // Summary of free() transformations
 
         // C patterns that require explicit free()
-        let c_patterns = vec![
+        let c_patterns = [
             "malloc + free",
             "calloc + free",
             "realloc + free",
@@ -584,7 +592,7 @@ let b = Rc::new(Node { next: Some(Rc::downgrade(&a)) });
         ];
 
         // Rust automatic Drop patterns
-        let rust_patterns = vec![
+        let rust_patterns = [
             "Box::new() - automatic drop",
             "Vec::new() - automatic drop",
             "Rc::new() - reference counted drop",
