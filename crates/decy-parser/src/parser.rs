@@ -198,7 +198,13 @@ extern "C" fn visit_function(
         let location = unsafe { clang_getCursorLocation(cursor) };
         let mut file: CXFile = ptr::null_mut();
         unsafe {
-            clang_getFileLocation(location, &mut file, ptr::null_mut(), ptr::null_mut(), ptr::null_mut());
+            clang_getFileLocation(
+                location,
+                &mut file,
+                ptr::null_mut(),
+                ptr::null_mut(),
+                ptr::null_mut(),
+            );
         }
 
         // Only process macros from the main file (not system headers)
@@ -2477,13 +2483,41 @@ pub struct Ast {
 }
 
 /// Represents a C macro definition (#define).
+///
+/// C macros come in two forms:
+/// - **Object-like**: Simple text replacement (e.g., `#define MAX 100`)
+/// - **Function-like**: Parameterized text replacement (e.g., `#define SQR(x) ((x) * (x))`)
+///
+/// # Examples
+///
+/// ```no_run
+/// use decy_parser::parser::{CParser, MacroDefinition};
+///
+/// // Parse a simple object-like macro
+/// let parser = CParser::new()?;
+/// let ast = parser.parse("#define MAX 100\nint main() { return 0; }")?;
+/// assert_eq!(ast.macros().len(), 1);
+/// assert_eq!(ast.macros()[0].name(), "MAX");
+/// assert!(ast.macros()[0].is_object_like());
+///
+/// // Parse a function-like macro
+/// let ast2 = parser.parse("#define SQR(x) ((x) * (x))\nint main() { return 0; }")?;
+/// assert_eq!(ast2.macros()[0].name(), "SQR");
+/// assert!(ast2.macros()[0].is_function_like());
+/// assert_eq!(ast2.macros()[0].parameters(), &["x"]);
+/// # Ok::<(), anyhow::Error>(())
+/// ```
+///
+/// # Reference
+///
+/// K&R §4.11, ISO C99 §6.10.3
 #[derive(Debug, Clone, PartialEq)]
 pub struct MacroDefinition {
     /// Macro name
     pub name: String,
     /// Parameters (empty for object-like macros)
     pub parameters: Vec<String>,
-    /// Macro body (unparsed)
+    /// Macro body (unparsed, tokenized without spaces)
     pub body: String,
 }
 

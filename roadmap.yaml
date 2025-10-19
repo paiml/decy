@@ -2712,14 +2712,15 @@ sprint_9:
         - test_macro_definition_with_multiple_params()
 
     DECY-098b:
-      title: "[NEW] Parse #define directives in decy-parser"
+      title: "[COMPLETE] Parse #define directives in decy-parser"
       type: feature
       priority: critical
       story_points: 5
       assignee: Claude
-      status: not_started
+      status: done
       github_issue: null
-      phase: NOT_STARTED
+      phase: REFACTOR
+      completion: "All phases complete - RED, GREEN, REFACTOR ✅"
 
       description: |
         Extend clang-sys parser to extract #define directives.
@@ -2743,6 +2744,21 @@ sprint_9:
         - test_parse_function_like_macro()
         - test_parse_multi_param_macro()
         - Property test: parse any valid #define
+
+      achievements:
+        - "RED phase: 10 failing tests created"
+        - "GREEN phase: All 10 tests passing"
+        - "REFACTOR phase: Added 10 property tests (2560 test cases)"
+        - "Total tests: 20 (10 unit + 10 property)"
+        - "No regressions: All 126 existing parser tests still passing"
+        - "Documentation: Added comprehensive examples and doctests"
+        - "Quality: 0 clippy warnings maintained"
+
+      files_modified:
+        - Cargo.toml: Added clang_3_9 feature
+        - crates/decy-parser/src/parser.rs: extract_macro(), visit_function
+        - crates/decy-parser/tests/macro_parsing_test.rs: 10 unit tests
+        - crates/decy-parser/tests/macro_property_tests.rs: 10 property tests
 
     DECY-098c:
       title: "[NEW] Simple macro expansion in codegen (constants only)"
