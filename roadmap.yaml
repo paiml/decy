@@ -2615,6 +2615,50 @@ sprint_8:
       related_tickets:
         - "DECY-044: Fixed the core sizeof parsing bug"
 
+sprint_9:
+  name: "Preprocessor Foundation - Complex Macro Expansion"
+  duration: "2 weeks"
+  goals:
+    - Implement complex macro expansion (nested calls, recursive)
+    - Add conditional compilation (#if/#ifdef basic support)
+    - Enable parsing of common C header patterns
+    - Achieve 80% coverage of preprocessor directives
+  story_points: 26
+  status: in_progress
+
+  tickets:
+    DECY-098:
+      title: "Complex macro expansion with nested calls and recursion"
+      type: feature
+      priority: critical
+      story_points: 13
+      assignee: Claude
+      status: in_progress
+      github_issue: null
+      phase: RED
+
+      description: |
+        Implement full support for complex C macro expansion including:
+        - Nested macro calls: MAX(a, MIN(b, c))
+        - Recursive macro expansion (with proper recursion detection)
+        - Macro hygiene (avoid variable capture)
+        - Multiple evaluation detection and warnings
+
+        This is the foundation for real-world C header file parsing.
+
+      requirements:
+        - Parse #define with parameters
+        - Expand macros in expressions
+        - Detect recursive macro definitions
+        - Handle nested macro calls
+        - Transform to Rust functions or macro_rules!
+        - Warn about multiple evaluation issues
+
+      references:
+        - "K&R §4.11: Macro Substitution"
+        - "K&R §A12.3: Macro Replacement"
+        - "ISO C99 §6.10.3: Macro Replacement"
+
 # Quality Metrics Tracking
 quality_metrics:
   tracked_per_sprint:
