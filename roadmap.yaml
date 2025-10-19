@@ -2637,15 +2637,15 @@ sprint_9:
 
   tickets:
     DECY-098:
-      title: "[RED COMPLETE] Complex macro expansion with nested calls and recursion"
+      title: "[COMPLETE] Complex macro expansion with nested calls and recursion"
       type: feature
       priority: critical
       story_points: 13
       assignee: Claude
-      status: in_progress
+      status: done
       github_issue: null
-      phase: RED
-      completion: "RED phase complete - 14 comprehensive tests created (12 ignored, awaiting GREEN phase implementation)"
+      phase: DONE
+      completion: "All phases complete - RED phase created 14 tests, GREEN/REFACTOR split into DECY-098a-d (all done). Full macro pipeline operational."
 
       description: |
         RED phase: ✅ COMPLETE - Created 14 comprehensive tests for complex macro expansion
