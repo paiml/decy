@@ -10,11 +10,11 @@ roadmap:
 
   statistics:
     total_tasks: 150
-    completed: 115
+    completed: 116
     partial_support: 0
     in_progress: 0
     blocked: 1
-    not_started: 34
+    not_started: 33
     coverage_percent: 77
 
 extreme_tdd_workflow:
@@ -1645,19 +1645,61 @@ chapters:
             title: "Document post-increment/decrement"
             status: "completed"
             priority: "medium"
-            version: "v0.10.0"
+            version: "v0.97.0"
             examples:
-              - c: "x++"
-                rust: "{ let tmp = x; x += 1; tmp }"
-              - c: "x--"
-                rust: "{ let tmp = x; x -= 1; tmp }"
-            validation_reference: "K&R §2.8, ISO C99 §6.5.2.4"
-            test_name: "test_postfix_increment"
+              - c: "x++;"
+                rust: "x += 1;"
+                note: "DESIGN CHOICE: Rust has no ++ operator - explicit statement preferred"
+              - c: "x--;"
+                rust: "x -= 1;"
+                note: "No -- operator - explicit decrement"
+              - c: "int y = x++;"
+                rust: "let y = { let tmp = x; x += 1; tmp };"
+                note: "Post-increment in expression - explicit old value capture"
+              - c: "int y = x--;"
+                rust: "let y = { let tmp = x; x -= 1; tmp };"
+                note: "Post-decrement in expression - explicit old value capture"
+              - c: "arr[i++] = 42;"
+                rust: "arr[i] = 42; i += 1;"
+                note: "Array indexing with increment - order made explicit"
+              - c: "printf(\"%d\", i++);"
+                rust: "println!(\"{}\", { let tmp = i; i += 1; tmp });"
+                note: "Function argument - explicit old value"
+              - c: "for (int i = 0; i < 10; i++)"
+                rust: "for i in 0..10"
+                note: "CRITICAL: Prefer iterators over manual increment (idiomatic Rust)"
+              - c: "while (i < 10) { process(i++); }"
+                rust: "while i < 10 { process(i); i += 1; }"
+                note: "While loop - explicit increment at end"
+              - c: "int y = x++ + x++;"
+                rust: "// COMPILE ERROR: must make order explicit"
+                note: "CRITICAL: Prevents sequence point issues (C undefined behavior)"
+              - c: "int x = *p++;"
+                rust: "let x = arr[index]; index += 1;"
+                note: "Pointer increment → explicit indexing (or use iterators)"
+              - c: "return counter++;"
+                rust: "let old = *counter; *counter += 1; old"
+                note: "Return old value - explicit capture required"
+              - c: "int y = 2 * x++;"
+                rust: "let y = 2 * { let tmp = x; x += 1; tmp };"
+                note: "Combined operators - explicit precedence"
+              - c: "int a = x++; int b = ++x;"
+                rust: "let a = { let tmp = x; x += 1; tmp }; x += 1; let b = x;"
+                note: "Pre vs post distinction - different explicit patterns"
+              - c: "for (i = 0; i < 5; i++) sum += arr[i];"
+                rust: "let sum: i32 = arr.iter().sum();"
+                note: "CRITICAL: Iterators preferred over manual increment"
+              - c: "x++; // overflow"
+                rust: "x = x.wrapping_add(1); // or checked_add"
+                note: "Explicit overflow behavior (wrapping_add, checked_add)"
+            validation_reference: "K&R §2.8 (Increment and Decrement), ISO C99 §6.5.2.4 (Postfix increment)"
+            test_file: "crates/decy/tests/postfix_increment_documentation_test.rs"
             sprint: 2
-            completed_date: "2025-10-15"
-            tests_added: 8
+            completed_date: "2025-10-18"
+            tests_added: 17
             coverage: "100%"
             unsafe_blocks: 0
+            note: "DESIGN PHILOSOPHY: Rust deliberately omits ++ and -- operators to avoid confusion and side effects. Rationale: (1) Avoid pre vs post confusion, (2) Explicit about side effects, (3) Prevent sequence point issues, (4) More readable code. Transformation: x++ as statement → x += 1, x++ in expression → { let tmp = x; x += 1; tmp }. CRITICAL: Prefer iterators (for i in 0..n) over manual increment. Makes side effects and ordering explicit, preventing entire class of C bugs."
 
           - id: "EXPR-INCR-DECR-PATTERNS"
             title: "Document increment/decrement operator patterns"
