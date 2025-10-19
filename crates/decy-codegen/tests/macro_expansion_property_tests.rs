@@ -186,20 +186,23 @@ fn property_multiple_macros_independent() {
     });
 }
 
-/// Property: Function-like macros return errors (not yet implemented)
+/// Property: Function-like macros generate inline functions (DECY-098d)
 #[test]
-fn property_function_like_macros_error() {
+fn property_function_like_macros_generate_functions() {
     proptest!(|(param in "[a-z]{1,5}")| {
         let macro_def = HirMacroDefinition::new_function_like(
             "FUNC".to_string(),
-            vec![param],
-            "42".to_string()
+            vec![param.clone()],
+            format!("({})", param)
         );
 
         let generator = CodeGenerator::new();
         let result = generator.generate_macro(&macro_def);
 
-        // Should return an error since function-like macros aren't implemented yet
-        prop_assert!(result.is_err());
+        // Should now succeed since function-like macros are implemented (DECY-098d)
+        prop_assert!(result.is_ok());
+        let rust_code = result.unwrap();
+        prop_assert!(rust_code.contains("#[inline]"));
+        prop_assert!(rust_code.contains("fn "));
     });
 }
