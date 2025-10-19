@@ -85,6 +85,7 @@ impl CParser {
         };
 
         // SAFETY: Parsing with clang_parseTranslationUnit2
+        // Use CXTranslationUnit_DetailedPreprocessingRecord to capture macro definitions
         let mut tu = ptr::null_mut();
         let result = unsafe {
             clang_parseTranslationUnit2(
@@ -94,7 +95,7 @@ impl CParser {
                 0,
                 &unsaved_file as *const CXUnsavedFile as *mut CXUnsavedFile,
                 1,
-                CXTranslationUnit_None,
+                CXTranslationUnit_DetailedPreprocessingRecord,
                 &mut tu,
             )
         };
@@ -191,6 +192,31 @@ extern "C" fn visit_function(
         // Extract struct information
         if let Some(struct_def) = extract_struct(cursor) {
             ast.add_struct(struct_def);
+        }
+    } else if kind == CXCursor_MacroDefinition {
+        // Extract macro definition (only from main file, not includes)
+        let location = unsafe { clang_getCursorLocation(cursor) };
+        let mut file: CXFile = ptr::null_mut();
+        unsafe {
+            clang_getFileLocation(location, &mut file, ptr::null_mut(), ptr::null_mut(), ptr::null_mut());
+        }
+
+        // Only process macros from the main file (not system headers)
+        if !file.is_null() {
+            let file_name = unsafe {
+                let name_cxstring = clang_getFileName(file);
+                let c_str = CStr::from_ptr(clang_getCString(name_cxstring));
+                let name = c_str.to_string_lossy().into_owned();
+                clang_disposeString(name_cxstring);
+                name
+            };
+
+            // Only add macros from input.c (our source file)
+            if file_name.ends_with("input.c") {
+                if let Some(macro_def) = extract_macro(cursor) {
+                    ast.add_macro(macro_def);
+                }
+            }
         }
     }
 
@@ -291,6 +317,99 @@ fn extract_struct(cursor: CXCursor) -> Option<Struct> {
     }
 
     Some(Struct::new(name, fields))
+}
+
+/// Extract macro definition from a clang cursor.
+///
+/// This function extracts #define directives, supporting both object-like and function-like macros.
+///
+/// # Examples
+///
+/// Object-like: `#define MAX 100`
+/// Function-like: `#define SQR(x) ((x) * (x))`
+fn extract_macro(cursor: CXCursor) -> Option<MacroDefinition> {
+    // SAFETY: Getting macro name
+    let name_cxstring = unsafe { clang_getCursorSpelling(cursor) };
+    let name = unsafe {
+        let c_str = CStr::from_ptr(clang_getCString(name_cxstring));
+        let name = c_str.to_string_lossy().into_owned();
+        clang_disposeString(name_cxstring);
+        name
+    };
+
+    // Skip empty macro names
+    if name.is_empty() {
+        return None;
+    }
+
+    // Get macro body using clang_Cursor_isMacroFunctionLike and clang token APIs
+    // For now, we'll check if it's function-like and extract tokens
+    let is_function_like = unsafe { clang_sys::clang_Cursor_isMacroFunctionLike(cursor) } != 0;
+
+    // Get the source range and tokens for the macro
+    let range = unsafe { clang_getCursorExtent(cursor) };
+    let tu = unsafe { clang_Cursor_getTranslationUnit(cursor) };
+
+    let mut tokens: *mut CXToken = ptr::null_mut();
+    let mut num_tokens: u32 = 0;
+
+    unsafe {
+        clang_tokenize(tu, range, &mut tokens, &mut num_tokens);
+    }
+
+    // Extract macro body from tokens
+    // Skip the first token (macro name) and extract the rest
+    let mut parameters = Vec::new();
+    let mut body_tokens = Vec::new();
+    let mut in_params = false;
+
+    for i in 0..num_tokens {
+        let token = unsafe { *tokens.offset(i as isize) };
+        let token_kind = unsafe { clang_getTokenKind(token) };
+        let token_spelling = unsafe { clang_getTokenSpelling(tu, token) };
+        let token_str = unsafe {
+            let c_str = CStr::from_ptr(clang_getCString(token_spelling));
+            let s = c_str.to_string_lossy().into_owned();
+            clang_disposeString(token_spelling);
+            s
+        };
+
+        // Skip the macro name (first token)
+        if i == 0 {
+            continue;
+        }
+
+        // Check for parameter list (function-like macros)
+        if is_function_like && i == 1 && token_str == "(" {
+            in_params = true;
+            continue;
+        }
+
+        if in_params {
+            if token_str == ")" {
+                in_params = false;
+                continue;
+            } else if token_str != "," && token_kind == CXToken_Identifier {
+                parameters.push(token_str);
+            }
+        } else {
+            body_tokens.push(token_str);
+        }
+    }
+
+    // Clean up tokens
+    unsafe {
+        clang_disposeTokens(tu, tokens, num_tokens);
+    }
+
+    // Join body tokens without spaces (preserving original formatting)
+    let body = body_tokens.join("");
+
+    if is_function_like {
+        Some(MacroDefinition::new_function_like(name, parameters, body))
+    } else {
+        Some(MacroDefinition::new_object_like(name, body))
+    }
 }
 
 /// Visitor callback for struct fields.
