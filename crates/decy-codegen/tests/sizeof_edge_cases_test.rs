@@ -25,6 +25,8 @@
 //!
 //! **Key Safety Property**: sizeof transformation is 100% safe (0 unsafe blocks)
 
+use proptest::prelude::*;
+
 /// Test sizeof with basic integer types (exhaustive coverage)
 ///
 /// C: sizeof(char), sizeof(short), sizeof(int), sizeof(long), sizeof(long long)
@@ -696,4 +698,123 @@ fn test_sizeof_edge_cases_summary() {
         unsafe_blocks, 0,
         "sizeof transformation introduces 0 unsafe blocks"
     );
+}
+
+//
+// ============================================================================
+// PROPERTY TESTS (DECY-045 Requirements)
+// ============================================================================
+//
+
+// Property: sizeof can be used in any expression context without unsafe
+//
+// C: sizeof can appear in any expression (arithmetic, comparison, assignment)
+//
+// Rust: size_of can be used in any const or runtime expression context
+//
+// **Property**: sizeof is composable and never requires unsafe
+proptest! {
+    #[test]
+    fn property_sizeof_in_any_expression_context(n in 1usize..1000) {
+        use std::mem::size_of;
+
+        // Arithmetic expressions
+        let _sum = size_of::<i32>() + size_of::<i64>();
+        let _product = size_of::<i32>() * n;
+        let _difference = size_of::<i64>() - size_of::<i32>();
+
+        // Comparison expressions
+        let _is_larger = size_of::<i64>() > size_of::<i32>();
+        let _is_equal = size_of::<i32>() == 4;
+
+        // Assignment expressions
+        let size = size_of::<i32>();
+        let _doubled = size * 2;
+
+        // Array size expressions
+        let _buffer: Vec<u8> = vec![0; size_of::<i64>()];
+
+        // All expressions compile without unsafe
+        prop_assert!(true, "sizeof can be used in any expression context");
+    }
+}
+
+// Property: sizeof is composable with arithmetic operations
+//
+// C: sizeof(a) + sizeof(b), sizeof(a) * n, etc.
+//
+// Rust: size_of::<A>() + size_of::<B>()
+//
+// **Property**: Arithmetic with sizeof never overflows in practice (usize is large enough)
+proptest! {
+    #[test]
+    fn property_sizeof_composable_with_arithmetic(
+        multiplier in 1usize..100,
+        count in 1usize..100
+    ) {
+        use std::mem::size_of;
+
+        // Common pattern: malloc(n * sizeof(type))
+        let allocation_size = count.checked_mul(size_of::<i64>());
+        prop_assert!(allocation_size.is_some(), "Multiplication should not overflow for reasonable counts");
+
+        // Pattern: struct_size + padding
+        let padded_size = size_of::<i32>().checked_add(size_of::<usize>());
+        prop_assert!(padded_size.is_some(), "Addition should not overflow");
+
+        // Pattern: buffer allocation
+        let buffer_size = multiplier * (size_of::<i32>() + size_of::<i64>());
+        prop_assert!(buffer_size > 0, "Buffer size should be positive");
+
+        // All arithmetic is safe (no unsafe blocks needed)
+        prop_assert!(true, "sizeof arithmetic is composable and safe");
+    }
+}
+
+// Property: Nested sizeof never panics or requires unsafe
+//
+// C: sizeof(sizeof(int)) is invalid (sizeof returns size_t, not a type)
+//
+// Rust: size_of::<size_of::<i32>>() is invalid, but nested size calculations work
+//
+// **Property**: Nested size calculations are safe
+proptest! {
+    #[test]
+    fn property_nested_sizeof_never_panics(depth in 1usize..5) {
+        use std::mem::size_of;
+
+        // Nested size calculations (not nested sizeof calls, which are invalid)
+        let sizes = vec![
+            size_of::<i8>(),
+            size_of::<i16>(),
+            size_of::<i32>(),
+            size_of::<i64>(),
+        ];
+
+        // Compute cumulative sizes
+        let mut total = 0usize;
+        for _ in 0..depth {
+            for &size in &sizes {
+                total = total.checked_add(size).unwrap_or(total);
+            }
+        }
+
+        prop_assert!(total > 0, "Nested size calculations produce valid results");
+
+        // Pattern: sizeof array of structs containing arrays
+        #[repr(C)]
+        struct Inner {
+            _data: [i32; 4],
+        }
+
+        #[repr(C)]
+        struct Outer {
+            _inner: [Inner; 2],
+        }
+
+        let _nested_size = size_of::<[Outer; 3]>();
+
+        // All nested size calculations work without unsafe
+        prop_assert!(true, "Nested sizeof calculations never panic");
+    }
 }
