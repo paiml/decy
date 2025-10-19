@@ -5,13 +5,13 @@
 //!
 //! Reference: K&R §4.11, ISO C99 §6.10.3
 //!
-//! Status: RED phase - tests should FAIL until implementation is complete
+//! Status: GREEN phase - implementation complete, tests should PASS
 
 use decy_codegen::CodeGenerator;
 use decy_hir::HirMacroDefinition;
 
 #[test]
-#[ignore = "RED phase: Function-like macro expansion not yet implemented"]
+
 fn test_single_parameter_expression_macro() {
     // #define SQR(x) ((x) * (x)) → fn sqr(x: i32) -> i32 { x * x }
     let macro_def = HirMacroDefinition::new_function_like(
@@ -33,7 +33,7 @@ fn test_single_parameter_expression_macro() {
 }
 
 #[test]
-#[ignore = "RED phase: Function-like macro expansion not yet implemented"]
+
 fn test_two_parameter_expression_macro() {
     // #define MAX(a, b) ((a) > (b) ? (a) : (b)) → fn max(a: i32, b: i32) -> i32 { if a > b { a } else { b } }
     let macro_def = HirMacroDefinition::new_function_like(
@@ -56,7 +56,7 @@ fn test_two_parameter_expression_macro() {
 }
 
 #[test]
-#[ignore = "RED phase: Function-like macro expansion not yet implemented"]
+
 fn test_three_parameter_expression_macro() {
     // #define ADD3(a, b, c) ((a) + (b) + (c)) → fn add3(a: i32, b: i32, c: i32) -> i32 { a + b + c }
     let macro_def = HirMacroDefinition::new_function_like(
@@ -78,7 +78,7 @@ fn test_three_parameter_expression_macro() {
 }
 
 #[test]
-#[ignore = "RED phase: Function-like macro expansion not yet implemented"]
+
 fn test_macro_name_converted_to_snake_case() {
     // #define IS_POSITIVE(x) ((x) > 0) → fn is_positive(x: i32) -> bool
     let macro_def = HirMacroDefinition::new_function_like(
@@ -98,7 +98,7 @@ fn test_macro_name_converted_to_snake_case() {
 }
 
 #[test]
-#[ignore = "RED phase: Function-like macro expansion not yet implemented"]
+
 fn test_arithmetic_expression_macro() {
     // #define DOUBLE(x) ((x) * 2) → fn double(x: i32) -> i32 { x * 2 }
     let macro_def = HirMacroDefinition::new_function_like(
@@ -117,7 +117,7 @@ fn test_arithmetic_expression_macro() {
 }
 
 #[test]
-#[ignore = "RED phase: Function-like macro expansion not yet implemented"]
+
 fn test_comparison_expression_macro() {
     // #define IS_ZERO(x) ((x) == 0) → fn is_zero(x: i32) -> bool { x == 0 }
     let macro_def = HirMacroDefinition::new_function_like(
@@ -137,7 +137,7 @@ fn test_comparison_expression_macro() {
 }
 
 #[test]
-#[ignore = "RED phase: Function-like macro expansion not yet implemented"]
+
 fn test_parentheses_preserved_in_expression() {
     // #define ABS(x) ((x) < 0 ? -(x) : (x)) → fn abs(x: i32) -> i32 { if x < 0 { -x } else { x } }
     let macro_def = HirMacroDefinition::new_function_like(
@@ -157,7 +157,7 @@ fn test_parentheses_preserved_in_expression() {
 }
 
 #[test]
-#[ignore = "RED phase: Function-like macro expansion not yet implemented"]
+
 fn test_inline_attribute_added() {
     // All generated functions should have #[inline] for performance
     let macro_def = HirMacroDefinition::new_function_like(
@@ -175,7 +175,7 @@ fn test_inline_attribute_added() {
 }
 
 #[test]
-#[ignore = "RED phase: Function-like macro expansion not yet implemented"]
+
 fn test_multiple_use_of_same_parameter() {
     // #define SUM_TWICE(x) ((x) + (x)) → fn sum_twice(x: i32) -> i32 { x + x }
     // Note: This should potentially warn about multiple evaluation
@@ -195,7 +195,7 @@ fn test_multiple_use_of_same_parameter() {
 }
 
 #[test]
-#[ignore = "RED phase: Function-like macro expansion not yet implemented"]
+
 fn test_logical_expression_macro() {
     // #define AND(a, b) ((a) && (b)) → fn and(a: bool, b: bool) -> bool { a && b }
     let macro_def = HirMacroDefinition::new_function_like(
