@@ -731,14 +731,14 @@ sprint_3:
 
 # CURRENT STATUS AND NEXT PRIORITIES
 current_status:
-  date: "2025-10-11"
-  sprint_completed: "Sprint 7 (In Progress)"
-  overall_progress: "DECY-027 ✅ DECY-028 ✅ DECY-029 ✅"
+  date: "2025-10-19"
+  sprint_completed: "Sprint 9 (Complete)"
+  overall_progress: "DECY-098 ✅ DECY-098a ✅ DECY-098b ✅ DECY-098c ✅ DECY-098d ✅"
 
   completed_major_features:
     - "✅ Parser with clang-sys (89.60% coverage)"
     - "✅ HIR with type system (100% coverage)"
-    - "✅ Basic code generation (84.91% coverage)"
+    - "✅ Basic code generation (90.87% coverage)"
     - "✅ Variable declarations, if/else, while loops, expressions"
     - "✅ Pointer types and operations (96.52% coverage)"
     - "✅ Function calls with arguments"
@@ -749,11 +749,12 @@ current_status:
     - "✅ Ownership inference (94.3% coverage)"
     - "✅ Borrow code generation (&T, &mut T) (94.3% coverage)"
     - "✅ Lifetime analysis and annotations (94.3% coverage)"
-    - "✅ EXTREME TDD verification book (24/24 chapters, 93.37% coverage)"
+    - "✅ EXTREME TDD verification book (25/25 chapters, 93.37% coverage)"
     - "✅ Struct/enum definitions and code generation (94.3% coverage)"
     - "✅ Real-world C validation with CLI tool (DECY-027)"
     - "✅ Function body transpilation - returns, binary ops, assignments (DECY-028)"
     - "✅ Control flow parsing - if/for/while statements (DECY-029)"
+    - "✅ Macro expansion - #define → const and inline functions (DECY-098)"
 
   sprint_4_accomplishments:
     - "✅ DECY-011: Dataflow analysis (13 SP) - 95.72% coverage, 84 tests"
@@ -813,8 +814,37 @@ current_status:
       - "Nested control flow statements"
       - "All examples compile successfully with rustc"
 
-  total_sprints_completed: 7
-  total_story_points_delivered: 278  # 244 + 34 (Sprint 7 complete)
+  sprint_9_accomplishments:
+    - "✅ DECY-098: Complex macro expansion RED phase (13 SP) - 14 comprehensive tests"
+    - "✅ DECY-098a: HIR representation for macros (3 SP) - HirMacroDefinition with 11 unit tests"
+    - "✅ DECY-098b: Parser #define support (5 SP) - clang-sys tokenization, 20 tests (2,560 cases)"
+    - "✅ DECY-098c: Constant macro expansion (3 SP) - Type inference, 20 tests (2,560 cases)"
+    - "✅ DECY-098d: Function-like macro expansion (8 SP) - Ternary transformation, 20 tests (2,560 cases)"
+    total_story_points: 32
+    completed_story_points: 32
+    actual_coverage: "90.87% codegen (up from 84.91%)"
+    total_tests: "40 tests (10,240 total cases with property tests)"
+    methodology: "EXTREME TDD (RED-GREEN-REFACTOR)"
+    new_features:
+      - "Object-like macros: #define MAX 100 → const MAX: i32 = 100"
+      - "Type inference: int, float, string, char, hex, octal"
+      - "Function-like macros: #define SQR(x) → fn sqr(x: i32) -> i32 { x * x }"
+      - "Ternary transformation: (a)>(b)?(a):(b) → if a > b { a } else { b }"
+      - "Name conversion: SCREAMING_SNAKE_CASE → snake_case (functions)"
+      - "Smart operator spacing: binary ops spaced, unary preserved"
+      - "Return type inference: arithmetic→i32, comparison→bool"
+      - "Parentheses cleanup while preserving precedence"
+      - "Inline attributes for performance (#[inline])"
+      - "Property testing: 10,240 test cases across 20 property tests"
+      - "Zero unsafe blocks in macro expansion"
+    documentation:
+      - "Sprint 9 completion report (docs/SPRINT-9-COMPLETION.md)"
+      - "Macro expansion chapter in EXTREME TDD book"
+      - "7 runnable examples demonstrating transformations"
+      - "Updated C-VALIDATION-ROADMAP with implementation details"
+
+  total_sprints_completed: 9
+  total_story_points_delivered: 310  # 278 + 32 (Sprint 9 complete)
   overall_test_count: "22 parser + 136 HIR + 5 integration"
   overall_coverage: "Parser: 100%, HIR: 100%"
   real_world_readiness: "97%"
