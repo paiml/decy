@@ -1334,50 +1334,243 @@ extern "C" fn visit_while_children(
 
 /// Extract a switch statement from a cursor.
 ///
-/// # Implementation Status
-///
-/// Minimal GREEN phase implementation - extracts condition and creates empty switch.
-/// Full case/default extraction requires complex compound statement visitation
-/// and is deferred to follow-up work.
+/// Parses switch statements including cases and default labels.
 #[allow(non_upper_case_globals)]
 fn extract_switch_stmt(cursor: CXCursor) -> Option<Statement> {
     // Switch has 2 children:
     // 1. Condition expression
     // 2. Body (compound statement containing case/default labels)
 
-    let mut condition: Option<Expression> = None;
-    let condition_ptr = &mut condition as *mut Option<Expression>;
-
-    // Extract condition (first child)
-    unsafe {
-        clang_visitChildren(cursor, visit_switch_condition, condition_ptr as CXClientData);
+    #[repr(C)]
+    struct SwitchData {
+        condition: Option<Expression>,
+        cases: Vec<SwitchCase>,
+        default_case: Option<Vec<Statement>>,
+        child_index: u32,
     }
 
-    // For minimal GREEN phase: return switch with empty cases
-    // Full implementation would visit body and extract cases/default
-    Some(Statement::Switch {
-        condition: condition?,
+    let mut switch_data = SwitchData {
+        condition: None,
         cases: Vec::new(),
         default_case: None,
+        child_index: 0,
+    };
+
+    let data_ptr = &mut switch_data as *mut SwitchData;
+
+    unsafe {
+        clang_visitChildren(cursor, visit_switch_children, data_ptr as CXClientData);
+    }
+
+    Some(Statement::Switch {
+        condition: switch_data.condition?,
+        cases: switch_data.cases,
+        default_case: switch_data.default_case,
     })
 }
 
-/// Visitor callback for switch condition extraction.
+/// Visitor callback for switch statement children (condition and body).
 #[allow(non_upper_case_globals)]
-extern "C" fn visit_switch_condition(
+extern "C" fn visit_switch_children(
     cursor: CXCursor,
     _parent: CXCursor,
     client_data: CXClientData,
 ) -> CXChildVisitResult {
-    let condition = unsafe { &mut *(client_data as *mut Option<Expression>) };
+    #[repr(C)]
+    struct SwitchData {
+        condition: Option<Expression>,
+        cases: Vec<SwitchCase>,
+        default_case: Option<Vec<Statement>>,
+        child_index: u32,
+    }
 
-    // Extract first expression found (the condition)
-    if let Some(expr) = try_extract_expression(cursor) {
-        *condition = Some(expr);
-        return CXChildVisit_Break;
+    let switch_data = unsafe { &mut *(client_data as *mut SwitchData) };
+    let kind = unsafe { clang_getCursorKind(cursor) };
+
+    match switch_data.child_index {
+        0 => {
+            // First child: condition expression
+            if let Some(expr) = try_extract_expression(cursor) {
+                switch_data.condition = Some(expr);
+            }
+            switch_data.child_index += 1;
+            CXChildVisit_Continue
+        }
+        1 => {
+            // Second child: compound statement body containing cases
+            // Need to visit this recursively to find case/default labels
+            if kind == CXCursor_CompoundStmt {
+                unsafe {
+                    clang_visitChildren(cursor, visit_switch_body, client_data);
+                }
+            }
+            switch_data.child_index += 1;
+            CXChildVisit_Continue
+        }
+        _ => CXChildVisit_Continue,
+    }
+}
+
+/// Visitor callback for switch body to extract cases and default.
+#[allow(non_upper_case_globals)]
+extern "C" fn visit_switch_body(
+    cursor: CXCursor,
+    _parent: CXCursor,
+    client_data: CXClientData,
+) -> CXChildVisitResult {
+    #[repr(C)]
+    struct SwitchData {
+        condition: Option<Expression>,
+        cases: Vec<SwitchCase>,
+        default_case: Option<Vec<Statement>>,
+        child_index: u32,
+    }
+
+    let switch_data = unsafe { &mut *(client_data as *mut SwitchData) };
+    let kind = unsafe { clang_getCursorKind(cursor) };
+
+    match kind {
+        CXCursor_CaseStmt => {
+            // Extract case statement
+            if let Some(case) = extract_case_stmt(cursor) {
+                switch_data.cases.push(case);
+            }
+            CXChildVisit_Continue
+        }
+        CXCursor_DefaultStmt => {
+            // Extract default statement
+            if let Some(body) = extract_default_stmt(cursor) {
+                switch_data.default_case = Some(body);
+            }
+            CXChildVisit_Continue
+        }
+        _ => CXChildVisit_Continue,
+    }
+}
+
+/// Extract a case statement from a cursor.
+fn extract_case_stmt(cursor: CXCursor) -> Option<SwitchCase> {
+    // Case statement has 2 children:
+    // 1. Case value expression
+    // 2. Body (statements following the case label)
+
+    #[repr(C)]
+    struct CaseData {
+        value: Option<Expression>,
+        body: Vec<Statement>,
+        child_index: u32,
+    }
+
+    let mut case_data = CaseData {
+        value: None,
+        body: Vec::new(),
+        child_index: 0,
+    };
+
+    let data_ptr = &mut case_data as *mut CaseData;
+
+    unsafe {
+        clang_visitChildren(cursor, visit_case_children, data_ptr as CXClientData);
+    }
+
+    Some(SwitchCase {
+        value: case_data.value,
+        body: case_data.body,
+    })
+}
+
+/// Visitor for case statement children.
+#[allow(non_upper_case_globals)]
+extern "C" fn visit_case_children(
+    cursor: CXCursor,
+    _parent: CXCursor,
+    client_data: CXClientData,
+) -> CXChildVisitResult {
+    #[repr(C)]
+    struct CaseData {
+        value: Option<Expression>,
+        body: Vec<Statement>,
+        child_index: u32,
+    }
+
+    let case_data = unsafe { &mut *(client_data as *mut CaseData) };
+    let _kind = unsafe { clang_getCursorKind(cursor) };
+
+    match case_data.child_index {
+        0 => {
+            // First child: case value expression
+            if let Some(expr) = try_extract_expression(cursor) {
+                case_data.value = Some(expr);
+            }
+            case_data.child_index += 1;
+            CXChildVisit_Continue
+        }
+        _ => {
+            // Subsequent children: statements in case body
+            // Extract statements until we hit another case or default
+            if let Some(stmt) = extract_statement(cursor) {
+                case_data.body.push(stmt);
+            }
+            CXChildVisit_Continue
+        }
+    }
+}
+
+/// Extract a default statement from a cursor.
+fn extract_default_stmt(cursor: CXCursor) -> Option<Vec<Statement>> {
+    // Default statement has body statements as children
+    let mut body: Vec<Statement> = Vec::new();
+    let body_ptr = &mut body as *mut Vec<Statement>;
+
+    unsafe {
+        clang_visitChildren(cursor, visit_default_children, body_ptr as CXClientData);
+    }
+
+    Some(body)
+}
+
+/// Visitor for default statement children.
+#[allow(non_upper_case_globals)]
+extern "C" fn visit_default_children(
+    cursor: CXCursor,
+    _parent: CXCursor,
+    client_data: CXClientData,
+) -> CXChildVisitResult {
+    let body = unsafe { &mut *(client_data as *mut Vec<Statement>) };
+
+    // Extract all statements in default body
+    if let Some(stmt) = extract_statement(cursor) {
+        body.push(stmt);
     }
 
     CXChildVisit_Continue
+}
+
+/// Helper function to extract a statement from a cursor based on its kind.
+fn extract_statement(cursor: CXCursor) -> Option<Statement> {
+    let kind = unsafe { clang_getCursorKind(cursor) };
+
+    match kind {
+        CXCursor_ReturnStmt => extract_return_stmt(cursor),
+        CXCursor_VarDecl => extract_var_decl(cursor),
+        CXCursor_IfStmt => extract_if_stmt(cursor),
+        CXCursor_ForStmt => extract_for_stmt(cursor),
+        CXCursor_WhileStmt => extract_while_stmt(cursor),
+        CXCursor_BreakStmt => Some(Statement::Break),
+        CXCursor_ContinueStmt => Some(Statement::Continue),
+        CXCursor_UnaryOperator => extract_inc_dec_stmt(cursor),
+        CXCursor_BinaryOperator => extract_assignment_stmt(cursor),
+        CXCursor_CallExpr => {
+            // Function call as statement
+            if let Some(call_expr) = extract_function_call(cursor) {
+                if let Expression::FunctionCall { function, arguments } = call_expr {
+                    return Some(Statement::FunctionCall { function, arguments });
+                }
+            }
+            None
+        }
+        _ => None,
+    }
 }
 
 /// Visitor callback for extracting expressions.
