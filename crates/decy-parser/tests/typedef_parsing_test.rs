@@ -10,9 +10,8 @@
 use decy_parser::CParser;
 
 #[test]
-#[ignore]
 fn test_typedef_simple_int() {
-    // RED: Test that simple typedef is parsed
+    // Test that simple typedef is parsed
     let parser = CParser::new().expect("Parser creation failed");
     let source = "typedef int MyInt;";
 
@@ -134,7 +133,7 @@ fn test_typedef_with_function() {
 
     // Function should use the typedef
     let func = &ast.functions()[0];
-    assert_eq!(func.name(), "add");
+    assert_eq!(func.name, "add");
 }
 
 #[test]
