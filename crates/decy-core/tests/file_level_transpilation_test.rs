@@ -5,7 +5,7 @@
 //!
 //! Goal: Enable transpiling C files independently with cross-file reference tracking.
 
-use decy_core::{ProjectContext, transpile_file};
+use decy_core::{transpile_file, ProjectContext};
 use std::path::Path;
 use tempfile::TempDir;
 
@@ -20,11 +20,7 @@ fn create_temp_c_file(dir: &TempDir, name: &str, content: &str) -> std::path::Pa
 fn test_transpile_single_file_without_dependencies() {
     // Test: Transpile a single C file that doesn't depend on other files
     let temp = TempDir::new().unwrap();
-    let c_file = create_temp_c_file(
-        &temp,
-        "simple.c",
-        "int add(int a, int b) { return a + b; }",
-    );
+    let c_file = create_temp_c_file(&temp, "simple.c", "int add(int a, int b) { return a + b; }");
 
     let context = ProjectContext::new();
     let result = transpile_file(&c_file, &context);
@@ -33,8 +29,14 @@ fn test_transpile_single_file_without_dependencies() {
 
     let transpiled = result.unwrap();
     assert_eq!(transpiled.source_path, c_file);
-    assert!(transpiled.rust_code.contains("fn add"), "Should contain function");
-    assert!(transpiled.dependencies.is_empty(), "Should have no dependencies");
+    assert!(
+        transpiled.rust_code.contains("fn add"),
+        "Should contain function"
+    );
+    assert!(
+        transpiled.dependencies.is_empty(),
+        "Should have no dependencies"
+    );
 }
 
 #[test]
@@ -49,9 +51,18 @@ fn test_transpiled_file_has_metadata() {
     assert!(result.is_ok());
 
     let transpiled = result.unwrap();
-    assert!(transpiled.source_path.exists(), "Source path should be valid");
-    assert!(!transpiled.rust_code.is_empty(), "Should have generated Rust code");
-    assert!(transpiled.functions_exported.len() > 0, "Should track exported functions");
+    assert!(
+        transpiled.source_path.exists(),
+        "Source path should be valid"
+    );
+    assert!(
+        !transpiled.rust_code.is_empty(),
+        "Should have generated Rust code"
+    );
+    assert!(
+        transpiled.functions_exported.len() > 0,
+        "Should track exported functions"
+    );
 }
 
 #[test]
@@ -86,8 +97,13 @@ fn test_transpile_file_with_header_dependency() {
     assert!(impl_result.is_ok(), "Should transpile implementation file");
 
     let impl_transpiled = impl_result.unwrap();
-    assert!(!impl_transpiled.rust_code.is_empty(), "Should generate Rust code");
-    assert!(impl_transpiled.functions_exported.contains(&"utility_function".to_string()));
+    assert!(
+        !impl_transpiled.rust_code.is_empty(),
+        "Should generate Rust code"
+    );
+    assert!(impl_transpiled
+        .functions_exported
+        .contains(&"utility_function".to_string()));
 }
 
 #[test]
@@ -180,11 +196,7 @@ fn test_transpile_multiple_files_with_cross_references() {
     let temp = TempDir::new().unwrap();
 
     // utils.c defines a function
-    let utils = create_temp_c_file(
-        &temp,
-        "utils.c",
-        "int helper(int x) { return x + 10; }",
-    );
+    let utils = create_temp_c_file(&temp, "utils.c", "int helper(int x) { return x + 10; }");
 
     // main.c calls helper
     let main_c = create_temp_c_file(
@@ -250,11 +262,15 @@ fn test_transpile_header_only_file() {
 
     // Header should track function declarations for context
     assert!(
-        transpiled.functions_exported.contains(&"compute".to_string()),
+        transpiled
+            .functions_exported
+            .contains(&"compute".to_string()),
         "Should track compute declaration"
     );
     assert!(
-        transpiled.functions_exported.contains(&"process".to_string()),
+        transpiled
+            .functions_exported
+            .contains(&"process".to_string()),
         "Should track process declaration"
     );
 }
@@ -270,7 +286,9 @@ fn test_transpile_nonexistent_file_returns_error() {
     assert!(result.is_err(), "Should error for nonexistent file");
     let error_msg = result.unwrap_err().to_string();
     assert!(
-        error_msg.contains("not found") || error_msg.contains("No such file") || error_msg.contains("Failed to read file"),
+        error_msg.contains("not found")
+            || error_msg.contains("No such file")
+            || error_msg.contains("Failed to read file"),
         "Error should mention file not found, got: {}",
         error_msg
     );
