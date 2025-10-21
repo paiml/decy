@@ -733,8 +733,8 @@ sprint_3:
 current_status:
   date: "2025-10-21"
   sprint_completed: "Sprint 15 (Complete)"
-  current_sprint: "Sprint 16 (Ready to Define)"
-  overall_progress: "Sprint 15: Quality & Test Hardening COMPLETE ✅ | Mutation score targeting 80-85% | 45 tests added | Real-world readiness: 97%+ | Ready for Sprint 16: Incremental Transpilation"
+  current_sprint: "Sprint 16 (In Progress - 13/21 SP complete)"
+  overall_progress: "Sprint 16: Incremental Transpilation IN PROGRESS | DECY-047 & DECY-048 DONE ✅ | File-level transpilation + dependency tracking | 90.34% coverage | 20 new tests | Next: DECY-049 caching"
 
   completed_major_features:
     - "✅ Parser with clang-sys (89.60% coverage)"
@@ -899,8 +899,26 @@ current_status:
       - "Zero edge cases discovered, zero regressions"
     completion_date: "2025-10-21"
 
+  sprint_16_accomplishments:
+    - "✅ DECY-047: File-level transpilation infrastructure (8 SP) - 9 unit tests, 90.32% coverage"
+    - "✅ DECY-048: Dependency tracking and build order (5 SP) - 11 unit tests, petgraph integration"
+    total_story_points: 13 # (of 21 total)
+    actual_coverage: "90.34%"
+    total_tests: "20 tests added (9 file-level + 11 dependency) | 58 decy-core tests | 323 total workspace tests"
+    methodology: "EXTREME TDD (RED-GREEN-REFACTOR)"
+    features_delivered:
+      - "TranspiledFile struct for per-file results"
+      - "ProjectContext for cross-file type/function tracking"
+      - "DependencyGraph with topological sort"
+      - "Circular dependency detection"
+      - "#include directive parsing"
+      - "Header guard detection"
+      - "FFI declarations generation"
+    status: "In Progress (13/21 SP complete)"
+    next_tickets: "DECY-049 (caching), DECY-050 (CLI support)"
+
   total_sprints_completed: 15
-  total_story_points_delivered: 352  # 339 + 13 (Sprint 15)
+  total_story_points_delivered: 365  # 352 + 13 (Sprint 16 partial)
   overall_test_count: "303 total tests (167 parser + 136 HIR + other crates)"
   overall_coverage: "Parser: 100%, HIR: 100%, Codegen: 90.36%"
   real_world_readiness: "97%"
@@ -4633,9 +4651,16 @@ sprint_16:
       priority: critical
       story_points: 5
       assignee: Claude
-      status: not_started
+      status: done
       github_issue: null
-      phase: RED
+      phase: DONE
+      completed_date: "2025-10-21"
+      actual_coverage: 90.34
+      actual_metrics:
+        coverage: "90.34%"
+        tests_passing: "11 unit + 58 total in decy-core"
+        clippy_warnings: 0
+        quality_grade: "A+"
 
       description: |
         Track file dependencies and compute build order for transpilation.
