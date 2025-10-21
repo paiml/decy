@@ -4076,3 +4076,203 @@ gemini_audit:
     - "User guidance is essential for tools with multiple compilation modes"
     - "External audits catch issues that automated tests miss"
 
+
+sprint_15:
+  name: "Quality & Test Hardening - Mutation Score Improvement"
+  duration: "1 week"
+  start_date: "2025-10-21"
+  goals:
+    - Improve mutation testing score from 69.5% to 85%+
+    - Add edge case tests for expression visitors
+    - Comprehensive operator coverage tests
+    - Assignment validation tests
+    - End-to-end validation with larger C projects
+  story_points: 13
+  story_points_completed: 0
+  story_points_breakdown:
+    DECY-040: 3 (Expression visitor edge cases)
+    DECY-041: 2 (Binary operator coverage)
+    DECY-042: 2 (Assignment validation)
+    DECY-043: 2 (Boundary conditions)
+    DECY-046: 4 (Large C project validation)
+  status: in_progress
+
+  tickets:
+    DECY-040:
+      title: "Add expression visitor edge case tests"
+      type: quality
+      priority: high
+      story_points: 3
+      assignee: Claude
+      status: in_progress
+      github_issue: null
+      phase: RED
+
+      description: |
+        Add comprehensive edge case tests for expression visitors to improve
+        mutation testing score. Current mutation testing reveals 9 missed mutants
+        in visit_if/for/while_children match arms.
+
+        Target: Catch all 9 match arm deletion mutants in expression visitors.
+
+      current_mutation_gaps:
+        - "Delete match arm CXCursor_CallExpr in visit_if_children"
+        - "Delete match arm CXCursor_DeclRefExpr in visit_for_children"
+        - "Delete match arm CXCursor_IntegerLiteral in visit_while_children"
+        - "Delete match arm for various expression types in visitor functions"
+
+      requirements:
+        - Test empty expression handling in visitors
+        - Test null/missing expression cases
+        - Test visitor behavior with unexpected cursor types
+        - Test all match arms in expression visitors
+        - Ensure tests fail when match arms are deleted
+
+      test_requirements:
+        unit_tests:
+          - test_if_condition_with_null_expression
+          - test_for_loop_missing_increment
+          - test_while_condition_empty
+          - test_visitor_unknown_cursor_type
+          - test_expression_visitor_all_match_arms
+
+      acceptance_criteria:
+        - "Mutation score improves by +5-7%"
+        - "All expression visitor match arms covered"
+        - "Tests fail when any match arm deleted"
+        - "Coverage ≥90%"
+        - "0 clippy warnings"
+
+      test_strategy: |
+        RED phase:
+        - Create tests that specifically target missed mutants
+        - Each test should fail if a match arm is deleted
+        - Focus on edge cases that aren't currently tested
+
+        GREEN phase:
+        - Verify tests pass with current implementation
+        - Ensure tests actually exercise the match arms
+
+        REFACTOR phase:
+        - Run mutation testing to verify improvement
+        - Target: mutation score 75%+ (up from 69.5%)
+
+      references:
+        - "Mutation testing report: 9 missed mutants in expression visitors"
+        - "cargo mutants report from 2025-10-14"
+
+    DECY-041:
+      title: "Comprehensive binary operator test coverage"
+      type: quality
+      priority: high
+      story_points: 2
+      assignee: Claude
+      status: not_started
+      github_issue: null
+      phase: READY
+
+      description: |
+        Add tests for all binary operators to catch 8 missed mutants related
+        to operator handling. Current tests don't cover all operator types.
+
+      current_mutation_gaps:
+        - "Missing tests for ==, !=, /, %, <=, >=, * operators"
+        - "Operator-specific behavior not validated"
+
+      requirements:
+        - Test all binary operators individually
+        - Test operator precedence edge cases
+        - Test operator type checking
+        - Ensure each operator has dedicated test
+
+      acceptance_criteria:
+        - "All binary operators have tests"
+        - "Mutation score improves by +3-4%"
+        - "Coverage ≥90%"
+
+    DECY-042:
+      title: "Assignment statement validation tests"
+      type: quality
+      priority: high
+      story_points: 2
+      assignee: Claude
+      status: not_started
+      github_issue: null
+      phase: READY
+
+      description: |
+        Add validation tests for assignment statement extraction to catch
+        7 missed mutants in logical operator mutations.
+
+      current_mutation_gaps:
+        - "replace || with && in extract_assignment_stmt"
+        - "replace == with != in assignment checks"
+
+      requirements:
+        - Test assignment validation logic
+        - Test edge cases in assignment detection
+        - Test malformed assignments
+        - Ensure validation logic is thoroughly tested
+
+      acceptance_criteria:
+        - "Assignment validation logic fully tested"
+        - "Mutation score improves by +3-4%"
+
+    DECY-043:
+      title: "Boundary condition and counter tests"
+      type: quality
+      priority: medium
+      story_points: 2
+      assignee: Claude
+      status: not_started
+      github_issue: null
+      phase: READY
+
+      description: |
+        Add tests for boundary conditions and counter arithmetic to catch
+        7 missed mutants (4 counter + 3 boundary).
+
+      current_mutation_gaps:
+        - "replace += with -= in visitor counters"
+        - "replace > with >= in boundary checks"
+
+      requirements:
+        - Test counter increment behavior
+        - Test boundary condition edge cases
+        - Test off-by-one scenarios
+
+      acceptance_criteria:
+        - "Counter behavior validated"
+        - "Boundary conditions tested"
+        - "Mutation score improves by +3-4%"
+
+    DECY-046:
+      title: "Large C project end-to-end validation"
+      type: quality
+      priority: medium
+      story_points: 4
+      assignee: Claude
+      status: not_started
+      github_issue: null
+      phase: READY
+
+      description: |
+        Validate transpiler on larger real-world C projects to discover
+        edge cases and improve overall quality.
+
+      requirements:
+        - Transpile at least 3 real open-source C projects
+        - Document success rate and failures
+        - Add tests for any discovered edge cases
+        - Measure transpilation performance
+
+      target_projects:
+        - "stb_image.h (single-file image library)"
+        - "miniz.c (compression library)"
+        - "subset of sqlite3.c functions"
+
+      acceptance_criteria:
+        - "3+ projects attempted"
+        - "Success rate documented"
+        - "Edge cases added as tests"
+        - "Performance benchmarks captured"
