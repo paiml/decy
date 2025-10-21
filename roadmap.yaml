@@ -3036,14 +3036,14 @@ sprint_10:
         - "ISO C99 §6.7.5.3: Function declarators"
 
     DECY-025:
-      title: "[NOT STARTED] String handling improvements"
+      title: "[RED] String handling improvements"
       type: feature
       priority: high
       story_points: 8
       assignee: Claude
-      status: not_started
+      status: in_progress
       github_issue: null
-      phase: NOT_STARTED
+      phase: RED
 
       description: |
         Improve C string handling, transpiling char* to &str and String appropriately.
