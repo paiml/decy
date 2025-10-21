@@ -124,8 +124,14 @@ fn cli_transpile_project_preserves_directory_structure() {
         .success();
 
     // Verify structure preserved
-    assert!(output_dir.join("src").exists(), "src/ should exist in output");
-    assert!(output_dir.join("lib").exists(), "lib/ should exist in output");
+    assert!(
+        output_dir.join("src").exists(),
+        "src/ should exist in output"
+    );
+    assert!(
+        output_dir.join("lib").exists(),
+        "lib/ should exist in output"
+    );
 }
 
 // ============================================================================
@@ -151,7 +157,10 @@ fn cli_transpile_project_generates_rust_files() {
     assert!(rust_file.exists(), "Should generate test.rs");
 
     let rust_content = fs::read_to_string(&rust_file).unwrap();
-    assert!(rust_content.contains("fn value"), "Should contain Rust function");
+    assert!(
+        rust_content.contains("fn value"),
+        "Should contain Rust function"
+    );
 }
 
 #[test]
@@ -187,12 +196,12 @@ fn cli_transpile_project_with_cache_flag() {
 
     let output_dir = temp.path().join("output");
 
+    // Cache is enabled by default (no flag needed)
     decy_cmd()
         .arg("transpile-project")
         .arg(temp.path())
         .arg("-o")
         .arg(&output_dir)
-        .arg("--cache")
         .assert()
         .success();
 }

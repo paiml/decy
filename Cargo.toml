@@ -57,6 +57,9 @@ tower = "0.4"
 # Parallel processing
 rayon = "1.8"
 
+# Directory traversal
+walkdir = "2.4"
+
 # Testing
 proptest = "1.4"
 criterion = "0.5"

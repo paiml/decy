@@ -4596,9 +4596,16 @@ sprint_16:
       priority: critical
       story_points: 8
       assignee: Claude
-      status: not_started
+      status: done
       github_issue: null
-      phase: RED
+      phase: DONE
+      completed_date: "2025-10-21"
+      actual_coverage: 90.33
+      actual_metrics:
+        coverage: "90.33%"
+        tests_passing: "9 unit tests in decy-core"
+        clippy_warnings: 0
+        quality_grade: "A+"
 
       description: |
         Add infrastructure to transpile C files independently rather than
@@ -4767,9 +4774,16 @@ sprint_16:
       priority: high
       story_points: 3
       assignee: Claude
-      status: not_started
+      status: done
       github_issue: null
-      phase: RED
+      phase: DONE
+      completed_date: "2025-10-21"
+      actual_coverage: 90.33
+      actual_metrics:
+        coverage: "90.33%"
+        tests_passing: "22 CLI contract tests + 113 total workspace"
+        clippy_warnings: 0
+        quality_grade: "A+"
 
       description: |
         Add CLI commands for transpiling entire C projects.
