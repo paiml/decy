@@ -2873,7 +2873,92 @@ sprint_10:
     DECY-025: 8 (String handling) - DONE ✅
   status: done
 
+sprint_11:
+  name: "String Detection & Switch Statements"
+  duration: "1 week"
+  start_date: "2025-10-21"
+  goals:
+    - Complete parser string detection (DECY-026)
+    - Switch statement support (DECY-038)
+  story_points: 8
+  story_points_completed: 0
+  story_points_breakdown:
+    DECY-026: 5 (Parser string detection) - in_progress
+    DECY-038: 3 (Switch statements) - not_started
+  status: in_progress
+
   tickets:
+    DECY-026:
+      title: "Complete parser string detection implementations"
+      type: feature
+      priority: high
+      story_points: 5
+      assignee: Claude
+      status: in_progress
+      github_issue: null
+      phase: RED
+      start_date: "2025-10-21"
+
+      description: |
+        Complete the string detection infrastructure started in DECY-025.
+        DECY-025 implemented HIR types and codegen, but left parser methods as stubs.
+        This ticket implements the actual detection logic to make all 9 parser tests pass.
+
+        Follow-up to: DECY-025
+
+      requirements:
+        - Add `initializer` field to `Variable` struct
+        - Implement `is_string_literal()` detection logic
+        - Implement `is_string_buffer()` detection logic
+        - Add const qualifier tracking to `Type` enum
+        - Implement `is_const_char_pointer()` for parameters
+        - Wire up initializer expressions during parsing
+
+      test_requirements:
+        parser_tests:
+          - test_string_literal_detected (currently failing)
+          - test_string_buffer_detected (currently failing)
+          - test_strlen_function_call_detected (passing ✅)
+          - test_strcmp_function_call_detected (currently failing)
+          - test_strcpy_function_call_detected (currently failing)
+          - test_string_literal_in_function_parameter (currently failing)
+          - test_char_pointer_parameter_analysis (currently failing)
+          - test_strdup_function_call_detected (currently failing)
+          - test_multiple_string_operations (currently failing)
+
+      acceptance_criteria:
+        - "All 9 parser tests pass (currently 1/9)"
+        - "Variable struct has initializer field"
+        - "Type enum tracks const qualifier"
+        - "String literals detected via const char* + literal initializer"
+        - "String buffers detected via malloc/calloc allocation"
+        - "Coverage ≥85%"
+        - "0 clippy warnings"
+
+      test_strategy: |
+        RED phase: ✅ ALREADY DONE (tests created in DECY-025)
+        - 9 comprehensive parser tests exist
+        - Currently 1/9 passing (strlen detection works)
+
+        GREEN phase (this ticket):
+        - Add initializer field to Variable struct
+        - Implement detection methods
+        - Make all 9 tests pass
+
+        REFACTOR phase:
+        - Add property tests for string detection
+        - Document detection algorithms
+        - Meet quality gates
+
+      files_to_modify:
+        - crates/decy-parser/src/parser.rs (Variable struct, detection logic)
+        - crates/decy-parser/tests/string_handling_parsing_test.rs (verify all pass)
+
+      references:
+        - "K&R §5.5: Character Pointers and Functions"
+        - "ISO C99 §7.21: String handling"
+        - "DECY-025: String handling HIR/codegen infrastructure"
+
     DECY-023:
       title: "[DONE] Type aliases and typedefs"
       type: feature
