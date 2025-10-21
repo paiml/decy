@@ -60,7 +60,7 @@ fn test_transpiled_file_has_metadata() {
         "Should have generated Rust code"
     );
     assert!(
-        transpiled.functions_exported.len() > 0,
+        !transpiled.functions_exported.is_empty(),
         "Should track exported functions"
     );
 }
@@ -89,7 +89,7 @@ fn test_transpile_file_with_header_dependency() {
     let context = ProjectContext::new();
 
     // Transpile header first
-    let header_result = transpile_file(&header_file, &context);
+    let _header_result = transpile_file(&header_file, &context);
     // Header has no function bodies, so may not parse as full C - that's ok for this test
 
     // Transpile implementation
