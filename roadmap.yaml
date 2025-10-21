@@ -2888,6 +2888,63 @@ sprint_11:
     DECY-038: 3 (Switch statements) - DONE ✅
   status: done
 
+sprint_12:
+  name: "Quality Gates & Macro Keyword Parameters"
+  duration: "1 week"
+  start_date: "2025-10-21"
+  completion_date: null
+  goals:
+    - Fix macro property test blocking quality gates (DECY-039)
+  story_points: 1
+  story_points_completed: 0
+  story_points_breakdown:
+    DECY-039: 1 (Macro keyword parameters) - in_progress
+  status: in_progress
+
+  tickets:
+    DECY-039:
+      title: "Fix macro parser to accept C keywords as parameter names"
+      type: bug
+      priority: critical
+      story_points: 1
+      assignee: Claude
+      status: in_progress
+      github_issue: null
+      phase: RED
+      start_date: "2025-10-21"
+
+      description: |
+        The macro property test `property_function_like_macros_have_parameters` fails
+        when proptest generates a C keyword (like "if") as a parameter name.
+
+        Root cause: extract_macro() only accepts CXToken_Identifier for parameters,
+        but C keywords are tokenized as CXToken_Keyword. C allows keywords as macro
+        parameter names since they're in macro definition scope, not language scope.
+
+        This bug blocks quality gates, forcing all commits to use --no-verify.
+
+      reproduction:
+        input: "#define SQR(if) ((if) * (if))"
+        expected: "Function-like macro with 1 parameter named 'if'"
+        actual: "Object-like macro (parameters not detected)"
+
+      test_strategy: |
+        RED phase: The failing property test already exists
+        GREEN phase: Update extract_macro() to accept CXToken_Keyword for parameters
+        REFACTOR phase: Verify all property tests pass, unblock quality gates
+
+      acceptance_criteria:
+        - property_function_like_macros_have_parameters passes 100% of time
+        - Quality gates work without --no-verify
+        - Zero regressions in macro parsing tests
+
+      files_modified:
+        - crates/decy-parser/src/parser.rs (extract_macro function)
+
+      references:
+        - "ISO C99 §6.10.3: Macro replacement"
+        - "Property test: macro_property_tests.rs:42"
+
   tickets:
     DECY-026:
       title: "[DONE] Complete parser string detection implementations"
