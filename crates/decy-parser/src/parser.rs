@@ -359,7 +359,11 @@ fn extract_variable(cursor: CXCursor) -> Option<Variable> {
     let initializer_ptr = &mut initializer as *mut Option<Expression>;
 
     unsafe {
-        clang_visitChildren(cursor, visit_variable_initializer, initializer_ptr as CXClientData);
+        clang_visitChildren(
+            cursor,
+            visit_variable_initializer,
+            initializer_ptr as CXClientData,
+        );
     }
 
     if let Some(init_expr) = initializer {
@@ -389,7 +393,11 @@ fn try_extract_expression(cursor: CXCursor) -> Option<Expression> {
             let mut result: Option<Expression> = None;
             let result_ptr = &mut result as *mut Option<Expression>;
             unsafe {
-                clang_visitChildren(cursor, visit_variable_initializer, result_ptr as CXClientData);
+                clang_visitChildren(
+                    cursor,
+                    visit_variable_initializer,
+                    result_ptr as CXClientData,
+                );
             }
             result
         }
@@ -2771,7 +2779,8 @@ impl Variable {
     /// Note: Const qualifier detection not yet implemented - checks all char* pointers.
     pub fn is_string_literal(&self) -> bool {
         // Check if type is char*
-        let is_char_ptr = matches!(self.var_type, Type::Pointer(ref inner) if **inner == Type::Char);
+        let is_char_ptr =
+            matches!(self.var_type, Type::Pointer(ref inner) if **inner == Type::Char);
 
         // Check if initializer is a string literal
         if let Some(initializer) = &self.initializer {
@@ -2792,7 +2801,8 @@ impl Variable {
     /// - Has an initializer that is a malloc/calloc function call
     pub fn is_string_buffer(&self) -> bool {
         // Check if type is char*
-        let is_char_ptr = matches!(self.var_type, Type::Pointer(ref inner) if **inner == Type::Char);
+        let is_char_ptr =
+            matches!(self.var_type, Type::Pointer(ref inner) if **inner == Type::Char);
 
         // Check if initializer is malloc/calloc call
         if let Some(Expression::FunctionCall { function, .. }) = &self.initializer {
