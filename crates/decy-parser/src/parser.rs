@@ -491,7 +491,11 @@ fn extract_macro(cursor: CXCursor) -> Option<MacroDefinition> {
             if token_str == ")" {
                 in_params = false;
                 continue;
-            } else if token_str != "," && token_kind == CXToken_Identifier {
+            } else if token_str != ","
+                && (token_kind == CXToken_Identifier || token_kind == CXToken_Keyword)
+            {
+                // Accept both identifiers and keywords as parameter names
+                // C allows keywords in macro parameter names since they're in macro scope
                 parameters.push(token_str);
             }
         } else {
