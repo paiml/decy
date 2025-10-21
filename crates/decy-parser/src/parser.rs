@@ -354,7 +354,65 @@ fn extract_variable(cursor: CXCursor) -> Option<Variable> {
     let cx_type = unsafe { clang_getCursorType(cursor) };
     let var_type = convert_type(cx_type)?;
 
-    Some(Variable::new(name, var_type))
+    // Extract initializer by visiting children
+    let mut initializer: Option<Expression> = None;
+    let initializer_ptr = &mut initializer as *mut Option<Expression>;
+
+    unsafe {
+        clang_visitChildren(cursor, visit_variable_initializer, initializer_ptr as CXClientData);
+    }
+
+    if let Some(init_expr) = initializer {
+        Some(Variable::new_with_initializer(name, var_type, init_expr))
+    } else {
+        Some(Variable::new(name, var_type))
+    }
+}
+
+/// Helper function to extract an expression from a cursor.
+/// Dispatches to the appropriate extract function based on cursor kind.
+#[allow(non_upper_case_globals)]
+fn try_extract_expression(cursor: CXCursor) -> Option<Expression> {
+    let kind = unsafe { clang_getCursorKind(cursor) };
+
+    match kind {
+        CXCursor_IntegerLiteral => extract_int_literal(cursor),
+        CXCursor_StringLiteral => extract_string_literal(cursor),
+        CXCursor_DeclRefExpr => extract_variable_ref(cursor),
+        CXCursor_BinaryOperator => extract_binary_op(cursor),
+        CXCursor_CallExpr => extract_function_call(cursor),
+        CXCursor_UnaryOperator => extract_unary_op(cursor),
+        CXCursor_ArraySubscriptExpr => extract_array_index(cursor),
+        CXCursor_MemberRefExpr => extract_field_access(cursor),
+        CXCursor_UnexposedExpr => {
+            // UnexposedExpr is a wrapper - recurse into children
+            let mut result: Option<Expression> = None;
+            let result_ptr = &mut result as *mut Option<Expression>;
+            unsafe {
+                clang_visitChildren(cursor, visit_variable_initializer, result_ptr as CXClientData);
+            }
+            result
+        }
+        _ => None,
+    }
+}
+
+/// Visitor callback for variable initializer expressions.
+#[allow(non_upper_case_globals)]
+extern "C" fn visit_variable_initializer(
+    cursor: CXCursor,
+    _parent: CXCursor,
+    client_data: CXClientData,
+) -> CXChildVisitResult {
+    let initializer = unsafe { &mut *(client_data as *mut Option<Expression>) };
+
+    // Extract the first expression found (the initializer)
+    if let Some(expr) = try_extract_expression(cursor) {
+        *initializer = Some(expr);
+        return CXChildVisit_Break;
+    }
+
+    CXChildVisit_Continue
 }
 
 /// This function extracts #define directives, supporting both object-like and function-like macros.
@@ -2646,12 +2704,27 @@ pub struct Variable {
     name: String,
     /// Variable type
     var_type: Type,
+    /// Optional initializer expression
+    initializer: Option<Expression>,
 }
 
 impl Variable {
     /// Create a new variable.
     pub fn new(name: String, var_type: Type) -> Self {
-        Self { name, var_type }
+        Self {
+            name,
+            var_type,
+            initializer: None,
+        }
+    }
+
+    /// Create a new variable with an initializer.
+    pub fn new_with_initializer(name: String, var_type: Type, initializer: Expression) -> Self {
+        Self {
+            name,
+            var_type,
+            initializer: Some(initializer),
+        }
     }
 
     /// Get the variable name.
@@ -2685,41 +2758,55 @@ impl Variable {
         }
     }
 
-    /// Check if this variable is a string literal (const char* with literal initializer).
+    /// Check if this variable is a string literal (char* with literal initializer).
     ///
-    /// # Implementation Status
+    /// Detects patterns like: `const char* msg = "Hello";`
     ///
-    /// Stub implementation - always returns `false`.
-    /// Full implementation requires:
-    /// - Adding `initializer` field to `Variable` struct
-    /// - Detecting const qualifier on pointer types
-    /// - Analyzing initializer to check for `StringLiteral` expression
+    /// # Implementation
+    ///
+    /// Checks if:
+    /// - Type is a pointer to char (`char*`)
+    /// - Has an initializer that is a `StringLiteral` expression
+    ///
+    /// Note: Const qualifier detection not yet implemented - checks all char* pointers.
     pub fn is_string_literal(&self) -> bool {
-        false
+        // Check if type is char*
+        let is_char_ptr = matches!(self.var_type, Type::Pointer(ref inner) if **inner == Type::Char);
+
+        // Check if initializer is a string literal
+        if let Some(initializer) = &self.initializer {
+            is_char_ptr && matches!(initializer, Expression::StringLiteral(_))
+        } else {
+            false
+        }
     }
 
     /// Check if this variable is a string buffer (char* allocated with malloc).
     ///
-    /// # Implementation Status
+    /// Detects patterns like: `char* buffer = malloc(100);`
     ///
-    /// Stub implementation - always returns `false`.
-    /// Full implementation requires:
-    /// - Adding `initializer` field to `Variable` struct
-    /// - Detecting `malloc()` call in initializer expression
-    /// - Analyzing pointer usage patterns
+    /// # Implementation
+    ///
+    /// Checks if:
+    /// - Type is a pointer to char (`char*`)
+    /// - Has an initializer that is a malloc/calloc function call
     pub fn is_string_buffer(&self) -> bool {
-        false
+        // Check if type is char*
+        let is_char_ptr = matches!(self.var_type, Type::Pointer(ref inner) if **inner == Type::Char);
+
+        // Check if initializer is malloc/calloc call
+        if let Some(Expression::FunctionCall { function, .. }) = &self.initializer {
+            is_char_ptr && (function == "malloc" || function == "calloc")
+        } else {
+            false
+        }
     }
 
     /// Get the initializer expression for this variable.
     ///
-    /// # Implementation Status
-    ///
-    /// Stub implementation - always returns `None`.
-    /// Full implementation requires adding `initializer: Option<Expression>` field
-    /// to the `Variable` struct and extracting it during parsing.
+    /// Returns `Some(&Expression)` if the variable has an initializer, `None` otherwise.
     pub fn initializer(&self) -> Option<&Expression> {
-        None
+        self.initializer.as_ref()
     }
 }
 
