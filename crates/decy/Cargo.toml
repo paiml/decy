@@ -32,3 +32,6 @@ rustyline = "13.0"
 
 [dev-dependencies]
 proptest.workspace = true
+assert_cmd.workspace = true
+predicates.workspace = true
+tempfile.workspace = true

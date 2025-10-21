@@ -61,6 +61,8 @@ rayon = "1.8"
 proptest = "1.4"
 criterion = "0.5"
 tempfile = "3.8"
+assert_cmd = "2.0"  # For CLI contract testing
+predicates = "3.0"  # For CLI assertion predicates
 
 # Error handling
 anyhow = "1.0"
