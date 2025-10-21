@@ -3012,6 +3012,76 @@ sprint_11:
         - "ISO C99 §7.21: String handling"
         - "DECY-025: String handling HIR/codegen infrastructure"
 
+    DECY-038:
+      title: "Add parser support for switch/case statements"
+      type: feature
+      priority: medium
+      story_points: 3
+      assignee: Claude
+      status: in_progress
+      github_issue: null
+      phase: RED
+      start_date: "2025-10-21"
+
+      description: |
+        Add parser support for C switch/case statements to complete the transpilation pipeline.
+        HIR and codegen infrastructure already exists (HirStatement::Switch, SwitchCase).
+        This ticket adds the parser layer to extract switch statements from C AST.
+
+        C Example: switch (x) { case 1: break; default: break; }
+        Rust Target: match x { 1 => {}, _ => {} }
+
+      requirements:
+        - Parse switch statements (CXCursor_SwitchStmt)
+        - Parse case labels (CXCursor_CaseStmt)
+        - Parse default label (CXCursor_DefaultStmt)
+        - Extract condition expression
+        - Extract case values and bodies
+        - Wire to existing HIR Switch infrastructure
+
+      test_requirements:
+        parser_tests:
+          - test_parse_simple_switch
+          - test_parse_switch_with_multiple_cases
+          - test_parse_switch_with_default
+          - test_parse_switch_with_fallthrough
+          - test_parse_nested_switch
+
+      acceptance_criteria:
+        - "Parser extracts switch statements from C AST"
+        - "Case labels and default extracted correctly"
+        - "Switch condition expression captured"
+        - "Case bodies with statements extracted"
+        - "Wires to existing HIR::Switch"
+        - "Coverage ≥85%"
+        - "0 clippy warnings"
+
+      test_strategy: |
+        RED phase:
+        - Create 5 comprehensive parser tests for switch statements
+        - Tests should FAIL initially (parser doesn't support switch yet)
+
+        GREEN phase:
+        - Add extract_switch_stmt() function
+        - Handle CXCursor_SwitchStmt, CXCursor_CaseStmt, CXCursor_DefaultStmt
+        - Extract condition, cases, default case
+        - Convert to Statement::Switch
+        - Make all tests pass
+
+        REFACTOR phase:
+        - Add property tests
+        - Document switch parsing algorithm
+        - Meet quality gates
+
+      files_to_modify:
+        - crates/decy-parser/src/parser.rs (add switch parsing)
+        - crates/decy-parser/tests/switch_parsing_test.rs (new test file)
+
+      references:
+        - "K&R §3.4: Switch"
+        - "ISO C99 §6.8.4.2: The switch statement"
+        - "Existing HIR: HirStatement::Switch, SwitchCase"
+
     DECY-023:
       title: "[DONE] Type aliases and typedefs"
       type: feature
