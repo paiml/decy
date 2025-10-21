@@ -732,9 +732,9 @@ sprint_3:
 # CURRENT STATUS AND NEXT PRIORITIES
 current_status:
   date: "2025-10-21"
-  sprint_completed: "Sprint 14 (Complete)"
-  current_sprint: "Sprint 15 (Ready to Define)"
-  overall_progress: "Sprint 14: Parser gaps COMPLETE ✅ | Function calls in assignments fixed | Struct parameters verified | Real-world readiness: 97%+ | Ready for next priority"
+  sprint_completed: "Sprint 15 (Complete)"
+  current_sprint: "Sprint 16 (Ready to Define)"
+  overall_progress: "Sprint 15: Quality & Test Hardening COMPLETE ✅ | Mutation score targeting 80-85% | 45 tests added | Real-world readiness: 97%+ | Ready for Sprint 16: Incremental Transpilation"
 
   completed_major_features:
     - "✅ Parser with clang-sys (89.60% coverage)"
@@ -880,10 +880,29 @@ current_status:
       - "Struct parameters verified: struct Node* head works correctly"
     completion_date: "2025-10-21"
 
-  total_sprints_completed: 14
-  total_story_points_delivered: 339  # 334 + 5 (Sprint 14)
-  overall_test_count: "159 parser + 136 HIR + 5 integration"
-  overall_coverage: "Parser: 100%, HIR: 100%"
+  sprint_15_accomplishments:
+    - "✅ DECY-040: Expression visitor edge case tests (3 SP) - 11 tests targeting 9 missed mutants"
+    - "✅ DECY-041: Binary operator test coverage (2 SP) - 10 tests for ==, !=, /, %, <=, >=, *"
+    - "✅ DECY-042: Assignment validation tests (2 SP) - 10 tests for assignment logic"
+    - "✅ DECY-043: Boundary condition tests (2 SP) - 10 tests for boundaries and counters"
+    - "✅ DECY-046: Large C project validation (4 SP) - 4 tests with 7 embedded cases"
+    total_story_points: 13
+    actual_coverage: "90.36%"
+    total_tests: "45 tests added (41 parser + 4 integration) | 303 total workspace tests"
+    property_test_cases: "0 (quality sprint focused on unit/integration tests)"
+    methodology: "EXTREME TDD (RED-GREEN-REFACTOR)"
+    quality_focus:
+      - "Mutation score targeting: 80-85% (from 69.5% baseline)"
+      - "Mutants targeted: 30 (9 expression + 8 operator + 7 assignment + 7 boundary)"
+      - "Real-world validation: 100% success rate (7/7 cases)"
+      - "Performance: ~7,000-8,900 LOC/sec, 1-2ms average"
+      - "Zero edge cases discovered, zero regressions"
+    completion_date: "2025-10-21"
+
+  total_sprints_completed: 15
+  total_story_points_delivered: 352  # 339 + 13 (Sprint 15)
+  overall_test_count: "303 total tests (167 parser + 136 HIR + other crates)"
+  overall_coverage: "Parser: 100%, HIR: 100%, Codegen: 90.36%"
   real_world_readiness: "97%"
 
   next_priorities:
@@ -4526,3 +4545,259 @@ sprint_15:
         - Generated Rust code includes expected functions/structures
 
         DECY-046 DONE ✅
+
+sprint_16:
+  name: "Incremental Transpilation - File-by-File Processing"
+  duration: "2 weeks"
+  start_date: "2025-10-21"
+  goals:
+    - Transpile C projects file-by-file instead of all at once
+    - Maintain C/Rust FFI boundary for incremental adoption
+    - Cache transpiled results for unchanged files
+    - Support partial transpilation (some files C, some Rust)
+    - Enable large project handling without full rewrites
+  story_points: 21
+  priority: high
+
+  motivation: |
+    Real-world C projects are large (10K-1M+ LOC). Full transpilation at once is:
+    - Time-consuming (minutes to hours)
+    - Risky (all-or-nothing approach)
+    - Impractical for gradual migration
+
+    Incremental transpilation enables:
+    - Gradual migration (transpile one module at a time)
+    - Faster iteration (only retranspile changed files)
+    - Mixed C/Rust codebases (FFI boundary management)
+    - Production readiness (real-world adoption path)
+
+  tickets:
+    DECY-047:
+      title: "Implement file-level transpilation infrastructure"
+      type: feature
+      priority: critical
+      story_points: 8
+      assignee: Claude
+      status: not_started
+      github_issue: null
+      phase: RED
+
+      description: |
+        Add infrastructure to transpile C files independently rather than
+        requiring all files to be transpiled together.
+
+        Current: `transpile(source: &str) -> Result<String>`
+        Target: `transpile_file(path: &Path, context: &ProjectContext) -> Result<TranspiledFile>`
+
+        Enable per-file transpilation with:
+        - File-level dependency tracking
+        - Cross-file reference resolution
+        - FFI boundary generation for C→Rust calls
+
+      requirements:
+        - Add TranspiledFile struct (path, rust_code, dependencies)
+        - Add ProjectContext for cross-file info (headers, types, functions)
+        - Implement transpile_file() API
+        - Handle #include directives (track dependencies)
+        - Generate extern "C" declarations for FFI
+        - Support multiple input files
+
+      test_requirements:
+        unit_tests:
+          - test_transpile_single_file
+          - test_transpile_file_with_dependencies
+          - test_project_context_tracks_types
+          - test_project_context_tracks_functions
+          - test_ffi_boundary_generation
+
+        integration_tests:
+          - test_transpile_two_files_with_cross_refs
+          - test_transpile_header_and_implementation
+
+      acceptance_criteria:
+        - "TranspiledFile struct with metadata"
+        - "ProjectContext tracks cross-file references"
+        - "transpile_file() works for single files"
+        - "FFI declarations generated for C↔Rust boundaries"
+        - "Coverage ≥85%"
+        - "0 clippy warnings"
+
+      test_strategy: |
+        RED: Write tests for file-level transpilation API
+        GREEN: Implement TranspiledFile, ProjectContext, transpile_file()
+        REFACTOR: Add property tests, optimize dependency tracking
+
+    DECY-048:
+      title: "Implement dependency tracking and build order"
+      type: feature
+      priority: critical
+      story_points: 5
+      assignee: Claude
+      status: not_started
+      github_issue: null
+      phase: RED
+
+      description: |
+        Track file dependencies and compute build order for transpilation.
+
+        Example:
+        - utils.h defines types
+        - utils.c implements functions
+        - main.c includes utils.h
+
+        Build order: utils.h → utils.c → main.c
+
+      requirements:
+        - Parse #include directives to build dependency graph
+        - Use petgraph for dependency DAG
+        - Implement topological sort for build order
+        - Detect circular dependencies (error)
+        - Support header guards detection
+
+      test_requirements:
+        unit_tests:
+          - test_parse_include_directive
+          - test_build_dependency_graph
+          - test_topological_sort_build_order
+          - test_detect_circular_dependency
+          - test_header_guard_detection
+
+        property_tests:
+          - property_valid_dag_always_has_build_order
+          - property_circular_deps_always_detected
+
+      acceptance_criteria:
+        - "Dependency graph built from #include"
+        - "Topological sort computes build order"
+        - "Circular dependencies detected and reported"
+        - "Coverage ≥85%"
+
+      test_strategy: |
+        RED: Write tests for dependency graph construction
+        GREEN: Implement include parsing, DAG building, topo sort
+        REFACTOR: Add cycle detection, property tests
+
+    DECY-049:
+      title: "Implement transpilation caching for unchanged files"
+      type: feature
+      priority: high
+      story_points: 5
+      assignee: Claude
+      status: not_started
+      github_issue: null
+      phase: RED
+
+      description: |
+        Cache transpilation results to avoid re-transpiling unchanged files.
+        Use file hash (SHA-256) to detect changes.
+
+        Performance impact:
+        - Initial transpilation: 10 files × 2ms = 20ms
+        - With cache (no changes): 10 files × 0.1ms = 1ms (20x faster)
+
+      requirements:
+        - Add TranspilationCache struct
+        - Compute SHA-256 hash of C source files
+        - Store cached TranspiledFile results
+        - Invalidate cache on file changes
+        - Persist cache to disk (.decy/cache/)
+        - Support cache statistics (hits/misses)
+
+      test_requirements:
+        unit_tests:
+          - test_cache_stores_transpiled_file
+          - test_cache_hit_on_unchanged_file
+          - test_cache_miss_on_changed_file
+          - test_cache_invalidation_on_dependency_change
+          - test_cache_persistence_to_disk
+          - test_cache_statistics
+
+        property_tests:
+          - property_cache_deterministic_for_same_content
+          - property_cache_never_returns_stale_results
+
+      acceptance_criteria:
+        - "Cache stores and retrieves TranspiledFile"
+        - "SHA-256 hash detects file changes"
+        - "Cache persists across runs (.decy/cache/)"
+        - "Cache invalidates on dependency changes"
+        - "Coverage ≥85%"
+        - "Performance: 10-20x speedup on cache hits"
+
+      test_strategy: |
+        RED: Write tests for caching behavior
+        GREEN: Implement TranspilationCache with SHA-256 hashing
+        REFACTOR: Add persistence, statistics, property tests
+
+    DECY-050:
+      title: "CLI support for project-level transpilation"
+      type: feature
+      priority: high
+      story_points: 3
+      assignee: Claude
+      status: not_started
+      github_issue: null
+      phase: RED
+
+      description: |
+        Add CLI commands for transpiling entire C projects.
+
+        Commands:
+        - decy transpile-project <dir> -o <output_dir>
+        - decy check-project <dir> (dry-run, show build order)
+        - decy cache-stats <dir> (show cache hit/miss rates)
+
+      requirements:
+        - Add transpile-project subcommand
+        - Walk directory tree finding .c and .h files
+        - Use dependency graph for build order
+        - Support --cache flag (default: enabled)
+        - Support --parallel flag for concurrent transpilation
+        - Output directory structure mirrors input
+        - Progress bar for multi-file transpilation
+
+      test_requirements:
+        cli_contract_tests:
+          - test_cli_transpile_project_exits_zero
+          - test_cli_transpile_project_creates_output_dir
+          - test_cli_transpile_project_preserves_structure
+          - test_cli_check_project_shows_build_order
+          - test_cli_cache_stats_shows_metrics
+
+        integration_tests:
+          - test_transpile_small_project_end_to_end
+          - test_transpile_project_with_dependencies
+
+      acceptance_criteria:
+        - "transpile-project command works"
+        - "Output directory structure mirrors input"
+        - "Progress bar shows transpilation progress"
+        - "Cache statistics displayed"
+        - "Coverage ≥85%"
+        - "CLI contract tests pass"
+
+      test_strategy: |
+        RED: Write CLI contract tests (following CLAUDE.md pattern)
+        GREEN: Implement transpile-project, check-project, cache-stats
+        REFACTOR: Add progress bars, parallel transpilation
+
+  integration_milestone:
+    name: "Transpile small real-world C project"
+    description: "Validate Sprint 16 by transpiling a small C project (e.g., miniz.c or a subset of sqlite)"
+    success_criteria:
+      - "Project transpiles file-by-file successfully"
+      - "Build order computed correctly"
+      - "Cache improves performance by 10x+ on re-run"
+      - "Generated Rust compiles with rustc"
+      - "FFI boundaries work correctly"
+
+  references:
+    - "CLAUDE.md: CLI Contract Testing pattern"
+    - "docs/C-VALIDATION-ROADMAP.yaml: Real-world C validation"
+    - "long_term_roadmap_ideas: Incremental transpilation (HIGH priority)"
+
+  impact:
+    - "Enables gradual C→Rust migration (production-ready)"
+    - "10-20x performance improvement with caching"
+    - "Supports large projects (10K+ LOC)"
+    - "Reduces risk (incremental adoption vs big-bang rewrite)"
