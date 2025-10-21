@@ -49,10 +49,7 @@ fn test_parse_simple_pointer_field_access() {
                 // Verify field name is "value"
                 assert_eq!(field, "value", "Field name should be 'value'");
             }
-            _ => panic!(
-                "Expected PointerFieldAccess expression, got {:?}",
-                expr
-            ),
+            _ => panic!("Expected PointerFieldAccess expression, got {:?}", expr),
         }
     } else {
         panic!("Expected return statement with expression");
@@ -123,7 +120,11 @@ fn test_pointer_vs_direct_field_access() {
     let ast = parser.parse(source).expect("Parsing should succeed");
 
     let func = &ast.functions()[0];
-    assert_eq!(func.body.len(), 3, "Should have 3 statements (2 decls + return)");
+    assert_eq!(
+        func.body.len(),
+        3,
+        "Should have 3 statements (2 decls + return)"
+    );
 
     // First variable: obj.value (direct field access)
     if let decy_parser::parser::Statement::VariableDeclaration {
