@@ -21,6 +21,8 @@ use decy_ownership::{
     lifetime::LifetimeAnalyzer, lifetime_gen::LifetimeAnnotator,
 };
 use decy_parser::parser::CParser;
+use petgraph::graph::{DiGraph, NodeIndex};
+use petgraph::visit::Topo;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
@@ -144,6 +146,195 @@ impl ProjectContext {
             }
         }
         None
+    }
+}
+
+/// Dependency graph for tracking file dependencies and computing build order.
+///
+/// Uses a directed acyclic graph (DAG) to represent file dependencies,
+/// where an edge from A to B means "A depends on B" (A includes B).
+#[derive(Debug, Clone)]
+pub struct DependencyGraph {
+    /// Directed graph where nodes are file paths
+    graph: DiGraph<PathBuf, ()>,
+
+    /// Map from file path to node index for fast lookups
+    path_to_node: HashMap<PathBuf, NodeIndex>,
+}
+
+impl DependencyGraph {
+    /// Create a new empty dependency graph.
+    pub fn new() -> Self {
+        Self {
+            graph: DiGraph::new(),
+            path_to_node: HashMap::new(),
+        }
+    }
+
+    /// Check if the graph is empty (has no files).
+    pub fn is_empty(&self) -> bool {
+        self.graph.node_count() == 0
+    }
+
+    /// Get the number of files in the graph.
+    pub fn file_count(&self) -> usize {
+        self.graph.node_count()
+    }
+
+    /// Check if a file is in the graph.
+    pub fn contains_file(&self, path: &Path) -> bool {
+        self.path_to_node.contains_key(path)
+    }
+
+    /// Add a file to the graph.
+    ///
+    /// If the file already exists, this is a no-op.
+    pub fn add_file(&mut self, path: &Path) {
+        if !self.contains_file(path) {
+            let node = self.graph.add_node(path.to_path_buf());
+            self.path_to_node.insert(path.to_path_buf(), node);
+        }
+    }
+
+    /// Add a dependency relationship: `from` depends on `to`.
+    ///
+    /// Both files must already be added to the graph via `add_file`.
+    pub fn add_dependency(&mut self, from: &Path, to: &Path) {
+        let from_node = *self
+            .path_to_node
+            .get(from)
+            .expect("from file must be added to graph first");
+        let to_node = *self
+            .path_to_node
+            .get(to)
+            .expect("to file must be added to graph first");
+
+        self.graph.add_edge(from_node, to_node, ());
+    }
+
+    /// Check if there is a direct dependency from `from` to `to`.
+    pub fn has_dependency(&self, from: &Path, to: &Path) -> bool {
+        if let (Some(&from_node), Some(&to_node)) =
+            (self.path_to_node.get(from), self.path_to_node.get(to))
+        {
+            self.graph.contains_edge(from_node, to_node)
+        } else {
+            false
+        }
+    }
+
+    /// Compute topological sort to determine build order.
+    ///
+    /// Returns files in the order they should be transpiled (dependencies first).
+    /// Returns an error if there are circular dependencies.
+    pub fn topological_sort(&self) -> Result<Vec<PathBuf>> {
+        // Check for cycles first
+        if petgraph::algo::is_cyclic_directed(&self.graph) {
+            return Err(anyhow::anyhow!(
+                "Circular dependency detected in file dependencies"
+            ));
+        }
+
+        let mut topo = Topo::new(&self.graph);
+        let mut build_order = Vec::new();
+
+        while let Some(node) = topo.next(&self.graph) {
+            if let Some(path) = self.graph.node_weight(node) {
+                build_order.push(path.clone());
+            }
+        }
+
+        // Reverse because we want dependencies before dependents
+        build_order.reverse();
+
+        Ok(build_order)
+    }
+
+    /// Build a dependency graph from a list of C files.
+    ///
+    /// Parses #include directives to build the dependency graph.
+    pub fn from_files(files: &[PathBuf]) -> Result<Self> {
+        let mut graph = Self::new();
+
+        // Add all files first
+        for file in files {
+            graph.add_file(file);
+        }
+
+        // Parse dependencies
+        for file in files {
+            let content = std::fs::read_to_string(file)
+                .with_context(|| format!("Failed to read file: {}", file.display()))?;
+
+            let includes = Self::parse_include_directives(&content);
+
+            // Resolve #include paths relative to the file's directory
+            let file_dir = file.parent().unwrap_or_else(|| Path::new("."));
+
+            for include in includes {
+                let include_path = file_dir.join(&include);
+
+                // Only add dependency if the included file is in our file list
+                if graph.contains_file(&include_path) {
+                    graph.add_dependency(file, &include_path);
+                }
+            }
+        }
+
+        Ok(graph)
+    }
+
+    /// Parse #include directives from C source code.
+    ///
+    /// Returns a list of filenames (e.g., ["utils.h", "stdio.h"]).
+    pub fn parse_include_directives(code: &str) -> Vec<String> {
+        let mut includes = Vec::new();
+
+        for line in code.lines() {
+            let trimmed = line.trim();
+            if trimmed.starts_with("#include") {
+                // Extract filename from #include "file.h" or #include <file.h>
+                if let Some(start) = trimmed.find('"').or_else(|| trimmed.find('<')) {
+                    let end_char = if trimmed.chars().nth(start) == Some('"') {
+                        '"'
+                    } else {
+                        '>'
+                    };
+                    if let Some(end) = trimmed[start + 1..].find(end_char) {
+                        let filename = &trimmed[start + 1..start + 1 + end];
+                        includes.push(filename.to_string());
+                    }
+                }
+            }
+        }
+
+        includes
+    }
+
+    /// Check if a C header file has header guards (#ifndef/#define/#endif).
+    pub fn has_header_guard(path: &Path) -> Result<bool> {
+        let content = std::fs::read_to_string(path)
+            .with_context(|| format!("Failed to read file: {}", path.display()))?;
+
+        let has_ifndef = content.lines().any(|line| {
+            let trimmed = line.trim();
+            trimmed.starts_with("#ifndef") || trimmed.starts_with("#if !defined")
+        });
+
+        let has_define = content
+            .lines()
+            .any(|line| line.trim().starts_with("#define"));
+        let has_endif = content
+            .lines()
+            .any(|line| line.trim().starts_with("#endif"));
+
+        Ok(has_ifndef && has_define && has_endif)
+    }
+}
+
+impl Default for DependencyGraph {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
