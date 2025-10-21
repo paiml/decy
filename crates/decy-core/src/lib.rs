@@ -111,8 +111,10 @@ impl ProjectContext {
 
         // Track exported functions
         for func_name in &file.functions_exported {
-            self.functions
-                .insert(func_name.clone(), file.source_path.to_string_lossy().to_string());
+            self.functions.insert(
+                func_name.clone(),
+                file.source_path.to_string_lossy().to_string(),
+            );
         }
     }
 
@@ -392,9 +394,7 @@ fn extract_function_names(rust_code: &str) -> Vec<String> {
     for line in rust_code.lines() {
         let trimmed = line.trim();
         // Look for "fn function_name(" or "pub fn function_name("
-        if (trimmed.starts_with("fn ") || trimmed.starts_with("pub fn "))
-            && trimmed.contains('(')
-        {
+        if (trimmed.starts_with("fn ") || trimmed.starts_with("pub fn ")) && trimmed.contains('(') {
             let start_idx = if trimmed.starts_with("pub fn ") {
                 7 // length of "pub fn "
             } else {
