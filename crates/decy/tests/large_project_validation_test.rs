@@ -57,7 +57,9 @@ fn validate_c_source(name: &str, source: &str) -> ValidationResult {
 fn test_real_world_validation_suite() {
     let test_cases = vec![
         ("minimal", r#"int main() { return 0; }"#),
-        ("arithmetic", r#"
+        (
+            "arithmetic",
+            r#"
             int add(int a, int b) {
                 return a + b;
             }
@@ -65,8 +67,11 @@ fn test_real_world_validation_suite() {
             int subtract(int a, int b) {
                 return a - b;
             }
-        "#),
-        ("control_flow", r#"
+        "#,
+        ),
+        (
+            "control_flow",
+            r#"
             int max(int a, int b) {
                 if (a > b) {
                     return a;
@@ -84,8 +89,11 @@ fn test_real_world_validation_suite() {
                 }
                 return result;
             }
-        "#),
-        ("linked_list", r#"
+        "#,
+        ),
+        (
+            "linked_list",
+            r#"
             struct Node {
                 int data;
                 struct Node* next;
@@ -100,8 +108,11 @@ fn test_real_world_validation_suite() {
                 }
                 return count;
             }
-        "#),
-        ("array_operations", r#"
+        "#,
+        ),
+        (
+            "array_operations",
+            r#"
             int sum_array(int* arr, int size) {
                 int total;
                 int i;
@@ -118,8 +129,11 @@ fn test_real_world_validation_suite() {
                     buffer[i] = value;
                 }
             }
-        "#),
-        ("pointer_operations", r#"
+        "#,
+        ),
+        (
+            "pointer_operations",
+            r#"
             void swap(int* a, int* b) {
                 int temp;
                 temp = *a;
@@ -134,8 +148,11 @@ fn test_real_world_validation_suite() {
                     return b;
                 }
             }
-        "#),
-        ("nested_structures", r#"
+        "#,
+        ),
+        (
+            "nested_structures",
+            r#"
             struct Point {
                 int x;
                 int y;
@@ -153,7 +170,8 @@ fn test_real_world_validation_suite() {
                 height = r->bottom_right.y - r->top_left.y;
                 return width * height;
             }
-        "#),
+        "#,
+        ),
     ];
 
     let mut results = Vec::new();
@@ -169,7 +187,11 @@ fn test_real_world_validation_suite() {
         println!("Testing: {}", result.file_path);
         println!(
             "  Status: {}",
-            if result.success { "✅ PASS" } else { "❌ FAIL" }
+            if result.success {
+                "✅ PASS"
+            } else {
+                "❌ FAIL"
+            }
         );
         println!("  Time: {}ms", result.transpilation_time_ms);
         println!("  LOC: {}", result.lines_of_code);
@@ -266,7 +288,10 @@ fn test_transpilation_performance_baseline() {
 
     let avg_time_ms = total_time.as_millis() / iterations;
 
-    println!("Performance baseline: {}ms average over {} iterations", avg_time_ms, iterations);
+    println!(
+        "Performance baseline: {}ms average over {} iterations",
+        avg_time_ms, iterations
+    );
 
     // Performance acceptance: Should complete in under 10ms on average
     assert!(
@@ -329,18 +354,29 @@ fn test_complex_real_world_example() {
     let result = transpile(source);
     let duration = start.elapsed();
 
-    assert!(result.is_ok(), "Complex example should transpile successfully");
+    assert!(
+        result.is_ok(),
+        "Complex example should transpile successfully"
+    );
 
     let rust_code = result.unwrap();
 
     // Verify expected functions are present
-    assert!(rust_code.contains("fn list_length"), "Should have list_length function");
+    assert!(
+        rust_code.contains("fn list_length"),
+        "Should have list_length function"
+    );
     assert!(rust_code.contains("fn swap"), "Should have swap function");
-    assert!(rust_code.contains("fn binary_search"), "Should have binary_search function");
+    assert!(
+        rust_code.contains("fn binary_search"),
+        "Should have binary_search function"
+    );
 
     // Verify struct definition
-    assert!(rust_code.contains("struct Node") || rust_code.contains("pub struct Node"),
-            "Should have Node struct definition");
+    assert!(
+        rust_code.contains("struct Node") || rust_code.contains("pub struct Node"),
+        "Should have Node struct definition"
+    );
 
     println!("Complex example transpiled in {:?}", duration);
     println!("Generated {} lines of Rust code", rust_code.lines().count());

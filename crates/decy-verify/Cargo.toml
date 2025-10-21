@@ -12,7 +12,7 @@ categories.workspace = true
 description = "Safety property verification for transpiled Rust code"
 
 [dependencies]
-decy-hir = { path = "../decy-hir" }
+decy-hir = { version = "0.2.0", path = "../decy-hir" }
 syn = { workspace = true, features = ["visit"] }
 quote.workspace = true
 proc-macro2.workspace = true
