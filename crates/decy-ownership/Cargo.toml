@@ -12,8 +12,8 @@ categories.workspace = true
 description = "Ownership and lifetime inference for C-to-Rust conversion (CRITICAL)"
 
 [dependencies]
-decy-hir = { path = "../decy-hir" }
-decy-analyzer = { path = "../decy-analyzer" }
+decy-hir = { version = "0.2.0", path = "../decy-hir" }
+decy-analyzer = { version = "0.2.0", path = "../decy-analyzer" }
 petgraph.workspace = true
 anyhow.workspace = true
 thiserror.workspace = true
