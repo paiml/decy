@@ -61,9 +61,8 @@ fn test_typedef_struct() {
 }
 
 #[test]
-#[ignore]
 fn test_typedef_named_struct() {
-    // RED: Test that named struct typedef is parsed
+    // Test that named struct typedef is parsed
     let parser = CParser::new().expect("Parser creation failed");
     let source = "typedef struct Point { int x; int y; } Point;";
 
@@ -110,9 +109,8 @@ fn test_typedef_multiple_declarations() {
 }
 
 #[test]
-#[ignore]
 fn test_typedef_with_function() {
-    // RED: Test that typedefs work alongside functions
+    // Test that typedefs work alongside functions
     let parser = CParser::new().expect("Parser creation failed");
     let source = r#"
         typedef int MyInt;
@@ -133,9 +131,8 @@ fn test_typedef_with_function() {
 }
 
 #[test]
-#[ignore]
 fn test_typedef_unsigned() {
-    // RED: Test that unsigned typedef is parsed
+    // Test that unsigned typedef is parsed
     let parser = CParser::new().expect("Parser creation failed");
     let source = "typedef unsigned int uint;";
 
@@ -148,9 +145,8 @@ fn test_typedef_unsigned() {
 }
 
 #[test]
-#[ignore]
 fn test_typedef_const() {
-    // RED: Test that const typedef is parsed
+    // Test that const typedef is parsed
     let parser = CParser::new().expect("Parser creation failed");
     let source = "typedef const char* ConstString;";
 
@@ -163,9 +159,8 @@ fn test_typedef_const() {
 }
 
 #[test]
-#[ignore]
 fn test_typedef_array() {
-    // RED: Test that array typedef is parsed
+    // Test that array typedef is parsed
     let parser = CParser::new().expect("Parser creation failed");
     let source = "typedef int IntArray[10];";
 
