@@ -2925,9 +2925,9 @@ sprint_13:
       priority: critical
       story_points: 3
       assignee: Claude
-      status: not_started
+      status: in_progress
       github_issue: null
-      phase: null
+      phase: RED
 
       description: |
         Fix critical parser bug where struct field access via pointer dereference
