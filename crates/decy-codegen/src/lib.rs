@@ -628,6 +628,9 @@ impl CodeGenerator {
                     format!("fn({}) -> {}", params_str, Self::map_type(return_type))
                 }
             }
+            HirType::StringLiteral => "&str".to_string(),
+            HirType::OwnedString => "String".to_string(),
+            HirType::StringReference => "&str".to_string(),
         }
     }
 
@@ -1054,6 +1057,29 @@ impl CodeGenerator {
                     self.generate_expression_with_context(pointer, ctx)
                 }
             }
+            HirExpression::StringMethodCall {
+                receiver,
+                method,
+                arguments,
+            } => {
+                let receiver_code = self.generate_expression_with_context(receiver, ctx);
+                if arguments.is_empty() {
+                    format!("{}.{}()", receiver_code, method)
+                } else {
+                    let args: Vec<String> = arguments
+                        .iter()
+                        .map(|arg| {
+                            // For clone_into, we need &mut on the destination
+                            if method == "clone_into" {
+                                format!("&mut {}", self.generate_expression_with_context(arg, ctx))
+                            } else {
+                                self.generate_expression_with_context(arg, ctx)
+                            }
+                        })
+                        .collect();
+                    format!("{}.{}({})", receiver_code, method, args.join(", "))
+                }
+            }
         }
     }
 
@@ -1138,6 +1164,18 @@ impl CodeGenerator {
                 // Function pointers cannot have meaningful default values
                 // They must be initialized with an actual function
                 panic!("Function pointers must be initialized and cannot have default values")
+            }
+            HirType::StringLiteral => {
+                // String literals default to empty string slice
+                r#""""#.to_string()
+            }
+            HirType::OwnedString => {
+                // Owned strings default to String::new()
+                "String::new()".to_string()
+            }
+            HirType::StringReference => {
+                // String references default to empty string slice
+                r#""""#.to_string()
             }
         }
     }
@@ -1837,6 +1875,9 @@ impl CodeGenerator {
                 // This should be handled by the function body
                 String::new()
             }
+            HirType::StringLiteral => r#"    return "";"#.to_string(),
+            HirType::OwnedString => "    return String::new();".to_string(),
+            HirType::StringReference => r#"    return "";"#.to_string(),
         }
     }
 

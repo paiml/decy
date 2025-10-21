@@ -43,11 +43,10 @@ fn test_codegen_string_reference_type() {
 #[test]
 fn test_codegen_string_literal_expression() {
     // Test that string literal expression generates Rust string literal
-    let expr = HirExpression::StringLiteral {
-        value: "Hello, world!".to_string(),
-    };
+    let expr = HirExpression::StringLiteral("Hello, world!".to_string());
 
-    let rust_code = CodeGenerator::generate_expression(&expr);
+    let codegen = CodeGenerator::new();
+    let rust_code = codegen.generate_expression(&expr);
 
     assert_eq!(
         rust_code, r#""Hello, world!""#,
@@ -59,14 +58,13 @@ fn test_codegen_string_literal_expression() {
 fn test_codegen_strlen_to_len() {
     // Test that strlen(s) generates s.len()
     let strlen_expr = HirExpression::StringMethodCall {
-        receiver: Box::new(HirExpression::Variable {
-            name: "s".to_string(),
-        }),
+        receiver: Box::new(HirExpression::Variable("s".to_string())),
         method: "len".to_string(),
         arguments: vec![],
     };
 
-    let rust_code = CodeGenerator::generate_expression(&strlen_expr);
+    let codegen = CodeGenerator::new();
+    let rust_code = codegen.generate_expression(&strlen_expr);
 
     assert_eq!(rust_code, "s.len()", "strlen should become .len()");
 }
@@ -75,16 +73,13 @@ fn test_codegen_strlen_to_len() {
 fn test_codegen_strcmp_to_equality() {
     // Test that strcmp(s1, s2) generates s1 == s2
     let strcmp_expr = HirExpression::BinaryOp {
-        left: Box::new(HirExpression::Variable {
-            name: "s1".to_string(),
-        }),
-        operator: decy_hir::BinaryOperator::Equal,
-        right: Box::new(HirExpression::Variable {
-            name: "s2".to_string(),
-        }),
+        left: Box::new(HirExpression::Variable("s1".to_string())),
+        op: decy_hir::BinaryOperator::Equal,
+        right: Box::new(HirExpression::Variable("s2".to_string())),
     };
 
-    let rust_code = CodeGenerator::generate_expression(&strcmp_expr);
+    let codegen = CodeGenerator::new();
+    let rust_code = codegen.generate_expression(&strcmp_expr);
 
     assert_eq!(
         rust_code, "s1 == s2",
@@ -96,16 +91,13 @@ fn test_codegen_strcmp_to_equality() {
 fn test_codegen_strcpy_to_clone_into() {
     // Test that strcpy(dst, src) generates src.clone_into(&mut dst)
     let strcpy_expr = HirExpression::StringMethodCall {
-        receiver: Box::new(HirExpression::Variable {
-            name: "src".to_string(),
-        }),
+        receiver: Box::new(HirExpression::Variable("src".to_string())),
         method: "clone_into".to_string(),
-        arguments: vec![HirExpression::Variable {
-            name: "dst".to_string(),
-        }],
+        arguments: vec![HirExpression::Variable("dst".to_string())],
     };
 
-    let rust_code = CodeGenerator::generate_expression(&strcpy_expr);
+    let codegen = CodeGenerator::new();
+    let rust_code = codegen.generate_expression(&strcpy_expr);
 
     assert_eq!(
         rust_code, "src.clone_into(&mut dst)",
@@ -117,14 +109,13 @@ fn test_codegen_strcpy_to_clone_into() {
 fn test_codegen_strdup_to_to_string() {
     // Test that strdup(s) generates s.to_string()
     let strdup_expr = HirExpression::StringMethodCall {
-        receiver: Box::new(HirExpression::Variable {
-            name: "s".to_string(),
-        }),
+        receiver: Box::new(HirExpression::Variable("s".to_string())),
         method: "to_string".to_string(),
         arguments: vec![],
     };
 
-    let rust_code = CodeGenerator::generate_expression(&strdup_expr);
+    let codegen = CodeGenerator::new();
+    let rust_code = codegen.generate_expression(&strdup_expr);
 
     assert_eq!(
         rust_code, "s.to_string()",
@@ -139,14 +130,14 @@ fn test_codegen_const_char_pointer_parameter() {
 
     let param = HirParameter::new("msg".to_string(), HirType::StringReference);
 
-    let func = HirFunction {
-        name: "print_message".to_string(),
-        parameters: vec![param],
-        return_type: HirType::Void,
-        body: vec![],
-    };
+    let func = HirFunction::new(
+        "print_message".to_string(),
+        HirType::Void,
+        vec![param],
+    );
 
-    let rust_code = CodeGenerator::generate_function(&func);
+    let codegen = CodeGenerator::new();
+    let rust_code = codegen.generate_function(&func);
 
     assert!(
         rust_code.contains("msg: &str"),
@@ -161,14 +152,14 @@ fn test_codegen_owned_char_pointer_parameter() {
 
     let param = HirParameter::new("buffer".to_string(), HirType::OwnedString);
 
-    let func = HirFunction {
-        name: "process_buffer".to_string(),
-        parameters: vec![param],
-        return_type: HirType::Void,
-        body: vec![],
-    };
+    let func = HirFunction::new(
+        "process_buffer".to_string(),
+        HirType::Void,
+        vec![param],
+    );
 
-    let rust_code = CodeGenerator::generate_function(&func);
+    let codegen = CodeGenerator::new();
+    let rust_code = codegen.generate_function(&func);
 
     assert!(
         rust_code.contains("buffer: String"),

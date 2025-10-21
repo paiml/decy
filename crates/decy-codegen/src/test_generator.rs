@@ -434,6 +434,9 @@ expected_kill_rate = 0.90
                 // Return a placeholder for test generation
                 "todo!(\"Provide function pointer\")".to_string()
             }
+            HirType::StringLiteral => r#""test string""#.to_string(),
+            HirType::OwnedString => r#"String::from("test string")"#.to_string(),
+            HirType::StringReference => r#""test string""#.to_string(),
         }
     }
 }

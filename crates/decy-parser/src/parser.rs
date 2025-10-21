@@ -2328,6 +2328,37 @@ pub enum Statement {
         /// Value expression
         value: Expression,
     },
+    /// Function call statement: `strlen(s);`, `strcpy(dst, src);`
+    FunctionCall {
+        /// Function name
+        function: String,
+        /// Arguments
+        arguments: Vec<Expression>,
+    },
+}
+
+impl Statement {
+    /// Check if this statement is a string function call.
+    pub fn is_string_function_call(&self) -> bool {
+        match self {
+            Statement::FunctionCall { function, .. } => {
+                matches!(function.as_str(), "strlen" | "strcmp" | "strcpy" | "strdup")
+            }
+            _ => false,
+        }
+    }
+
+    /// Check if this statement is a function call.
+    pub fn is_function_call(&self) -> bool {
+        matches!(self, Statement::FunctionCall { .. })
+    }
+
+    /// Convert this statement to a function call expression if it is one.
+    pub fn as_function_call(&self) -> Option<&Expression> {
+        // TODO: Return proper Expression reference
+        // For now, return None to make tests compile
+        None
+    }
 }
 
 /// Unary operators for C expressions.
@@ -2450,6 +2481,38 @@ pub enum Expression {
         /// Type name as a string (e.g., "int", "struct Data")
         type_name: String,
     },
+}
+
+impl Expression {
+    /// Check if this expression is a string function call (strlen, strcmp, strcpy, strdup).
+    pub fn is_string_function_call(&self) -> bool {
+        match self {
+            Expression::FunctionCall { function, .. } => {
+                matches!(function.as_str(), "strlen" | "strcmp" | "strcpy" | "strdup")
+            }
+            _ => false,
+        }
+    }
+
+    /// Get the string function name if this is a string function call.
+    pub fn string_function_name(&self) -> Option<&str> {
+        match self {
+            Expression::FunctionCall { function, .. } if self.is_string_function_call() => {
+                Some(function.as_str())
+            }
+            _ => None,
+        }
+    }
+
+    /// Check if this expression has a string literal argument.
+    pub fn has_string_literal_argument(&self) -> bool {
+        match self {
+            Expression::FunctionCall { arguments, .. } => {
+                arguments.iter().any(|arg| matches!(arg, Expression::StringLiteral(_)))
+            }
+            _ => false,
+        }
+    }
 }
 
 /// Represents a C typedef declaration.
@@ -2615,6 +2678,27 @@ impl Variable {
             Type::FunctionPointer { return_type, .. } => matches!(**return_type, Type::Void),
             _ => false,
         }
+    }
+
+    /// Check if this variable is a string literal (const char* with literal initializer).
+    pub fn is_string_literal(&self) -> bool {
+        // TODO: Implement string literal detection
+        // For now, return false to make tests compile
+        false
+    }
+
+    /// Check if this variable is a string buffer (char* allocated with malloc).
+    pub fn is_string_buffer(&self) -> bool {
+        // TODO: Implement string buffer detection
+        // For now, return false to make tests compile
+        false
+    }
+
+    /// Get the initializer expression for this variable.
+    pub fn initializer(&self) -> Option<&Expression> {
+        // TODO: Add initializer field to Variable struct
+        // For now, return None to make tests compile
+        None
     }
 }
 
@@ -2865,6 +2949,13 @@ impl Parameter {
     /// Check if this parameter is a function pointer.
     pub fn is_function_pointer(&self) -> bool {
         matches!(self.param_type, Type::FunctionPointer { .. })
+    }
+
+    /// Check if this parameter is a const char pointer (const char*).
+    pub fn is_const_char_pointer(&self) -> bool {
+        // TODO: Implement const detection (requires Type to track const qualifier)
+        // For now, check if it's a pointer to char
+        matches!(self.param_type, Type::Pointer(ref inner) if matches!(**inner, Type::Char))
     }
 }
 
