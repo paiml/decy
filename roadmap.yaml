@@ -2866,21 +2866,21 @@ sprint_10:
     - String handling improvements (DECY-025)
   story_points: 19
   story_points_breakdown:
-    DECY-023: 3 (Type aliases)
+    DECY-023: 3 (Type aliases) - RED phase
     DECY-024: 8 (Function pointers)
     DECY-025: 8 (String handling)
-  status: not_started
+  status: in_progress
 
   tickets:
     DECY-023:
-      title: "[NOT STARTED] Type aliases and typedefs"
+      title: "[RED] Type aliases and typedefs"
       type: feature
       priority: high
       story_points: 3
       assignee: Claude
-      status: not_started
+      status: in_progress
       github_issue: null
-      phase: NOT_STARTED
+      phase: RED
 
       description: |
         Add support for C typedef declarations, transpiling them to Rust type aliases.
