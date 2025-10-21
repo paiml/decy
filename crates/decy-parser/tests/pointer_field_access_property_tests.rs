@@ -13,8 +13,24 @@ use proptest::prelude::*;
 
 prop_compose! {
     /// Generate a valid C identifier (struct/field/variable name)
+    /// Excludes C keywords to avoid syntax errors
     fn valid_identifier()(s in "[a-z][a-z0-9_]{0,10}") -> String {
-        s
+        // C keywords that must be avoided
+        const C_KEYWORDS: &[&str] = &[
+            "if", "else", "for", "while", "do", "switch", "case", "default",
+            "break", "continue", "return", "goto",
+            "int", "char", "float", "double", "void", "long", "short", "signed", "unsigned",
+            "struct", "union", "enum", "typedef",
+            "const", "volatile", "static", "extern", "auto", "register",
+            "sizeof", "typeof",
+        ];
+
+        // If generated string is a keyword, append "_var" to make it valid
+        if C_KEYWORDS.contains(&s.as_str()) {
+            format!("{}_var", s)
+        } else {
+            s
+        }
     }
 }
 

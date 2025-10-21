@@ -37,11 +37,7 @@ fn test_parse_unary_minus() {
     if let decy_parser::parser::Statement::Return(Some(expr)) = &func.body[0] {
         match expr {
             Expression::UnaryOp { op, operand } => {
-                assert_eq!(
-                    *op,
-                    UnaryOperator::Minus,
-                    "Operator should be unary minus"
-                );
+                assert_eq!(*op, UnaryOperator::Minus, "Operator should be unary minus");
 
                 // Operand should be a variable reference to "x"
                 assert!(
@@ -118,10 +114,7 @@ fn test_parse_bitwise_not() {
                     op
                 );
             }
-            _ => panic!(
-                "Expected UnaryOp expression for ~bits, got {:?}",
-                expr
-            ),
+            _ => panic!("Expected UnaryOp expression for ~bits, got {:?}", expr),
         }
     } else {
         panic!("Expected return statement");
@@ -147,9 +140,7 @@ fn test_parse_address_of_operator() {
         // This will likely fail - AddressOf not in Expression enum
         // Check for either AddressOf variant or UnaryOp with AddressOf operator
         let is_address_of = match expr {
-            Expression::UnaryOp { op, .. } => {
-                format!("{:?}", op).contains("AddressOf")
-            }
+            Expression::UnaryOp { op, .. } => format!("{:?}", op).contains("AddressOf"),
             _ => format!("{:?}", expr).contains("AddressOf"),
         };
 
