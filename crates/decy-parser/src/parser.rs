@@ -2342,7 +2342,10 @@ fn extract_field_access(cursor: CXCursor) -> Option<Expression> {
 
     let mut is_arrow = false;
 
-    // Look through tokens to find '->' or '.'
+    // Look through tokens to find the LAST '->' or '.' operator
+    // (the rightmost operator is the one for this specific MemberRefExpr)
+    // For nested access like r->bottom_right.x, the extent includes all tokens,
+    // so we need the last operator, not the first
     for i in 0..num_tokens {
         unsafe {
             let token = *tokens.add(i as usize);
@@ -2354,12 +2357,10 @@ fn extract_field_access(cursor: CXCursor) -> Option<Expression> {
                 if let Ok(token_str) = c_str.to_str() {
                     if token_str == "->" {
                         is_arrow = true;
-                        clang_disposeString(token_cxstring);
-                        break;
+                        // Don't break - keep looking for later operators
                     } else if token_str == "." {
                         is_arrow = false;
-                        clang_disposeString(token_cxstring);
-                        break;
+                        // Don't break - keep looking for later operators
                     }
                 }
                 clang_disposeString(token_cxstring);
