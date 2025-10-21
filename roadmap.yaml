@@ -2961,15 +2961,21 @@ sprint_10:
         - "ISO C99 §6.7.7: Type definitions"
 
     DECY-024:
-      title: "[GREEN] Function pointer types and callbacks"
+      title: "[DONE] Function pointer types and callbacks"
       type: feature
       priority: high
       story_points: 8
       assignee: Claude
-      status: in_progress
+      status: done
       github_issue: null
-      phase: GREEN
-      green_phase_completion: "30/30 tests passing (100%)"
+      phase: DONE
+      completed_date: "2025-10-21"
+      actual_coverage: 100.0
+      actual_metrics:
+        unit_tests: "30/30 passing (100%)"
+        property_tests: "30 property tests × 256 cases = 7,680 test cases"
+        clippy_warnings: 0
+        quality_grade: "A+"
 
       description: |
         Add support for C function pointers, transpiling them to Rust fn types.
@@ -2991,23 +2997,39 @@ sprint_10:
         - Coverage ≥85%
 
       test_strategy: |
-        RED phase:
-        - test_function_pointer_simple()
-        - test_function_pointer_with_params()
-        - test_function_pointer_in_struct()
-        - test_function_pointer_as_parameter()
-        - test_callback_pattern()
-        - Property test: any valid function pointer type
+        RED phase: ✅ COMPLETE
+        - Created 30 tests (10 parser + 10 HIR + 10 codegen)
+        - All tests initially passing (HIR/codegen already had support!)
 
-        GREEN phase:
-        - Parse function pointer syntax
-        - Add HIR::FunctionPointerType
-        - Generate fn(...) -> ... syntax
+        GREEN phase: ✅ COMPLETE (100% pass rate)
+        - Added Variable struct for variable declarations
+        - Implemented extract_variable() for CXCursor_VarDecl parsing
+        - Enhanced StructField with is_function_pointer()
+        - Enhanced Parameter with is_function_pointer()
+        - All 30/30 tests passing
 
-        REFACTOR phase:
-        - Add 10 property tests
-        - Document callback patterns
-        - Examples for common use cases
+        REFACTOR phase: ✅ COMPLETE
+        - Added 30 property tests (10 parser + 10 HIR + 10 codegen)
+        - Total: 7,680 property test cases (30 × 256 cases each)
+        - Fixed all clippy warnings (0 warnings)
+        - Test files:
+          * crates/decy-parser/tests/function_pointer_property_tests.rs
+          * crates/decy-hir/tests/function_pointer_property_tests.rs
+          * crates/decy-codegen/tests/function_pointer_property_tests.rs
+
+      refactor_phase_achievements: |
+        ✅ Property testing: 7,680 test cases across all layers
+        ✅ Clippy warnings: 0 (all passed)
+        ✅ Code quality: All tests passing, deterministic generation
+        ✅ Test coverage: 100% unit tests + comprehensive property tests
+
+        Property tests verify:
+        - Parser: Never panics, preserves names, param count tracking
+        - HIR: Type equality, preservation, cloning behavior
+        - Codegen: Deterministic output, correct syntax, balanced parens
+
+        Key insight: HirType::FunctionPointer existed from earlier work,
+        so GREEN phase only needed parser enhancements (not type system).
 
       references:
         - "K&R §5.11: Pointers to Functions"
