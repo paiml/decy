@@ -4106,7 +4106,9 @@ sprint_15:
       assignee: Claude
       status: in_progress
       github_issue: null
-      phase: RED
+      phase: GREEN
+      red_phase_date: "2025-10-21"
+      green_phase_date: "2025-10-21"
 
       description: |
         Add comprehensive edge case tests for expression visitors to improve
@@ -4160,6 +4162,34 @@ sprint_15:
       references:
         - "Mutation testing report: 9 missed mutants in expression visitors"
         - "cargo mutants report from 2025-10-14"
+
+      red_phase_achievements: |
+        ✅ RED phase complete: Created 11 comprehensive tests
+        - test_if_condition_with_function_call
+        - test_if_condition_with_variable_reference
+        - test_if_condition_with_integer_literal
+        - test_if_condition_with_binary_operation
+        - test_while_condition_with_function_call
+        - test_while_condition_with_comparison
+        - test_for_loop_with_variable_in_condition
+        - test_for_loop_increment_with_assignment
+        - test_nested_if_with_different_expression_types
+        - test_expression_with_dereference_in_condition
+        - test_expression_with_array_index_in_condition
+
+        Tests: 11/11 passing
+        Coverage: 90.36%
+        Clippy: 0 warnings
+
+      green_phase_achievements: |
+        ✅ GREEN phase complete: Verified implementation correctness
+        - All 11 tests pass with current implementation
+        - Tests exercise expression visitor match arms correctly
+        - Zero regressions in 269 parser tests
+        - Tests cover: function calls, variables, literals, binary ops,
+          dereference, array indexing in if/while/for conditions
+
+        Next: REFACTOR phase (run mutation testing to confirm score improvement)
 
     DECY-041:
       title: "Comprehensive binary operator test coverage"
