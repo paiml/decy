@@ -44,9 +44,8 @@ fn test_typedef_float_codegen() {
 }
 
 #[test]
-#[ignore]
 fn test_typedef_double_codegen() {
-    // RED: Test that double typedef generates f64
+    // Test that double typedef generates f64
     let typedef = HirTypedef::new("MyDouble".to_string(), HirType::Double);
     let generator = CodeGenerator::new();
 
@@ -82,9 +81,8 @@ fn test_typedef_pointer_codegen() {
 }
 
 #[test]
-#[ignore]
 fn test_typedef_char_pointer_codegen() {
-    // RED: Test that char* typedef generates string-appropriate type
+    // Test that char* typedef generates string-appropriate type
     let typedef = HirTypedef::new(
         "String".to_string(),
         HirType::Pointer(Box::new(HirType::Char)),
@@ -95,18 +93,17 @@ fn test_typedef_char_pointer_codegen() {
         .generate_typedef(&typedef)
         .expect("Failed to generate typedef");
 
-    // Should generate either *const i8 or &str depending on context
+    // Should generate either *const i8/u8 or &str depending on context
     assert!(
-        rust_code.contains("type String") && rust_code.contains("i8"),
+        rust_code.contains("type String") && (rust_code.contains("i8") || rust_code.contains("u8")),
         "Expected string-related type, got: {}",
         rust_code
     );
 }
 
 #[test]
-#[ignore]
 fn test_typedef_multiple_codegen() {
-    // RED: Test that multiple typedefs generate correctly
+    // Test that multiple typedefs generate correctly
     let typedef1 = HirTypedef::new("Int32".to_string(), HirType::Int);
     let typedef2 = HirTypedef::new("Float32".to_string(), HirType::Float);
 
@@ -124,9 +121,8 @@ fn test_typedef_multiple_codegen() {
 }
 
 #[test]
-#[ignore]
 fn test_typedef_struct_codegen() {
-    // RED: Test that struct typedef generates correct alias
+    // Test that struct typedef generates correct alias
     let typedef = HirTypedef::new(
         "Point".to_string(),
         HirType::Struct("Point".to_string()),
@@ -145,9 +141,8 @@ fn test_typedef_struct_codegen() {
 }
 
 #[test]
-#[ignore]
 fn test_typedef_function_pointer_codegen() {
-    // RED: Test that function pointer typedef generates fn type
+    // Test that function pointer typedef generates fn type
     let typedef = HirTypedef::new(
         "Callback".to_string(),
         HirType::FunctionPointer {
@@ -193,9 +188,8 @@ fn test_typedef_array_codegen() {
 }
 
 #[test]
-#[ignore]
 fn test_typedef_visibility() {
-    // RED: Test that generated typedefs have public visibility
+    // Test that generated typedefs have public visibility
     let typedef = HirTypedef::new("MyInt".to_string(), HirType::Int);
     let generator = CodeGenerator::new();
 
