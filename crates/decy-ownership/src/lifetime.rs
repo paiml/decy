@@ -293,10 +293,16 @@ impl LifetimeAnalyzer {
                 self.expression_uses_variable(pointer, var_name)
                     || self.expression_uses_variable(new_size, var_name)
             }
-            HirExpression::StringMethodCall { receiver, arguments, .. } => {
+            HirExpression::StringMethodCall {
+                receiver,
+                arguments,
+                ..
+            } => {
                 // Check if receiver or any arguments use the variable
                 self.expression_uses_variable(receiver, var_name)
-                    || arguments.iter().any(|arg| self.expression_uses_variable(arg, var_name))
+                    || arguments
+                        .iter()
+                        .any(|arg| self.expression_uses_variable(arg, var_name))
             }
         }
     }
