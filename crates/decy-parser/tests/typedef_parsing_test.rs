@@ -26,9 +26,8 @@ fn test_typedef_simple_int() {
 }
 
 #[test]
-#[ignore]
 fn test_typedef_pointer() {
-    // RED: Test that pointer typedef is parsed
+    // Test that pointer typedef is parsed
     let parser = CParser::new().expect("Parser creation failed");
     let source = "typedef int* IntPtr;";
 
@@ -42,9 +41,8 @@ fn test_typedef_pointer() {
 }
 
 #[test]
-#[ignore]
 fn test_typedef_struct() {
-    // RED: Test that struct typedef is parsed
+    // Test that struct typedef is parsed
     let parser = CParser::new().expect("Parser creation failed");
     let source = r#"
         typedef struct {
@@ -78,9 +76,8 @@ fn test_typedef_named_struct() {
 }
 
 #[test]
-#[ignore]
 fn test_typedef_function_pointer() {
-    // RED: Test that function pointer typedef is parsed
+    // Test that function pointer typedef is parsed
     let parser = CParser::new().expect("Parser creation failed");
     let source = "typedef int (*Callback)(int, int);";
 
@@ -94,9 +91,8 @@ fn test_typedef_function_pointer() {
 }
 
 #[test]
-#[ignore]
 fn test_typedef_multiple_declarations() {
-    // RED: Test that multiple typedefs are parsed
+    // Test that multiple typedefs are parsed
     let parser = CParser::new().expect("Parser creation failed");
     let source = r#"
         typedef int MyInt;
