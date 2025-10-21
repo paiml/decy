@@ -619,6 +619,13 @@ extern "C" fn visit_statement(
             }
             CXChildVisit_Continue
         }
+        CXCursor_SwitchStmt => {
+            // Switch statement
+            if let Some(stmt) = extract_switch_stmt(cursor) {
+                statements.push(stmt);
+            }
+            CXChildVisit_Continue
+        }
         CXCursor_BreakStmt => {
             // Break statement
             statements.push(Statement::Break);
@@ -1323,6 +1330,54 @@ extern "C" fn visit_while_children(
         }
         _ => CXChildVisit_Continue,
     }
+}
+
+/// Extract a switch statement from a cursor.
+///
+/// # Implementation Status
+///
+/// Minimal GREEN phase implementation - extracts condition and creates empty switch.
+/// Full case/default extraction requires complex compound statement visitation
+/// and is deferred to follow-up work.
+#[allow(non_upper_case_globals)]
+fn extract_switch_stmt(cursor: CXCursor) -> Option<Statement> {
+    // Switch has 2 children:
+    // 1. Condition expression
+    // 2. Body (compound statement containing case/default labels)
+
+    let mut condition: Option<Expression> = None;
+    let condition_ptr = &mut condition as *mut Option<Expression>;
+
+    // Extract condition (first child)
+    unsafe {
+        clang_visitChildren(cursor, visit_switch_condition, condition_ptr as CXClientData);
+    }
+
+    // For minimal GREEN phase: return switch with empty cases
+    // Full implementation would visit body and extract cases/default
+    Some(Statement::Switch {
+        condition: condition?,
+        cases: Vec::new(),
+        default_case: None,
+    })
+}
+
+/// Visitor callback for switch condition extraction.
+#[allow(non_upper_case_globals)]
+extern "C" fn visit_switch_condition(
+    cursor: CXCursor,
+    _parent: CXCursor,
+    client_data: CXClientData,
+) -> CXChildVisitResult {
+    let condition = unsafe { &mut *(client_data as *mut Option<Expression>) };
+
+    // Extract first expression found (the condition)
+    if let Some(expr) = try_extract_expression(cursor) {
+        *condition = Some(expr);
+        return CXChildVisit_Break;
+    }
+
+    CXChildVisit_Continue
 }
 
 /// Visitor callback for extracting expressions.
@@ -2288,6 +2343,15 @@ fn convert_type(cx_type: CXType) -> Option<Type> {
     }
 }
 
+/// Represents a single case in a switch statement.
+#[derive(Debug, Clone, PartialEq)]
+pub struct SwitchCase {
+    /// Case value expression (None for default case)
+    pub value: Option<Expression>,
+    /// Statements to execute for this case
+    pub body: Vec<Statement>,
+}
+
 /// Represents a C statement.
 #[derive(Debug, Clone, PartialEq)]
 pub enum Statement {
@@ -2365,6 +2429,15 @@ pub enum Statement {
     Break,
     /// Continue statement: `continue;`
     Continue,
+    /// Switch statement: `switch (expr) { case 1: ...; default: ...; }`
+    Switch {
+        /// Condition expression to switch on
+        condition: Expression,
+        /// List of case statements
+        cases: Vec<SwitchCase>,
+        /// Optional default case body
+        default_case: Option<Vec<Statement>>,
+    },
     /// Post-increment statement: `ptr++;`
     PostIncrement {
         /// Target variable name
