@@ -57,6 +57,7 @@ rayon = "1.8"
 # Testing
 proptest = "1.4"
 criterion = "0.5"
+tempfile = "3.8"
 
 # Error handling
 anyhow = "1.0"

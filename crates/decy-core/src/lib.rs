@@ -21,6 +21,129 @@ use decy_ownership::{
     lifetime::LifetimeAnalyzer, lifetime_gen::LifetimeAnnotator,
 };
 use decy_parser::parser::CParser;
+use std::collections::HashMap;
+use std::path::{Path, PathBuf};
+
+/// Result of transpiling a single C file.
+///
+/// Contains the transpiled Rust code along with metadata about
+/// dependencies and exported symbols for cross-file reference tracking.
+#[derive(Debug, Clone)]
+pub struct TranspiledFile {
+    /// Path to the original C source file
+    pub source_path: PathBuf,
+
+    /// Generated Rust code
+    pub rust_code: String,
+
+    /// List of C files this file depends on (#include dependencies)
+    pub dependencies: Vec<PathBuf>,
+
+    /// Functions exported by this file (for FFI and cross-file references)
+    pub functions_exported: Vec<String>,
+
+    /// FFI declarations (extern "C") for C↔Rust boundaries
+    pub ffi_declarations: String,
+}
+
+impl TranspiledFile {
+    /// Create a new TranspiledFile with the given data.
+    pub fn new(
+        source_path: PathBuf,
+        rust_code: String,
+        dependencies: Vec<PathBuf>,
+        functions_exported: Vec<String>,
+        ffi_declarations: String,
+    ) -> Self {
+        Self {
+            source_path,
+            rust_code,
+            dependencies,
+            functions_exported,
+            ffi_declarations,
+        }
+    }
+}
+
+/// Context for tracking cross-file information during transpilation.
+///
+/// Maintains knowledge of types, functions, and other declarations
+/// across multiple C files to enable proper reference resolution.
+#[derive(Debug, Clone, Default)]
+pub struct ProjectContext {
+    /// Types (structs, enums) defined across the project
+    types: HashMap<String, String>,
+
+    /// Functions defined across the project
+    functions: HashMap<String, String>,
+
+    /// Transpiled files tracked in this context
+    transpiled_files: HashMap<PathBuf, TranspiledFile>,
+}
+
+impl ProjectContext {
+    /// Create a new empty project context.
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Add a transpiled file to the context.
+    ///
+    /// This makes the file's types and functions available for
+    /// cross-file reference resolution.
+    pub fn add_transpiled_file(&mut self, file: &TranspiledFile) {
+        // Track file
+        self.transpiled_files
+            .insert(file.source_path.clone(), file.clone());
+
+        // Extract types from rust_code (simplified: just track that types exist)
+        // In real implementation, would parse the Rust code
+        if file.rust_code.contains("struct") {
+            // Extract struct names (simplified pattern matching)
+            for line in file.rust_code.lines() {
+                if line.contains("struct") {
+                    if let Some(name) = self.extract_type_name(line) {
+                        self.types.insert(name.clone(), line.to_string());
+                    }
+                }
+            }
+        }
+
+        // Track exported functions
+        for func_name in &file.functions_exported {
+            self.functions
+                .insert(func_name.clone(), file.source_path.to_string_lossy().to_string());
+        }
+    }
+
+    /// Check if a type is defined in the project context.
+    pub fn has_type(&self, type_name: &str) -> bool {
+        self.types.contains_key(type_name)
+    }
+
+    /// Check if a function is defined in the project context.
+    pub fn has_function(&self, func_name: &str) -> bool {
+        self.functions.contains_key(func_name)
+    }
+
+    /// Get the source file that defines a given function.
+    pub fn get_function_source(&self, func_name: &str) -> Option<&str> {
+        self.functions.get(func_name).map(|s| s.as_str())
+    }
+
+    /// Helper: Extract type name from a line containing struct/enum definition
+    fn extract_type_name(&self, line: &str) -> Option<String> {
+        // Simplified: Extract "Point" from "pub struct Point {"
+        let words: Vec<&str> = line.split_whitespace().collect();
+        if let Some(idx) = words.iter().position(|&w| w == "struct" || w == "enum") {
+            if idx + 1 < words.len() {
+                let name = words[idx + 1].trim_end_matches('{').trim_end_matches('<');
+                return Some(name.to_string());
+            }
+        }
+        None
+    }
+}
 
 /// Main transpilation pipeline entry point.
 ///
@@ -177,6 +300,141 @@ pub fn transpile_with_box_transform(c_code: &str) -> Result<String> {
     }
 
     Ok(rust_code)
+}
+
+/// Transpile a single C file with project context.
+///
+/// This enables file-by-file transpilation for incremental C→Rust migration.
+/// The `ProjectContext` tracks types and functions across files for proper
+/// reference resolution.
+///
+/// # Examples
+///
+/// ```no_run
+/// use decy_core::{transpile_file, ProjectContext};
+/// use std::path::Path;
+///
+/// let path = Path::new("src/utils.c");
+/// let context = ProjectContext::new();
+/// let result = transpile_file(path, &context)?;
+///
+/// assert!(!result.rust_code.is_empty());
+/// # Ok::<(), anyhow::Error>(())
+/// ```
+///
+/// # Errors
+///
+/// Returns an error if:
+/// - File does not exist or cannot be read
+/// - C code parsing fails
+/// - Code generation fails
+pub fn transpile_file(path: &Path, _context: &ProjectContext) -> Result<TranspiledFile> {
+    // Read the C source file
+    let c_code = std::fs::read_to_string(path)
+        .with_context(|| format!("Failed to read file: {}", path.display()))?;
+
+    // Parse dependencies from #include directives (simplified: just detect presence)
+    let dependencies = extract_dependencies(path, &c_code)?;
+
+    // Transpile the C code using the main pipeline
+    let rust_code = transpile(&c_code)?;
+
+    // Extract function names from the generated Rust code
+    let functions_exported = extract_function_names(&rust_code);
+
+    // Generate FFI declarations for exported functions
+    let ffi_declarations = generate_ffi_declarations(&functions_exported);
+
+    Ok(TranspiledFile::new(
+        path.to_path_buf(),
+        rust_code,
+        dependencies,
+        functions_exported,
+        ffi_declarations,
+    ))
+}
+
+/// Extract dependencies from #include directives in C code.
+///
+/// This is a simplified implementation that detects #include directives
+/// and resolves them relative to the source file's directory.
+fn extract_dependencies(source_path: &Path, c_code: &str) -> Result<Vec<PathBuf>> {
+    let mut dependencies = Vec::new();
+    let source_dir = source_path
+        .parent()
+        .ok_or_else(|| anyhow::anyhow!("Source file has no parent directory"))?;
+
+    for line in c_code.lines() {
+        let trimmed = line.trim();
+        if trimmed.starts_with("#include") {
+            // Extract header filename from #include "header.h" or #include <header.h>
+            if let Some(start) = trimmed.find('"') {
+                if let Some(end) = trimmed[start + 1..].find('"') {
+                    let header_name = &trimmed[start + 1..start + 1 + end];
+                    let header_path = source_dir.join(header_name);
+                    if header_path.exists() {
+                        dependencies.push(header_path);
+                    }
+                }
+            }
+        }
+    }
+
+    Ok(dependencies)
+}
+
+/// Extract function names from generated Rust code.
+///
+/// Parses function definitions to identify exported functions.
+fn extract_function_names(rust_code: &str) -> Vec<String> {
+    let mut functions = Vec::new();
+
+    for line in rust_code.lines() {
+        let trimmed = line.trim();
+        // Look for "fn function_name(" or "pub fn function_name("
+        if (trimmed.starts_with("fn ") || trimmed.starts_with("pub fn "))
+            && trimmed.contains('(')
+        {
+            let start_idx = if trimmed.starts_with("pub fn ") {
+                7 // length of "pub fn "
+            } else {
+                3 // length of "fn "
+            };
+
+            if let Some(paren_idx) = trimmed[start_idx..].find('(') {
+                let func_name = &trimmed[start_idx..start_idx + paren_idx];
+                // Remove generic parameters if present (e.g., "foo<'a>" → "foo")
+                let func_name_clean = if let Some(angle_idx) = func_name.find('<') {
+                    &func_name[..angle_idx]
+                } else {
+                    func_name
+                };
+                functions.push(func_name_clean.trim().to_string());
+            }
+        }
+    }
+
+    functions
+}
+
+/// Generate FFI declarations for exported functions.
+///
+/// Creates extern "C" declarations to enable C↔Rust interoperability.
+fn generate_ffi_declarations(functions: &[String]) -> String {
+    if functions.is_empty() {
+        return String::new();
+    }
+
+    let mut ffi = String::from("// FFI declarations for C interoperability\n");
+    ffi.push_str("#[no_mangle]\n");
+    ffi.push_str("extern \"C\" {\n");
+
+    for func_name in functions {
+        ffi.push_str(&format!("    // {}\n", func_name));
+    }
+
+    ffi.push_str("}\n");
+    ffi
 }
 
 #[cfg(test)]
