@@ -10,5 +10,5 @@
 pub mod parser;
 
 pub use parser::{
-    Ast, CParser, Expression, Function, Parameter, Statement, Struct, StructField, Type,
+    Ast, CParser, Expression, Function, Parameter, Statement, Struct, StructField, Type, Variable,
 };

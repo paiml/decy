@@ -24,7 +24,10 @@ fn test_function_pointer_simple() {
 
     let var = &ast.variables()[0];
     assert_eq!(var.name(), "callback");
-    assert!(var.is_function_pointer(), "Should be recognized as function pointer");
+    assert!(
+        var.is_function_pointer(),
+        "Should be recognized as function pointer"
+    );
 }
 
 #[test]
@@ -99,12 +102,18 @@ fn test_function_pointer_in_struct() {
     // Check callback field
     let callback_field = &struct_def.fields()[0];
     assert_eq!(callback_field.name(), "callback");
-    assert!(callback_field.is_function_pointer(), "First field should be function pointer");
+    assert!(
+        callback_field.is_function_pointer(),
+        "First field should be function pointer"
+    );
 
     // Check on_error field
     let error_field = &struct_def.fields()[1];
     assert_eq!(error_field.name(), "on_error");
-    assert!(error_field.is_function_pointer(), "Second field should be function pointer");
+    assert!(
+        error_field.is_function_pointer(),
+        "Second field should be function pointer"
+    );
 }
 
 #[test]
@@ -128,7 +137,10 @@ fn test_function_pointer_as_parameter() {
     // Second parameter should be function pointer
     let operation_param = &func.parameters[1];
     assert_eq!(operation_param.name, "operation");
-    assert!(operation_param.is_function_pointer(), "Parameter should be function pointer");
+    assert!(
+        operation_param.is_function_pointer(),
+        "Parameter should be function pointer"
+    );
 }
 
 #[test]
@@ -200,13 +212,21 @@ fn test_multiple_function_pointers() {
 
     let ast = parser.parse(source).expect("Parsing should succeed");
 
-    assert_eq!(ast.variables().len(), 3, "Should parse three function pointers");
+    assert_eq!(
+        ast.variables().len(),
+        3,
+        "Should parse three function pointers"
+    );
 
     assert_eq!(ast.variables()[0].name(), "add");
     assert_eq!(ast.variables()[1].name(), "subtract");
     assert_eq!(ast.variables()[2].name(), "multiply");
 
     for var in ast.variables() {
-        assert!(var.is_function_pointer(), "{} should be function pointer", var.name());
+        assert!(
+            var.is_function_pointer(),
+            "{} should be function pointer",
+            var.name()
+        );
     }
 }
