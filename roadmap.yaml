@@ -2961,14 +2961,14 @@ sprint_10:
         - "ISO C99 §6.7.7: Type definitions"
 
     DECY-024:
-      title: "[NOT STARTED] Function pointer types and callbacks"
+      title: "[RED] Function pointer types and callbacks"
       type: feature
       priority: high
       story_points: 8
       assignee: Claude
-      status: not_started
+      status: in_progress
       github_issue: null
-      phase: NOT_STARTED
+      phase: RED
 
       description: |
         Add support for C function pointers, transpiling them to Rust fn types.
