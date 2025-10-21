@@ -33,6 +33,9 @@ fn cli_cache_stats_exits_zero() {
 fn cli_cache_stats_shows_metrics() {
     let temp = TempDir::new().unwrap();
 
+    // Create cache directory so stats show metrics
+    std::fs::create_dir_all(temp.path().join(".decy/cache")).unwrap();
+
     decy_cmd()
         .arg("cache-stats")
         .arg(temp.path())
@@ -68,13 +71,12 @@ fn cli_cache_stats_after_transpilation() {
 
     let output_dir = temp.path().join("output");
 
-    // First transpile with cache
+    // First transpile with cache (enabled by default)
     decy_cmd()
         .arg("transpile-project")
         .arg(temp.path())
         .arg("-o")
         .arg(&output_dir)
-        .arg("--cache")
         .assert()
         .success();
 

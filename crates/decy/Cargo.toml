@@ -29,6 +29,7 @@ console.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 rustyline = "13.0"
+walkdir.workspace = true
 
 [dev-dependencies]
 proptest.workspace = true
