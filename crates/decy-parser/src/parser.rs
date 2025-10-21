@@ -1887,6 +1887,13 @@ extern "C" fn visit_binary_operand(
                 CXChildVisit_Recurse
             }
         }
+        CXCursor_CallExpr => {
+            // Function call expression (e.g., malloc(size))
+            if let Some(expr) = extract_function_call(cursor) {
+                operands.push(expr);
+            }
+            CXChildVisit_Continue
+        }
         _ => CXChildVisit_Recurse,
     }
 }

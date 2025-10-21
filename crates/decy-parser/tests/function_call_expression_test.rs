@@ -29,7 +29,10 @@ fn test_parse_function_call_in_initializer() {
     assert_eq!(func.name, "create_int");
 
     // First statement should be a variable declaration with malloc initializer
-    if let Statement::VariableDeclaration { name, initializer, .. } = &func.body[0] {
+    if let Statement::VariableDeclaration {
+        name, initializer, ..
+    } = &func.body[0]
+    {
         assert_eq!(name, "ptr", "Variable name should be 'ptr'");
 
         assert!(
@@ -40,7 +43,10 @@ fn test_parse_function_call_in_initializer() {
         if let Some(expr) = initializer {
             // Initializer should be a FunctionCall expression
             match expr {
-                Expression::FunctionCall { function, arguments } => {
+                Expression::FunctionCall {
+                    function,
+                    arguments,
+                } => {
                     assert_eq!(function, "malloc", "Function name should be 'malloc'");
                     assert_eq!(arguments.len(), 1, "malloc should have 1 argument");
 
@@ -50,11 +56,17 @@ fn test_parse_function_call_in_initializer() {
                         "Argument should be sizeof expression"
                     );
                 }
-                _ => panic!("Expected FunctionCall expression in initializer, got {:?}", expr),
+                _ => panic!(
+                    "Expected FunctionCall expression in initializer, got {:?}",
+                    expr
+                ),
             }
         }
     } else {
-        panic!("First statement should be VariableDeclaration, got {:?}", func.body[0]);
+        panic!(
+            "First statement should be VariableDeclaration, got {:?}",
+            func.body[0]
+        );
     }
 }
 
@@ -86,7 +98,11 @@ fn test_parse_malloc_with_sizeof() {
             "Variable should have malloc initializer"
         );
 
-        if let Some(Expression::FunctionCall { function, arguments }) = initializer {
+        if let Some(Expression::FunctionCall {
+            function,
+            arguments,
+        }) = initializer
+        {
             assert_eq!(function, "malloc");
             assert_eq!(arguments.len(), 1);
 
@@ -136,14 +152,20 @@ fn test_parse_function_call_in_assignment() {
 
         // Value should be malloc function call
         match value {
-            Expression::FunctionCall { function, arguments } => {
+            Expression::FunctionCall {
+                function,
+                arguments,
+            } => {
                 assert_eq!(function, "malloc", "Function should be malloc");
                 assert_eq!(arguments.len(), 1, "malloc should have 1 argument");
             }
             _ => panic!("Assignment value should be FunctionCall, got {:?}", value),
         }
     } else {
-        panic!("Second statement should be Assignment with malloc call, got {:?}", func.body[1]);
+        panic!(
+            "Second statement should be Assignment with malloc call, got {:?}",
+            func.body[1]
+        );
     }
 }
 
@@ -192,12 +214,20 @@ fn test_parse_nested_function_calls() {
 
     if let Statement::Return(Some(expr)) = &func.body[0] {
         // Outer call should be strlen
-        if let Expression::FunctionCall { function, arguments } = expr {
+        if let Expression::FunctionCall {
+            function,
+            arguments,
+        } = expr
+        {
             assert_eq!(function, "strlen", "Outer function should be strlen");
             assert_eq!(arguments.len(), 1, "strlen should have 1 argument");
 
             // Inner call should be strdup
-            if let Expression::FunctionCall { function: inner_func, .. } = &arguments[0] {
+            if let Expression::FunctionCall {
+                function: inner_func,
+                ..
+            } = &arguments[0]
+            {
                 assert_eq!(inner_func, "strdup", "Inner function should be strdup");
             } else {
                 panic!("Argument should be FunctionCall (strdup)");

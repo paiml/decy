@@ -3139,9 +3139,9 @@ sprint_14:
       priority: high
       story_points: 3
       assignee: Claude
-      status: not_started
+      status: in_progress
       github_issue: null
-      phase: READY
+      phase: GREEN
 
       description: |
         Fix parser bug where function call expressions like malloc(sizeof(T))
