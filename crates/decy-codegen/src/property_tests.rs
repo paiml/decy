@@ -1,4 +1,4 @@
-//! Property tests for code generator (DECY-003 REFACTOR phase).
+//! Property tests for code generator (DECY-003 TDD-Refactor phase).
 
 use super::*;
 use decy_hir::{HirFunction, HirType};

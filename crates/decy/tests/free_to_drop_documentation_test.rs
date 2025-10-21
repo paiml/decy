@@ -60,7 +60,7 @@ let mut p = Box::new(0i32);
         let c_code = r#"
 int* p = malloc(sizeof(int));
 free(p);
-free(p);  // BUG: Double free - undefined behavior!
+free(p);  // ERROR: Double free - undefined behavior!
 "#;
 
         // Rust: Cannot compile - ownership prevents double free
@@ -97,7 +97,7 @@ drop(p);  // Explicit drop
 int* p = malloc(sizeof(int));
 *p = 42;
 free(p);
-printf("%d\n", *p);  // BUG: Use after free - undefined behavior!
+printf("%d\n", *p);  // ERROR: Use after free - undefined behavior!
 "#;
 
         // Rust: Cannot compile - ownership prevents use after free
@@ -293,7 +293,7 @@ let n1 = Box::new(Node { value: 1, next: Some(n2) });
 void process_data() {
     int* data = malloc(1000 * sizeof(int));
     // ... process data ...
-    // BUG: forgot to free(data) - memory leak!
+    // ERROR: forgot to free(data) - memory leak!
 }
 
 // Each call to process_data leaks 4KB
@@ -334,7 +334,7 @@ int process(int value) {
     int* buffer = malloc(100 * sizeof(int));
 
     if (value < 0) {
-        // BUG: forgot to free before return - memory leak!
+        // ERROR: forgot to free before return - memory leak!
         return -1;
     }
 
@@ -387,7 +387,7 @@ void risky_function() {
     int* data = malloc(1000 * sizeof(int));
 
     if (error_condition) {
-        longjmp(env, 1);  // BUG: skips free(data) - memory leak!
+        longjmp(env, 1);  // ERROR: skips free(data) - memory leak!
     }
 
     free(data);

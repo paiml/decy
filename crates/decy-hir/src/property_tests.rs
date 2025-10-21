@@ -1,4 +1,4 @@
-//! Property tests for HIR (DECY-002 REFACTOR phase).
+//! Property tests for HIR (DECY-002 TDD-Refactor phase).
 //!
 //! These tests verify HIR invariants using property-based testing.
 

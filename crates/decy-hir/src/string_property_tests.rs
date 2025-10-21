@@ -1,4 +1,4 @@
-//! Property tests for string handling in HIR (DECY-025 REFACTOR phase).
+//! Property tests for string handling in HIR (DECY-025 TDD-Refactor phase).
 
 use super::*;
 use proptest::prelude::*;

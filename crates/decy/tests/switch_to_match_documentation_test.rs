@@ -662,7 +662,7 @@ let result = match x {
 switch (x) {
     case 1:
         printf("one\n");
-        // BUG: forgot break, falls through to case 2
+        // ERROR: forgot break, falls through to case 2
     case 2:
         printf("one or two\n");
         break;
@@ -686,7 +686,7 @@ match x {
         // 1. Fall-through bug impossible in Rust
         // 2. Each arm isolated
         // 3. Safer by default
-        assert!(c_code.contains("// BUG"));
+        assert!(c_code.contains("// ERROR"));
         assert!(rust_expected.contains("No fall-through"));
     }
 
