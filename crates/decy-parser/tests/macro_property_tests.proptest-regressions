@@ -5,3 +5,4 @@
 # It is recommended to check this file in to source control so that
 # everyone who runs the test benefits from these saved cases.
 cc 6f592ba6d7959de0818eec6eae331e4a089ba3833ff87437c474119de18f246d # shrinks to param1 = "do", param2 = "a", param3 = "b"
+cc 9cbf540f70674d447b49da23cdf4211641591628099349f5297d34ef55a37d7b # shrinks to param = "if"

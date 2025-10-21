@@ -47,10 +47,7 @@ fn test_typedef_pointer() {
 fn test_typedef_struct() {
     // RED: Test typedef for struct type
     // This will fail until we add struct typedef support
-    let typedef = HirTypedef::new(
-        "Point".to_string(),
-        HirType::Struct("Point".to_string()),
-    );
+    let typedef = HirTypedef::new("Point".to_string(), HirType::Struct("Point".to_string()));
 
     assert_eq!(typedef.name(), "Point");
 
@@ -78,7 +75,10 @@ fn test_typedef_function_pointer() {
     assert_eq!(typedef.name(), "Callback");
 
     match typedef.underlying_type() {
-        HirType::FunctionPointer { param_types, return_type } => {
+        HirType::FunctionPointer {
+            param_types,
+            return_type,
+        } => {
             assert_eq!(param_types.len(), 2);
             assert_eq!(param_types[0], HirType::Int);
             assert_eq!(param_types[1], HirType::Int);

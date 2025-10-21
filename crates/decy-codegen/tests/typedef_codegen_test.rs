@@ -123,10 +123,7 @@ fn test_typedef_multiple_codegen() {
 #[test]
 fn test_typedef_struct_codegen() {
     // Test that struct typedef generates correct alias
-    let typedef = HirTypedef::new(
-        "Point".to_string(),
-        HirType::Struct("Point".to_string()),
-    );
+    let typedef = HirTypedef::new("Point".to_string(), HirType::Struct("Point".to_string()));
     let generator = CodeGenerator::new();
 
     let rust_code = generator

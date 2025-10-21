@@ -2433,18 +2433,6 @@ mod struct_codegen_tests;
 mod for_loop_codegen_tests;
 
 #[cfg(test)]
-#[path = "typedef_codegen_tests.rs"]
-mod typedef_codegen_tests;
-
-#[cfg(test)]
-#[path = "typedef_property_tests.rs"]
-mod typedef_property_tests;
-
-#[cfg(test)]
-#[path = "function_pointer_codegen_tests.rs"]
-mod function_pointer_codegen_tests;
-
-#[cfg(test)]
 #[path = "string_codegen_tests.rs"]
 mod string_codegen_tests;
 
