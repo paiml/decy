@@ -2856,6 +2856,176 @@ sprint_9:
       references:
         - See define_macro_documentation_test.rs for transformation rules
 
+sprint_10:
+  name: "Advanced Type System - Typedefs, Function Pointers, Strings"
+  duration: "2 weeks"
+  start_date: "2025-10-21"
+  goals:
+    - Type aliases and typedef support (DECY-023)
+    - Function pointer types and callbacks (DECY-024)
+    - String handling improvements (DECY-025)
+  story_points: 19
+  story_points_breakdown:
+    DECY-023: 3 (Type aliases)
+    DECY-024: 8 (Function pointers)
+    DECY-025: 8 (String handling)
+  status: not_started
+
+  tickets:
+    DECY-023:
+      title: "[NOT STARTED] Type aliases and typedefs"
+      type: feature
+      priority: high
+      story_points: 3
+      assignee: Claude
+      status: not_started
+      github_issue: null
+      phase: NOT_STARTED
+
+      description: |
+        Add support for C typedef declarations, transpiling them to Rust type aliases.
+
+        Examples:
+        - typedef int MyInt; → type MyInt = i32;
+        - typedef struct { int x; } Point; → type Point = Point_; struct Point_ { x: i32 }
+        - typedef int (*Callback)(int); → type Callback = fn(i32) -> i32;
+
+      acceptance_criteria:
+        - Parser extracts typedef declarations
+        - HIR represents type aliases
+        - Codegen produces Rust type aliases
+        - Handle simple types, struct types, function pointer types
+        - Coverage ≥85%
+
+      test_strategy: |
+        RED phase:
+        - test_typedef_simple_int()
+        - test_typedef_pointer()
+        - test_typedef_struct()
+        - test_typedef_function_pointer()
+        - Property test: any valid typedef
+
+        GREEN phase:
+        - Implement parser support (visit CXCursor_TypedefDecl)
+        - Add HIR::TypeAlias
+        - Generate Rust type aliases in codegen
+
+        REFACTOR phase:
+        - Add 10 property tests
+        - Documentation and examples
+        - Ensure 0 clippy warnings
+
+      references:
+        - "K&R §6.7: Type Names"
+        - "ISO C99 §6.7.7: Type definitions"
+
+    DECY-024:
+      title: "[NOT STARTED] Function pointer types and callbacks"
+      type: feature
+      priority: high
+      story_points: 8
+      assignee: Claude
+      status: not_started
+      github_issue: null
+      phase: NOT_STARTED
+
+      description: |
+        Add support for C function pointers, transpiling them to Rust fn types.
+
+        Examples:
+        - int (*callback)(int) → fn(i32) -> i32
+        - void (*handler)(void) → fn()
+        - typedef int (*Callback)(int); → type Callback = fn(i32) -> i32;
+        - Function pointers in structs
+        - Passing function pointers as arguments
+
+      acceptance_criteria:
+        - Parser extracts function pointer types
+        - HIR represents fn types
+        - Codegen produces Rust fn types
+        - Handle return types and parameters
+        - Support function pointers in structs
+        - Support function pointers as parameters
+        - Coverage ≥85%
+
+      test_strategy: |
+        RED phase:
+        - test_function_pointer_simple()
+        - test_function_pointer_with_params()
+        - test_function_pointer_in_struct()
+        - test_function_pointer_as_parameter()
+        - test_callback_pattern()
+        - Property test: any valid function pointer type
+
+        GREEN phase:
+        - Parse function pointer syntax
+        - Add HIR::FunctionPointerType
+        - Generate fn(...) -> ... syntax
+
+        REFACTOR phase:
+        - Add 10 property tests
+        - Document callback patterns
+        - Examples for common use cases
+
+      references:
+        - "K&R §5.11: Pointers to Functions"
+        - "ISO C99 §6.7.5.3: Function declarators"
+
+    DECY-025:
+      title: "[NOT STARTED] String handling improvements"
+      type: feature
+      priority: high
+      story_points: 8
+      assignee: Claude
+      status: not_started
+      github_issue: null
+      phase: NOT_STARTED
+
+      description: |
+        Improve C string handling, transpiling char* to &str and String appropriately.
+
+        Current: char* → *const i8 (unsafe)
+        Goal: char* → &str (borrowed) or String (owned) based on context
+
+        Examples:
+        - const char* msg → &str (string literal)
+        - char* buffer = malloc(...) → String (owned)
+        - strdup(s) → s.to_string()
+        - strlen(s) → s.len()
+        - strcmp(a, b) → a == b
+        - strcpy(dst, src) → dst.clone_from(src) or String::from(src)
+
+      acceptance_criteria:
+        - Distinguish char* contexts (literal vs buffer)
+        - Generate &str for string literals
+        - Generate String for owned strings
+        - Transform common string functions
+        - Handle string literals in function parameters
+        - Coverage ≥85%
+
+      test_strategy: |
+        RED phase:
+        - test_string_literal_to_str()
+        - test_owned_string_buffer()
+        - test_strlen_to_len()
+        - test_strcmp_to_equality()
+        - test_strcpy_to_clone()
+        - Property test: string operations
+
+        GREEN phase:
+        - Analyze char* usage patterns
+        - Generate appropriate Rust types
+        - Transform standard string functions
+
+        REFACTOR phase:
+        - Add 10 property tests
+        - Document string handling rules
+        - Safety analysis (reduce unsafe blocks)
+
+      references:
+        - "K&R §5.5: Character Pointers and Functions"
+        - "ISO C99 §7.21: String handling"
+
 # Quality Metrics Tracking
 quality_metrics:
   tracked_per_sprint:
