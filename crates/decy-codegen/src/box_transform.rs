@@ -59,7 +59,10 @@ impl BoxTransformer {
             | HirType::Struct(_)
             | HirType::Enum(_)
             | HirType::Array { .. }
-            | HirType::FunctionPointer { .. } => {
+            | HirType::FunctionPointer { .. }
+            | HirType::StringLiteral
+            | HirType::OwnedString
+            | HirType::StringReference => {
                 // Fallback for types that don't have simple defaults
                 HirExpression::IntLiteral(0)
             }
