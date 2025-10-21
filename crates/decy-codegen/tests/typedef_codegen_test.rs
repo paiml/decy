@@ -10,9 +10,8 @@ use decy_codegen::CodeGenerator;
 use decy_hir::{HirType, HirTypedef};
 
 #[test]
-#[ignore]
 fn test_typedef_simple_int_codegen() {
-    // RED: Test that simple typedef generates Rust type alias
+    // Test that simple typedef generates Rust type alias
     let typedef = HirTypedef::new("MyInt".to_string(), HirType::Int);
     let generator = CodeGenerator::new();
 
@@ -28,9 +27,8 @@ fn test_typedef_simple_int_codegen() {
 }
 
 #[test]
-#[ignore]
 fn test_typedef_float_codegen() {
-    // RED: Test that float typedef generates correct alias
+    // Test that float typedef generates correct alias
     let typedef = HirTypedef::new("MyFloat".to_string(), HirType::Float);
     let generator = CodeGenerator::new();
 
@@ -64,9 +62,8 @@ fn test_typedef_double_codegen() {
 }
 
 #[test]
-#[ignore]
 fn test_typedef_pointer_codegen() {
-    // RED: Test that pointer typedef generates correct type
+    // Test that pointer typedef generates correct type
     let typedef = HirTypedef::new(
         "IntPtr".to_string(),
         HirType::Pointer(Box::new(HirType::Int)),
@@ -154,7 +151,7 @@ fn test_typedef_function_pointer_codegen() {
     let typedef = HirTypedef::new(
         "Callback".to_string(),
         HirType::FunctionPointer {
-            params: vec![HirType::Int, HirType::Int],
+            param_types: vec![HirType::Int, HirType::Int],
             return_type: Box::new(HirType::Int),
         },
     );
