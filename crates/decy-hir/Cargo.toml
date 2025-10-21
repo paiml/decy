@@ -17,8 +17,8 @@ serde_json.workspace = true
 anyhow.workspace = true
 thiserror.workspace = true
 tracing.workspace = true
-decy-parser = { path = "../decy-parser" }
+decy-parser = { version = "0.2.0", path = "../decy-parser" }
 
 [dev-dependencies]
 proptest.workspace = true
-decy-parser = { path = "../decy-parser" }
+decy-parser = { version = "0.2.0", path = "../decy-parser" }

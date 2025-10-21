@@ -12,8 +12,8 @@ categories.workspace = true
 description = "MCP server for Claude Code integration"
 
 [dependencies]
-decy-core = { path = "../decy-core" }
-decy-agent = { path = "../decy-agent" }
+decy-core = { version = "0.2.0", path = "../decy-core" }
+decy-agent = { version = "0.2.0", path = "../decy-agent" }
 axum.workspace = true
 tower.workspace = true
 tokio.workspace = true

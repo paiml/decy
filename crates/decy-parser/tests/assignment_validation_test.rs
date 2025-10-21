@@ -181,11 +181,7 @@ fn test_assignment_vs_declaration_with_initializer() {
         .filter(|stmt| matches!(stmt, Statement::Assignment { .. }))
         .collect();
 
-    assert_eq!(
-        declarations.len(),
-        2,
-        "Should have 2 variable declarations"
-    );
+    assert_eq!(declarations.len(), 2, "Should have 2 variable declarations");
     assert_eq!(assignments.len(), 1, "Should have 1 assignment statement");
 
     // The assignment should be to 'x', not 'y'
@@ -287,7 +283,12 @@ fn test_assignment_with_array_index() {
         .find(|stmt| matches!(stmt, Statement::ArrayIndexAssignment { .. }))
         .expect("Should have array index assignment");
 
-    if let Statement::ArrayIndexAssignment { array, index, value } = array_assignment {
+    if let Statement::ArrayIndexAssignment {
+        array,
+        index,
+        value,
+    } = array_assignment
+    {
         assert!(
             matches!(**array, Expression::Variable(_)),
             "Array should be variable"

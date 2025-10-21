@@ -12,7 +12,7 @@ categories.workspace = true
 description = "Background daemon for incremental transpilation and watching"
 
 [dependencies]
-decy-core = { path = "../decy-core" }
+decy-core = { version = "0.2.0", path = "../decy-core" }
 tokio.workspace = true
 async-trait.workspace = true
 anyhow.workspace = true
