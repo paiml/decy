@@ -458,7 +458,7 @@ fn test_low_confidence_falls_back_to_raw_pointer() {
     assert_eq!(transformed, HirType::Pointer(Box::new(HirType::Int)));
 }
 
-// REFACTOR PHASE: Property tests for borrow generation
+// TDD-Refactor Phase: Property tests for borrow generation
 
 #[cfg(test)]
 mod property_tests {

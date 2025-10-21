@@ -498,7 +498,7 @@ fn test_multiple_owners_conflict() {
     // This should be detected as a potential double-free
 }
 
-// REFACTOR PHASE: Property tests for ownership inference
+// TDD-Refactor Phase: Property tests for ownership inference
 
 #[cfg(test)]
 mod property_tests {

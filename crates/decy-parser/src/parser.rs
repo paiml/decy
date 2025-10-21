@@ -1515,7 +1515,8 @@ extern "C" fn visit_case_children(
             if let Some(stmt) = extract_statement(cursor) {
                 case_data.body.push(stmt);
             }
-            CXChildVisit_Continue
+            // Continue recursing to find all statements in the case body
+            CXChildVisit_Recurse
         }
     }
 }

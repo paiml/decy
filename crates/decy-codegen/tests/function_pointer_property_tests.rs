@@ -1,4 +1,4 @@
-//! Property tests for function pointer code generation (DECY-024 REFACTOR phase)
+//! Property tests for function pointer code generation (DECY-024 TDD-Refactor phase)
 //!
 //! This test suite uses proptest to verify function pointer → fn type generation.
 //! Target: 10 properties × 256 cases = 2,560 test cases.

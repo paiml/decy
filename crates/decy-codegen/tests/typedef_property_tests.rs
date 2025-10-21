@@ -1,4 +1,4 @@
-//! Property tests for typedef code generation (DECY-023 REFACTOR phase)
+//! Property tests for typedef code generation (DECY-023 TDD-Refactor phase)
 //!
 //! This test suite uses proptest to verify typedef → type alias generation.
 //! Target: 10 properties × 256 cases = 2,560 test cases.

@@ -1,4 +1,4 @@
-//! Property tests for switch/case code generation (DECY-026 REFACTOR phase).
+//! Property tests for switch/case code generation (DECY-026 TDD-Refactor phase).
 
 use super::*;
 use decy_hir::{BinaryOperator, HirExpression, HirStatement, SwitchCase};
