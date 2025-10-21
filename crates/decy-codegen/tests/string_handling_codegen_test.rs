@@ -130,11 +130,7 @@ fn test_codegen_const_char_pointer_parameter() {
 
     let param = HirParameter::new("msg".to_string(), HirType::StringReference);
 
-    let func = HirFunction::new(
-        "print_message".to_string(),
-        HirType::Void,
-        vec![param],
-    );
+    let func = HirFunction::new("print_message".to_string(), HirType::Void, vec![param]);
 
     let codegen = CodeGenerator::new();
     let rust_code = codegen.generate_function(&func);
@@ -152,11 +148,7 @@ fn test_codegen_owned_char_pointer_parameter() {
 
     let param = HirParameter::new("buffer".to_string(), HirType::OwnedString);
 
-    let func = HirFunction::new(
-        "process_buffer".to_string(),
-        HirType::Void,
-        vec![param],
-    );
+    let func = HirFunction::new("process_buffer".to_string(), HirType::Void, vec![param]);
 
     let codegen = CodeGenerator::new();
     let rust_code = codegen.generate_function(&func);

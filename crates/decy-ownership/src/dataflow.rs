@@ -344,7 +344,11 @@ impl DataflowAnalyzer {
                 Self::track_expr_recursive(pointer, _graph, _index);
                 Self::track_expr_recursive(new_size, _graph, _index);
             }
-            HirExpression::StringMethodCall { receiver, arguments, .. } => {
+            HirExpression::StringMethodCall {
+                receiver,
+                arguments,
+                ..
+            } => {
                 // Track receiver and arguments
                 Self::track_expr_recursive(receiver, _graph, _index);
                 for arg in arguments {
