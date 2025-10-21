@@ -36,12 +36,10 @@ fn test_hir_string_reference_type() {
 #[test]
 fn test_hir_string_literal_expression() {
     // Test that HirExpression can represent string literals
-    let expr = HirExpression::StringLiteral {
-        value: "Hello, world!".to_string(),
-    };
+    let expr = HirExpression::StringLiteral("Hello, world!".to_string());
 
     match expr {
-        HirExpression::StringLiteral { value } => {
+        HirExpression::StringLiteral(value) => {
             assert_eq!(value, "Hello, world!");
         }
         _ => panic!("Expected StringLiteral expression"),
@@ -52,9 +50,7 @@ fn test_hir_string_literal_expression() {
 fn test_hir_strlen_transformation() {
     // Test that strlen(s) is represented as method call s.len()
     let strlen_call = HirExpression::StringMethodCall {
-        receiver: Box::new(HirExpression::Variable {
-            name: "s".to_string(),
-        }),
+        receiver: Box::new(HirExpression::Variable("s".to_string())),
         method: "len".to_string(),
         arguments: vec![],
     };
@@ -71,18 +67,14 @@ fn test_hir_strlen_transformation() {
 fn test_hir_strcmp_transformation() {
     // Test that strcmp(s1, s2) is represented as equality comparison
     let strcmp_expr = HirExpression::BinaryOp {
-        left: Box::new(HirExpression::Variable {
-            name: "s1".to_string(),
-        }),
-        operator: decy_hir::BinaryOperator::Equal,
-        right: Box::new(HirExpression::Variable {
-            name: "s2".to_string(),
-        }),
+        left: Box::new(HirExpression::Variable("s1".to_string())),
+        op: decy_hir::BinaryOperator::Equal,
+        right: Box::new(HirExpression::Variable("s2".to_string())),
     };
 
     match strcmp_expr {
-        HirExpression::BinaryOp { operator, .. } => {
-            assert_eq!(operator, decy_hir::BinaryOperator::Equal);
+        HirExpression::BinaryOp { op, .. } => {
+            assert_eq!(op, decy_hir::BinaryOperator::Equal);
         }
         _ => panic!("Expected BinaryOp expression"),
     }
@@ -92,13 +84,9 @@ fn test_hir_strcmp_transformation() {
 fn test_hir_strcpy_transformation() {
     // Test that strcpy(dst, src) is represented as clone operation
     let strcpy_expr = HirExpression::StringMethodCall {
-        receiver: Box::new(HirExpression::Variable {
-            name: "src".to_string(),
-        }),
+        receiver: Box::new(HirExpression::Variable("src".to_string())),
         method: "clone_into".to_string(),
-        arguments: vec![HirExpression::Variable {
-            name: "dst".to_string(),
-        }],
+        arguments: vec![HirExpression::Variable("dst".to_string())],
     };
 
     match strcpy_expr {
@@ -113,9 +101,7 @@ fn test_hir_strcpy_transformation() {
 fn test_hir_strdup_transformation() {
     // Test that strdup(s) is represented as s.to_string()
     let strdup_expr = HirExpression::StringMethodCall {
-        receiver: Box::new(HirExpression::Variable {
-            name: "s".to_string(),
-        }),
+        receiver: Box::new(HirExpression::Variable("s".to_string())),
         method: "to_string".to_string(),
         arguments: vec![],
     };
