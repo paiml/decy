@@ -2880,13 +2880,13 @@ sprint_11:
   completion_date: "2025-10-21"
   goals:
     - Complete parser string detection (DECY-026) ✅
-    - Switch statement support (DECY-038)
+    - Switch statement support (DECY-038) ✅
   story_points: 8
-  story_points_completed: 5
+  story_points_completed: 8
   story_points_breakdown:
     DECY-026: 5 (Parser string detection) - DONE ✅
-    DECY-038: 3 (Switch statements) - not_started
-  status: in_progress
+    DECY-038: 3 (Switch statements) - DONE ✅
+  status: done
 
   tickets:
     DECY-026:
@@ -3013,17 +3013,19 @@ sprint_11:
         - "DECY-025: String handling HIR/codegen infrastructure"
 
     DECY-038:
-      title: "[PARTIAL] Add parser support for switch/case statements"
+      title: "[DONE] Add parser support for switch/case statements"
       type: feature
       priority: medium
       story_points: 3
       assignee: Claude
-      status: in_progress
+      status: done
       github_issue: null
-      phase: GREEN
+      phase: DONE
       start_date: "2025-10-21"
       red_phase_date: "2025-10-21"
       green_phase_date: "2025-10-21"
+      refactor_phase_date: "2025-10-21"
+      done_date: "2025-10-21"
 
       description: |
         Add parser support for C switch/case statements to complete the transpilation pipeline.
