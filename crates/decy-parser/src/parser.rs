@@ -2354,9 +2354,14 @@ impl Statement {
     }
 
     /// Convert this statement to a function call expression if it is one.
+    ///
+    /// # Implementation Status
+    ///
+    /// Stub implementation - always returns `None`.
+    /// The `Statement::FunctionCall` variant doesn't store the call as an `Expression`,
+    /// so conversion would require reconstructing an `Expression::FunctionCall` from
+    /// the statement's fields.
     pub fn as_function_call(&self) -> Option<&Expression> {
-        // TODO: Return proper Expression reference
-        // For now, return None to make tests compile
         None
     }
 }
@@ -2507,9 +2512,9 @@ impl Expression {
     /// Check if this expression has a string literal argument.
     pub fn has_string_literal_argument(&self) -> bool {
         match self {
-            Expression::FunctionCall { arguments, .. } => {
-                arguments.iter().any(|arg| matches!(arg, Expression::StringLiteral(_)))
-            }
+            Expression::FunctionCall { arguments, .. } => arguments
+                .iter()
+                .any(|arg| matches!(arg, Expression::StringLiteral(_))),
             _ => false,
         }
     }
@@ -2681,23 +2686,39 @@ impl Variable {
     }
 
     /// Check if this variable is a string literal (const char* with literal initializer).
+    ///
+    /// # Implementation Status
+    ///
+    /// Stub implementation - always returns `false`.
+    /// Full implementation requires:
+    /// - Adding `initializer` field to `Variable` struct
+    /// - Detecting const qualifier on pointer types
+    /// - Analyzing initializer to check for `StringLiteral` expression
     pub fn is_string_literal(&self) -> bool {
-        // TODO: Implement string literal detection
-        // For now, return false to make tests compile
         false
     }
 
     /// Check if this variable is a string buffer (char* allocated with malloc).
+    ///
+    /// # Implementation Status
+    ///
+    /// Stub implementation - always returns `false`.
+    /// Full implementation requires:
+    /// - Adding `initializer` field to `Variable` struct
+    /// - Detecting `malloc()` call in initializer expression
+    /// - Analyzing pointer usage patterns
     pub fn is_string_buffer(&self) -> bool {
-        // TODO: Implement string buffer detection
-        // For now, return false to make tests compile
         false
     }
 
     /// Get the initializer expression for this variable.
+    ///
+    /// # Implementation Status
+    ///
+    /// Stub implementation - always returns `None`.
+    /// Full implementation requires adding `initializer: Option<Expression>` field
+    /// to the `Variable` struct and extracting it during parsing.
     pub fn initializer(&self) -> Option<&Expression> {
-        // TODO: Add initializer field to Variable struct
-        // For now, return None to make tests compile
         None
     }
 }
@@ -2952,9 +2973,13 @@ impl Parameter {
     }
 
     /// Check if this parameter is a const char pointer (const char*).
+    ///
+    /// # Implementation Status
+    ///
+    /// Partial implementation - detects `char*` pointers but doesn't check const qualifier.
+    /// Returns `true` for any `Pointer(Char)` type.
+    /// Full implementation requires adding const tracking to the `Type` enum.
     pub fn is_const_char_pointer(&self) -> bool {
-        // TODO: Implement const detection (requires Type to track const qualifier)
-        // For now, check if it's a pointer to char
         matches!(self.param_type, Type::Pointer(ref inner) if matches!(**inner, Type::Char))
     }
 }

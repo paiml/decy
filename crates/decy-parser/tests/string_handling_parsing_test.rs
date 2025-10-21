@@ -71,10 +71,7 @@ fn test_strlen_function_call_detected() {
         initializer.is_string_function_call(),
         "Should detect strlen as string function"
     );
-    assert_eq!(
-        initializer.string_function_name().unwrap(),
-        "strlen"
-    );
+    assert_eq!(initializer.string_function_name().unwrap(), "strlen");
 }
 
 #[test]
@@ -212,6 +209,11 @@ fn test_multiple_string_operations() {
     let body = &func.body;
 
     // Should detect strlen, strdup, and strcpy
-    assert!(body.iter().filter(|stmt| stmt.is_string_function_call()).count() >= 2,
-            "Should detect multiple string function calls");
+    assert!(
+        body.iter()
+            .filter(|stmt| stmt.is_string_function_call())
+            .count()
+            >= 2,
+        "Should detect multiple string function calls"
+    );
 }

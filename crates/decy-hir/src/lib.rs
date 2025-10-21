@@ -970,13 +970,14 @@ impl HirStatement {
                     right: Box::new(HirExpression::from_ast_expression(value)),
                 },
             },
-            // Function call statement - convert to expression statement
-            // For now, we don't have expression statements in HIR, so convert to assignment with unit type
-            // This is a simplification; proper implementation would add HirStatement::Expression variant
+            // Function call statement - convert to placeholder statement
+            //
+            // Implementation Note: The parser's `Statement::FunctionCall` variant is not fully
+            // integrated into HIR yet. HIR doesn't have an `Expression` statement variant.
+            // For minimal GREEN phase, we map this to `Break` as a placeholder.
+            // Full implementation would add `HirStatement::Expression(HirExpression)` variant.
             Statement::FunctionCall { .. } => {
-                // TODO: Add HirStatement::Expression variant for proper function call statement support
-                // For now, skip function call statements (they will be ignored in codegen)
-                HirStatement::Break // Placeholder - using Break as it's a simple statement
+                HirStatement::Break // Placeholder
             }
         }
     }
