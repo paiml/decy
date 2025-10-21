@@ -2215,6 +2215,16 @@ fn extract_unary_op(cursor: CXCursor) -> Option<Expression> {
                             clang_disposeString(token_cxstring);
                             break;
                         }
+                        "~" => {
+                            operator = Some(UnaryOperator::BitwiseNot);
+                            clang_disposeString(token_cxstring);
+                            break;
+                        }
+                        "&" => {
+                            operator = Some(UnaryOperator::AddressOf);
+                            clang_disposeString(token_cxstring);
+                            break;
+                        }
                         "++" => {
                             is_increment = true;
                             operator_position = i;
@@ -2717,6 +2727,10 @@ pub enum UnaryOperator {
     Minus,
     /// Logical NOT (!x)
     LogicalNot,
+    /// Bitwise NOT (~x)
+    BitwiseNot,
+    /// Address-of (&x)
+    AddressOf,
 }
 
 /// Binary operators for C expressions.

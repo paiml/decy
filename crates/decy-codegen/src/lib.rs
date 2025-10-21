@@ -1089,6 +1089,8 @@ impl CodeGenerator {
         match op {
             UnaryOperator::Minus => "-",
             UnaryOperator::LogicalNot => "!",
+            UnaryOperator::BitwiseNot => "~",
+            UnaryOperator::AddressOf => "&",
             // Post/Pre-increment/decrement are handled as block expressions
             // in generate_expression_with_context, so should never reach here
             UnaryOperator::PostIncrement
