@@ -5,7 +5,7 @@
 //!
 //! Goal: Enable correct build ordering for multi-file C projects.
 
-use decy_core::{DependencyGraph, ProjectContext, transpile_file};
+use decy_core::DependencyGraph;
 use std::path::PathBuf;
 use tempfile::TempDir;
 
@@ -48,8 +48,14 @@ fn test_dependency_graph_add_dependency() {
     graph.add_file(&utils_h);
     graph.add_dependency(&main_c, &utils_h);
 
-    assert!(graph.has_dependency(&main_c, &utils_h), "Should have dependency");
-    assert!(!graph.has_dependency(&utils_h, &main_c), "Dependency is directional");
+    assert!(
+        graph.has_dependency(&main_c, &utils_h),
+        "Should have dependency"
+    );
+    assert!(
+        !graph.has_dependency(&utils_h, &main_c),
+        "Dependency is directional"
+    );
 }
 
 #[test]
@@ -58,19 +64,24 @@ fn test_build_dependency_graph_from_files() {
     let temp = TempDir::new().unwrap();
 
     // utils.h - no dependencies
-    let utils_h = create_temp_c_file(&temp, "utils.h",
-        "int helper(int x);");
+    let utils_h = create_temp_c_file(&temp, "utils.h", "int helper(int x);");
 
     // main.c - includes utils.h
-    let main_c = create_temp_c_file(&temp, "main.c",
+    let main_c = create_temp_c_file(
+        &temp,
+        "main.c",
         r#"#include "utils.h"
-        int main() { return helper(5); }"#);
+        int main() { return helper(5); }"#,
+    );
 
     let files = vec![main_c.clone(), utils_h.clone()];
     let graph = DependencyGraph::from_files(&files).expect("Should build graph");
 
     assert_eq!(graph.file_count(), 2, "Should have 2 files");
-    assert!(graph.has_dependency(&main_c, &utils_h), "main.c should depend on utils.h");
+    assert!(
+        graph.has_dependency(&main_c, &utils_h),
+        "main.c should depend on utils.h"
+    );
 }
 
 #[test]
@@ -84,14 +95,19 @@ fn test_topological_sort_simple() {
     graph.add_file(&utils_h);
     graph.add_dependency(&main_c, &utils_h);
 
-    let build_order = graph.topological_sort().expect("Should compute build order");
+    let build_order = graph
+        .topological_sort()
+        .expect("Should compute build order");
 
     assert_eq!(build_order.len(), 2, "Should have 2 files in order");
 
     // utils.h should come before main.c (no dependencies before dependencies)
     let utils_pos = build_order.iter().position(|p| p == &utils_h).unwrap();
     let main_pos = build_order.iter().position(|p| p == &main_c).unwrap();
-    assert!(utils_pos < main_pos, "utils.h should be transpiled before main.c");
+    assert!(
+        utils_pos < main_pos,
+        "utils.h should be transpiled before main.c"
+    );
 }
 
 #[test]
@@ -109,7 +125,9 @@ fn test_topological_sort_complex() {
     graph.add_dependency(&a, &b);
     graph.add_dependency(&b, &c);
 
-    let build_order = graph.topological_sort().expect("Should compute build order");
+    let build_order = graph
+        .topological_sort()
+        .expect("Should compute build order");
 
     // c should come first (no dependencies), then b, then a
     let c_pos = build_order.iter().position(|p| p == &c).unwrap();
@@ -136,8 +154,11 @@ fn test_detect_circular_dependency() {
 
     assert!(result.is_err(), "Should detect circular dependency");
     let error_msg = result.unwrap_err().to_string();
-    assert!(error_msg.contains("circular") || error_msg.contains("cycle"),
-            "Error should mention circular dependency");
+    let error_msg_lower = error_msg.to_lowercase();
+    assert!(
+        error_msg_lower.contains("circular") || error_msg_lower.contains("cycle"),
+        "Error should mention circular dependency"
+    );
 }
 
 #[test]
@@ -159,11 +180,14 @@ fn test_header_guard_detection() {
     // Test: Detect header guards to prevent duplicate processing
     let temp = TempDir::new().unwrap();
 
-    let header = create_temp_c_file(&temp, "config.h",
+    let header = create_temp_c_file(
+        &temp,
+        "config.h",
         r#"#ifndef CONFIG_H
         #define CONFIG_H
         int MAX_SIZE = 100;
-        #endif"#);
+        #endif"#,
+    );
 
     let has_guard = DependencyGraph::has_header_guard(&header).expect("Should check guard");
 
@@ -173,7 +197,7 @@ fn test_header_guard_detection() {
 #[test]
 fn test_parse_include_directive() {
     // Test: Parse #include directive to extract filename
-    let includes = vec![
+    let includes = [
         r#"#include "utils.h""#,
         r#"#include <stdio.h>"#,
         r#"  #include   "config.h"  "#,
@@ -193,18 +217,23 @@ fn test_build_order_integration() {
     let temp = TempDir::new().unwrap();
 
     // types.h - no dependencies
-    let types_h = create_temp_c_file(&temp, "types.h",
-        "typedef struct { int x; } Point;");
+    let types_h = create_temp_c_file(&temp, "types.h", "typedef struct { int x; } Point;");
 
     // utils.h - depends on types.h
-    let utils_h = create_temp_c_file(&temp, "utils.h",
+    let utils_h = create_temp_c_file(
+        &temp,
+        "utils.h",
         r#"#include "types.h"
-        Point create_point(int x);"#);
+        Point create_point(int x);"#,
+    );
 
     // main.c - depends on utils.h
-    let main_c = create_temp_c_file(&temp, "main.c",
+    let main_c = create_temp_c_file(
+        &temp,
+        "main.c",
         r#"#include "utils.h"
-        int main() { return 0; }"#);
+        int main() { return 0; }"#,
+    );
 
     let files = vec![main_c.clone(), utils_h.clone(), types_h.clone()];
     let graph = DependencyGraph::from_files(&files).expect("Should build graph");
