@@ -85,11 +85,11 @@ fn test_macro_clone() {
 
 #[test]
 fn test_macro_debug_formatting() {
-    let macro_def = HirMacroDefinition::new_object_like("DEBUG".to_string(), "1".to_string());
+    let macro_def = HirMacroDefinition::new_object_like("DBG".to_string(), "1".to_string());
     let debug_str = format!("{:?}", macro_def);
 
     assert!(debug_str.contains("HirMacroDefinition"));
-    assert!(debug_str.contains("DEBUG"));
+    assert!(debug_str.contains("DBG"));
 }
 
 #[test]

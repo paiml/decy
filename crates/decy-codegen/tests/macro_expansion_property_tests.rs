@@ -1,4 +1,4 @@
-//! Property-based tests for macro expansion (DECY-098c REFACTOR)
+//! Property-based tests for macro expansion (DECY-098c TDD-Refactor)
 //!
 //! These tests use proptest to verify macro expansion properties across
 //! a wide range of inputs.

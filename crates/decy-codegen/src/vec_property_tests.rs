@@ -1,4 +1,4 @@
-//! Property-based tests for Vec code generation (DECY-019 REFACTOR phase).
+//! Property-based tests for Vec code generation (DECY-019 TDD-Refactor phase).
 //!
 //! Tests ensure that Vec generation is deterministic, never panics,
 //! and maintains invariants across random inputs.

@@ -2889,29 +2889,216 @@ sprint_11:
   status: done
 
 sprint_12:
-  name: "Quality Gates & Macro Keyword Parameters"
+  name: "Quality Gates & Technical Debt Elimination"
   duration: "1 week"
   start_date: "2025-10-21"
-  completion_date: null
+  completion_date: "2025-10-21"
   goals:
-    - Fix macro property test blocking quality gates (DECY-039)
+    - Fix macro property test blocking quality gates (DECY-039) ✅
+    - Fix ALL technical debt (DECY-026 string tests, DECY-038 switch tests) ✅
   story_points: 1
+  story_points_completed: 1
+  story_points_breakdown:
+    DECY-039: 1 (Macro keyword parameters + technical debt) - DONE ✅
+  status: done
+
+sprint_13:
+  name: "Critical Parser Gaps - Struct Field Access & Unary Operators"
+  duration: "1 week"
+  start_date: "2025-10-21"
+  goals:
+    - Fix struct field access (ptr->field) - DECY-034
+    - Fix unary operators (-x, !x, ~x) - DECY-035
+    - Improve real-world readiness from 40% to 60%+
+  story_points: 5
   story_points_completed: 0
   story_points_breakdown:
-    DECY-039: 1 (Macro keyword parameters) - in_progress
+    DECY-034: 3 (Struct field access)
+    DECY-035: 2 (Unary operators)
   status: in_progress
 
   tickets:
+    DECY-034:
+      title: "Fix struct field access parsing (ptr->field)"
+      type: bug
+      priority: critical
+      story_points: 3
+      assignee: Claude
+      status: not_started
+      github_issue: null
+      phase: null
+
+      description: |
+        Fix critical parser bug where struct field access via pointer dereference
+        (ptr->field) is not properly parsed or generates incorrect code.
+
+        From real-world validation (DECY-027), struct field access like:
+        - head->next becomes head
+        - r->bottom_right.x becomes incorrect nested dereferences
+
+        This prevents transpilation of any C code using structs with pointers.
+
+      reproduction:
+        c_code: |
+          struct Node {
+              int value;
+              struct Node* next;
+          };
+
+          void traverse(struct Node* head) {
+              head = head->next;  // Should become (*head).next or head.next
+          }
+
+        current_behavior: "head->next → head (field access lost)"
+        expected_behavior: "head->next → (*head).next or head.next"
+
+      requirements:
+        - Parse CXCursor_MemberRefExpr for -> operator
+        - Distinguish ptr->field from obj.field
+        - Generate correct Rust syntax (*ptr).field
+        - Handle nested field access (ptr->a.b.c)
+        - Wire to existing HIR PointerFieldAccess
+
+      test_requirements:
+        unit_tests:
+          - test_parse_pointer_field_access
+          - test_parse_nested_pointer_field_access
+          - test_pointer_vs_direct_field_access
+
+        integration_tests:
+          - test_struct_with_pointer_field_access_end_to_end
+
+      acceptance_criteria:
+        - "Parses ptr->field as PointerFieldAccess expression"
+        - "Generates correct (*ptr).field syntax"
+        - "Handles nested access ptr->a.b.c"
+        - "Real-world struct examples compile"
+        - "Coverage ≥85%"
+        - "0 clippy warnings"
+
+      test_strategy: |
+        RED phase:
+        - Create failing test for ptr->field parsing
+        - Test should verify Expression::PointerFieldAccess extraction
+
+        GREEN phase:
+        - Add CXCursor_MemberRefExpr handling to parser
+        - Extract pointer expression and field name
+        - Convert to Expression::PointerFieldAccess
+
+        REFACTOR phase:
+        - Add property tests for field access combinations
+        - Verify integration with DECY-020 struct support
+        - Ensure DECY-043 nested field fix is preserved
+
+      related_issues:
+        - DECY-020: Struct/enum support (completed)
+        - DECY-043: Nested struct field access codegen (completed)
+        - Real-world validation gap from DECY-027
+
+      references:
+        - "K&R §6.2: Structures and Functions"
+        - "ISO C99 §6.5.2.3: Structure and union members"
+
+    DECY-035:
+      title: "Fix unary operators parsing (-x, !x, ~x, &x)"
+      type: bug
+      priority: critical
+      story_points: 2
+      assignee: Claude
+      status: not_started
+      github_issue: null
+      phase: null
+
+      description: |
+        Fix critical parser bug where unary operators are not properly parsed,
+        causing incorrect code generation or lost operations.
+
+        From real-world validation (DECY-027), unary operators fail:
+        - -x becomes x (negation lost)
+        - !condition may be lost
+        - ~bits (bitwise NOT) not handled
+        - &variable (address-of) incomplete
+
+        This breaks arithmetic, boolean logic, and bitwise operations.
+
+      reproduction:
+        c_code: |
+          int negate(int x) {
+              return -x;  // Should become -x
+          }
+
+          int logical_not(int condition) {
+              return !condition;  // Should become !condition
+          }
+
+        current_behavior: "return -x; → return x; (negation lost)"
+        expected_behavior: "return -x; → return -x;"
+
+      requirements:
+        - Parse CXCursor_UnaryOperator for all unary operations
+        - Handle unary minus (-x)
+        - Handle logical NOT (!x)
+        - Handle bitwise NOT (~x)
+        - Handle address-of (&x)
+        - Distinguish from binary operators
+
+      test_requirements:
+        unit_tests:
+          - test_parse_unary_minus
+          - test_parse_logical_not
+          - test_parse_bitwise_not
+          - test_parse_address_of_operator
+          - test_unary_vs_binary_minus
+
+        integration_tests:
+          - test_unary_operators_end_to_end
+
+      acceptance_criteria:
+        - "Parses -x as Expression::UnaryOp(Negate, x)"
+        - "Parses !x as Expression::UnaryOp(LogicalNot, x)"
+        - "Parses ~x as Expression::UnaryOp(BitwiseNot, x)"
+        - "Parses &x as Expression::AddressOf(x)"
+        - "Generates correct Rust unary operator syntax"
+        - "Coverage ≥85%"
+        - "0 clippy warnings"
+
+      test_strategy: |
+        RED phase:
+        - Create failing tests for each unary operator
+        - Test should verify UnaryOp expression extraction
+
+        GREEN phase:
+        - Add UnaryOperator enum (Negate, LogicalNot, BitwiseNot)
+        - Add Expression::UnaryOp variant
+        - Handle CXCursor_UnaryOperator in parser
+        - Extract operator type and operand expression
+
+        REFACTOR phase:
+        - Add property tests for unary operator combinations
+        - Verify precedence handling (unary binds tighter than binary)
+        - Test complex expressions like -(a + b)
+
+      related_issues:
+        - DECY-031: Pointer dereference (*ptr) - completed
+        - DECY-007: Binary expression handling - completed
+        - Real-world validation gap from DECY-027
+
+      references:
+        - "K&R §2.10: Unary Operators"
+        - "ISO C99 §6.5.3: Unary operators"
+
     DECY-039:
       title: "Fix macro parser to accept C keywords as parameter names"
       type: bug
       priority: critical
       story_points: 1
       assignee: Claude
-      status: in_progress
+      status: done
       github_issue: null
-      phase: RED
+      phase: DONE
       start_date: "2025-10-21"
+      done_date: "2025-10-21"
 
       description: |
         The macro property test `property_function_like_macros_have_parameters` fails

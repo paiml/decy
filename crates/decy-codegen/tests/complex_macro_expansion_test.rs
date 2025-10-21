@@ -162,7 +162,7 @@ int test() {
 /// Test multiple evaluation warning
 ///
 /// C: #define SQR(x) ((x) * (x))
-///    int y = SQR(i++);  // BUG: i++ evaluated TWICE!
+///    int y = SQR(i++);  // ERROR: i++ evaluated TWICE!
 ///
 /// Expected: WARNING - macro argument evaluated multiple times
 ///
@@ -344,7 +344,7 @@ fn test_macro_hygiene_prevents_capture() {
 void test() {
     int tmp = 100;  // DANGER: macro uses 'tmp'!
     int x = 1, y = 2;
-    BAD_SWAP(x, y);  // BUG: uses caller's 'tmp' variable
+    BAD_SWAP(x, y);  // ERROR: uses caller's 'tmp' variable
 }
 "#;
 

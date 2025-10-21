@@ -2360,12 +2360,12 @@ impl CodeGenerator {
     ///
     /// // Simple typedef: typedef int Integer;
     /// let typedef = HirTypedef::new("Integer".to_string(), HirType::Int);
-    /// let code = codegen.generate_typedef(&typedef);
+    /// let code = codegen.generate_typedef(&typedef).unwrap();
     /// assert!(code.contains("type Integer = i32"));
     ///
     /// // Pointer typedef: typedef int* IntPtr;
     /// let typedef = HirTypedef::new("IntPtr".to_string(), HirType::Pointer(Box::new(HirType::Int)));
-    /// let code = codegen.generate_typedef(&typedef);
+    /// let code = codegen.generate_typedef(&typedef).unwrap();
     /// assert!(code.contains("type IntPtr = *mut i32"));
     /// ```
     pub fn generate_typedef(&self, typedef: &decy_hir::HirTypedef) -> anyhow::Result<String> {

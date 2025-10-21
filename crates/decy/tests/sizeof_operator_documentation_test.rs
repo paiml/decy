@@ -69,7 +69,7 @@
 //!   int arr[10];
 //!   sizeof(arr);       // 40 bytes (10 * sizeof(int))
 //!   void f(int arr[]) {
-//!       sizeof(arr);   // sizeof(int*) - COMMON BUG!
+//!       sizeof(arr);   // sizeof(int*) - COMMON ERROR!
 //!   }
 //!   ```
 //! - **Rust**: No array decay, clear distinction

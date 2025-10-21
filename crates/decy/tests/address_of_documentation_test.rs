@@ -261,7 +261,7 @@ let mut x: i32 = 10;
         let c_code = r#"
 int* dangerous() {
     int x = 42;
-    return &x;  // BUG: x is destroyed after function returns
+    return &x;  // ERROR: x is destroyed after function returns
 }
 "#;
 

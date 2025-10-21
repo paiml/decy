@@ -1,4 +1,4 @@
-//! Property tests for string code generation (DECY-025 REFACTOR phase).
+//! Property tests for string code generation (DECY-025 TDD-Refactor phase).
 
 use super::*;
 use decy_hir::{HirExpression, HirStatement, HirType};

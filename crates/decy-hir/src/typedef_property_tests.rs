@@ -1,4 +1,4 @@
-//! Property-based tests for typedef support (DECY-023 REFACTOR phase).
+//! Property-based tests for typedef support (DECY-023 TDD-Refactor phase).
 
 use proptest::prelude::*;
 

@@ -1,4 +1,4 @@
-//! Property-based tests for macro parsing (DECY-098b REFACTOR)
+//! Property-based tests for macro parsing (DECY-098b TDD-Refactor)
 //!
 //! These tests use proptest to verify macro parsing properties across
 //! a wide range of inputs.
