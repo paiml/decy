@@ -1547,6 +1547,7 @@ extern "C" fn visit_default_children(
 }
 
 /// Helper function to extract a statement from a cursor based on its kind.
+#[allow(non_upper_case_globals)]
 fn extract_statement(cursor: CXCursor) -> Option<Statement> {
     let kind = unsafe { clang_getCursorKind(cursor) };
 
@@ -1562,10 +1563,15 @@ fn extract_statement(cursor: CXCursor) -> Option<Statement> {
         CXCursor_BinaryOperator => extract_assignment_stmt(cursor),
         CXCursor_CallExpr => {
             // Function call as statement
-            if let Some(call_expr) = extract_function_call(cursor) {
-                if let Expression::FunctionCall { function, arguments } = call_expr {
-                    return Some(Statement::FunctionCall { function, arguments });
-                }
+            if let Some(Expression::FunctionCall {
+                function,
+                arguments,
+            }) = extract_function_call(cursor)
+            {
+                return Some(Statement::FunctionCall {
+                    function,
+                    arguments,
+                });
             }
             None
         }
