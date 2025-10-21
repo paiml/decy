@@ -733,8 +733,8 @@ sprint_3:
 current_status:
   date: "2025-10-21"
   sprint_completed: "Sprint 13 (Complete)"
-  current_sprint: "Sprint 14 (Next)"
-  overall_progress: "Sprint 13: Critical parser gaps fixed ✅ | DECY-034: ptr->field ✅ | DECY-035: unary operators ✅ | Next: Sprint 14 planning"
+  current_sprint: "Sprint 14 (Ready to Start)"
+  overall_progress: "Sprint 13: Critical parser gaps fixed ✅ | Sprint 14 defined: DECY-036 (function calls) + DECY-037 (struct params) | Ready for RED phase"
 
   completed_major_features:
     - "✅ Parser with clang-sys (89.60% coverage)"
@@ -3116,6 +3116,215 @@ sprint_13:
       references:
         - "K&R §2.10: Unary Operators"
         - "ISO C99 §6.5.3: Unary operators"
+
+sprint_14:
+  name: "Remaining Parser Gaps - Function Calls & Struct Parameters"
+  duration: "1 week"
+  start_date: "2025-10-21"
+  goals:
+    - Fix function call expressions in assignments - DECY-036
+    - Fix struct type parameters in function signatures - DECY-037
+    - Complete real-world validation gaps
+  story_points: 5
+  story_points_completed: 0
+  story_points_breakdown:
+    DECY-036: 3 (Function call expressions)
+    DECY-037: 2 (Struct type parameters)
+  status: not_started
+
+  tickets:
+    DECY-036:
+      title: "Fix function call expressions in assignments"
+      type: bug
+      priority: high
+      story_points: 3
+      assignee: Claude
+      status: not_started
+      github_issue: null
+      phase: READY
+
+      description: |
+        Fix parser bug where function call expressions like malloc(sizeof(T))
+        are not captured when used in assignments or variable initializers.
+
+        From real-world validation (DECY-027), function calls fail:
+        - malloc(sizeof(int)) not in output
+        - Function call expressions in assignments missing
+        - Variable declarations with function call initializers lost
+
+        This prevents transpilation of any C code using malloc, calloc,
+        or other function calls in expressions.
+
+      reproduction:
+        c_code: |
+          struct Node {
+              int value;
+              struct Node* next;
+          };
+
+          struct Node* create_node(int value) {
+              struct Node* node = malloc(sizeof(struct Node));
+              node->value = value;
+              node->next = NULL;
+              return node;
+          }
+
+        current_behavior: "struct Node* node = malloc(...) → struct Node* node (initializer lost)"
+        expected_behavior: "struct Node* node = malloc(...) → let mut node = Box::new(Node { ... })"
+
+      requirements:
+        - Parse function calls in variable initializers
+        - Parse function calls in assignment RHS
+        - Parse function calls in return statements
+        - Wire to existing HIR FunctionCall expression
+        - Handle sizeof expressions as arguments
+
+      test_requirements:
+        unit_tests:
+          - test_parse_function_call_in_initializer
+          - test_parse_malloc_with_sizeof
+          - test_parse_function_call_in_assignment
+          - test_parse_nested_function_calls
+          - test_parse_function_call_in_return
+
+        property_tests:
+          - property_function_call_never_panics
+          - property_function_call_preserves_name
+          - property_function_call_argument_count_matches
+
+        integration_tests:
+          - test_malloc_to_box_with_initializer
+
+      acceptance_criteria:
+        - "Parses malloc(sizeof(T)) in variable declarations"
+        - "Parses function calls in assignments"
+        - "Parses function calls with sizeof arguments"
+        - "Generated code includes function calls"
+        - "Coverage ≥85%"
+        - "0 clippy warnings"
+
+      test_strategy: |
+        RED phase:
+        - Create failing tests for function calls in initializers
+        - Test should verify FunctionCall expression extraction
+        - Test malloc/calloc/sizeof patterns
+
+        GREEN phase:
+        - Fix visit_variable_initializer() to extract function calls
+        - Fix extract_assignment_stmt() to handle function call RHS
+        - Ensure extract_expression() handles CallExpr cursors
+        - Wire to existing HIR FunctionCall
+
+        REFACTOR phase:
+        - Add property tests for function call combinations
+        - Verify integration with DECY-044 (sizeof fix)
+        - Test complex expressions: malloc(n * sizeof(T))
+
+      related_issues:
+        - DECY-044: malloc(sizeof(T)) parser fix - completed
+        - DECY-009: Box pattern detection - completed
+        - Real-world validation gap from DECY-027
+
+      references:
+        - "K&R §5.4: Pointers and Functions"
+        - "ISO C99 §6.5.2.2: Function calls"
+
+    DECY-037:
+      title: "Fix struct type parameters in function signatures"
+      type: bug
+      priority: critical
+      story_points: 2
+      assignee: Claude
+      status: not_started
+      github_issue: null
+      phase: READY
+
+      description: |
+        Fix parser bug where function parameters with struct types
+        are not properly parsed, causing parameters to disappear from
+        function signatures.
+
+        From real-world validation (DECY-027), struct parameters fail:
+        - "struct Node* head" parameter disappears
+        - Function signatures broken for struct types
+        - Only primitive types (int, float) preserved
+
+        This prevents transpilation of any C code using structs as
+        function parameters.
+
+      reproduction:
+        c_code: |
+          struct Node {
+              int value;
+              struct Node* next;
+          };
+
+          void traverse(struct Node* head) {
+              while (head != NULL) {
+                  printf("%d\n", head->value);
+                  head = head->next;
+              }
+          }
+
+        current_behavior: "void traverse(struct Node* head) → fn traverse() (parameter missing!)"
+        expected_behavior: "void traverse(struct Node* head) → fn traverse(head: &Node)"
+
+      requirements:
+        - Parse struct type in parameter declarations
+        - Handle "struct TypeName*" patterns
+        - Handle "struct TypeName" (by value) patterns
+        - Preserve parameter names
+        - Wire to existing HIR Parameter struct
+
+      test_requirements:
+        unit_tests:
+          - test_parse_struct_pointer_parameter
+          - test_parse_struct_value_parameter
+          - test_parse_multiple_struct_parameters
+          - test_parse_mixed_primitive_struct_parameters
+          - test_parse_nested_struct_parameter
+
+        property_tests:
+          - property_struct_parameter_never_panics
+          - property_struct_parameter_name_preserved
+          - property_struct_parameter_count_matches
+
+        integration_tests:
+          - test_struct_parameter_end_to_end
+
+      acceptance_criteria:
+        - "Parses struct Node* param correctly"
+        - "Parses struct Node param (by value)"
+        - "Generates correct Rust parameter types"
+        - "All struct parameters preserved in signature"
+        - "Coverage ≥85%"
+        - "0 clippy warnings"
+
+      test_strategy: |
+        RED phase:
+        - Create failing tests for struct parameters
+        - Test should verify Parameter extraction with struct types
+        - Test both pointer and value struct parameters
+
+        GREEN phase:
+        - Fix extract_parameter() to handle struct types
+        - Recognize "struct TypeName" patterns in type extraction
+        - Handle CXType_Record for struct types
+        - Preserve parameter names and types
+
+        REFACTOR phase:
+        - Add property tests for struct parameter combinations
+        - Verify integration with DECY-020 (struct support)
+        - Test complex cases: const struct T*, struct T[]
+
+      related_issues:
+        - DECY-020: Struct/enum support - completed
+        - DECY-034: Struct field access - completed
+        - Real-world validation gap from DECY-027
+
+      references:
+        - "K&R §6.2: Structures and Functions"
+        - "ISO C99 §6.7.2.1: Structure and union specifiers"
 
     DECY-039:
       title: "Fix macro parser to accept C keywords as parameter names"
