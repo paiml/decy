@@ -92,6 +92,28 @@ allow_hack = false                   # No HACK comments
 allow_xxx = false                    # No XXX comments
 custom_patterns = ["TEMP", "WIP", "BROKEN"]
 
+# Exclusions for legitimate technical terms
+[satd.exclusions]
+# Allow "REFACTOR" in TDD phase comments
+refactor_contexts = [
+    "RED-GREEN-REFACTOR",
+    "TDD.*REFACTOR",
+    "REFACTOR phase",
+    "REFACTOR)",
+]
+# Allow "BUG" in C code documentation/examples
+bug_contexts = [
+    "// BUG:",           # C code comment showing bug
+    "// ERROR:",         # Alternative we use
+    "C: .*BUG",          # C code example
+    "\".*BUG.*\"",       # String literal
+]
+# Allow "DEBUG" as macro name (common in C)
+debug_contexts = [
+    "DEBUG\"",           # DEBUG macro name
+    "\"DEBUG\"",         # String with DEBUG
+]
+
 # Unsafe Code Policy
 [unsafe_code]
 max_per_1000_loc = 5                 # <5 unsafe blocks per 1000 LOC
