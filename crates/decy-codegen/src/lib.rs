@@ -2327,23 +2327,24 @@ impl CodeGenerator {
     /// let code = codegen.generate_typedef(&typedef);
     /// assert!(code.contains("type IntPtr = *mut i32"));
     /// ```
-    pub fn generate_typedef(&self, typedef: &decy_hir::HirTypedef) -> String {
+    pub fn generate_typedef(&self, typedef: &decy_hir::HirTypedef) -> anyhow::Result<String> {
         // Check for redundant typedef (struct/enum name matching typedef name)
-        match typedef.underlying_type() {
+        let result = match typedef.underlying_type() {
             HirType::Struct(name) | HirType::Enum(name) if name == typedef.name() => {
                 // In Rust, struct/enum names are already types, so this is redundant
                 // Generate as a comment for documentation purposes
                 format!("// type {} = {}; (redundant in Rust)", typedef.name(), name)
             }
             _ => {
-                // Regular type alias
+                // Regular type alias with public visibility
                 format!(
-                    "type {} = {};",
+                    "pub type {} = {};",
                     typedef.name(),
                     Self::map_type(typedef.underlying_type())
                 )
             }
-        }
+        };
+        Ok(result)
     }
 
     /// Generate a constant declaration from HIR.
