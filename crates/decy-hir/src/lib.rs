@@ -611,6 +611,10 @@ pub enum UnaryOperator {
     Minus,
     /// Logical NOT (!x)
     LogicalNot,
+    /// Bitwise NOT (~x)
+    BitwiseNot,
+    /// Address-of (&x)
+    AddressOf,
     /// Post-increment (x++)
     /// Returns old value, then increments
     /// Reference: ISO C99 §6.5.2.4, K&R §2.8
@@ -1074,6 +1078,8 @@ fn convert_unary_operator(op: decy_parser::parser::UnaryOperator) -> UnaryOperat
     match op {
         ParserOp::Minus => UnaryOperator::Minus,
         ParserOp::LogicalNot => UnaryOperator::LogicalNot,
+        ParserOp::BitwiseNot => UnaryOperator::BitwiseNot,
+        ParserOp::AddressOf => UnaryOperator::AddressOf,
     }
 }
 
