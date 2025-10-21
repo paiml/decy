@@ -193,6 +193,11 @@ extern "C" fn visit_function(
         if let Some(struct_def) = extract_struct(cursor) {
             ast.add_struct(struct_def);
         }
+    } else if kind == CXCursor_VarDecl {
+        // Extract variable declaration
+        if let Some(variable) = extract_variable(cursor) {
+            ast.add_variable(variable);
+        }
     } else if kind == CXCursor_MacroDefinition {
         // Extract macro definition (only from main file, not includes)
         let location = unsafe { clang_getCursorLocation(cursor) };
@@ -327,6 +332,31 @@ fn extract_struct(cursor: CXCursor) -> Option<Struct> {
 
 /// Extract macro definition from a clang cursor.
 ///
+/// Extract variable declaration information from a clang cursor.
+///
+/// Extracts global and local variable declarations, including function pointers.
+///
+/// # Examples
+///
+/// Simple: `int x;`
+/// Function pointer: `int (*callback)(int);`
+fn extract_variable(cursor: CXCursor) -> Option<Variable> {
+    // SAFETY: Getting cursor spelling (variable name)
+    let name_cxstring = unsafe { clang_getCursorSpelling(cursor) };
+    let name = unsafe {
+        let c_str = CStr::from_ptr(clang_getCString(name_cxstring));
+        let name = c_str.to_string_lossy().into_owned();
+        clang_disposeString(name_cxstring);
+        name
+    };
+
+    // SAFETY: Getting variable type
+    let cx_type = unsafe { clang_getCursorType(cursor) };
+    let var_type = convert_type(cx_type)?;
+
+    Some(Variable::new(name, var_type))
+}
+
 /// This function extracts #define directives, supporting both object-like and function-like macros.
 ///
 /// # Examples
@@ -2503,6 +2533,16 @@ impl StructField {
     pub fn new(name: String, field_type: Type) -> Self {
         Self { name, field_type }
     }
+
+    /// Get the field name.
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    /// Check if this field is a function pointer.
+    pub fn is_function_pointer(&self) -> bool {
+        matches!(self.field_type, Type::FunctionPointer { .. })
+    }
 }
 
 /// Represents a struct definition.
@@ -2519,6 +2559,63 @@ impl Struct {
     pub fn new(name: String, fields: Vec<StructField>) -> Self {
         Self { name, fields }
     }
+
+    /// Get the struct name.
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    /// Get the struct fields.
+    pub fn fields(&self) -> &[StructField] {
+        &self.fields
+    }
+}
+
+/// Represents a variable declaration.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Variable {
+    /// Variable name
+    name: String,
+    /// Variable type
+    var_type: Type,
+}
+
+impl Variable {
+    /// Create a new variable.
+    pub fn new(name: String, var_type: Type) -> Self {
+        Self { name, var_type }
+    }
+
+    /// Get the variable name.
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    /// Get the variable type.
+    pub fn var_type(&self) -> &Type {
+        &self.var_type
+    }
+
+    /// Check if this variable is a function pointer.
+    pub fn is_function_pointer(&self) -> bool {
+        matches!(self.var_type, Type::FunctionPointer { .. })
+    }
+
+    /// Get the number of parameters if this is a function pointer.
+    pub fn function_pointer_param_count(&self) -> usize {
+        match &self.var_type {
+            Type::FunctionPointer { param_types, .. } => param_types.len(),
+            _ => 0,
+        }
+    }
+
+    /// Check if this function pointer has a void return type.
+    pub fn function_pointer_has_void_return(&self) -> bool {
+        match &self.var_type {
+            Type::FunctionPointer { return_type, .. } => matches!(**return_type, Type::Void),
+            _ => false,
+        }
+    }
 }
 
 /// Abstract Syntax Tree representing parsed C code.
@@ -2528,6 +2625,7 @@ pub struct Ast {
     typedefs: Vec<Typedef>,
     structs: Vec<Struct>,
     macros: Vec<MacroDefinition>,
+    variables: Vec<Variable>,
 }
 
 /// Represents a C macro definition (#define).
@@ -2622,6 +2720,7 @@ impl Ast {
             typedefs: Vec::new(),
             structs: Vec::new(),
             macros: Vec::new(),
+            variables: Vec::new(),
         }
     }
 
@@ -2663,6 +2762,16 @@ impl Ast {
     /// Add a macro definition to the AST.
     pub fn add_macro(&mut self, macro_def: MacroDefinition) {
         self.macros.push(macro_def);
+    }
+
+    /// Get the variables in the AST.
+    pub fn variables(&self) -> &[Variable] {
+        &self.variables
+    }
+
+    /// Add a variable to the AST.
+    pub fn add_variable(&mut self, variable: Variable) {
+        self.variables.push(variable);
     }
 }
 
@@ -2751,6 +2860,11 @@ impl Parameter {
     /// Create a new parameter.
     pub fn new(name: String, param_type: Type) -> Self {
         Self { name, param_type }
+    }
+
+    /// Check if this parameter is a function pointer.
+    pub fn is_function_pointer(&self) -> bool {
+        matches!(self.param_type, Type::FunctionPointer { .. })
     }
 }
 

@@ -6,7 +6,7 @@
 //! - K&R §5.11: Pointers to Functions
 //! - ISO C99 §6.7.5.3: Function declarators
 
-use decy_hir::{HirType, HirParameter};
+use decy_hir::{HirParameter, HirType};
 
 #[test]
 fn test_function_pointer_simple() {
@@ -17,7 +17,10 @@ fn test_function_pointer_simple() {
     };
 
     match fn_ptr {
-        HirType::FunctionPointer { param_types, return_type } => {
+        HirType::FunctionPointer {
+            param_types,
+            return_type,
+        } => {
             assert_eq!(param_types.len(), 1);
             assert_eq!(param_types[0], HirType::Int);
             assert_eq!(*return_type, HirType::Int);
@@ -87,7 +90,10 @@ fn test_function_pointer_as_parameter() {
     assert_eq!(callback_param.name(), "callback");
 
     match callback_param.param_type() {
-        HirType::FunctionPointer { param_types, return_type } => {
+        HirType::FunctionPointer {
+            param_types,
+            return_type,
+        } => {
             assert_eq!(param_types.len(), 1);
             assert_eq!(return_type.as_ref(), &HirType::Int);
         }
@@ -104,7 +110,10 @@ fn test_function_pointer_with_float_types() {
     };
 
     match fn_ptr {
-        HirType::FunctionPointer { param_types, return_type } => {
+        HirType::FunctionPointer {
+            param_types,
+            return_type,
+        } => {
             assert_eq!(param_types[0], HirType::Float);
             assert_eq!(param_types[1], HirType::Float);
             assert_eq!(*return_type, HirType::Float);

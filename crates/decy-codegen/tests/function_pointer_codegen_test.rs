@@ -7,7 +7,7 @@
 //! - ISO C99 §6.7.5.3: Function declarators
 
 use decy_codegen::CodeGenerator;
-use decy_hir::{HirType, HirTypedef, HirParameter, HirFunction};
+use decy_hir::{HirFunction, HirParameter, HirType, HirTypedef};
 
 #[test]
 fn test_function_pointer_simple_codegen() {
@@ -128,11 +128,7 @@ fn test_function_pointer_as_parameter_codegen() {
         HirParameter::new("operation".to_string(), callback_type),
     ];
 
-    let func = HirFunction::new(
-        "apply".to_string(),
-        HirType::Void,
-        params,
-    );
+    let func = HirFunction::new("apply".to_string(), HirType::Void, params);
 
     let generator = CodeGenerator::new();
     let rust_code = generator.generate_function(&func);
