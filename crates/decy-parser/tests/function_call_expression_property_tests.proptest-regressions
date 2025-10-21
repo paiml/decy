@@ -1,0 +1,12 @@
+# Seeds for failure cases proptest has generated in the past. It is
+# automatically read and these particular cases re-run before any
+# novel cases are generated.
+#
+# It is recommended to check this file in to source control so that
+# everyone who runs the test benefits from these saved cases.
+cc a9c83b82fe85538421f2e4e9e37b978f611ff7b3e39e8d8db43ca157a39fce33 # shrinks to (c_code, func_name) = ("\n            void* test() {\n                return a(aa);\n            }\n            ", "a")
+cc 47836ba835c795616d9e7a52152da156889ea43862bc95035e1d3b24d18cb5de # shrinks to (c_code, func_name, var_name) = ("\n            void* test() {\n                void* a = a(a);\n                return a;\n            }\n            ", "a", "a")
+cc 077d233bd062e2c784de2e5de22ea77a8ac4a08df79381f0aa12c98e3b057ad4 # shrinks to (c_code, outer_func, inner_func) = ("\n            int test() {\n                return a(a(a0));\n            }\n            ", "a", "a")
+cc 695ebacd2b44272db6bcaa27cfebc2d0171f5dd40224b9aa36cde8d809b4d0ae # shrinks to (c_code, func_name, var_name) = ("\n            void* test() {\n                void* a;\n                a = a(a);\n                return a;\n            }\n            ", "a", "a")
+cc 11be6820ce7959380c2ca81885a4677a231104b65db8401e1dc4e6ddc7b0e331 # shrinks to func_name = "a", arg1 = "a", arg2 = "a", arg3 = "a0"
+cc e1311cd27d38fbe63ec56ff60f309c41d6ba93a05c245ba8a9a778b1553f87e7 # shrinks to (c_code, var_name) = ("\n            void* helper(int g_);\n\n            void* test(int g_) {\n                void* g_ = helper(g_);\n                return g_;\n            }\n            ", "g_")
