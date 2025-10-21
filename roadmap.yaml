@@ -732,9 +732,9 @@ sprint_3:
 # CURRENT STATUS AND NEXT PRIORITIES
 current_status:
   date: "2025-10-21"
-  sprint_completed: "Sprint 13 (Complete)"
-  current_sprint: "Sprint 14 (Ready to Start)"
-  overall_progress: "Sprint 13: Critical parser gaps fixed ✅ | Sprint 14 defined: DECY-036 (function calls) + DECY-037 (struct params) | Ready for RED phase"
+  sprint_completed: "Sprint 14 (Complete)"
+  current_sprint: "Sprint 15 (Ready to Define)"
+  overall_progress: "Sprint 14: Parser gaps COMPLETE ✅ | Function calls in assignments fixed | Struct parameters verified | Real-world readiness: 97%+ | Ready for next priority"
 
   completed_major_features:
     - "✅ Parser with clang-sys (89.60% coverage)"
@@ -863,8 +863,25 @@ current_status:
       - "Address-of: &x operator"
       - "C keyword filtering in property test generators"
 
-  total_sprints_completed: 13
-  total_story_points_delivered: 334  # 310 + 19 (Sprint 10) + 5 (Sprint 13)
+  sprint_14_accomplishments:
+    - "✅ DECY-036: Function call expressions in assignments (3 SP) - Fixed missing CXCursor_CallExpr case"
+    - "✅ DECY-037: Struct type parameters verification (2 SP) - Already working from DECY-020"
+    total_story_points: 5
+    actual_coverage: "100% (all tests passing)"
+    total_tests: "11 unit + 11 property = 22 tests (2,816 property test cases)"
+    property_test_cases: "2,816 for function call expressions"
+    methodology: "EXTREME TDD (RED-GREEN-REFACTOR)"
+    new_features:
+      - "Function calls in variable initializers: int* ptr = malloc(sizeof(int))"
+      - "Function calls in assignments: x = malloc(size)"
+      - "Function calls in return statements: return malloc(n)"
+      - "Nested function calls: strlen(strdup(s))"
+      - "malloc(sizeof(T)) patterns fully supported"
+      - "Struct parameters verified: struct Node* head works correctly"
+    completion_date: "2025-10-21"
+
+  total_sprints_completed: 14
+  total_story_points_delivered: 339  # 334 + 5 (Sprint 14)
   overall_test_count: "159 parser + 136 HIR + 5 integration"
   overall_coverage: "Parser: 100%, HIR: 100%"
   real_world_readiness: "97%"
@@ -1258,31 +1275,53 @@ current_status:
             Sprint 8 must focus on fixing these P0 gaps (17 story points) before
             advancing to new features. Revised estimate: 3-4 weeks to reach true 85%+ readiness.
 
+  recommended_next_sprint:
+    sprint: "Sprint 15"
+    theme: "Quality & Test Hardening"
+    rationale: |
+      With 97%+ real-world readiness achieved and all critical parser gaps fixed,
+      the next priority is improving test quality and mutation scores.
+
+      Current mutation score: 69.5% (target: 90%)
+      Gap: 39 missed mutants in parser, expression visitors, and operators
+
+      This sprint will harden existing tests before adding new features,
+      following EXTREME TDD principles.
+
+    goals:
+      - Improve mutation testing score from 69.5% to 85%+
+      - Add edge case tests for expression visitors
+      - Comprehensive operator coverage tests
+      - End-to-end validation with larger C projects
+
+    story_points: 13
+    estimated_duration: "1 week"
+
   long_term_roadmap_ideas:
     - name: "Incremental transpilation"
       description: "Transpile C projects file-by-file, maintain C/Rust FFI boundary"
       priority: "High"
-      sprint: "Sprint 6-7"
+      sprint: "Sprint 16-17"
 
     - name: "Interactive CLI mode"
       description: "REPL for transpiling C snippets, see Rust output instantly"
       priority: "Medium"
-      sprint: "Sprint 8"
+      sprint: "Sprint 16"
 
     - name: "IDE integration (LSP)"
       description: "VS Code extension showing transpiled Rust alongside C code"
       priority: "Medium"
-      sprint: "Sprint 9-10"
+      sprint: "Sprint 17-18"
 
     - name: "Optimization passes"
       description: "Generate idiomatic Rust (iterators, pattern matching, etc)"
       priority: "Low"
-      sprint: "Sprint 11-12"
+      sprint: "Sprint 18-19"
 
     - name: "Unsafe code auditing mode"
       description: "Highlight remaining unsafe blocks with confidence scores"
       priority: "Medium"
-      sprint: "Sprint 8-9"
+      sprint: "Sprint 16-17"
 
 # Sprint 4: Ownership Inference Foundation
 sprint_4:
