@@ -970,6 +970,28 @@ impl HirStatement {
                     right: Box::new(HirExpression::from_ast_expression(value)),
                 },
             },
+            // Switch statement - convert cases and default
+            Statement::Switch {
+                condition,
+                cases,
+                default_case,
+            } => HirStatement::Switch {
+                condition: HirExpression::from_ast_expression(condition),
+                cases: cases
+                    .iter()
+                    .map(|case| SwitchCase {
+                        value: case.value.as_ref().map(HirExpression::from_ast_expression),
+                        body: case
+                            .body
+                            .iter()
+                            .map(HirStatement::from_ast_statement)
+                            .collect(),
+                    })
+                    .collect(),
+                default_case: default_case
+                    .as_ref()
+                    .map(|block| block.iter().map(HirStatement::from_ast_statement).collect()),
+            },
             // Function call statement - convert to placeholder statement
             //
             // Implementation Note: The parser's `Statement::FunctionCall` variant is not fully
