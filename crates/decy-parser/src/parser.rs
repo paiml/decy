@@ -2439,6 +2439,54 @@ impl Typedef {
             underlying_type,
         }
     }
+
+    /// Get the typedef name.
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    /// Get the underlying type as a string representation.
+    pub fn underlying_type(&self) -> &str {
+        // Return a string representation of the type
+        match &self.underlying_type {
+            Type::Void => "void",
+            Type::Int => "int",
+            Type::Float => "float",
+            Type::Double => "double",
+            Type::Char => "char",
+            Type::Pointer(inner) => match **inner {
+                Type::Char => "char*",
+                Type::Int => "int*",
+                Type::Float => "float*",
+                Type::Double => "double*",
+                Type::Void => "void*",
+                _ => "pointer",
+            },
+            Type::Struct(name) => name,
+            Type::FunctionPointer { .. } => "function pointer",
+        }
+    }
+
+    /// Check if this typedef is a pointer type.
+    pub fn is_pointer(&self) -> bool {
+        matches!(self.underlying_type, Type::Pointer(_))
+    }
+
+    /// Check if this typedef is a struct type.
+    pub fn is_struct(&self) -> bool {
+        matches!(self.underlying_type, Type::Struct(_))
+    }
+
+    /// Check if this typedef is a function pointer type.
+    pub fn is_function_pointer(&self) -> bool {
+        matches!(self.underlying_type, Type::FunctionPointer { .. })
+    }
+
+    /// Check if this typedef is an array type.
+    pub fn is_array(&self) -> bool {
+        // Arrays are not yet in the Type enum, so return false for now
+        false
+    }
 }
 
 /// Represents a struct field.

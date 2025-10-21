@@ -2873,14 +2873,14 @@ sprint_10:
 
   tickets:
     DECY-023:
-      title: "[RED] Type aliases and typedefs"
+      title: "[GREEN] Type aliases and typedefs"
       type: feature
       priority: high
       story_points: 3
       assignee: Claude
       status: in_progress
       github_issue: null
-      phase: RED
+      phase: GREEN
 
       description: |
         Add support for C typedef declarations, transpiling them to Rust type aliases.
