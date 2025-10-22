@@ -4,8 +4,8 @@
 
 use anyhow::{Context, Result};
 use colored::Colorize;
-use decy_parser::CParser;
 use decy_hir::HirFunction;
+use decy_parser::CParser;
 use std::fs;
 use std::path::Path;
 
@@ -34,7 +34,10 @@ pub fn visualize_hir(file_path: &Path, use_colors: bool) -> Result<String> {
 
     // Header
     if use_colors {
-        output.push_str(&format!("{}\n", "╔═══ HIR Visualization ═══╗".green().bold()));
+        output.push_str(&format!(
+            "{}\n",
+            "╔═══ HIR Visualization ═══╗".green().bold()
+        ));
     } else {
         output.push_str("╔═══ HIR Visualization ═══╗\n");
     }
@@ -57,7 +60,11 @@ pub fn visualize_hir(file_path: &Path, use_colors: bool) -> Result<String> {
 
         // Show parameter details
         for param in hir_func.parameters() {
-            output.push_str(&format!("    - {} : {:?}\n", param.name(), param.param_type()));
+            output.push_str(&format!(
+                "    - {} : {:?}\n",
+                param.name(),
+                param.param_type()
+            ));
         }
 
         output.push_str(&format!("  Body statements: {}\n", hir_func.body().len()));
