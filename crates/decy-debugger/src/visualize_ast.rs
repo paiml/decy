@@ -20,10 +20,11 @@ pub fn visualize_c_ast(file_path: &Path, use_colors: bool) -> Result<String> {
         .with_context(|| format!("Failed to read file: {}", file_path.display()))?;
 
     // Parse to AST
-    let parser = CParser::new();
-    let functions = parser
+    let parser = CParser::new()?;
+    let ast = parser
         .parse(&source)
         .context("Failed to parse C source")?;
+    let functions = ast.functions();
 
     // Format the output
     let mut output = String::new();
@@ -86,7 +87,7 @@ pub fn visualize_c_ast(file_path: &Path, use_colors: bool) -> Result<String> {
     };
     output.push_str(&format!("{}\n", ast_header));
 
-    for function in &functions {
+    for function in functions {
         format_function(function, 0, &mut output, use_colors);
     }
     output.push('\n');
@@ -122,10 +123,11 @@ fn format_function(function: &Function, depth: usize, output: &mut String, use_c
     output.push_str(&format!("{}├─ {}", indent, node_type));
 
     // Return type
+    let return_type_str = format!("{:?}", function.return_type);
     if use_colors {
-        output.push_str(&format!(" → {}", function.return_type.dimmed()));
+        output.push_str(&format!(" → {}", return_type_str.dimmed()));
     } else {
-        output.push_str(&format!(" → {}", function.return_type));
+        output.push_str(&format!(" → {}", return_type_str));
     }
     output.push('\n');
 
@@ -138,7 +140,7 @@ fn format_function(function: &Function, depth: usize, output: &mut String, use_c
             if i > 0 {
                 output.push_str(", ");
             }
-            output.push_str(&format!("{}: {}", param.name, param.param_type));
+            output.push_str(&format!("{}: {:?}", param.name, param.param_type));
         }
         output.push('\n');
     }
@@ -196,7 +198,7 @@ fn format_statement(stmt: &Statement, depth: usize, output: &mut String, use_col
         }
         Statement::VariableDeclaration { name, var_type, initializer } => {
             let label = if use_colors { "VarDecl".cyan().to_string() } else { "VarDecl".to_string() };
-            let mut s = format!("{}: {} {}: {}", label, var_type, name, name);
+            let mut s = format!("{}: {:?} {}", label, var_type, name);
             if let Some(init) = initializer {
                 s.push_str(&format!(" = {}", format_expression(init, use_colors)));
             }
@@ -227,7 +229,7 @@ fn format_expression(expr: &Expression, use_colors: bool) -> String {
         }
         Expression::BinaryOp { left, op, right } => {
             format!(
-                "({} {} {})",
+                "({} {:?} {})",
                 format_expression(left, use_colors),
                 op,
                 format_expression(right, use_colors)

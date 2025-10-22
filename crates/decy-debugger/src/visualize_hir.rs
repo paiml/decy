@@ -19,11 +19,12 @@ pub fn visualize_hir(file_path: &Path, use_colors: bool) -> Result<String> {
     let source = fs::read_to_string(file_path)
         .with_context(|| format!("Failed to read file: {}", file_path.display()))?;
 
-    let parser = CParser::new();
-    let functions = parser.parse(&source).context("Failed to parse C source")?;
+    let parser = CParser::new()?;
+    let ast = parser.parse(&source).context("Failed to parse C source")?;
 
     // Convert to HIR
-    let hir_functions: Vec<HirFunction> = functions
+    let hir_functions: Vec<HirFunction> = ast
+        .functions()
         .iter()
         .map(HirFunction::from_ast_function)
         .collect();
@@ -46,20 +47,20 @@ pub fn visualize_hir(file_path: &Path, use_colors: bool) -> Result<String> {
     // Display each HIR function
     for hir_func in &hir_functions {
         if use_colors {
-            output.push_str(&format!("{}:\n", hir_func.name.bright_cyan().bold()));
+            output.push_str(&format!("{}:\n", hir_func.name().bright_cyan().bold()));
         } else {
-            output.push_str(&format!("{}:\n", hir_func.name));
+            output.push_str(&format!("{}:\n", hir_func.name()));
         }
 
-        output.push_str(&format!("  Return type: {:?}\n", hir_func.return_type));
-        output.push_str(&format!("  Parameters: {}\n", hir_func.parameters.len()));
+        output.push_str(&format!("  Return type: {:?}\n", hir_func.return_type()));
+        output.push_str(&format!("  Parameters: {}\n", hir_func.parameters().len()));
 
         // Show parameter details
-        for param in &hir_func.parameters {
-            output.push_str(&format!("    - {} : {:?}\n", param.name, param.param_type));
+        for param in hir_func.parameters() {
+            output.push_str(&format!("    - {} : {:?}\n", param.name(), param.param_type()));
         }
 
-        output.push_str(&format!("  Body statements: {}\n", hir_func.body.len()));
+        output.push_str(&format!("  Body statements: {}\n", hir_func.body().len()));
         output.push('\n');
     }
 
