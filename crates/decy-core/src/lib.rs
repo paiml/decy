@@ -554,10 +554,114 @@ impl Default for TranspilationCache {
     }
 }
 
+/// Preprocess #include directives in C source code (DECY-056).
+///
+/// Resolves and inlines #include directives recursively, tracking processed files
+/// to prevent infinite loops from circular dependencies.
+///
+/// # Arguments
+///
+/// * `source` - C source code with #include directives
+/// * `base_dir` - Base directory for resolving relative include paths (None = current dir)
+/// * `processed` - Set of already processed file paths (prevents circular includes)
+///
+/// # Returns
+///
+/// Preprocessed C code with includes inlined
+fn preprocess_includes(
+    source: &str,
+    base_dir: Option<&Path>,
+    processed: &mut std::collections::HashSet<PathBuf>,
+) -> Result<String> {
+    let mut result = String::new();
+    let base_dir = base_dir.unwrap_or_else(|| Path::new("."));
+
+    for line in source.lines() {
+        let trimmed = line.trim();
+
+        // Check for #include directive
+        if trimmed.starts_with("#include") {
+            // Extract filename from #include "file.h" or #include <file.h>
+            let (filename, is_system) = if let Some(start) = trimmed.find('"') {
+                if let Some(end) = trimmed[start + 1..].find('"') {
+                    let filename = &trimmed[start + 1..start + 1 + end];
+                    (filename, false)
+                } else {
+                    // Malformed include, keep original line
+                    result.push_str(line);
+                    result.push('\n');
+                    continue;
+                }
+            } else if let Some(start) = trimmed.find('<') {
+                if let Some(end) = trimmed[start + 1..].find('>') {
+                    let filename = &trimmed[start + 1..start + 1 + end];
+                    (filename, true)
+                } else {
+                    // Malformed include, keep original line
+                    result.push_str(line);
+                    result.push('\n');
+                    continue;
+                }
+            } else {
+                // No include found, keep original line
+                result.push_str(line);
+                result.push('\n');
+                continue;
+            };
+
+            // Skip system includes (<stdio.h>) - we don't have those files
+            if is_system {
+                // Just comment out system includes for now
+                result.push_str(&format!("// {}\n", line));
+                continue;
+            }
+
+            // Resolve include path relative to base_dir
+            let include_path = base_dir.join(filename);
+
+            // Check if already processed (circular dependency or duplicate)
+            if processed.contains(&include_path) {
+                // Already processed, skip (header guards working)
+                result.push_str(&format!("// Already included: {}\n", filename));
+                continue;
+            }
+
+            // Try to read the included file
+            if let Ok(included_content) = std::fs::read_to_string(&include_path) {
+                // Mark as processed
+                processed.insert(include_path.clone());
+
+                // Get directory of included file for nested includes
+                let included_dir = include_path.parent().unwrap_or(base_dir);
+
+                // Recursively preprocess the included file
+                let preprocessed =
+                    preprocess_includes(&included_content, Some(included_dir), processed)?;
+
+                // Add marker comments for debugging
+                result.push_str(&format!("// BEGIN INCLUDE: {}\n", filename));
+                result.push_str(&preprocessed);
+                result.push_str(&format!("// END INCLUDE: {}\n", filename));
+            } else {
+                // File not found - return error for local includes
+                anyhow::bail!("Failed to find include file: {}", include_path.display());
+            }
+        } else {
+            // Regular line, keep as-is
+            result.push_str(line);
+            result.push('\n');
+        }
+    }
+
+    Ok(result)
+}
+
 /// Main transpilation pipeline entry point.
 ///
 /// Converts C source code to safe Rust code with automatic ownership
 /// and lifetime inference.
+///
+/// Automatically preprocesses #include directives (DECY-056).
 ///
 /// # Examples
 ///
@@ -573,13 +677,41 @@ impl Default for TranspilationCache {
 /// # Errors
 ///
 /// Returns an error if:
+/// - #include file not found
 /// - C code parsing fails
 /// - HIR conversion fails
 /// - Code generation fails
 pub fn transpile(c_code: &str) -> Result<String> {
+    transpile_with_includes(c_code, None)
+}
+
+/// Transpile C code with include directive support and custom base directory.
+///
+/// # Arguments
+///
+/// * `c_code` - C source code to transpile
+/// * `base_dir` - Base directory for resolving #include paths (None = current dir)
+///
+/// # Examples
+///
+/// ```no_run
+/// use decy_core::transpile_with_includes;
+/// use std::path::Path;
+///
+/// let c_code = "#include \"utils.h\"\nint main() { return 0; }";
+/// let rust_code = transpile_with_includes(c_code, Some(Path::new("/tmp/project")))?;
+/// # Ok::<(), anyhow::Error>(())
+/// ```
+pub fn transpile_with_includes(c_code: &str, base_dir: Option<&Path>) -> Result<String> {
+    // Step 0: Preprocess #include directives (DECY-056)
+    let mut processed_files = std::collections::HashSet::new();
+    let preprocessed = preprocess_includes(c_code, base_dir, &mut processed_files)?;
+
     // Step 1: Parse C code
     let parser = CParser::new().context("Failed to create C parser")?;
-    let ast = parser.parse(c_code).context("Failed to parse C code")?;
+    let ast = parser
+        .parse(&preprocessed)
+        .context("Failed to parse C code")?;
 
     // Step 2: Convert to HIR
     let hir_functions: Vec<HirFunction> = ast
