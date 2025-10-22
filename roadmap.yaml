@@ -5527,3 +5527,106 @@ sprint_18:
       validation_reference: "ISO C99 §6.10.2 (Source file inclusion), K&R §4.11, DECY-051 validation report"
       impact: "CRITICAL - Unblocks 100% of multi-file C projects"
       risk: "High complexity - dependency graph, circular refs, path resolution"
+
+    DECY-057:
+      title: "Parser: typedef compile-time assertion support (P1)"
+      type: feature
+      priority: high
+      story_points: 4
+      assignee: Claude
+      status: in_progress
+      github_issue: null
+      phase: RED
+      started_date: "2025-10-22"
+
+      description: |
+        Add support for typedef array assertions - a common compile-time assertion pattern.
+        Found in miniz.c and many production C projects for portable code.
+
+        Current behavior: Parse error on negative array size
+        Desired behavior: Convert to Rust const assertion or static_assert!
+
+      blocking_issue: |
+        From DECY-051 validation:
+        ```c
+        typedef unsigned char mz_validate_uint16[sizeof(mz_uint16) == 2 ? 1 : -1];
+        ```
+
+        This is a compile-time assertion trick:
+        - If condition true (sizeof == 2), array size 1 (valid)
+        - If false, array size -1 (compile error)
+
+        Used for:
+        - Portable type size verification
+        - Platform-specific checks
+        - Static assertions before C11 _Static_assert
+
+        Parser currently fails on this pattern.
+
+      requirements:
+        - Parse typedef with array size expression
+        - Detect compile-time assertion pattern (array[cond ? 1 : -1])
+        - Convert to Rust const assertion
+        - Support sizeof in array size
+        - Support ternary operator in array size
+        - Handle both positive and negative assertions
+
+      implementation_strategy: |
+        Phase 1 (RED): Write failing tests for typedef assertions
+        Phase 2 (GREEN): Add parser support for array typedef with expressions
+        Phase 3 (REFACTOR): Convert to idiomatic Rust static assertions
+
+        Rust equivalents:
+        - Option 1: const _: () = assert!(SIZE == 2); (Rust 1.57+)
+        - Option 2: Generate compile_error! macro
+        - Option 3: Use static_assertions crate
+
+      test_requirements:
+        unit_tests:
+          - test_parse_typedef_array_assertion
+          - test_parse_typedef_sizeof_expression
+          - test_typedef_assertion_with_ternary
+          - test_transpile_typedef_assertion_to_const_assert
+          - test_multiple_typedef_assertions
+
+      examples:
+        - c: |
+            typedef unsigned char validate_size[sizeof(int) == 4 ? 1 : -1];
+          rust: |
+            const _: () = assert!(std::mem::size_of::<i32>() == 4);
+
+        - c: |
+            typedef char check_ptr_size[sizeof(void*) == 8 ? 1 : -1];
+          rust: |
+            const _: () = assert!(std::mem::size_of::<*const ()>() == 8);
+
+      acceptance_criteria:
+        - "typedef array assertions parse without error"
+        - "sizeof expressions in array size work"
+        - "Ternary operators in array size work"
+        - "Generated Rust compiles"
+        - "Assertions fail at compile time when condition false"
+        - "Coverage ≥85%"
+        - "0 clippy warnings"
+
+      test_strategy: |
+        RED Phase:
+        1. Write tests for typedef array assertion patterns
+        2. Test sizeof in array dimensions
+        3. Test ternary operator ? : in array size
+        4. Test Rust code generation and compilation
+
+        GREEN Phase:
+        1. Extend parser to handle array size expressions
+        2. Add typedef assertion detection
+        3. Generate Rust const assertion code
+        4. Ensure generated code compiles
+
+        REFACTOR Phase:
+        1. Optimize assertion detection
+        2. Add better error messages
+        3. Document pattern
+
+      validation_reference: "DECY-051 validation report (miniz.c pattern), ISO C99 §6.7.2.1 (Array declarators)"
+      impact: "Unblocks portable C code with compile-time checks (common in embedded/systems code)"
+      risk: "Medium - requires expression evaluation in type context"
