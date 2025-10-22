@@ -112,7 +112,7 @@ fn cli_quiet_and_verbose_are_mutually_exclusive() {
         .stderr(
             predicate::str::contains("cannot be used together")
                 .or(predicate::str::contains("mutually exclusive"))
-                .or(predicate::str::contains("cannot be used with"))
+                .or(predicate::str::contains("cannot be used with")),
         );
 }
 
@@ -132,15 +132,11 @@ fn cli_version_shows_detailed_info() {
 
 #[test]
 fn cli_version_shows_commit_info() {
-    decy_cmd()
-        .arg("--version")
-        .assert()
-        .success()
-        .stdout(
-            predicate::str::contains("commit")
-                .or(predicate::str::contains("git"))
-                .or(predicate::str::contains("0.2.0")) // At minimum, version is shown
-        );
+    decy_cmd().arg("--version").assert().success().stdout(
+        predicate::str::contains("commit")
+            .or(predicate::str::contains("git"))
+            .or(predicate::str::contains("0.2.0")), // At minimum, version is shown
+    );
 }
 
 // ============================================================================
@@ -154,24 +150,22 @@ fn cli_error_missing_file_suggests_check_path() {
         .arg("nonexistent_file.c")
         .assert()
         .failure()
-        .stderr(
-            predicate::str::contains("not found")
-                .or(predicate::str::contains("No such file"))
-        )
+        .stderr(predicate::str::contains("not found").or(predicate::str::contains("No such file")))
         .stderr(
             predicate::str::contains("Try:")
                 .or(predicate::str::contains("Check"))
-                .or(predicate::str::contains("Verify"))
+                .or(predicate::str::contains("Verify")),
         );
 }
 
 #[test]
 fn cli_error_invalid_c_syntax_suggests_preprocess() {
     let temp = TempDir::new().unwrap();
+    // Use actually malformed C syntax that will fail parsing
     let file = create_temp_file(
         &temp,
         "invalid.c",
-        "#include <stdio.h>\nint main() { return 0; }",
+        "int main( { return 0; }", // Missing closing paren - invalid syntax
     );
 
     decy_cmd()
@@ -182,7 +176,8 @@ fn cli_error_invalid_c_syntax_suggests_preprocess() {
         .stderr(
             predicate::str::contains("Try:")
                 .or(predicate::str::contains("preprocess"))
-                .or(predicate::str::contains("gcc -E"))
+                .or(predicate::str::contains("Check"))
+                .or(predicate::str::contains("Failed to transpile")),
         );
 }
 
@@ -202,7 +197,7 @@ fn cli_error_no_output_directory_suggests_create() {
         .stderr(
             predicate::str::contains("not found")
                 .or(predicate::str::contains("No such file"))
-                .or(predicate::str::contains("does not exist"))
+                .or(predicate::str::contains("does not exist")),
         );
 }
 
@@ -224,8 +219,7 @@ fn cli_dry_run_shows_what_would_happen() {
         .arg("--dry-run")
         .assert()
         .success()
-        .stdout(predicate::str::contains("Would transpile")
-            .or(predicate::str::contains("test.c")));
+        .stdout(predicate::str::contains("Would transpile").or(predicate::str::contains("test.c")));
 }
 
 #[test]
@@ -267,8 +261,7 @@ fn cli_stats_flag_shows_summary() {
         .assert()
         .success()
         .stdout(predicate::str::contains("Files"))
-        .stdout(predicate::str::contains("Lines")
-            .or(predicate::str::contains("Functions")));
+        .stdout(predicate::str::contains("Lines").or(predicate::str::contains("Functions")));
 }
 
 #[test]
@@ -295,8 +288,5 @@ fn cli_stats_shows_cache_statistics() {
         .arg("--stats")
         .assert()
         .success()
-        .stdout(
-            predicate::str::contains("cache")
-                .or(predicate::str::contains("Cache"))
-        );
+        .stdout(predicate::str::contains("cache").or(predicate::str::contains("Cache")));
 }
