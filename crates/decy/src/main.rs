@@ -425,8 +425,8 @@ fn transpile_project(
             .with_context(|| format!("Failed to read {}", file_path.display()))?;
 
         if dry_run {
-            // Dry run mode - just show what would be done
-            if verbose {
+            // Dry run mode - always show what would be done (that's the point of dry-run!)
+            if !quiet {
                 println!("Would transpile: {}", relative_path.display());
             }
             pb.set_message(format!("Would transpile {}", relative_path.display()));
@@ -453,7 +453,11 @@ fn transpile_project(
             .with_context(|| format!("Failed to write {}", output_path.display()))?;
 
         if verbose {
-            println!("✓ Transpiled: {} → {}", relative_path.display(), output_path.display());
+            println!(
+                "✓ Transpiled: {} → {}",
+                relative_path.display(),
+                output_path.display()
+            );
         }
 
         // Update cache
@@ -484,7 +488,11 @@ fn transpile_project(
     if !quiet {
         println!();
         if dry_run {
-            println!("✓ Dry run complete - {} files checked in {:.2}s", c_files.len(), elapsed.as_secs_f64());
+            println!(
+                "✓ Dry run complete - {} files checked in {:.2}s",
+                c_files.len(),
+                elapsed.as_secs_f64()
+            );
         } else {
             println!(
                 "✓ Transpiled {} files in {:.2}s",
@@ -516,7 +524,9 @@ fn transpile_project(
                 println!("Cache hits: {}", cache_stats.hits);
                 println!("Cache misses: {}", cache_stats.misses);
                 if cache_stats.hits + cache_stats.misses > 0 {
-                    let hit_rate = (cache_stats.hits as f64 / (cache_stats.hits + cache_stats.misses) as f64) * 100.0;
+                    let hit_rate = (cache_stats.hits as f64
+                        / (cache_stats.hits + cache_stats.misses) as f64)
+                        * 100.0;
                     println!("Hit rate: {:.1}%", hit_rate);
                     let speedup = if cache_stats.misses > 0 {
                         (cache_stats.hits + cache_stats.misses) as f64 / cache_stats.misses as f64
