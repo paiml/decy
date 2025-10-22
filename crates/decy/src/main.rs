@@ -13,7 +13,7 @@ use std::path::PathBuf;
 /// Decy: C-to-Rust Transpiler with EXTREME Quality Standards
 #[derive(Parser, Debug)]
 #[command(name = "decy")]
-#[command(version = "0.1.0")]
+#[command(version = "0.2.0")]
 #[command(about = "Transpile C code to safe Rust with minimal unsafe blocks", long_about = None)]
 struct Cli {
     #[command(subcommand)]
@@ -45,6 +45,22 @@ enum Commands {
         /// Disable caching (default: enabled)
         #[arg(long)]
         no_cache: bool,
+
+        /// Show verbose output (per-file progress)
+        #[arg(short, long, conflicts_with = "quiet")]
+        verbose: bool,
+
+        /// Suppress progress output
+        #[arg(short, long, conflicts_with = "verbose")]
+        quiet: bool,
+
+        /// Show what would be done without writing files
+        #[arg(long)]
+        dry_run: bool,
+
+        /// Show summary statistics after transpilation
+        #[arg(long)]
+        stats: bool,
     },
     /// Check project and show build order (dry-run)
     CheckProject {
@@ -83,8 +99,12 @@ fn main() -> Result<()> {
             input,
             output,
             no_cache,
+            verbose,
+            quiet,
+            dry_run,
+            stats,
         }) => {
-            transpile_project(input, output, !no_cache)?;
+            transpile_project(input, output, !no_cache, verbose, quiet, dry_run, stats)?;
         }
         Some(Commands::CheckProject { input }) => {
             check_project(input)?;
@@ -274,7 +294,15 @@ fn audit_file(input: PathBuf, verbose: bool) -> Result<()> {
     Ok(())
 }
 
-fn transpile_project(input_dir: PathBuf, output_dir: PathBuf, use_cache: bool) -> Result<()> {
+fn transpile_project(
+    input_dir: PathBuf,
+    output_dir: PathBuf,
+    use_cache: bool,
+    verbose: bool,
+    quiet: bool,
+    dry_run: bool,
+    stats: bool,
+) -> Result<()> {
     use decy_core::{DependencyGraph, TranspilationCache};
     use indicatif::{ProgressBar, ProgressStyle};
     use std::time::Instant;
@@ -282,7 +310,10 @@ fn transpile_project(input_dir: PathBuf, output_dir: PathBuf, use_cache: bool) -
 
     // Validate input directory exists
     if !input_dir.exists() {
-        anyhow::bail!("Input directory not found: {}", input_dir.display());
+        anyhow::bail!(
+            "Input directory not found: {}\n\nTry: Check the path is correct\n  or: Use 'decy check-project <dir>' to verify project structure",
+            input_dir.display()
+        );
     }
 
     // Create output directory if needed
