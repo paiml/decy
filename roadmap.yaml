@@ -732,9 +732,9 @@ sprint_3:
 # CURRENT STATUS AND NEXT PRIORITIES
 current_status:
   date: "2025-10-22"
-  sprint_completed: "Sprint 16 (Complete - 21/21 SP, 100%)"
-  current_sprint: "Sprint 17 (Production Readiness & Ecosystem Growth - 13/18 SP, 72%)"
-  overall_progress: "Sprint 16: COMPLETE ✅ | Sprint 17 IN PROGRESS: DECY-054 started (RED phase) | 3/4 tickets complete (DECY-051: DONE ✅, DECY-052: DONE ✅, DECY-053: DONE ✅, DECY-054: IN PROGRESS - RED) | Focus: Function pointer support for real-world C | 89.83% coverage maintained | Real-world readiness: 40% → targeting 50%+ with function pointers"
+  sprint_completed: "Sprint 17 (Complete - 18/18 SP, 100%) ✅"
+  current_sprint: "Sprint 18 (Real-world Validation & Quality) - Planning"
+  overall_progress: "Sprint 17: COMPLETE ✅ (100%) | All 4 tickets done: DECY-051 (Large C validation), DECY-052 (User guide), DECY-053 (CLI improvements), DECY-054 (Function pointers) | Coverage: 90.18% | Real-world readiness: 45% (function pointers enable more C patterns) | Next: Sprint 18 validation gaps"
 
   completed_major_features:
     - "✅ Parser with clang-sys (89.60% coverage)"
@@ -5146,10 +5146,26 @@ sprint_17:
       priority: high
       story_points: 5
       assignee: Claude
-      status: in_progress
+      status: done
       github_issue: null
-      phase: RED
+      phase: DONE
       started_date: "2025-10-22"
+      completed_date: "2025-10-22"
+
+      completion_summary: |
+        Implemented complete function pointer support with 100% test pass rate:
+        - Added global variable transpilation to decy-core pipeline
+        - Added typedef transpilation to decy-core pipeline
+        - Function pointers generate as: static mut var: Option<fn(i32) -> i32> = None;
+        - Typedefs generate as: pub type Callback = fn(i32, i32) -> i32;
+        - Struct fields with function pointers work correctly
+        - All 9 end-to-end tests passing
+
+      actual_metrics:
+        tests: "9/9 passing (100%)"
+        coverage: "90.18% (up from 89.83%)"
+        files_modified: "crates/decy-core/src/lib.rs, crates/decy-core/tests/function_pointer_transpile_test.rs"
+        lines_added: "~80 LOC (pipeline integration + tests)"
 
       description: |
         Add support for C function pointers → Rust function pointers (fn types).
