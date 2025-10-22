@@ -1,0 +1,32 @@
+[book]
+title = "Decy: The C-to-Rust Transpiler Book"
+author = "Decy Contributors"
+description = "Comprehensive guide to using Decy for C-to-Rust transpilation with TDD-enforced examples"
+language = "en"
+multilingual = false
+src = "src"
+
+[build]
+build-dir = "book"
+create-missing = false
+
+[preprocessor.links]
+# Enable link checking
+
+[output.html]
+mathjax-support = false
+git-repository-url = "https://github.com/paiml/decy"
+git-repository-icon = "fa-github"
+edit-url-template = "https://github.com/paiml/decy/edit/main/book/{path}"
+
+[output.html.fold]
+enable = true
+level = 1
+
+[output.html.playground]
+editable = true
+copy-js = true
+runnable = true
+
+# Test all Rust code blocks
+[output.test]
