@@ -84,6 +84,19 @@ impl CParser {
             Length: source.len() as std::os::raw::c_ulong,
         };
 
+        // Detect if source contains extern "C" to enable C++ mode
+        // This handles C headers that use extern "C" without proper #ifdef guards
+        let needs_cpp_mode = source.contains("extern \"C\"");
+
+        // Prepare command line arguments for C++ mode if needed
+        let cpp_flag = CString::new("-x").unwrap();
+        let cpp_lang = CString::new("c++").unwrap();
+        let args_vec: Vec<*const std::os::raw::c_char> = if needs_cpp_mode {
+            vec![cpp_flag.as_ptr(), cpp_lang.as_ptr()]
+        } else {
+            vec![]
+        };
+
         // SAFETY: Parsing with clang_parseTranslationUnit2
         // Use CXTranslationUnit_DetailedPreprocessingRecord to capture macro definitions
         let mut tu = ptr::null_mut();
@@ -91,8 +104,12 @@ impl CParser {
             clang_parseTranslationUnit2(
                 self.index,
                 filename.as_ptr(),
-                ptr::null(),
-                0,
+                if args_vec.is_empty() {
+                    ptr::null()
+                } else {
+                    args_vec.as_ptr()
+                },
+                args_vec.len() as std::os::raw::c_int,
                 &unsaved_file as *const CXUnsavedFile as *mut CXUnsavedFile,
                 1,
                 CXTranslationUnit_DetailedPreprocessingRecord,
@@ -177,6 +194,17 @@ extern "C" fn visit_function(
 
     // SAFETY: Getting cursor kind
     let kind = unsafe { clang_getCursorKind(cursor) };
+
+    // Handle extern "C" linkage specifications (DECY-055)
+    // CXCursor_LinkageSpec = 23
+    if kind == 23 {
+        // This is extern "C" { ... } - visit its children
+        // Don't process the linkage spec itself, just recurse into declarations
+        unsafe {
+            clang_visitChildren(cursor, visit_function, client_data);
+        }
+        return CXChildVisit_Continue;
+    }
 
     if kind == CXCursor_FunctionDecl {
         // Extract function information
