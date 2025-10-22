@@ -35,7 +35,10 @@ fn test_transpile_function_pointer_void_return() {
     let rust_code = transpile(c_code).expect("Transpilation should succeed");
 
     // Should generate: fn(i32) (no return type for void)
-    assert!(rust_code.contains("handler"), "Should include handler variable");
+    assert!(
+        rust_code.contains("handler"),
+        "Should include handler variable"
+    );
     assert!(
         rust_code.contains("fn(i32)"),
         "Should generate fn type with no return"
