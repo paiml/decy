@@ -138,12 +138,21 @@ fn main() -> Result<()> {
 
 fn transpile_file(input: PathBuf, output: Option<PathBuf>) -> Result<()> {
     // Read input file
-    let c_code = fs::read_to_string(&input)
-        .with_context(|| format!("Failed to read input file: {}", input.display()))?;
+    let c_code = fs::read_to_string(&input).with_context(|| {
+        format!(
+            "Failed to read input file: {}\n\nTry: Check that the file exists and is readable\n  or: Verify the file path is correct",
+            input.display()
+        )
+    })?;
 
     // Transpile using decy-core
-    let rust_code = decy_core::transpile(&c_code)
-        .with_context(|| format!("Failed to transpile {}", input.display()))?;
+    let rust_code = decy_core::transpile(&c_code).with_context(|| {
+        format!(
+            "Failed to transpile {}\n\nTry: Check if the C code contains #include directives (not yet supported)\n  or: Preprocess the file first: gcc -E {} -o preprocessed.c",
+            input.display(),
+            input.display()
+        )
+    })?;
 
     // DECY-AUDIT-002: Detect if the source has no main function and provide guidance
     let has_main = rust_code.contains("fn main(");
@@ -316,13 +325,15 @@ fn transpile_project(
         );
     }
 
-    // Create output directory if needed
-    fs::create_dir_all(&output_dir).with_context(|| {
-        format!(
-            "Failed to create output directory: {}",
-            output_dir.display()
-        )
-    })?;
+    // Create output directory if needed (unless dry-run)
+    if !dry_run {
+        fs::create_dir_all(&output_dir).with_context(|| {
+            format!(
+                "Failed to create output directory: {}",
+                output_dir.display()
+            )
+        })?;
+    }
 
     // Find all C files
     let c_files: Vec<PathBuf> = WalkDir::new(&input_dir)
@@ -333,18 +344,29 @@ fn transpile_project(
         .collect();
 
     if c_files.is_empty() {
-        println!("No C files found in {}", input_dir.display());
+        if !quiet {
+            println!("No C files found in {}", input_dir.display());
+        }
         return Ok(());
     }
 
-    println!("Found {} C files to transpile", c_files.len());
-    println!();
+    if dry_run && !quiet {
+        println!("DRY RUN MODE - No files will be written");
+        println!();
+    }
 
-    // Initialize cache
+    if !quiet {
+        println!("Found {} C files to transpile", c_files.len());
+        println!();
+    }
+
+    // Initialize cache (unless dry-run)
     let cache_dir = input_dir.join(".decy").join("cache");
-    fs::create_dir_all(&cache_dir)?;
+    if !dry_run {
+        fs::create_dir_all(&cache_dir)?;
+    }
 
-    let mut cache = if use_cache {
+    let mut cache = if use_cache && !dry_run {
         TranspilationCache::load(&cache_dir)?
     } else {
         TranspilationCache::new()
@@ -361,17 +383,24 @@ fn transpile_project(
         .topological_sort()
         .with_context(|| "Failed to compute build order (circular dependencies?)")?;
 
-    // Setup progress bar
-    let pb = ProgressBar::new(c_files.len() as u64);
-    pb.set_style(
-        ProgressStyle::default_bar()
-            .template("[{elapsed_precise}] {bar:40.cyan/blue} {pos}/{len} {msg}")
-            .unwrap()
-            .progress_chars("=>-"),
-    );
+    // Setup progress bar (unless quiet mode)
+    let pb = if quiet {
+        ProgressBar::hidden()
+    } else {
+        let pb = ProgressBar::new(c_files.len() as u64);
+        pb.set_style(
+            ProgressStyle::default_bar()
+                .template("[{elapsed_precise}] {bar:40.cyan/blue} {pos}/{len} {msg}")
+                .unwrap()
+                .progress_chars("=>-"),
+        );
+        pb
+    };
 
     let start_time = Instant::now();
     let mut transpiled_count = 0;
+    let mut cached_count = 0;
+    let mut total_lines = 0;
 
     // Transpile files in dependency order
     for file_path in build_order {
@@ -381,7 +410,11 @@ fn transpile_project(
         // Check cache
         if use_cache {
             if let Some(_cached) = cache.get(&file_path) {
+                if verbose {
+                    println!("✓ Cached: {}", relative_path.display());
+                }
                 pb.set_message(format!("✓ Cached {}", relative_path.display()));
+                cached_count += 1;
                 pb.inc(1);
                 continue;
             }
@@ -391,9 +424,21 @@ fn transpile_project(
         let c_code = fs::read_to_string(&file_path)
             .with_context(|| format!("Failed to read {}", file_path.display()))?;
 
+        if dry_run {
+            // Dry run mode - just show what would be done
+            if verbose {
+                println!("Would transpile: {}", relative_path.display());
+            }
+            pb.set_message(format!("Would transpile {}", relative_path.display()));
+            pb.inc(1);
+            continue;
+        }
+
         // Transpile
         let rust_code = decy_core::transpile(&c_code)
             .with_context(|| format!("Failed to transpile {}", file_path.display()))?;
+
+        total_lines += rust_code.lines().count();
 
         // Compute output path (preserve directory structure)
         let output_path = output_dir.join(relative_path).with_extension("rs");
@@ -406,6 +451,10 @@ fn transpile_project(
         // Write output
         fs::write(&output_path, &rust_code)
             .with_context(|| format!("Failed to write {}", output_path.display()))?;
+
+        if verbose {
+            println!("✓ Transpiled: {} → {}", relative_path.display(), output_path.display());
+        }
 
         // Update cache
         if use_cache {
@@ -425,31 +474,65 @@ fn transpile_project(
 
     pb.finish_with_message("Done");
 
-    // Save cache
-    if use_cache {
+    // Save cache (unless dry-run)
+    if use_cache && !dry_run {
         cache.save()?;
     }
 
     let elapsed = start_time.elapsed();
-    println!();
-    println!(
-        "✓ Transpiled {} files in {:.2}s",
-        transpiled_count,
-        elapsed.as_secs_f64()
-    );
 
-    if use_cache {
-        let stats = cache.statistics();
-        println!("  Cache hits: {}", stats.hits);
-        println!("  Cache misses: {}", stats.misses);
-        if stats.hits + stats.misses > 0 {
-            let hit_rate = (stats.hits as f64 / (stats.hits + stats.misses) as f64) * 100.0;
-            println!("  Hit rate: {:.1}%", hit_rate);
+    if !quiet {
+        println!();
+        if dry_run {
+            println!("✓ Dry run complete - {} files checked in {:.2}s", c_files.len(), elapsed.as_secs_f64());
+        } else {
+            println!(
+                "✓ Transpiled {} files in {:.2}s",
+                transpiled_count,
+                elapsed.as_secs_f64()
+            );
         }
     }
 
-    println!();
-    println!("Output directory: {}", output_dir.display());
+    // Show statistics if requested or if verbose
+    if stats || verbose {
+        if !quiet {
+            println!();
+            println!("=== Statistics ===");
+            println!("Files found: {}", c_files.len());
+            println!("Files transpiled: {}", transpiled_count);
+            if cached_count > 0 {
+                println!("Files cached: {}", cached_count);
+            }
+            if total_lines > 0 {
+                println!("Lines generated: {}", total_lines);
+            }
+            println!("Time elapsed: {:.2}s", elapsed.as_secs_f64());
+
+            if use_cache {
+                let cache_stats = cache.statistics();
+                println!();
+                println!("=== Cache Statistics ===");
+                println!("Cache hits: {}", cache_stats.hits);
+                println!("Cache misses: {}", cache_stats.misses);
+                if cache_stats.hits + cache_stats.misses > 0 {
+                    let hit_rate = (cache_stats.hits as f64 / (cache_stats.hits + cache_stats.misses) as f64) * 100.0;
+                    println!("Hit rate: {:.1}%", hit_rate);
+                    let speedup = if cache_stats.misses > 0 {
+                        (cache_stats.hits + cache_stats.misses) as f64 / cache_stats.misses as f64
+                    } else {
+                        1.0
+                    };
+                    println!("Estimated speedup: {:.1}x", speedup);
+                }
+            }
+        }
+    }
+
+    if !quiet && !dry_run {
+        println!();
+        println!("Output directory: {}", output_dir.display());
+    }
 
     Ok(())
 }

@@ -109,8 +109,11 @@ fn cli_quiet_and_verbose_are_mutually_exclusive() {
         .arg("--verbose")
         .assert()
         .failure()
-        .stderr(predicate::str::contains("cannot be used together")
-            .or(predicate::str::contains("mutually exclusive")));
+        .stderr(
+            predicate::str::contains("cannot be used together")
+                .or(predicate::str::contains("mutually exclusive"))
+                .or(predicate::str::contains("cannot be used with"))
+        );
 }
 
 // ============================================================================
