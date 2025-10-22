@@ -2602,6 +2602,20 @@ fn convert_type(cx_type: CXType) -> Option<Type> {
             let canonical = unsafe { clang_getCanonicalType(cx_type) };
             convert_type(canonical)
         }
+        CXType_ConstantArray => {
+            // Array type - extract element type and size
+            let element_cx_type = unsafe { clang_getArrayElementType(cx_type) };
+            let element_type = convert_type(element_cx_type)?;
+
+            // Get array size
+            let array_size = unsafe { clang_getArraySize(cx_type) };
+            let size = if array_size >= 0 { Some(array_size) } else { None };
+
+            Some(Type::Array {
+                element_type: Box::new(element_type),
+                size,
+            })
+        }
         _ => None,
     }
 }
@@ -2968,6 +2982,7 @@ impl Typedef {
             },
             Type::Struct(name) => name,
             Type::FunctionPointer { .. } => "function pointer",
+            Type::Array { .. } => "array",
         }
     }
 
@@ -3386,6 +3401,14 @@ pub enum Type {
         param_types: Vec<Type>,
         /// Return type
         return_type: Box<Type>,
+    },
+    /// Array type (e.g., int arr[10])
+    /// For typedef assertions like: typedef char check[sizeof(int) == 4 ? 1 : -1]
+    Array {
+        /// Element type
+        element_type: Box<Type>,
+        /// Array size (None for unknown/expression-based size)
+        size: Option<i64>,
     },
 }
 

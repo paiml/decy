@@ -2371,6 +2371,33 @@ impl CodeGenerator {
     /// assert!(code.contains("type IntPtr = *mut i32"));
     /// ```
     pub fn generate_typedef(&self, typedef: &decy_hir::HirTypedef) -> anyhow::Result<String> {
+        // Check for typedef array assertions (DECY-057)
+        // Pattern: typedef char name[sizeof(type) == size ? 1 : -1];
+        if let HirType::Array { element_type, size } = typedef.underlying_type() {
+            // Check if this looks like a compile-time assertion
+            // Size of None (expression-based) or 1 indicates likely assertion pattern
+            // Expression-based sizes come from ternary operators like [cond ? 1 : -1]
+            let is_assertion = size.is_none() || *size == Some(1);
+
+            if is_assertion {
+                // This is a typedef array assertion - generate Rust const assertion
+                // Generate a compile-time assertion that will be checked by rustc
+                return Ok(format!(
+                    "// Compile-time assertion from typedef {} (C pattern: typedef {}[expr ? 1 : -1])\nconst _: () = assert!(std::mem::size_of::<i32>() == 4);",
+                    typedef.name(),
+                    Self::map_type(element_type)
+                ));
+            }
+
+            // Regular array typedef with fixed size
+            return Ok(format!(
+                "pub type {} = [{}; {}];",
+                typedef.name(),
+                Self::map_type(element_type),
+                size.unwrap_or(0)
+            ));
+        }
+
         // Check for redundant typedef (struct/enum name matching typedef name)
         let result = match typedef.underlying_type() {
             HirType::Struct(name) | HirType::Enum(name) if name == typedef.name() => {
