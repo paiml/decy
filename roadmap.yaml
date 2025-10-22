@@ -5079,9 +5079,10 @@ sprint_17:
       priority: medium
       story_points: 3
       assignee: Claude
-      status: not_started
+      status: in_progress
       github_issue: null
       phase: RED
+      started_date: "2025-10-22"
 
       description: |
         Improve CLI user experience with better output, flags, and error messages.
