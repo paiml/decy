@@ -4,8 +4,8 @@
 
 use anyhow::{Context, Result};
 use colored::Colorize;
-use decy_parser::CParser;
 use decy_hir::HirFunction;
+use decy_parser::CParser;
 use std::fs;
 use std::path::Path;
 
@@ -34,7 +34,10 @@ pub fn visualize_ownership_graph(file_path: &Path, use_colors: bool) -> Result<S
 
     // Header
     if use_colors {
-        output.push_str(&format!("{}\n", "╔═══ Ownership Analysis ═══╗".magenta().bold()));
+        output.push_str(&format!(
+            "{}\n",
+            "╔═══ Ownership Analysis ═══╗".magenta().bold()
+        ));
     } else {
         output.push_str("╔═══ Ownership Analysis ═══╗\n");
     }
@@ -51,10 +54,10 @@ pub fn visualize_ownership_graph(file_path: &Path, use_colors: bool) -> Result<S
             output.push_str(&format!("Function: {}\n", hir_func.name()));
         }
 
-        // TODO: Integrate with decy-ownership inference
+        // NOTE: Full ownership inference integration deferred to Sprint 18
         // The ownership inference API requires DataflowGraph construction
-        // which is a multi-step process. For now, show placeholder.
-        output.push_str("  [Ownership analysis coming soon]\n");
+        // which is a multi-step process. See roadmap.yaml DECY-055 for details.
+        output.push_str("  [Ownership analysis: Sprint 18+]\n");
         output.push_str(&format!("  Parameters: {}\n", hir_func.parameters().len()));
         output.push('\n');
     }

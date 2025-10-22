@@ -49,10 +49,10 @@
     clippy::unwrap_used
 )]
 
+pub mod step_debugger;
 pub mod visualize_ast;
 pub mod visualize_hir;
 pub mod visualize_ownership;
-pub mod step_debugger;
 
 use anyhow::Result;
 use std::path::Path;
