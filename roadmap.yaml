@@ -732,9 +732,9 @@ sprint_3:
 # CURRENT STATUS AND NEXT PRIORITIES
 current_status:
   date: "2025-10-22"
-  sprint_completed: "Sprint 16 (Complete - 21/21 SP)"
-  current_sprint: "Ready for Sprint 17"
-  overall_progress: "Sprint 16: COMPLETE ✅ | All 4 tickets done (DECY-047, 048, 049, 050) | File-level transpilation + dependency tracking + caching + CLI support | 90.33% coverage | 613 tests passing | 22 new CLI contract tests | Production-ready incremental transpilation with 10-20x cache speedup"
+  sprint_completed: "Sprint 16 (Complete - 21/21 SP, 100%)"
+  current_sprint: "Sprint 17 (Production Readiness & Ecosystem Growth - 0/18 SP)"
+  overall_progress: "Sprint 16: COMPLETE ✅ | Sprint 17 PLANNED: 4 tickets (DECY-051: Large project testing, DECY-052: User guide, DECY-053: CLI improvements, DECY-054: Function pointers) | Focus: Production readiness, real-world validation, user documentation | 90.33% coverage maintained | 613 tests passing"
 
   completed_major_features:
     - "✅ Parser with clang-sys (89.60% coverage)"
@@ -758,6 +758,11 @@ current_status:
     - "✅ Macro expansion - #define → const and inline functions (DECY-098)"
     - "✅ Struct field access parsing - ptr->field, nested access (DECY-034)"
     - "✅ Unary operators parsing - -x, !x, ~x, &x (DECY-035)"
+    - "✅ File-level transpilation API with TranspiledFile and ProjectContext (DECY-047)"
+    - "✅ Dependency tracking with petgraph and topological sort (DECY-048)"
+    - "✅ SHA-256 caching with 10-20x speedup (DECY-049)"
+    - "✅ CLI commands: transpile-project, check-project, cache-stats (DECY-050)"
+    - "✅ Real-world validation: 100% success on 4-file project"
 
   sprint_4_accomplishments:
     - "✅ DECY-011: Dataflow analysis (13 SP) - 95.72% coverage, 84 tests"
@@ -4847,3 +4852,279 @@ sprint_16:
     - "10-20x performance improvement with caching"
     - "Supports large projects (10K+ LOC)"
     - "Reduces risk (incremental adoption vs big-bang rewrite)"
+
+# Sprint 17: Production Readiness & Ecosystem Growth
+sprint_17:
+  name: "Production Readiness & Ecosystem Growth"
+  duration: "2 weeks"
+  start_date: "2025-10-22"
+  goals:
+    - Test decy on larger real-world C projects
+    - Create comprehensive user documentation
+    - Fix quality-of-life issues
+    - Improve C construct coverage
+    - Establish production-ready patterns
+  story_points: 18
+  priority: high
+
+  motivation: |
+    Sprint 16 delivered incremental transpilation infrastructure and validated it
+    on small C projects (4 files). Sprint 17 expands to production readiness:
+
+    - Real-world testing on larger projects (100s-1000s of files)
+    - Documentation for end users (not just developers)
+    - Quality-of-life improvements for better UX
+    - Increased C language construct coverage
+
+    Goal: Make decy production-ready for actual C→Rust migration projects.
+
+  tickets:
+    DECY-051:
+      title: "Real-world testing: Large C project validation"
+      type: quality
+      priority: high
+      story_points: 5
+      assignee: Claude
+      status: not_started
+      github_issue: null
+      phase: RED
+
+      description: |
+        Test decy transpile-project on larger real-world C codebases to validate
+        production readiness and discover edge cases.
+
+        Target projects:
+        - stb_image.h (~7,700 LOC single-header library)
+        - miniz.c (~5,000 LOC compression library)
+        - or subset of sqlite3.c (amalgamation)
+
+        Focus: Discover issues, not necessarily 100% transpilation success.
+
+      requirements:
+        - Select 2-3 larger C projects (1K-10K LOC each)
+        - Run transpile-project on each
+        - Document success rate and issues encountered
+        - Categorize failures (parser gaps, codegen issues, etc.)
+        - Create GitHub issues for critical gaps
+        - Measure performance (files/sec, caching effectiveness)
+
+      test_requirements:
+        integration_tests:
+          - test_stb_image_transpilation
+          - test_miniz_transpilation
+          - test_large_project_performance_benchmark
+          - test_cache_effectiveness_large_project
+
+      acceptance_criteria:
+        - "3 large projects tested (1K-10K LOC each)"
+        - "Success rate documented (files successfully transpiled)"
+        - "Performance measured (files/sec, cache hit rate)"
+        - "Issues categorized and prioritized"
+        - "Validation report created"
+        - "GitHub issues filed for P0/P1 gaps"
+
+      test_strategy: |
+        RED: Create tests that run transpile-project on real C code
+        GREEN: Run tests, collect data, document results
+        REFACTOR: Analyze patterns, create actionable issues
+
+    DECY-052:
+      title: "User documentation: Getting Started guide"
+      type: docs
+      priority: high
+      story_points: 5
+      assignee: Claude
+      status: not_started
+      github_issue: null
+      phase: RED
+
+      description: |
+        Create comprehensive user-facing documentation for developers wanting
+        to transpile C projects to Rust using decy.
+
+        Target audience: C developers with basic Rust knowledge.
+
+      requirements:
+        - Create docs/USER_GUIDE.md
+        - Installation instructions (all platforms)
+        - Quick start tutorial (5-minute transpilation)
+        - Common patterns guide (pointers, arrays, structs)
+        - Troubleshooting section
+        - FAQ
+        - Examples with before/after code
+        - Performance optimization tips (caching, parallel)
+
+      sections:
+        installation:
+          - Prerequisites (Rust, LLVM 14)
+          - cargo install decy
+          - Verification (decy --version)
+
+        quick_start:
+          - Single file: decy transpile input.c
+          - Whole project: decy transpile-project src/ -o rust_output/
+          - Check build order: decy check-project src/
+          - View cache stats: decy cache-stats src/
+
+        common_patterns:
+          - Pointers → &T, &mut T, Box<T>
+          - Arrays → [T; N], Vec<T>
+          - Structs and field access
+          - Function calls and parameters
+          - Control flow (if/while/for)
+          - Macros (#define)
+
+        troubleshooting:
+          - Parse errors and how to fix
+          - Compilation errors in generated Rust
+          - Performance issues
+          - Cache problems
+
+        advanced:
+          - Incremental migration strategy
+          - FFI boundaries
+          - Manual cleanup of generated code
+          - Integration with Cargo projects
+
+      acceptance_criteria:
+        - "USER_GUIDE.md created (500-1000 lines)"
+        - "All sections complete with examples"
+        - "At least 10 before/after code examples"
+        - "Troubleshooting covers 5+ common issues"
+        - "Guide tested by running all examples"
+        - "Links to reference documentation"
+
+      test_strategy: |
+        RED: Create outline and example structure
+        GREEN: Write comprehensive sections with examples
+        REFACTOR: Review, test all examples, polish
+
+    DECY-053:
+      title: "Quality-of-life: CLI improvements"
+      type: feature
+      priority: medium
+      story_points: 3
+      assignee: Claude
+      status: not_started
+      github_issue: null
+      phase: RED
+
+      description: |
+        Improve CLI user experience with better output, flags, and error messages.
+        Fix known issues (pre-commit hook) and add requested features.
+
+      requirements:
+        - Add --verbose flag to transpile-project (show per-file details)
+        - Add --quiet flag (suppress progress bar)
+        - Add --parallel flag (future: parallel transpilation)
+        - Improve error messages with actionable suggestions
+        - Add --version output with detailed info
+        - Fix pre-commit hook test check issue
+        - Add --dry-run to transpile-project (like check-project)
+        - Colorized output for errors/warnings/success
+        - Add --stats flag to show summary statistics
+
+      test_requirements:
+        cli_contract_tests:
+          - test_verbose_flag_shows_per_file_output
+          - test_quiet_flag_suppresses_progress
+          - test_version_shows_detailed_info
+          - test_dry_run_flag_no_output_files
+          - test_error_messages_include_suggestions
+          - test_colorized_output (when TTY)
+
+      acceptance_criteria:
+        - "--verbose and --quiet flags work"
+        - "--version shows version, commit, build date"
+        - "Error messages include 'Try: ...' suggestions"
+        - "All new flags have CLI contract tests"
+        - "Pre-commit hook test issue fixed"
+        - "Documentation updated (--help)"
+
+      test_strategy: |
+        RED: Write CLI contract tests for new flags
+        GREEN: Implement flags and improved messages
+        REFACTOR: Polish output, ensure consistency
+
+    DECY-054:
+      title: "C construct coverage: Function pointers"
+      type: feature
+      priority: high
+      story_points: 5
+      assignee: Claude
+      status: not_started
+      github_issue: null
+      phase: RED
+
+      description: |
+        Add support for C function pointers → Rust function pointers (fn types).
+        Function pointers are common in C (callbacks, vtables, dispatch tables).
+
+        Currently missing from parser/codegen pipeline.
+
+      requirements:
+        - Parse function pointer declarations: int (*callback)(int, int)
+        - Parse function pointer typedef: typedef int (*Callback)(int, int)
+        - Parse struct fields with function pointers
+        - Generate Rust fn types: fn(i32, i32) -> i32
+        - Generate type aliases: type Callback = fn(i32, i32) -> i32
+        - Handle function pointer calls: result = callback(1, 2)
+        - Handle function pointer assignments: callback = &my_function
+
+      examples:
+        - c: "int (*callback)(int, int);"
+          rust: "let callback: fn(i32, i32) -> i32;"
+        - c: "typedef int (*Callback)(int, int);"
+          rust: "type Callback = fn(i32, i32) -> i32;"
+        - c: "struct Handler { void (*on_event)(int); };"
+          rust: "struct Handler { on_event: fn(i32) }"
+        - c: "result = callback(10, 20);"
+          rust: "result = callback(10, 20);"
+
+      test_requirements:
+        unit_tests:
+          - test_parse_function_pointer_declaration
+          - test_parse_function_pointer_typedef
+          - test_parse_struct_with_function_pointer
+          - test_generate_fn_type
+          - test_generate_function_pointer_call
+          - test_function_pointer_assignment
+
+      acceptance_criteria:
+        - "Function pointer declarations parse correctly"
+        - "Rust fn types generated"
+        - "Function pointer calls work"
+        - "Struct fields with fn pointers supported"
+        - "Coverage ≥85%"
+        - "0 clippy warnings"
+
+      test_strategy: |
+        RED: Write failing parser tests for function pointers
+        GREEN: Implement parser + HIR + codegen support
+        REFACTOR: Add property tests, edge cases
+
+      validation_reference: "K&R §5.11, ISO C99 §6.7.5.3"
+      c_validation_roadmap_task: "EXPR-FUNC-PTR"
+
+  integration_milestone:
+    name: "Transpile medium-sized real-world C project"
+    description: "Successfully transpile a 1K-5K LOC C project with 50%+ success rate"
+    success_criteria:
+      - "1-3 real-world projects tested (1K-10K LOC)"
+      - "Success rate ≥50% (files that transpile without errors)"
+      - "Performance: ≥100 files/sec on average"
+      - "Cache hit rate ≥90% on re-runs"
+      - "User guide complete and tested"
+      - "Function pointers working (common C pattern)"
+
+  references:
+    - "Sprint 16: Incremental transpilation foundation"
+    - "docs/C-VALIDATION-ROADMAP.yaml: 77% coverage, targeting 85%"
+    - "CLAUDE.md: Production readiness criteria"
+
+  impact:
+    - "Validates production readiness on real codebases"
+    - "User-facing documentation attracts adoption"
+    - "Function pointers unlock callbacks, vtables patterns"
+    - "Quality-of-life improvements enhance UX"
+    - "Foundation for v0.3.0 release"
