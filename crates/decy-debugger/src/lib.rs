@@ -23,7 +23,7 @@
 //! # Usage
 //!
 //! ```rust,no_run
-//! use decy_debugger::DebuGGER;
+//! use decy_debugger::Debugger;
 //! use std::path::Path;
 //!
 //! # fn main() -> anyhow::Result<()> {
@@ -46,7 +46,10 @@
     clippy::module_name_repetitions,
     clippy::format_push_string,
     clippy::str_to_string,
-    clippy::unwrap_used
+    clippy::unwrap_used,
+    clippy::uninlined_format_args,
+    clippy::unnecessary_wraps,
+    clippy::too_many_lines
 )]
 
 pub mod step_debugger;
@@ -112,7 +115,8 @@ impl Debugger {
     ///
     /// Returns an error if the pipeline cannot be initialized
     pub fn step_through(&self, file_path: &Path) -> Result<()> {
-        step_debugger::interactive_step_through(file_path, self.verbose)
+        step_debugger::interactive_step_through(file_path, self.verbose);
+        Ok(())
     }
 }
 

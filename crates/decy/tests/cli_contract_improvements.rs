@@ -27,8 +27,8 @@ fn create_temp_file(dir: &TempDir, name: &str, content: &str) -> std::path::Path
 #[test]
 fn cli_verbose_flag_shows_per_file_progress() {
     let temp = TempDir::new().unwrap();
-    let file1 = create_temp_file(&temp, "file1.c", "int add(int a, int b) { return a + b; }");
-    let file2 = create_temp_file(&temp, "file2.c", "int sub(int a, int b) { return a - b; }");
+    let _file1 = create_temp_file(&temp, "file1.c", "int add(int a, int b) { return a + b; }");
+    let _file2 = create_temp_file(&temp, "file2.c", "int sub(int a, int b) { return a - b; }");
 
     let output_dir = temp.path().join("output");
     fs::create_dir(&output_dir).unwrap();
