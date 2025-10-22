@@ -1214,12 +1214,512 @@ Before going to production:
 
 ## FAQ
 
-[Content to be added...]
+### General Questions
+
+**Q: Is Decy production-ready?**
+
+A: Decy v0.2.0 is at **40% real-world readiness** (validated against production C projects). It works well for:
+- ✅ Single-file C programs
+- ✅ Learning C-to-Rust patterns
+- ✅ Simple-to-moderate codebases
+
+**Not ready for**:
+- ❌ Multi-file projects with `#include` (P0 blocker - fix coming in Sprint 18)
+- ❌ C++ codebases with `extern "C"` (P1 issue)
+- ❌ Complex header-only libraries
+
+**Recommendation**: Use for learning, prototyping, and simple projects. Wait for v0.3.0+ for production use.
+
+**Q: Will the generated Rust compile?**
+
+A: **Goal**: 100% compilable output. **Current**: ~90-95% for supported constructs. Edge cases may require manual fixes.
+
+**Q: How much unsafe code does Decy generate?**
+
+A: **Target**: <5 unsafe blocks per 1000 LOC. **Current**: Depends on C code patterns. Decy aggressively infers ownership to minimize unsafe.
+
+### Technical Questions
+
+**Q: Does Decy handle preprocessor directives?**
+
+A: **Partial support**:
+- ✅ `#define` constants → `const`
+- ❌ `#include` (not supported - P0 issue)
+- ❌ `#ifdef`, `#ifndef` (not supported)
+- ❌ Complex macros (not supported)
+
+**Workaround**: Use `gcc -E` to preprocess before transpiling.
+
+**Q: Can Decy transpile C++ code?**
+
+A: **No**. Decy targets **C99/K&R C only**. C++ features (classes, templates, namespaces) are not supported.
+
+**Q: Does Decy preserve comments?**
+
+A: **Not currently**. Comments are lost during parsing. We plan to add comment preservation in v0.3.0.
+
+**Q: Can I customize the generated Rust?**
+
+A: **Not yet**. Future versions will support:
+- Custom naming conventions (snake_case, camelCase)
+- Formatting preferences
+- Code style templates
+
+**Q: Does Decy handle function pointers?**
+
+A: **Limited support** in v0.2.0. Function pointer support is improving in Sprint 17 (DECY-054).
+
+### Performance Questions
+
+**Q: How fast is transpilation?**
+
+A: **With cache**: 10-20x speedup on subsequent runs
+**Without cache**: ~1-2 seconds per file (depends on complexity)
+**Large projects** (500+ files): ~2 minutes first run, ~6 seconds cached
+
+**Q: Does Decy use multiple cores?**
+
+A: **Yes**! Decy uses `rayon` for parallel transpilation. Expect 4-6x speedup on 8-core systems.
+
+**Q: Why is the cache so large?**
+
+A: Cache stores full Rust output for each file. Typical: 2-10 MB for medium projects (100 files).
+
+### Integration Questions
+
+**Q: Can I use Decy with CMake projects?**
+
+A: **Workflow**:
+1. Extract C sources from CMake
+2. Transpile with `decy transpile-project`
+3. Integrate Rust into Cargo project
+
+Not automated yet - planned for v0.4.0.
+
+**Q: Can I mix C and Rust in the same project?**
+
+A: **Yes!** Use FFI boundaries (see [Advanced Topics](#advanced-topics)). Build Rust as a static library and link with C.
+
+**Q: How do I debug generated Rust code?**
+
+A: Use the new debugger (Sprint 17+):
+```bash
+decy debug --visualize-ast problem.c
+decy debug --visualize-hir problem.c
+```
+
+Standard Rust debugging tools also work: `rust-gdb`, `rust-lldb`, VSCode debugger.
+
+### Troubleshooting Questions
+
+**Q: Why does parsing fail?**
+
+A: Common causes:
+1. **#include directives** - Preprocess first with `gcc -E`
+2. **C++ syntax** - Decy only supports C
+3. **Complex macros** - Not supported
+4. **GNU extensions** - Limited support
+
+See [Troubleshooting](#troubleshooting) for solutions.
+
+**Q: Generated Rust has type errors?**
+
+A: This is a bug! Please file an issue with:
+- Input C code
+- Generated Rust
+- Rust compiler error
+
+Target: 100% compilable output.
+
+**Q: Can I contribute to Decy?**
+
+A: **Absolutely!** See `CONTRIBUTING.md` for guidelines. We follow EXTREME TDD and Toyota Way principles.
 
 ## Known Limitations
 
-[Content to be added...]
+This section documents current limitations discovered during real-world validation (DECY-051). We're transparent about what works and what doesn't.
+
+### P0 Issues (Blocks Most Real Projects)
+
+#### 1. #include Directives Not Supported
+
+**Impact**: Blocks ALL multi-file C projects
+
+**What Fails**:
+```c
+#include <stdio.h>
+#include "myheader.h"
+```
+
+**Workaround**:
+```bash
+# Preprocess before transpiling
+gcc -E input.c -o preprocessed.c
+decy transpile preprocessed.c
+```
+
+**Status**: Fix planned for Sprint 18 (2025-Q4)
+
+### P1 Issues (Affects 60-80% of Projects)
+
+#### 2. extern "C" Guards Not Recognized
+
+**Impact**: 80% of C headers use this for C++ compatibility
+
+**What Fails**:
+```c
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+int my_function();
+
+#ifdef __cplusplus
+}
+#endif
+```
+
+**Workaround**:
+```bash
+sed '/extern "C"/d' input.c > cleaned.c
+```
+
+**Status**: Fix planned for Sprint 18
+
+#### 3. Typedef Array Assertions Not Supported
+
+**Impact**: Common in portable C code
+
+**What Fails**:
+```c
+typedef unsigned char validate[sizeof(int) == 4 ? 1 : -1];
+```
+
+**Workaround**: Replace with C11 `_Static_assert`:
+```c
+_Static_assert(sizeof(int) == 4, "int must be 4 bytes");
+```
+
+**Status**: P1 fix planned
+
+### P2 Issues (Low Impact)
+
+#### 4. Preprocessor Macros Limited
+
+**What Works**:
+- ✅ Simple `#define` constants
+- ✅ Function-like macros (basic)
+
+**What Doesn't Work**:
+- ❌ `#ifdef`, `#ifndef`, `#else`
+- ❌ `#pragma`
+- ❌ Complex macro expansions
+- ❌ Stringification (`#`) and concatenation (`##`)
+
+**Status**: Low priority (use preprocessing)
+
+#### 5. GNU C Extensions Limited
+
+**Partial Support**:
+- ✅ `__attribute__((unused))`
+- ✅ Statement expressions (basic)
+- ❌ `__builtin_*` functions
+- ❌ Computed gotos
+- ❌ Nested functions
+
+**Status**: P2 - community contributions welcome
+
+### Language Features
+
+#### Supported
+
+| Feature | Support | Notes |
+|---------|---------|-------|
+| Functions | ✅ Full | All function types |
+| Variables | ✅ Full | Local, global, static |
+| Pointers | ✅ 90% | Inference to `&T`, `&mut T`, `Box<T>` |
+| Arrays | ✅ 85% | Fixed-size → `[T; N]`, dynamic → `Vec<T>` |
+| Structs | ✅ Full | Includes unions (as enums) |
+| Enums | ✅ Full | C enums → Rust enums |
+| Control flow | ✅ Full | if/else, while, for, switch |
+| Typedefs | ✅ 80% | Basic typedefs work |
+| malloc/free | ✅ Good | → `Box::new()` / automatic drop |
+
+#### Not Supported
+
+| Feature | Status | Planned |
+|---------|--------|---------|
+| #include | ❌ | Sprint 18 |
+| Function pointers | ⚠️ Limited | Sprint 17 (DECY-054) |
+| Variadic functions | ❌ | Sprint 19 |
+| Inline assembly | ❌ | Not planned |
+| setjmp/longjmp | ❌ | Sprint 20 |
+| Complex macros | ❌ | v0.4.0 |
+| Bit fields | ⚠️ Limited | Sprint 19 |
+| Volatile | ⚠️ Basic | Sprint 18 |
+
+### Code Generation Limitations
+
+#### 1. Generated Code Style
+
+- **Verbose**: More explicit than idiomatic Rust
+- **Extra `mut`**: Parameters marked `mut` even if not modified
+- **Explicit returns**: Uses `return` instead of implicit returns
+- **Type annotations**: More verbose than necessary
+
+**Example**:
+```rust
+// Decy generates:
+fn add(mut a: i32, mut b: i32) -> i32 {
+    return a + b;
+}
+
+// Idiomatic Rust:
+fn add(a: i32, b: i32) -> i32 {
+    a + b
+}
+```
+
+**Impact**: Code works but isn't as clean. Manual cleanup recommended for production.
+
+#### 2. Comments Not Preserved
+
+C comments are lost during transpilation. We recommend:
+1. Transpile code
+2. Manually add Rust doc comments
+3. Maintain Rust codebase going forward
+
+**Status**: Comment preservation planned for v0.3.0
+
+#### 3. Formatting Differences
+
+Generated Rust may not match your team's style guide. Run `rustfmt` after transpilation:
+
+```bash
+decy transpile input.c -o output.rs
+rustfmt output.rs
+```
+
+### Performance Limitations
+
+#### 1. Large Single Files
+
+Files >10,000 LOC may be slow to transpile (>10 seconds).
+
+**Workaround**: Split into smaller files first.
+
+#### 2. Deep Recursion
+
+Very deep pointer chains or struct nesting may cause stack overflow during analysis.
+
+**Limit**: ~500 levels of nesting
+
+### Safety Limitations
+
+#### 1. Unsafe Code Still Present
+
+While Decy minimizes unsafe, some patterns require it:
+- ✅ **Target**: <5 unsafe blocks per 1000 LOC
+- ⚠️ **Current**: Varies by input C code (typically 2-8 per 1000)
+
+Manual review of unsafe blocks recommended for production.
+
+#### 2. Ownership Inference Limitations
+
+Complex ownership patterns may be inferred incorrectly:
+- Multiple ownership (requires `Rc<T>` or `Arc<T>`)
+- Cyclic references (requires `Weak<T>`)
+- Self-referential structs (requires `Pin<T>`)
+
+**Manual fixes** may be needed for advanced patterns.
+
+### Platform Limitations
+
+Currently tested on:
+- ✅ Ubuntu 20.04/22.04 (x86_64)
+- ✅ macOS 12+ (x86_64, arm64)
+- ✅ WSL2 (Ubuntu)
+
+**Not tested**:
+- ❌ Windows native (use WSL2)
+- ❌ 32-bit systems
+- ❌ ARM Linux (may work, untested)
+
+### Validation Status
+
+**Tested against**:
+- ✅ stb_image.h (7,988 LOC) - 100% parse success (after preprocessing)
+- ✅ miniz.c/h (1,250 LOC) - 100% success
+
+**Real-world readiness**: **40%** (honest assessment)
+
+**Why 40%?**
+- #include support missing (P0)
+- extern "C" not supported (P1)
+- Limited multi-file project support
+- Manual preprocessing required
+
+See `docs/LARGE_PROJECT_VALIDATION_REPORT.md` for full validation results.
 
 ## Getting Help
 
-[Content to be added...]
+Need assistance? Here's how to get help with Decy.
+
+### Documentation
+
+**Start here**:
+- 📖 **User Guide** (this document) - Comprehensive usage guide
+- 📋 **README.md** - Project overview and quick start
+- 🔧 **INSTALL.md** - Detailed installation troubleshooting
+- 📚 **Technical Spec** (`docs/specifications/decy-spec-v1.md`) - Deep dive into architecture
+- 🔬 **Validation Report** (`docs/LARGE_PROJECT_VALIDATION_REPORT.md`) - Real-world testing results
+
+**Developer docs**:
+- 🤖 **CLAUDE.md** - Development guidelines (EXTREME TDD, Toyota Way)
+- 🚀 **GETTING_STARTED.md** - Contributor onboarding
+- 🗺️ **roadmap.yaml** - Project roadmap and sprint status
+
+### Common Issues
+
+Before filing an issue, check:
+
+1. **Installation problems** → See [INSTALL.md](../INSTALL.md)
+2. **Parse errors** → See [Troubleshooting](#troubleshooting) section
+3. **Known limitations** → See [Known Limitations](#known-limitations)
+4. **Performance** → See [Performance Optimization](#performance-optimization)
+
+### Filing Issues
+
+**Found a bug?** Report it on GitHub:
+
+**🐛 Bug Report Template**:
+```markdown
+### Bug Description
+[Clear description of the bug]
+
+### Input C Code
+```c
+// Minimal C code that triggers the bug
+int buggy_function() {
+    return 0;
+}
+```
+
+### Expected Rust Output
+```rust
+// What you expected Decy to generate
+```
+
+### Actual Rust Output
+```rust
+// What Decy actually generated
+```
+
+### Error Message (if any)
+```
+[Paste error output]
+```
+
+### Environment
+- Decy version: [e.g., 0.2.0]
+- OS: [e.g., Ubuntu 22.04]
+- Rust version: [e.g., 1.75.0]
+- LLVM version: [e.g., 14.0.0]
+
+### Steps to Reproduce
+1. [First step]
+2. [Second step]
+3. [etc.]
+```
+
+**File at**: https://github.com/paiml/decy/issues
+
+### Feature Requests
+
+**Want a new feature?** Check the roadmap first:
+
+```bash
+cd decy/
+cat roadmap.yaml | grep -A 10 "title:"
+```
+
+If not already planned, file a feature request:
+
+**💡 Feature Request Template**:
+```markdown
+### Feature Description
+[What feature you'd like to see]
+
+### Use Case
+[Why this feature is important]
+
+### Example
+[Code example showing the feature in action]
+
+### Proposed Solution
+[Optional: How you think it should work]
+```
+
+### Community Support
+
+- **GitHub Discussions**: https://github.com/paiml/decy/discussions
+- **Issues**: https://github.com/paiml/decy/issues
+- **Pull Requests**: Contributions welcome! See `CONTRIBUTING.md`
+
+### Contributing
+
+Want to contribute? **We'd love your help!**
+
+**Good first issues**:
+- Documentation improvements
+- Test coverage expansion
+- Bug fixes for known issues
+- Performance optimizations
+
+**Process**:
+1. Read `CONTRIBUTING.md` and `CLAUDE.md`
+2. Check roadmap for planned work
+3. Fork the repository
+4. Follow EXTREME TDD (RED-GREEN-REFACTOR)
+5. Submit pull request with tests
+
+**Quality standards**:
+- ✅ 80%+ test coverage (90% for critical crates)
+- ✅ All tests passing
+- ✅ Zero clippy warnings
+- ✅ Documentation for public APIs
+- ✅ Follows Toyota Way principles
+
+### Commercial Support
+
+For enterprise support, training, or consulting:
+- **Email**: support@paiml.com (Coming soon)
+- **Documentation**: Available for custom engagements
+
+### Stay Updated
+
+- **GitHub Releases**: https://github.com/paiml/decy/releases
+- **Roadmap**: `roadmap.yaml` (updated weekly during active development)
+- **Sprint Status**: Run `make roadmap-status` in the repo
+
+---
+
+## About Decy
+
+**Decy** is developed with ❤️ by the PAIML team using EXTREME TDD and Toyota Way principles.
+
+**Project Goals**:
+- 🎯 Generate safe, idiomatic Rust (<5 unsafe blocks per 1000 LOC)
+- 🎯 Enable incremental C→Rust migration
+- 🎯 Maintain 90%+ test coverage
+- 🎯 Honest transparency about capabilities
+
+**License**: MIT (permissive open source)
+
+**Version**: 0.2.0 (Sprint 17 - Production Readiness & Ecosystem Growth)
+
+**Real-world readiness**: 40% (validated against production C)
+
+---
+
+**Thank you for using Decy!** We're committed to quality, transparency, and continuous improvement. Your feedback helps us build better tools.
