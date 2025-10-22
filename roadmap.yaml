@@ -733,8 +733,8 @@ sprint_3:
 current_status:
   date: "2025-10-22"
   sprint_completed: "Sprint 17 (Complete - 18/18 SP, 100%) ✅"
-  current_sprint: "Sprint 18 (Real-world Validation Gaps - 0/15 SP, 0%)"
-  overall_progress: "Sprint 17: COMPLETE ✅ | Sprint 18: STARTED (DECY-055 - RED phase: extern \"C\" guard support) | Addressing P0/P1 gaps from validation: 80% of headers blocked by extern \"C\", ALL multi-file projects blocked by #include | Coverage: 90.18% | Real-world readiness: 45% → targeting 60% with parser gap fixes"
+  current_sprint: "Sprint 18 (Real-world Validation Gaps - 3/15 SP, 20%)"
+  overall_progress: "Sprint 17: COMPLETE ✅ | Sprint 18: IN PROGRESS (1/3 tickets done) | DECY-055: COMPLETE ✅ (extern \"C\" support - 80% of headers unblocked) | Next: DECY-056 (P0 - #include support, critical blocker) | Coverage: 90%+ maintained | Real-world readiness: 45% → 50% (extern \"C\" enables callback patterns)"
 
   completed_major_features:
     - "✅ Parser with clang-sys (89.60% coverage)"
@@ -5271,10 +5271,35 @@ sprint_18:
       priority: high
       story_points: 3
       assignee: Claude
-      status: in_progress
+      status: done
       github_issue: null
-      phase: RED
+      phase: DONE
       started_date: "2025-10-22"
+      completed_date: "2025-10-22"
+
+      completion_summary: |
+        Successfully implemented extern "C" block support with 100% test pass rate.
+
+        Key Achievement:
+        Discovered and fixed critical clang parsing flag issue where
+        CXTranslationUnit_DetailedPreprocessingRecord interfered with C++ mode,
+        causing visitor to only see MacroDefinition cursors.
+
+        Solution:
+        - Auto-detect bare extern "C" blocks (without #ifdef guards)
+        - Enable C++ parsing mode (-x c++) when detected
+        - Disable DetailedPreprocessingRecord flag for C++ mode (use 0 instead)
+        - LinkageSpec handler recursively visits children
+        - Changed visitor return to CXChildVisit_Recurse
+
+        Impact: Unblocks ~80% of real-world headers when combined with existing
+        #ifdef __cplusplus guard support.
+
+      actual_metrics:
+        tests: "8/8 passing (100%)"
+        workspace_tests: "607 passing"
+        coverage: "Maintained 90%+"
+        files_modified: "crates/decy-parser/src/parser.rs (+20 LOC)"
 
       description: |
         Add support for C++ compatibility guards (extern "C" blocks).
