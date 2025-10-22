@@ -105,6 +105,13 @@ impl HirType {
                 param_types: param_types.iter().map(HirType::from_ast_type).collect(),
                 return_type: Box::new(HirType::from_ast_type(return_type)),
             },
+            Type::Array {
+                element_type,
+                size,
+            } => HirType::Array {
+                element_type: Box::new(HirType::from_ast_type(element_type)),
+                size: size.map(|s| s as usize),
+            },
         }
     }
 }
