@@ -6,7 +6,6 @@ use anyhow::{Context, Result};
 use colored::Colorize;
 use decy_parser::CParser;
 use decy_hir::HirFunction;
-use decy_ownership::inference::OwnershipInferenceEngine;
 use std::fs;
 use std::path::Path;
 
@@ -20,16 +19,17 @@ pub fn visualize_ownership_graph(file_path: &Path, use_colors: bool) -> Result<S
     let source = fs::read_to_string(file_path)
         .with_context(|| format!("Failed to read file: {}", file_path.display()))?;
 
-    let parser = CParser::new();
-    let functions = parser.parse(&source).context("Failed to parse C source")?;
+    let parser = CParser::new()?;
+    let ast = parser.parse(&source).context("Failed to parse C source")?;
 
     // Convert to HIR
-    let hir_functions: Vec<HirFunction> = functions
+    let hir_functions: Vec<HirFunction> = ast
+        .functions()
         .iter()
         .map(HirFunction::from_ast_function)
         .collect();
 
-    // Run ownership inference
+    // Generate output
     let mut output = String::new();
 
     // Header
@@ -46,43 +46,16 @@ pub fn visualize_ownership_graph(file_path: &Path, use_colors: bool) -> Result<S
     // Analyze each function
     for hir_func in &hir_functions {
         if use_colors {
-            output.push_str(&format!("Function: {}\n", hir_func.name.bright_cyan()));
+            output.push_str(&format!("Function: {}\n", hir_func.name().bright_cyan()));
         } else {
-            output.push_str(&format!("Function: {}\n", hir_func.name));
+            output.push_str(&format!("Function: {}\n", hir_func.name()));
         }
 
-        // Run inference
-        let inference_engine = OwnershipInferenceEngine::new();
-        let ownership_info = inference_engine.infer(hir_func);
-
-        // Display results
-        output.push_str(&format!("  Owning pointers: {}\n", ownership_info.owning_pointers.len()));
-        output.push_str(&format!("  Borrowed pointers: {}\n", ownership_info.borrowed_pointers.len()));
-        output.push_str(&format!("  Mutable borrows: {}\n", ownership_info.mutable_borrows.len()));
-
-        // Show pointer classifications
-        if !ownership_info.owning_pointers.is_empty() {
-            output.push_str("\n  Owning:\n");
-            for ptr in &ownership_info.owning_pointers {
-                if use_colors {
-                    output.push_str(&format!("    - {}\n", ptr.green()));
-                } else {
-                    output.push_str(&format!("    - {}\n", ptr));
-                }
-            }
-        }
-
-        if !ownership_info.borrowed_pointers.is_empty() {
-            output.push_str("\n  Borrowed:\n");
-            for ptr in &ownership_info.borrowed_pointers {
-                if use_colors {
-                    output.push_str(&format!("    - {}\n", ptr.blue()));
-                } else {
-                    output.push_str(&format!("    - {}\n", ptr));
-                }
-            }
-        }
-
+        // TODO: Integrate with decy-ownership inference
+        // The ownership inference API requires DataflowGraph construction
+        // which is a multi-step process. For now, show placeholder.
+        output.push_str("  [Ownership analysis coming soon]\n");
+        output.push_str(&format!("  Parameters: {}\n", hir_func.parameters().len()));
         output.push('\n');
     }
 
