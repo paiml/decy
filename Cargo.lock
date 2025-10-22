@@ -3234,9 +3234,9 @@ dependencies = [
 
 [[package]]
 name = "spydecy-debugger"
-version = "0.1.0"
+version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d004c9af3d107728714d83200987e90861f03e088dc36f3d4aeced925ac71831"
+checksum = "89fce069a2eb6d80ebaec3684917f0957d8638b5dd04011bdf4330a42f92238a"
 dependencies = [
  "anyhow",
  "colored",
@@ -3249,9 +3249,9 @@ dependencies = [
 
 [[package]]
 name = "spydecy-hir"
-version = "0.1.0"
+version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c4ec132688bac1d94fbe983a2ec806c03c7c00c77061348377923a5cc781be4f"
+checksum = "d8b391d501b0efb6d70808912baf590b22b537dcb2d7f9a6dd900df55c5ca071"
 dependencies = [
  "anyhow",
  "codespan",
@@ -3263,9 +3263,9 @@ dependencies = [
 
 [[package]]
 name = "spydecy-python"
-version = "0.1.0"
+version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "65936c733e057f2f8f8004aa44da891a9370a4e3ad8d63470c02ee1a33b00bd5"
+checksum = "32c5baac3b2cfb5930040e1bb4e9272173384d48d8a491400d96c8214d152d13"
 dependencies = [
  "anyhow",
  "pyo3",

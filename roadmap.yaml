@@ -5365,3 +5365,126 @@ sprint_18:
 
       validation_reference: "K&R §A2.6 (C/C++ interop), DECY-051 validation report"
       impact: "Unblocks 80% of real-world C headers"
+
+    DECY-056:
+      title: "Parser: #include directive support (P0)"
+      type: feature
+      priority: critical
+      story_points: 8
+      assignee: Claude
+      status: in_progress
+      github_issue: null
+      phase: RED
+      started_date: "2025-10-22"
+
+      description: |
+        Add support for #include directives - the CRITICAL P0 blocker.
+        Every multi-file C project uses #include to import headers.
+
+        Current behavior: Parse error or includes ignored
+        Desired behavior: Resolve includes, parse dependent files, handle header guards
+
+      blocking_issue: |
+        From DECY-051 validation:
+        ```c
+        #include "utils.h"  // ← Parser must resolve and parse this
+
+        int main() {
+            return add(1, 2);  // Function from utils.h
+        }
+        ```
+
+        Without #include support:
+        - Multi-file projects cannot transpile
+        - Function references fail (undefined symbols)
+        - Type definitions missing
+        - 100% of real-world C projects blocked
+
+      requirements:
+        - Parse #include "file.h" (local headers)
+        - Parse #include <file.h> (system headers)
+        - Resolve include paths relative to source file
+        - Detect and skip duplicate includes (header guard detection)
+        - Handle circular dependencies
+        - Track file dependency graph
+        - Parse included files recursively
+
+      implementation_strategy: |
+        Phase 1 (RED): Write failing tests for basic include support
+        Phase 2 (GREEN): Implement include resolution and recursive parsing
+        Phase 3 (REFACTOR): Add circular dependency detection, optimize
+
+        Technical approach:
+        - Extract #include directives before clang parsing
+        - Build dependency graph (using petgraph)
+        - Parse files in topological order (dependencies first)
+        - Cache parsed files to avoid duplicates
+        - Merge ASTs from multiple files
+
+      test_requirements:
+        unit_tests:
+          - test_parse_local_include
+          - test_parse_system_include
+          - test_resolve_relative_include_path
+          - test_detect_header_guards
+          - test_skip_duplicate_includes
+          - test_circular_dependency_detection
+          - test_multi_file_project_transpilation
+          - test_missing_include_file_error
+
+        integration_tests:
+          - test_two_file_project (main.c includes utils.h)
+          - test_three_file_project (main.c includes a.h, b.h)
+          - test_nested_includes (a.h includes b.h includes c.h)
+          - test_cross_file_function_calls
+
+      examples:
+        - c: |
+            // utils.h
+            int add(int a, int b);
+
+            // main.c
+            #include "utils.h"
+
+            int main() {
+                return add(1, 2);
+            }
+          rust: |
+            // Generated Rust (single module or multi-file)
+            fn add(a: i32, b: i32) -> i32;
+
+            fn main() -> i32 {
+                add(1, 2)
+            }
+
+      acceptance_criteria:
+        - "Local includes (#include \"file.h\") resolve and parse"
+        - "Relative paths work (../../include/header.h)"
+        - "Header guards prevent duplicate parsing"
+        - "Circular dependency error detection"
+        - "Multi-file projects transpile successfully"
+        - "Coverage ≥85%"
+        - "0 clippy warnings"
+
+      test_strategy: |
+        RED Phase:
+        1. Create test C projects with multiple files
+        2. Write failing tests for #include resolution
+        3. Test dependency graph building
+        4. Test circular dependency detection
+
+        GREEN Phase:
+        1. Implement include directive extraction
+        2. Implement path resolution (relative to source)
+        3. Implement recursive file parsing
+        4. Build and validate dependency graph
+
+        REFACTOR Phase:
+        1. Add caching for parsed files
+        2. Optimize topological sort
+        3. Improve error messages
+        4. Add documentation
+
+      validation_reference: "ISO C99 §6.10.2 (Source file inclusion), K&R §4.11, DECY-051 validation report"
+      impact: "CRITICAL - Unblocks 100% of multi-file C projects"
+      risk: "High complexity - dependency graph, circular refs, path resolution"
