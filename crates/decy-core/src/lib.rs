@@ -607,6 +607,31 @@ pub fn transpile(c_code: &str) -> Result<String> {
         })
         .collect();
 
+    // Convert global variables to HIR (DECY-054)
+    let hir_variables: Vec<decy_hir::HirStatement> = ast
+        .variables()
+        .iter()
+        .map(|v| decy_hir::HirStatement::VariableDeclaration {
+            name: v.name().to_string(),
+            var_type: decy_hir::HirType::from_ast_type(v.var_type()),
+            initializer: v
+                .initializer()
+                .map(|expr| decy_hir::HirExpression::from_ast_expression(expr)),
+        })
+        .collect();
+
+    // Convert typedefs to HIR (DECY-054)
+    let hir_typedefs: Vec<decy_hir::HirTypedef> = ast
+        .typedefs()
+        .iter()
+        .map(|t| {
+            decy_hir::HirTypedef::new(
+                t.name().to_string(),
+                decy_hir::HirType::from_ast_type(&t.underlying_type),
+            )
+        })
+        .collect();
+
     // Step 3: Analyze ownership and lifetimes
     let mut transformed_functions = Vec::new();
 
@@ -644,6 +669,44 @@ pub fn transpile(c_code: &str) -> Result<String> {
     for hir_struct in &hir_structs {
         let struct_code = code_generator.generate_struct(hir_struct);
         rust_code.push_str(&struct_code);
+        rust_code.push('\n');
+    }
+
+    // Generate typedefs (DECY-054)
+    for typedef in &hir_typedefs {
+        if let Ok(typedef_code) = code_generator.generate_typedef(typedef) {
+            rust_code.push_str(&typedef_code);
+            rust_code.push('\n');
+        }
+    }
+
+    // Generate global variables (DECY-054)
+    for var_stmt in &hir_variables {
+        if let decy_hir::HirStatement::VariableDeclaration {
+            name,
+            var_type,
+            initializer,
+        } = var_stmt
+        {
+            // Generate as static mut for C global variable equivalence
+            let type_str = CodeGenerator::map_type(var_type);
+
+            if let Some(init_expr) = initializer {
+                let init_code = code_generator.generate_expression(init_expr);
+                rust_code.push_str(&format!(
+                    "static mut {}: {} = {};\n",
+                    name, type_str, init_code
+                ));
+            } else {
+                // For function pointers and other types, use Option for uninitialized globals
+                rust_code.push_str(&format!(
+                    "static mut {}: Option<{}> = None;\n",
+                    name, type_str
+                ));
+            }
+        }
+    }
+    if !hir_variables.is_empty() {
         rust_code.push('\n');
     }
 
