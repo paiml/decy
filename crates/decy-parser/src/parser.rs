@@ -2609,7 +2609,11 @@ fn convert_type(cx_type: CXType) -> Option<Type> {
 
             // Get array size
             let array_size = unsafe { clang_getArraySize(cx_type) };
-            let size = if array_size >= 0 { Some(array_size) } else { None };
+            let size = if array_size >= 0 {
+                Some(array_size)
+            } else {
+                None
+            };
 
             Some(Type::Array {
                 element_type: Box::new(element_type),
