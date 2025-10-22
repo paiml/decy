@@ -145,10 +145,13 @@ fn transpile_file(input: PathBuf, output: Option<PathBuf>) -> Result<()> {
         )
     })?;
 
-    // Transpile using decy-core
-    let rust_code = decy_core::transpile(&c_code).with_context(|| {
+    // Get base directory for #include resolution (DECY-056)
+    let base_dir = input.parent();
+
+    // Transpile using decy-core with #include support
+    let rust_code = decy_core::transpile_with_includes(&c_code, base_dir).with_context(|| {
         format!(
-            "Failed to transpile {}\n\nTry: Check if the C code contains #include directives (not yet supported)\n  or: Preprocess the file first: gcc -E {} -o preprocessed.c",
+            "Failed to transpile {}\n\nTry: Check if the C code has syntax errors\n  or: Preprocess the file first: gcc -E {} -o preprocessed.c",
             input.display(),
             input.display()
         )
