@@ -734,7 +734,7 @@ current_status:
   date: "2025-10-22"
   sprint_completed: "Sprint 16 (Complete - 21/21 SP, 100%)"
   current_sprint: "Sprint 17 (Production Readiness & Ecosystem Growth - 13/18 SP, 72%)"
-  overall_progress: "Sprint 16: COMPLETE ✅ | Sprint 17 IN PROGRESS: 3/4 tickets complete (DECY-051: DONE ✅, DECY-052: DONE ✅, DECY-053: DONE ✅, DECY-054: Function pointers pending) | Focus: Production readiness, comprehensive documentation, CLI UX | 89.83% coverage maintained | User guide (1,726 lines) + TDD-enforced mdBook | Real-world readiness: 40% (Sprint 18 will address P0/P1 gaps)"
+  overall_progress: "Sprint 16: COMPLETE ✅ | Sprint 17 IN PROGRESS: DECY-054 started (RED phase) | 3/4 tickets complete (DECY-051: DONE ✅, DECY-052: DONE ✅, DECY-053: DONE ✅, DECY-054: IN PROGRESS - RED) | Focus: Function pointer support for real-world C | 89.83% coverage maintained | Real-world readiness: 40% → targeting 50%+ with function pointers"
 
   completed_major_features:
     - "✅ Parser with clang-sys (89.60% coverage)"
@@ -5146,9 +5146,10 @@ sprint_17:
       priority: high
       story_points: 5
       assignee: Claude
-      status: not_started
+      status: in_progress
       github_issue: null
       phase: RED
+      started_date: "2025-10-22"
 
       description: |
         Add support for C function pointers → Rust function pointers (fn types).
