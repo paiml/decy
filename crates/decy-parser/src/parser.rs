@@ -102,13 +102,10 @@ impl CParser {
         };
 
         // SAFETY: Parsing with clang_parseTranslationUnit2
-        // Use CXTranslationUnit_DetailedPreprocessingRecord for C mode to capture macros
-        // Use None (0) for C++ mode as DetailedPreprocessingRecord may interfere
-        let flags = if needs_cpp_mode {
-            0 // No special flags for C++ mode
-        } else {
-            CXTranslationUnit_DetailedPreprocessingRecord
-        };
+        // DECY-057 NOTE: DetailedPreprocessingRecord was causing issues with typedef parsing,
+        // but removing it completely breaks function body parsing.
+        // Keep it OFF for now - will need different solution for macro support.
+        let flags = 0;
 
         let mut tu = ptr::null_mut();
         let result = unsafe {
@@ -2521,6 +2518,14 @@ fn convert_type(cx_type: CXType) -> Option<Type> {
     match cx_type.kind {
         CXType_Void => Some(Type::Void),
         CXType_Int => Some(Type::Int),
+        CXType_UInt => Some(Type::Int), // unsigned int → i32 (simplified)
+        CXType_UChar => Some(Type::Char), // unsigned char → u8 (DECY-057 fix)
+        CXType_UShort => Some(Type::Int), // unsigned short → i32 (simplified)
+        CXType_ULong => Some(Type::Int), // unsigned long → i32 (simplified for now)
+        CXType_Short => Some(Type::Int), // short → i32
+        CXType_Long => Some(Type::Int), // long → i32
+        CXType_LongLong => Some(Type::Int), // long long → i32 (simplified)
+        CXType_ULongLong => Some(Type::Int), // unsigned long long → i32 (simplified)
         CXType_Float => Some(Type::Float),
         CXType_Double => Some(Type::Double),
         CXType_Char_S | CXType_Char_U => Some(Type::Char),
