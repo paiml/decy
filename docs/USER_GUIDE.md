@@ -943,7 +943,274 @@ Real-world benchmarks (8-core system):
 
 ## Advanced Topics
 
-[Content to be added...]
+Advanced strategies for using Decy in production environments.
+
+### Incremental Migration Strategy
+
+Migrate large C codebases to Rust incrementally, not all at once.
+
+#### Phase 1: Identify Modules (Week 1)
+
+```bash
+# Analyze your C codebase
+decy check-project src/
+
+# Output shows dependencies:
+# Build order:
+#   1. utils.c
+#   2. parser.c
+#   3. main.c
+#
+# Dependencies:
+#   main.c → parser.c → utils.c
+```
+
+**Strategy**: Start with **leaf modules** (no dependencies).
+
+#### Phase 2: Transpile Leaves (Week 2-3)
+
+```bash
+# Transpile leaf module
+decy transpile src/utils.c -o rust/utils.rs
+
+# Test the Rust version
+cd rust/
+cargo test --bin utils
+```
+
+#### Phase 3: Create FFI Boundary (Week 4)
+
+Keep C main, call Rust utilities via FFI:
+
+```rust
+// rust/utils.rs
+#[no_mangle]
+pub extern "C" fn rust_add(a: i32, b: i32) -> i32 {
+    a + b
+}
+```
+
+```c
+// src/main.c
+extern int rust_add(int a, int b);
+
+int main() {
+    int result = rust_add(10, 20);  // Call Rust from C!
+    return 0;
+}
+```
+
+#### Phase 4: Gradually Replace (Months 2-6)
+
+Replace C modules one at a time, maintaining FFI boundaries.
+
+**Benefits**:
+- ✅ Continuous testing throughout migration
+- ✅ Rollback capability at each step
+- ✅ No "big bang" rewrite risk
+- ✅ Team learns Rust gradually
+
+### FFI Boundaries
+
+Best practices for C/Rust interop during migration.
+
+#### Calling Rust from C
+
+**Rust side** (`rust/lib.rs`):
+```rust
+#[no_mangle]
+pub extern "C" fn process_data(data: *const u8, len: usize) -> i32 {
+    // Convert C pointer to Rust slice (unsafe boundary)
+    let slice = unsafe {
+        std::slice::from_raw_parts(data, len)
+    };
+
+    // Safe Rust code inside
+    slice.iter().map(|&x| x as i32).sum()
+}
+```
+
+**C side** (`src/main.c`):
+```c
+extern int process_data(const unsigned char *data, size_t len);
+
+int main() {
+    unsigned char data[] = {1, 2, 3, 4, 5};
+    int sum = process_data(data, 5);
+    return sum;
+}
+```
+
+**Build**:
+```bash
+# Build Rust as static library
+cd rust/
+cargo build --release
+# Produces: target/release/libmylib.a
+
+# Link with C
+gcc src/main.c -L rust/target/release -lmylib -o main
+./main
+```
+
+#### Calling C from Rust
+
+**C side** (`legacy.c`):
+```c
+int legacy_compute(int n) {
+    return n * n;
+}
+```
+
+**Rust side** (`main.rs`):
+```rust
+extern "C" {
+    fn legacy_compute(n: i32) -> i32;
+}
+
+fn main() {
+    let result = unsafe { legacy_compute(10) };
+    println!("Result: {}", result);  // Output: 100
+}
+```
+
+### Manual Code Cleanup
+
+Decy generates safe Rust, but you may want to refactor for idioms.
+
+#### Pattern 1: Replace `mut` with Owned Values
+
+**Decy output**:
+```rust
+fn add(mut a: i32, mut b: i32) -> i32 {
+    return a + b;
+}
+```
+
+**Idiomatic Rust** (parameters don't need `mut` if not modified):
+```rust
+fn add(a: i32, b: i32) -> i32 {
+    a + b  // Implicit return
+}
+```
+
+#### Pattern 2: Use `Result` for Error Handling
+
+**Decy output** (C-style error codes):
+```rust
+fn divide(a: i32, b: i32) -> i32 {
+    if b == 0 {
+        return -1;  // Error code
+    }
+    a / b
+}
+```
+
+**Idiomatic Rust**:
+```rust
+fn divide(a: i32, b: i32) -> Result<i32, &'static str> {
+    if b == 0 {
+        Err("Division by zero")
+    } else {
+        Ok(a / b)
+    }
+}
+```
+
+#### Pattern 3: Iterators Over Loops
+
+**Decy output**:
+```rust
+fn sum_array(arr: &[i32]) -> i32 {
+    let mut total = 0;
+    for i in 0..arr.len() {
+        total += arr[i];
+    }
+    total
+}
+```
+
+**Idiomatic Rust**:
+```rust
+fn sum_array(arr: &[i32]) -> i32 {
+    arr.iter().sum()
+}
+```
+
+### Cargo Integration
+
+Integrate transpiled Rust into a Cargo project.
+
+#### Step 1: Create Cargo Project
+
+```bash
+cargo new --lib my-c-to-rust
+cd my-c-to-rust/
+```
+
+#### Step 2: Transpile C to `src/`
+
+```bash
+decy transpile-project ../c-project/ -o src/
+```
+
+#### Step 3: Update `Cargo.toml`
+
+```toml
+[package]
+name = "my-c-to-rust"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "my_c_to_rust"
+path = "src/lib.rs"
+
+[[bin]]
+name = "main"
+path = "src/main.rs"
+```
+
+#### Step 4: Add Module Declarations
+
+Create `src/lib.rs`:
+```rust
+// Declare transpiled modules
+pub mod utils;
+pub mod parser;
+
+// Re-export public API
+pub use utils::*;
+pub use parser::*;
+```
+
+#### Step 5: Build with Cargo
+
+```bash
+cargo build --release
+cargo test
+cargo run
+```
+
+#### Step 6: Publish (Optional)
+
+```bash
+# Add metadata to Cargo.toml
+cargo publish --dry-run
+cargo publish
+```
+
+### Migration Checklist
+
+Before going to production:
+
+- [ ] All C tests passing in Rust version
+- [ ] Performance benchmarks meet requirements
+- [ ] Memory safety verified (no leaks, no UB)
+- [ ] Clippy warnings resolved (`cargo clippy`)
+- [ ] Documentation updated
+- [ ] CI/CD pipeline includes Rust tests
+- [ ] Team trained on Rust maintenance
 
 ## FAQ
 
