@@ -83,7 +83,7 @@ tracing = "0.1"
 tracing-subscriber = "0.3"
 
 # Spydecy debugger integration
-spydecy-debugger = "0.1.0"
+spydecy-debugger = "0.2.0"
 
 # Book generation
 mdbook = "0.4"
