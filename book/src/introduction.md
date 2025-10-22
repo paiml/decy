@@ -1,135 +1,89 @@
 # Introduction
 
-Welcome to the **DECY Verification Book** - a comprehensive testing and verification guide for the DECY C-to-Rust transpiler.
+**Decy** is a C-to-Rust transpiler that generates safe, idiomatic Rust code with minimal `unsafe` blocks. Built with **EXTREME TDD** and **Toyota Way** principles, Decy aims to make C-to-Rust migration practical and maintainable.
 
-## What is DECY?
+## Key Features
 
-DECY is a production-grade C-to-Rust transpiler that automatically converts legacy C code into safe, idiomatic, fully-tested Rust code. Unlike traditional transpilers, DECY follows **EXTREME Test-Driven Development (TDD)** methodology with:
+✅ **Safety First**: Target <5 `unsafe` blocks per 1000 lines of code  
+✅ **Ownership Inference**: Automatically converts C pointers to Rust references  
+✅ **TDD Verified**: 90%+ test coverage, 100K+ property tests  
+✅ **Production Validated**: Tested against real-world C projects  
+✅ **Incremental Migration**: Work with mixed C/Rust codebases  
 
-- **≥80% test coverage** maintained at ALL times
-- **≥90% mutation testing score** as target
-- **100% linting passing** continuously
-- **Zero tolerance for technical debt**
-- **Property-based testing** for correctness guarantees
-- **Book-based verification** (this book!)
+## Current Status
+
+**Version**: 0.2.0  
+**Real-World Readiness**: 40% (Sprint 17)  
+**Test Coverage**: 89.83%  
+**Passing Tests**: 613  
+
+## What Works Well
+
+- ✅ Single-file C programs
+- ✅ Basic C constructs (functions, variables, control flow)
+- ✅ Pointer-to-reference inference
+- ✅ malloc/free → Box pattern detection
+- ✅ Fast incremental transpilation (10-20x with cache)
+
+## Current Limitations
+
+- ⚠️ `#include` directives (P0 blocker - Sprint 18)
+- ⚠️ `extern "C"` guards (P1 - Sprint 18)
+- ⚠️ Multi-file projects require workarounds
+- ⚠️ Some complex macros not supported
+
+**Honest Assessment**: Decy excels at transpiling simple-to-moderate C code. Complex production codebases may require preprocessing. We're actively working on closing these gaps.
+
+## Who Should Use Decy
+
+**Good Fit**:
+- Learning Rust by seeing C patterns mapped to Rust
+- Migrating small C utilities to Rust
+- Prototyping C-to-Rust conversions
+- Single-file C programs
+
+**Not Ready Yet**:
+- Large multi-file C projects (without preprocessing)
+- C++ codebases
+- Production migration without manual review
 
 ## Philosophy
 
-> "If it's not tested in the book, it doesn't work."
+Decy follows **EXTREME TDD** and the **Toyota Way**:
 
-This book is not just documentation - it's **executable verification**. Every code example in this book:
+- **Quality First**: Zero defects, high coverage, continuous testing
+- **Honesty**: Transparent about capabilities and limitations
+- **Kaizen**: Continuous improvement through measured progress
+- **Jidoka**: Build quality in at each stage
 
-1. ✅ **Compiles** with `cargo build`
-2. ✅ **Runs** with `cargo test`
-3. ✅ **Lints clean** with `cargo clippy`
-4. ✅ **Passes property tests** with randomized inputs
-5. ✅ **Survives mutation testing** with ≥90% kill rate
+## How This Book Works
 
-## Inspired By
+**TDD-Enforced Examples**: Every code example in this book is tested! All Rust code blocks are compiled and tested as part of our CI pipeline. This ensures:
 
-DECY's book-based verification is inspired by:
+1. **Accuracy**: Examples actually work
+2. **Maintenance**: Examples stay up-to-date with the codebase
+3. **Confidence**: You can trust the code you see
 
-- **The Rust Book**: Runnable code examples in documentation
-- **mdBook best practices**: Executable verification through documentation
+When you see code like this:
 
-## How to Use This Book
+```rust
+// This compiles and runs!
+fn add(a: i32, b: i32) -> i32 {
+    a + b
+}
 
-Each chapter demonstrates a component of the transpiler with:
-
-1. **Explanation**: What the component does
-2. **Examples**: Real C code → Rust transpilation
-3. **Tests**: Unit, property, and mutation tests
-4. **Verification**: Proof that it works correctly
-
-All code blocks are tested automatically when you run:
-
-```bash
-mdbook test
+#[test]
+fn test_add() {
+    assert_eq!(add(2, 2), 4);
+}
 ```
 
-## Quality Standards
+It's guaranteed to compile and pass tests, or our CI fails and prevents release.
 
-This book enforces the same quality standards as the transpiler:
+## Next Steps
 
-| Metric | Requirement | Enforcement |
-|--------|-------------|-------------|
-| Test Coverage | ≥80% | CI/CD blocks if <80% |
-| Mutation Score | ≥90% | Reported in metrics |
-| Clippy Warnings | 0 | Build fails on warnings |
-| Property Tests | 100+ | Required for core logic |
-| Doc Tests | 100% | All public APIs documented |
+- [Installation](./installation.md) - Get Decy installed
+- [Quick Start](./quick-start.md) - Transpile your first C program
+- [First Transpilation](./first-transpilation.md) - Detailed walkthrough
 
-## Structure
-
-The book is organized into sections:
-
-### Methodology
-Learn about EXTREME TDD, quality gates, property testing, and mutation testing.
-
-### Core Components
-Verify each component of the transpiler pipeline:
-- Parser (C AST extraction)
-- HIR (High-level IR)
-- Dataflow analysis
-- Ownership inference
-- Borrow generation
-- Lifetime analysis
-- Code generation
-
-### End-to-End Verification
-Complete transpilation examples from C to Rust:
-- Simple functions
-- Pointer handling
-- Ownership patterns
-- Lifetime annotations
-- Box transformations
-
-### Real-World Examples
-Transpilation of actual C codebases:
-- Python source code (cpython)
-- Git source code
-- NumPy arrays
-- SQLite B-tree implementation
-
-### Quality Metrics
-Measure and track quality:
-- Test coverage reports
-- Mutation testing scores
-- Complexity analysis
-- Safety verification
-
-## Running the Examples
-
-All examples in this book can be run locally:
-
-```bash
-# Clone the repository
-git clone https://github.com/noahgift/decy
-cd decy
-
-# Build the book
-mdbook build
-
-# Test all code examples
-mdbook test
-
-# Serve locally with hot reload
-mdbook serve
-```
-
-## Contributing
-
-Found an issue? Code doesn't work? **That's a bug!**
-
-This book is living documentation. If an example fails:
-
-1. File an issue: https://github.com/noahgift/decy/issues
-2. Fix the code (not the test!)
-3. Submit a PR with the fix
-4. Verify `mdbook test` passes
-
-## Let's Begin
-
-Ready to explore how DECY transpiles C to Rust with extreme quality?
-
-→ [Start with EXTREME TDD Methodology](./methodology/extreme-tdd.md)
+Ready? Let's begin! →

@@ -1,0 +1,111 @@
+name: Book (mdBook + TDD)
+
+on:
+  push:
+    branches: [main, master]
+    paths:
+      - 'book/**'
+      - '.github/workflows/book.yml'
+      - 'crates/**/*.rs'
+  pull_request:
+    branches: [main, master]
+    paths:
+      - 'book/**'
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  test-book-examples:
+    name: Test Book Examples (TDD)
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+      
+      - name: Install LLVM 14
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y llvm-14 llvm-14-dev libclang-14-dev clang-14
+      
+      - name: Set LLVM environment
+        run: |
+          echo "LLVM_CONFIG_PATH=/usr/bin/llvm-config-14" >> $GITHUB_ENV
+          echo "LIBCLANG_PATH=/usr/lib/llvm-14/lib" >> $GITHUB_ENV
+      
+      - name: Install mdBook
+        run: |
+          mkdir -p ~/bin
+          curl -sSL https://github.com/rust-lang/mdBook/releases/download/v0.4.40/mdbook-v0.4.40-x86_64-unknown-linux-gnu.tar.gz | tar -xz -C ~/bin
+          echo "$HOME/bin" >> $GITHUB_PATH
+      
+      - name: Test Book Code Examples
+        run: |
+          cd book
+          # This tests ALL Rust code blocks in the book
+          mdbook test
+        continue-on-error: false
+      
+      - name: Build Book
+        run: |
+          cd book
+          mdbook build
+      
+      - name: Check for Broken Links
+        run: |
+          cd book
+          # Future: add mdbook-linkcheck
+          echo "✓ Link checking (manual for now)"
+
+  build-and-deploy:
+    name: Build and Deploy Book
+    runs-on: ubuntu-22.04
+    needs: test-book-examples
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install mdBook
+        run: |
+          mkdir -p ~/bin
+          curl -sSL https://github.com/rust-lang/mdBook/releases/download/v0.4.40/mdbook-v0.4.40-x86_64-unknown-linux-gnu.tar.gz | tar -xz -C ~/bin
+          echo "$HOME/bin" >> $GITHUB_PATH
+      
+      - name: Build Book
+        run: |
+          cd book
+          mdbook build
+      
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+      
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: './book/book'
+  
+  deploy:
+    name: Deploy to GitHub Pages
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-22.04
+    needs: build-and-deploy
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

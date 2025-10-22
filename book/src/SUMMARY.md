@@ -1,43 +1,55 @@
-# DECY Verification Book
+# Summary
 
 [Introduction](./introduction.md)
 
-# Methodology
+# Getting Started
 
-- [EXTREME TDD](./methodology/extreme-tdd.md)
-- [Quality Gates](./methodology/quality-gates.md)
-- [Property Testing](./methodology/property-testing.md)
-- [Mutation Testing](./methodology/mutation-testing.md)
+- [Installation](./installation.md)
+- [Quick Start](./quick-start.md)
+- [Your First Transpilation](./first-transpilation.md)
 
-# Core Components
+# Core Concepts
 
-- [Parser Verification](./components/parser.md)
-- [HIR Verification](./components/hir.md)
-- [Dataflow Analysis](./components/dataflow.md)
-- [Ownership Inference](./components/ownership.md)
-- [Borrow Generation](./components/borrow.md)
-- [Lifetime Analysis](./components/lifetime.md)
-- [Code Generation](./components/codegen.md)
+- [How Decy Works](./how-it-works.md)
+- [The Transpilation Pipeline](./pipeline.md)
+  - [Parser (C AST)](./pipeline/parser.md)
+  - [HIR (High-level IR)](./pipeline/hir.md)
+  - [Ownership Inference](./pipeline/ownership.md)
+  - [Code Generation](./pipeline/codegen.md)
+- [Ownership & Safety](./ownership-safety.md)
 
-# End-to-End Verification
+# C-to-Rust Patterns
 
-- [Simple Function Transpilation](./verification/simple-function.md)
-- [Pointer Handling](./verification/pointers.md)
-- [Ownership Patterns](./verification/ownership-patterns.md)
-- [Lifetime Annotations](./verification/lifetimes.md)
-- [Box Transformations](./verification/box-transform.md)
-- [Macro Expansion](./verification/macro-expansion.md)
+- [Pointers to References](./patterns/pointers.md)
+- [Arrays and Slices](./patterns/arrays.md)
+- [Structs and Enums](./patterns/structs.md)
+- [Functions](./patterns/functions.md)
+- [Control Flow](./patterns/control-flow.md)
+- [Memory Management](./patterns/memory.md)
 
-# Real-World Examples
+# Advanced Topics
 
-- [Python Source Code](./examples/python.md)
-- [Git Source Code](./examples/git.md)
-- [NumPy Arrays](./examples/numpy.md)
-- [SQLite B-tree](./examples/sqlite.md)
+- [Multi-file Projects](./advanced/multi-file.md)
+- [Incremental Migration](./advanced/migration.md)
+- [FFI Boundaries](./advanced/ffi.md)
+- [Cache System](./advanced/cache.md)
+- [Debugging](./advanced/debugging.md)
 
-# Quality Metrics
+# Reference
 
-- [Test Coverage](./metrics/coverage.md)
-- [Mutation Scores](./metrics/mutation.md)
-- [Complexity Analysis](./metrics/complexity.md)
-- [Safety Verification](./metrics/safety.md)
+- [CLI Reference](./reference/cli.md)
+- [Configuration](./reference/config.md)
+- [Known Limitations](./reference/limitations.md)
+- [Troubleshooting](./reference/troubleshooting.md)
+
+# Development
+
+- [Contributing](./development/contributing.md)
+- [Architecture](./development/architecture.md)
+- [Testing](./development/testing.md)
+- [Release Process](./development/releases.md)
+
+---
+
+[Appendix: C99 Validation](./appendix-c99.md)
+[Appendix: Unsafe Minimization](./appendix-unsafe.md)

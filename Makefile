@@ -428,3 +428,28 @@ roadmap-status: ## Show roadmap status
 	@echo "  DECY-003: not_started"
 	@echo ""
 	@echo "Run 'make sync-roadmap' to create GitHub issues"
+
+# ============================================================================
+# BOOK TARGETS (TDD-Enforced Documentation)
+# ============================================================================
+
+.PHONY: book book-test book-build book-serve book-clean
+
+book: book-test book-build ## Build and test the mdBook (TDD-enforced)
+
+book-test: ## Test all code examples in the book (CI blocking)
+	@echo "📖 Testing book code examples..."
+	@./scripts/test-book.sh
+
+book-build: ## Build the mdBook HTML
+	@echo "📖 Building book..."
+	@cd book && mdbook build
+
+book-serve: ## Serve the book locally (http://localhost:3000)
+	@echo "📖 Serving book at http://localhost:3000"
+	@cd book && mdbook serve --open
+
+book-clean: ## Clean book build artifacts
+	@rm -rf book/book/
+	@echo "✓ Book artifacts cleaned"
+
