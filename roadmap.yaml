@@ -733,8 +733,8 @@ sprint_3:
 current_status:
   date: "2025-10-22"
   sprint_completed: "Sprint 17 (Complete - 18/18 SP, 100%) ✅"
-  current_sprint: "Sprint 18 (Real-world Validation & Quality) - Planning"
-  overall_progress: "Sprint 17: COMPLETE ✅ (100%) | All 4 tickets done: DECY-051 (Large C validation), DECY-052 (User guide), DECY-053 (CLI improvements), DECY-054 (Function pointers) | Coverage: 90.18% | Real-world readiness: 45% (function pointers enable more C patterns) | Next: Sprint 18 validation gaps"
+  current_sprint: "Sprint 18 (Real-world Validation Gaps - 0/15 SP, 0%)"
+  overall_progress: "Sprint 17: COMPLETE ✅ | Sprint 18: STARTED (DECY-055 - RED phase: extern \"C\" guard support) | Addressing P0/P1 gaps from validation: 80% of headers blocked by extern \"C\", ALL multi-file projects blocked by #include | Coverage: 90.18% | Real-world readiness: 45% → targeting 60% with parser gap fixes"
 
   completed_major_features:
     - "✅ Parser with clang-sys (89.60% coverage)"
@@ -5239,3 +5239,104 @@ sprint_17:
     - "Function pointers unlock callbacks, vtables patterns"
     - "Quality-of-life improvements enhance UX"
     - "Foundation for v0.3.0 release"
+
+# ==============================================================================
+# SPRINT 18: Real-world C Validation Gaps (P0/P1 Parser Issues)
+# ==============================================================================
+
+sprint_18:
+  name: "Real-world C Validation Gaps"
+  duration: "2 weeks"
+  start_date: "2025-10-22"
+  story_points: 15
+  status: in_progress
+
+  goals:
+    - "Fix P1 parser gap: extern \"C\" guard support"
+    - "Fix P0 parser gap: #include directive handling"
+    - "Enable transpilation of real-world C headers"
+    - "Increase real-world readiness from 45% to 60%"
+
+  motivation: |
+    Large project validation (DECY-051) identified critical parser gaps blocking
+    real-world C transpilation. 80% of production C headers use extern "C" guards,
+    and ALL multi-file projects use #include directives.
+
+    Sprint 18 focuses on P0/P1 gaps to enable transpilation of real production code.
+
+  tickets:
+    DECY-055:
+      title: "Parser: extern \"C\" guard support (P1)"
+      type: feature
+      priority: high
+      story_points: 3
+      assignee: Claude
+      status: in_progress
+      github_issue: null
+      phase: RED
+      started_date: "2025-10-22"
+
+      description: |
+        Add support for C++ compatibility guards (extern "C" blocks).
+        These are present in ~80% of real-world C headers.
+
+        Current behavior: Parse error
+        Desired behavior: Recognize and skip guards, keep declarations
+
+      blocking_issue: |
+        From DECY-051 validation:
+        ```c
+        #ifdef __cplusplus
+        extern "C" {
+        #endif
+
+        int my_function(int x);  // ← This should transpile
+
+        #ifdef __cplusplus
+        }
+        #endif
+        ```
+
+        Parser currently fails on "extern \"C\" {" syntax.
+
+      requirements:
+        - Parse "extern \"C\" {" blocks
+        - Keep declarations inside the block
+        - Ignore the guard syntax itself
+        - Support nested declarations
+        - Handle #ifdef __cplusplus guards
+
+      examples:
+        - c: |
+            #ifdef __cplusplus
+            extern "C" {
+            #endif
+            int add(int a, int b);
+            #ifdef __cplusplus
+            }
+            #endif
+          rust: |
+            fn add(a: i32, b: i32) -> i32;
+
+      test_requirements:
+        unit_tests:
+          - test_parse_extern_c_block
+          - test_extern_c_with_function_declaration
+          - test_extern_c_with_multiple_declarations
+          - test_nested_extern_c_handling
+          - test_ifdef_cplusplus_guards
+
+      acceptance_criteria:
+        - "extern \"C\" blocks parse without error"
+        - "Declarations inside blocks transpile correctly"
+        - "Guards are stripped from output"
+        - "Coverage ≥85%"
+        - "0 clippy warnings"
+
+      test_strategy: |
+        RED: Write failing tests for extern "C" parsing
+        GREEN: Update parser to recognize and skip guards
+        REFACTOR: Clean up, add edge cases
+
+      validation_reference: "K&R §A2.6 (C/C++ interop), DECY-051 validation report"
+      impact: "Unblocks 80% of real-world C headers"
