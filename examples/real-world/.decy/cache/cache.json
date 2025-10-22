@@ -1,0 +1,46 @@
+{
+  "examples/real-world/math_utils.c": {
+    "hash": "34caf238389d52113fbd624c6042611a4d1fb7b4a9507d44a9f3a2d04948cd32",
+    "transpiled": {
+      "source_path": "examples/real-world/math_utils.c",
+      "rust_code": "fn absolute(mut x: i32) -> i32 {\n    if x < 0 {\n    return -x;\n} else {\n    return x;\n}\n}\nfn power(mut base: i32, mut exp: i32) -> i32 {\n    let mut result: i32 = 0i32;\n    let mut i: i32 = 0i32;\n    result = 1;\n    i = 0;\nwhile i < exp {\n    result = result * base;\n    i = i + 1;\n}\n    return result;\n}\nfn gcd(mut a: i32, mut b: i32) -> i32 {\n    let mut temp: i32 = 0i32;\n    while b != 0 {\n    temp = b;\n    b = a % b;\n    a = temp;\n}\n    return a;\n}\nfn is_prime(mut n: i32) -> i32 {\n    let mut i: i32 = 0i32;\n    if n <= 1 {\n    return 0;\n}\n    i = 2;\nwhile (i * i) <= n {\n    if (n % i) == 0 {\n    return 0;\n}\n    i = i + 1;\n}\n    return 1;\n}\n",
+      "dependencies": [],
+      "functions_exported": [],
+      "ffi_declarations": ""
+    },
+    "dependency_hashes": {}
+  },
+  "examples/real-world/string_utils.c": {
+    "hash": "16d1b69c37e4472c43e9325a5a7c1e86ee930a447ea1a8a850a8cded4cc81311",
+    "transpiled": {
+      "source_path": "examples/real-world/string_utils.c",
+      "rust_code": "fn string_length(mut str: *mut u8) -> i32 {\n    let mut len: i32 = 0i32;\n    len = 0;\n    while unsafe { *str } != 0 {\n    len = len + 1;\n    str = unsafe { str.wrapping_add(1 as usize) };\n}\n    return len;\n}\nfn string_compare(mut s1: *mut u8, mut s2: *mut u8) -> i32 {\n    while (unsafe { *s1 } != 0) && (unsafe { *s2 } != 0) {\n    if unsafe { *s1 } != unsafe { *s2 } {\n    return unsafe { *s1 } - unsafe { *s2 };\n}\n    s1 = unsafe { s1.wrapping_add(1 as usize) };\n    s2 = unsafe { s2.wrapping_add(1 as usize) };\n}\n    return unsafe { *s1 } - unsafe { *s2 };\n}\nfn string_copy(mut dest: *mut u8, mut src: *mut u8) {\n    while unsafe { *src } != 0 {\n    *dest = unsafe { *src };\n    dest = unsafe { dest.wrapping_add(1 as usize) };\n    src = unsafe { src.wrapping_add(1 as usize) };\n}\n    *dest = 0;\n}\n",
+      "dependencies": [],
+      "functions_exported": [],
+      "ffi_declarations": ""
+    },
+    "dependency_hashes": {}
+  },
+  "examples/real-world/buffer_ops.c": {
+    "hash": "3f0db3404522b2ca31852ee9a8db5fa528ae394086e29cc8e5dce0f7d2433aaa",
+    "transpiled": {
+      "source_path": "examples/real-world/buffer_ops.c",
+      "rust_code": "fn buffer_fill(mut buffer: *mut i32, mut size: i32, mut value: i32) {\n    let mut i: i32 = 0i32;\n    i = 0;\nwhile i < size {\n    buffer[i] = value;\n    i = i + 1;\n}\n}\nfn buffer_sum(mut buffer: *mut i32, mut size: i32) -> i32 {\n    let mut sum: i32 = 0i32;\n    let mut i: i32 = 0i32;\n    sum = 0;\n    i = 0;\nwhile i < size {\n    sum = sum + unsafe { *buffer.add(i as usize) };\n    i = i + 1;\n}\n    return sum;\n}\nfn buffer_find(mut buffer: *mut i32, mut size: i32, mut target: i32) -> i32 {\n    let mut i: i32 = 0i32;\n    i = 0;\nwhile i < size {\n    if unsafe { *buffer.add(i as usize) } == target {\n    return i;\n}\n    i = i + 1;\n}\n    return -1;\n}\nfn buffer_reverse(mut buffer: *mut i32, mut size: i32) {\n    let mut i: i32 = 0i32;\n    let mut temp: i32 = 0i32;\n    i = 0;\nwhile i < (size / 2) {\n    temp = unsafe { *buffer.add(i as usize) };\n    buffer[i] = unsafe { *buffer.add((size - 1) - i as usize) };\n    buffer[(size - 1) - i] = temp;\n    i = i + 1;\n}\n}\n",
+      "dependencies": [],
+      "functions_exported": [],
+      "ffi_declarations": ""
+    },
+    "dependency_hashes": {}
+  },
+  "examples/real-world/linked_list.c": {
+    "hash": "0d4ab568565a5ac0e99813c5b42b717a488d40be6df2f347d88c992b48125f81",
+    "transpiled": {
+      "source_path": "examples/real-world/linked_list.c",
+      "rust_code": "#[derive(Debug, Clone, PartialEq, Eq)]\npub struct Node {\n    pub data: i32,\n    pub next: *mut Node,\n}\nfn create_node(mut value: i32) -> *mut Node {\n    let mut node: *mut Node = std::ptr::null_mut();\n    node = std::mem::size_of::<Node>() as i32;\n    node.data = value;\n    node.next = std::ptr::null_mut();\n    return node;\n}\nfn list_length(mut head: *mut Node) -> i32 {\n    let mut count: i32 = 0i32;\n    count = 0;\n    while head != std::ptr::null_mut() {\n    count = count + 1;\n    head = (*head).next;\n}\n    return count;\n}\nfn list_sum(mut head: *mut Node) -> i32 {\n    let mut sum: i32 = 0i32;\n    sum = 0;\n    while head != std::ptr::null_mut() {\n    sum = sum + (*head).data;\n    head = (*head).next;\n}\n    return sum;\n}\n",
+      "dependencies": [],
+      "functions_exported": [],
+      "ffi_declarations": ""
+    },
+    "dependency_hashes": {}
+  }
+}

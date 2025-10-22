@@ -58,10 +58,21 @@ make help
 # Transpile a single C file
 decy transpile input.c -o output.rs
 
-# Interactive REPL mode (NEW in Sprint 8!)
+# Transpile an entire project (NEW in Sprint 16!)
+decy transpile-project src/ -o rust_output/
+decy check-project src/          # Show build order
+decy cache-stats src/             # Cache performance
+
+# Debug transpilation (NEW - Sprint 17!)
+decy debug --visualize-ast input.c        # C AST tree view
+decy debug --visualize-hir input.c        # HIR conversion
+decy debug --visualize-ownership input.c  # Ownership graph
+decy debug --step-through input.c         # Interactive stepping
+
+# Interactive REPL mode
 decy repl
 
-# Audit unsafe code in generated Rust (NEW in Sprint 8!)
+# Audit unsafe code in generated Rust
 decy audit output.rs
 decy audit output.rs --verbose  # Detailed analysis
 
@@ -109,6 +120,11 @@ Decy uses a multi-stage transpilation pipeline:
 - **decy-ownership**: Ownership inference (CRITICAL - converts pointers to &T/&mut T/Box/Vec)
 - **decy-verify**: Safety property verification
 - **decy-codegen**: Rust code generation with minimal unsafe
+- **decy-debugger**: Introspective debugger with spydecy integration (NEW!)
+  - C AST visualization with colored tree views
+  - HIR conversion tracking and visualization
+  - Ownership graph visualization (dataflow analysis)
+  - Step-through debugging of transpilation pipeline
 - **decy-book**: Book-based verification (mdBook + compile + lint)
 - **decy-agent**: Background daemon for incremental transpilation
 - **decy-mcp**: MCP server for Claude Code integration
@@ -210,40 +226,68 @@ Closes #XXX"
 
 ## 📊 Current Status
 
-**Sprint**: 8 - COMPLETED ✅
-**Version**: 0.1.0
-**Coverage**: 93.7% ✅ (Target: ≥80%)
-**Mutation Score**: 85.9% ✅ (Target: 85%+)
-**Unsafe Density**: 0.00% ✅ (Target: <5%)
-**Total Tests**: 221+ unit + integration + property tests
-**Next Milestone**: Sprint 9 - Code Generation Fixes
+**Sprint**: 17 - IN PROGRESS (28% complete)
+**Version**: 0.2.0
+**Coverage**: 90.33% ✅ (Target: ≥80%)
+**Mutation Score**: 69.5% (Target: 90%+ - improvement in progress)
+**Total Tests**: 613 passing (all crates)
+**Real-World Readiness**: 40% (validated against production C)
+**Next Milestone**: Sprint 18 - Parser Gap Fixes (P0/P1 issues)
 
-### Sprint 8 Achievements (Latest)
+### Sprint 16 Achievements ✅ COMPLETE
 
-✅ **Interactive REPL Mode** (DECY-037)
-- Real-time C-to-Rust transpilation with `decy repl`
-- History support, syntax highlighting
-- Instant feedback on C code snippets
+✅ **File-Level Transpilation Infrastructure** (DECY-047)
+- Transpile C projects file-by-file (incremental approach)
+- TranspiledFile with metadata tracking
+- ProjectContext for cross-file references
+- FFI boundary generation
 
-✅ **Unsafe Code Auditing System** (DECY-038)
-- Analyze generated Rust for unsafe blocks
-- Confidence scoring (0-100) for elimination potential
-- Pattern detection: raw pointers, transmute, FFI, assembly
-- CLI: `decy audit <file> [--verbose]`
+✅ **Dependency Tracking & Build Order** (DECY-048)
+- #include directive parsing
+- Topological sort for build order
+- Circular dependency detection
+- Header guard detection
 
-✅ **Mutation Testing Hardening**
-- Improved from 81.5% → 85.9% mutation score
-- 14 new targeted tests for edge cases
-- Enhanced visitor function coverage
+✅ **Transpilation Caching** (DECY-049)
+- SHA-256-based cache invalidation
+- **10-20x performance speedup** on unchanged files
+- Persistent cache (.decy/cache/)
+- Cache statistics tracking
 
-✅ **End-to-End Validation** (DECY-039)
-- 4 real-world C examples transpiled successfully
-- **0.00% unsafe density** achieved (exceeds <5% target!)
-- Comprehensive validation report with gap analysis
+✅ **CLI Project-Level Support** (DECY-050)
+- `decy transpile-project <dir>` - Transpile entire projects
+- `decy check-project <dir>` - Show build order
+- `decy cache-stats <dir>` - Cache performance metrics
+- 22 CLI contract tests following ruchy pattern
 
-**Key Finding**: Generated Rust code is **100% safe** with zero unsafe blocks!
+### Sprint 17 Progress (Current) 🚧
 
-See [VALIDATION_REPORT_E2E.md](VALIDATION_REPORT_E2E.md) for detailed analysis and [roadmap.yaml](roadmap.yaml) for the complete 20-sprint plan.
+✅ **Large C Project Validation** (DECY-051) - COMPLETE
+- **Tested**: stb_image.h (7,988 LOC), miniz.c/h (1,250 LOC)
+- **Success Rate**: 100% on parseable files
+- **Critical Findings**:
+  - **P0**: #include blocks ALL multi-file projects
+  - **P1**: extern "C" guards affect 80% of headers
+  - **P1**: typedef assertions common in portable C
+  - **P2**: Header-only libraries not supported
+- **Real-World Readiness**: 40% (honest assessment)
+- **Report**: [docs/LARGE_PROJECT_VALIDATION_REPORT.md](docs/LARGE_PROJECT_VALIDATION_REPORT.md)
+
+🔄 **Spydecy Debugger Integration** (NEW! - In Progress)
+- Deep integration with spydecy-debugger for introspective debugging
+- C AST visualization with colored tree views
+- HIR visualization and conversion tracking
+- Ownership graph visualization (dataflow analysis)
+- Step-through debugging capabilities
+- Beautiful terminal output inspired by spydecy
+
+⏳ **User Documentation Guide** (DECY-052) - Pending
+⏳ **CLI Quality-of-Life Improvements** (DECY-053) - Pending
+⏳ **Function Pointer Support** (DECY-054) - Pending
+
+**Honest Assessment**: While basic C transpiles perfectly, production C has critical gaps that must be addressed in Sprint 18. The architecture is solid - issues are parser-level, not design problems.
+
+See [STATUS_UPDATE.md](STATUS_UPDATE.md) for latest details and [roadmap.yaml](roadmap.yaml) for the complete 20-sprint plan.
 
 ## 🎯 Target Projects
 

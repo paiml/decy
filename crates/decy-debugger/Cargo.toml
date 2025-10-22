@@ -1,0 +1,39 @@
+[package]
+name = "decy-debugger"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.75.0"
+license = "MIT OR Apache-2.0"
+description = "Interactive debugger for Decy C-to-Rust transpiler with spydecy integration"
+repository = "https://github.com/noahgift/decy"
+authors = ["Decy Team"]
+keywords = ["debugger", "transpiler", "c", "rust", "introspection"]
+categories = ["compilers", "development-tools::debugging"]
+
+[dependencies]
+# Core decy dependencies
+decy-parser = { path = "../decy-parser" }
+decy-hir = { path = "../decy-hir" }
+decy-ownership = { path = "../decy-ownership" }
+decy-codegen = { path = "../decy-codegen" }
+
+# Spydecy debugger integration
+spydecy-debugger = "0.1.0"
+
+# Error handling
+anyhow = "1.0"
+thiserror = "1.0"
+
+# Serialization for output formats
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# Terminal colors and formatting
+colored = "2.1"
+
+# Graph visualization (for dataflow/ownership graphs)
+petgraph = "0.6"
+
+[dev-dependencies]
+tempfile = "3.8"
+pretty_assertions = "1.4"
