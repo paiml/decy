@@ -503,38 +503,36 @@ fn transpile_project(
     }
 
     // Show statistics if requested or if verbose
-    if stats || verbose {
-        if !quiet {
-            println!();
-            println!("=== Statistics ===");
-            println!("Files found: {}", c_files.len());
-            println!("Files transpiled: {}", transpiled_count);
-            if cached_count > 0 {
-                println!("Files cached: {}", cached_count);
-            }
-            if total_lines > 0 {
-                println!("Lines generated: {}", total_lines);
-            }
-            println!("Time elapsed: {:.2}s", elapsed.as_secs_f64());
+    if (stats || verbose) && !quiet {
+        println!();
+        println!("=== Statistics ===");
+        println!("Files found: {}", c_files.len());
+        println!("Files transpiled: {}", transpiled_count);
+        if cached_count > 0 {
+            println!("Files cached: {}", cached_count);
+        }
+        if total_lines > 0 {
+            println!("Lines generated: {}", total_lines);
+        }
+        println!("Time elapsed: {:.2}s", elapsed.as_secs_f64());
 
-            if use_cache {
-                let cache_stats = cache.statistics();
-                println!();
-                println!("=== Cache Statistics ===");
-                println!("Cache hits: {}", cache_stats.hits);
-                println!("Cache misses: {}", cache_stats.misses);
-                if cache_stats.hits + cache_stats.misses > 0 {
-                    let hit_rate = (cache_stats.hits as f64
-                        / (cache_stats.hits + cache_stats.misses) as f64)
-                        * 100.0;
-                    println!("Hit rate: {:.1}%", hit_rate);
-                    let speedup = if cache_stats.misses > 0 {
-                        (cache_stats.hits + cache_stats.misses) as f64 / cache_stats.misses as f64
-                    } else {
-                        1.0
-                    };
-                    println!("Estimated speedup: {:.1}x", speedup);
-                }
+        if use_cache {
+            let cache_stats = cache.statistics();
+            println!();
+            println!("=== Cache Statistics ===");
+            println!("Cache hits: {}", cache_stats.hits);
+            println!("Cache misses: {}", cache_stats.misses);
+            if cache_stats.hits + cache_stats.misses > 0 {
+                let hit_rate = (cache_stats.hits as f64
+                    / (cache_stats.hits + cache_stats.misses) as f64)
+                    * 100.0;
+                println!("Hit rate: {:.1}%", hit_rate);
+                let speedup = if cache_stats.misses > 0 {
+                    (cache_stats.hits + cache_stats.misses) as f64 / cache_stats.misses as f64
+                } else {
+                    1.0
+                };
+                println!("Estimated speedup: {:.1}x", speedup);
             }
         }
     }

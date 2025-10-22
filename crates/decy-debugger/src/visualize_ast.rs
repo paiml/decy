@@ -74,7 +74,7 @@ pub fn visualize_c_ast(file_path: &Path, use_colors: bool) -> Result<String> {
     } else {
         "═══ Source Code ═══".to_string()
     };
-    output.push_str(&format!("{}\n", source_header));
+    output.push_str(&format!("{source_header}\n"));
 
     for (i, line) in source.lines().enumerate() {
         if use_colors {
