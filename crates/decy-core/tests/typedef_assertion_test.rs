@@ -96,8 +96,12 @@ int main() {
     let rust_code = transpile(c_code).expect("Transpilation should succeed");
 
     // Should generate multiple assertions
-    let assertion_count = rust_code.matches("const _").count() + rust_code.matches("assert!").count();
-    assert!(assertion_count >= 3, "Should have 3 compile-time assertions");
+    let assertion_count =
+        rust_code.matches("const _").count() + rust_code.matches("assert!").count();
+    assert!(
+        assertion_count >= 3,
+        "Should have 3 compile-time assertions"
+    );
 }
 
 #[test]
@@ -211,8 +215,5 @@ int add(int a, int b) {
     // Check for balanced braces
     let open_braces = rust_code.matches('{').count();
     let close_braces = rust_code.matches('}').count();
-    assert_eq!(
-        open_braces, close_braces,
-        "Should have balanced braces"
-    );
+    assert_eq!(open_braces, close_braces, "Should have balanced braces");
 }
