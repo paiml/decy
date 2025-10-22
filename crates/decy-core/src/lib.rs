@@ -616,7 +616,7 @@ pub fn transpile(c_code: &str) -> Result<String> {
             var_type: decy_hir::HirType::from_ast_type(v.var_type()),
             initializer: v
                 .initializer()
-                .map(|expr| decy_hir::HirExpression::from_ast_expression(expr)),
+                .map(decy_hir::HirExpression::from_ast_expression),
         })
         .collect();
 
