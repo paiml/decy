@@ -4982,9 +4982,10 @@ sprint_17:
       priority: high
       story_points: 5
       assignee: Claude
-      status: not_started
+      status: in_progress
       github_issue: null
       phase: RED
+      started_date: "2025-10-22"
 
       description: |
         Create comprehensive user-facing documentation for developers wanting
