@@ -84,9 +84,13 @@ impl CParser {
             Length: source.len() as std::os::raw::c_ulong,
         };
 
-        // Detect if source contains extern "C" to enable C++ mode
-        // This handles C headers that use extern "C" without proper #ifdef guards
-        let needs_cpp_mode = source.contains("extern \"C\"");
+        // Detect if source contains BARE extern "C" (without #ifdef guards)
+        // If it has #ifdef __cplusplus guards, clang can handle it as C
+        // Only enable C++ mode for bare extern "C" blocks
+        let has_extern_c = source.contains("extern \"C\"");
+        let has_ifdef_guard =
+            source.contains("#ifdef __cplusplus") || source.contains("#if defined(__cplusplus)");
+        let needs_cpp_mode = has_extern_c && !has_ifdef_guard;
 
         // Prepare command line arguments for C++ mode if needed
         let cpp_flag = CString::new("-x").unwrap();
@@ -98,7 +102,14 @@ impl CParser {
         };
 
         // SAFETY: Parsing with clang_parseTranslationUnit2
-        // Use CXTranslationUnit_DetailedPreprocessingRecord to capture macro definitions
+        // Use CXTranslationUnit_DetailedPreprocessingRecord for C mode to capture macros
+        // Use None (0) for C++ mode as DetailedPreprocessingRecord may interfere
+        let flags = if needs_cpp_mode {
+            0 // No special flags for C++ mode
+        } else {
+            CXTranslationUnit_DetailedPreprocessingRecord
+        };
+
         let mut tu = ptr::null_mut();
         let result = unsafe {
             clang_parseTranslationUnit2(
@@ -112,7 +123,7 @@ impl CParser {
                 args_vec.len() as std::os::raw::c_int,
                 &unsaved_file as *const CXUnsavedFile as *mut CXUnsavedFile,
                 1,
-                CXTranslationUnit_DetailedPreprocessingRecord,
+                flags,
                 &mut tu,
             )
         };
@@ -259,7 +270,9 @@ extern "C" fn visit_function(
         }
     }
 
-    CXChildVisit_Continue
+    // Return Recurse to ensure we visit children of all nodes
+    // This is needed in C++ mode to reach LinkageSpec and its children
+    CXChildVisit_Recurse
 }
 
 /// Extract function information from a clang cursor.
