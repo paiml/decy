@@ -654,6 +654,99 @@ cargo mutants --workspace
 # Target: ≥90% kill rate by Sprint 5
 ```
 
+## Debugger Integration (Sprint 17+)
+
+### decy-debugger Crate
+
+Decy now includes deep integration with `spydecy-debugger` for introspective debugging of the transpilation pipeline.
+
+**Location**: `crates/decy-debugger/`
+
+**Features**:
+- C AST visualization with colored tree views
+- HIR conversion tracking and diff viewing
+- Ownership graph visualization (dataflow analysis)
+- Step-through debugging capabilities
+
+**Usage in Code**:
+
+```rust
+use decy_debugger::Debugger;
+use std::path::Path;
+
+// Create debugger
+let debugger = Debugger::new();
+
+// Visualize C AST
+let ast_output = debugger.visualize_c_ast(Path::new("example.c"))?;
+println!("{}", ast_output);
+
+// Visualize HIR conversion
+let hir_output = debugger.visualize_hir(Path::new("example.c"))?;
+println!("{}", hir_output);
+
+// Visualize ownership inference
+let ownership_output = debugger.visualize_ownership(Path::new("example.c"))?;
+println!("{}", ownership_output);
+
+// Interactive step-through
+debugger.step_through(Path::new("example.c"))?;
+```
+
+**CLI Usage**:
+
+```bash
+# C AST tree view
+decy debug --visualize-ast input.c
+
+# HIR conversion view
+decy debug --visualize-hir input.c
+
+# Ownership graph
+decy debug --visualize-ownership input.c
+
+# Interactive stepping
+decy debug --step-through input.c
+```
+
+**Architecture**:
+
+The debugger provides hooks at each pipeline stage:
+
+```
+C Source → Parser → AST → HIR → Analyzer → Codegen → Rust
+             ↓        ↓     ↓       ↓         ↓        ↓
+          [Debug] [Debug] [Debug] [Debug]  [Debug] [Debug]
+```
+
+**Spydecy Integration**:
+
+decy-debugger leverages `spydecy-debugger` (from the spydecy Python/C transpiler project) for:
+- Terminal color formatting
+- Tree visualization patterns
+- AST node formatting
+- Beautiful output formatting
+
+**Testing Debugger Features**:
+
+```bash
+# Unit tests
+cargo test -p decy-debugger
+
+# Integration with real C files
+cargo test -p decy-debugger --test integration
+```
+
+**Adding New Debug Views**:
+
+1. Add visualization module to `crates/decy-debugger/src/`
+2. Implement formatting with colored output
+3. Add CLI command in `crates/decy/src/main.rs`
+4. Add tests in `crates/decy-debugger/tests/`
+5. Update documentation
+
+**Note**: The debugger is designed to be non-invasive - it observes the transpilation pipeline without affecting behavior. All debug commands are read-only operations.
+
 ## Documentation Standards
 
 Every public item needs documentation:

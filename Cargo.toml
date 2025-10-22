@@ -8,6 +8,7 @@ members = [
     "crates/decy-ownership",
     "crates/decy-verify",
     "crates/decy-codegen",
+    "crates/decy-debugger",
     "crates/decy-book",
     "crates/decy-agent",
     "crates/decy-mcp",
@@ -75,10 +76,14 @@ thiserror = "1.0"
 clap = { version = "4.4", features = ["derive", "env"] }
 indicatif = "0.17"
 console = "0.15"
+colored = "2.1"  # For terminal colors (debugger)
 
 # Logging
 tracing = "0.1"
 tracing-subscriber = "0.3"
+
+# Spydecy debugger integration
+spydecy-debugger = "0.1.0"
 
 # Book generation
 mdbook = "0.4"
