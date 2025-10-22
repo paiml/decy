@@ -752,7 +752,7 @@ pub fn transpile_with_includes(c_code: &str, base_dir: Option<&Path>) -> Result<
         })
         .collect();
 
-    // Convert typedefs to HIR (DECY-054)
+    // Convert typedefs to HIR (DECY-054, DECY-057)
     let hir_typedefs: Vec<decy_hir::HirTypedef> = ast
         .typedefs()
         .iter()
@@ -804,7 +804,7 @@ pub fn transpile_with_includes(c_code: &str, base_dir: Option<&Path>) -> Result<
         rust_code.push('\n');
     }
 
-    // Generate typedefs (DECY-054)
+    // Generate typedefs (DECY-054, DECY-057)
     for typedef in &hir_typedefs {
         if let Ok(typedef_code) = code_generator.generate_typedef(typedef) {
             rust_code.push_str(&typedef_code);
