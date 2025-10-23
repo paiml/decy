@@ -54,7 +54,7 @@ fn test_hir_compound_literal_struct() {
     // HIR: CompoundLiteral { literal_type: Named("Point"), initializers: [...] }
 
     let compound_expr = HirExpression::CompoundLiteral {
-        literal_type: HirType::Named("Point".to_string()),
+        literal_type: HirType::Struct("Point".to_string()),
         initializers: vec![
             HirExpression::IntLiteral(10),
             HirExpression::IntLiteral(20),
@@ -63,7 +63,7 @@ fn test_hir_compound_literal_struct() {
 
     match compound_expr {
         HirExpression::CompoundLiteral { literal_type, initializers } => {
-            assert_eq!(literal_type, HirType::Named("Point".to_string()));
+            assert_eq!(literal_type, HirType::Struct("Point".to_string()));
             assert_eq!(initializers.len(), 2);
         }
         _ => panic!("Expected CompoundLiteral expression"),
@@ -106,9 +106,9 @@ fn test_hir_nested_cast_and_compound_literal() {
     // Could also use compound literal: &(struct Point){0, 0}
 
     let nested_expr = HirExpression::Cast {
-        target_type: HirType::Pointer(Box::new(HirType::Named("Point".to_string()))),
+        target_type: HirType::Pointer(Box::new(HirType::Struct("Point".to_string()))),
         expr: Box::new(HirExpression::CompoundLiteral {
-            literal_type: HirType::Named("Point".to_string()),
+            literal_type: HirType::Struct("Point".to_string()),
             initializers: vec![
                 HirExpression::IntLiteral(0),
                 HirExpression::IntLiteral(0),

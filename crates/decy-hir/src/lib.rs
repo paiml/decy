@@ -762,6 +762,34 @@ pub enum HirExpression {
         /// Arguments to the method call
         arguments: Vec<HirExpression>,
     },
+    /// Cast expression (C: (int)x → Rust: x as i32)
+    ///
+    /// Represents a C-style cast that converts an expression to a target type.
+    /// Maps to Rust `as` operator for safe casts, or `transmute` for unsafe casts.
+    ///
+    /// # Sprint 19 Feature (DECY-059)
+    ///
+    /// Added in Sprint 19 to support C cast expressions.
+    Cast {
+        /// Target type to cast to
+        target_type: HirType,
+        /// Expression being cast
+        expr: Box<HirExpression>,
+    },
+    /// Compound literal (C: (struct Point){10, 20} → Rust: Point { x: 10, y: 20 })
+    ///
+    /// C99 compound literals create anonymous objects of a specified type.
+    /// Used for inline struct/array initialization.
+    ///
+    /// # Sprint 19 Feature (DECY-060)
+    ///
+    /// Added in Sprint 19 to support C99 compound literals.
+    CompoundLiteral {
+        /// Type of the compound literal (struct Point, int[], etc.)
+        literal_type: HirType,
+        /// Initializer expressions (values for struct fields or array elements)
+        initializers: Vec<HirExpression>,
+    },
 }
 
 /// Represents a single case in a switch statement.
@@ -1072,6 +1100,19 @@ impl HirExpression {
             Expression::Sizeof { type_name } => HirExpression::Sizeof {
                 type_name: type_name.clone(),
             },
+            Expression::Cast { target_type, expr } => HirExpression::Cast {
+                target_type: HirType::from_ast_type(target_type),
+                expr: Box::new(HirExpression::from_ast_expression(expr)),
+            },
+            Expression::CompoundLiteral { literal_type, initializers } => {
+                HirExpression::CompoundLiteral {
+                    literal_type: HirType::from_ast_type(literal_type),
+                    initializers: initializers
+                        .iter()
+                        .map(HirExpression::from_ast_expression)
+                        .collect(),
+                }
+            }
         }
     }
 }
