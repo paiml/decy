@@ -5270,8 +5270,9 @@ sprint_18:
   name: "Real-world C Validation Gaps"
   duration: "2 weeks"
   start_date: "2025-10-22"
+  end_date: "2025-10-22"
   story_points: 15
-  status: in_progress
+  status: done
 
   goals:
     - "Fix P1 parser gap: extern \"C\" guard support"
@@ -6554,9 +6555,9 @@ integration_sprint_19:
       priority: critical
       story_points: 2
       assignee: Claude
-      status: in_progress
+      status: done
       github_issue: null
-      phase: RED
+      phase: DONE
       started_date: "2025-10-23"
 
       bug_discovered_in: "test_printf_transformation (decy-core)"
