@@ -1040,15 +1040,16 @@ impl HirStatement {
             },
             // Function call statement - convert to expression statement
             // DECY-065: Now properly supported with HirStatement::Expression variant
-            Statement::FunctionCall { function, arguments } => {
-                HirStatement::Expression(HirExpression::FunctionCall {
-                    function: function.clone(),
-                    arguments: arguments
-                        .iter()
-                        .map(HirExpression::from_ast_expression)
-                        .collect(),
-                })
-            }
+            Statement::FunctionCall {
+                function,
+                arguments,
+            } => HirStatement::Expression(HirExpression::FunctionCall {
+                function: function.clone(),
+                arguments: arguments
+                    .iter()
+                    .map(HirExpression::from_ast_expression)
+                    .collect(),
+            }),
         }
     }
 }
