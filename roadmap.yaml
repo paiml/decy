@@ -6439,3 +6439,94 @@ validation_sprint_19:
       validation_reference: "Real-world C projects (miniz.c, stb_image.h, etc.)"
       impact: "Proves Sprint 19 features work in production code"
       risk: "Low - validation only, no new features"
+
+# ==============================================================================
+# POST-SPRINT 19: HIR/Codegen Integration
+# ==============================================================================
+
+integration_sprint_19:
+  name: "Sprint 19 HIR/Codegen Integration"
+  type: integration
+  story_points: 10
+  started_date: "2025-10-23"
+
+  tickets:
+    DECY-064:
+      title: "HIR/Codegen: Integrate Sprint 19 parser features"
+      type: feature
+      priority: high
+      story_points: 10
+      assignee: Claude
+      status: in_progress
+      github_issue: null
+      phase: RED
+      started_date: "2025-10-23"
+
+      description: |
+        Integrate Sprint 19's new parser features into HIR and codegen layers
+        to enable end-to-end C→Rust transpilation with:
+        - Global variables (static, extern, const)
+        - Cast expressions
+        - Compound literals
+        - Designated initializers (already in HIR as part of struct initialization)
+        - Enum explicit values (already in HIR)
+
+        This ticket makes Sprint 19's parser work functional for actual transpilation.
+
+      integration_tasks:
+        hir_enhancements:
+          - "Add HirItem::GlobalVariable variant"
+          - "Add storage class info to HirVariable (static, extern, const)"
+          - "Add HirExpression::Cast variant"
+          - "Add HirExpression::CompoundLiteral variant"
+          - "Update parser→HIR conversion for new expression types"
+
+        codegen_enhancements:
+          - "Generate Rust global variables (static mut, const, extern)"
+          - "Generate Rust cast expressions (as operator)"
+          - "Generate Rust compound literals (struct/array literals)"
+          - "Handle storage class differences (static mut requires unsafe)"
+
+      test_requirements:
+        unit_tests:
+          - test_hir_global_variable_creation
+          - test_hir_cast_expression
+          - test_hir_compound_literal
+          - test_codegen_static_global
+          - test_codegen_extern_global
+          - test_codegen_const_global
+          - test_codegen_cast_expression
+          - test_codegen_compound_literal
+
+        integration_tests:
+          - test_end_to_end_global_variables
+          - test_end_to_end_cast_expressions
+          - test_end_to_end_compound_literals
+
+      success_criteria:
+        - "HIR represents all Sprint 19 features"
+        - "Codegen generates valid Rust for all features"
+        - "Generated Rust compiles"
+        - "End-to-end tests pass"
+        - "Coverage ≥85%"
+        - "0 clippy warnings"
+
+      test_strategy: |
+        RED Phase:
+        1. Write failing HIR tests for new expression variants
+        2. Write failing codegen tests for new constructs
+        3. Write failing end-to-end tests
+
+        GREEN Phase:
+        1. Add HIR variants and conversion logic
+        2. Implement codegen for new constructs
+        3. Make all tests pass
+
+        REFACTOR Phase:
+        1. Optimize code generation
+        2. Add property tests
+        3. Documentation
+
+      validation_reference: "Sprint 19 validation results (DECY-063)"
+      impact: "Enables actual C→Rust transpilation using Sprint 19 parser features"
+      risk: "Medium - touches multiple layers (parser, HIR, codegen)"
