@@ -169,3 +169,140 @@ fn test_function_and_global_together() {
     assert_eq!(result.functions()[0].name, "increment");
     assert_eq!(result.functions()[1].name, "get_counter");
 }
+
+// ============================================================================
+// Storage Class Specifier Tests (static, extern, const)
+// ============================================================================
+
+#[test]
+fn test_static_global() {
+    let source = r#"
+        static int file_counter = 0;
+
+        int main() {
+            return 0;
+        }
+    "#;
+
+    let parser = CParser::new().expect("Parser creation failed");
+    let result = parser.parse(source).expect("Should parse successfully");
+
+    assert_eq!(result.variables().len(), 1);
+
+    let global = &result.variables()[0];
+    assert_eq!(global.name(), "file_counter");
+    assert!(global.is_static(), "Should be marked as static");
+    assert!(!global.is_extern(), "Should not be extern");
+    assert!(!global.is_const(), "Should not be const");
+}
+
+#[test]
+fn test_extern_global() {
+    let source = r#"
+        extern int external_var;
+
+        int main() {
+            return external_var;
+        }
+    "#;
+
+    let parser = CParser::new().expect("Parser creation failed");
+    let result = parser.parse(source).expect("Should parse successfully");
+
+    assert_eq!(result.variables().len(), 1);
+
+    let global = &result.variables()[0];
+    assert_eq!(global.name(), "external_var");
+    assert!(!global.is_static(), "Should not be static");
+    assert!(global.is_extern(), "Should be marked as extern");
+    assert!(!global.is_const(), "Should not be const");
+    assert!(
+        global.initializer().is_none(),
+        "extern should not have initializer"
+    );
+}
+
+#[test]
+fn test_const_global() {
+    let source = r#"
+        const int MAX_SIZE = 100;
+
+        int main() {
+            return MAX_SIZE;
+        }
+    "#;
+
+    let parser = CParser::new().expect("Parser creation failed");
+    let result = parser.parse(source).expect("Should parse successfully");
+
+    assert_eq!(result.variables().len(), 1);
+
+    let global = &result.variables()[0];
+    assert_eq!(global.name(), "MAX_SIZE");
+    assert!(!global.is_static(), "Should not be static");
+    assert!(!global.is_extern(), "Should not be extern");
+    assert!(global.is_const(), "Should be marked as const");
+    assert!(
+        global.initializer().is_some(),
+        "const should have initializer"
+    );
+}
+
+#[test]
+fn test_combined_storage_class() {
+    let source = r#"
+        static const int CONSTANT = 42;
+
+        int main() {
+            return 0;
+        }
+    "#;
+
+    let parser = CParser::new().expect("Parser creation failed");
+    let result = parser.parse(source).expect("Should parse successfully");
+
+    assert_eq!(result.variables().len(), 1);
+
+    let global = &result.variables()[0];
+    assert_eq!(global.name(), "CONSTANT");
+    assert!(global.is_static(), "Should be static");
+    assert!(global.is_const(), "Should be const");
+    assert!(!global.is_extern(), "Should not be extern");
+}
+
+#[test]
+fn test_mixed_storage_classes() {
+    let source = r#"
+        int global1 = 1;
+        static int global2 = 2;
+        extern int global3;
+        const int global4 = 4;
+
+        int main() {
+            return 0;
+        }
+    "#;
+
+    let parser = CParser::new().expect("Parser creation failed");
+    let result = parser.parse(source).expect("Should parse successfully");
+
+    assert_eq!(result.variables().len(), 4);
+
+    // global1: regular (no storage class)
+    assert!(!result.variables()[0].is_static());
+    assert!(!result.variables()[0].is_extern());
+    assert!(!result.variables()[0].is_const());
+
+    // global2: static
+    assert!(result.variables()[1].is_static());
+    assert!(!result.variables()[1].is_extern());
+
+    // global3: extern
+    assert!(!result.variables()[2].is_static());
+    assert!(result.variables()[2].is_extern());
+
+    // global4: const
+    assert!(!result.variables()[3].is_static());
+    assert!(!result.variables()[3].is_extern());
+    assert!(result.variables()[3].is_const());
+}
