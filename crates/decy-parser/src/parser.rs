@@ -453,6 +453,7 @@ fn try_extract_expression(cursor: CXCursor) -> Option<Expression> {
         CXCursor_UnaryOperator => extract_unary_op(cursor),
         CXCursor_ArraySubscriptExpr => extract_array_index(cursor),
         CXCursor_MemberRefExpr => extract_field_access(cursor),
+        117 => extract_cast(cursor), // CXCursor_CStyleCastExpr
         CXCursor_UnexposedExpr => {
             // UnexposedExpr is a wrapper - recurse into children
             let mut result: Option<Expression> = None;
@@ -2540,6 +2541,52 @@ fn extract_sizeof(cursor: CXCursor) -> Option<Expression> {
 
 /// Convert clang type to our Type enum.
 #[allow(non_upper_case_globals)]
+/// Extract a cast expression from a clang cursor.
+///
+/// Parses C-style cast expressions like `(int)x` or `(void*)ptr`.
+/// Extracts the target type and the expression being cast.
+fn extract_cast(cursor: CXCursor) -> Option<Expression> {
+    // SAFETY: Getting the type this expression evaluates to (the cast result type)
+    let target_cx_type = unsafe { clang_getCursorType(cursor) };
+    let target_type = convert_type(target_cx_type)?;
+
+    // Extract the inner expression by visiting children
+    let mut inner_expr: Option<Expression> = None;
+    let inner_ptr = &mut inner_expr as *mut Option<Expression>;
+
+    unsafe {
+        clang_visitChildren(cursor, visit_cast_inner, inner_ptr as CXClientData);
+    }
+
+    inner_expr.map(|expr| Expression::Cast {
+        target_type,
+        expr: Box::new(expr),
+    })
+}
+
+/// Visitor callback to extract the inner expression of a cast.
+#[allow(non_upper_case_globals)]
+extern "C" fn visit_cast_inner(
+    cursor: CXCursor,
+    _parent: CXCursor,
+    client_data: CXClientData,
+) -> CXChildVisitResult {
+    let inner_expr = unsafe { &mut *(client_data as *mut Option<Expression>) };
+    let kind = unsafe { clang_getCursorKind(cursor) };
+
+    // Try to extract any expression
+    if let Some(expr) = try_extract_expression(cursor) {
+        *inner_expr = Some(expr);
+        return CXChildVisit_Break; // Found the inner expression, stop visiting
+    }
+
+    // For some expression types, we need to recurse
+    match kind {
+        CXCursor_UnexposedExpr | CXCursor_ParenExpr => CXChildVisit_Recurse,
+        _ => CXChildVisit_Continue,
+    }
+}
+
 fn convert_type(cx_type: CXType) -> Option<Type> {
     // SAFETY: Getting type kind
     match cx_type.kind {
@@ -2941,6 +2988,24 @@ pub enum Expression {
     Sizeof {
         /// Type name as a string (e.g., "int", "struct Data")
         type_name: String,
+    },
+    /// Cast expression: `(int)x` or `(void*)ptr`
+    ///
+    /// C-style cast that converts an expression to a target type.
+    /// Maps to Rust `as` operator for safe casts, or `transmute` for unsafe casts.
+    ///
+    /// # Examples
+    ///
+    /// ```c
+    /// int x = (int)3.14;           // float to int
+    /// void* ptr = (void*)buffer;   // pointer cast
+    /// long l = (long)small_int;    // widening cast
+    /// ```
+    Cast {
+        /// Target type to cast to
+        target_type: Type,
+        /// Expression being cast
+        expr: Box<Expression>,
     },
 }
 
