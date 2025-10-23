@@ -6547,3 +6547,53 @@ integration_sprint_19:
       validation_reference: "Sprint 19 validation results (DECY-063)"
       impact: "Enables actual C→Rust transpilation using Sprint 19 parser features"
       risk: "Medium - touches multiple layers (parser, HIR, codegen)"
+
+    DECY-065:
+      title: "HIR: Add Expression statement support (fix printf bug)"
+      type: bug
+      priority: critical
+      story_points: 2
+      assignee: Claude
+      status: in_progress
+      github_issue: null
+      phase: RED
+      started_date: "2025-10-23"
+
+      bug_discovered_in: "test_printf_transformation (decy-core)"
+      root_cause: |
+        HIR Statement enum lacks Expression variant for expression statements.
+        Statement::FunctionCall is converted to Break placeholder (line 1037 decy-hir/src/lib.rs),
+        causing printf() and other function calls to disappear during transpilation.
+
+      description: |
+        Add HirStatement::Expression variant to properly handle expression statements
+        like function calls that don't return values or whose return values are discarded.
+
+        C allows expressions as statements:
+        - printf("Hello\n");  // function call statement
+        - i++;                // increment statement
+        - foo(bar());         // expression statement
+
+        Currently these are mapped to Break placeholder, losing functionality.
+
+      acceptance_criteria:
+        - HirStatement::Expression variant exists
+        - Statement::FunctionCall → HirStatement::Expression(FunctionCall)
+        - Codegen generates code for expression statements
+        - test_printf_transformation passes
+        - 0 clippy warnings
+
+      test_strategy: |
+        RED Phase:
+        - Run test_printf_transformation (should fail) ✅
+        - Write HIR test for expression statement
+        - Write codegen test for expression statement
+
+        GREEN Phase:
+        - Add HirStatement::Expression variant
+        - Update from_ast_statement conversion
+        - Update codegen generate_statement
+        - Make all tests pass
+
+      impact: "Fixes critical bug blocking printf and other expression statements"
+      risk: "Low - additive change to existing enums"

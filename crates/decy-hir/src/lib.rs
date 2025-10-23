@@ -892,6 +892,16 @@ pub enum HirStatement {
         /// Pointer expression to free
         pointer: HirExpression,
     },
+    /// Expression statement (e.g., printf("Hello");, free(ptr);, i++;)
+    ///
+    /// Represents an expression used as a statement, typically for side effects.
+    /// Common in C for function calls whose return values are discarded.
+    ///
+    /// # DECY-065
+    ///
+    /// Added to fix bug where function call statements (like printf) were being
+    /// converted to Break placeholder, causing them to disappear during transpilation.
+    Expression(HirExpression),
 }
 
 impl HirStatement {
@@ -1028,14 +1038,16 @@ impl HirStatement {
                     .as_ref()
                     .map(|block| block.iter().map(HirStatement::from_ast_statement).collect()),
             },
-            // Function call statement - convert to placeholder statement
-            //
-            // Implementation Note: The parser's `Statement::FunctionCall` variant is not fully
-            // integrated into HIR yet. HIR doesn't have an `Expression` statement variant.
-            // For minimal GREEN phase, we map this to `Break` as a placeholder.
-            // Full implementation would add `HirStatement::Expression(HirExpression)` variant.
-            Statement::FunctionCall { .. } => {
-                HirStatement::Break // Placeholder
+            // Function call statement - convert to expression statement
+            // DECY-065: Now properly supported with HirStatement::Expression variant
+            Statement::FunctionCall { function, arguments } => {
+                HirStatement::Expression(HirExpression::FunctionCall {
+                    function: function.clone(),
+                    arguments: arguments
+                        .iter()
+                        .map(HirExpression::from_ast_expression)
+                        .collect(),
+                })
             }
         }
     }

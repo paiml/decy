@@ -262,6 +262,11 @@ impl DataflowAnalyzer {
                 // Future: detect use-after-free by tracking subsequent uses
                 self.track_expression_uses(pointer, graph, index);
             }
+            HirStatement::Expression(expr) => {
+                // Track pointer uses in expression statements (DECY-065)
+                // e.g., printf() calls, function calls, etc.
+                self.track_expression_uses(expr, graph, index);
+            }
         }
     }
 
