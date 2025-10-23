@@ -6140,3 +6140,80 @@ sprint_19:
       validation_reference: "ISO C99 §6.7.8 (Initialization), §6.7.9 (Designated initializers)"
       impact: "Enables transpilation of modern C99/C11 code with designated initializers (very common pattern)"
       risk: "Medium - need to track initialization state and handle partial initialization"
+
+    DECY-062:
+      title: "Parser: Enum with explicit values optimization"
+      type: feature
+      priority: medium
+      story_points: 3
+      assignee: Claude
+      status: in_progress
+      github_issue: null
+      phase: RED
+      started_date: "2025-10-23"
+
+      description: |
+        Enhance enum parsing to capture explicit discriminant values.
+        Currently, enums parse but don't preserve explicit values, which are common for:
+        - API constants with specific numeric values
+        - Bitmask enums (FLAGS = 0x01, MASK = 0x02)
+        - Protocol codes (HTTP_OK = 200, HTTP_NOT_FOUND = 404)
+        - Hardware register values
+
+      examples:
+        - c: "enum Status { OK = 0, ERROR = 1, PENDING = 2 };"
+          rust: "enum Status { Ok = 0, Error = 1, Pending = 2 }"
+
+        - c: "enum Flags { READ = 0x01, WRITE = 0x02, EXECUTE = 0x04 };"
+          rust: "enum Flags { Read = 0x01, Write = 0x02, Execute = 0x04 }"
+
+        - c: "enum HTTP { OK = 200, NOT_FOUND = 404, ERROR = 500 };"
+          rust: "enum HTTP { Ok = 200, NotFound = 404, Error = 500 }"
+
+      requirements:
+        - Parse enum declarations with explicit values
+        - Capture integer values for each enum constant
+        - Handle hexadecimal values (0x prefix)
+        - Handle expressions in enum values
+        - Distinguish enums with explicit values from auto-incremented
+        - Generate Rust enums with explicit discriminants
+
+      test_requirements:
+        unit_tests:
+          - test_parse_enum_with_explicit_values
+          - test_parse_enum_with_hex_values
+          - test_parse_enum_bitmask_pattern
+          - test_parse_enum_mixed_explicit_implicit
+          - test_parse_enum_with_expression_values
+
+      acceptance_criteria:
+        - "Enum explicit values parse correctly"
+        - "Hexadecimal values supported"
+        - "Bitmask patterns recognized"
+        - "Generated Rust compiles"
+        - "Coverage ≥85%"
+        - "0 clippy warnings"
+        - "All tests pass"
+
+      test_strategy: |
+        RED Phase:
+        1. Write failing tests for enums with explicit values
+        2. Test hexadecimal values
+        3. Test bitmask patterns
+        4. Test mixed explicit/implicit values
+
+        GREEN Phase:
+        1. Enhance enum constant parsing to capture values
+        2. Extract initializer expressions for enum constants
+        3. Track which constants have explicit values
+        4. Generate Rust with explicit discriminants
+
+        REFACTOR Phase:
+        1. Add property tests
+        2. Optimize enum value detection
+        3. Handle edge cases (expression evaluation)
+        4. Documentation
+
+      validation_reference: "K&R §A.8.4 (Enumeration declarations), ISO C99 §6.7.2.2 (Enumeration specifiers)"
+      impact: "Enables accurate transpilation of enums with specific values (common in APIs and protocols)"
+      risk: "Low - enhancement to existing enum parsing"
