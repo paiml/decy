@@ -3,7 +3,6 @@
 ///
 /// Tests that function calls and other expressions can be used as statements,
 /// which is required for printf(), free(), and other side-effect functions.
-
 use decy_hir::{HirExpression, HirStatement};
 
 #[test]
@@ -43,14 +42,14 @@ fn test_hir_parser_function_call_to_expression_statement() {
 
     // Should be an Expression statement, not Break
     match hir_stmt {
-        HirStatement::Expression(HirExpression::FunctionCall { function, arguments }) => {
+        HirStatement::Expression(HirExpression::FunctionCall {
+            function,
+            arguments,
+        }) => {
             assert_eq!(function, "free");
             assert_eq!(arguments.len(), 1);
         }
-        _ => panic!(
-            "Expected Expression(FunctionCall), got {:?}",
-            hir_stmt
-        ),
+        _ => panic!("Expected Expression(FunctionCall), got {:?}", hir_stmt),
     }
 }
 

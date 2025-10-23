@@ -6597,3 +6597,61 @@ integration_sprint_19:
 
       impact: "Fixes critical bug blocking printf and other expression statements"
       risk: "Low - additive change to existing enums"
+
+      completion_status: "COMPLETE - HIR support added ✅"
+      completed_date: "2025-10-23"
+      follow_up_ticket: "DECY-066 (parser bug discovered during fix)"
+
+    DECY-066:
+      title: "Parser: Extract function call statements from clang AST"
+      type: bug
+      priority: critical
+      story_points: 3
+      assignee: Claude
+      status: done
+      github_issue: null
+      phase: DONE
+      started_date: "2025-10-23"
+      completed_date: "2025-10-23"
+
+      bug_discovered_during: "DECY-065 (HIR Expression statement fix)"
+      root_cause: |
+        Parser's visit_function_body doesn't capture standalone function call statements.
+        CXCursor_CallExpr is only handled within expressions (return, assignments),
+        not as top-level statements in function bodies.
+
+        Evidence:
+        - C code: printf("Hello"); return 0;
+        - Parsed AST: main.body = [Return(Some(IntLiteral(0)))]
+        - Missing: Statement::FunctionCall for printf
+
+      description: |
+        Fix parser to extract function call statements (CallExpr cursor kind)
+        as Statement::FunctionCall when they appear as standalone statements.
+
+        Currently handles:
+        - return printf(...); ✅
+        - x = printf(...); ✅
+        - printf(...); ❌ (missing)
+
+        Need to detect and extract CallExpr at statement level.
+
+      acceptance_criteria:
+        - Parser extracts standalone function calls as Statement::FunctionCall
+        - test_printf_transformation passes
+        - All existing parser tests still pass
+        - 0 clippy warnings
+
+      test_strategy: |
+        RED Phase:
+        - Write failing test for printf("Hello");
+        - Write failing test for free(ptr);
+        - Run test_printf_transformation (should fail)
+
+        GREEN Phase:
+        - Update visit_function_body to handle CXCursor_CallExpr
+        - Extract CallExpr as Statement::FunctionCall
+        - Make all tests pass
+
+      impact: "Unblocks printf, free, and all standalone function call transpilation"
+      risk: "Low - additive to existing parser logic"

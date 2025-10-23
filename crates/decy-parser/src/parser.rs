@@ -721,6 +721,14 @@ extern "C" fn visit_statement(
             }
             CXChildVisit_Continue
         }
+        CXCursor_CallExpr => {
+            // Function call as statement (DECY-066)
+            // e.g., printf("Hello"); or free(ptr);
+            if let Some(stmt) = extract_statement(cursor) {
+                statements.push(stmt);
+            }
+            CXChildVisit_Continue
+        }
         _ => CXChildVisit_Recurse, // Recurse into unknown nodes to find statements
     }
 }
