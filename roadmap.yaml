@@ -5647,3 +5647,121 @@ sprint_18:
       validation_reference: "DECY-051 validation report (miniz.c pattern), ISO C99 §6.7.2.1 (Array declarators)"
       impact: "Unblocks portable C code with compile-time checks (common in embedded/systems code)"
       risk: "Medium - requires expression evaluation in type context"
+
+# ==============================================================================
+# SPRINT 19: Advanced C Constructs - Global Variables & Casts
+# ==============================================================================
+
+sprint_19:
+  name: "Advanced C Constructs - Global Variables & Casts"
+  duration: "2 weeks"
+  start_date: "2025-10-23"
+  story_points: 19
+  status: in_progress
+
+  goals:
+    - "Add global variable support (static, extern)"
+    - "Add cast expression support"
+    - "Add compound literal support"
+    - "Add designated initializer support"
+    - "Increase real-world readiness from 75% to 85%+"
+
+  motivation: |
+    Sprint 18 unblocked critical parser gaps (#include, extern "C", typedef assertions).
+    Sprint 19 focuses on commonly used C constructs to reach 85%+ real-world coverage.
+
+    Global variables, casts, and compound literals are extremely common in:
+    - System programming (globals for state)
+    - Portable code (casts for type punning)
+    - Modern C (compound literals, designated initializers)
+
+  tickets:
+    DECY-058:
+      title: "Parser: Global variable support"
+      type: feature
+      priority: high
+      story_points: 5
+      assignee: Claude
+      status: in_progress
+      github_issue: null
+      phase: RED
+      started_date: "2025-10-23"
+
+      description: |
+        Add support for global variable declarations in C.
+        Currently, decy only handles local variables and function parameters.
+
+        Global variables are extremely common:
+        - Configuration state
+        - Global constants
+        - Static file-scope variables
+        - External declarations
+
+      examples:
+        - c: "int global_count = 0;"
+          rust: "static mut global_count: i32 = 0;"
+
+        - c: "static int file_count = 0;"
+          rust: "static mut file_count: i32 = 0;"
+
+        - c: "extern int external_var;"
+          rust: "extern \"C\" { static external_var: i32; }"
+
+        - c: "const int MAX_SIZE = 100;"
+          rust: "const MAX_SIZE: i32 = 100;"
+
+      requirements:
+        - Parse global variable declarations at file scope
+        - Handle static keyword (file-local)
+        - Handle extern keyword (external linkage)
+        - Handle const keyword (immutable)
+        - Generate appropriate Rust: static mut, static, const, extern "C"
+        - Support initializer expressions
+        - Distinguish global from local variables
+
+      test_requirements:
+        unit_tests:
+          - test_parse_global_variable
+          - test_parse_static_global
+          - test_parse_extern_declaration
+          - test_parse_const_global
+          - test_global_with_initializer
+          - test_multiple_globals
+          - test_global_vs_local_distinction
+
+        integration_tests:
+          - test_transpile_file_with_globals
+          - test_global_variable_end_to_end
+
+      acceptance_criteria:
+        - "Global variables parse correctly"
+        - "static/extern/const keywords handled"
+        - "Rust code generation: static mut, const, extern"
+        - "Initializers work for globals"
+        - "Coverage ≥85%"
+        - "0 clippy warnings"
+        - "All tests pass"
+
+      test_strategy: |
+        RED Phase:
+        1. Write failing parser tests for global variable declarations
+        2. Test static, extern, const variants
+        3. Test with/without initializers
+        4. Test integration with existing function parsing
+
+        GREEN Phase:
+        1. Add global variable parsing to parser
+        2. Detect file scope vs function scope
+        3. Extract storage class specifiers (static, extern)
+        4. Add HIR GlobalVariable type
+        5. Generate Rust code (static mut, const, extern)
+
+        REFACTOR Phase:
+        1. Add property tests
+        2. Optimize global detection
+        3. Better error messages
+        4. Documentation
+
+      validation_reference: "K&R §4.3 (External Variables), ISO C99 §6.9.2 (External object definitions)"
+      impact: "Enables transpilation of stateful C code, configuration modules"
+      risk: "Low - straightforward parser extension"
