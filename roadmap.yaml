@@ -5802,3 +5802,89 @@ sprint_19:
       validation_reference: "K&R §4.3 (External Variables), ISO C99 §6.9.2 (External object definitions)"
       impact: "Enables transpilation of stateful C code, configuration modules"
       risk: "Low - straightforward parser extension"
+
+    DECY-059:
+      title: "Parser: Cast expression support"
+      type: feature
+      priority: high
+      story_points: 3
+      assignee: Claude
+      status: in_progress
+      github_issue: null
+      phase: RED
+      started_date: "2025-10-23"
+
+      description: |
+        Add support for C cast expressions (type conversions).
+        Cast expressions are extremely common in C for:
+        - Integer type conversions: (int)x, (long)y
+        - Pointer type conversions: (void*)ptr, (struct T*)ptr
+        - Const casting: (char*)const_str
+        - Function pointer casting: (callback_t)func
+
+      examples:
+        - c: "int x = (int)3.14;"
+          rust: "let x: i32 = 3.14 as i32;"
+
+        - c: "void* ptr = (void*)buffer;"
+          rust: "let ptr = buffer as *mut std::ffi::c_void;"
+
+        - c: "struct Point* p = (struct Point*)malloc(sizeof(struct Point));"
+          rust: "let p = Box::new(Point::default());"
+
+        - c: "long large = (long)small_int;"
+          rust: "let large: i64 = small_int as i64;"
+
+      requirements:
+        - Parse cast expressions: (type)expr
+        - Handle all C types in casts (int, pointer, struct, etc.)
+        - Generate Rust as operator for safe casts
+        - Generate transmute for unsafe casts when necessary
+        - Preserve semantics (sign extension, truncation, etc.)
+        - Support nested casts: (int)(long)x
+
+      test_requirements:
+        unit_tests:
+          - test_parse_integer_cast
+          - test_parse_pointer_cast
+          - test_parse_void_pointer_cast
+          - test_parse_struct_pointer_cast
+          - test_parse_nested_cast
+          - test_parse_cast_in_expression
+          - test_parse_const_cast
+
+        integration_tests:
+          - test_transpile_cast_to_rust_as
+          - test_cast_end_to_end
+
+      acceptance_criteria:
+        - "Cast expressions parse correctly"
+        - "All C types supported in casts"
+        - "Rust code generation: as operator"
+        - "Generated Rust compiles"
+        - "Coverage ≥85%"
+        - "0 clippy warnings"
+        - "All tests pass"
+
+      test_strategy: |
+        RED Phase:
+        1. Write failing parser tests for cast expressions
+        2. Test integer casts, pointer casts, struct casts
+        3. Test nested casts
+        4. Test integration with existing expression parsing
+
+        GREEN Phase:
+        1. Add CastExpr variant to Expression enum
+        2. Detect CXCursor_CStyleCastExpr in clang AST
+        3. Extract target type and inner expression
+        4. Generate Rust as operator
+
+        REFACTOR Phase:
+        1. Add property tests for cast expressions
+        2. Optimize cast detection
+        3. Handle edge cases (transmute when needed)
+        4. Documentation
+
+      validation_reference: "K&R §A.7.5 (Casts), ISO C99 §6.5.4 (Cast operators)"
+      impact: "Enables transpilation of type-conversion heavy C code (common in systems programming)"
+      risk: "Medium - need to map C cast semantics to Rust correctly"
