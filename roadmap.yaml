@@ -5914,3 +5914,87 @@ sprint_19:
       validation_reference: "K&R §A.7.5 (Casts), ISO C99 §6.5.4 (Cast operators)"
       impact: "Enables transpilation of type-conversion heavy C code (common in systems programming)"
       risk: "Medium - need to map C cast semantics to Rust correctly"
+
+    DECY-060:
+      title: "Parser: Compound literal support"
+      type: feature
+      priority: high
+      story_points: 4
+      assignee: Claude
+      status: in_progress
+      github_issue: null
+      phase: RED
+      started_date: "2025-10-23"
+
+      description: |
+        Add support for C99 compound literals - anonymous struct/array initializers.
+        Compound literals enable creating temporary objects inline, common in modern C.
+
+        Compound literals create unnamed objects of specified type, useful for:
+        - Passing struct values to functions without declaring variables
+        - Initializing struct members inline
+        - Creating temporary arrays
+        - Functional-style programming in C
+
+      examples:
+        - c: "(struct Point){.x = 10, .y = 20}"
+          rust: "Point { x: 10, y: 20 }"
+
+        - c: "(int[]){1, 2, 3, 4, 5}"
+          rust: "[1, 2, 3, 4, 5]"
+
+        - c: "draw_rect((struct Rect){.x=0, .y=0, .w=100, .h=50});"
+          rust: "draw_rect(Rect { x: 0, y: 0, w: 100, h: 50 });"
+
+        - c: "int* arr = (int[]){10, 20, 30};"
+          rust: "let arr = vec![10, 20, 30];"
+
+      requirements:
+        - Parse compound literal expressions: (type){initializers}
+        - Handle struct compound literals
+        - Handle array compound literals
+        - Support designated initializers within compound literals
+        - Support nested compound literals
+        - Generate appropriate Rust struct literals or array literals
+
+      test_requirements:
+        unit_tests:
+          - test_parse_struct_compound_literal
+          - test_parse_array_compound_literal
+          - test_parse_compound_literal_with_designated_init
+          - test_parse_nested_compound_literal
+          - test_parse_compound_literal_in_function_call
+          - test_parse_compound_literal_assignment
+
+      acceptance_criteria:
+        - "Compound literals parse correctly"
+        - "Struct and array compound literals supported"
+        - "Designated initializers within compound literals work"
+        - "Generated Rust compiles"
+        - "Coverage ≥85%"
+        - "0 clippy warnings"
+        - "All tests pass"
+
+      test_strategy: |
+        RED Phase:
+        1. Write failing parser tests for compound literals
+        2. Test struct compound literals
+        3. Test array compound literals
+        4. Test designated initializers within compound literals
+        5. Test nested compound literals
+
+        GREEN Phase:
+        1. Add CompoundLiteral variant to Expression enum
+        2. Detect CXCursor_CompoundLiteralExpr in clang AST
+        3. Extract type and initializers
+        4. Generate Rust struct literals or array literals
+
+        REFACTOR Phase:
+        1. Add property tests
+        2. Optimize compound literal detection
+        3. Handle edge cases
+        4. Documentation
+
+      validation_reference: "ISO C99 §6.5.2.5 (Compound literals)"
+      impact: "Enables transpilation of modern C99/C11 code with compound literals (common in graphics/game programming)"
+      risk: "Medium - need to distinguish from casts and handle initializers correctly"
