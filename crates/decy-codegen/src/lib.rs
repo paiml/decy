@@ -1699,6 +1699,12 @@ impl CodeGenerator {
                     pointer_name
                 )
             }
+            HirStatement::Expression(expr) => {
+                // Expression statement: function calls, increments, etc. for side effects
+                // DECY-065: Added to fix printf() and other function call statement bugs
+                // C: printf("Hello"); → Rust: printf("Hello");
+                format!("{};", self.generate_expression_with_context(expr, ctx))
+            }
         }
     }
 
