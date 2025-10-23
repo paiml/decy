@@ -3,7 +3,6 @@
 ///
 /// These tests validate parsing of C99 compound literals: (type){initializers}
 /// Compound literals create temporary objects inline.
-
 use decy_parser::{CParser, Expression};
 
 #[test]

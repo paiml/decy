@@ -454,6 +454,7 @@ fn try_extract_expression(cursor: CXCursor) -> Option<Expression> {
         CXCursor_ArraySubscriptExpr => extract_array_index(cursor),
         CXCursor_MemberRefExpr => extract_field_access(cursor),
         117 => extract_cast(cursor), // CXCursor_CStyleCastExpr
+        118 => extract_compound_literal(cursor), // CXCursor_CompoundLiteralExpr
         CXCursor_UnexposedExpr => {
             // UnexposedExpr is a wrapper - recurse into children
             let mut result: Option<Expression> = None;
@@ -2587,6 +2588,63 @@ extern "C" fn visit_cast_inner(
     }
 }
 
+/// Extract a compound literal expression from a clang cursor.
+///
+/// Parses C99 compound literals like `(struct Point){10, 20}` or `(int[]){1, 2, 3}`.
+/// Extracts the type and initializer expressions.
+fn extract_compound_literal(cursor: CXCursor) -> Option<Expression> {
+    // SAFETY: Getting the type of the compound literal
+    let literal_cx_type = unsafe { clang_getCursorType(cursor) };
+    let literal_type = convert_type(literal_cx_type)?;
+
+    // Extract initializer expressions by visiting children
+    let mut initializers: Vec<Expression> = Vec::new();
+    let initializers_ptr = &mut initializers as *mut Vec<Expression>;
+
+    unsafe {
+        clang_visitChildren(
+            cursor,
+            visit_compound_literal_initializers,
+            initializers_ptr as CXClientData,
+        );
+    }
+
+    Some(Expression::CompoundLiteral {
+        literal_type,
+        initializers,
+    })
+}
+
+/// Visitor callback to extract initializers from a compound literal.
+#[allow(non_upper_case_globals)]
+extern "C" fn visit_compound_literal_initializers(
+    cursor: CXCursor,
+    _parent: CXCursor,
+    client_data: CXClientData,
+) -> CXChildVisitResult {
+    let initializers = unsafe { &mut *(client_data as *mut Vec<Expression>) };
+    let kind = unsafe { clang_getCursorKind(cursor) };
+
+    // The compound literal typically has an InitListExpr child
+    // CXCursor_InitListExpr = 119
+    if kind == 119 {
+        // This is the initializer list - visit its children to get individual initializers
+        return CXChildVisit_Recurse;
+    }
+
+    // Try to extract any expression as an initializer
+    if let Some(expr) = try_extract_expression(cursor) {
+        initializers.push(expr);
+        return CXChildVisit_Continue;
+    }
+
+    // For some expression types, recurse
+    match kind {
+        CXCursor_UnexposedExpr | CXCursor_ParenExpr => CXChildVisit_Recurse,
+        _ => CXChildVisit_Continue,
+    }
+}
+
 fn convert_type(cx_type: CXType) -> Option<Type> {
     // SAFETY: Getting type kind
     match cx_type.kind {
@@ -3006,6 +3064,24 @@ pub enum Expression {
         target_type: Type,
         /// Expression being cast
         expr: Box<Expression>,
+    },
+    /// Compound literal: `(struct Point){10, 20}` or `(int[]){1, 2, 3}`
+    ///
+    /// C99 compound literals create anonymous objects of a specified type.
+    /// Useful for passing struct values to functions or creating temporary objects.
+    ///
+    /// # Examples
+    ///
+    /// ```c
+    /// struct Point p = (struct Point){10, 20};       // struct compound literal
+    /// int* arr = (int[]){1, 2, 3, 4, 5};             // array compound literal
+    /// draw((struct Rect){.x=0, .y=0, .w=100, .h=50}); // with designated initializers
+    /// ```
+    CompoundLiteral {
+        /// Type of the compound literal (struct Point, int[], etc.)
+        literal_type: Type,
+        /// Initializer expressions (values for struct fields or array elements)
+        initializers: Vec<Expression>,
     },
 }
 
