@@ -322,6 +322,16 @@ impl DataflowAnalyzer {
                 Self::track_expr_recursive(array, _graph, _index);
                 Self::track_expr_recursive(index, _graph, _index);
             }
+            HirExpression::Cast { expr, .. } => {
+                // Track the expression being cast
+                Self::track_expr_recursive(expr, _graph, _index);
+            }
+            HirExpression::CompoundLiteral { initializers, .. } => {
+                // Track all initializer expressions
+                for init in initializers {
+                    Self::track_expr_recursive(init, _graph, _index);
+                }
+            }
             HirExpression::IntLiteral(_)
             | HirExpression::StringLiteral(_)
             | HirExpression::Sizeof { .. }

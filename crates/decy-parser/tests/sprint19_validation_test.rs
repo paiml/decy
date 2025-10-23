@@ -7,7 +7,6 @@
 /// - Compound literals (DECY-060)
 /// - Designated initializers (DECY-061)
 /// - Enum explicit values (DECY-062)
-
 use decy_parser::CParser;
 use std::fs;
 
@@ -15,8 +14,7 @@ use std::fs;
 fn test_sprint19_validation_file_parses() {
     // Read the validation C file
     let test_file = "../../validation/sprint19_features.c";
-    let source = fs::read_to_string(test_file)
-        .expect("Should be able to read sprint19_features.c");
+    let source = fs::read_to_string(test_file).expect("Should be able to read sprint19_features.c");
 
     // Parse the file
     let parser = CParser::new().expect("Parser creation should succeed");
@@ -97,7 +95,10 @@ fn test_sprint19_validation_file_parses() {
     // Note: Current parser may not expose enums directly, but they should parse without error
 
     // Structs should be parsed
-    assert!(ast.structs().len() >= 3, "Should parse Point, Color, Config structs and possibly more");
+    assert!(
+        ast.structs().len() >= 3,
+        "Should parse Point, Color, Config structs and possibly more"
+    );
 
     let struct_names: Vec<&str> = ast.structs().iter().map(|s| s.name()).collect();
     assert!(struct_names.contains(&"Point"), "Should parse Point struct");
@@ -119,8 +120,7 @@ fn test_sprint19_validation_file_parses() {
 #[test]
 fn test_sprint19_global_variable_storage_classes() {
     let test_file = "../../validation/sprint19_features.c";
-    let source = fs::read_to_string(test_file)
-        .expect("Should be able to read sprint19_features.c");
+    let source = fs::read_to_string(test_file).expect("Should be able to read sprint19_features.c");
 
     let parser = CParser::new().expect("Parser creation should succeed");
     let ast = parser.parse(&source).expect("Should parse");
@@ -146,7 +146,10 @@ fn test_sprint19_global_variable_storage_classes() {
     }
 
     // Verify MAX_BUFFER_SIZE is const
-    let max_buffer = ast.variables().iter().find(|v| v.name() == "MAX_BUFFER_SIZE");
+    let max_buffer = ast
+        .variables()
+        .iter()
+        .find(|v| v.name() == "MAX_BUFFER_SIZE");
     if let Some(var) = max_buffer {
         assert!(var.is_const(), "MAX_BUFFER_SIZE should be const");
     }
@@ -155,8 +158,7 @@ fn test_sprint19_global_variable_storage_classes() {
 #[test]
 fn test_sprint19_cast_expressions_present() {
     let test_file = "../../validation/sprint19_features.c";
-    let source = fs::read_to_string(test_file)
-        .expect("Should be able to read sprint19_features.c");
+    let source = fs::read_to_string(test_file).expect("Should be able to read sprint19_features.c");
 
     let parser = CParser::new().expect("Parser creation should succeed");
     let ast = parser.parse(&source).expect("Should parse");
@@ -180,8 +182,7 @@ fn test_sprint19_cast_expressions_present() {
 #[test]
 fn test_sprint19_compound_literals_present() {
     let test_file = "../../validation/sprint19_features.c";
-    let source = fs::read_to_string(test_file)
-        .expect("Should be able to read sprint19_features.c");
+    let source = fs::read_to_string(test_file).expect("Should be able to read sprint19_features.c");
 
     let parser = CParser::new().expect("Parser creation should succeed");
     let ast = parser.parse(&source).expect("Should parse");
@@ -213,8 +214,7 @@ fn test_sprint19_real_world_patterns() {
     // and demonstrates that our parser handles production-ready C code
 
     let test_file = "../../validation/sprint19_features.c";
-    let source = fs::read_to_string(test_file)
-        .expect("Should be able to read sprint19_features.c");
+    let source = fs::read_to_string(test_file).expect("Should be able to read sprint19_features.c");
 
     let parser = CParser::new().expect("Parser creation should succeed");
     let result = parser.parse(&source);
