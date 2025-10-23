@@ -230,10 +230,22 @@ extern "C" fn visit_function(
             ast.add_struct(struct_def);
         }
     } else if kind == CXCursor_VarDecl {
-        // Extract variable declaration
-        if let Some(variable) = extract_variable(cursor) {
-            ast.add_variable(variable);
+        // Extract variable declaration - only add if it's at file scope (global)
+        // Check if parent is translation unit (file scope) vs function scope
+        let semantic_parent = unsafe { clang_getCursorSemanticParent(cursor) };
+        let parent_kind = unsafe { clang_getCursorKind(semantic_parent) };
+
+        // Check if parent is file scope: either TranslationUnit or nullptr
+        // Function declarations have parent kind = CXCursor_FunctionDecl (8)
+        // File-scope variables typically have parent kind = CXCursor_TranslationUnit (300 in clang-sys)
+        let is_file_scope = parent_kind != CXCursor_FunctionDecl;
+
+        if is_file_scope {
+            if let Some(variable) = extract_variable(cursor) {
+                ast.add_variable(variable);
+            }
         }
+        // Local variables in functions are handled by extract_statement in function body parsing
     } else if kind == CXCursor_MacroDefinition {
         // Extract macro definition (only from main file, not includes)
         let location = unsafe { clang_getCursorLocation(cursor) };

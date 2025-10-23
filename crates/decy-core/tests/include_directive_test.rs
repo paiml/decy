@@ -303,17 +303,19 @@ int main() {
     let result = transpile_with_includes(&c_code, Some(project.path()));
 
     // Should either succeed (header guards work) or provide clear error
-    if result.is_err() {
-        let error_msg = format!("{:?}", result.unwrap_err());
-        assert!(
-            error_msg.contains("circular") || error_msg.contains("cycle"),
-            "If error, should mention circular dependency"
-        );
-    } else {
-        // If successful, both functions should be present
-        let rust_code = result.unwrap();
-        assert!(rust_code.contains("fn func_a"));
-        assert!(rust_code.contains("fn func_b"));
+    match result {
+        Err(e) => {
+            let error_msg = format!("{:?}", e);
+            assert!(
+                error_msg.contains("circular") || error_msg.contains("cycle"),
+                "If error, should mention circular dependency"
+            );
+        }
+        Ok(rust_code) => {
+            // If successful, both functions should be present
+            assert!(rust_code.contains("fn func_a"));
+            assert!(rust_code.contains("fn func_b"));
+        }
     }
 }
 
