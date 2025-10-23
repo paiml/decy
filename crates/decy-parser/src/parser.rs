@@ -404,6 +404,18 @@ fn extract_variable(cursor: CXCursor) -> Option<Variable> {
     let cx_type = unsafe { clang_getCursorType(cursor) };
     let var_type = convert_type(cx_type)?;
 
+    // Extract storage class specifiers
+    // CX_StorageClass values (from clang-sys):
+    // CX_SC_Invalid = 0, CX_SC_None = 1, CX_SC_Extern = 2, CX_SC_Static = 3,
+    // CX_SC_PrivateExtern = 4, CX_SC_OpenCLWorkGroupLocal = 5,
+    // CX_SC_Auto = 6, CX_SC_Register = 7
+    let storage_class = unsafe { clang_Cursor_getStorageClass(cursor) };
+    let is_static = storage_class == 3; // CX_SC_Static
+    let is_extern = storage_class == 2; // CX_SC_Extern
+
+    // Check if type is const-qualified
+    let is_const = unsafe { clang_isConstQualifiedType(cx_type) != 0 };
+
     // Extract initializer by visiting children
     let mut initializer: Option<Expression> = None;
     let initializer_ptr = &mut initializer as *mut Option<Expression>;
@@ -416,11 +428,14 @@ fn extract_variable(cursor: CXCursor) -> Option<Variable> {
         );
     }
 
-    if let Some(init_expr) = initializer {
-        Some(Variable::new_with_initializer(name, var_type, init_expr))
-    } else {
-        Some(Variable::new(name, var_type))
-    }
+    Some(Variable::new_with_storage_class(
+        name,
+        var_type,
+        initializer,
+        is_static,
+        is_extern,
+        is_const,
+    ))
 }
 
 /// Helper function to extract an expression from a cursor.
@@ -3090,6 +3105,12 @@ pub struct Variable {
     var_type: Type,
     /// Optional initializer expression
     initializer: Option<Expression>,
+    /// Static storage class (file-local)
+    is_static: bool,
+    /// Extern storage class (external linkage)
+    is_extern: bool,
+    /// Const qualifier (immutable)
+    is_const: bool,
 }
 
 impl Variable {
@@ -3099,6 +3120,9 @@ impl Variable {
             name,
             var_type,
             initializer: None,
+            is_static: false,
+            is_extern: false,
+            is_const: false,
         }
     }
 
@@ -3108,6 +3132,28 @@ impl Variable {
             name,
             var_type,
             initializer: Some(initializer),
+            is_static: false,
+            is_extern: false,
+            is_const: false,
+        }
+    }
+
+    /// Create a new variable with storage class specifiers.
+    pub fn new_with_storage_class(
+        name: String,
+        var_type: Type,
+        initializer: Option<Expression>,
+        is_static: bool,
+        is_extern: bool,
+        is_const: bool,
+    ) -> Self {
+        Self {
+            name,
+            var_type,
+            initializer,
+            is_static,
+            is_extern,
+            is_const,
         }
     }
 
@@ -3193,6 +3239,21 @@ impl Variable {
     /// Returns `Some(&Expression)` if the variable has an initializer, `None` otherwise.
     pub fn initializer(&self) -> Option<&Expression> {
         self.initializer.as_ref()
+    }
+
+    /// Check if this variable has static storage class (file-local).
+    pub fn is_static(&self) -> bool {
+        self.is_static
+    }
+
+    /// Check if this variable is extern (external linkage).
+    pub fn is_extern(&self) -> bool {
+        self.is_extern
+    }
+
+    /// Check if this variable is const (immutable).
+    pub fn is_const(&self) -> bool {
+        self.is_const
     }
 }
 
