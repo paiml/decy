@@ -1080,6 +1080,69 @@ impl CodeGenerator {
                     format!("{}.{}({})", receiver_code, method, args.join(", "))
                 }
             }
+            HirExpression::Cast { target_type, expr } => {
+                // C: (int)x → Rust: x as i32
+                // Sprint 19 Feature (DECY-059)
+                let expr_code = self.generate_expression_with_context(expr, ctx);
+                let rust_type = Self::map_type(target_type);
+
+                // Wrap in parentheses if the expression is a binary operation
+                let expr_str = if matches!(**expr, HirExpression::BinaryOp { .. }) {
+                    format!("({})", expr_code)
+                } else {
+                    expr_code
+                };
+
+                format!("{} as {}", expr_str, rust_type)
+            }
+            HirExpression::CompoundLiteral {
+                literal_type,
+                initializers,
+            } => {
+                // C: (struct Point){10, 20} → Rust: Point { field0: 10, field1: 20 }
+                // C: (int[]){1, 2, 3} → Rust: vec![1, 2, 3] or [1, 2, 3]
+                // Sprint 19 Feature (DECY-060)
+                match literal_type {
+                    HirType::Struct(name) => {
+                        // Generate struct literal: StructName { field0: val0, field1: val1, ... }
+                        if initializers.is_empty() {
+                            // Empty struct: Point {}
+                            format!("{} {{}}", name)
+                        } else {
+                            let fields: Vec<String> = initializers
+                                .iter()
+                                .enumerate()
+                                .map(|(i, init)| {
+                                    let init_code =
+                                        self.generate_expression_with_context(init, ctx);
+                                    format!("field{}: {}", i, init_code)
+                                })
+                                .collect();
+                            format!("{} {{ {} }}", name, fields.join(", "))
+                        }
+                    }
+                    HirType::Array { .. } => {
+                        // Generate array literal: vec![1, 2, 3] or [1, 2, 3]
+                        if initializers.is_empty() {
+                            "vec![]".to_string()
+                        } else {
+                            let elements: Vec<String> = initializers
+                                .iter()
+                                .map(|init| self.generate_expression_with_context(init, ctx))
+                                .collect();
+                            format!("vec![{}]", elements.join(", "))
+                        }
+                    }
+                    _ => {
+                        // For other types, generate a reasonable default
+                        // This is a simplified implementation
+                        format!(
+                            "/* Compound literal of type {} */",
+                            Self::map_type(literal_type)
+                        )
+                    }
+                }
+            }
         }
     }
 

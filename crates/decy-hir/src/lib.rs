@@ -1104,15 +1104,16 @@ impl HirExpression {
                 target_type: HirType::from_ast_type(target_type),
                 expr: Box::new(HirExpression::from_ast_expression(expr)),
             },
-            Expression::CompoundLiteral { literal_type, initializers } => {
-                HirExpression::CompoundLiteral {
-                    literal_type: HirType::from_ast_type(literal_type),
-                    initializers: initializers
-                        .iter()
-                        .map(HirExpression::from_ast_expression)
-                        .collect(),
-                }
-            }
+            Expression::CompoundLiteral {
+                literal_type,
+                initializers,
+            } => HirExpression::CompoundLiteral {
+                literal_type: HirType::from_ast_type(literal_type),
+                initializers: initializers
+                    .iter()
+                    .map(HirExpression::from_ast_expression)
+                    .collect(),
+            },
         }
     }
 }

@@ -275,6 +275,16 @@ impl LifetimeAnalyzer {
                 self.expression_uses_variable(array, var_name)
                     || self.expression_uses_variable(index, var_name)
             }
+            HirExpression::Cast { expr, .. } => {
+                // Check if the expression being cast uses the variable
+                self.expression_uses_variable(expr, var_name)
+            }
+            HirExpression::CompoundLiteral { initializers, .. } => {
+                // Check if any initializer uses the variable
+                initializers
+                    .iter()
+                    .any(|init| self.expression_uses_variable(init, var_name))
+            }
             HirExpression::IntLiteral(_)
             | HirExpression::StringLiteral(_)
             | HirExpression::Sizeof { .. }

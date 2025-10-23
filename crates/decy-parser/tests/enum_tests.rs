@@ -2,7 +2,6 @@
 /// RED phase for DECY-062: Enum with explicit values
 ///
 /// These tests validate parsing of C enum declarations with explicit discriminant values.
-
 use decy_parser::CParser;
 
 #[test]
