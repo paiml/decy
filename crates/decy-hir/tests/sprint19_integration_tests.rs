@@ -5,7 +5,6 @@
 /// - Cast expressions
 /// - Compound literals
 /// - Global variables (with storage class specifiers)
-
 use decy_hir::{HirExpression, HirType};
 
 #[test]
@@ -55,14 +54,14 @@ fn test_hir_compound_literal_struct() {
 
     let compound_expr = HirExpression::CompoundLiteral {
         literal_type: HirType::Struct("Point".to_string()),
-        initializers: vec![
-            HirExpression::IntLiteral(10),
-            HirExpression::IntLiteral(20),
-        ],
+        initializers: vec![HirExpression::IntLiteral(10), HirExpression::IntLiteral(20)],
     };
 
     match compound_expr {
-        HirExpression::CompoundLiteral { literal_type, initializers } => {
+        HirExpression::CompoundLiteral {
+            literal_type,
+            initializers,
+        } => {
             assert_eq!(literal_type, HirType::Struct("Point".to_string()));
             assert_eq!(initializers.len(), 2);
         }
@@ -91,7 +90,10 @@ fn test_hir_compound_literal_array() {
     };
 
     match compound_expr {
-        HirExpression::CompoundLiteral { literal_type, initializers } => {
+        HirExpression::CompoundLiteral {
+            literal_type,
+            initializers,
+        } => {
             assert!(matches!(literal_type, HirType::Array { .. }));
             assert_eq!(initializers.len(), 5);
         }
@@ -109,10 +111,7 @@ fn test_hir_nested_cast_and_compound_literal() {
         target_type: HirType::Pointer(Box::new(HirType::Struct("Point".to_string()))),
         expr: Box::new(HirExpression::CompoundLiteral {
             literal_type: HirType::Struct("Point".to_string()),
-            initializers: vec![
-                HirExpression::IntLiteral(0),
-                HirExpression::IntLiteral(0),
-            ],
+            initializers: vec![HirExpression::IntLiteral(0), HirExpression::IntLiteral(0)],
         }),
     };
 
