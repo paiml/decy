@@ -6026,3 +6026,89 @@ sprint_19:
       validation_reference: "ISO C99 §6.5.2.5 (Compound literals)"
       impact: "Enables transpilation of modern C99/C11 code with compound literals (common in graphics/game programming)"
       risk: "Medium - need to distinguish from casts and handle initializers correctly"
+
+    DECY-061:
+      title: "Parser: Designated initializer support"
+      type: feature
+      priority: high
+      story_points: 4
+      assignee: Claude
+      status: in_progress
+      github_issue: null
+      phase: RED
+      started_date: "2025-10-23"
+
+      description: |
+        Add support for C99 designated initializers - explicit field/element initialization.
+        Designated initializers enable initializing specific struct fields or array elements,
+        improving code clarity and enabling partial initialization.
+
+        Designated initializers are common in modern C for:
+        - Initializing large structs with only relevant fields
+        - Improving code readability (explicit field names)
+        - Enabling sparse array initialization
+        - Default value patterns
+
+      examples:
+        - c: "struct Point p = {.x = 10, .y = 20};"
+          rust: "let p = Point { x: 10, y: 20 };"
+
+        - c: "int arr[10] = {[0] = 1, [5] = 6, [9] = 10};"
+          rust: "let mut arr = [0; 10]; arr[0] = 1; arr[5] = 6; arr[9] = 10;"
+
+        - c: "struct Config cfg = {.width = 800, .height = 600};"
+          rust: "let cfg = Config { width: 800, height: 600, ..Default::default() };"
+
+        - c: "struct Color c = {.r = 255};"
+          rust: "let c = Color { r: 255, ..Default::default() };"
+
+      requirements:
+        - Parse designated initializers in struct initialization
+        - Parse designated initializers in array initialization
+        - Handle mixed designated and positional initializers
+        - Support nested designated initializers
+        - Track which fields/elements are initialized
+        - Generate appropriate Rust struct literals with explicit fields
+
+      test_requirements:
+        unit_tests:
+          - test_parse_struct_designated_initializer
+          - test_parse_array_designated_initializer
+          - test_parse_mixed_designated_positional
+          - test_parse_partial_designated_initializer
+          - test_parse_nested_designated_initializer
+          - test_parse_designated_in_compound_literal
+
+      acceptance_criteria:
+        - "Designated initializers parse correctly"
+        - "Struct and array designated initializers supported"
+        - "Mixed designated/positional initializers work"
+        - "Partial initialization detected"
+        - "Generated Rust compiles"
+        - "Coverage ≥85%"
+        - "0 clippy warnings"
+        - "All tests pass"
+
+      test_strategy: |
+        RED Phase:
+        1. Write failing parser tests for designated initializers
+        2. Test struct field designation: .field = value
+        3. Test array element designation: [index] = value
+        4. Test mixed and nested cases
+        5. Test integration with compound literals
+
+        GREEN Phase:
+        1. Enhance InitListExpr parsing to detect designators
+        2. Add designation info to initializer expressions
+        3. Track field names or array indices
+        4. Generate Rust with explicit field names
+
+        REFACTOR Phase:
+        1. Add property tests
+        2. Optimize designation detection
+        3. Handle edge cases (out-of-order initialization)
+        4. Documentation
+
+      validation_reference: "ISO C99 §6.7.8 (Initialization), §6.7.9 (Designated initializers)"
+      impact: "Enables transpilation of modern C99/C11 code with designated initializers (very common pattern)"
+      risk: "Medium - need to track initialization state and handle partial initialization"
