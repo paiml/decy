@@ -6308,3 +6308,69 @@ sprint_19:
       validation_reference: "K&R §A.8.4 (Enumeration declarations), ISO C99 §6.7.2.2 (Enumeration specifiers)"
       impact: "Enables accurate transpilation of enums with specific values (common in APIs and protocols)"
       risk: "Low - enhancement to existing enum parsing"
+
+# ==============================================================================
+# POST-SPRINT 19: Real-World Validation
+# ==============================================================================
+
+validation_sprint_19:
+  name: "Sprint 19 Feature Validation"
+  type: validation
+  story_points: 5
+  started_date: "2025-10-23"
+
+  tickets:
+    DECY-063:
+      title: "Validate Sprint 19 features on real C projects"
+      type: validation
+      priority: high
+      story_points: 5
+      assignee: Claude
+      status: in_progress
+      github_issue: null
+      phase: RED
+      started_date: "2025-10-23"
+
+      description: |
+        Validate Sprint 19's new parser features against real-world C codebases.
+        Similar to DECY-051 validation work, but focused on:
+        - Global variables with storage class specifiers
+        - Cast expressions
+        - Compound literals
+        - Designated initializers
+        - Enum explicit values
+
+      validation_targets:
+        - Global variables: Test static/extern/const in real code
+        - Cast expressions: Verify type conversions work correctly
+        - Compound literals: Test C99 patterns
+        - Designated initializers: Verify field initialization
+        - Enum values: Test explicit discriminants
+
+      test_projects:
+        small_c_project:
+          name: "miniz.c or similar single-file library"
+          focus: "Global variables, casts, enums"
+
+        modern_c_project:
+          name: "stb_image.h or C99+ project"
+          focus: "Compound literals, designated initializers"
+
+      success_criteria:
+        - "Parse real C projects without errors"
+        - "Correctly identify global variables"
+        - "Handle cast expressions in systems code"
+        - "Parse compound literals in modern C"
+        - "Verify enum values preserved"
+        - "Document any edge cases found"
+
+      test_strategy: |
+        1. Select 2-3 real C projects with different features
+        2. Run decy parser on each project
+        3. Verify Sprint 19 features are correctly parsed
+        4. Document success rates and any issues
+        5. Create regression tests for any bugs found
+
+      validation_reference: "Real-world C projects (miniz.c, stb_image.h, etc.)"
+      impact: "Proves Sprint 19 features work in production code"
+      risk: "Low - validation only, no new features"
