@@ -1,20 +1,21 @@
-/// Designated initializer parsing tests
-/// RED phase for DECY-061: Designated initializer support
+/// Enum parsing tests
+/// RED phase for DECY-062: Enum with explicit values
 ///
-/// These tests validate parsing of C99 designated initializers: {.field = value} or {[index] = value}
-/// Designated initializers enable explicit field/element initialization.
+/// These tests validate parsing of C enum declarations with explicit discriminant values.
+
 use decy_parser::CParser;
 
 #[test]
-fn test_parse_struct_designated_initializer() {
+fn test_parse_simple_enum() {
     let source = r#"
-        struct Point {
-            int x;
-            int y;
+        enum Status {
+            OK,
+            ERROR,
+            PENDING
         };
 
         int main() {
-            struct Point p = {.x = 10, .y = 20};
+            enum Status s = OK;
             return 0;
         }
     "#;
@@ -23,24 +24,19 @@ fn test_parse_struct_designated_initializer() {
     let result = parser.parse(source).expect("Should parse successfully");
 
     assert_eq!(result.functions().len(), 1);
-    assert_eq!(result.structs().len(), 1);
-
-    // Designated initializers should parse without errors
-    // The exact representation will be checked once we enhance the AST
+    // Once enum parsing is added, we'll check result.enums().len()
 }
 
 #[test]
-fn test_parse_partial_designated_initializer() {
+fn test_parse_enum_with_explicit_values() {
     let source = r#"
-        struct Color {
-            int r;
-            int g;
-            int b;
-            int a;
+        enum Status {
+            OK = 0,
+            ERROR = 1,
+            PENDING = 2
         };
 
         int main() {
-            struct Color c = {.r = 255};
             return 0;
         }
     "#;
@@ -49,35 +45,19 @@ fn test_parse_partial_designated_initializer() {
     let result = parser.parse(source).expect("Should parse successfully");
 
     assert_eq!(result.functions().len(), 1);
-    assert_eq!(result.structs().len(), 1);
+    // Should capture explicit values: OK=0, ERROR=1, PENDING=2
 }
 
 #[test]
-fn test_parse_array_designated_initializer() {
+fn test_parse_enum_with_hex_values() {
     let source = r#"
-        int main() {
-            int arr[10] = {[0] = 1, [5] = 6, [9] = 10};
-            return arr[0];
-        }
-    "#;
-
-    let parser = CParser::new().expect("Parser creation failed");
-    let result = parser.parse(source).expect("Should parse successfully");
-
-    assert_eq!(result.functions().len(), 1);
-}
-
-#[test]
-fn test_parse_mixed_designated_positional() {
-    let source = r#"
-        struct Point {
-            int x;
-            int y;
-            int z;
+        enum Flags {
+            READ = 0x01,
+            WRITE = 0x02,
+            EXECUTE = 0x04
         };
 
         int main() {
-            struct Point p = {10, .y = 20, .z = 30};
             return 0;
         }
     "#;
@@ -86,26 +66,21 @@ fn test_parse_mixed_designated_positional() {
     let result = parser.parse(source).expect("Should parse successfully");
 
     assert_eq!(result.functions().len(), 1);
-    assert_eq!(result.structs().len(), 1);
+    // Should capture hex values: READ=0x01, WRITE=0x02, EXECUTE=0x04
 }
 
 #[test]
-fn test_parse_nested_designated_initializer() {
+fn test_parse_enum_bitmask_pattern() {
     let source = r#"
-        struct Inner {
-            int value;
-        };
-
-        struct Outer {
-            int x;
-            struct Inner inner;
+        enum FileMode {
+            READ = 0x01,
+            WRITE = 0x02,
+            EXECUTE = 0x04,
+            READ_WRITE = 0x03,
+            ALL = 0x07
         };
 
         int main() {
-            struct Outer o = {
-                .x = 10,
-                .inner = {.value = 42}
-            };
             return 0;
         }
     "#;
@@ -114,20 +89,20 @@ fn test_parse_nested_designated_initializer() {
     let result = parser.parse(source).expect("Should parse successfully");
 
     assert_eq!(result.functions().len(), 1);
-    assert_eq!(result.structs().len(), 2);
 }
 
 #[test]
-fn test_parse_designated_initializer_out_of_order() {
+fn test_parse_enum_mixed_explicit_implicit() {
     let source = r#"
-        struct Point {
-            int x;
-            int y;
-            int z;
+        enum Mixed {
+            FIRST = 10,
+            SECOND,
+            THIRD,
+            FOURTH = 100,
+            FIFTH
         };
 
         int main() {
-            struct Point p = {.z = 30, .x = 10, .y = 20};
             return 0;
         }
     "#;
@@ -136,38 +111,22 @@ fn test_parse_designated_initializer_out_of_order() {
     let result = parser.parse(source).expect("Should parse successfully");
 
     assert_eq!(result.functions().len(), 1);
-    assert_eq!(result.structs().len(), 1);
+    // SECOND should be 11, THIRD should be 12, FIFTH should be 101
 }
 
 #[test]
-fn test_parse_designated_in_compound_literal() {
+fn test_parse_enum_http_codes() {
     let source = r#"
-        struct Point {
-            int x;
-            int y;
+        enum HTTP {
+            OK = 200,
+            CREATED = 201,
+            BAD_REQUEST = 400,
+            NOT_FOUND = 404,
+            INTERNAL_ERROR = 500
         };
 
-        void draw(struct Point p) {}
-
         int main() {
-            draw((struct Point){.x = 10, .y = 20});
             return 0;
-        }
-    "#;
-
-    let parser = CParser::new().expect("Parser creation failed");
-    let result = parser.parse(source).expect("Should parse successfully");
-
-    assert_eq!(result.functions().len(), 2);
-    assert_eq!(result.structs().len(), 1);
-}
-
-#[test]
-fn test_parse_array_designated_with_size() {
-    let source = r#"
-        int main() {
-            int arr[5] = {[1] = 10, [3] = 30};
-            return arr[1];
         }
     "#;
 
@@ -178,15 +137,19 @@ fn test_parse_array_designated_with_size() {
 }
 
 #[test]
-fn test_parse_designated_string_in_struct() {
+fn test_parse_enum_in_struct() {
     let source = r#"
-        struct Config {
-            int width;
-            int height;
+        enum Status {
+            OK = 0,
+            ERROR = 1
+        };
+
+        struct Response {
+            enum Status status;
+            int code;
         };
 
         int main() {
-            struct Config cfg = {.width = 800, .height = 600};
             return 0;
         }
     "#;
@@ -199,14 +162,36 @@ fn test_parse_designated_string_in_struct() {
 }
 
 #[test]
-fn test_parse_global_with_designated_initializer() {
+fn test_parse_typedef_enum() {
     let source = r#"
-        struct Point {
-            int x;
-            int y;
-        };
+        typedef enum {
+            RED = 0,
+            GREEN = 1,
+            BLUE = 2
+        } Color;
 
-        struct Point origin = {.x = 0, .y = 0};
+        int main() {
+            Color c = RED;
+            return 0;
+        }
+    "#;
+
+    let parser = CParser::new().expect("Parser creation failed");
+    let result = parser.parse(source).expect("Should parse successfully");
+
+    assert_eq!(result.functions().len(), 1);
+    // Should have typedef Color
+}
+
+#[test]
+fn test_parse_enum_negative_values() {
+    let source = r#"
+        enum Temperature {
+            FREEZING = -10,
+            COLD = 0,
+            WARM = 20,
+            HOT = 40
+        };
 
         int main() {
             return 0;
@@ -217,6 +202,23 @@ fn test_parse_global_with_designated_initializer() {
     let result = parser.parse(source).expect("Should parse successfully");
 
     assert_eq!(result.functions().len(), 1);
-    assert_eq!(result.structs().len(), 1);
-    assert_eq!(result.variables().len(), 1);
+}
+
+#[test]
+fn test_parse_enum_large_values() {
+    let source = r#"
+        enum Large {
+            BIG = 1000000,
+            HUGE = 2000000
+        };
+
+        int main() {
+            return 0;
+        }
+    "#;
+
+    let parser = CParser::new().expect("Parser creation failed");
+    let result = parser.parse(source).expect("Should parse successfully");
+
+    assert_eq!(result.functions().len(), 1);
 }
