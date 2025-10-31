@@ -29,6 +29,7 @@
 - [String Safety](./patterns/string-safety.md)
 - [Loop + Array Safety](./patterns/loop-array-safety.md)
 - [Dynamic Memory Safety](./patterns/dynamic-memory-safety.md)
+- [Pointer Arithmetic Safety](./patterns/pointer-arithmetic-safety.md)
 
 # Advanced Topics
 
