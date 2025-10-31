@@ -33,6 +33,7 @@
 - [Type Casting Safety](./patterns/type-casting-safety.md)
 - [NULL Pointer Safety](./patterns/null-pointer-safety.md)
 - [Integer Overflow Safety](./patterns/integer-overflow-safety.md)
+- [Buffer Overflow Safety](./patterns/buffer-overflow-safety.md)
 
 # Advanced Topics
 
