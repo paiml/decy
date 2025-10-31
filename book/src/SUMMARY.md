@@ -28,6 +28,7 @@
 - [Memory Management](./patterns/memory.md)
 - [String Safety](./patterns/string-safety.md)
 - [Loop + Array Safety](./patterns/loop-array-safety.md)
+- [Dynamic Memory Safety](./patterns/dynamic-memory-safety.md)
 
 # Advanced Topics
 
