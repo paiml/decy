@@ -102,10 +102,9 @@ impl CParser {
         };
 
         // SAFETY: Parsing with clang_parseTranslationUnit2
-        // DECY-057 NOTE: DetailedPreprocessingRecord was causing issues with typedef parsing,
-        // but removing it completely breaks function body parsing.
-        // Keep it OFF for now - will need different solution for macro support.
-        let flags = 0;
+        // Enable DetailedPreprocessingRecord to capture macro definitions
+        // CXTranslationUnit_DetailedPreprocessingRecord = 1
+        let flags = 1;
 
         let mut tu = ptr::null_mut();
         let result = unsafe {
@@ -2653,6 +2652,7 @@ extern "C" fn visit_compound_literal_initializers(
     }
 }
 
+#[allow(non_upper_case_globals)]
 fn convert_type(cx_type: CXType) -> Option<Type> {
     // SAFETY: Getting type kind
     match cx_type.kind {

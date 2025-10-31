@@ -3,7 +3,7 @@
 ///
 /// These tests validate parsing of C cast expressions: (type)expr
 /// Cast expressions are used for type conversions in C.
-use decy_parser::{CParser, Expression, Statement, Type};
+use decy_parser::CParser;
 
 #[test]
 fn test_parse_simple_integer_cast() {
@@ -23,7 +23,7 @@ fn test_parse_simple_integer_cast() {
 
     // Just verify it parses without errors
     // The cast expression is successfully parsed if we got here
-    assert!(func.body.len() >= 1, "Should have at least 1 statement");
+    assert!(!func.body.is_empty(), "Should have at least 1 statement");
 }
 
 #[test]
