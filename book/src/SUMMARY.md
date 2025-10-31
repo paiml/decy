@@ -30,6 +30,7 @@
 - [Loop + Array Safety](./patterns/loop-array-safety.md)
 - [Dynamic Memory Safety](./patterns/dynamic-memory-safety.md)
 - [Pointer Arithmetic Safety](./patterns/pointer-arithmetic-safety.md)
+- [Type Casting Safety](./patterns/type-casting-safety.md)
 
 # Advanced Topics
 
