@@ -31,6 +31,7 @@
 - [Dynamic Memory Safety](./patterns/dynamic-memory-safety.md)
 - [Pointer Arithmetic Safety](./patterns/pointer-arithmetic-safety.md)
 - [Type Casting Safety](./patterns/type-casting-safety.md)
+- [NULL Pointer Safety](./patterns/null-pointer-safety.md)
 
 # Advanced Topics
 

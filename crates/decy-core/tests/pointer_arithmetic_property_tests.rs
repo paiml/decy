@@ -21,16 +21,6 @@ fn array_size_strategy() -> impl Strategy<Value = usize> {
     1usize..=100
 }
 
-/// Generate safe offsets (0-50)
-fn offset_strategy() -> impl Strategy<Value = usize> {
-    0usize..=50
-}
-
-/// Generate valid array indices
-fn valid_index_strategy(max: usize) -> impl Strategy<Value = usize> {
-    0usize..max
-}
-
 // ============================================================================
 // Property 1: Pointer increment always transpiles
 // ============================================================================
