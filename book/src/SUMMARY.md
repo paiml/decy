@@ -26,6 +26,8 @@
 - [Functions](./patterns/functions.md)
 - [Control Flow](./patterns/control-flow.md)
 - [Memory Management](./patterns/memory.md)
+- [String Safety](./patterns/string-safety.md)
+- [Loop + Array Safety](./patterns/loop-array-safety.md)
 
 # Advanced Topics
 
