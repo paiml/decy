@@ -1,21 +1,22 @@
 [package]
 name = "decy-debugger"
-version = "0.1.0"
-edition = "2021"
-rust-version = "1.75.0"
-license = "MIT OR Apache-2.0"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+documentation.workspace = true
+keywords.workspace = true
+categories.workspace = true
 description = "Interactive debugger for Decy C-to-Rust transpiler with spydecy integration"
-repository = "https://github.com/noahgift/decy"
-authors = ["Decy Team"]
-keywords = ["debugger", "transpiler", "c", "rust", "introspection"]
-categories = ["compilers", "development-tools::debugging"]
 
 [dependencies]
 # Core decy dependencies
-decy-parser = { path = "../decy-parser" }
-decy-hir = { path = "../decy-hir" }
-decy-ownership = { path = "../decy-ownership" }
-decy-codegen = { path = "../decy-codegen" }
+decy-parser = { version = "1.0.0", path = "../decy-parser" }
+decy-hir = { version = "1.0.0", path = "../decy-hir" }
+decy-ownership = { version = "1.0.0", path = "../decy-ownership" }
+decy-codegen = { version = "1.0.0", path = "../decy-codegen" }
 
 # Spydecy debugger integration
 spydecy-debugger = "0.2.0"
