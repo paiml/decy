@@ -693,7 +693,7 @@ checksum = "2a2330da5de22e8a3cb63252ce2abb30116bf5265e89c0e01bc17015ce30a476"
 
 [[package]]
 name = "decy"
-version = "0.2.0"
+version = "1.0.0"
 dependencies = [
  "anyhow",
  "assert_cmd",
@@ -721,7 +721,7 @@ dependencies = [
 
 [[package]]
 name = "decy-agent"
-version = "0.2.0"
+version = "1.0.0"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -736,7 +736,7 @@ dependencies = [
 
 [[package]]
 name = "decy-analyzer"
-version = "0.2.0"
+version = "1.0.0"
 dependencies = [
  "anyhow",
  "criterion",
@@ -750,7 +750,7 @@ dependencies = [
 
 [[package]]
 name = "decy-book"
-version = "0.2.0"
+version = "1.0.0"
 dependencies = [
  "anyhow",
  "mdbook",
@@ -763,7 +763,7 @@ dependencies = [
 
 [[package]]
 name = "decy-codegen"
-version = "0.2.0"
+version = "1.0.0"
 dependencies = [
  "anyhow",
  "criterion",
@@ -781,7 +781,7 @@ dependencies = [
 
 [[package]]
 name = "decy-core"
-version = "0.2.0"
+version = "1.0.0"
 dependencies = [
  "anyhow",
  "criterion",
@@ -822,7 +822,7 @@ dependencies = [
 
 [[package]]
 name = "decy-hir"
-version = "0.2.0"
+version = "1.0.0"
 dependencies = [
  "anyhow",
  "decy-parser",
@@ -835,7 +835,7 @@ dependencies = [
 
 [[package]]
 name = "decy-mcp"
-version = "0.2.0"
+version = "1.0.0"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -853,7 +853,7 @@ dependencies = [
 
 [[package]]
 name = "decy-ownership"
-version = "0.2.0"
+version = "1.0.0"
 dependencies = [
  "anyhow",
  "decy-analyzer",
@@ -867,7 +867,7 @@ dependencies = [
 
 [[package]]
 name = "decy-parser"
-version = "0.2.0"
+version = "1.0.0"
 dependencies = [
  "anyhow",
  "clang-sys",
@@ -880,7 +880,7 @@ dependencies = [
 
 [[package]]
 name = "decy-repo"
-version = "0.2.0"
+version = "1.0.0"
 dependencies = [
  "anyhow",
  "decy-core",
@@ -899,7 +899,7 @@ dependencies = [
 
 [[package]]
 name = "decy-verify"
-version = "0.2.0"
+version = "1.0.0"
 dependencies = [
  "anyhow",
  "decy-hir",

@@ -12,7 +12,7 @@ categories.workspace = true
 description = "GitHub repository transpilation with parallel processing"
 
 [dependencies]
-decy-core = { version = "0.2.0", path = "../decy-core" }
+decy-core = { version = "1.0.0", path = "../decy-core" }
 git2.workspace = true
 octocrab.workspace = true
 tokio.workspace = true
