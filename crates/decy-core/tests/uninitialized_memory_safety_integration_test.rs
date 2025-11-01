@@ -431,7 +431,10 @@ fn test_function_return_value() {
     let result = transpile(c_code).expect("Should transpile");
 
     assert!(result.contains("fn main"), "Should have main function");
-    assert!(result.contains("fn get_value"), "Should have get_value function");
+    assert!(
+        result.contains("fn get_value"),
+        "Should have get_value function"
+    );
 
     let unsafe_count = result.matches("unsafe").count();
     assert!(
