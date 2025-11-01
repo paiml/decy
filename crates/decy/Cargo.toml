@@ -12,12 +12,12 @@ categories.workspace = true
 description = "CLI tool for C-to-Rust transpilation with EXTREME quality standards"
 
 [dependencies]
-decy-core = { version = "0.2.0", path = "../decy-core" }
-decy-verify = { version = "0.2.0", path = "../decy-verify" }
-decy-agent = { version = "0.2.0", path = "../decy-agent" }
-decy-mcp = { version = "0.2.0", path = "../decy-mcp" }
-decy-repo = { version = "0.2.0", path = "../decy-repo" }
-decy-book = { version = "0.2.0", path = "../decy-book" }
+decy-core = { version = "1.0.0", path = "../decy-core" }
+decy-verify = { version = "1.0.0", path = "../decy-verify" }
+decy-agent = { version = "1.0.0", path = "../decy-agent" }
+decy-mcp = { version = "1.0.0", path = "../decy-mcp" }
+decy-repo = { version = "1.0.0", path = "../decy-repo" }
+decy-book = { version = "1.0.0", path = "../decy-book" }
 clap.workspace = true
 tokio.workspace = true
 anyhow.workspace = true

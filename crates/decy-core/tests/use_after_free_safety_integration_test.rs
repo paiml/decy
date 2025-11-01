@@ -503,7 +503,10 @@ fn test_global_pointer_lifetime() {
     let result = transpile(c_code).expect("Should transpile");
 
     assert!(result.contains("fn main"), "Should have main function");
-    assert!(result.contains("fn cleanup"), "Should have cleanup function");
+    assert!(
+        result.contains("fn cleanup"),
+        "Should have cleanup function"
+    );
 
     let unsafe_count = result.matches("unsafe").count();
     assert!(
