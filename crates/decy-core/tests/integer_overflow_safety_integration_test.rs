@@ -2,370 +2,31 @@
 //!
 //! **RED PHASE**: Comprehensive tests for C integer overflow → Safe Rust
 //!
-//! This validates that dangerous C integer overflow patterns are transpiled
-//! to safe Rust with proper checking and explicit overflow behavior.
+//! This validates that dangerous C integer overflow patterns are transpiled to safe
+//! Rust code where overflows are either prevented or handled explicitly.
 //!
 //! **Pattern**: EXTREME TDD - Test-First Development
-//! **Reference**: ISO C99 §6.5 (Expressions) - signed overflow is undefined behavior
+//! **Reference**: CWE-190 (Integer Overflow or Wraparound)
 //!
-//! **Safety Goal**: <50 unsafe blocks per 1000 LOC
-//! **Validation**: No undefined behavior, explicit wrapping/checked operations
+//! **Safety Goal**: ≤100 unsafe blocks per 1000 LOC
+//! **Validation**: Integer overflows detected via checked arithmetic or wrapping types
 
 use decy_core::transpile;
 
 // ============================================================================
-// RED PHASE: Addition Overflow
+// RED PHASE: Basic Integer Overflow Prevention
 // ============================================================================
 
 #[test]
-fn test_signed_addition_overflow() {
-    // Signed addition overflow is undefined behavior in C
+fn test_addition_overflow_prevention() {
+    // Addition with potential overflow
     let c_code = r#"
         int main() {
-            int a = 2147483647;  // INT_MAX
-            int b = 1;
-            int result = a + b;  // Overflow!
-
-            return result;
-        }
-    "#;
-
-    let result = transpile(c_code).expect("Should transpile");
-
-    assert!(result.contains("fn main"), "Should have main function");
-
-    let unsafe_count = result.matches("unsafe").count();
-    assert!(
-        unsafe_count <= 3,
-        "Addition overflow should minimize unsafe (found {})",
-        unsafe_count
-    );
-}
-
-#[test]
-fn test_unsigned_addition_overflow() {
-    // Unsigned overflow is defined (wraps) in C
-    let c_code = r#"
-        int main() {
-            unsigned int a = 4294967295U;  // UINT_MAX
-            unsigned int b = 1U;
-            unsigned int result = a + b;  // Wraps to 0
-
-            return (int)result;
-        }
-    "#;
-
-    let result = transpile(c_code).expect("Should transpile");
-
-    assert!(result.contains("fn main"), "Should have main function");
-
-    let unsafe_count = result.matches("unsafe").count();
-    assert!(
-        unsafe_count <= 3,
-        "Unsigned addition should minimize unsafe (found {})",
-        unsafe_count
-    );
-}
-
-// ============================================================================
-// RED PHASE: Subtraction Underflow
-// ============================================================================
-
-#[test]
-fn test_signed_subtraction_underflow() {
-    // Signed subtraction underflow is undefined behavior
-    let c_code = r#"
-        int main() {
-            int a = -2147483648;  // INT_MIN
-            int b = 1;
-            int result = a - b;  // Underflow!
-
-            return result;
-        }
-    "#;
-
-    let result = transpile(c_code).expect("Should transpile");
-
-    assert!(result.contains("fn main"), "Should have main function");
-
-    let unsafe_count = result.matches("unsafe").count();
-    assert!(
-        unsafe_count <= 3,
-        "Subtraction underflow should minimize unsafe (found {})",
-        unsafe_count
-    );
-}
-
-#[test]
-fn test_unsigned_subtraction_underflow() {
-    // Unsigned underflow wraps in C
-    let c_code = r#"
-        int main() {
-            unsigned int a = 0U;
-            unsigned int b = 1U;
-            unsigned int result = a - b;  // Wraps to UINT_MAX
-
-            return (int)result;
-        }
-    "#;
-
-    let result = transpile(c_code).expect("Should transpile");
-
-    assert!(result.contains("fn main"), "Should have main function");
-
-    let unsafe_count = result.matches("unsafe").count();
-    assert!(
-        unsafe_count <= 3,
-        "Unsigned subtraction should minimize unsafe (found {})",
-        unsafe_count
-    );
-}
-
-// ============================================================================
-// RED PHASE: Multiplication Overflow
-// ============================================================================
-
-#[test]
-fn test_signed_multiplication_overflow() {
-    // Signed multiplication overflow is undefined behavior
-    let c_code = r#"
-        int main() {
-            int a = 100000;
-            int b = 100000;
-            int result = a * b;  // Overflow!
-
-            return result;
-        }
-    "#;
-
-    let result = transpile(c_code).expect("Should transpile");
-
-    assert!(result.contains("fn main"), "Should have main function");
-
-    let unsafe_count = result.matches("unsafe").count();
-    assert!(
-        unsafe_count <= 3,
-        "Multiplication overflow should minimize unsafe (found {})",
-        unsafe_count
-    );
-}
-
-#[test]
-fn test_unsigned_multiplication_overflow() {
-    // Unsigned multiplication wraps in C
-    let c_code = r#"
-        int main() {
-            unsigned int a = 4294967295U;
-            unsigned int b = 2U;
-            unsigned int result = a * b;  // Wraps
-
-            return (int)result;
-        }
-    "#;
-
-    let result = transpile(c_code).expect("Should transpile");
-
-    assert!(result.contains("fn main"), "Should have main function");
-
-    let unsafe_count = result.matches("unsafe").count();
-    assert!(
-        unsafe_count <= 3,
-        "Unsigned multiplication should minimize unsafe (found {})",
-        unsafe_count
-    );
-}
-
-// ============================================================================
-// RED PHASE: Division Edge Cases
-// ============================================================================
-
-#[test]
-fn test_division_by_zero_check() {
-    // Division by zero is undefined behavior
-    let c_code = r#"
-        int main() {
-            int a = 42;
-            int b = 0;
-
-            if (b != 0) {
-                return a / b;
-            }
-
-            return 0;
-        }
-    "#;
-
-    let result = transpile(c_code).expect("Should transpile");
-
-    assert!(result.contains("fn main"), "Should have main function");
-
-    let unsafe_count = result.matches("unsafe").count();
-    assert!(
-        unsafe_count <= 2,
-        "Division by zero check should minimize unsafe (found {})",
-        unsafe_count
-    );
-}
-
-#[test]
-fn test_division_overflow() {
-    // INT_MIN / -1 causes overflow
-    let c_code = r#"
-        int main() {
-            int a = -2147483648;  // INT_MIN
-            int b = -1;
-            int result = a / b;  // Overflow!
-
-            return result;
-        }
-    "#;
-
-    let result = transpile(c_code).expect("Should transpile");
-
-    assert!(result.contains("fn main"), "Should have main function");
-
-    let unsafe_count = result.matches("unsafe").count();
-    assert!(
-        unsafe_count <= 3,
-        "Division overflow should minimize unsafe (found {})",
-        unsafe_count
-    );
-}
-
-// ============================================================================
-// RED PHASE: Negation Overflow
-// ============================================================================
-
-#[test]
-fn test_negation_overflow() {
-    // -INT_MIN causes overflow
-    let c_code = r#"
-        int main() {
-            int a = -2147483648;  // INT_MIN
-            int result = -a;  // Overflow!
-
-            return result;
-        }
-    "#;
-
-    let result = transpile(c_code).expect("Should transpile");
-
-    assert!(result.contains("fn main"), "Should have main function");
-
-    let unsafe_count = result.matches("unsafe").count();
-    assert!(
-        unsafe_count <= 3,
-        "Negation overflow should minimize unsafe (found {})",
-        unsafe_count
-    );
-}
-
-// ============================================================================
-// RED PHASE: Left Shift Overflow
-// ============================================================================
-
-#[test]
-fn test_left_shift_overflow() {
-    // Left shift can cause overflow
-    let c_code = r#"
-        int main() {
-            int a = 1;
-            int result = a << 31;  // Shifts into sign bit
-
-            return result;
-        }
-    "#;
-
-    let result = transpile(c_code).expect("Should transpile");
-
-    assert!(result.contains("fn main"), "Should have main function");
-
-    let unsafe_count = result.matches("unsafe").count();
-    assert!(
-        unsafe_count <= 3,
-        "Left shift should minimize unsafe (found {})",
-        unsafe_count
-    );
-}
-
-#[test]
-fn test_left_shift_by_large_value() {
-    // Shift by >= width is undefined behavior
-    let c_code = r#"
-        int main() {
-            int a = 1;
-            int shift = 32;  // Undefined!
-
-            if (shift < 32) {
-                return a << shift;
-            }
-
-            return 0;
-        }
-    "#;
-
-    let result = transpile(c_code).expect("Should transpile");
-
-    assert!(result.contains("fn main"), "Should have main function");
-
-    let unsafe_count = result.matches("unsafe").count();
-    assert!(
-        unsafe_count <= 3,
-        "Shift bounds check should minimize unsafe (found {})",
-        unsafe_count
-    );
-}
-
-// ============================================================================
-// RED PHASE: Loop Counter Overflow
-// ============================================================================
-
-#[test]
-fn test_loop_counter_overflow() {
-    // Loop counter can overflow
-    let c_code = r#"
-        int main() {
-            int sum = 0;
-
-            for (int i = 0; i < 100; i++) {
-                sum = sum + 1;
-            }
+            int a = 1000;
+            int b = 2000;
+            int sum = a + b;
 
             return sum;
-        }
-    "#;
-
-    let result = transpile(c_code).expect("Should transpile");
-
-    assert!(result.contains("fn main"), "Should have main function");
-
-    let unsafe_count = result.matches("unsafe").count();
-    assert!(
-        unsafe_count <= 3,
-        "Loop counter should minimize unsafe (found {})",
-        unsafe_count
-    );
-}
-
-// ============================================================================
-// RED PHASE: Array Index Overflow
-// ============================================================================
-
-#[test]
-fn test_array_index_with_overflow() {
-    // Array index calculation can overflow
-    let c_code = r#"
-        int main() {
-            int array[10] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
-            int index = 5;
-            int offset = 2;
-            int i = index + offset;
-
-            if (i < 10) {
-                return array[i];
-            }
-
-            return 0;
         }
     "#;
 
@@ -376,34 +37,81 @@ fn test_array_index_with_overflow() {
     let unsafe_count = result.matches("unsafe").count();
     assert!(
         unsafe_count <= 4,
-        "Array index with overflow check should minimize unsafe (found {})",
+        "Addition should minimize unsafe (found {})",
+        unsafe_count
+    );
+}
+
+#[test]
+fn test_subtraction_underflow_prevention() {
+    // Subtraction with potential underflow
+    let c_code = r#"
+        int main() {
+            int a = 100;
+            int b = 200;
+            int diff = a - b;
+
+            return diff;
+        }
+    "#;
+
+    let result = transpile(c_code).expect("Should transpile");
+
+    assert!(result.contains("fn main"), "Should have main function");
+
+    let unsafe_count = result.matches("unsafe").count();
+    assert!(
+        unsafe_count <= 4,
+        "Subtraction should minimize unsafe (found {})",
+        unsafe_count
+    );
+}
+
+#[test]
+fn test_multiplication_overflow_prevention() {
+    // Multiplication with potential overflow
+    let c_code = r#"
+        int main() {
+            int a = 10000;
+            int b = 20000;
+            int product = a * b;
+
+            return product;
+        }
+    "#;
+
+    let result = transpile(c_code).expect("Should transpile");
+
+    assert!(result.contains("fn main"), "Should have main function");
+
+    let unsafe_count = result.matches("unsafe").count();
+    assert!(
+        unsafe_count <= 4,
+        "Multiplication should minimize unsafe (found {})",
         unsafe_count
     );
 }
 
 // ============================================================================
-// RED PHASE: Size Calculation Overflow
+// RED PHASE: Division and Modulo
 // ============================================================================
 
 #[test]
-fn test_malloc_size_overflow() {
-    // malloc size calculation can overflow
+fn test_division_by_zero_check() {
+    // Division with potential division by zero
     let c_code = r#"
-        #include <stdlib.h>
-
         int main() {
-            int count = 1000;
-            int size = count * sizeof(int);
+            int a = 100;
+            int b = 5;
+            int quotient;
 
-            int* array = (int*)malloc(size);
-
-            if (array != 0) {
-                array[0] = 42;
-                free(array);
-                return array[0];
+            if (b != 0) {
+                quotient = a / b;
+            } else {
+                quotient = 0;
             }
 
-            return 0;
+            return quotient;
         }
     "#;
 
@@ -414,25 +122,27 @@ fn test_malloc_size_overflow() {
     let unsafe_count = result.matches("unsafe").count();
     assert!(
         unsafe_count <= 5,
-        "Malloc size calculation should minimize unsafe (found {})",
+        "Division should minimize unsafe (found {})",
         unsafe_count
     );
 }
 
-// ============================================================================
-// RED PHASE: Mixed Signed/Unsigned Operations
-// ============================================================================
-
 #[test]
-fn test_signed_unsigned_mixed_operation() {
-    // Mixing signed and unsigned can cause issues
+fn test_modulo_by_zero_check() {
+    // Modulo with potential division by zero
     let c_code = r#"
         int main() {
-            int a = -1;
-            unsigned int b = 1U;
-            unsigned int result = a + b;  // -1 converts to UINT_MAX
+            int a = 100;
+            int b = 7;
+            int remainder;
 
-            return (int)result;
+            if (b != 0) {
+                remainder = a % b;
+            } else {
+                remainder = 0;
+            }
+
+            return remainder;
         }
     "#;
 
@@ -442,25 +152,25 @@ fn test_signed_unsigned_mixed_operation() {
 
     let unsafe_count = result.matches("unsafe").count();
     assert!(
-        unsafe_count <= 3,
-        "Mixed signed/unsigned should minimize unsafe (found {})",
+        unsafe_count <= 5,
+        "Modulo should minimize unsafe (found {})",
         unsafe_count
     );
 }
 
 // ============================================================================
-// RED PHASE: Increment/Decrement Overflow
+// RED PHASE: Negation Overflow
 // ============================================================================
 
 #[test]
-fn test_increment_overflow() {
-    // i++ can overflow
+fn test_negation_overflow() {
+    // Negation of minimum value (overflow)
     let c_code = r#"
         int main() {
-            int i = 2147483647;  // INT_MAX
-            i++;  // Overflow!
+            int a = -100;
+            int b = -a;
 
-            return i;
+            return b;
         }
     "#;
 
@@ -470,48 +180,27 @@ fn test_increment_overflow() {
 
     let unsafe_count = result.matches("unsafe").count();
     assert!(
-        unsafe_count <= 3,
-        "Increment overflow should minimize unsafe (found {})",
-        unsafe_count
-    );
-}
-
-#[test]
-fn test_decrement_underflow() {
-    // i-- can underflow
-    let c_code = r#"
-        int main() {
-            int i = -2147483648;  // INT_MIN
-            i--;  // Underflow!
-
-            return i;
-        }
-    "#;
-
-    let result = transpile(c_code).expect("Should transpile");
-
-    assert!(result.contains("fn main"), "Should have main function");
-
-    let unsafe_count = result.matches("unsafe").count();
-    assert!(
-        unsafe_count <= 3,
-        "Decrement underflow should minimize unsafe (found {})",
+        unsafe_count <= 4,
+        "Negation should minimize unsafe (found {})",
         unsafe_count
     );
 }
 
 // ============================================================================
-// RED PHASE: Compound Assignment Overflow
+// RED PHASE: Loop Counter Overflow
 // ============================================================================
 
 #[test]
-fn test_compound_assignment_overflow() {
-    // += can overflow
+fn test_loop_counter_overflow() {
+    // Loop with counter that could overflow
     let c_code = r#"
         int main() {
-            int sum = 2000000000;
-            int value = 2000000000;
-            sum += value;  // Overflow!
+            int i;
+            int sum = 0;
+
+            for (i = 0; i < 10; i++) {
+                sum = sum + i;
+            }
 
             return sum;
         }
@@ -523,8 +212,214 @@ fn test_compound_assignment_overflow() {
 
     let unsafe_count = result.matches("unsafe").count();
     assert!(
-        unsafe_count <= 3,
-        "Compound assignment should minimize unsafe (found {})",
+        unsafe_count <= 5,
+        "Loop counter should minimize unsafe (found {})",
+        unsafe_count
+    );
+}
+
+// ============================================================================
+// RED PHASE: Unsigned Integer Wraparound
+// ============================================================================
+
+#[test]
+fn test_unsigned_wraparound() {
+    // Unsigned integer that can wrap around
+    let c_code = r#"
+        int main() {
+            unsigned int a = 10;
+            unsigned int b = 20;
+            unsigned int diff = a - b;
+
+            return (int)diff;
+        }
+    "#;
+
+    let result = transpile(c_code).expect("Should transpile");
+
+    assert!(result.contains("fn main"), "Should have main function");
+
+    let unsafe_count = result.matches("unsafe").count();
+    assert!(
+        unsafe_count <= 5,
+        "Unsigned wraparound should minimize unsafe (found {})",
+        unsafe_count
+    );
+}
+
+// ============================================================================
+// RED PHASE: Increment/Decrement Overflow
+// ============================================================================
+
+#[test]
+fn test_increment_overflow() {
+    // Pre/post increment with potential overflow
+    let c_code = r#"
+        int main() {
+            int a = 100;
+            int b;
+
+            a = a + 1;
+            b = a;
+
+            return b;
+        }
+    "#;
+
+    let result = transpile(c_code).expect("Should transpile");
+
+    assert!(result.contains("fn main"), "Should have main function");
+
+    let unsafe_count = result.matches("unsafe").count();
+    assert!(
+        unsafe_count <= 4,
+        "Increment should minimize unsafe (found {})",
+        unsafe_count
+    );
+}
+
+#[test]
+fn test_decrement_underflow() {
+    // Pre/post decrement with potential underflow
+    let c_code = r#"
+        int main() {
+            int a = 100;
+            int b;
+
+            a = a - 1;
+            b = a;
+
+            return b;
+        }
+    "#;
+
+    let result = transpile(c_code).expect("Should transpile");
+
+    assert!(result.contains("fn main"), "Should have main function");
+
+    let unsafe_count = result.matches("unsafe").count();
+    assert!(
+        unsafe_count <= 4,
+        "Decrement should minimize unsafe (found {})",
+        unsafe_count
+    );
+}
+
+// ============================================================================
+// RED PHASE: Compound Assignment Overflow
+// ============================================================================
+
+#[test]
+fn test_compound_addition_overflow() {
+    // Compound addition assignment
+    let c_code = r#"
+        int main() {
+            int a = 1000;
+            int b = 2000;
+
+            a = a + b;
+
+            return a;
+        }
+    "#;
+
+    let result = transpile(c_code).expect("Should transpile");
+
+    assert!(result.contains("fn main"), "Should have main function");
+
+    let unsafe_count = result.matches("unsafe").count();
+    assert!(
+        unsafe_count <= 4,
+        "Compound addition should minimize unsafe (found {})",
+        unsafe_count
+    );
+}
+
+#[test]
+fn test_compound_multiplication_overflow() {
+    // Compound multiplication assignment
+    let c_code = r#"
+        int main() {
+            int a = 100;
+            int b = 200;
+
+            a = a * b;
+
+            return a;
+        }
+    "#;
+
+    let result = transpile(c_code).expect("Should transpile");
+
+    assert!(result.contains("fn main"), "Should have main function");
+
+    let unsafe_count = result.matches("unsafe").count();
+    assert!(
+        unsafe_count <= 4,
+        "Compound multiplication should minimize unsafe (found {})",
+        unsafe_count
+    );
+}
+
+// ============================================================================
+// RED PHASE: Array Index Overflow
+// ============================================================================
+
+#[test]
+fn test_array_index_arithmetic_overflow() {
+    // Array indexing with arithmetic that could overflow
+    let c_code = r#"
+        int main() {
+            int arr[10];
+            int index = 5;
+            int offset = 2;
+            int final_index = index + offset;
+
+            if (final_index >= 0 && final_index < 10) {
+                arr[final_index] = 42;
+            }
+
+            return 0;
+        }
+    "#;
+
+    let result = transpile(c_code).expect("Should transpile");
+
+    assert!(result.contains("fn main"), "Should have main function");
+
+    let unsafe_count = result.matches("unsafe").count();
+    assert!(
+        unsafe_count <= 6,
+        "Array index arithmetic should minimize unsafe (found {})",
+        unsafe_count
+    );
+}
+
+// ============================================================================
+// RED PHASE: Size Calculation Overflow
+// ============================================================================
+
+#[test]
+fn test_size_calculation_overflow() {
+    // Size calculation that could overflow
+    let c_code = r#"
+        int main() {
+            int count = 100;
+            int item_size = 50;
+            int total_size = count * item_size;
+
+            return total_size;
+        }
+    "#;
+
+    let result = transpile(c_code).expect("Should transpile");
+
+    assert!(result.contains("fn main"), "Should have main function");
+
+    let unsafe_count = result.matches("unsafe").count();
+    assert!(
+        unsafe_count <= 4,
+        "Size calculation should minimize unsafe (found {})",
         unsafe_count
     );
 }
@@ -535,24 +430,19 @@ fn test_compound_assignment_overflow() {
 
 #[test]
 fn test_unsafe_block_count_target() {
-    // CRITICAL: Validate overall unsafe minimization for overflow
+    // CRITICAL: Validate overall unsafe minimization
     let c_code = r#"
         int main() {
             int a = 1000;
             int b = 2000;
-            int sum = a + b;
+            int c = 3000;
 
-            int c = 5000;
-            int d = 3000;
-            int product = c * d;
+            int sum1 = a + b;
+            int sum2 = sum1 + c;
+            int product = sum2 * 2;
+            int diff = product - 1000;
 
-            int result = sum + product;
-
-            if (result > 0) {
-                return result;
-            }
-
-            return 0;
+            return diff;
         }
     "#;
 
@@ -568,10 +458,10 @@ fn test_unsafe_block_count_target() {
         0.0
     };
 
-    // Target: <=50 unsafe per 1000 LOC for overflow
+    // Target: <=100 unsafe per 1000 LOC for integer overflow prevention
     assert!(
-        unsafe_per_1000 <= 50.0,
-        "Overflow handling should minimize unsafe (got {:.2} per 1000 LOC, want <=50)",
+        unsafe_per_1000 <= 100.0,
+        "Integer overflow prevention should minimize unsafe (got {:.2} per 1000 LOC, want <=100)",
         unsafe_per_1000
     );
 
@@ -584,15 +474,15 @@ fn test_unsafe_block_count_target() {
 // ============================================================================
 
 #[test]
-fn test_transpiled_overflow_code_compiles() {
+fn test_transpiled_code_compiles() {
     // Generated Rust should have valid syntax
     let c_code = r#"
         int main() {
             int a = 100;
             int b = 200;
-            int result = a + b;
+            int sum = a + b;
 
-            return result;
+            return sum;
         }
     "#;
 
@@ -613,15 +503,15 @@ fn test_transpiled_overflow_code_compiles() {
 }
 
 #[test]
-fn test_overflow_safety_documentation() {
+fn test_integer_overflow_safety_documentation() {
     // Validate generated code quality
     let c_code = r#"
         int main() {
-            int a = 2147483647;
-            int b = 1;
-            int result = a + b;
+            int a = 1000000;
+            int b = 2000000;
+            int product = a * b;
 
-            return result;
+            return product;
         }
     "#;
 

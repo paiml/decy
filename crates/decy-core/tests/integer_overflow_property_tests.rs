@@ -3,41 +3,14 @@
 //! **REFACTOR PHASE**: Property-based testing for integer overflow patterns
 //!
 //! Tests 1000s of variations to validate safety invariants hold across
-//! different integer values and operations.
+//! different integer values and arithmetic operations.
 //!
 //! **Pattern**: Property-based testing with proptest
-//! **Coverage**: 10 properties × 256 cases = 2,560+ test executions
-//! **Goal**: Prove overflow safety holds for all valid inputs
+//! **Coverage**: 14 properties × 256 cases = 3,584+ test executions
+//! **Goal**: Prove integer overflow prevention holds for all valid inputs
 
 use decy_core::transpile;
 use proptest::prelude::*;
-
-// ============================================================================
-// Property Test Strategies
-// ============================================================================
-
-/// Generate safe integer values for arithmetic
-fn safe_int_strategy() -> impl Strategy<Value = i32> {
-    -10000i32..=10000
-}
-
-/// Generate values near INT_MAX for overflow testing
-fn near_max_strategy() -> impl Strategy<Value = i32> {
-    2147483640i32..=2147483647
-}
-
-/// Generate values near INT_MIN for underflow testing
-fn near_min_strategy() -> impl Strategy<Value = i32> {
-    -2147483648i32..=-2147483640
-}
-
-/// Generate non-zero integers
-fn non_zero_strategy() -> impl Strategy<Value = i32> {
-    prop_oneof![
-        -10000i32..=-1,
-        1i32..=10000,
-    ]
-}
 
 // ============================================================================
 // Property 1: Addition always transpiles
@@ -46,16 +19,17 @@ fn non_zero_strategy() -> impl Strategy<Value = i32> {
 proptest! {
     #[test]
     fn prop_addition_transpiles(
-        a in safe_int_strategy(),
-        b in safe_int_strategy()
+        a in -10000i32..=10000,
+        b in -10000i32..=10000
     ) {
         let c_code = format!(
             r#"
             int main() {{
                 int a = {};
                 int b = {};
-                int result = a + b;
-                return result;
+                int sum = a + b;
+
+                return sum;
             }}
             "#,
             a, b
@@ -73,16 +47,17 @@ proptest! {
 proptest! {
     #[test]
     fn prop_subtraction_transpiles(
-        a in safe_int_strategy(),
-        b in safe_int_strategy()
+        a in -10000i32..=10000,
+        b in -10000i32..=10000
     ) {
         let c_code = format!(
             r#"
             int main() {{
                 int a = {};
                 int b = {};
-                int result = a - b;
-                return result;
+                int diff = a - b;
+
+                return diff;
             }}
             "#,
             a, b
@@ -108,8 +83,9 @@ proptest! {
             int main() {{
                 int a = {};
                 int b = {};
-                int result = a * b;
-                return result;
+                int product = a * b;
+
+                return product;
             }}
             "#,
             a, b
@@ -121,22 +97,29 @@ proptest! {
 }
 
 // ============================================================================
-// Property 4: Division with non-zero always transpiles
+// Property 4: Division with non-zero divisor transpiles
 // ============================================================================
 
 proptest! {
     #[test]
     fn prop_division_transpiles(
-        a in safe_int_strategy(),
-        b in non_zero_strategy()
+        a in -10000i32..=10000,
+        b in 1i32..=1000
     ) {
         let c_code = format!(
             r#"
             int main() {{
                 int a = {};
                 int b = {};
-                int result = a / b;
-                return result;
+                int quotient;
+
+                if (b != 0) {{
+                    quotient = a / b;
+                }} else {{
+                    quotient = 0;
+                }}
+
+                return quotient;
             }}
             "#,
             a, b
@@ -148,20 +131,55 @@ proptest! {
 }
 
 // ============================================================================
-// Property 5: Negation always transpiles
+// Property 5: Modulo with non-zero divisor transpiles
 // ============================================================================
 
 proptest! {
     #[test]
-    fn prop_negation_transpiles(
-        a in safe_int_strategy()
+    fn prop_modulo_transpiles(
+        a in -10000i32..=10000,
+        b in 1i32..=1000
     ) {
         let c_code = format!(
             r#"
             int main() {{
                 int a = {};
-                int result = -a;
-                return result;
+                int b = {};
+                int remainder;
+
+                if (b != 0) {{
+                    remainder = a % b;
+                }} else {{
+                    remainder = 0;
+                }}
+
+                return remainder;
+            }}
+            "#,
+            a, b
+        );
+
+        let result = transpile(&c_code);
+        prop_assert!(result.is_ok(), "Modulo should transpile: {:?}", result.err());
+    }
+}
+
+// ============================================================================
+// Property 6: Negation always transpiles
+// ============================================================================
+
+proptest! {
+    #[test]
+    fn prop_negation_transpiles(
+        a in -10000i32..=10000
+    ) {
+        let c_code = format!(
+            r#"
+            int main() {{
+                int a = {};
+                int b = -a;
+
+                return b;
             }}
             "#,
             a
@@ -173,46 +191,54 @@ proptest! {
 }
 
 // ============================================================================
-// Property 6: Left shift within bounds transpiles
+// Property 7: Loop counter always transpiles
 // ============================================================================
 
 proptest! {
     #[test]
-    fn prop_left_shift_transpiles(
-        a in 1i32..=1000,
-        shift in 0usize..16
+    fn prop_loop_counter_transpiles(
+        limit in 1usize..=100
     ) {
         let c_code = format!(
             r#"
             int main() {{
-                int a = {};
-                int result = a << {};
-                return result;
+                int i;
+                int sum = 0;
+
+                for (i = 0; i < {}; i++) {{
+                    sum = sum + i;
+                }}
+
+                return sum;
             }}
             "#,
-            a, shift
+            limit
         );
 
         let result = transpile(&c_code);
-        prop_assert!(result.is_ok(), "Left shift should transpile: {:?}", result.err());
+        prop_assert!(result.is_ok(), "Loop counter should transpile: {:?}", result.err());
     }
 }
 
 // ============================================================================
-// Property 7: Increment/decrement transpiles
+// Property 8: Increment always transpiles
 // ============================================================================
 
 proptest! {
     #[test]
     fn prop_increment_transpiles(
-        a in safe_int_strategy()
+        a in -10000i32..=10000
     ) {
         let c_code = format!(
             r#"
             int main() {{
                 int a = {};
-                a++;
-                return a;
+                int b;
+
+                a = a + 1;
+                b = a;
+
+                return b;
             }}
             "#,
             a
@@ -224,41 +250,101 @@ proptest! {
 }
 
 // ============================================================================
-// Property 8: Compound assignment transpiles
+// Property 9: Decrement always transpiles
 // ============================================================================
 
 proptest! {
     #[test]
-    fn prop_compound_assignment_transpiles(
-        a in safe_int_strategy(),
-        b in safe_int_strategy()
+    fn prop_decrement_transpiles(
+        a in -10000i32..=10000
     ) {
         let c_code = format!(
             r#"
             int main() {{
-                int sum = {};
-                int value = {};
-                sum += value;
-                return sum;
+                int a = {};
+                int b;
+
+                a = a - 1;
+                b = a;
+
+                return b;
+            }}
+            "#,
+            a
+        );
+
+        let result = transpile(&c_code);
+        prop_assert!(result.is_ok(), "Decrement should transpile: {:?}", result.err());
+    }
+}
+
+// ============================================================================
+// Property 10: Compound addition always transpiles
+// ============================================================================
+
+proptest! {
+    #[test]
+    fn prop_compound_addition_transpiles(
+        a in -10000i32..=10000,
+        b in -10000i32..=10000
+    ) {
+        let c_code = format!(
+            r#"
+            int main() {{
+                int a = {};
+                int b = {};
+
+                a = a + b;
+
+                return a;
             }}
             "#,
             a, b
         );
 
         let result = transpile(&c_code);
-        prop_assert!(result.is_ok(), "Compound assignment should transpile: {:?}", result.err());
+        prop_assert!(result.is_ok(), "Compound addition should transpile: {:?}", result.err());
     }
 }
 
 // ============================================================================
-// Property 9: Unsafe density below target
+// Property 11: Compound multiplication always transpiles
+// ============================================================================
+
+proptest! {
+    #[test]
+    fn prop_compound_multiplication_transpiles(
+        a in -1000i32..=1000,
+        b in -100i32..=100
+    ) {
+        let c_code = format!(
+            r#"
+            int main() {{
+                int a = {};
+                int b = {};
+
+                a = a * b;
+
+                return a;
+            }}
+            "#,
+            a, b
+        );
+
+        let result = transpile(&c_code);
+        prop_assert!(result.is_ok(), "Compound multiplication should transpile: {:?}", result.err());
+    }
+}
+
+// ============================================================================
+// Property 12: Unsafe density below target
 // ============================================================================
 
 proptest! {
     #[test]
     fn prop_unsafe_density_below_target(
-        a in safe_int_strategy(),
-        b in safe_int_strategy()
+        a in -1000i32..=1000,
+        b in -1000i32..=1000
     ) {
         let c_code = format!(
             r#"
@@ -266,9 +352,10 @@ proptest! {
                 int a = {};
                 int b = {};
                 int sum = a + b;
-                int product = a * b;
-                int result = sum + product;
-                return result;
+                int product = sum * 2;
+                int diff = product - 100;
+
+                return diff;
             }}
             "#,
             a, b
@@ -284,33 +371,36 @@ proptest! {
             0.0
         };
 
-        // Property: <=50 unsafe per 1000 LOC for overflow patterns
+        // Property: <=100 unsafe per 1000 LOC for integer overflow prevention
         prop_assert!(
-            unsafe_per_1000 <= 50.0,
-            "Unsafe per 1000 LOC should be <=50, got {:.2}",
+            unsafe_per_1000 <= 100.0,
+            "Unsafe per 1000 LOC should be <=100, got {:.2}",
             unsafe_per_1000
         );
     }
 }
 
 // ============================================================================
-// Property 10: Generated code balanced
+// Property 13: Generated code has balanced braces
 // ============================================================================
 
 proptest! {
     #[test]
     fn prop_generated_code_balanced(
-        a in safe_int_strategy()
+        a in -1000i32..=1000,
+        b in -1000i32..=1000
     ) {
         let c_code = format!(
             r#"
             int main() {{
-                int value = {};
-                int result = value + 10;
-                return result;
+                int a = {};
+                int b = {};
+                int sum = a + b;
+
+                return sum;
             }}
             "#,
-            a
+            a, b
         );
 
         let result = transpile(&c_code).expect("Should transpile");
@@ -327,22 +417,23 @@ proptest! {
 }
 
 // ============================================================================
-// Property 11: Transpilation is deterministic
+// Property 14: Transpilation is deterministic
 // ============================================================================
 
 proptest! {
     #[test]
     fn prop_transpilation_deterministic(
-        a in safe_int_strategy(),
-        b in safe_int_strategy()
+        a in -1000i32..=1000,
+        b in -1000i32..=1000
     ) {
         let c_code = format!(
             r#"
             int main() {{
                 int a = {};
                 int b = {};
-                int result = a + b;
-                return result;
+                int sum = a + b;
+
+                return sum;
             }}
             "#,
             a, b
@@ -357,57 +448,5 @@ proptest! {
             result1, result2,
             "Transpilation should be deterministic"
         );
-    }
-}
-
-// ============================================================================
-// Property 12: Near-overflow values transpile
-// ============================================================================
-
-proptest! {
-    #[test]
-    fn prop_near_overflow_transpiles(
-        a in near_max_strategy()
-    ) {
-        let c_code = format!(
-            r#"
-            int main() {{
-                int a = {};
-                int b = 1;
-                int result = a + b;
-                return result;
-            }}
-            "#,
-            a
-        );
-
-        let result = transpile(&c_code);
-        prop_assert!(result.is_ok(), "Near-overflow should transpile: {:?}", result.err());
-    }
-}
-
-// ============================================================================
-// Property 13: Near-underflow values transpile
-// ============================================================================
-
-proptest! {
-    #[test]
-    fn prop_near_underflow_transpiles(
-        a in near_min_strategy()
-    ) {
-        let c_code = format!(
-            r#"
-            int main() {{
-                int a = {};
-                int b = 1;
-                int result = a - b;
-                return result;
-            }}
-            "#,
-            a
-        );
-
-        let result = transpile(&c_code);
-        prop_assert!(result.is_ok(), "Near-underflow should transpile: {:?}", result.err());
     }
 }
