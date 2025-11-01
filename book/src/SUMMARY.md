@@ -38,6 +38,7 @@
 - [Uninitialized Memory Safety](./patterns/uninitialized-memory-safety.md)
 - [Format String Safety](./patterns/format-string-safety.md)
 - [Race Condition Safety](./patterns/race-condition-safety.md)
+- [Double Free Safety](./patterns/double-free-safety.md)
 
 # Advanced Topics
 
