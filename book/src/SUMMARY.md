@@ -35,6 +35,7 @@
 - [Integer Overflow Safety](./patterns/integer-overflow-safety.md)
 - [Buffer Overflow Safety](./patterns/buffer-overflow-safety.md)
 - [Use-After-Free Safety](./patterns/use-after-free-safety.md)
+- [Uninitialized Memory Safety](./patterns/uninitialized-memory-safety.md)
 
 # Advanced Topics
 
