@@ -36,6 +36,7 @@
 - [Buffer Overflow Safety](./patterns/buffer-overflow-safety.md)
 - [Use-After-Free Safety](./patterns/use-after-free-safety.md)
 - [Uninitialized Memory Safety](./patterns/uninitialized-memory-safety.md)
+- [Format String Safety](./patterns/format-string-safety.md)
 
 # Advanced Topics
 
