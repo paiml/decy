@@ -52,11 +52,28 @@ cargo test --test validation_harness -- --nocapture > reports/validation_report.
 
 ## Current Status (DECY-069)
 
-**Phase 1: EXTRACTION**
-- ✅ Chapter 1: 3/25 examples (hello world, temperature tables)
-- ✅ Chapter 4: 3/35 examples (global variables, static variables)
-- ⏳ Chapter 2-3, 5-8: Pending extraction
-- ⏳ C99 spec: Pending extraction
+**Phase 1: EXTRACTION** - Progress: 25/275 examples (9.1%)
+
+**Completed Chapters**:
+- ✅ Chapter 1: 10/25 examples (40%)
+  - Hello world, temperature tables, character I/O
+  - Line/word counting, arrays, functions, character arrays
+- ✅ Chapter 2: 5/30 examples (16.7%)
+  - Data types, constants, arithmetic operators
+  - Relational/logical operators, increment/decrement
+- ✅ Chapter 3: 5/20 examples (25%)
+  - If-else, switch, while/for/do-while loops
+- ✅ Chapter 4: 5/35 examples (14.3%)
+  - Global variables, static variables, external arrays
+  - Const variables, storage class interaction
+
+**Pending Extraction**:
+- ⏳ Chapter 1: 15 more examples
+- ⏳ Chapter 2: 25 more examples
+- ⏳ Chapter 3: 15 more examples
+- ⏳ Chapter 4: 30 more examples
+- ⏳ Chapters 5-8: 175 examples
+- ⏳ C99 spec: ~50 examples
 
 **Phase 2: INFRASTRUCTURE**
 - ⏳ Validation harness (automated testing)
