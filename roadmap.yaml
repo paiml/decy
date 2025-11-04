@@ -7045,12 +7045,12 @@ integration_sprint_19:
         - decy CLI ✅ EXISTS
 
       progress_update_2025_11_04:
-        phase_1_extraction_status: "IN PROGRESS - 75/275 examples (27.3%)"
+        phase_1_extraction_status: "IN PROGRESS - 85/275 examples (30.9%)"
         chapters_completed:
           chapter_1: "15/25 (60%) - Tutorial fundamentals"
           chapter_2: "10/30 (33.3%) - Types and operators"
-          chapter_3: "5/20 (25%) - Control flow"
-          chapter_4: "5/35 (14.3%) - Functions, globals"
+          chapter_3: "10/20 (50%) - Control flow (binary search, break/continue, goto)"
+          chapter_4: "10/35 (28.6%) - Functions (recursion, static, scope, headers)"
           chapter_5: "10/40 (25%) - Pointers (CRITICAL for ownership)"
           chapter_6: "10/25 (40%) - Structures (CRITICAL for codegen)"
           chapter_7: "10/30 (33.3%) - I/O operations"
@@ -7060,10 +7060,11 @@ integration_sprint_19:
           - "4856e8f: Extract Chapters 6-7 examples (55/275)"
           - "eb3d33e: Extract Chapter 8 examples (65/275)"
           - "e17ff1f: Expand Chapters 1-2 (75/275)"
+          - "34aaab0: Expand Chapters 3-4 (85/275)"
         next_steps:
           - "Continue extracting to 100+ examples (36% target)"
-          - "Fill out Chapters 3, 4 (control flow, functions)"
-          - "Add more Chapter 5 examples (pointer-heavy)"
+          - "Add more Chapter 5 examples (pointer-heavy, CRITICAL)"
+          - "Add more Chapter 2 examples (operators, type system)"
           - "Begin Phase 2: validation harness infrastructure"
 
       impact: "Validates Decy against canonical C, identifies gaps, drives roadmap"
