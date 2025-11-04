@@ -67,6 +67,96 @@ cargo test --features proptest-tests
 make mutation
 ```
 
+## Release Policy
+
+**CRITICAL: Crates.io releases happen ONLY on FRIDAYS.**
+
+### Weekly Release Cadence
+
+Decy follows a strict weekly release schedule to maintain stability and quality:
+
+- **Release Day**: Friday only
+- **Frequency**: Once per week maximum
+- **Never Release**: Monday, Tuesday, Wednesday, Thursday, Saturday, Sunday
+
+### Release Preparation (Monday-Thursday)
+
+Throughout the week, prepare for Friday's release:
+
+1. **Quality Validation**: Ensure all tests pass, coverage ≥80%, 0 clippy warnings
+2. **Dry-Run Testing**: Run `cargo publish --dry-run` for all crates
+3. **Documentation**: Update CHANGELOG.md, README.md, version badges
+4. **Metadata Verification**: Confirm all Cargo.toml files have correct metadata
+5. **Integration Testing**: Test `cargo install` from local registry simulation
+
+### Friday Release Checklist
+
+On Friday, follow this exact sequence:
+
+```bash
+# 1. Final quality gates
+make quality-gates
+
+# 2. Dry-run all crates
+for crate in crates/*/; do
+    (cd "$crate" && cargo publish --dry-run)
+done
+
+# 3. Publish in dependency order (crates without dependencies first)
+cargo publish -p decy-parser
+cargo publish -p decy-hir
+cargo publish -p decy-analyzer
+cargo publish -p decy-ownership
+cargo publish -p decy-verify
+cargo publish -p decy-codegen
+cargo publish -p decy-core
+cargo publish -p decy-book
+cargo publish -p decy-agent
+cargo publish -p decy-mcp
+cargo publish -p decy-repo
+cargo publish -p decy-debugger
+cargo publish -p decy  # CLI last
+
+# 4. Verify installation
+cargo install decy
+
+# 5. Create GitHub release
+gh release create v<VERSION> --title "Decy v<VERSION>" --notes "<CHANGELOG>"
+
+# 6. Update roadmap.yaml
+# Mark release ticket as DONE
+```
+
+### Rationale
+
+**Why Friday-only releases?**
+
+1. **Toyota Way - Jidoka (Quality Built In)**: Weekly cadence enforces thorough validation
+2. **Blast Radius Containment**: Issues discovered Friday-Sunday have weekend for emergency fixes
+3. **Predictability**: Community knows when to expect updates
+4. **No Rushing**: Eliminates pressure to "release now" mid-sprint
+5. **Batch Efficiency**: One comprehensive release > multiple rushed releases
+
+**Exception: Emergency Security Patches**
+
+Security vulnerabilities may be released immediately, any day of the week, following:
+1. Severity assessment (CVSS score)
+2. Exploit availability check
+3. Expedited testing (minimum: compile + critical path tests)
+4. Advisory publication (GitHub Security Advisories)
+
+### Pre-Release Validation
+
+Before ANY release (even Friday), verify:
+
+- [ ] All roadmap tickets for release are `status: done` and `phase: DONE`
+- [ ] `make quality-gates` passes with 0 warnings
+- [ ] Coverage ≥80% (85% target) maintained
+- [ ] `cargo publish --dry-run` succeeds for all crates
+- [ ] CHANGELOG.md updated with user-facing changes
+- [ ] Git tag created: `git tag v<VERSION>`
+- [ ] Branch pushed: `git push origin <branch> --tags`
+
 ## Architecture: Multi-Stage Transpilation Pipeline
 
 Decy uses a **6-stage pipeline** where each stage has a dedicated crate:
