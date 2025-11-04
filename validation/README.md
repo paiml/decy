@@ -52,7 +52,7 @@ cargo test --test validation_harness -- --nocapture > reports/validation_report.
 
 ## Current Status (DECY-069)
 
-**Phase 1: EXTRACTION** - Progress: 85/275 examples (30.9%)
+**Phase 1: EXTRACTION** - Progress: 95/275 examples (34.5%)
 
 **Completed Chapters**:
 - ✅ Chapter 1 (Tutorial): 15/25 examples (60%)
@@ -60,11 +60,13 @@ cargo test --test validation_harness -- --nocapture > reports/validation_report.
   - Line/word counting, arrays, functions, character arrays
   - Longest line program, external variables, reverse input
   - Symbolic constants, tab expansion (detab)
-- ✅ Chapter 2 (Types, Operators): 10/30 examples (33.3%)
+- ✅ Chapter 2 (Types, Operators): 15/30 examples (50%)
   - Data types, constants, arithmetic operators
   - Relational/logical operators, increment/decrement
   - Bitwise operators, assignment operators, conditional expression
   - Type conversions, sizeof operator
+  - Enum types, precedence/associativity, type qualifiers
+  - Signed/unsigned integers, short-circuit evaluation
 - ✅ Chapter 3 (Control Flow): 10/20 examples (50%)
   - If-else, switch, while/for/do-while loops
   - Binary search, do-while loops, break/continue
@@ -74,11 +76,13 @@ cargo test --test validation_harness -- --nocapture > reports/validation_report.
   - Const variables, storage class interaction
   - Recursive functions, static local variables, register variables
   - Scope rules, header files usage
-- ✅ Chapter 5 (Pointers and Arrays): 10/40 examples (25%) ⭐ CRITICAL
+- ✅ Chapter 5 (Pointers and Arrays): 15/40 examples (37.5%) ⭐ CRITICAL
   - Pointer basics, pointer arithmetic, pointer functions
   - String operations (strlen, strcpy, strcmp)
   - Array of pointers, multidimensional arrays
   - Function pointers, complex declarations
+  - Pointer to pointer, command-line args, dynamic arrays
+  - Const pointers, void pointers
 - ✅ Chapter 6 (Structures): 10/25 examples (40%) ⭐ CRITICAL
   - Basic structures, structure functions, pointers to structures
   - Arrays of structures, self-referential structures
@@ -98,10 +102,10 @@ cargo test --test validation_harness -- --nocapture > reports/validation_report.
 
 **Pending Extraction**:
 - ⏳ Chapter 1: 10 more examples
-- ⏳ Chapter 2: 20 more examples
+- ⏳ Chapter 2: 15 more examples
 - ⏳ Chapter 3: 10 more examples
 - ⏳ Chapter 4: 25 more examples
-- ⏳ Chapter 5: 30 more examples
+- ⏳ Chapter 5: 25 more examples
 - ⏳ Chapter 6: 15 more examples
 - ⏳ Chapter 7: 20 more examples
 - ⏳ Chapter 8: 10 more examples
