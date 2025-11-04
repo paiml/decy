@@ -52,27 +52,33 @@ cargo test --test validation_harness -- --nocapture > reports/validation_report.
 
 ## Current Status (DECY-069)
 
-**Phase 1: EXTRACTION** - Progress: 25/275 examples (9.1%)
+**Phase 1: EXTRACTION** - Progress: 35/275 examples (12.7%)
 
 **Completed Chapters**:
-- ✅ Chapter 1: 10/25 examples (40%)
+- ✅ Chapter 1 (Tutorial): 10/25 examples (40%)
   - Hello world, temperature tables, character I/O
   - Line/word counting, arrays, functions, character arrays
-- ✅ Chapter 2: 5/30 examples (16.7%)
+- ✅ Chapter 2 (Types, Operators): 5/30 examples (16.7%)
   - Data types, constants, arithmetic operators
   - Relational/logical operators, increment/decrement
-- ✅ Chapter 3: 5/20 examples (25%)
+- ✅ Chapter 3 (Control Flow): 5/20 examples (25%)
   - If-else, switch, while/for/do-while loops
-- ✅ Chapter 4: 5/35 examples (14.3%)
+- ✅ Chapter 4 (Functions, Program Structure): 5/35 examples (14.3%)
   - Global variables, static variables, external arrays
   - Const variables, storage class interaction
+- ✅ Chapter 5 (Pointers and Arrays): 10/40 examples (25%) ⭐ CRITICAL
+  - Pointer basics, pointer arithmetic, pointer functions
+  - String operations (strlen, strcpy, strcmp)
+  - Array of pointers, multidimensional arrays
+  - Function pointers, complex declarations
 
 **Pending Extraction**:
 - ⏳ Chapter 1: 15 more examples
 - ⏳ Chapter 2: 25 more examples
 - ⏳ Chapter 3: 15 more examples
 - ⏳ Chapter 4: 30 more examples
-- ⏳ Chapters 5-8: 175 examples
+- ⏳ Chapter 5: 30 more examples
+- ⏳ Chapters 6-8: 110 examples
 - ⏳ C99 spec: ~50 examples
 
 **Phase 2: INFRASTRUCTURE**
