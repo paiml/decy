@@ -6658,8 +6658,8 @@ integration_sprint_19:
       risk: "Low - additive to existing parser logic"
 
     DECY-067:
-      title: "Publish Decy v1.0.0 to crates.io"
-      type: release
+      title: "Prepare Decy v1.0.0 for Friday crates.io release"
+      type: release_preparation
       priority: high
       story_points: 5
       assignee: Claude
@@ -6667,12 +6667,16 @@ integration_sprint_19:
       github_issue: null
       phase: GREEN
       started_date: "2025-11-04"
+      target_release_date: "Friday (next)"
 
       description: |
-        Publish Decy v1.0.0 to crates.io following the successful completion
-        of Core Safety Validation Mission.
+        Prepare Decy v1.0.0 for crates.io release on Friday, following the
+        project's FRIDAY-ONLY release policy (see CLAUDE.md Release Policy).
 
-        This release includes:
+        NOTE: This ticket is PREPARATION ONLY. Actual publication to crates.io
+        happens ONLY on Friday. Today (Monday 2025-11-04) we validate readiness.
+
+        This release will include:
         - Complete C-to-Rust transpilation pipeline
         - Parser with clang-sys (89.60% coverage)
         - HIR with type system (100% coverage)
@@ -6706,31 +6710,38 @@ integration_sprint_19:
         - decy (CLI binary, depends on all)
 
       acceptance_criteria:
-        - All 13 crates published to crates.io
-        - `cargo install decy` works for users
-        - Documentation links work on docs.rs
-        - README badges show correct version
-        - 0 clippy warnings
-        - All tests pass
+        - All 13 crates pass `cargo publish --dry-run` ✅
+        - Quality gates pass with 0 warnings ✅
+        - All Cargo.toml metadata verified ✅
+        - CHANGELOG.md updated with v1.0.0 changes
+        - README.md prepared for crates.io links
+        - Release checklist documented for Friday
+        - Friday-only policy added to CLAUDE.md ✅
 
       test_strategy: |
-        GREEN Phase (no RED phase - this is a release task):
+        GREEN Phase (Preparation - NO ACTUAL PUBLISHING):
         - Run `cargo publish --dry-run` for each crate
         - Verify metadata is complete and correct
         - Check dependency versions are consistent
-        - Publish in dependency order
-        - Test installation: `cargo install decy`
+        - Test that quality gates pass
+        - Document Friday release checklist
 
-        REFACTOR Phase:
-        - Update README with crates.io links
-        - Update documentation
+        FRIDAY (Actual Release):
+        - Follow CLAUDE.md Release Policy → Friday Release Checklist
+        - Publish in dependency order
         - Create GitHub release v1.0.0
-        - Update roadmap status
+        - Update roadmap status to DONE
 
       dependencies:
         - DECY-066 (complete) ✅
         - Quality gates passing ✅
         - decy-debugger Cargo.toml fixed (commit def1ea8) ✅
+        - Friday-only release policy established ✅
 
-      impact: "Makes Decy publicly available to Rust community"
-      risk: "Low - v1.0.0 already validated and tested"
+      release_policy_note: |
+        ⚠️ CRITICAL: Actual crates.io publication happens ONLY on FRIDAY.
+        This ticket validates readiness Monday-Thursday.
+        See CLAUDE.md → Release Policy for full details.
+
+      impact: "Prepares v1.0.0 for public release (Friday only)"
+      risk: "Low - preparation only, no live changes"
