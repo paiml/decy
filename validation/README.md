@@ -52,7 +52,7 @@ cargo test --test validation_harness -- --nocapture > reports/validation_report.
 
 ## Current Status (DECY-069)
 
-**Phase 1: EXTRACTION** - Progress: 35/275 examples (12.7%)
+**Phase 1: EXTRACTION** - Progress: 55/275 examples (20.0%)
 
 **Completed Chapters**:
 - ✅ Chapter 1 (Tutorial): 10/25 examples (40%)
@@ -71,6 +71,16 @@ cargo test --test validation_harness -- --nocapture > reports/validation_report.
   - String operations (strlen, strcpy, strcmp)
   - Array of pointers, multidimensional arrays
   - Function pointers, complex declarations
+- ✅ Chapter 6 (Structures): 10/25 examples (40%) ⭐ CRITICAL
+  - Basic structures, structure functions, pointers to structures
+  - Arrays of structures, self-referential structures
+  - Typedef, unions, bit-fields
+  - Structure initialization and assignment
+- ✅ Chapter 7 (Input and Output): 10/30 examples (33.3%)
+  - Character I/O (getchar, putchar), formatted output (printf)
+  - Formatted input (scanf), file operations (fopen, fclose)
+  - Error handling (stderr, exit), line I/O (fgets, fputs)
+  - String formatting (sprintf, sscanf), file positioning (fseek, ftell)
 
 **Pending Extraction**:
 - ⏳ Chapter 1: 15 more examples
@@ -78,7 +88,9 @@ cargo test --test validation_harness -- --nocapture > reports/validation_report.
 - ⏳ Chapter 3: 15 more examples
 - ⏳ Chapter 4: 30 more examples
 - ⏳ Chapter 5: 30 more examples
-- ⏳ Chapters 6-8: 110 examples
+- ⏳ Chapter 6: 15 more examples
+- ⏳ Chapter 7: 20 more examples
+- ⏳ Chapter 8: 20 examples
 - ⏳ C99 spec: ~50 examples
 
 **Phase 2: INFRASTRUCTURE**
