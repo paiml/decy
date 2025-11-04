@@ -6752,10 +6752,11 @@ integration_sprint_19:
       priority: high
       story_points: 8
       assignee: Claude
-      status: not_started
+      status: in_progress
       github_issue: null
       phase: RED
       sprint: "Sprint 20 (Validation & Integration)"
+      started_date: "2025-11-04"
 
       description: |
         Complete the integration of Sprint 19 parser features by implementing
