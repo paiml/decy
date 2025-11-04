@@ -6904,10 +6904,11 @@ integration_sprint_19:
       priority: high
       story_points: 13
       assignee: Claude
-      status: not_started
+      status: in_progress
       github_issue: null
-      phase: RED
+      phase: "Phase 1 - EXTRACTION"
       sprint: "Sprint 20 (Validation & Integration)"
+      started_date: "2025-11-04"
 
       description: |
         Comprehensive validation of Decy transpiler against canonical C book examples
