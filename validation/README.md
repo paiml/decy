@@ -52,7 +52,7 @@ cargo test --test validation_harness -- --nocapture > reports/validation_report.
 
 ## Current Status (DECY-069)
 
-**Phase 1: EXTRACTION** - Progress: 75/275 examples (27.3%)
+**Phase 1: EXTRACTION** - Progress: 85/275 examples (30.9%)
 
 **Completed Chapters**:
 - ✅ Chapter 1 (Tutorial): 15/25 examples (60%)
@@ -65,11 +65,15 @@ cargo test --test validation_harness -- --nocapture > reports/validation_report.
   - Relational/logical operators, increment/decrement
   - Bitwise operators, assignment operators, conditional expression
   - Type conversions, sizeof operator
-- ✅ Chapter 3 (Control Flow): 5/20 examples (25%)
+- ✅ Chapter 3 (Control Flow): 10/20 examples (50%)
   - If-else, switch, while/for/do-while loops
-- ✅ Chapter 4 (Functions, Program Structure): 5/35 examples (14.3%)
+  - Binary search, do-while loops, break/continue
+  - Goto and labels, nested loops
+- ✅ Chapter 4 (Functions, Program Structure): 10/35 examples (28.6%)
   - Global variables, static variables, external arrays
   - Const variables, storage class interaction
+  - Recursive functions, static local variables, register variables
+  - Scope rules, header files usage
 - ✅ Chapter 5 (Pointers and Arrays): 10/40 examples (25%) ⭐ CRITICAL
   - Pointer basics, pointer arithmetic, pointer functions
   - String operations (strlen, strcpy, strcmp)
@@ -95,8 +99,8 @@ cargo test --test validation_harness -- --nocapture > reports/validation_report.
 **Pending Extraction**:
 - ⏳ Chapter 1: 10 more examples
 - ⏳ Chapter 2: 20 more examples
-- ⏳ Chapter 3: 15 more examples
-- ⏳ Chapter 4: 30 more examples
+- ⏳ Chapter 3: 10 more examples
+- ⏳ Chapter 4: 25 more examples
 - ⏳ Chapter 5: 30 more examples
 - ⏳ Chapter 6: 15 more examples
 - ⏳ Chapter 7: 20 more examples
