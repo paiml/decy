@@ -52,7 +52,7 @@ cargo test --test validation_harness -- --nocapture > reports/validation_report.
 
 ## Current Status (DECY-069)
 
-**Phase 1: EXTRACTION** - Progress: 55/275 examples (20.0%)
+**Phase 1: EXTRACTION** - Progress: 65/275 examples (23.6%)
 
 **Completed Chapters**:
 - ✅ Chapter 1 (Tutorial): 10/25 examples (40%)
@@ -81,6 +81,12 @@ cargo test --test validation_harness -- --nocapture > reports/validation_report.
   - Formatted input (scanf), file operations (fopen, fclose)
   - Error handling (stderr, exit), line I/O (fgets, fputs)
   - String formatting (sprintf, sscanf), file positioning (fseek, ftell)
+- ✅ Chapter 8 (UNIX System Interface): 10/20 examples (50%) ⚠️ PLATFORM-SPECIFIC
+  - File descriptors, low-level I/O (read, write, open, close)
+  - File creation (creat), deletion (unlink), positioning (lseek)
+  - Error handling (errno, perror), file info (stat)
+  - Directory operations (opendir, readdir), fd duplication (dup, dup2)
+  - Storage allocator example (malloc concept)
 
 **Pending Extraction**:
 - ⏳ Chapter 1: 15 more examples
@@ -90,7 +96,7 @@ cargo test --test validation_harness -- --nocapture > reports/validation_report.
 - ⏳ Chapter 5: 30 more examples
 - ⏳ Chapter 6: 15 more examples
 - ⏳ Chapter 7: 20 more examples
-- ⏳ Chapter 8: 20 examples
+- ⏳ Chapter 8: 10 more examples
 - ⏳ C99 spec: ~50 examples
 
 **Phase 2: INFRASTRUCTURE**
