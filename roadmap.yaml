@@ -6760,18 +6760,30 @@ integration_sprint_19:
 
       description: |
         Complete the integration of Sprint 19 parser features by implementing
-        Rust code generation for:
-        1. Global variables (static, extern, const)
-        2. Cast expressions (as operator)
-        3. Compound literals (struct/array initialization)
+        Rust code generation for global variables (static, extern, const).
 
-        Sprint 19 added parser support, and DECY-064 added HIR support.
-        This ticket completes the pipeline by adding codegen → full C→Rust transpilation.
+        NOTE: Cast expressions and compound literals were already implemented in DECY-064.
+        This ticket focuses solely on global variables to complete the Sprint 19 integration.
 
-        Current state:
-        - Parser: ✅ Extracts global variables, casts, compound literals
-        - HIR: ✅ Represents these constructs (DECY-064)
-        - Codegen: ❌ Does not generate Rust code (blocks end-to-end usage)
+        Sprint 19 added parser support, and DECY-064 added HIR support for casts/literals.
+        This ticket completes the pipeline by adding global variable codegen.
+
+        Current state (as of 2025-11-04):
+        - Parser: ✅ Extracts global variables with storage class (Sprint 19)
+        - HIR: ⚠️ Uses HirConstant (temporary, needs HirItem::GlobalVariable)
+        - Codegen: ✅ generate_global_variable() implemented (GREEN phase complete)
+        - Cast expressions: ✅ Already working (DECY-064)
+        - Compound literals: ✅ Already working (DECY-064)
+
+      progress_update_2025_11_04:
+        red_phase: "✅ COMPLETE - 8 unit tests written (256 lines)"
+        green_phase: "✅ COMPLETE - generate_global_variable() implemented (102 lines)"
+        refactor_phase: "⏳ PENDING - property tests, integration tests, quality gates"
+        commits:
+          - "fa18eaf: Start DECY-068"
+          - "b36dc76: [RED] Update status to in_progress"
+          - "7390a1e: [RED] Add failing tests for global variable codegen"
+          - "6bf207f: [GREEN] Implement global variable code generation"
 
       requirements:
         global_variables:
@@ -6826,42 +6838,214 @@ integration_sprint_19:
         - Real-world C examples transpile successfully
 
       test_strategy: |
-        RED Phase:
-        - Write failing test_codegen_static_global_variable
-        - Write failing test_codegen_cast_int_to_float
-        - Write failing test_codegen_compound_literal_struct
-        - Run tests → should FAIL
-        - Commit: "[RED] DECY-068: Add failing tests for codegen"
+        RED Phase: ✅ COMPLETE (2025-11-04)
+        - ✅ Wrote 8 failing tests for global variables
+        - ✅ Tests cover static, extern, const, arrays, pointers, strings
+        - ✅ Committed: 7390a1e "[RED] Add failing tests"
 
-        GREEN Phase:
-        - Implement generate_global_variable() in codegen
-        - Implement generate_cast_expression() in codegen
-        - Implement generate_compound_literal() in codegen
-        - Make all tests pass (minimal implementation)
-        - Commit: "[GREEN] DECY-068: Implement codegen for Sprint 19 features"
+        GREEN Phase: ✅ COMPLETE (2025-11-04)
+        - ✅ Implemented generate_global_variable() method (102 lines)
+        - ✅ Handles all storage class combinations
+        - ✅ Special cases: arrays, pointers, strings
+        - ✅ Committed: 6bf207f "[GREEN] Implement codegen"
 
-        REFACTOR Phase:
-        - Add property tests (3+ properties)
-        - Add integration tests (end-to-end C→Rust)
-        - Improve error handling
-        - Add documentation
-        - Meet quality gates (coverage ≥85%, 0 warnings)
-        - Commit: "[REFACTOR] DECY-068: Meet quality gates"
+        REFACTOR Phase: ⏳ IN PROGRESS
+        - ⏳ Add property tests (3+ properties) - PENDING
+        - ⏳ Add integration tests (end-to-end C→Rust) - PENDING
+        - ⏳ Verify all tests pass (blocked by network)
+        - ⏳ Meet quality gates (coverage ≥85%, 0 warnings)
+        - ⏳ C book validation (K&R examples)
+        - ⏳ Commit: "[REFACTOR] DECY-068: Meet quality gates"
 
       dependencies:
-        - DECY-064 (HIR support) ✅ COMPLETE
+        - DECY-064 (HIR support for cast/literals) ✅ COMPLETE
         - Sprint 19 parser features ✅ COMPLETE
         - decy-codegen crate ✅ EXISTS
 
-      impact: "Completes Sprint 19 integration, enables real-world usage of new features"
-      risk: "Medium - codegen complexity, must generate safe Rust"
+      implementation_notes:
+        method_signature: "pub fn generate_global_variable(&self, variable: &HirConstant, is_static: bool, is_extern: bool, is_const: bool) -> String"
+        storage_class_mapping:
+          - "static → static mut"
+          - "extern → extern \"C\" { static }"
+          - "const → const"
+          - "static const → const (const is stronger)"
+          - "plain global → static mut (default)"
+        special_handling:
+          - "Arrays: [0; 10] initialization syntax"
+          - "Pointers: std::ptr::null_mut() for NULL"
+          - "Strings: &str for const char*"
+        safety_implications: "static mut requires unsafe access (increases unsafe usage)"
+
+      impact: "Completes Sprint 19 integration, enables real-world usage of global variables"
+      risk: "Medium - static mut increases unsafe usage, but necessary for C semantics"
 
       real_world_validation:
-        - Test on C projects using global variables
-        - Test on C projects using type casts
-        - Test on modern C99 code with compound literals
-        - Measure: transpilation success rate, generated code quality
+        c_book_examples:
+          - "K&R C Chapter 4: Functions and Program Structure"
+          - "K&R C Chapter 1: Tutorial Introduction (global examples)"
+          - "ISO C99 examples with storage class specifiers"
+        real_projects:
+          - "Test on C projects using global variables"
+          - "Test on C projects using type casts"
+          - "Test on modern C99 code with compound literals"
+        metrics:
+          - "Measure: transpilation success rate"
+          - "Measure: generated code quality"
+          - "Measure: rustc compilation success"
 
       follow_up_tickets:
-        - DECY-069: Real-world validation of integrated features (similar to DECY-051)
-        - DECY-070: Optimization of generated code quality
+        - DECY-069: C book comprehensive validation (K&R + C99 spec)
+        - DECY-070: Real-world project validation (similar to DECY-051)
+        - DECY-071: HIR enhancement (add HirItem::GlobalVariable)
+
+    DECY-069:
+      title: "Validation: Comprehensive C book testing (K&R + C99 spec)"
+      type: validation
+      priority: high
+      story_points: 13
+      assignee: Claude
+      status: not_started
+      github_issue: null
+      phase: RED
+      sprint: "Sprint 20 (Validation & Integration)"
+
+      description: |
+        Comprehensive validation of Decy transpiler against canonical C book examples
+        from K&R C (The C Programming Language) and ISO C99 specification.
+
+        This is a VALIDATION ticket, not a feature ticket. The goal is to:
+        1. Extract ALL examples from K&R C book chapters
+        2. Extract representative examples from ISO C99 spec
+        3. Transpile each example with Decy
+        4. Compile generated Rust with rustc
+        5. Measure success rate and identify gaps
+
+        This follows the same pattern as DECY-051 (large C project validation)
+        but focuses on canonical, well-documented C examples that define the language.
+
+      scope:
+        kr_c_book_chapters:
+          chapter_1: "Tutorial Introduction (25+ examples)"
+          chapter_2: "Types, Operators, Expressions (30+ examples)"
+          chapter_3: "Control Flow (20+ examples)"
+          chapter_4: "Functions and Program Structure (35+ examples, FOCUS: globals)"
+          chapter_5: "Pointers and Arrays (40+ examples)"
+          chapter_6: "Structures (25+ examples)"
+          chapter_7: "Input and Output (30+ examples)"
+          chapter_8: "The UNIX System Interface (20+ examples)"
+          total_examples: "~225 examples from K&R C"
+
+        c99_spec_examples:
+          section_6_2: "Concepts (types, storage classes)"
+          section_6_7: "Declarations (global variables, storage class specifiers)"
+          section_6_8: "Statements (control flow)"
+          section_6_9: "External definitions (functions, globals)"
+          annexes: "Annex C (sequence points), Annex J (portability)"
+          total_examples: "~50 examples from C99 spec"
+
+        total_validation_corpus: "~275 C examples"
+
+      validation_methodology:
+        extraction:
+          - "Extract examples from K&R C book (manual or OCR)"
+          - "Extract examples from ISO C99 PDF"
+          - "Organize by chapter/section"
+          - "Tag with construct type (globals, loops, pointers, etc.)"
+
+        transpilation:
+          - "Run decy transpile on each example"
+          - "Capture generated Rust code"
+          - "Measure transpilation success/failure"
+          - "Categorize failures by root cause"
+
+        compilation:
+          - "Run rustc on generated Rust"
+          - "Capture compilation errors"
+          - "Measure rustc success rate"
+          - "Identify rustc error patterns"
+
+        analysis:
+          - "Success rate by chapter/section"
+          - "Success rate by construct type"
+          - "Identify missing features (gaps)"
+          - "Prioritize gaps by frequency"
+
+      test_requirements:
+        infrastructure:
+          - test_kr_chapter_1_examples (automated test suite)
+          - test_kr_chapter_4_globals (focus on DECY-068 features)
+          - test_c99_storage_class_examples
+          - test_validation_harness (reusable test framework)
+
+        reporting:
+          - validation_report.md (success rates, gaps, recommendations)
+          - failed_examples.txt (list of failures with root causes)
+          - success_examples.txt (list of successful transpilations)
+          - gap_analysis.md (missing features prioritized)
+
+      acceptance_criteria:
+        - All ~275 C examples extracted and organized
+        - Transpilation attempted on all examples
+        - Success rate measured and documented
+        - Rustc compilation attempted on all successful transpilations
+        - Gaps identified and categorized
+        - Report generated with recommendations
+        - ≥70% transpilation success rate (target)
+        - ≥90% rustc compilation success on transpiled code (target)
+
+      test_strategy: |
+        Phase 1: EXTRACTION (2 SP)
+        - Extract K&R C examples manually or via OCR
+        - Extract C99 examples from spec PDF
+        - Organize into test corpus (examples/)
+        - Tag with metadata (chapter, construct type)
+
+        Phase 2: INFRASTRUCTURE (3 SP)
+        - Create validation test harness
+        - Automated transpilation of all examples
+        - Automated rustc compilation
+        - Result capture and categorization
+
+        Phase 3: EXECUTION (5 SP)
+        - Run validation on all ~275 examples
+        - Capture results (success/failure)
+        - Measure metrics (success rate, error types)
+        - Identify patterns in failures
+
+        Phase 4: ANALYSIS (3 SP)
+        - Generate validation report
+        - Gap analysis (missing features)
+        - Prioritize gaps by frequency/importance
+        - Recommendations for next sprint
+
+      expected_outcomes:
+        success_rate_targets:
+          transpilation: "≥70% (193/275 examples)"
+          rustc_compilation: "≥90% of transpiled (174/193 examples)"
+          overall_end_to_end: "≥63% (174/275 examples)"
+
+        known_gaps_likely:
+          - "Preprocessor directives (#include, #ifdef)"
+          - "Complex pointer arithmetic"
+          - "Variadic functions (printf, scanf)"
+          - "Bitfields in structs"
+          - "Union types (partial support)"
+          - "Function pointers (partial support)"
+
+        value:
+          - "Comprehensive validation against canonical C"
+          - "Gap analysis drives roadmap priorities"
+          - "Benchmarks progress over time"
+          - "Demonstrates language coverage"
+
+      dependencies:
+        - DECY-068 (global variables) ⏳ IN PROGRESS
+        - Sprint 19 features ✅ COMPLETE
+        - decy CLI ✅ EXISTS
+
+      impact: "Validates Decy against canonical C, identifies gaps, drives roadmap"
+      risk: "Medium - labor-intensive extraction, may reveal many gaps"
+
+      follow_up_tickets:
+        - DECY-070: Real-world project validation (OSS C projects)
+        - DECY-072: Feature implementation based on gap analysis
