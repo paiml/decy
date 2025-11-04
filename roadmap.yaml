@@ -6656,3 +6656,81 @@ integration_sprint_19:
 
       impact: "Unblocks printf, free, and all standalone function call transpilation"
       risk: "Low - additive to existing parser logic"
+
+    DECY-067:
+      title: "Publish Decy v1.0.0 to crates.io"
+      type: release
+      priority: high
+      story_points: 5
+      assignee: Claude
+      status: in_progress
+      github_issue: null
+      phase: GREEN
+      started_date: "2025-11-04"
+
+      description: |
+        Publish Decy v1.0.0 to crates.io following the successful completion
+        of Core Safety Validation Mission.
+
+        This release includes:
+        - Complete C-to-Rust transpilation pipeline
+        - Parser with clang-sys (89.60% coverage)
+        - HIR with type system (100% coverage)
+        - Ownership inference (94.3% coverage)
+        - Lifetime analysis (94.3% coverage)
+        - Code generation with <5 unsafe blocks per 1000 LOC
+        - Comprehensive safety validation (use-after-free, buffer overflow, etc.)
+        - CLI tool with project-level transpilation
+        - Debugger integration for pipeline introspection
+        - 95%+ test coverage maintained
+
+      requirements:
+        - All crates have correct Cargo.toml metadata (version, description, license, etc.)
+        - All crates pass `cargo publish --dry-run`
+        - Quality gates pass (tests, clippy, coverage)
+        - Publish in correct dependency order (core → parser → hir → analyzer → etc.)
+
+      crates_to_publish:
+        - decy-parser (foundational, uses clang-sys)
+        - decy-hir (depends on parser)
+        - decy-analyzer (depends on hir)
+        - decy-ownership (depends on analyzer)
+        - decy-verify (depends on ownership)
+        - decy-codegen (depends on verify)
+        - decy-core (orchestrates all above)
+        - decy-book (verification)
+        - decy-agent (background daemon)
+        - decy-mcp (MCP server)
+        - decy-repo (project transpilation)
+        - decy-debugger (introspection, depends on parser/hir)
+        - decy (CLI binary, depends on all)
+
+      acceptance_criteria:
+        - All 13 crates published to crates.io
+        - `cargo install decy` works for users
+        - Documentation links work on docs.rs
+        - README badges show correct version
+        - 0 clippy warnings
+        - All tests pass
+
+      test_strategy: |
+        GREEN Phase (no RED phase - this is a release task):
+        - Run `cargo publish --dry-run` for each crate
+        - Verify metadata is complete and correct
+        - Check dependency versions are consistent
+        - Publish in dependency order
+        - Test installation: `cargo install decy`
+
+        REFACTOR Phase:
+        - Update README with crates.io links
+        - Update documentation
+        - Create GitHub release v1.0.0
+        - Update roadmap status
+
+      dependencies:
+        - DECY-066 (complete) ✅
+        - Quality gates passing ✅
+        - decy-debugger Cargo.toml fixed (commit def1ea8) ✅
+
+      impact: "Makes Decy publicly available to Rust community"
+      risk: "Low - v1.0.0 already validated and tested"
