@@ -2586,3 +2586,7 @@ mod switch_codegen_tests;
 #[cfg(test)]
 #[path = "switch_property_tests.rs"]
 mod switch_property_tests;
+
+#[cfg(test)]
+#[path = "global_variable_codegen_tests.rs"]
+mod global_variable_codegen_tests;
