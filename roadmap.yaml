@@ -6745,3 +6745,122 @@ integration_sprint_19:
 
       impact: "Prepares v1.0.0 for public release (Friday only)"
       risk: "Low - preparation only, no live changes"
+
+    DECY-068:
+      title: "Codegen: Generate Rust code for Sprint 19 parser features"
+      type: feature
+      priority: high
+      story_points: 8
+      assignee: Claude
+      status: not_started
+      github_issue: null
+      phase: RED
+      sprint: "Sprint 20 (Validation & Integration)"
+
+      description: |
+        Complete the integration of Sprint 19 parser features by implementing
+        Rust code generation for:
+        1. Global variables (static, extern, const)
+        2. Cast expressions (as operator)
+        3. Compound literals (struct/array initialization)
+
+        Sprint 19 added parser support, and DECY-064 added HIR support.
+        This ticket completes the pipeline by adding codegen → full C→Rust transpilation.
+
+        Current state:
+        - Parser: ✅ Extracts global variables, casts, compound literals
+        - HIR: ✅ Represents these constructs (DECY-064)
+        - Codegen: ❌ Does not generate Rust code (blocks end-to-end usage)
+
+      requirements:
+        global_variables:
+          - Generate `static mut` for static variables
+          - Generate `const` for const variables
+          - Generate `extern` declarations for extern variables
+          - Handle storage class specifiers correctly
+          - Add `unsafe` block for static mut access
+
+        cast_expressions:
+          - Generate `expr as Type` for C casts
+          - Map C types to Rust types correctly
+          - Handle pointer casts (e.g., void* → *mut T)
+          - Preserve cast safety warnings in comments
+
+        compound_literals:
+          - Generate struct initialization: `StructName { field: value }`
+          - Generate array initialization: `[value1, value2, ...]`
+          - Handle nested compound literals
+          - Support C99 designated initializers
+
+      test_requirements:
+        unit_tests:
+          - test_codegen_static_global_variable
+          - test_codegen_extern_global_variable
+          - test_codegen_const_global_variable
+          - test_codegen_cast_int_to_float
+          - test_codegen_cast_pointer_type
+          - test_codegen_compound_literal_struct
+          - test_codegen_compound_literal_array
+          - test_codegen_nested_compound_literal
+
+        integration_tests:
+          - test_end_to_end_global_variables
+          - test_end_to_end_cast_expressions
+          - test_end_to_end_compound_literals
+          - test_real_world_c_with_globals_and_casts
+
+        property_tests:
+          - property_global_variable_names_preserved
+          - property_cast_types_valid
+          - property_compound_literals_compile
+
+      acceptance_criteria:
+        - Codegen generates valid Rust for global variables
+        - Codegen generates valid Rust for cast expressions
+        - Codegen generates valid Rust for compound literals
+        - Generated code compiles with rustc
+        - Coverage ≥85% for new codegen functions
+        - 0 clippy warnings
+        - All integration tests pass
+        - Real-world C examples transpile successfully
+
+      test_strategy: |
+        RED Phase:
+        - Write failing test_codegen_static_global_variable
+        - Write failing test_codegen_cast_int_to_float
+        - Write failing test_codegen_compound_literal_struct
+        - Run tests → should FAIL
+        - Commit: "[RED] DECY-068: Add failing tests for codegen"
+
+        GREEN Phase:
+        - Implement generate_global_variable() in codegen
+        - Implement generate_cast_expression() in codegen
+        - Implement generate_compound_literal() in codegen
+        - Make all tests pass (minimal implementation)
+        - Commit: "[GREEN] DECY-068: Implement codegen for Sprint 19 features"
+
+        REFACTOR Phase:
+        - Add property tests (3+ properties)
+        - Add integration tests (end-to-end C→Rust)
+        - Improve error handling
+        - Add documentation
+        - Meet quality gates (coverage ≥85%, 0 warnings)
+        - Commit: "[REFACTOR] DECY-068: Meet quality gates"
+
+      dependencies:
+        - DECY-064 (HIR support) ✅ COMPLETE
+        - Sprint 19 parser features ✅ COMPLETE
+        - decy-codegen crate ✅ EXISTS
+
+      impact: "Completes Sprint 19 integration, enables real-world usage of new features"
+      risk: "Medium - codegen complexity, must generate safe Rust"
+
+      real_world_validation:
+        - Test on C projects using global variables
+        - Test on C projects using type casts
+        - Test on modern C99 code with compound literals
+        - Measure: transpilation success rate, generated code quality
+
+      follow_up_tickets:
+        - DECY-069: Real-world validation of integrated features (similar to DECY-051)
+        - DECY-070: Optimization of generated code quality
