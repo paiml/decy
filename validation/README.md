@@ -52,7 +52,7 @@ cargo test --test validation_harness -- --nocapture > reports/validation_report.
 
 ## Current Status (DECY-069)
 
-**Phase 1: EXTRACTION** - Progress: 95/275 examples (34.5%)
+**Phase 1: EXTRACTION** - Progress: 100/275 examples (36.4%) 🎯 **MILESTONE REACHED!**
 
 **Completed Chapters**:
 - ✅ Chapter 1 (Tutorial): 15/25 examples (60%)
@@ -76,18 +76,20 @@ cargo test --test validation_harness -- --nocapture > reports/validation_report.
   - Const variables, storage class interaction
   - Recursive functions, static local variables, register variables
   - Scope rules, header files usage
-- ✅ Chapter 5 (Pointers and Arrays): 15/40 examples (37.5%) ⭐ CRITICAL
+- ✅ Chapter 5 (Pointers and Arrays): 18/40 examples (45%) ⭐ CRITICAL
   - Pointer basics, pointer arithmetic, pointer functions
   - String operations (strlen, strcpy, strcmp)
   - Array of pointers, multidimensional arrays
   - Function pointers, complex declarations
   - Pointer to pointer, command-line args, dynamic arrays
   - Const pointers, void pointers
-- ✅ Chapter 6 (Structures): 10/25 examples (40%) ⭐ CRITICAL
+  - Pointers vs. multidimensional arrays, complex declarations, aliasing
+- ✅ Chapter 6 (Structures): 12/25 examples (48%) ⭐ CRITICAL
   - Basic structures, structure functions, pointers to structures
   - Arrays of structures, self-referential structures
   - Typedef, unions, bit-fields
   - Structure initialization and assignment
+  - Nested structures, structure padding/alignment
 - ✅ Chapter 7 (Input and Output): 10/30 examples (33.3%)
   - Character I/O (getchar, putchar), formatted output (printf)
   - Formatted input (scanf), file operations (fopen, fclose)
@@ -105,11 +107,17 @@ cargo test --test validation_harness -- --nocapture > reports/validation_report.
 - ⏳ Chapter 2: 15 more examples
 - ⏳ Chapter 3: 10 more examples
 - ⏳ Chapter 4: 25 more examples
-- ⏳ Chapter 5: 25 more examples
-- ⏳ Chapter 6: 15 more examples
+- ⏳ Chapter 5: 22 more examples (CRITICAL - ownership inference testing)
+- ⏳ Chapter 6: 13 more examples (CRITICAL - codegen testing)
 - ⏳ Chapter 7: 20 more examples
 - ⏳ Chapter 8: 10 more examples
 - ⏳ C99 spec: ~50 examples
+
+**Milestone Achievements**:
+- ✅ 100 examples extracted (36.4% of target)
+- ✅ Chapter 5 at 45% (strong pointer coverage for ownership inference)
+- ✅ Chapter 6 at 48% (strong structure coverage for codegen)
+- ✅ All 8 K&R chapters represented
 
 **Phase 2: INFRASTRUCTURE**
 - ⏳ Validation harness (automated testing)
