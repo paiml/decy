@@ -52,15 +52,19 @@ cargo test --test validation_harness -- --nocapture > reports/validation_report.
 
 ## Current Status (DECY-069)
 
-**Phase 1: EXTRACTION** - Progress: 65/275 examples (23.6%)
+**Phase 1: EXTRACTION** - Progress: 75/275 examples (27.3%)
 
 **Completed Chapters**:
-- ✅ Chapter 1 (Tutorial): 10/25 examples (40%)
+- ✅ Chapter 1 (Tutorial): 15/25 examples (60%)
   - Hello world, temperature tables, character I/O
   - Line/word counting, arrays, functions, character arrays
-- ✅ Chapter 2 (Types, Operators): 5/30 examples (16.7%)
+  - Longest line program, external variables, reverse input
+  - Symbolic constants, tab expansion (detab)
+- ✅ Chapter 2 (Types, Operators): 10/30 examples (33.3%)
   - Data types, constants, arithmetic operators
   - Relational/logical operators, increment/decrement
+  - Bitwise operators, assignment operators, conditional expression
+  - Type conversions, sizeof operator
 - ✅ Chapter 3 (Control Flow): 5/20 examples (25%)
   - If-else, switch, while/for/do-while loops
 - ✅ Chapter 4 (Functions, Program Structure): 5/35 examples (14.3%)
@@ -89,8 +93,8 @@ cargo test --test validation_harness -- --nocapture > reports/validation_report.
   - Storage allocator example (malloc concept)
 
 **Pending Extraction**:
-- ⏳ Chapter 1: 15 more examples
-- ⏳ Chapter 2: 25 more examples
+- ⏳ Chapter 1: 10 more examples
+- ⏳ Chapter 2: 20 more examples
 - ⏳ Chapter 3: 15 more examples
 - ⏳ Chapter 4: 30 more examples
 - ⏳ Chapter 5: 30 more examples
