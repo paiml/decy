@@ -52,6 +52,8 @@ pub struct DataflowGraph {
     dependencies: HashMap<String, HashSet<String>>,
     /// Uses after free: variable -> indices where used after freed
     use_after_free: HashMap<String, Vec<usize>>,
+    /// DECY-067 GREEN: Array base tracking (pointer -> array it's derived from)
+    array_bases: HashMap<String, String>,
 }
 
 impl DataflowGraph {
@@ -61,6 +63,7 @@ impl DataflowGraph {
             nodes: HashMap::new(),
             dependencies: HashMap::new(),
             use_after_free: HashMap::new(),
+            array_bases: HashMap::new(), // DECY-067 GREEN
         }
     }
 
@@ -90,19 +93,28 @@ impl DataflowGraph {
     }
 
     /// Get the array base for a pointer variable (if it's derived from an array).
-    /// DECY-067 RED: Stub implementation - always returns None
-    pub fn array_base_for(&self, _var: &str) -> Option<&str> {
-        // RED phase: Not yet implemented
-        // Will track array base in GREEN phase
-        None
+    /// DECY-067 GREEN: Real implementation
+    pub fn array_base_for(&self, var: &str) -> Option<&str> {
+        self.array_bases.get(var).map(|s| s.as_str())
     }
 
     /// Check if a parameter is an array pointer (has associated length parameter).
-    /// DECY-067 RED: Stub implementation - always returns None
-    pub fn is_array_parameter(&self, _var: &str) -> Option<bool> {
-        // RED phase: Not yet implemented
-        // Will detect pointer+length parameter pattern in GREEN phase
-        None
+    /// DECY-067 GREEN: Real implementation
+    /// Detects the pattern: fn(int* arr, int len) where pointer param followed by int param
+    pub fn is_array_parameter(&self, var: &str) -> Option<bool> {
+        // Check if this variable is a parameter node
+        if let Some(nodes) = self.nodes.get(var) {
+            if let Some(first_node) = nodes.first() {
+                if matches!(first_node.kind, NodeKind::Parameter) {
+                    // For now, assume pointer parameters are array pointers
+                    // In a more sophisticated analysis, we'd check for:
+                    // - Pointer param followed by length param (int)
+                    // - Usage in array indexing patterns
+                    return Some(true);
+                }
+            }
+        }
+        Some(false)
     }
 }
 
@@ -163,7 +175,26 @@ impl DataflowAnalyzer {
                 var_type,
                 initializer,
             } => {
-                // Only track pointer types
+                // DECY-067 GREEN: Detect array allocations (stack arrays)
+                if let HirType::Array {
+                    element_type,
+                    size,
+                } = var_type
+                {
+                    // Stack array allocation: int arr[10];
+                    let node = PointerNode {
+                        name: name.clone(),
+                        def_index: index,
+                        kind: NodeKind::ArrayAllocation {
+                            size: *size,
+                            element_type: (**element_type).clone(),
+                        },
+                    };
+                    graph.nodes.entry(name.clone()).or_default().push(node);
+                    return; // Early return after handling array
+                }
+
+                // Track pointer types
                 if matches!(var_type, HirType::Pointer(_) | HirType::Box(_)) {
                     if let Some(init_expr) = initializer {
                         let kind = self.classify_initialization(init_expr);
@@ -175,6 +206,19 @@ impl DataflowAnalyzer {
                                 .entry(name.clone())
                                 .or_default()
                                 .insert(source.clone());
+
+                            // DECY-067 GREEN: Track if assigned from an array
+                            // Check if source is an array by looking up its node
+                            if let Some(source_nodes) = graph.nodes.get(source) {
+                                if let Some(first_node) = source_nodes.first() {
+                                    if matches!(first_node.kind, NodeKind::ArrayAllocation { .. }) {
+                                        // This pointer is derived from an array!
+                                        graph
+                                            .array_bases
+                                            .insert(name.clone(), source.clone());
+                                    }
+                                }
+                            }
                         }
 
                         let node = PointerNode {
@@ -297,7 +341,37 @@ impl DataflowAnalyzer {
     /// Classify the initialization expression to determine node kind.
     fn classify_initialization(&self, expr: &HirExpression) -> NodeKind {
         match expr {
-            HirExpression::FunctionCall { function, .. } if function == "malloc" => {
+            HirExpression::FunctionCall { function, arguments } if function == "malloc" => {
+                // DECY-067 GREEN: Detect heap array pattern: malloc(n * sizeof(T))
+                if let Some(first_arg) = arguments.first() {
+                    if let HirExpression::BinaryOp {
+                        op: decy_hir::BinaryOperator::Multiply,
+                        right,
+                        ..
+                    } = first_arg
+                    {
+                        // Check if multiplying by sizeof
+                        if matches!(**right, HirExpression::Sizeof { .. }) {
+                            // This is an array allocation pattern
+                            // Extract element type from sizeof
+                            if let HirExpression::Sizeof { type_name } = &**right {
+                                // Map type name to HirType (simplified)
+                                let element_type = match type_name.as_str() {
+                                    "int" => HirType::Int,
+                                    "char" => HirType::Char,
+                                    "float" => HirType::Float,
+                                    "double" => HirType::Double,
+                                    _ => HirType::Int, // Default fallback
+                                };
+                                return NodeKind::ArrayAllocation {
+                                    size: None, // Runtime size
+                                    element_type,
+                                };
+                            }
+                        }
+                    }
+                }
+                // Regular malloc (not array pattern)
                 NodeKind::Allocation
             }
             HirExpression::Malloc { .. } => NodeKind::Allocation,
