@@ -519,3 +519,310 @@ fn test_detect_multidimensional_array() {
         panic!("Expected ArrayAllocation for multidimensional array");
     }
 }
+// ============================================================================
+// DECY-071 Tests: Array Parameter Detection Heuristics
+// ============================================================================
+
+/// Test detection of array parameter with length: fn(int* arr, int len)
+#[test]
+#[ignore = "DECY-071 RED: Array parameter detection not yet implemented"]
+fn test_detect_array_parameter_with_length() {
+    // C: void process(int* arr, int len) { }
+    let func = HirFunction::new_with_body(
+        "process".to_string(),
+        HirType::Void,
+        vec![
+            HirParameter::new("arr".to_string(), HirType::Pointer(Box::new(HirType::Int))),
+            HirParameter::new("len".to_string(), HirType::Int),
+        ],
+        vec![],
+    );
+
+    let analyzer = DataflowAnalyzer::new();
+    let graph = analyzer.analyze(&func);
+
+    // Should detect arr as array parameter (has length param)
+    assert_eq!(
+        graph.is_array_parameter("arr"),
+        Some(true),
+        "Should detect arr as array parameter (followed by length param)"
+    );
+}
+
+/// Test detection of array parameter with size: fn(char* buf, size_t size)
+#[test]
+#[ignore = "DECY-071 RED: Array parameter detection not yet implemented"]
+fn test_detect_array_parameter_with_size() {
+    // C: void process(char* buf, size_t size) { }
+    let func = HirFunction::new_with_body(
+        "process".to_string(),
+        HirType::Void,
+        vec![
+            HirParameter::new("buf".to_string(), HirType::Pointer(Box::new(HirType::Char))),
+            HirParameter::new("size".to_string(), HirType::Int), // size_t → int
+        ],
+        vec![],
+    );
+
+    let analyzer = DataflowAnalyzer::new();
+    let graph = analyzer.analyze(&func);
+
+    // Should detect buf as array parameter (common naming: buf + size)
+    assert_eq!(
+        graph.is_array_parameter("buf"),
+        Some(true),
+        "Should detect buf as array parameter (common naming pattern)"
+    );
+}
+
+/// Test detection of array parameter with count: fn(int* array, int count)
+#[test]
+#[ignore = "DECY-071 RED: Array parameter detection not yet implemented"]
+fn test_detect_array_parameter_with_count() {
+    // C: void process(int* array, int count) { }
+    let func = HirFunction::new_with_body(
+        "process".to_string(),
+        HirType::Void,
+        vec![
+            HirParameter::new("array".to_string(), HirType::Pointer(Box::new(HirType::Int))),
+            HirParameter::new("count".to_string(), HirType::Int),
+        ],
+        vec![],
+    );
+
+    let analyzer = DataflowAnalyzer::new();
+    let graph = analyzer.analyze(&func);
+
+    // Should detect array as array parameter (name: array + count)
+    assert_eq!(
+        graph.is_array_parameter("array"),
+        Some(true),
+        "Should detect array as array parameter (array + count naming)"
+    );
+}
+
+/// Test NON-detection of single pointer: fn(int* ptr)
+#[test]
+fn test_no_detect_single_pointer_without_length() {
+    // C: void process(int* ptr) { }
+    let func = HirFunction::new_with_body(
+        "process".to_string(),
+        HirType::Void,
+        vec![HirParameter::new("ptr".to_string(), HirType::Pointer(Box::new(HirType::Int)))],
+        vec![],
+    );
+
+    let analyzer = DataflowAnalyzer::new();
+    let graph = analyzer.analyze(&func);
+
+    // Should NOT detect ptr as array parameter (no length param)
+    assert_eq!(
+        graph.is_array_parameter("ptr"),
+        Some(false),
+        "Should NOT detect ptr as array parameter (no length param)"
+    );
+}
+
+/// Test detection with array indexing in body: arr[i]
+#[test]
+#[ignore = "DECY-071 RED: Array parameter detection not yet implemented"]
+fn test_detect_array_parameter_with_indexing_usage() {
+    // C: void process(int* arr, int len) { arr[0] = 1; }
+    let func = HirFunction::new_with_body(
+        "process".to_string(),
+        HirType::Void,
+        vec![
+            HirParameter::new("arr".to_string(), HirType::Pointer(Box::new(HirType::Int))),
+            HirParameter::new("len".to_string(), HirType::Int),
+        ],
+        vec![HirStatement::ArrayIndexAssignment {
+            array: Box::new(HirExpression::Variable("arr".to_string())),
+            index: Box::new(HirExpression::IntLiteral(0)),
+            value: HirExpression::IntLiteral(1),
+        }],
+    );
+
+    let analyzer = DataflowAnalyzer::new();
+    let graph = analyzer.analyze(&func);
+
+    // Should detect arr as array parameter (indexing usage confirms)
+    assert_eq!(
+        graph.is_array_parameter("arr"),
+        Some(true),
+        "Should detect arr as array parameter (has indexing usage)"
+    );
+}
+
+/// Test NON-detection of pointer with arithmetic (not array-like)
+#[test]
+fn test_no_detect_pointer_with_arithmetic() {
+    // C: void process(int* ptr, int offset) { int* p = ptr + offset; }
+    let func = HirFunction::new_with_body(
+        "process".to_string(),
+        HirType::Void,
+        vec![
+            HirParameter::new("ptr".to_string(), HirType::Pointer(Box::new(HirType::Int))),
+            HirParameter::new("offset".to_string(), HirType::Int),
+        ],
+        vec![HirStatement::VariableDeclaration {
+            name: "p".to_string(),
+            var_type: HirType::Pointer(Box::new(HirType::Int)),
+            initializer: Some(HirExpression::BinaryOp {
+                op: decy_hir::BinaryOperator::Add,
+                left: Box::new(HirExpression::Variable("ptr".to_string())),
+                right: Box::new(HirExpression::Variable("offset".to_string())),
+            }),
+        }],
+    );
+
+    let analyzer = DataflowAnalyzer::new();
+    let graph = analyzer.analyze(&func);
+
+    // Should NOT detect ptr as array (pointer arithmetic is not array-like)
+    // Note: This could be debatable, but conservatively we say pointer arithmetic
+    // with offset suggests non-array usage
+    assert_eq!(
+        graph.is_array_parameter("ptr"),
+        Some(false),
+        "Should NOT detect ptr as array (has pointer arithmetic)"
+    );
+}
+
+/// Test detection of multiple array parameters
+#[test]
+#[ignore = "DECY-071 RED: Array parameter detection not yet implemented"]
+fn test_detect_multiple_array_parameters() {
+    // C: void merge(int* arr1, int len1, int* arr2, int len2) { }
+    let func = HirFunction::new_with_body(
+        "merge".to_string(),
+        HirType::Void,
+        vec![
+            HirParameter::new("arr1".to_string(), HirType::Pointer(Box::new(HirType::Int))),
+            HirParameter::new("len1".to_string(), HirType::Int),
+            HirParameter::new("arr2".to_string(), HirType::Pointer(Box::new(HirType::Int))),
+            HirParameter::new("len2".to_string(), HirType::Int),
+        ],
+        vec![],
+    );
+
+    let analyzer = DataflowAnalyzer::new();
+    let graph = analyzer.analyze(&func);
+
+    // Should detect both arr1 and arr2 as array parameters
+    assert_eq!(
+        graph.is_array_parameter("arr1"),
+        Some(true),
+        "Should detect arr1 as array parameter"
+    );
+    assert_eq!(
+        graph.is_array_parameter("arr2"),
+        Some(true),
+        "Should detect arr2 as array parameter"
+    );
+}
+
+/// Test detection with struct pointer (should NOT be array)
+#[test]
+fn test_no_detect_struct_pointer() {
+    // C: void process(struct Point* ptr, int count) { }
+    let func = HirFunction::new_with_body(
+        "process".to_string(),
+        HirType::Void,
+        vec![
+            HirParameter::new(
+                "ptr".to_string(),
+                HirType::Pointer(Box::new(HirType::Struct("Point".to_string()))),
+            ),
+            HirParameter::new("count".to_string(), HirType::Int),
+        ],
+        vec![],
+    );
+
+    let analyzer = DataflowAnalyzer::new();
+    let graph = analyzer.analyze(&func);
+
+    // Struct pointer with count is ambiguous - could be array of structs
+    // For now, conservatively return false to avoid false positives
+    assert_eq!(
+        graph.is_array_parameter("ptr"),
+        Some(false),
+        "Should conservatively NOT detect struct pointer as array"
+    );
+}
+
+/// Test detection confidence with strong signals
+#[test]
+#[ignore = "DECY-071 RED: Array parameter detection not yet implemented"]
+fn test_detect_array_parameter_high_confidence() {
+    // C: void fill_array(int* arr, int len) { for(int i=0; i<len; i++) arr[i]=0; }
+    // Strong signals: arr name, len param, array indexing
+    let func = HirFunction::new_with_body(
+        "fill_array".to_string(),
+        HirType::Void,
+        vec![
+            HirParameter::new("arr".to_string(), HirType::Pointer(Box::new(HirType::Int))),
+            HirParameter::new("len".to_string(), HirType::Int),
+        ],
+        vec![HirStatement::For {
+            init: Some(Box::new(HirStatement::VariableDeclaration {
+                name: "i".to_string(),
+                var_type: HirType::Int,
+                initializer: Some(HirExpression::IntLiteral(0)),
+            })),
+            condition: HirExpression::BinaryOp {
+                op: decy_hir::BinaryOperator::LessThan,
+                left: Box::new(HirExpression::Variable("i".to_string())),
+                right: Box::new(HirExpression::Variable("len".to_string())),
+            },
+            increment: Some(Box::new(HirStatement::Assignment {
+                target: "i".to_string(),
+                value: HirExpression::BinaryOp {
+                    op: decy_hir::BinaryOperator::Add,
+                    left: Box::new(HirExpression::Variable("i".to_string())),
+                    right: Box::new(HirExpression::IntLiteral(1)),
+                },
+            })),
+            body: vec![HirStatement::ArrayIndexAssignment {
+                array: Box::new(HirExpression::Variable("arr".to_string())),
+                index: Box::new(HirExpression::Variable("i".to_string())),
+                value: HirExpression::IntLiteral(0),
+            }],
+        }],
+    );
+
+    let analyzer = DataflowAnalyzer::new();
+    let graph = analyzer.analyze(&func);
+
+    // Should detect arr with HIGH confidence (multiple strong signals)
+    assert_eq!(
+        graph.is_array_parameter("arr"),
+        Some(true),
+        "Should detect arr as array parameter with high confidence"
+    );
+}
+
+/// Test edge case: pointer parameter without name information
+#[test]
+fn test_unnamed_pointer_parameter() {
+    // C: void process(int*, int) { }  (unnamed parameters)
+    let func = HirFunction::new_with_body(
+        "process".to_string(),
+        HirType::Void,
+        vec![
+            HirParameter::new("_arg0".to_string(), HirType::Pointer(Box::new(HirType::Int))),
+            HirParameter::new("_arg1".to_string(), HirType::Int),
+        ],
+        vec![],
+    );
+
+    let analyzer = DataflowAnalyzer::new();
+    let graph = analyzer.analyze(&func);
+
+    // Can't use name heuristics, but pattern (ptr + int) still suggests array
+    // This test documents current behavior - can be debated
+    assert_eq!(
+        graph.is_array_parameter("_arg0"),
+        Some(false),
+        "Unnamed parameter should default to false (conservative)"
+    );
+}
