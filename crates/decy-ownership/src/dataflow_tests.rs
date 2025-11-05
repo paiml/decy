@@ -525,7 +525,7 @@ fn test_detect_multidimensional_array() {
 
 /// Test detection of array parameter with length: fn(int* arr, int len)
 #[test]
-#[ignore = "DECY-071 RED: Array parameter detection not yet implemented"]
+// DECY-071 GREEN: Test now active
 fn test_detect_array_parameter_with_length() {
     // C: void process(int* arr, int len) { }
     let func = HirFunction::new_with_body(
@@ -551,7 +551,7 @@ fn test_detect_array_parameter_with_length() {
 
 /// Test detection of array parameter with size: fn(char* buf, size_t size)
 #[test]
-#[ignore = "DECY-071 RED: Array parameter detection not yet implemented"]
+// DECY-071 GREEN: Test now active
 fn test_detect_array_parameter_with_size() {
     // C: void process(char* buf, size_t size) { }
     let func = HirFunction::new_with_body(
@@ -577,7 +577,7 @@ fn test_detect_array_parameter_with_size() {
 
 /// Test detection of array parameter with count: fn(int* array, int count)
 #[test]
-#[ignore = "DECY-071 RED: Array parameter detection not yet implemented"]
+// DECY-071 GREEN: Test now active
 fn test_detect_array_parameter_with_count() {
     // C: void process(int* array, int count) { }
     let func = HirFunction::new_with_body(
@@ -625,7 +625,7 @@ fn test_no_detect_single_pointer_without_length() {
 
 /// Test detection with array indexing in body: arr[i]
 #[test]
-#[ignore = "DECY-071 RED: Array parameter detection not yet implemented"]
+// DECY-071 GREEN: Test now active
 fn test_detect_array_parameter_with_indexing_usage() {
     // C: void process(int* arr, int len) { arr[0] = 1; }
     let func = HirFunction::new_with_body(
@@ -690,7 +690,7 @@ fn test_no_detect_pointer_with_arithmetic() {
 
 /// Test detection of multiple array parameters
 #[test]
-#[ignore = "DECY-071 RED: Array parameter detection not yet implemented"]
+// DECY-071 GREEN: Test now active
 fn test_detect_multiple_array_parameters() {
     // C: void merge(int* arr1, int len1, int* arr2, int len2) { }
     let func = HirFunction::new_with_body(
@@ -752,7 +752,7 @@ fn test_no_detect_struct_pointer() {
 
 /// Test detection confidence with strong signals
 #[test]
-#[ignore = "DECY-071 RED: Array parameter detection not yet implemented"]
+// DECY-071 GREEN: Test now active
 fn test_detect_array_parameter_high_confidence() {
     // C: void fill_array(int* arr, int len) { for(int i=0; i<len; i++) arr[i]=0; }
     // Strong signals: arr name, len param, array indexing
