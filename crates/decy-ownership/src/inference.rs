@@ -97,14 +97,11 @@ impl OwnershipInferencer {
                 }
                 NodeKind::Parameter => {
                     // DECY-068 GREEN: Check if parameter is an array pointer
-                    if graph
-                        .is_array_parameter(var_name)
-                        .unwrap_or(false)
-                    {
+                    if graph.is_array_parameter(var_name).unwrap_or(false) {
                         // Array parameter: pointer paired with length parameter
                         // Classify as ArrayPointer for safe slice indexing
                         OwnershipKind::ArrayPointer {
-                            base_array: var_name.to_string(), // Parameter is its own base
+                            base_array: var_name.to_string(),     // Parameter is its own base
                             element_type: decy_hir::HirType::Int, // Default to Int, improve later
                             base_index: Some(0),
                         }
@@ -123,8 +120,7 @@ impl OwnershipInferencer {
                     if let Some(array_base) = graph.array_base_for(var_name) {
                         // This pointer is derived from an array!
                         // Get element type from the source array's node
-                        let element_type = if let Some(source_nodes) = graph.nodes_for(array_base)
-                        {
+                        let element_type = if let Some(source_nodes) = graph.nodes_for(array_base) {
                             if let Some(first_source) = source_nodes.first() {
                                 if let crate::dataflow::NodeKind::ArrayAllocation {
                                     element_type: src_elem_type,

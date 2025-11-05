@@ -806,10 +806,7 @@ fn test_classify_stack_array_pointer() {
         assert_eq!(*element_type, HirType::Int, "Should preserve element type");
         assert_eq!(*base_index, Some(0), "Should track base index");
     } else {
-        panic!(
-            "Expected ArrayPointer, got {:?}",
-            inferences["p"].kind
-        );
+        panic!("Expected ArrayPointer, got {:?}", inferences["p"].kind);
     }
 }
 
