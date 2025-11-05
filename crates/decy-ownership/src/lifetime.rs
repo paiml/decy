@@ -314,6 +314,11 @@ impl LifetimeAnalyzer {
                         .iter()
                         .any(|arg| self.expression_uses_variable(arg, var_name))
             }
+            HirExpression::SliceIndex { slice, index, .. } => {
+                // DECY-069: Check if safe slice indexing uses the variable
+                self.expression_uses_variable(slice, var_name)
+                    || self.expression_uses_variable(index, var_name)
+            }
         }
     }
 

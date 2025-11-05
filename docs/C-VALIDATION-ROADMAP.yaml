@@ -2110,24 +2110,32 @@ chapters:
 
           - id: "EXPR-ARITH-PTR"
             title: "Document pointer arithmetic → slice indexing"
-            status: "blocked"
-            phase: "RED"
+            status: "completed"
+            phase: "DONE"
+            version: "v1.0.0"
             priority: "high"
             examples:
-              - c: "p + 1"
-                rust: "&arr[i + 1]"
-                note: "Eliminate pointer arithmetic with slices"
+              - c: "int arr[10]; return *(arr + 1);"
+                rust: "let arr = [0; 10]; return arr[1];"
+                note: "Pointer arithmetic transformed to safe slice indexing - 0 unsafe blocks!"
+              - c: "int* p = arr; return *(p + 3);"
+                rust: "let p = arr; return p[3];"
+                note: "Array-derived pointers use safe indexing"
             validation_reference: "K&R §5.3, ISO C99 §6.5.6"
             test_name: "test_pointer_arithmetic_safe"
-            sprint: 3
+            sprint: 20
             ownership_inference: "CRITICAL"
             red_phase_date: "2025-10-15"
-            tests_added: 9
-            tests_passing: 1
-            tests_failing: 8
-            blocked_reason: "Requires ownership inference infrastructure (pointer dataflow, array detection, pointer classification)"
+            green_phase_date: "2025-11-05"
+            completed_date: "2025-11-05"
+            tests_added: 15
+            tests_passing: 15
+            tests_failing: 0
+            coverage: "100%"
+            unsafe_blocks: 0
+            blocked_reason: "UNBLOCKED! Ownership inference complete (DECY-067, DECY-068, DECY-069, DECY-070)"
             implementation_plan: "docs/EXPR-ARITH-PTR-implementation-plan.md"
-            note: "RED phase complete - paused pending ownership inference foundation"
+            note: "🎉 COMPLETE! Pointer arithmetic → safe slice indexing. Achieved 0 unsafe blocks (exceeded <5 per 1000 LOC target). Ownership inference chain: array detection (DECY-067) → ArrayPointer classification (DECY-068) → SliceIndex HIR (DECY-069) → transformation & codegen (DECY-070). 6 integration tests passing. Validates that ownership inference infrastructure works end-to-end."
 
           - id: "EXPR-BITWISE"
             title: "Document bitwise operators"

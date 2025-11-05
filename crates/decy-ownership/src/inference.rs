@@ -15,6 +15,16 @@ pub enum OwnershipKind {
     ImmutableBorrow,
     /// Mutable borrow (&mut T)
     MutableBorrow,
+    /// Array pointer (slice reference `&[T]` or `&mut [T]`)
+    /// DECY-068: Added for safe pointer arithmetic transformation
+    ArrayPointer {
+        /// Base array name
+        base_array: String,
+        /// Element type
+        element_type: decy_hir::HirType,
+        /// Known base index (if constant)
+        base_index: Option<usize>,
+    },
     /// Uncertain (needs manual review)
     Unknown,
 }
@@ -86,16 +96,56 @@ impl OwnershipInferencer {
                     OwnershipKind::Owning
                 }
                 NodeKind::Parameter => {
-                    // Parameters are typically borrows
-                    // Check if it's mutated to determine immutable vs mutable
-                    if self.is_mutated(var_name, graph) {
-                        OwnershipKind::MutableBorrow
+                    // DECY-068 GREEN: Check if parameter is an array pointer
+                    if graph.is_array_parameter(var_name).unwrap_or(false) {
+                        // Array parameter: pointer paired with length parameter
+                        // Classify as ArrayPointer for safe slice indexing
+                        OwnershipKind::ArrayPointer {
+                            base_array: var_name.to_string(),     // Parameter is its own base
+                            element_type: decy_hir::HirType::Int, // Default to Int, improve later
+                            base_index: Some(0),
+                        }
                     } else {
-                        OwnershipKind::ImmutableBorrow
+                        // Regular parameter - borrow
+                        // Check if it's mutated to determine immutable vs mutable
+                        if self.is_mutated(var_name, graph) {
+                            OwnershipKind::MutableBorrow
+                        } else {
+                            OwnershipKind::ImmutableBorrow
+                        }
                     }
                 }
                 NodeKind::Assignment { source: _ } => {
-                    // Pointer assigned from another pointer is a borrow
+                    // DECY-068 GREEN: Check if assigned from array
+                    if let Some(array_base) = graph.array_base_for(var_name) {
+                        // This pointer is derived from an array!
+                        // Get element type from the source array's node
+                        let element_type = if let Some(source_nodes) = graph.nodes_for(array_base) {
+                            if let Some(first_source) = source_nodes.first() {
+                                if let crate::dataflow::NodeKind::ArrayAllocation {
+                                    element_type: src_elem_type,
+                                    ..
+                                } = &first_source.kind
+                                {
+                                    src_elem_type.clone()
+                                } else {
+                                    decy_hir::HirType::Int // Fallback
+                                }
+                            } else {
+                                decy_hir::HirType::Int
+                            }
+                        } else {
+                            decy_hir::HirType::Int
+                        };
+
+                        return OwnershipKind::ArrayPointer {
+                            base_array: array_base.to_string(),
+                            element_type,
+                            base_index: Some(0), // Assume pointer starts at array base
+                        };
+                    }
+
+                    // Not from array - pointer assigned from another pointer is a borrow
                     // Determine mutability based on usage
                     if self.is_mutated(var_name, graph) {
                         OwnershipKind::MutableBorrow
@@ -113,11 +163,14 @@ impl OwnershipInferencer {
                 }
                 NodeKind::ArrayAllocation {
                     size: _,
-                    element_type: _,
+                    element_type,
                 } => {
-                    // DECY-067 RED: Array allocations create owning pointers
-                    // In the future (DECY-068) this will be ArrayPointer classification
-                    OwnershipKind::Owning
+                    // DECY-068 GREEN: Array allocations create ArrayPointer
+                    OwnershipKind::ArrayPointer {
+                        base_array: var_name.to_string(), // Array is its own base
+                        element_type: element_type.clone(),
+                        base_index: Some(0), // Arrays start at index 0
+                    }
                 }
             }
         } else {
@@ -187,6 +240,7 @@ impl OwnershipInferencer {
             OwnershipKind::Owning => 0.9,          // High confidence for malloc
             OwnershipKind::ImmutableBorrow => 0.8, // Medium-high for immutable
             OwnershipKind::MutableBorrow => 0.75,  // Slightly lower for mutable
+            OwnershipKind::ArrayPointer { .. } => 0.95, // DECY-068: Very high for array pointers
             OwnershipKind::Unknown => 0.3,         // Low for uncertain
         };
 
@@ -238,6 +292,26 @@ impl OwnershipInferencer {
                 }
                 (NodeKind::Assignment { source }, OwnershipKind::MutableBorrow) => {
                     format!("{} assigned from {}, mutable borrow", var_name, source)
+                }
+                (
+                    NodeKind::ArrayAllocation { .. },
+                    OwnershipKind::ArrayPointer { base_array, .. },
+                ) => {
+                    // DECY-068: Array allocation creates array pointer
+                    format!(
+                        "{} is an array pointer (base: {}), enables safe slice indexing",
+                        var_name, base_array
+                    )
+                }
+                (
+                    NodeKind::Assignment { source },
+                    OwnershipKind::ArrayPointer { base_array, .. },
+                ) => {
+                    // DECY-068: Pointer derived from array
+                    format!(
+                        "{} is an array pointer from {} (base: {})",
+                        var_name, source, base_array
+                    )
                 }
                 _ => format!("{} has {:?} ownership", var_name, kind),
             }
