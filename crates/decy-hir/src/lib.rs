@@ -725,6 +725,18 @@ pub enum HirExpression {
         /// Index expression
         index: Box<HirExpression>,
     },
+    /// Safe slice indexing (DECY-069)
+    /// Represents safe, bounds-checked array access: arr[index]
+    /// Generated when pointer arithmetic can be transformed to safe indexing.
+    /// Unlike ArrayIndex (which may use unsafe), SliceIndex guarantees zero unsafe blocks.
+    SliceIndex {
+        /// Slice/array expression
+        slice: Box<HirExpression>,
+        /// Index expression
+        index: Box<HirExpression>,
+        /// Element type (for codegen type inference)
+        element_type: HirType,
+    },
     /// Sizeof expression (sizeof(T) → `std::mem::size_of::<T>()`)
     Sizeof {
         /// Type name as a string (e.g., "int", "struct Data")
@@ -1181,6 +1193,10 @@ mod struct_tests;
 #[cfg(test)]
 #[path = "array_indexing_tests.rs"]
 mod array_indexing_tests;
+
+#[cfg(test)]
+#[path = "slice_index_tests.rs"]
+mod slice_index_tests; // DECY-069
 
 #[cfg(test)]
 #[path = "for_loop_tests.rs"]
