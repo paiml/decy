@@ -340,7 +340,10 @@ fn test_detect_stack_array_allocation() {
         assert_eq!(*size, Some(10));
         assert_eq!(*element_type, HirType::Int);
     } else {
-        panic!("Expected ArrayAllocation node kind, got {:?}", nodes[0].kind);
+        panic!(
+            "Expected ArrayAllocation node kind, got {:?}",
+            nodes[0].kind
+        );
     }
 }
 
@@ -378,11 +381,7 @@ fn test_detect_heap_array_allocation() {
     assert_eq!(nodes.len(), 1);
 
     // Should detect as array allocation (heap)
-    if let NodeKind::ArrayAllocation {
-        size,
-        element_type,
-    } = &nodes[0].kind
-    {
+    if let NodeKind::ArrayAllocation { size, element_type } = &nodes[0].kind {
         assert_eq!(*size, None); // Runtime size
         assert_eq!(*element_type, HirType::Int);
     } else {
@@ -445,10 +444,7 @@ fn test_track_array_parameter() {
         "process".to_string(),
         HirType::Void,
         vec![
-            HirParameter::new(
-                "arr".to_string(),
-                HirType::Pointer(Box::new(HirType::Int)),
-            ),
+            HirParameter::new("arr".to_string(), HirType::Pointer(Box::new(HirType::Int))),
             HirParameter::new("len".to_string(), HirType::Int),
         ],
         vec![],
@@ -509,11 +505,7 @@ fn test_detect_multidimensional_array() {
     let nodes = graph.nodes_for("matrix").expect("Matrix should be tracked");
 
     // Should detect as array allocation with nested array type
-    if let NodeKind::ArrayAllocation {
-        size,
-        element_type,
-    } = &nodes[0].kind
-    {
+    if let NodeKind::ArrayAllocation { size, element_type } = &nodes[0].kind {
         assert_eq!(*size, Some(5));
         // Element type should be array of int[10]
         assert!(matches!(
