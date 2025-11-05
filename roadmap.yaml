@@ -6691,9 +6691,10 @@ sprint_20:
       priority: critical
       story_points: 8
       assignee: Claude
-      status: not_started
+      status: done
       github_issue: null
-      phase: null  # RED, GREEN, REFACTOR, DONE
+      phase: DONE
+      completed_date: "2025-11-05"
 
       description: |
         Enhance decy-ownership/dataflow.rs to detect array allocations and track
@@ -6750,9 +6751,10 @@ sprint_20:
       priority: critical
       story_points: 8
       assignee: Claude
-      status: not_started
+      status: done
       github_issue: null
-      phase: null
+      phase: DONE
+      completed_date: "2025-11-05"
 
       description: |
         Extend OwnershipKind enum to include ArrayPointer classification.
@@ -6804,9 +6806,10 @@ sprint_20:
       priority: high
       story_points: 5
       assignee: Claude
-      status: not_started
+      status: done
       github_issue: null
-      phase: null
+      phase: DONE
+      completed_date: "2025-11-05"
 
       description: |
         Add HirExpression::SliceIndex variant to represent safe slice indexing.
