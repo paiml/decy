@@ -54,6 +54,10 @@ pub struct DataflowGraph {
     use_after_free: HashMap<String, Vec<usize>>,
     /// DECY-067 GREEN: Array base tracking (pointer -> array it's derived from)
     array_bases: HashMap<String, String>,
+    /// DECY-071 GREEN: Function parameters for array detection
+    parameters: Vec<decy_hir::HirParameter>,
+    /// DECY-071 GREEN: Function body for usage analysis
+    body: Vec<decy_hir::HirStatement>,
 }
 
 impl DataflowGraph {
@@ -64,6 +68,8 @@ impl DataflowGraph {
             dependencies: HashMap::new(),
             use_after_free: HashMap::new(),
             array_bases: HashMap::new(), // DECY-067 GREEN
+            parameters: Vec::new(),       // DECY-071 GREEN
+            body: Vec::new(),             // DECY-071 GREEN
         }
     }
 
@@ -99,22 +105,192 @@ impl DataflowGraph {
     }
 
     /// Check if a parameter is an array pointer (has associated length parameter).
-    /// DECY-067 GREEN: Real implementation
+    /// DECY-071 GREEN: Proper implementation with multiple heuristics
     /// Detects the pattern: fn(int* arr, int len) where pointer param followed by int param
     pub fn is_array_parameter(&self, var: &str) -> Option<bool> {
-        // Check if this variable is a parameter node
-        if let Some(nodes) = self.nodes.get(var) {
-            if let Some(first_node) = nodes.first() {
-                if matches!(first_node.kind, NodeKind::Parameter) {
-                    // For now, assume pointer parameters are array pointers
-                    // In a more sophisticated analysis, we'd check for:
-                    // - Pointer param followed by length param (int)
-                    // - Usage in array indexing patterns
-                    return Some(true);
-                }
+        // Find the parameter in the parameter list
+        let param_index = self.parameters.iter().position(|p| p.name() == var)?;
+        let param = &self.parameters[param_index];
+
+        // Only check pointer parameters
+        if !matches!(param.param_type(), HirType::Pointer(_)) {
+            return Some(false);
+        }
+
+        // Conservative: Don't detect struct pointers as arrays
+        // Struct arrays are ambiguous without more context
+        if let HirType::Pointer(inner) = param.param_type() {
+            if matches!(**inner, HirType::Struct(_)) {
+                return Some(false);
             }
         }
-        Some(false)
+
+        let mut confidence = 0;
+        let mut signals = 0;
+
+        // Heuristic 1: Check if followed by an integer parameter (length param)
+        // Pattern: (T* arr, int len) or (T* arr, size_t size)
+        if param_index + 1 < self.parameters.len() {
+            let next_param = &self.parameters[param_index + 1];
+            if matches!(next_param.param_type(), HirType::Int) {
+                confidence += 3; // Strong signal
+                signals += 1;
+            }
+        }
+
+        // Heuristic 2: Check parameter naming patterns
+        // Common array names: arr, array, buf, buffer, data, items
+        // Common length names: len, length, size, count, num
+        let param_name = param.name().to_lowercase();
+        if param_name.contains("arr")
+            || param_name.contains("buf")
+            || param_name == "data"
+            || param_name == "items"
+        {
+            confidence += 2; // Moderate signal
+            signals += 1;
+        }
+
+        // Check if next param has length-like name
+        if param_index + 1 < self.parameters.len() {
+            let next_name = self.parameters[param_index + 1].name().to_lowercase();
+            if next_name.contains("len")
+                || next_name.contains("size")
+                || next_name.contains("count")
+                || next_name.contains("num")
+            {
+                confidence += 2; // Moderate signal
+                signals += 1;
+            }
+        }
+
+        // Heuristic 3: Check for array indexing usage in function body
+        if self.has_array_indexing(var) {
+            confidence += 3; // Strong signal
+            signals += 1;
+        }
+
+        // Heuristic 4: Check for pointer arithmetic (negative signal)
+        if self.has_pointer_arithmetic(var) {
+            confidence -= 2; // Pointer arithmetic suggests non-array usage
+            signals += 1;
+        }
+
+        // Decision: require at least 2 signals and positive confidence
+        if signals >= 2 && confidence >= 3 {
+            Some(true)
+        } else {
+            Some(false)
+        }
+    }
+
+    /// Check if a variable is used with array indexing in the function body.
+    /// DECY-071 GREEN: Helper for array detection
+    fn has_array_indexing(&self, var: &str) -> bool {
+        for stmt in &self.body {
+            if self.statement_has_array_indexing(stmt, var) {
+                return true;
+            }
+        }
+        false
+    }
+
+    /// Recursively check if a statement contains array indexing for a variable.
+    fn statement_has_array_indexing(&self, stmt: &HirStatement, var: &str) -> bool {
+        match stmt {
+            HirStatement::ArrayIndexAssignment { array, .. } => {
+                if let HirExpression::Variable(name) = &**array {
+                    return name == var;
+                }
+                false
+            }
+            HirStatement::If {
+                then_block,
+                else_block,
+                ..
+            } => {
+                then_block
+                    .iter()
+                    .any(|s| self.statement_has_array_indexing(s, var))
+                    || else_block.as_ref().map_or(false, |blk| {
+                        blk.iter().any(|s| self.statement_has_array_indexing(s, var))
+                    })
+            }
+            HirStatement::While { body, .. } | HirStatement::For { body, .. } => {
+                body.iter().any(|s| self.statement_has_array_indexing(s, var))
+            }
+            _ => false,
+        }
+    }
+
+    /// Check if a variable is used with pointer arithmetic in the function body.
+    /// DECY-071 GREEN: Helper for array detection (negative signal)
+    fn has_pointer_arithmetic(&self, var: &str) -> bool {
+        for stmt in &self.body {
+            if self.statement_has_pointer_arithmetic(stmt, var) {
+                return true;
+            }
+        }
+        false
+    }
+
+    /// Recursively check if a statement contains pointer arithmetic for a variable.
+    fn statement_has_pointer_arithmetic(&self, stmt: &HirStatement, var: &str) -> bool {
+        match stmt {
+            HirStatement::VariableDeclaration { initializer, .. } => {
+                if let Some(expr) = initializer {
+                    return self.expression_has_pointer_arithmetic(expr, var);
+                }
+                false
+            }
+            HirStatement::Assignment { value, .. } => {
+                self.expression_has_pointer_arithmetic(value, var)
+            }
+            HirStatement::If {
+                then_block,
+                else_block,
+                ..
+            } => {
+                then_block
+                    .iter()
+                    .any(|s| self.statement_has_pointer_arithmetic(s, var))
+                    || else_block.as_ref().map_or(false, |blk| {
+                        blk.iter()
+                            .any(|s| self.statement_has_pointer_arithmetic(s, var))
+                    })
+            }
+            HirStatement::While { body, .. } | HirStatement::For { body, .. } => body
+                .iter()
+                .any(|s| self.statement_has_pointer_arithmetic(s, var)),
+            _ => false,
+        }
+    }
+
+    /// Check if an expression contains pointer arithmetic for a variable.
+    fn expression_has_pointer_arithmetic(
+        &self,
+        expr: &decy_hir::HirExpression,
+        var: &str,
+    ) -> bool {
+        match expr {
+            HirExpression::BinaryOp {
+                op,
+                left,
+                right: _,
+            } => {
+                // Check if this is pointer arithmetic (ptr + offset or ptr - offset)
+                if matches!(
+                    op,
+                    decy_hir::BinaryOperator::Add | decy_hir::BinaryOperator::Subtract
+                ) {
+                    if let HirExpression::Variable(name) = &**left {
+                        return name == var;
+                    }
+                }
+                false
+            }
+            _ => false,
+        }
     }
 }
 
@@ -139,6 +315,10 @@ impl DataflowAnalyzer {
     /// Analyzes pointer usage patterns throughout the function body.
     pub fn analyze(&self, func: &HirFunction) -> DataflowGraph {
         let mut graph = DataflowGraph::new();
+
+        // DECY-071 GREEN: Store parameters and body for array detection
+        graph.parameters = func.parameters().to_vec();
+        graph.body = func.body().to_vec();
 
         // Track function parameters (pointer parameters only)
         for param in func.parameters() {
@@ -463,6 +643,11 @@ impl DataflowAnalyzer {
                 for arg in arguments {
                     Self::track_expr_recursive(arg, _graph, _index);
                 }
+            }
+            HirExpression::SliceIndex { slice, index, .. } => {
+                // DECY-069: Track safe slice indexing
+                Self::track_expr_recursive(slice, _graph, _index);
+                Self::track_expr_recursive(index, _graph, _index);
             }
         }
     }

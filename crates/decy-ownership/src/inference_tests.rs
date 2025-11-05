@@ -750,3 +750,256 @@ mod property_tests {
         }
     }
 }
+
+// ============================================================================
+// DECY-068 RED PHASE: ArrayPointer Classification Tests
+// ============================================================================
+// These tests implement the RED phase for DECY-068 (Sprint 20).
+// Goal: Classify pointers as ArrayPointer when derived from arrays,
+// enabling safe slice indexing transformation in DECY-070.
+//
+// Reference: docs/EXPR-ARITH-PTR-implementation-plan.md
+// ============================================================================
+
+#[test]
+#[ignore = "DECY-068 RED: ArrayPointer classification not yet implemented"]
+fn test_classify_stack_array_pointer() {
+    // C: int arr[10]; int* p = arr;
+    // Should classify p as ArrayPointer (not Owning)
+    let func = HirFunction::new_with_body(
+        "test".to_string(),
+        HirType::Void,
+        vec![],
+        vec![
+            HirStatement::VariableDeclaration {
+                name: "arr".to_string(),
+                var_type: HirType::Array {
+                    element_type: Box::new(HirType::Int),
+                    size: Some(10),
+                },
+                initializer: None,
+            },
+            HirStatement::VariableDeclaration {
+                name: "p".to_string(),
+                var_type: HirType::Pointer(Box::new(HirType::Int)),
+                initializer: Some(HirExpression::Variable("arr".to_string())),
+            },
+        ],
+    );
+
+    let analyzer = DataflowAnalyzer::new();
+    let graph = analyzer.analyze(&func);
+
+    let inferencer = OwnershipInferencer::new();
+    let inferences = inferencer.infer(&graph);
+
+    assert!(inferences.contains_key("p"), "Should infer ownership for p");
+
+    // This will FAIL until we add ArrayPointer variant
+    if let OwnershipKind::ArrayPointer {
+        base_array,
+        element_type,
+        base_index,
+    } = &inferences["p"].kind
+    {
+        assert_eq!(base_array, "arr", "Should track array base");
+        assert_eq!(*element_type, HirType::Int, "Should preserve element type");
+        assert_eq!(*base_index, Some(0), "Should track base index");
+    } else {
+        panic!("Expected ArrayPointer, got {:?}", inferences["p"].kind);
+    }
+}
+
+#[test]
+#[ignore = "DECY-068 RED: ArrayPointer classification not yet implemented"]
+fn test_classify_heap_array_pointer() {
+    // C: int* arr = malloc(n * sizeof(int));
+    // Should classify arr as ArrayPointer (heap array)
+    let func = HirFunction::new_with_body(
+        "test".to_string(),
+        HirType::Void,
+        vec![],
+        vec![HirStatement::VariableDeclaration {
+            name: "arr".to_string(),
+            var_type: HirType::Pointer(Box::new(HirType::Int)),
+            initializer: Some(HirExpression::FunctionCall {
+                function: "malloc".to_string(),
+                arguments: vec![HirExpression::BinaryOp {
+                    op: decy_hir::BinaryOperator::Multiply,
+                    left: Box::new(HirExpression::Variable("n".to_string())),
+                    right: Box::new(HirExpression::Sizeof {
+                        type_name: "int".to_string(),
+                    }),
+                }],
+            }),
+        }],
+    );
+
+    let analyzer = DataflowAnalyzer::new();
+    let graph = analyzer.analyze(&func);
+
+    let inferencer = OwnershipInferencer::new();
+    let inferences = inferencer.infer(&graph);
+
+    assert!(
+        inferences.contains_key("arr"),
+        "Should infer ownership for arr"
+    );
+
+    // Heap array should be classified as ArrayPointer
+    if let OwnershipKind::ArrayPointer {
+        base_array,
+        element_type,
+        ..
+    } = &inferences["arr"].kind
+    {
+        assert_eq!(base_array, "arr", "Heap array is its own base");
+        assert_eq!(*element_type, HirType::Int);
+    } else {
+        panic!(
+            "Expected ArrayPointer for heap array, got {:?}",
+            inferences["arr"].kind
+        );
+    }
+}
+
+#[test]
+#[ignore = "DECY-068 RED: ArrayPointer classification not yet implemented"]
+fn test_classify_array_parameter() {
+    // C: void process(int* arr, int len) { ... }
+    // Parameter arr should be classified as ArrayPointer
+    let func = HirFunction::new_with_body(
+        "process".to_string(),
+        HirType::Void,
+        vec![
+            HirParameter::new("arr".to_string(), HirType::Pointer(Box::new(HirType::Int))),
+            HirParameter::new("len".to_string(), HirType::Int),
+        ],
+        vec![],
+    );
+
+    let analyzer = DataflowAnalyzer::new();
+    let graph = analyzer.analyze(&func);
+
+    let inferencer = OwnershipInferencer::new();
+    let inferences = inferencer.infer(&graph);
+
+    assert!(
+        inferences.contains_key("arr"),
+        "Should infer ownership for arr parameter"
+    );
+
+    // Array parameter should be ArrayPointer
+    if let OwnershipKind::ArrayPointer { base_array, .. } = &inferences["arr"].kind {
+        assert_eq!(base_array, "arr", "Parameter is its own base");
+    } else {
+        panic!(
+            "Expected ArrayPointer for array parameter, got {:?}",
+            inferences["arr"].kind
+        );
+    }
+}
+
+#[test]
+#[ignore = "DECY-068 RED: ArrayPointer classification not yet implemented"]
+fn test_distinguish_array_pointer_from_owning() {
+    // Test that array pointers are NOT classified as Owning
+    // This is critical for correct transformation
+    let func = HirFunction::new_with_body(
+        "test".to_string(),
+        HirType::Void,
+        vec![],
+        vec![
+            // Regular malloc (single element) - should be Owning
+            HirStatement::VariableDeclaration {
+                name: "ptr".to_string(),
+                var_type: HirType::Pointer(Box::new(HirType::Int)),
+                initializer: Some(HirExpression::FunctionCall {
+                    function: "malloc".to_string(),
+                    arguments: vec![HirExpression::IntLiteral(4)],
+                }),
+            },
+            // Array malloc - should be ArrayPointer
+            HirStatement::VariableDeclaration {
+                name: "arr".to_string(),
+                var_type: HirType::Pointer(Box::new(HirType::Int)),
+                initializer: Some(HirExpression::FunctionCall {
+                    function: "malloc".to_string(),
+                    arguments: vec![HirExpression::BinaryOp {
+                        op: decy_hir::BinaryOperator::Multiply,
+                        left: Box::new(HirExpression::IntLiteral(10)),
+                        right: Box::new(HirExpression::Sizeof {
+                            type_name: "int".to_string(),
+                        }),
+                    }],
+                }),
+            },
+        ],
+    );
+
+    let analyzer = DataflowAnalyzer::new();
+    let graph = analyzer.analyze(&func);
+
+    let inferencer = OwnershipInferencer::new();
+    let inferences = inferencer.infer(&graph);
+
+    // Regular malloc should be Owning
+    assert_eq!(
+        inferences["ptr"].kind,
+        OwnershipKind::Owning,
+        "Single malloc should be Owning"
+    );
+
+    // Array malloc should be ArrayPointer
+    assert!(
+        matches!(inferences["arr"].kind, OwnershipKind::ArrayPointer { .. }),
+        "Array malloc should be ArrayPointer, got {:?}",
+        inferences["arr"].kind
+    );
+}
+
+#[test]
+#[ignore = "DECY-068 RED: ArrayPointer classification not yet implemented"]
+fn test_array_pointer_confidence_score() {
+    // ArrayPointer should have high confidence when derived from known array
+    let func = HirFunction::new_with_body(
+        "test".to_string(),
+        HirType::Void,
+        vec![],
+        vec![
+            HirStatement::VariableDeclaration {
+                name: "arr".to_string(),
+                var_type: HirType::Array {
+                    element_type: Box::new(HirType::Int),
+                    size: Some(10),
+                },
+                initializer: None,
+            },
+            HirStatement::VariableDeclaration {
+                name: "p".to_string(),
+                var_type: HirType::Pointer(Box::new(HirType::Int)),
+                initializer: Some(HirExpression::Variable("arr".to_string())),
+            },
+        ],
+    );
+
+    let analyzer = DataflowAnalyzer::new();
+    let graph = analyzer.analyze(&func);
+
+    let inferencer = OwnershipInferencer::new();
+    let inferences = inferencer.infer(&graph);
+
+    // Confidence should be high (>= 0.9) for definite array pointer
+    assert!(
+        inferences["p"].confidence >= 0.9,
+        "Array pointer from stack array should have high confidence (>= 0.9), got {}",
+        inferences["p"].confidence
+    );
+
+    // Reason should mention array derivation
+    assert!(
+        inferences["p"].reason.contains("array") || inferences["p"].reason.contains("Array"),
+        "Reason should mention array derivation, got: {}",
+        inferences["p"].reason
+    );
+}
