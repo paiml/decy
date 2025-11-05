@@ -176,11 +176,7 @@ impl DataflowAnalyzer {
                 initializer,
             } => {
                 // DECY-067 GREEN: Detect array allocations (stack arrays)
-                if let HirType::Array {
-                    element_type,
-                    size,
-                } = var_type
-                {
+                if let HirType::Array { element_type, size } = var_type {
                     // Stack array allocation: int arr[10];
                     let node = PointerNode {
                         name: name.clone(),
@@ -213,9 +209,7 @@ impl DataflowAnalyzer {
                                 if let Some(first_node) = source_nodes.first() {
                                     if matches!(first_node.kind, NodeKind::ArrayAllocation { .. }) {
                                         // This pointer is derived from an array!
-                                        graph
-                                            .array_bases
-                                            .insert(name.clone(), source.clone());
+                                        graph.array_bases.insert(name.clone(), source.clone());
                                     }
                                 }
                             }
@@ -341,33 +335,35 @@ impl DataflowAnalyzer {
     /// Classify the initialization expression to determine node kind.
     fn classify_initialization(&self, expr: &HirExpression) -> NodeKind {
         match expr {
-            HirExpression::FunctionCall { function, arguments } if function == "malloc" => {
+            HirExpression::FunctionCall {
+                function,
+                arguments,
+            } if function == "malloc" => {
                 // DECY-067 GREEN: Detect heap array pattern: malloc(n * sizeof(T))
-                if let Some(first_arg) = arguments.first() {
-                    if let HirExpression::BinaryOp {
-                        op: decy_hir::BinaryOperator::Multiply,
-                        right,
-                        ..
-                    } = first_arg
-                    {
-                        // Check if multiplying by sizeof
-                        if matches!(**right, HirExpression::Sizeof { .. }) {
-                            // This is an array allocation pattern
-                            // Extract element type from sizeof
-                            if let HirExpression::Sizeof { type_name } = &**right {
-                                // Map type name to HirType (simplified)
-                                let element_type = match type_name.as_str() {
-                                    "int" => HirType::Int,
-                                    "char" => HirType::Char,
-                                    "float" => HirType::Float,
-                                    "double" => HirType::Double,
-                                    _ => HirType::Int, // Default fallback
-                                };
-                                return NodeKind::ArrayAllocation {
-                                    size: None, // Runtime size
-                                    element_type,
-                                };
-                            }
+                // Clippy: Collapse nested if-let into single pattern
+                if let Some(HirExpression::BinaryOp {
+                    op: decy_hir::BinaryOperator::Multiply,
+                    right,
+                    ..
+                }) = arguments.first()
+                {
+                    // Check if multiplying by sizeof
+                    if matches!(**right, HirExpression::Sizeof { .. }) {
+                        // This is an array allocation pattern
+                        // Extract element type from sizeof
+                        if let HirExpression::Sizeof { type_name } = &**right {
+                            // Map type name to HirType (simplified)
+                            let element_type = match type_name.as_str() {
+                                "int" => HirType::Int,
+                                "char" => HirType::Char,
+                                "float" => HirType::Float,
+                                "double" => HirType::Double,
+                                _ => HirType::Int, // Default fallback
+                            };
+                            return NodeKind::ArrayAllocation {
+                                size: None, // Runtime size
+                                element_type,
+                            };
                         }
                     }
                 }
