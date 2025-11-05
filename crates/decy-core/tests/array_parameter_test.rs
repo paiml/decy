@@ -10,7 +10,7 @@ use decy_core::transpile;
 /// C: void process(int* arr, int len) { }
 /// Rust: fn process(arr: &[i32]) { }
 #[test]
-#[ignore = "DECY-072 RED: Array parameter transformation not yet implemented"]
+// DECY-072 GREEN: Test now active
 fn test_transform_array_parameter_to_slice() {
     let c_code = r#"
         void process(int* arr, int len) {
@@ -49,7 +49,7 @@ fn test_transform_array_parameter_to_slice() {
 /// C: void fill(int* arr, int len) { arr[0] = 1; }
 /// Rust: fn fill(arr: &mut [i32]) { arr[0] = 1; }
 #[test]
-#[ignore = "DECY-072 RED: Array parameter transformation not yet implemented"]
+// DECY-072 GREEN: Test now active
 fn test_transform_mutable_array_parameter() {
     let c_code = r#"
         void fill(int* arr, int len) {
@@ -81,7 +81,7 @@ fn test_transform_mutable_array_parameter() {
 /// C: int sum(int* arr, int len) { for(int i=0; i<len; i++) { } }
 /// Rust: fn sum(arr: &[i32]) -> i32 { for i in 0..arr.len() { } }
 #[test]
-#[ignore = "DECY-072 RED: Array parameter transformation not yet implemented"]
+// DECY-072 GREEN: Test now active
 fn test_transform_length_usage_in_body() {
     let c_code = r#"
         int sum(int* arr, int len) {
@@ -124,11 +124,11 @@ fn test_transform_length_usage_in_body() {
 /// C: void process_buffer(char* buf, int size) { }
 /// Rust: fn process_buffer(buf: &[u8]) { }
 #[test]
-#[ignore = "DECY-072 RED: Array parameter transformation not yet implemented"]
+// DECY-072 GREEN: Test now active
 fn test_transform_char_array_parameter() {
     let c_code = r#"
         void process_buffer(char* buf, int size) {
-            buf[0] = 'A';
+            buf[0] = 65;
         }
     "#;
 
@@ -156,7 +156,7 @@ fn test_transform_char_array_parameter() {
 /// C: void merge(int* arr1, int len1, int* arr2, int len2) { }
 /// Rust: fn merge(arr1: &[i32], arr2: &[i32]) { }
 #[test]
-#[ignore = "DECY-072 RED: Array parameter transformation not yet implemented"]
+// DECY-072 GREEN: Test now active
 fn test_transform_multiple_array_parameters() {
     let c_code = r#"
         void merge(int* arr1, int len1, int* arr2, int len2) {
@@ -200,7 +200,7 @@ fn test_transform_multiple_array_parameters() {
 /// C: int first_element(int* arr, int len) { return arr[0]; }
 /// Rust: fn first_element(arr: &[i32]) -> i32 { arr[0] }
 #[test]
-#[ignore = "DECY-072 RED: Array parameter transformation not yet implemented"]
+// DECY-072 GREEN: Test now active
 fn test_transform_array_parameter_with_return() {
     let c_code = r#"
         int first_element(int* arr, int len) {
@@ -267,7 +267,7 @@ fn test_no_transform_non_array_pointer() {
 
 /// Test unsafe block count metric
 #[test]
-#[ignore = "DECY-072 RED: Array parameter transformation not yet implemented"]
+// DECY-072 GREEN: Test now active
 fn test_array_parameter_transformation_unsafe_count() {
     let c_code = r#"
         void process1(int* arr, int len) { arr[0] = 1; }

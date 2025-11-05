@@ -104,6 +104,12 @@ impl DataflowGraph {
         self.array_bases.get(var).map(|s| s.as_str())
     }
 
+    /// Get the function body for mutation analysis.
+    /// DECY-072 GREEN: Access function body to check for parameter mutations
+    pub fn body(&self) -> &[HirStatement] {
+        &self.body
+    }
+
     /// Check if a parameter is an array pointer (has associated length parameter).
     /// DECY-071 GREEN: Proper implementation with multiple heuristics
     /// Detects the pattern: fn(int* arr, int len) where pointer param followed by int param

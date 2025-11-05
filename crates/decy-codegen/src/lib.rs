@@ -597,7 +597,15 @@ impl CodeGenerator {
                 format!("Option<{}>", Self::map_type(inner))
             }
             HirType::Reference { inner, mutable } => {
-                if *mutable {
+                // DECY-072: Special case for slices: &Vec<T> → &[T]
+                if let HirType::Vec(element_type) = &**inner {
+                    let element_str = Self::map_type(element_type);
+                    if *mutable {
+                        format!("&mut [{}]", element_str)
+                    } else {
+                        format!("&[{}]", element_str)
+                    }
+                } else if *mutable {
                     format!("&mut {}", Self::map_type(inner))
                 } else {
                     format!("&{}", Self::map_type(inner))
@@ -1877,6 +1885,17 @@ impl CodeGenerator {
                 mutable,
                 lifetime,
             } => {
+                // DECY-072: Special case for slices: &Vec<T> → &[T]
+                // Check if inner is a Vec type
+                if let AnnotatedType::Simple(HirType::Vec(element_type)) = &**inner {
+                    let element_str = Self::map_type(element_type);
+                    if *mutable {
+                        return format!("&mut [{}]", element_str);
+                    } else {
+                        return format!("&[{}]", element_str);
+                    }
+                }
+
                 let mut result = String::from("&");
 
                 // Add lifetime if present
