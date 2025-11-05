@@ -111,6 +111,14 @@ impl OwnershipInferencer {
                     // Free indicates the pointer was owning
                     OwnershipKind::Owning
                 }
+                NodeKind::ArrayAllocation {
+                    size: _,
+                    element_type: _,
+                } => {
+                    // DECY-067 RED: Array allocations create owning pointers
+                    // In the future (DECY-068) this will be ArrayPointer classification
+                    OwnershipKind::Owning
+                }
             }
         } else {
             OwnershipKind::Unknown
