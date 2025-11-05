@@ -458,6 +458,11 @@ impl DataflowAnalyzer {
                     Self::track_expr_recursive(arg, _graph, _index);
                 }
             }
+            HirExpression::SliceIndex { slice, index, .. } => {
+                // DECY-069: Track safe slice indexing
+                Self::track_expr_recursive(slice, _graph, _index);
+                Self::track_expr_recursive(index, _graph, _index);
+            }
         }
     }
 
