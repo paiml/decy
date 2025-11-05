@@ -6656,3 +6656,295 @@ integration_sprint_19:
 
       impact: "Unblocks printf, free, and all standalone function call transpilation"
       risk: "Low - additive to existing parser logic"
+
+# Sprint 20: Ownership Inference - Pointer Arithmetic Elimination
+sprint_20:
+  name: "Ownership Inference - Pointer Arithmetic to Safe Slice Indexing"
+  duration: "2 weeks"
+  start_date: "2025-11-05"
+  story_points: 34
+  status: in_progress
+
+  goals:
+    - "Build array allocation detection in dataflow analysis"
+    - "Add ArrayPointer classification to ownership inference"
+    - "Add SliceIndex HIR expression variant"
+    - "Transform pointer arithmetic to safe slice indexing (0 unsafe blocks)"
+    - "Unblock EXPR-ARITH-PTR validation task"
+
+  motivation: |
+    EXPR-ARITH-PTR is BLOCKED (RED phase complete, 8 failing tests) waiting for
+    ownership inference infrastructure to detect when pointers are array pointers
+    and transform ptr+offset to safe slice indexing (&arr[index]).
+
+    This is the MOST CRITICAL feature for achieving <5 unsafe blocks per 1000 LOC.
+    Current implementation generates unsafe { wrapping_add } for all pointer arithmetic.
+
+    Reference: docs/EXPR-ARITH-PTR-implementation-plan.md
+
+  tickets:
+    DECY-067:
+      title: "Enhance dataflow analysis for array allocation detection"
+      type: feature
+      priority: critical
+      story_points: 8
+      assignee: Claude
+      status: not_started
+      github_issue: null
+      phase: null  # RED, GREEN, REFACTOR, DONE
+
+      description: |
+        Enhance decy-ownership/dataflow.rs to detect array allocations and track
+        which pointers are derived from arrays.
+
+        Detections needed:
+        - Stack arrays: int arr[N]
+        - Heap arrays: malloc(n * sizeof(T))
+        - Array parameters: fn(int* arr, int len)
+        - Pointer assignments from arrays: int* p = arr;
+
+      requirements:
+        - Add NodeKind::ArrayAllocation { size, element_type }
+        - Add NodeKind::ArrayIndexing { base, index }
+        - Track array base in pointer assignments
+        - Propagate array information through dataflow
+
+      acceptance_criteria:
+        - DataflowGraph identifies array allocations
+        - Pointer assignments from arrays tracked
+        - Tests cover stack/heap/parameter arrays
+        - 0 clippy warnings
+        - Coverage ≥85%
+
+      test_strategy: |
+        RED Phase:
+        - Write test for stack array detection: int arr[10]
+        - Write test for heap array detection: malloc(n * sizeof(int))
+        - Write test for pointer from array: int* p = arr
+        - Write test for array parameter tracking
+        - All tests should FAIL
+
+        GREEN Phase:
+        - Add ArrayAllocation NodeKind
+        - Update DataflowAnalyzer::track_statement
+        - Track malloc with array pattern (n * sizeof)
+        - Propagate array base through assignments
+
+        REFACTOR Phase:
+        - Extract array detection logic to helper methods
+        - Add property tests for array propagation
+        - Meet quality gates
+
+      files_modified:
+        - crates/decy-ownership/src/dataflow.rs
+        - crates/decy-ownership/src/dataflow_tests.rs
+
+      dependencies: []
+      blocks: ["DECY-068"]
+
+    DECY-068:
+      title: "Add ArrayPointer classification to ownership inference"
+      type: feature
+      priority: critical
+      story_points: 8
+      assignee: Claude
+      status: not_started
+      github_issue: null
+      phase: null
+
+      description: |
+        Extend OwnershipKind enum to include ArrayPointer classification.
+        Use dataflow array detection to classify pointers as array pointers.
+
+        Transform: *mut T → &[T] or &mut [T] when pointer is array-derived.
+
+      requirements:
+        - Add OwnershipKind::ArrayPointer { base_array, element_type, base_index }
+        - Update OwnershipInferencer::classify_pointer
+        - Integrate with DataflowGraph array information
+        - Generate slice type signatures instead of raw pointers
+
+      acceptance_criteria:
+        - OwnershipKind::ArrayPointer variant exists
+        - Inferencer detects array pointers correctly
+        - Tests cover array parameter classification
+        - Tests cover pointer arithmetic classification
+        - 0 clippy warnings
+        - Coverage ≥90% (critical crate)
+
+      test_strategy: |
+        RED Phase:
+        - Write test: classify parameter (int* arr) as ArrayPointer
+        - Write test: classify local (int* p = arr) as ArrayPointer
+        - Write test: classify heap (malloc) as ArrayPointer
+        - All tests should FAIL
+
+        GREEN Phase:
+        - Add ArrayPointer to OwnershipKind enum
+        - Update classify_pointer to check dataflow for array info
+        - Set ArrayPointer when pointer derived from array
+
+        REFACTOR Phase:
+        - Add property tests for classification correctness
+        - Test ownership propagation through assignments
+        - Meet quality gates
+
+      files_modified:
+        - crates/decy-ownership/src/inference.rs
+        - crates/decy-ownership/src/inference_tests.rs
+
+      dependencies: ["DECY-067"]
+      blocks: ["DECY-069", "DECY-070"]
+
+    DECY-069:
+      title: "Add SliceIndex HIR expression variant"
+      type: feature
+      priority: high
+      story_points: 5
+      assignee: Claude
+      status: not_started
+      github_issue: null
+      phase: null
+
+      description: |
+        Add HirExpression::SliceIndex variant to represent safe slice indexing.
+        Transform pointer arithmetic in HIR construction when ownership context
+        indicates array pointer.
+
+        C: *(p + offset) → HIR: SliceIndex { slice: p, index: offset }
+
+      requirements:
+        - Add HirExpression::SliceIndex { slice, index }
+        - Update HIR construction to use SliceIndex for array pointers
+        - Update all HIR traversal code (visitors, Debug, etc.)
+        - Serialize/deserialize support
+
+      acceptance_criteria:
+        - HirExpression::SliceIndex variant exists
+        - HIR construction transforms ptr+offset when array pointer
+        - Tests cover SliceIndex creation
+        - All existing HIR tests still pass
+        - 0 clippy warnings
+        - Coverage ≥85%
+
+      test_strategy: |
+        RED Phase:
+        - Write test: parse *(p+1) with array context → SliceIndex
+        - Write test: parse *(p-2) with array context → SliceIndex
+        - Write test: preserve BinaryOp when NOT array pointer
+        - All tests should FAIL
+
+        GREEN Phase:
+        - Add SliceIndex to HirExpression enum
+        - Update HIR construction in decy-hir
+        - Check ownership context during transformation
+
+        REFACTOR Phase:
+        - Add Debug, PartialEq implementations
+        - Test serialization round-trip
+        - Meet quality gates
+
+      files_modified:
+        - crates/decy-hir/src/expression.rs
+        - crates/decy-hir/src/expression_tests.rs
+
+      dependencies: ["DECY-068"]
+      blocks: ["DECY-070"]
+
+    DECY-070:
+      title: "Transform pointer arithmetic to safe slice indexing in codegen"
+      type: feature
+      priority: critical
+      story_points: 13
+      assignee: Claude
+      status: not_started
+      github_issue: null
+      phase: null
+
+      description: |
+        **CRITICAL**: This is the final piece to unblock EXPR-ARITH-PTR.
+
+        Remove unsafe pointer arithmetic generation from codegen.
+        Generate safe slice indexing when encountering:
+        - HirExpression::SliceIndex → arr[index]
+        - Array pointer parameters → &[T] or &mut [T] signatures
+
+        Target: 0 unsafe blocks for pointer arithmetic.
+
+      requirements:
+        - Generate arr[index] for SliceIndex expressions
+        - Remove unsafe wrapping_add/wrapping_sub generation
+        - Transform function signatures: *mut T → &[T] for array pointers
+        - Add bounds checking assertions (debug mode)
+
+      acceptance_criteria:
+        - All 8 EXPR-ARITH-PTR tests pass (remove #[ignore])
+        - test_pointer_arithmetic_transformation_unsafe_count shows 0 unsafe
+        - No wrapping_add/wrapping_sub in generated code
+        - Function signatures use slices for array parameters
+        - 0 clippy warnings
+        - Coverage ≥85%
+
+      test_strategy: |
+        RED Phase:
+        - Un-ignore all 8 EXPR-ARITH-PTR tests
+        - Run tests - should show detailed failures
+        - Verify unsafe blocks still generated
+
+        GREEN Phase:
+        - Add SliceIndex case to generate_expression
+        - Generate: format!("{}[{}]", slice, index)
+        - Remove unsafe pointer arithmetic generation
+        - Update parameter type generation for ArrayPointer
+        - Make all 8 tests pass
+
+        REFACTOR Phase:
+        - Extract slice indexing to helper method
+        - Add property tests for slice generation
+        - Verify 0 unsafe blocks
+        - Meet quality gates
+        - Update EXPR-ARITH-PTR in C-VALIDATION-ROADMAP.yaml
+
+      files_modified:
+        - crates/decy-codegen/src/lib.rs
+        - crates/decy-codegen/tests/pointer_arithmetic_safe_test.rs
+        - docs/C-VALIDATION-ROADMAP.yaml
+
+      dependencies: ["DECY-068", "DECY-069"]
+      blocks: []
+
+      validation_impact: |
+        Unblocks EXPR-ARITH-PTR validation task:
+        - Changes status from BLOCKED → COMPLETED
+        - Proves <5 unsafe blocks per 1000 LOC is achievable
+        - Demonstrates ownership inference infrastructure works
+        - Sets pattern for remaining unsafe elimination
+
+      unsafe_reduction: |
+        Current: 2+ unsafe blocks per pointer arithmetic operation
+        After: 0 unsafe blocks (100% safe slice indexing)
+
+        Impact: Eliminates unsafe from one of the most common C patterns.
+
+  sprint_metrics:
+    target_coverage: "≥85%"
+    target_unsafe_reduction: "100% (all pointer arithmetic safe)"
+    target_tests: "40+ tests (10 per ticket)"
+    target_property_tests: "20 properties × 100 cases = 2000+ cases"
+
+  validation:
+    c_validation_task: "EXPR-ARITH-PTR"
+    reference: "K&R §5.3, ISO C99 §6.5.6"
+    blocking_since: "2025-10-15"
+    tests_waiting: 8
+
+  quality_gates:
+    - "All DECY-067 tests pass"
+    - "All DECY-068 tests pass"
+    - "All DECY-069 tests pass"
+    - "All 8 EXPR-ARITH-PTR tests pass (DECY-070)"
+    - "0 unsafe blocks in pointer arithmetic generation"
+    - "Coverage ≥85% for all crates"
+    - "0 clippy warnings"
+    - "cargo fmt check passes"
+
