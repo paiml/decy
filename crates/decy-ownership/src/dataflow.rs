@@ -33,6 +33,14 @@ pub enum NodeKind {
     Parameter,
     /// Free operation
     Free,
+    /// Array allocation (stack or heap arrays)
+    /// DECY-067: Added for array detection in ownership inference
+    ArrayAllocation {
+        /// Array size (None for runtime-sized arrays)
+        size: Option<usize>,
+        /// Element type
+        element_type: HirType,
+    },
 }
 
 /// Dataflow graph tracking pointer dependencies.
@@ -79,6 +87,22 @@ impl DataflowGraph {
     /// Get all variables in the graph.
     pub fn variables(&self) -> Vec<&String> {
         self.nodes.keys().collect()
+    }
+
+    /// Get the array base for a pointer variable (if it's derived from an array).
+    /// DECY-067 RED: Stub implementation - always returns None
+    pub fn array_base_for(&self, _var: &str) -> Option<&str> {
+        // RED phase: Not yet implemented
+        // Will track array base in GREEN phase
+        None
+    }
+
+    /// Check if a parameter is an array pointer (has associated length parameter).
+    /// DECY-067 RED: Stub implementation - always returns None
+    pub fn is_array_parameter(&self, _var: &str) -> Option<bool> {
+        // RED phase: Not yet implemented
+        // Will detect pointer+length parameter pattern in GREEN phase
+        None
     }
 }
 
