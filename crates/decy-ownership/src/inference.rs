@@ -15,6 +15,16 @@ pub enum OwnershipKind {
     ImmutableBorrow,
     /// Mutable borrow (&mut T)
     MutableBorrow,
+    /// Array pointer (slice reference `&[T]` or `&mut [T]`)
+    /// DECY-068: Added for safe pointer arithmetic transformation
+    ArrayPointer {
+        /// Base array name
+        base_array: String,
+        /// Element type
+        element_type: decy_hir::HirType,
+        /// Known base index (if constant)
+        base_index: Option<usize>,
+    },
     /// Uncertain (needs manual review)
     Unknown,
 }
@@ -113,11 +123,15 @@ impl OwnershipInferencer {
                 }
                 NodeKind::ArrayAllocation {
                     size: _,
-                    element_type: _,
+                    element_type,
                 } => {
-                    // DECY-067 RED: Array allocations create owning pointers
-                    // In the future (DECY-068) this will be ArrayPointer classification
-                    OwnershipKind::Owning
+                    // DECY-068 RED: Array allocations create ArrayPointer (not Owning)
+                    // This is a stub that returns wrong data - will be fixed in GREEN phase
+                    OwnershipKind::ArrayPointer {
+                        base_array: String::new(), // RED: Wrong - should be var_name
+                        element_type: element_type.clone(),
+                        base_index: None, // RED: Wrong - should calculate actual index
+                    }
                 }
             }
         } else {
@@ -187,6 +201,7 @@ impl OwnershipInferencer {
             OwnershipKind::Owning => 0.9,          // High confidence for malloc
             OwnershipKind::ImmutableBorrow => 0.8, // Medium-high for immutable
             OwnershipKind::MutableBorrow => 0.75,  // Slightly lower for mutable
+            OwnershipKind::ArrayPointer { .. } => 0.95, // DECY-068: Very high for array pointers
             OwnershipKind::Unknown => 0.3,         // Low for uncertain
         };
 
@@ -238,6 +253,26 @@ impl OwnershipInferencer {
                 }
                 (NodeKind::Assignment { source }, OwnershipKind::MutableBorrow) => {
                     format!("{} assigned from {}, mutable borrow", var_name, source)
+                }
+                (
+                    NodeKind::ArrayAllocation { .. },
+                    OwnershipKind::ArrayPointer { base_array, .. },
+                ) => {
+                    // DECY-068: Array allocation creates array pointer
+                    format!(
+                        "{} is an array pointer (base: {}), enables safe slice indexing",
+                        var_name, base_array
+                    )
+                }
+                (
+                    NodeKind::Assignment { source },
+                    OwnershipKind::ArrayPointer { base_array, .. },
+                ) => {
+                    // DECY-068: Pointer derived from array
+                    format!(
+                        "{} is an array pointer from {} (base: {})",
+                        var_name, source, base_array
+                    )
                 }
                 _ => format!("{} has {:?} ownership", var_name, kind),
             }
