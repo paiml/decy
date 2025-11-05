@@ -7051,3 +7051,209 @@ sprint_20:
 
     Next: Continue with remaining C validation tasks
 
+
+# Sprint 21: Array Parameter Detection & Safe Slice Parameters
+sprint_21:
+  name: "Array Parameter Detection - Safe Slice Function Signatures"
+  duration: "1 week"
+  start_date: "2025-11-05"
+  story_points: 21
+  status: not_started
+
+  goals:
+    - "Implement array parameter detection heuristics"
+    - "Transform C array parameters to safe Rust slice parameters"
+    - "Generate idiomatic &[T] and &mut [T] function signatures"
+    - "Validate array parameter safety with comprehensive tests"
+
+  motivation: |
+    Currently, array parameters like `void process(int* arr, int len)` are
+    transpiled to raw pointers. This is a common C pattern that should be
+    transformed to safe Rust slices `fn process(arr: &[i32])`.
+
+    Building on Sprint 20's success (0 unsafe blocks for pointer arithmetic),
+    Sprint 21 extends ownership inference to function parameters, enabling
+    safe slice-based function signatures.
+
+    Reference: TODO in crates/decy-ownership/src/dataflow.rs:107
+
+  tickets:
+    DECY-071:
+      title: "Implement array parameter detection heuristics"
+      type: feature
+      priority: high
+      story_points: 8
+      assignee: Claude
+      status: not_started
+      github_issue: null
+      phase: null
+
+      description: |
+        Implement `is_array_parameter()` with proper heuristics to detect
+        when a pointer parameter represents an array.
+
+        Detection patterns:
+        - Pointer followed by length parameter: `(T* arr, int len)`
+        - Common naming patterns: arr/array/buf paired with len/size/count
+        - Array indexing usage: `ptr[i]` in function body
+        - No pointer arithmetic (only indexing)
+
+      requirements:
+        - Analyze function signature for length parameter patterns
+        - Check parameter naming conventions
+        - Scan function body for array usage patterns
+        - Return confidence score (0.0-1.0)
+
+      acceptance_criteria:
+        - Detects `(int* arr, int len)` as array parameter ✅
+        - Detects `(char* buf, size_t size)` as array parameter ✅
+        - Does NOT detect `(int* ptr)` without length as array ✅
+        - Does NOT detect pointer with arithmetic as array ✅
+        - 10+ tests covering different patterns
+        - 0 false positives on existing test suite
+        - Coverage ≥90%
+
+      test_strategy: |
+        RED Phase:
+        - Write 10 tests for different parameter patterns
+        - Test should fail with current conservative implementation
+
+        GREEN Phase:
+        - Implement parameter pattern matching
+        - Implement name-based heuristics
+        - Implement body analysis for indexing patterns
+        - Make all tests pass
+
+        REFACTOR Phase:
+        - Extract pattern matching to separate functions
+        - Add confidence scoring
+        - Optimize performance
+        - Meet quality gates
+
+      files_modified:
+        - crates/decy-ownership/src/dataflow.rs
+        - crates/decy-ownership/src/dataflow_tests.rs
+
+    DECY-072:
+      title: "Transform array parameters to safe slice signatures"
+      type: feature
+      priority: high
+      story_points: 8
+      assignee: Claude
+      status: not_started
+      github_issue: null
+      phase: null
+
+      description: |
+        Use array parameter detection to transform C function signatures
+        to idiomatic Rust with slice parameters.
+
+        Transformation:
+        - C: `void process(int* arr, int len)` 
+        - Rust: `fn process(arr: &[i32])`
+
+        Remove redundant length parameter in Rust (slice includes length).
+
+      requirements:
+        - Query is_array_parameter() for each pointer param
+        - Transform detected array pointers to &[T] or &mut [T]
+        - Omit redundant length parameter from Rust signature
+        - Update function body to use `arr.len()` instead of len param
+
+      acceptance_criteria:
+        - Transforms `(int* arr, int len)` → `arr: &[i32]` ✅
+        - Transforms `(char* buf, size_t size)` → `buf: &[u8]` ✅
+        - Uses `&mut [T]` for mutable array parameters ✅
+        - Removes redundant length parameter ✅
+        - Function body uses `arr.len()` not `len` ✅
+        - All existing tests still pass
+        - 8+ integration tests for different patterns
+        - Coverage ≥85%
+
+      test_strategy: |
+        RED Phase:
+        - Create integration tests with array parameter functions
+        - Tests should show raw pointer signatures currently
+
+        GREEN Phase:
+        - Update signature generation in codegen
+        - Transform pointer params based on ownership
+        - Update function body length references
+        - Make all tests pass
+
+        REFACTOR Phase:
+        - Extract signature transformation logic
+        - Add property tests
+        - Verify 0 unsafe blocks
+        - Meet quality gates
+
+      files_modified:
+        - crates/decy-codegen/src/lib.rs
+        - crates/decy-core/tests/array_parameter_test.rs (new)
+        - crates/decy-ownership/src/borrow_gen.rs
+
+      dependencies: ["DECY-071"]
+
+    DECY-073:
+      title: "Add array parameter validation & property tests"
+      type: quality
+      priority: medium
+      story_points: 5
+      assignee: Claude
+      status: not_started
+      github_issue: null
+      phase: null
+
+      description: |
+        Add comprehensive property-based tests for array parameter detection
+        and transformation to ensure correctness across edge cases.
+
+      requirements:
+        - Property tests for detection heuristics
+        - Property tests for signature transformation
+        - Fuzz test parameter name variations
+        - Test edge cases (no length param, multiple arrays, etc.)
+
+      acceptance_criteria:
+        - 20 properties × 1000 cases = 20K test cases ✅
+        - All property tests pass ✅
+        - Edge cases covered (multiple array params, nested functions, etc.)
+        - Mutation score ≥90% ✅
+        - Coverage ≥90% ✅
+
+      test_strategy: |
+        - Use proptest for property-based testing
+        - Generate random function signatures
+        - Verify detection consistency
+        - Verify transformation safety
+
+      files_modified:
+        - crates/decy-ownership/tests/array_parameter_property_tests.rs (new)
+        - crates/decy-codegen/tests/signature_property_tests.rs (new)
+
+      dependencies: ["DECY-071", "DECY-072"]
+
+  sprint_metrics:
+    target_coverage: "≥90%"
+    target_unsafe_reduction: "100% (no unsafe in array param functions)"
+    target_tests: "30+ tests (10 per ticket)"
+    target_property_tests: "20 properties × 1000 cases = 20K cases"
+
+  quality_gates:
+    - "All DECY-071 tests pass"
+    - "All DECY-072 tests pass"
+    - "All DECY-073 property tests pass"
+    - "0 unsafe blocks in array parameter handling"
+    - "Coverage ≥90%"
+    - "0 clippy warnings"
+    - "cargo fmt check passes"
+    - "All existing tests still pass"
+
+  validation_impact: |
+    Improves safety and idiomaticity for one of the most common C patterns.
+    
+    Example transformation:
+    C: void process_array(int* arr, int len) { for(int i=0; i<len; i++) { arr[i] *= 2; } }
+    Rust: fn process_array(arr: &mut [i32]) { for x in arr.iter_mut() { *x *= 2; } }
+    
+    0 unsafe blocks, idiomatic iterators, bounds-checked access.
