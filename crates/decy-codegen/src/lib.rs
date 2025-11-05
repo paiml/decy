@@ -969,6 +969,14 @@ impl CodeGenerator {
                 // Regular array/slice indexing
                 format!("{}[{}]", array_code, index_code)
             }
+            HirExpression::SliceIndex { slice, index, .. } => {
+                // DECY-070 GREEN: Generate safe slice indexing (0 unsafe blocks!)
+                // SliceIndex represents pointer arithmetic transformed to safe indexing
+                let slice_code = self.generate_expression_with_context(slice, ctx);
+                let index_code = self.generate_expression_with_context(index, ctx);
+                // Generate: slice[index] - guaranteed safe, bounds-checked at runtime
+                format!("{}[{}]", slice_code, index_code)
+            }
             HirExpression::Sizeof { type_name } => {
                 // sizeof(int) → std::mem::size_of::<i32>() as i32
                 // sizeof(struct Data) → std::mem::size_of::<Data>() as i32
