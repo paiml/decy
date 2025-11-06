@@ -1731,7 +1731,16 @@ impl CodeGenerator {
     /// assert_eq!(sig, "fn test()");
     /// ```
     pub fn generate_signature(&self, func: &HirFunction) -> String {
+        // DECY-076 GREEN: Generate lifetime annotations using LifetimeAnnotator
+        use decy_ownership::lifetime_gen::LifetimeAnnotator;
+        let lifetime_annotator = LifetimeAnnotator::new();
+        let annotated_sig = lifetime_annotator.annotate_function(func);
+
         let mut sig = format!("fn {}", func.name());
+
+        // Add lifetime parameters if needed
+        let lifetime_syntax = lifetime_annotator.generate_lifetime_syntax(&annotated_sig.lifetimes);
+        sig.push_str(&lifetime_syntax);
 
         // DECY-072 GREEN: Detect array parameters using ownership analysis
         use decy_ownership::dataflow::DataflowAnalyzer;
@@ -1754,36 +1763,39 @@ impl CodeGenerator {
             }
         }
 
-        // Generate parameters
+        // Generate parameters with lifetime annotations
         sig.push('(');
-        let params: Vec<String> = func
-            .parameters()
+        let params: Vec<String> = annotated_sig
+            .parameters
             .iter()
             .filter_map(|p| {
                 // Skip length parameters for array parameters
-                if skip_params.contains(p.name()) {
+                if skip_params.contains(&p.name) {
                     return None;
                 }
 
                 // Check if this is an array parameter
-                let is_array = graph.is_array_parameter(p.name()).unwrap_or(false);
+                let is_array = graph.is_array_parameter(&p.name).unwrap_or(false);
 
                 if is_array {
                     // Transform to slice parameter
-                    // Determine mutability: use &mut if the array is modified in the function body
-                    let is_mutable = self.is_parameter_modified(func, p.name());
-                    let slice_type = self.pointer_to_slice_type(p.param_type(), is_mutable);
-
-                    // For slices, don't add 'mut' prefix (slices themselves aren't reassigned)
-                    Some(format!("{}: {}", p.name(), slice_type))
+                    // Find the original parameter to get the HirType
+                    if let Some(orig_param) =
+                        func.parameters().iter().find(|fp| fp.name() == p.name)
+                    {
+                        let is_mutable = self.is_parameter_modified(func, &p.name);
+                        let slice_type =
+                            self.pointer_to_slice_type(orig_param.param_type(), is_mutable);
+                        // For slices, don't add 'mut' prefix (slices themselves aren't reassigned)
+                        Some(format!("{}: {}", p.name, slice_type))
+                    } else {
+                        None
+                    }
                 } else {
-                    // Regular parameter - use existing logic
+                    // Regular parameter with lifetime annotation
+                    let type_str = self.annotated_type_to_string(&p.param_type);
                     // In C, parameters are mutable by default (can be reassigned)
-                    Some(format!(
-                        "mut {}: {}",
-                        p.name(),
-                        Self::map_type(p.param_type())
-                    ))
+                    Some(format!("mut {}: {}", p.name, type_str))
                 }
             })
             .collect();
@@ -1798,9 +1810,13 @@ impl CodeGenerator {
             return sig;
         }
 
-        // Generate return type (skip for void)
-        if !matches!(func.return_type(), HirType::Void) {
-            sig.push_str(&format!(" -> {}", Self::map_type(func.return_type())));
+        // Generate return type with lifetime annotation (skip for void)
+        if !matches!(
+            &annotated_sig.return_type,
+            AnnotatedType::Simple(HirType::Void)
+        ) {
+            let return_type_str = self.annotated_type_to_string(&annotated_sig.return_type);
+            sig.push_str(&format!(" -> {}", return_type_str));
         }
 
         sig
