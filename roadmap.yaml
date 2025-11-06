@@ -7360,9 +7360,10 @@ sprint_22:
       priority: high
       story_points: 8
       assignee: Claude
-      status: not_started
+      status: in_progress
       github_issue: null
-      phase: null
+      phase: RED
+      started_date: "2025-11-06"
 
       description: |
         Determine where explicit lifetime annotations are required vs
