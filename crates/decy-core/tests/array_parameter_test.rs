@@ -10,21 +10,16 @@ use decy_hir::{HirFunction, HirParameter, HirStatement, HirType};
 use decy_ownership::dataflow::DataflowAnalyzer;
 
 /// Test helper: Create a simple array parameter function
-fn create_array_param_function(
-    name: &str,
-    param_name: &str,
-    len_param_name: &str,
-) -> HirFunction {
+fn create_array_param_function(name: &str, param_name: &str, len_param_name: &str) -> HirFunction {
     let params = vec![
-        HirParameter::new(param_name.to_string(), HirType::Pointer(Box::new(HirType::Int))),
+        HirParameter::new(
+            param_name.to_string(),
+            HirType::Pointer(Box::new(HirType::Int)),
+        ),
         HirParameter::new(len_param_name.to_string(), HirType::Int),
     ];
 
-    HirFunction::new(
-        name.to_string(),
-        HirType::Void,
-        params,
-    )
+    HirFunction::new(name.to_string(), HirType::Void, params)
 }
 
 #[test]
@@ -105,13 +100,11 @@ fn test_mutable_array_parameter_uses_mut_slice() {
     ];
 
     // Function body: arr[0] = 42;
-    let body = vec![
-        HirStatement::ArrayIndexAssignment {
-            array: Box::new(HirExpression::Variable("arr".to_string())),
-            index: Box::new(HirExpression::IntLiteral(0)),
-            value: HirExpression::IntLiteral(42),
-        }
-    ];
+    let body = vec![HirStatement::ArrayIndexAssignment {
+        array: Box::new(HirExpression::Variable("arr".to_string())),
+        index: Box::new(HirExpression::IntLiteral(0)),
+        value: HirExpression::IntLiteral(42),
+    }];
 
     let func = HirFunction::new_with_body("modify_array".to_string(), HirType::Void, params, body);
 
@@ -140,9 +133,9 @@ fn test_array_length_usage_transformed_to_len_method() {
     ];
 
     // Function body: return len;
-    let body = vec![
-        HirStatement::Return(Some(HirExpression::Variable("len".to_string())))
-    ];
+    let body = vec![HirStatement::Return(Some(HirExpression::Variable(
+        "len".to_string(),
+    )))];
 
     let func = HirFunction::new_with_body("get_length".to_string(), HirType::Int, params, body);
 
@@ -170,9 +163,10 @@ fn test_pointer_without_length_not_transformed() {
     // C: void process(int* ptr)
     // Expected Rust: fn process(ptr: *mut i32) - raw pointer (no length)
 
-    let params = vec![
-        HirParameter::new("ptr".to_string(), HirType::Pointer(Box::new(HirType::Int))),
-    ];
+    let params = vec![HirParameter::new(
+        "ptr".to_string(),
+        HirType::Pointer(Box::new(HirType::Int)),
+    )];
 
     let func = HirFunction::new("process".to_string(), HirType::Void, params);
     let codegen = CodeGenerator::new();
@@ -194,7 +188,10 @@ fn test_array_parameter_detection_by_name_pattern() {
     // Expected: Detected as array due to "array" name
 
     let params = vec![
-        HirParameter::new("array".to_string(), HirType::Pointer(Box::new(HirType::Int))),
+        HirParameter::new(
+            "array".to_string(),
+            HirType::Pointer(Box::new(HirType::Int)),
+        ),
         HirParameter::new("count".to_string(), HirType::Int),
     ];
 
@@ -218,7 +215,10 @@ fn test_buffer_parameter_detection_by_name_pattern() {
     // Expected: Detected as array due to "buffer" name
 
     let params = vec![
-        HirParameter::new("buffer".to_string(), HirType::Pointer(Box::new(HirType::Char))),
+        HirParameter::new(
+            "buffer".to_string(),
+            HirType::Pointer(Box::new(HirType::Char)),
+        ),
         HirParameter::new("length".to_string(), HirType::Int),
     ];
 
@@ -306,7 +306,10 @@ fn test_float_array_parameter_transformed() {
     // Expected Rust: fn process_floats(values: &[f32])
 
     let params = vec![
-        HirParameter::new("values".to_string(), HirType::Pointer(Box::new(HirType::Float))),
+        HirParameter::new(
+            "values".to_string(),
+            HirType::Pointer(Box::new(HirType::Float)),
+        ),
         HirParameter::new("num_values".to_string(), HirType::Int),
     ];
 
