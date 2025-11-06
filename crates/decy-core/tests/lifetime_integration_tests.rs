@@ -281,15 +281,27 @@ fn test_function_with_nested_reference_types() {
     );
 
     // Should have nested reference in parameter
+    // With lifetimes, this will be &'a &'a i32 or similar
+    let has_nested_ref = rust_code.contains("&&")
+        || rust_code.contains("& &")
+        || (rust_code.contains("&'") && rust_code.matches("&'").count() >= 2);
     assert!(
-        rust_code.contains("&&") || rust_code.contains("& &"),
+        has_nested_ref,
         "Expected nested reference in parameter, got: {}",
         rust_code
     );
 
     // Should have nested reference in return type
+    // With lifetimes, this will be -> &'a &'a i32 or similar
+    let has_nested_return = rust_code.contains("-> &&")
+        || rust_code.contains("-> & &")
+        || (rust_code.contains("-> &'")
+            && rust_code[rust_code.find("-> &'").unwrap()..]
+                .matches("&'")
+                .count()
+                >= 2);
     assert!(
-        rust_code.contains("-> &&") || rust_code.contains("-> & &"),
+        has_nested_return,
         "Expected nested reference in return type, got: {}",
         rust_code
     );
@@ -365,7 +377,10 @@ fn test_generated_code_with_lifetimes_is_valid_rust() {
     let rust_code = codegen.generate_function(&func);
 
     // Basic syntax checks
-    assert!(rust_code.contains("fn test_func"), "Should have function name");
+    assert!(
+        rust_code.contains("fn test_func"),
+        "Should have function name"
+    );
     assert!(rust_code.contains("("), "Should have parameter list open");
     assert!(rust_code.contains(")"), "Should have parameter list close");
     assert!(rust_code.contains("->"), "Should have return type arrow");
