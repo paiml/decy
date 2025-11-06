@@ -7084,9 +7084,9 @@ sprint_21:
       priority: high
       story_points: 8
       assignee: Claude
-      status: not_started
+      status: done
       github_issue: null
-      phase: null
+      phase: DONE
 
       description: |
         Implement `is_array_parameter()` with proper heuristics to detect
