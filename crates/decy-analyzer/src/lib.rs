@@ -6,4 +6,5 @@
 #![warn(clippy::all)]
 #![deny(unsafe_code)]
 
+pub mod lock_analysis;
 pub mod patterns;
