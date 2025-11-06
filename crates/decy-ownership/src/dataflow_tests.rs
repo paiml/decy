@@ -584,7 +584,10 @@ fn test_detect_array_parameter_with_count() {
         "process".to_string(),
         HirType::Void,
         vec![
-            HirParameter::new("array".to_string(), HirType::Pointer(Box::new(HirType::Int))),
+            HirParameter::new(
+                "array".to_string(),
+                HirType::Pointer(Box::new(HirType::Int)),
+            ),
             HirParameter::new("count".to_string(), HirType::Int),
         ],
         vec![],
@@ -608,7 +611,10 @@ fn test_no_detect_single_pointer_without_length() {
     let func = HirFunction::new_with_body(
         "process".to_string(),
         HirType::Void,
-        vec![HirParameter::new("ptr".to_string(), HirType::Pointer(Box::new(HirType::Int)))],
+        vec![HirParameter::new(
+            "ptr".to_string(),
+            HirType::Pointer(Box::new(HirType::Int)),
+        )],
         vec![],
     );
 
@@ -809,7 +815,10 @@ fn test_unnamed_pointer_parameter() {
         "process".to_string(),
         HirType::Void,
         vec![
-            HirParameter::new("_arg0".to_string(), HirType::Pointer(Box::new(HirType::Int))),
+            HirParameter::new(
+                "_arg0".to_string(),
+                HirType::Pointer(Box::new(HirType::Int)),
+            ),
             HirParameter::new("_arg1".to_string(), HirType::Int),
         ],
         vec![],
