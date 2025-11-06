@@ -7423,9 +7423,10 @@ sprint_22:
       priority: medium
       story_points: 5
       assignee: Claude
-      status: not_started
+      status: in_progress
       github_issue: null
-      phase: null
+      phase: RED
+      started_date: "2025-11-06"
 
       description: |
         Integrate lifetime analysis results into code generation,
