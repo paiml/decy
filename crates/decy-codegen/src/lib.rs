@@ -1731,16 +1731,73 @@ impl CodeGenerator {
     /// assert_eq!(sig, "fn test()");
     /// ```
     pub fn generate_signature(&self, func: &HirFunction) -> String {
+        // DECY-076 GREEN: Generate lifetime annotations using LifetimeAnnotator
+        use decy_ownership::lifetime_gen::LifetimeAnnotator;
+        let lifetime_annotator = LifetimeAnnotator::new();
+        let annotated_sig = lifetime_annotator.annotate_function(func);
+
         let mut sig = format!("fn {}", func.name());
 
-        // Generate parameters
-        // In C, parameters are mutable by default (can be reassigned)
-        // Add mut to match C semantics
+        // Add lifetime parameters if needed
+        let lifetime_syntax = lifetime_annotator.generate_lifetime_syntax(&annotated_sig.lifetimes);
+        sig.push_str(&lifetime_syntax);
+
+        // DECY-072 GREEN: Detect array parameters using ownership analysis
+        use decy_ownership::dataflow::DataflowAnalyzer;
+        let analyzer = DataflowAnalyzer::new();
+        let graph = analyzer.analyze(func);
+
+        // Track which parameters are length parameters to skip them
+        let mut skip_params = std::collections::HashSet::new();
+
+        // First pass: identify array parameters and their associated length parameters
+        for (idx, param) in func.parameters().iter().enumerate() {
+            if let Some(true) = graph.is_array_parameter(param.name()) {
+                // This is an array parameter - mark the next param as length param to skip
+                if idx + 1 < func.parameters().len() {
+                    let next_param = &func.parameters()[idx + 1];
+                    if matches!(next_param.param_type(), HirType::Int) {
+                        skip_params.insert(next_param.name().to_string());
+                    }
+                }
+            }
+        }
+
+        // Generate parameters with lifetime annotations
         sig.push('(');
-        let params: Vec<String> = func
-            .parameters()
+        let params: Vec<String> = annotated_sig
+            .parameters
             .iter()
-            .map(|p| format!("mut {}: {}", p.name(), Self::map_type(p.param_type())))
+            .filter_map(|p| {
+                // Skip length parameters for array parameters
+                if skip_params.contains(&p.name) {
+                    return None;
+                }
+
+                // Check if this is an array parameter
+                let is_array = graph.is_array_parameter(&p.name).unwrap_or(false);
+
+                if is_array {
+                    // Transform to slice parameter
+                    // Find the original parameter to get the HirType
+                    if let Some(orig_param) =
+                        func.parameters().iter().find(|fp| fp.name() == p.name)
+                    {
+                        let is_mutable = self.is_parameter_modified(func, &p.name);
+                        let slice_type =
+                            self.pointer_to_slice_type(orig_param.param_type(), is_mutable);
+                        // For slices, don't add 'mut' prefix (slices themselves aren't reassigned)
+                        Some(format!("{}: {}", p.name, slice_type))
+                    } else {
+                        None
+                    }
+                } else {
+                    // Regular parameter with lifetime annotation
+                    let type_str = self.annotated_type_to_string(&p.param_type);
+                    // In C, parameters are mutable by default (can be reassigned)
+                    Some(format!("mut {}: {}", p.name, type_str))
+                }
+            })
             .collect();
         sig.push_str(&params.join(", "));
         sig.push(')');
@@ -1753,12 +1810,138 @@ impl CodeGenerator {
             return sig;
         }
 
-        // Generate return type (skip for void)
-        if !matches!(func.return_type(), HirType::Void) {
-            sig.push_str(&format!(" -> {}", Self::map_type(func.return_type())));
+        // Generate return type with lifetime annotation (skip for void)
+        if !matches!(
+            &annotated_sig.return_type,
+            AnnotatedType::Simple(HirType::Void)
+        ) {
+            let return_type_str = self.annotated_type_to_string(&annotated_sig.return_type);
+            sig.push_str(&format!(" -> {}", return_type_str));
         }
 
         sig
+    }
+
+    /// Check if a parameter is modified in the function body (DECY-072 GREEN).
+    ///
+    /// Used to determine whether to use &[T] or &mut [T] for array parameters.
+    fn is_parameter_modified(&self, func: &HirFunction, param_name: &str) -> bool {
+        // Check if the parameter is used in any assignment statements
+        for stmt in func.body() {
+            if self.statement_modifies_variable(stmt, param_name) {
+                return true;
+            }
+        }
+        false
+    }
+
+    /// Recursively check if a statement modifies a variable (DECY-072 GREEN).
+    #[allow(clippy::only_used_in_recursion)]
+    fn statement_modifies_variable(&self, stmt: &HirStatement, var_name: &str) -> bool {
+        match stmt {
+            HirStatement::ArrayIndexAssignment { array, .. } => {
+                // Check if this is arr[i] = value where arr is our variable
+                if let HirExpression::Variable(name) = &**array {
+                    return name == var_name;
+                }
+                false
+            }
+            HirStatement::DerefAssignment { target, .. } => {
+                // Check if this is *ptr = value where ptr is our variable
+                if let HirExpression::Variable(name) = target {
+                    return name == var_name;
+                }
+                false
+            }
+            HirStatement::If {
+                then_block,
+                else_block,
+                ..
+            } => {
+                then_block
+                    .iter()
+                    .any(|s| self.statement_modifies_variable(s, var_name))
+                    || else_block.as_ref().is_some_and(|blk| {
+                        blk.iter()
+                            .any(|s| self.statement_modifies_variable(s, var_name))
+                    })
+            }
+            HirStatement::While { body, .. } | HirStatement::For { body, .. } => body
+                .iter()
+                .any(|s| self.statement_modifies_variable(s, var_name)),
+            _ => false,
+        }
+    }
+
+    /// Convert a pointer type to a slice type (DECY-072 GREEN).
+    ///
+    /// Transforms `*mut T` or `*const T` to `&[T]` or `&mut [T]`.
+    fn pointer_to_slice_type(&self, ptr_type: &HirType, is_mutable: bool) -> String {
+        if let HirType::Pointer(inner) = ptr_type {
+            let element_type = Self::map_type(inner);
+            if is_mutable {
+                format!("&mut [{}]", element_type)
+            } else {
+                format!("&[{}]", element_type)
+            }
+        } else {
+            // Fallback: not a pointer, use normal mapping
+            Self::map_type(ptr_type)
+        }
+    }
+
+    /// Transform length parameter references to array.len() calls (DECY-072 GREEN).
+    ///
+    /// Replaces variable references like `len` with `arr.len()` in generated code.
+    fn transform_length_refs(
+        &self,
+        code: &str,
+        length_to_array: &std::collections::HashMap<String, String>,
+    ) -> String {
+        let mut result = code.to_string();
+
+        // Replace each length parameter reference with corresponding array.len() call
+        for (length_param, array_param) in length_to_array {
+            // Match the length parameter as a standalone identifier
+            // Use word boundaries to avoid partial matches
+            // Common patterns: "return len", "x + len", "len)", etc.
+            let patterns = vec![
+                (
+                    format!("return {}", length_param),
+                    format!("return {}.len() as i32", array_param),
+                ),
+                (
+                    format!("{} ", length_param),
+                    format!("{}.len() as i32 ", array_param),
+                ),
+                (
+                    format!("{})", length_param),
+                    format!("{}.len() as i32)", array_param),
+                ),
+                (
+                    format!("{},", length_param),
+                    format!("{}.len() as i32,", array_param),
+                ),
+                (
+                    format!("{}]", length_param),
+                    format!("{}.len() as i32]", array_param),
+                ),
+                (
+                    length_param.clone() + "}",
+                    array_param.clone() + ".len() as i32}",
+                ),
+                (
+                    format!("{};", length_param),
+                    format!("{}.len() as i32;", array_param),
+                ),
+            ];
+
+            for (pattern, replacement) in patterns {
+                result = result.replace(&pattern, &replacement);
+            }
+        }
+
+        result
     }
 
     /// Generate a function signature with lifetime annotations.
@@ -1987,6 +2170,27 @@ impl CodeGenerator {
     pub fn generate_function(&self, func: &HirFunction) -> String {
         let mut code = String::new();
 
+        // DECY-072 GREEN: Build mapping of length params -> array params for body transformation
+        use decy_ownership::dataflow::DataflowAnalyzer;
+        let analyzer = DataflowAnalyzer::new();
+        let graph = analyzer.analyze(func);
+
+        let mut length_to_array: std::collections::HashMap<String, String> =
+            std::collections::HashMap::new();
+
+        for (idx, param) in func.parameters().iter().enumerate() {
+            if let Some(true) = graph.is_array_parameter(param.name()) {
+                // This is an array parameter - map the next param to this array
+                if idx + 1 < func.parameters().len() {
+                    let next_param = &func.parameters()[idx + 1];
+                    if matches!(next_param.param_type(), HirType::Int) {
+                        length_to_array
+                            .insert(next_param.name().to_string(), param.name().to_string());
+                    }
+                }
+            }
+        }
+
         // Generate signature
         code.push_str(&self.generate_signature(func));
         code.push_str(" {\n");
@@ -2006,12 +2210,16 @@ impl CodeGenerator {
             // Generate actual body statements with persistent context
             for stmt in func.body() {
                 code.push_str("    ");
-                code.push_str(&self.generate_statement_with_context(
+                let stmt_code = self.generate_statement_with_context(
                     stmt,
                     Some(func.name()),
                     &mut ctx,
                     Some(func.return_type()),
-                ));
+                );
+
+                // DECY-072 GREEN: Replace length parameter references with arr.len() calls
+                let transformed = self.transform_length_refs(&stmt_code, &length_to_array);
+                code.push_str(&transformed);
                 code.push('\n');
             }
         }
