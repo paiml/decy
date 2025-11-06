@@ -9,8 +9,7 @@ use proptest::prelude::*;
 
 /// Strategy to generate valid C identifier names
 fn identifier_strategy() -> impl Strategy<Value = String> {
-    prop::string::string_regex("[a-z][a-z0-9_]{0,15}")
-        .expect("Valid regex for identifiers")
+    prop::string::string_regex("[a-z][a-z0-9_]{0,15}").expect("Valid regex for identifiers")
 }
 
 /// Strategy to generate array-like parameter names
