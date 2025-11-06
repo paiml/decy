@@ -17,8 +17,9 @@ use decy_analyzer::patterns::PatternDetector;
 use decy_codegen::CodeGenerator;
 use decy_hir::HirFunction;
 use decy_ownership::{
-    borrow_gen::BorrowGenerator, dataflow::DataflowAnalyzer, inference::OwnershipInferencer,
-    lifetime::LifetimeAnalyzer, lifetime_gen::LifetimeAnnotator,
+    array_slice::ArrayParameterTransformer, borrow_gen::BorrowGenerator,
+    dataflow::DataflowAnalyzer, inference::OwnershipInferencer, lifetime::LifetimeAnalyzer,
+    lifetime_gen::LifetimeAnnotator,
 };
 use decy_parser::parser::CParser;
 use petgraph::graph::{DiGraph, NodeIndex};
@@ -780,17 +781,21 @@ pub fn transpile_with_includes(c_code: &str, base_dir: Option<&Path>) -> Result<
         let borrow_generator = BorrowGenerator::new();
         let func_with_borrows = borrow_generator.transform_function(&func, &ownership_inferences);
 
+        // DECY-072 GREEN: Transform array parameters to slices
+        let array_transformer = ArrayParameterTransformer::new();
+        let func_with_slices = array_transformer.transform(&func_with_borrows, &dataflow_graph);
+
         // Analyze lifetimes
         let lifetime_analyzer = LifetimeAnalyzer::new();
-        let scope_tree = lifetime_analyzer.build_scope_tree(&func_with_borrows);
-        let _lifetimes = lifetime_analyzer.track_lifetimes(&func_with_borrows, &scope_tree);
+        let scope_tree = lifetime_analyzer.build_scope_tree(&func_with_slices);
+        let _lifetimes = lifetime_analyzer.track_lifetimes(&func_with_slices, &scope_tree);
 
         // Generate lifetime annotations
         let lifetime_annotator = LifetimeAnnotator::new();
-        let annotated_signature = lifetime_annotator.annotate_function(&func_with_borrows);
+        let annotated_signature = lifetime_annotator.annotate_function(&func_with_slices);
 
         // Store both function and its annotated signature
-        transformed_functions.push((func_with_borrows, annotated_signature));
+        transformed_functions.push((func_with_slices, annotated_signature));
     }
 
     // Step 4: Generate Rust code with lifetime annotations

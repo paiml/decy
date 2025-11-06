@@ -768,6 +768,7 @@ dependencies = [
  "anyhow",
  "criterion",
  "decy-analyzer",
+ "decy-core",
  "decy-hir",
  "decy-ownership",
  "decy-parser",

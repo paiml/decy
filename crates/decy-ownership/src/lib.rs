@@ -7,6 +7,7 @@
 #![warn(clippy::all)]
 #![deny(unsafe_code)]
 
+pub mod array_slice;
 pub mod borrow_gen;
 pub mod dataflow;
 pub mod inference;
