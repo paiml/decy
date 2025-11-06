@@ -7142,8 +7142,9 @@ sprint_21:
       assignee: Claude
       status: in_progress
       github_issue: null
-      phase: RED
+      phase: GREEN
       started_date: "2025-11-06"
+      red_phase_date: "2025-11-06"
 
       description: |
         Use array parameter detection to transform C function signatures
