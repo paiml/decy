@@ -1,0 +1,18 @@
+# Seeds for failure cases proptest has generated in the past. It is
+# automatically read and these particular cases re-run before any
+# novel cases are generated.
+#
+# It is recommended to check this file in to source control so that
+# everyone who runs the test benefits from these saved cases.
+cc 3d7166c7d4f2958b5629a92c370eddd4ac48b476eb682e9c1044e76a95006715 # shrinks to precision = 0, value = 0.0
+cc 95dd1af9d860cc1fa815344484ac362a10f736c799791183662c46747a8d7be3 # shrinks to value = 0.0
+cc 067e70f870baba4d4f9b525c9d04315a965ee0a8ab4c0a52f73ca0035c8704f4 # shrinks to buffer_size = 5
+cc 2d3011a81b1ee68bb426e47df23a4159a727fc162915feb3bbe776a38184d84c # shrinks to value = 0
+cc d5287b73dc9bc7f0913472f189ef5bbd10ba69860c69333da92b03b12e4ab2c7 # shrinks to value = 0
+cc 4f19522048cc7a97bec5792283c0c2fbd22e64627eb3512d4aae121c903da582 # shrinks to value = 0
+cc 9b8f62d556290cd8999fdbb7dcd7d3c9deca9465e91024091ea333bc092ceb7e # shrinks to width = 1, value = 0
+cc 17d8d781aef64f529dc54078bc53dd56d1b1bf600a9e965ab2eabe4ff09d445e # shrinks to value = 0
+cc 7340e637b0652ff28345ccdd830e11d0bc76f4d8ad8100ca5349afeec0f6aa98 # shrinks to buffer_size = 10, value = 0
+cc f14b3c616d6347b90ed91ba96944175ad20c86f4783a438e1a6ae01f4d7f3993 # shrinks to buffer_size = 10, value = 0
+cc 26241fd5055a95f30fd54ff6e5f33cd5b86a1658647d95d28dadf4c98dd76dc5 # shrinks to a = 0, b = 0
+cc f799dcd5786d154e7dca846490ac339e9c978129b8161ca973ad2949304bd0f5 # shrinks to a = 0, b = 0
