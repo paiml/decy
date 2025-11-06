@@ -1,0 +1,3 @@
+[env]
+LLVM_CONFIG_PATH = "/usr/bin/llvm-config-18"
+LIBCLANG_PATH = "/home/user/decy/.local/lib"

@@ -1,0 +1,17 @@
+# Seeds for failure cases proptest has generated in the past. It is
+# automatically read and these particular cases re-run before any
+# novel cases are generated.
+#
+# It is recommended to check this file in to source control so that
+# everyone who runs the test benefits from these saved cases.
+cc 9067e3e4b293d45715a0d8ce3ca178102f647f710508d390372b21d191570e76 # shrinks to value = 0
+cc 1eb06276fd762f9ef5b7049afebdaad2b58a65405843187e6307b68ea720e336 # shrinks to size = 1, value = 0
+cc cf79f3075fb3dae73695b6dcfb6083521625162abb7357323a4af5c804d1a175 # shrinks to value = 0
+cc d97ffb9e1ff7918b2241efd1821c63b20efeaf24e03fab307047c13305891eeb # shrinks to value = 0
+cc ec89df41f9bdfcf9c09065a16d290e3908e57e872a5b89ba25ff70d1f504b7bc # shrinks to value = 0
+cc d9ef769348da0e3fa363fd26a3926b2bd8e7f2bf2049de2bfa6e3add7c9aa74f # shrinks to value = 0
+cc 747ea3c500d552b64b0e802e12fb58fc29013049bc0ca7ae4f0a7683c26035fb # shrinks to value = 0
+cc 0fda0c70e3b803574706fcd228a0d7bd422c4f8143a5fa2cda35827d21ca54df # shrinks to value = 0
+cc ddc23366dac2106e5f9c8349ad94d4305c9248711fc335bb0de6f08841ead201 # shrinks to value = 0, should_free = false
+cc 4387fba204dad0a7f60af267b35b5288d896577b0ba9f4a6740d406d360dd772 # shrinks to value = 0
+cc 4bb72f43b7c36f8b08a675eb927f86d09a4645808336a96c85f90707a813ec8a # shrinks to val1 = 0, val2 = 0
