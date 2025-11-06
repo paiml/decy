@@ -1779,7 +1779,11 @@ impl CodeGenerator {
                 } else {
                     // Regular parameter - use existing logic
                     // In C, parameters are mutable by default (can be reassigned)
-                    Some(format!("mut {}: {}", p.name(), Self::map_type(p.param_type())))
+                    Some(format!(
+                        "mut {}: {}",
+                        p.name(),
+                        Self::map_type(p.param_type())
+                    ))
                 }
             })
             .collect();
@@ -1816,6 +1820,7 @@ impl CodeGenerator {
     }
 
     /// Recursively check if a statement modifies a variable (DECY-072 GREEN).
+    #[allow(clippy::only_used_in_recursion)]
     fn statement_modifies_variable(&self, stmt: &HirStatement, var_name: &str) -> bool {
         match stmt {
             HirStatement::ArrayIndexAssignment { array, .. } => {
@@ -1885,13 +1890,34 @@ impl CodeGenerator {
             // Use word boundaries to avoid partial matches
             // Common patterns: "return len", "x + len", "len)", etc.
             let patterns = vec![
-                (format!("return {}", length_param), format!("return {}.len() as i32", array_param)),
-                (format!("{} ", length_param), format!("{}.len() as i32 ", array_param)),
-                (format!("{})", length_param), format!("{}.len() as i32)", array_param)),
-                (format!("{},", length_param), format!("{}.len() as i32,", array_param)),
-                (format!("{}]", length_param), format!("{}.len() as i32]", array_param)),
-                (length_param.clone() + "}", array_param.clone() + ".len() as i32}"),
-                (format!("{};", length_param), format!("{}.len() as i32;", array_param)),
+                (
+                    format!("return {}", length_param),
+                    format!("return {}.len() as i32", array_param),
+                ),
+                (
+                    format!("{} ", length_param),
+                    format!("{}.len() as i32 ", array_param),
+                ),
+                (
+                    format!("{})", length_param),
+                    format!("{}.len() as i32)", array_param),
+                ),
+                (
+                    format!("{},", length_param),
+                    format!("{}.len() as i32,", array_param),
+                ),
+                (
+                    format!("{}]", length_param),
+                    format!("{}.len() as i32]", array_param),
+                ),
+                (
+                    length_param.clone() + "}",
+                    array_param.clone() + ".len() as i32}",
+                ),
+                (
+                    format!("{};", length_param),
+                    format!("{}.len() as i32;", array_param),
+                ),
             ];
 
             for (pattern, replacement) in patterns {
@@ -2142,10 +2168,8 @@ impl CodeGenerator {
                 if idx + 1 < func.parameters().len() {
                     let next_param = &func.parameters()[idx + 1];
                     if matches!(next_param.param_type(), HirType::Int) {
-                        length_to_array.insert(
-                            next_param.name().to_string(),
-                            param.name().to_string(),
-                        );
+                        length_to_array
+                            .insert(next_param.name().to_string(), param.name().to_string());
                     }
                 }
             }
