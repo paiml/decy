@@ -7594,9 +7594,10 @@ sprint_23:
       priority: high
       story_points: 8
       assignee: Claude
-      status: not_started
+      status: in_progress
       github_issue: null
-      phase: null
+      phase: RED
+      started_date: "2025-11-06"
 
       description: |
         Generate Rust code that merges pthread_mutex and protected data
