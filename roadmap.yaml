@@ -7257,3 +7257,1415 @@ sprint_21:
     Rust: fn process_array(arr: &mut [i32]) { for x in arr.iter_mut() { *x *= 2; } }
     
     0 unsafe blocks, idiomatic iterators, bounds-checked access.
+
+sprint_22:
+  name: "Lifetime Inference - Safe Reference Annotations"
+  duration: "1 week"
+  start_date: "2025-11-12"
+  story_points: 21
+  status: not_started
+
+  goals:
+    - "Implement lifetime scope mapping from C variable scopes"
+    - "Detect where explicit lifetime annotations are required"
+    - "Apply lifetime elision rules where possible"
+    - "Reduce manual lifetime annotations to minimum"
+
+  motivation: |
+    Based on research from "Automatically Translating C to Rust" (CACM),
+    lifetime computation is the second phase of unsafe minimization after
+    ownership classification.
+    
+    By analyzing C variable scopes and mapping them to Rust lifetimes,
+    we can generate safe references with proper lifetime annotations,
+    achieving an additional 30% reduction in unsafe code.
+
+    Reference: docs/specifications/translation-ideas-spec.md §1.1
+
+  tickets:
+    DECY-074:
+      title: "Implement lifetime scope mapping from C to Rust"
+      type: feature
+      priority: high
+      story_points: 8
+      assignee: Claude
+      status: not_started
+      github_issue: null
+      phase: null
+
+      description: |
+        Map C variable scopes to Rust lifetime parameters. Analyze
+        block scopes, function scopes, and variable lifetimes to
+        determine borrow duration.
+
+        Algorithms:
+        - Build scope hierarchy tree
+        - Map C scopes to Rust lifetime regions
+        - Detect borrow vs owner relationships
+        - Compute lifetime bounds
+
+      requirements:
+        - Analyze C block scope hierarchy
+        - Map each scope to a potential Rust lifetime
+        - Detect when borrowed references escape their scope
+        - Compute minimum lifetime duration for borrows
+
+      acceptance_criteria:
+        - Maps C scopes to lifetime regions ✅
+        - Detects scope escape (lifetime errors) ✅
+        - Computes borrow duration correctly ✅
+        - All tests pass
+        - 10+ unit tests
+        - Coverage ≥85%
+
+      test_strategy: |
+        RED Phase:
+        - Write tests for simple scope mapping
+        - Write tests for nested scopes
+        - Write tests for escaping references
+        
+        GREEN Phase:
+        - Implement scope tree builder
+        - Implement lifetime region mapper
+        - Make all tests pass
+        
+        REFACTOR Phase:
+        - Add property tests
+        - Meet quality gates
+
+      files_modified:
+        - crates/decy-ownership/src/lifetime_analysis.rs (new)
+        - crates/decy-ownership/src/lib.rs
+        - crates/decy-ownership/tests/lifetime_tests.rs (new)
+
+      dependencies: ["DECY-071", "DECY-072"]
+
+    DECY-075:
+      title: "Detect explicit lifetime annotation sites"
+      type: feature
+      priority: high
+      story_points: 8
+      assignee: Claude
+      status: not_started
+      github_issue: null
+      phase: null
+
+      description: |
+        Determine where explicit lifetime annotations are required vs
+        where lifetime elision rules apply. Minimize manual annotations.
+
+        Cases requiring explicit lifetimes:
+        - Multiple input references with different lifetimes
+        - Struct fields holding references
+        - References returned from functions (when ambiguous)
+
+      requirements:
+        - Implement lifetime elision rule checker
+        - Detect when elision rules don't apply
+        - Generate lifetime parameter names ('a, 'b, etc.)
+        - Validate lifetime constraints
+
+      acceptance_criteria:
+        - Applies elision rules correctly ✅
+        - Detects ambiguous cases requiring annotations ✅
+        - Generates valid lifetime parameter names ✅
+        - Produces compilable Rust code ✅
+        - All tests pass
+        - 10+ unit tests
+        - Coverage ≥85%
+
+      test_strategy: |
+        RED Phase:
+        - Test elision rule 1 (single input ref)
+        - Test elision rule 2 (self method)
+        - Test cases requiring explicit annotations
+        
+        GREEN Phase:
+        - Implement elision checker
+        - Implement annotation site detector
+        - Make all tests pass
+        
+        REFACTOR Phase:
+        - Optimize annotation minimization
+        - Meet quality gates
+
+      files_modified:
+        - crates/decy-ownership/src/lifetime_analysis.rs
+        - crates/decy-codegen/src/lifetime_gen.rs (new)
+        - crates/decy-codegen/tests/lifetime_gen_tests.rs (new)
+
+      dependencies: ["DECY-074"]
+
+    DECY-076:
+      title: "Generate lifetime annotations in code generation"
+      type: feature
+      priority: medium
+      story_points: 5
+      assignee: Claude
+      status: not_started
+      github_issue: null
+      phase: null
+
+      description: |
+        Integrate lifetime analysis results into code generation,
+        producing Rust code with correct lifetime annotations.
+
+      requirements:
+        - Query lifetime analysis for function signatures
+        - Generate lifetime parameters in function definitions
+        - Apply lifetime bounds to struct definitions
+        - Verify generated code compiles
+
+      acceptance_criteria:
+        - Generates function lifetime params correctly ✅
+        - Generates struct lifetime params correctly ✅
+        - Generated code compiles ✅
+        - All tests pass
+        - 8+ integration tests
+        - Coverage ≥85%
+
+      test_strategy: |
+        RED Phase:
+        - Write end-to-end tests with lifetime annotations
+        - Tests verify compilation
+        
+        GREEN Phase:
+        - Update codegen to emit lifetimes
+        - Make all tests pass
+        
+        REFACTOR Phase:
+        - Verify unsafe reduction metric
+        - Meet quality gates
+
+      files_modified:
+        - crates/decy-codegen/src/function_gen.rs
+        - crates/decy-codegen/src/struct_gen.rs
+        - crates/decy-core/tests/lifetime_integration_tests.rs (new)
+
+      dependencies: ["DECY-074", "DECY-075"]
+
+  sprint_metrics:
+    target_coverage: "≥85%"
+    target_unsafe_reduction: "Additional 30% reduction (50% → 20% total)"
+    target_tests: "28+ tests"
+    target_property_tests: "15 properties × 1000 cases = 15K cases"
+
+  quality_gates:
+    - "All lifetime tests pass"
+    - "Generated code with lifetimes compiles"
+    - "Coverage ≥85%"
+    - "0 clippy warnings"
+    - "Unsafe reduction measured and documented"
+
+  validation_impact: |
+    Lifetime inference enables safe reference usage without manual annotations
+    in 95% of cases. This is the second major unsafe reduction technique
+    after ownership classification.
+    
+    Example:
+    C: int* find_max(int* arr, int len) { /* ... */ return &arr[max_idx]; }
+    Rust: fn find_max(arr: &[i32]) -> &i32 { /* ... */ &arr[max_idx] }
+    
+    No explicit lifetime needed (elision rule applies).
+
+sprint_23:
+  name: "Lock API Translation - Safe Concurrency Primitives"
+  duration: "1 week"
+  start_date: "2025-11-19"
+  story_points: 21
+  status: not_started
+
+  goals:
+    - "Detect lock-to-data binding in C code"
+    - "Transform pthread_mutex to Rust Mutex<T>"
+    - "Generate RAII lock guards"
+    - "Verify lock discipline"
+
+  motivation: |
+    Research shows that merging locks with protected data (Mutex<T>) is
+    a key idiom for safe concurrency in Rust. Static analysis can discover
+    which locks protect which data, enabling automatic translation.
+
+    This eliminates unsafe manual lock/unlock patterns and prevents
+    data races at compile time.
+
+    Reference: docs/specifications/translation-ideas-spec.md §1.2
+
+  tickets:
+    DECY-077:
+      title: "Implement lock-to-data binding analysis"
+      type: feature
+      priority: high
+      story_points: 8
+      assignee: Claude
+      status: not_started
+      github_issue: null
+      phase: null
+
+      description: |
+        Analyze C code to discover which pthread_mutex locks protect
+        which shared data variables.
+
+        Algorithm:
+        - Find all lock/unlock pairs
+        - Identify locked regions
+        - Track data accesses within locked regions
+        - Build lock-to-data mapping
+
+      requirements:
+        - Detect pthread_mutex_lock/unlock pairs
+        - Identify code regions protected by locks
+        - Analyze variable accesses within locked regions
+        - Build bidirectional lock↔data mapping
+
+      acceptance_criteria:
+        - Finds all lock/unlock pairs ✅
+        - Identifies protected data correctly ✅
+        - Handles nested locks ✅
+        - Detects lock discipline violations ✅
+        - All tests pass
+        - 10+ unit tests
+        - Coverage ≥85%
+
+      test_strategy: |
+        RED Phase:
+        - Test simple lock/data pattern
+        - Test multiple locks
+        - Test nested locks
+        
+        GREEN Phase:
+        - Implement lock region finder
+        - Implement data access tracker
+        - Build lock-data mapping
+        
+        REFACTOR Phase:
+        - Add property tests
+        - Meet quality gates
+
+      files_modified:
+        - crates/decy-analyzer/src/lock_analysis.rs (new)
+        - crates/decy-analyzer/src/lib.rs
+        - crates/decy-analyzer/tests/lock_analysis_tests.rs (new)
+
+      dependencies: ["DECY-072"]
+
+    DECY-078:
+      title: "Transform pthread_mutex to Mutex<T>"
+      type: feature
+      priority: high
+      story_points: 8
+      assignee: Claude
+      status: not_started
+      github_issue: null
+      phase: null
+
+      description: |
+        Generate Rust code that merges pthread_mutex and protected data
+        into Mutex<T>, using RAII guards for safe lock acquisition.
+
+        Transformation:
+        C:
+          pthread_mutex_t lock;
+          int data;
+          pthread_mutex_lock(&lock); data++; pthread_mutex_unlock(&lock);
+        
+        Rust:
+          data: Mutex<i32>
+          { let mut d = data.lock().unwrap(); *d += 1; }
+
+      requirements:
+        - Query lock analysis for lock-data mappings
+        - Generate Mutex<T> struct fields
+        - Replace lock/unlock with .lock().unwrap()
+        - Ensure guards are dropped (RAII)
+
+      acceptance_criteria:
+        - Generates Mutex<T> for protected data ✅
+        - Uses .lock().unwrap() for acquisition ✅
+        - RAII guard handles unlock ✅
+        - No pthread functions in output ✅
+        - All tests pass
+        - 10+ integration tests
+        - Coverage ≥85%
+
+      test_strategy: |
+        RED Phase:
+        - Write tests for pthread → Mutex translation
+        - Verify no pthread in output
+        
+        GREEN Phase:
+        - Update codegen for Mutex<T>
+        - Transform lock/unlock to .lock()
+        - Make all tests pass
+        
+        REFACTOR Phase:
+        - Verify thread safety
+        - Meet quality gates
+
+      files_modified:
+        - crates/decy-codegen/src/concurrency_gen.rs (new)
+        - crates/decy-codegen/src/lib.rs
+        - crates/decy-core/tests/lock_translation_tests.rs (new)
+
+      dependencies: ["DECY-077"]
+
+    DECY-079:
+      title: "Validate lock discipline and detect violations"
+      type: quality
+      priority: medium
+      story_points: 5
+      assignee: Claude
+      status: not_started
+      github_issue: null
+      phase: null
+
+      description: |
+        Verify that all accesses to shared data are properly protected
+        by locks. Detect lock discipline violations.
+
+        Violations:
+        - Accessing data without holding lock
+        - Lock/unlock mismatch
+        - Potential deadlocks (lock ordering)
+
+      requirements:
+        - Check all data accesses are within locked regions
+        - Verify lock/unlock pairing
+        - Detect potential deadlocks
+        - Report violations with line numbers
+
+      acceptance_criteria:
+        - Detects unprotected access ✅
+        - Detects lock/unlock mismatch ✅
+        - Warns about potential deadlocks ✅
+        - All tests pass
+        - 8+ unit tests
+        - Coverage ≥85%
+
+      test_strategy: |
+        RED Phase:
+        - Test violation detection
+        - Test valid lock discipline
+        
+        GREEN Phase:
+        - Implement discipline checker
+        - Make all tests pass
+        
+        REFACTOR Phase:
+        - Improve error messages
+        - Meet quality gates
+
+      files_modified:
+        - crates/decy-analyzer/src/lock_analysis.rs
+        - crates/decy-verify/src/lock_verify.rs (new)
+        - crates/decy-verify/tests/lock_discipline_tests.rs (new)
+
+      dependencies: ["DECY-077"]
+
+  sprint_metrics:
+    target_coverage: "≥85%"
+    target_unsafe_reduction: "100% (pthread locks are unsafe)"
+    target_tests: "28+ tests"
+    target_property_tests: "10 properties × 1000 cases = 10K cases"
+
+  quality_gates:
+    - "All lock translation tests pass"
+    - "Generated Mutex code compiles"
+    - "No pthread functions in generated Rust"
+    - "Coverage ≥85%"
+    - "0 clippy warnings"
+
+  validation_impact: |
+    Automatic lock API translation eliminates unsafe manual locking
+    and prevents data races at compile time.
+    
+    Before: pthread_mutex_t + unsafe lock/unlock
+    After: Mutex<T> + RAII guards + compile-time data race prevention
+
+sprint_24:
+  name: "Tagged Union Conversion - Type-Safe Enums"
+  duration: "1 week"
+  start_date: "2025-11-26"
+  story_points: 21
+  status: not_started
+
+  goals:
+    - "Detect C tagged unions (enum tag + union data)"
+    - "Analyze tag-to-field mappings"
+    - "Generate Rust type-safe enums"
+    - "Transform tag checks to pattern matching"
+
+  motivation: |
+    C tagged unions are a common pattern for variant types, but they're
+    unsafe - the compiler doesn't verify tag checks. Research shows that
+    static analysis can discover tag-union pairs and transform them to
+    Rust's type-safe enums.
+
+    This eliminates an entire class of bugs (incorrect field access).
+
+    Reference: docs/specifications/translation-ideas-spec.md §1.3
+
+  tickets:
+    DECY-080:
+      title: "Detect tagged union patterns in C code"
+      type: feature
+      priority: high
+      story_points: 8
+      assignee: Claude
+      status: not_started
+      github_issue: null
+      phase: null
+
+      description: |
+        Discover structs that combine an enum tag with a union,
+        indicating a variant type pattern.
+
+        Pattern:
+        struct Value {
+          enum TypeTag tag;  // Discriminant
+          union { int i; float f; } data;  // Payload
+        };
+
+      requirements:
+        - Find structs with both enum and union fields
+        - Analyze tag check patterns (if tag == X)
+        - Map tag values to union fields
+        - Build TaggedUnion data structure
+
+      acceptance_criteria:
+        - Detects tagged union structs ✅
+        - Maps tag values to fields ✅
+        - Handles nested unions ✅
+        - All tests pass
+        - 10+ unit tests
+        - Coverage ≥85%
+
+      test_strategy: |
+        RED Phase:
+        - Test simple tagged union detection
+        - Test complex tagged unions
+        
+        GREEN Phase:
+        - Implement struct analyzer
+        - Implement tag-field mapper
+        - Make all tests pass
+        
+        REFACTOR Phase:
+        - Add property tests
+        - Meet quality gates
+
+      files_modified:
+        - crates/decy-analyzer/src/tagged_union_analysis.rs (new)
+        - crates/decy-analyzer/src/lib.rs
+        - crates/decy-analyzer/tests/tagged_union_tests.rs (new)
+
+      dependencies: ["DECY-072"]
+
+    DECY-081:
+      title: "Generate Rust enums from tagged unions"
+      type: feature
+      priority: high
+      story_points: 8
+      assignee: Claude
+      status: not_started
+      github_issue: null
+      phase: null
+
+      description: |
+        Transform C tagged unions into Rust enums with variants.
+
+        Transformation:
+        C:
+          struct Value { enum Tag tag; union { int i; float f; } data; };
+        
+        Rust:
+          enum Value { Int(i32), Float(f64) }
+
+      requirements:
+        - Query tagged union analysis
+        - Generate enum definition with variants
+        - Map C types to Rust variant payloads
+        - Remove tag and union from output
+
+      acceptance_criteria:
+        - Generates valid Rust enum ✅
+        - Correct variant names and types ✅
+        - No tag/union in output ✅
+        - All tests pass
+        - 10+ integration tests
+        - Coverage ≥85%
+
+      test_strategy: |
+        RED Phase:
+        - Write tests for enum generation
+        - Verify enum compilation
+        
+        GREEN Phase:
+        - Implement enum codegen
+        - Make all tests pass
+        
+        REFACTOR Phase:
+        - Verify type safety
+        - Meet quality gates
+
+      files_modified:
+        - crates/decy-codegen/src/enum_gen.rs (new)
+        - crates/decy-codegen/src/lib.rs
+        - crates/decy-core/tests/enum_translation_tests.rs (new)
+
+      dependencies: ["DECY-080"]
+
+    DECY-082:
+      title: "Transform tag checks to pattern matching"
+      type: feature
+      priority: medium
+      story_points: 5
+      assignee: Claude
+      status: not_started
+      github_issue: null
+      phase: null
+
+      description: |
+        Convert C if (tag == X) checks to Rust match expressions.
+
+        Transformation:
+        C: if (v.tag == INT) return v.data.i;
+        Rust: match v { Value::Int(i) => i, _ => panic!() }
+
+      requirements:
+        - Detect tag comparison patterns
+        - Generate match expression
+        - Map union field access to variant binding
+        - Handle exhaustive matching
+
+      acceptance_criteria:
+        - Generates match expressions ✅
+        - Exhaustive pattern coverage ✅
+        - Correct variant bindings ✅
+        - All tests pass
+        - 8+ unit tests
+        - Coverage ≥85%
+
+      test_strategy: |
+        RED Phase:
+        - Test simple tag check → match
+        - Test nested tag checks
+        
+        GREEN Phase:
+        - Implement match generator
+        - Make all tests pass
+        
+        REFACTOR Phase:
+        - Verify exhaustiveness
+        - Meet quality gates
+
+      files_modified:
+        - crates/decy-codegen/src/pattern_gen.rs (new)
+        - crates/decy-codegen/tests/pattern_gen_tests.rs (new)
+
+      dependencies: ["DECY-081"]
+
+  sprint_metrics:
+    target_coverage: "≥85%"
+    target_unsafe_reduction: "100% (tagged unions are unsafe)"
+    target_tests: "28+ tests"
+    target_property_tests: "10 properties × 1000 cases = 10K cases"
+
+  quality_gates:
+    - "All enum generation tests pass"
+    - "Generated enums compile"
+    - "Pattern matching is exhaustive"
+    - "Coverage ≥85%"
+    - "0 clippy warnings"
+
+  validation_impact: |
+    Tagged union conversion eliminates unsafe union access, replacing
+    it with compile-time verified pattern matching.
+    
+    Before: Manual tag checks + unsafe union access
+    After: Type-safe enums + exhaustive pattern matching
+
+sprint_25:
+  name: "Output Parameter Elimination - Idiomatic Returns"
+  duration: "1 week"
+  start_date: "2025-12-03"
+  story_points: 21
+  status: not_started
+
+  goals:
+    - "Detect C output parameters (pointer params written but not read)"
+    - "Transform to Result<T> or Option<T> returns"
+    - "Handle multiple output parameters with tuples"
+    - "Detect fallible operations (error codes)"
+
+  motivation: |
+    C uses pointer parameters for output due to single-return-value
+    limitation. Rust has Result/Option and tuples, enabling idiomatic
+    return values. Research shows static analysis can detect output
+    parameters and transform them automatically.
+
+    Reference: docs/specifications/translation-ideas-spec.md §1.4
+
+  tickets:
+    DECY-083:
+      title: "Detect output parameter patterns"
+      type: feature
+      priority: high
+      story_points: 8
+      assignee: Claude
+      status: not_started
+      github_issue: null
+      phase: null
+
+      description: |
+        Identify pointer parameters used for output (not input).
+
+        Heuristics:
+        - Parameter is written before being read
+        - Parameter is not const
+        - Return value indicates success/failure (fallible)
+
+      requirements:
+        - Analyze dataflow for parameter writes
+        - Detect write-before-read pattern
+        - Check for error code returns
+        - Classify as output parameter
+
+      acceptance_criteria:
+        - Detects output parameters ✅
+        - Distinguishes from input/output params ✅
+        - Detects fallible operations ✅
+        - All tests pass
+        - 10+ unit tests
+        - Coverage ≥85%
+
+      test_strategy: |
+        RED Phase:
+        - Test simple output param detection
+        - Test fallible output params
+        - Test input/output params
+        
+        GREEN Phase:
+        - Implement dataflow analyzer
+        - Implement output param classifier
+        - Make all tests pass
+        
+        REFACTOR Phase:
+        - Add property tests
+        - Meet quality gates
+
+      files_modified:
+        - crates/decy-analyzer/src/output_param_analysis.rs (new)
+        - crates/decy-analyzer/src/lib.rs
+        - crates/decy-analyzer/tests/output_param_tests.rs (new)
+
+      dependencies: ["DECY-072"]
+
+    DECY-084:
+      title: "Generate Result/Option returns for output params"
+      type: feature
+      priority: high
+      story_points: 8
+      assignee: Claude
+      status: not_started
+      github_issue: null
+      phase: null
+
+      description: |
+        Transform output parameters to Rust return values.
+
+        Transformations:
+        - Fallible output → Result<T, Error>
+        - Non-fallible output → T
+        - Optional output → Option<T>
+
+      requirements:
+        - Query output param analysis
+        - Remove output param from signature
+        - Add return type (Result/Option/T)
+        - Transform param writes to return statements
+
+      acceptance_criteria:
+        - Generates Result for fallible ops ✅
+        - Generates T for non-fallible ✅
+        - Generates Option for partial results ✅
+        - All tests pass
+        - 10+ integration tests
+        - Coverage ≥85%
+
+      test_strategy: |
+        RED Phase:
+        - Test output param → Result
+        - Test output param → T
+        
+        GREEN Phase:
+        - Implement signature transformation
+        - Implement return statement generation
+        - Make all tests pass
+        
+        REFACTOR Phase:
+        - Verify idiomaticity
+        - Meet quality gates
+
+      files_modified:
+        - crates/decy-codegen/src/function_gen.rs
+        - crates/decy-codegen/src/return_gen.rs (new)
+        - crates/decy-core/tests/output_param_tests.rs (new)
+
+      dependencies: ["DECY-083"]
+
+    DECY-085:
+      title: "Handle multiple output parameters with tuples"
+      type: feature
+      priority: medium
+      story_points: 5
+      assignee: Claude
+      status: not_started
+      github_issue: null
+      phase: null
+
+      description: |
+        When a function has multiple output parameters, return a tuple.
+
+        Transformation:
+        C: void get_dims(int* w, int* h) { *w=1920; *h=1080; }
+        Rust: fn get_dims() -> (i32, i32) { (1920, 1080) }
+
+      requirements:
+        - Detect multiple output parameters
+        - Generate tuple return type
+        - Transform writes to tuple return
+
+      acceptance_criteria:
+        - Generates tuple for 2+ outputs ✅
+        - Correct tuple element types ✅
+        - All tests pass
+        - 8+ unit tests
+        - Coverage ≥85%
+
+      test_strategy: |
+        RED Phase:
+        - Test 2-element tuple
+        - Test 3+ element tuple
+        
+        GREEN Phase:
+        - Implement tuple return generator
+        - Make all tests pass
+        
+        REFACTOR Phase:
+        - Verify idiomaticity
+        - Meet quality gates
+
+      files_modified:
+        - crates/decy-codegen/src/return_gen.rs
+        - crates/decy-codegen/tests/tuple_return_tests.rs (new)
+
+      dependencies: ["DECY-084"]
+
+  sprint_metrics:
+    target_coverage: "≥85%"
+    target_unsafe_reduction: "Moderate (output params often use safe pointers)"
+    target_tests: "28+ tests"
+    target_property_tests: "10 properties × 1000 cases = 10K cases"
+
+  quality_gates:
+    - "All output param tests pass"
+    - "Generated Result/Option code compiles"
+    - "Tuple returns work correctly"
+    - "Coverage ≥85%"
+    - "0 clippy warnings"
+
+  validation_impact: |
+    Output parameter elimination produces idiomatic Rust signatures
+    using Result, Option, and tuples instead of pointer parameters.
+    
+    Before: int parse(const char* str, int* result)
+    After: fn parse(str: &str) -> Result<i32, ParseError>
+
+sprint_26:
+  name: "Advanced Array Handling - Vec, String, Slices"
+  duration: "1 week"
+  start_date: "2025-12-10"
+  story_points: 21
+  status: not_started
+
+  goals:
+    - "Detect fixed-size array patterns → [T; N]"
+    - "Detect heap allocation patterns → Vec<T>"
+    - "Detect string operations → String or &str"
+    - "Minimize unsafe in array operations"
+
+  motivation: |
+    Building on Sprint 21's array parameter work, Sprint 26 handles
+    comprehensive array translation including heap allocation, strings,
+    and fixed-size arrays.
+
+    Reference: docs/specifications/translation-ideas-spec.md §2.1
+
+  tickets:
+    DECY-086:
+      title: "Detect and translate fixed-size arrays"
+      type: feature
+      priority: high
+      story_points: 7
+      assignee: Claude
+      status: not_started
+      github_issue: null
+      phase: null
+
+      description: |
+        Transform C fixed-size arrays to Rust array types.
+        C: int arr[10];
+        Rust: let arr: [i32; 10];
+
+      requirements:
+        - Detect array declarations with constant size
+        - Generate [T; N] type
+        - Handle array initialization
+
+      acceptance_criteria:
+        - Generates [T; N] correctly ✅
+        - Handles initialization ✅
+        - Coverage ≥85%
+
+      files_modified:
+        - crates/decy-codegen/src/array_gen.rs
+        - crates/decy-core/tests/array_tests.rs
+
+      dependencies: ["DECY-072"]
+
+    DECY-087:
+      title: "Transform malloc arrays to Vec<T>"
+      type: feature
+      priority: high
+      story_points: 8
+      assignee: Claude
+      status: not_started
+      github_issue: null
+      phase: null
+
+      description: |
+        Detect heap allocation patterns and generate Vec<T>.
+        C: int* arr = malloc(n * sizeof(int));
+        Rust: let arr = Vec::with_capacity(n);
+
+      requirements:
+        - Detect malloc(n * sizeof(T)) pattern
+        - Generate Vec::with_capacity
+        - Replace free() with drop
+
+      acceptance_criteria:
+        - Generates Vec<T> ✅
+        - Uses with_capacity ✅
+        - No manual free ✅
+        - Coverage ≥85%
+
+      files_modified:
+        - crates/decy-ownership/src/heap_analysis.rs
+        - crates/decy-codegen/src/vec_gen.rs
+        - crates/decy-core/tests/vec_tests.rs
+
+      dependencies: ["DECY-072"]
+
+    DECY-088:
+      title: "Detect string patterns and generate String/&str"
+      type: feature
+      priority: medium
+      story_points: 6
+      assignee: Claude
+      status: not_started
+      github_issue: null
+      phase: null
+
+      description: |
+        Transform char* to String or &str based on usage.
+        C: char* s = "hello"; → Rust: let s = "hello"; // &str
+        C: char* buf = malloc(100); → Rust: let buf = String::with_capacity(100);
+
+      requirements:
+        - Detect string literals → &str
+        - Detect heap-allocated strings → String
+        - Handle string functions (strlen, strcpy, etc.)
+
+      acceptance_criteria:
+        - Literals become &str ✅
+        - Heap strings become String ✅
+        - Coverage ≥85%
+
+      files_modified:
+        - crates/decy-analyzer/src/string_analysis.rs (new)
+        - crates/decy-codegen/src/string_gen.rs (new)
+        - crates/decy-core/tests/string_tests.rs (new)
+
+      dependencies: ["DECY-087"]
+
+  sprint_metrics:
+    target_coverage: "≥85%"
+    target_unsafe_reduction: "High (array operations are unsafe in C)"
+    target_tests: "21+ tests"
+
+  quality_gates:
+    - "All array tests pass"
+    - "Vec generation works correctly"
+    - "String handling is idiomatic"
+    - "Coverage ≥85%"
+
+sprint_27:
+  name: "File API Translation - std::fs Integration"
+  duration: "1 week"
+  start_date: "2025-12-17"
+  story_points: 18
+  status: not_started
+
+  goals:
+    - "Transform FILE* to std::fs::File"
+    - "Generate Read/Write trait usage"
+    - "Implement RAII file handling"
+
+  motivation: |
+    C file operations use manual error checking and explicit close.
+    Rust's File type uses RAII and traits for safe file I/O.
+
+    Reference: docs/specifications/translation-ideas-spec.md §2.2
+
+  tickets:
+    DECY-089:
+      title: "Transform FILE* to File"
+      type: feature
+      priority: medium
+      story_points: 6
+      assignee: Claude
+      status: not_started
+      github_issue: null
+      phase: null
+
+      description: |
+        Replace fopen/fclose with File::open/RAII.
+
+      requirements:
+        - Detect fopen → File::open
+        - Remove fclose (RAII)
+        - Handle error checking
+
+      acceptance_criteria:
+        - Generates File::open ✅
+        - No fclose needed ✅
+        - Coverage ≥85%
+
+      files_modified:
+        - crates/decy-codegen/src/file_gen.rs (new)
+        - crates/decy-core/tests/file_tests.rs (new)
+
+      dependencies: ["DECY-084"]
+
+    DECY-090:
+      title: "Generate Read/Write trait usage"
+      type: feature
+      priority: medium
+      story_points: 6
+      assignee: Claude
+      status: not_started
+      github_issue: null
+      phase: null
+
+      description: |
+        Use BufReader/BufWriter and Read/Write traits.
+
+      requirements:
+        - fread → .read()
+        - fwrite → .write()
+        - Line-based → BufReader
+
+      acceptance_criteria:
+        - Uses Read/Write traits ✅
+        - Uses BufReader for lines ✅
+        - Coverage ≥85%
+
+      files_modified:
+        - crates/decy-codegen/src/file_gen.rs
+
+      dependencies: ["DECY-089"]
+
+    DECY-091:
+      title: "Implement RAII file handling"
+      type: quality
+      priority: medium
+      story_points: 6
+      assignee: Claude
+      status: not_started
+      github_issue: null
+      phase: null
+
+      description: |
+        Verify files are automatically closed via RAII.
+
+      requirements:
+        - No explicit close calls
+        - Verify Drop implementation
+        - Test resource cleanup
+
+      acceptance_criteria:
+        - RAII verified ✅
+        - No resource leaks ✅
+        - Coverage ≥85%
+
+      files_modified:
+        - crates/decy-verify/src/resource_verify.rs (new)
+
+      dependencies: ["DECY-089"]
+
+  sprint_metrics:
+    target_coverage: "≥85%"
+    target_unsafe_reduction: "Moderate"
+    target_tests: "18+ tests"
+
+sprint_28:
+  name: "Subprocess Handling - std::process::Command"
+  duration: "1 week"
+  start_date: "2025-12-24"
+  story_points: 15
+  status: not_started
+
+  goals:
+    - "Transform fork/exec to Command API"
+    - "Handle process wait/status"
+    - "Generate idiomatic process handling"
+
+  motivation: |
+    C subprocess handling with fork/exec is complex and error-prone.
+    Rust's Command API is safe and ergonomic.
+
+    Reference: docs/specifications/translation-ideas-spec.md §2.3
+
+  tickets:
+    DECY-092:
+      title: "Detect fork/exec patterns"
+      type: feature
+      priority: low
+      story_points: 5
+      assignee: Claude
+      status: not_started
+      github_issue: null
+      phase: null
+
+      description: |
+        Identify fork/exec patterns for subprocess creation.
+
+      requirements:
+        - Detect fork() + exec*() pattern
+        - Extract command and arguments
+        - Identify parent/child logic
+
+      acceptance_criteria:
+        - Detects fork/exec ✅
+        - Extracts args correctly ✅
+        - Coverage ≥85%
+
+      files_modified:
+        - crates/decy-analyzer/src/subprocess_analysis.rs (new)
+
+      dependencies: []
+
+    DECY-093:
+      title: "Generate Command API usage"
+      type: feature
+      priority: low
+      story_points: 5
+      assignee: Claude
+      status: not_started
+      github_issue: null
+      phase: null
+
+      description: |
+        Transform to Command::new().arg().spawn().
+
+      requirements:
+        - Generate Command builder
+        - Add arguments
+        - Handle spawn/output/status
+
+      acceptance_criteria:
+        - Generates Command API ✅
+        - Handles errors ✅
+        - Coverage ≥85%
+
+      files_modified:
+        - crates/decy-codegen/src/subprocess_gen.rs (new)
+
+      dependencies: ["DECY-092"]
+
+    DECY-094:
+      title: "Handle process wait and status"
+      type: feature
+      priority: low
+      story_points: 5
+      assignee: Claude
+      status: not_started
+      github_issue: null
+      phase: null
+
+      description: |
+        Transform waitpid to .wait() and status extraction.
+
+      requirements:
+        - waitpid → .wait()
+        - Extract exit code
+        - Handle errors
+
+      acceptance_criteria:
+        - Generates .wait() ✅
+        - Extracts status ✅
+        - Coverage ≥85%
+
+      files_modified:
+        - crates/decy-codegen/src/subprocess_gen.rs
+
+      dependencies: ["DECY-093"]
+
+  sprint_metrics:
+    target_coverage: "≥85%"
+    target_tests: "15+ tests"
+
+sprint_29:
+  name: "Void Pointer Generics - Type-Safe Polymorphism"
+  duration: "1 week"
+  start_date: "2025-12-31"
+  story_points: 18
+  status: not_started
+
+  goals:
+    - "Analyze void* usage patterns"
+    - "Generate generic functions with trait bounds"
+    - "Replace unsafe void* with safe generics"
+
+  motivation: |
+    C uses void* for generic code, requiring unsafe casts. Rust generics
+    with trait bounds provide type-safe polymorphism.
+
+    Reference: docs/specifications/translation-ideas-spec.md §2.4
+
+  tickets:
+    DECY-095:
+      title: "Analyze void* usage patterns"
+      type: feature
+      priority: medium
+      story_points: 6
+      assignee: Claude
+      status: not_started
+      github_issue: null
+      phase: null
+
+      description: |
+        Determine how void* is used to infer generic type parameters.
+
+      requirements:
+        - Track void* casts
+        - Identify type constraints
+        - Detect common patterns (swap, compare, etc.)
+
+      acceptance_criteria:
+        - Tracks void* usage ✅
+        - Infers constraints ✅
+        - Coverage ≥85%
+
+      files_modified:
+        - crates/decy-analyzer/src/void_ptr_analysis.rs (new)
+
+      dependencies: []
+
+    DECY-096:
+      title: "Generate generic function signatures"
+      type: feature
+      priority: medium
+      story_points: 6
+      assignee: Claude
+      status: not_started
+      github_issue: null
+      phase: null
+
+      description: |
+        Transform void* functions to generic fn<T>.
+
+      requirements:
+        - Generate <T> type parameters
+        - Replace void* with &T or &mut T
+        - Remove unsafe casts
+
+      acceptance_criteria:
+        - Generates fn<T> ✅
+        - No unsafe casts ✅
+        - Coverage ≥85%
+
+      files_modified:
+        - crates/decy-codegen/src/generic_gen.rs (new)
+
+      dependencies: ["DECY-095"]
+
+    DECY-097:
+      title: "Infer trait bounds for generics"
+      type: feature
+      priority: medium
+      story_points: 6
+      assignee: Claude
+      status: not_started
+      github_issue: null
+      phase: null
+
+      phase: null
+
+      description: |
+        Add trait bounds based on operations (Clone, Copy, Ord, etc.).
+
+      requirements:
+        - Detect operations on generic type
+        - Map operations to traits
+        - Generate where clauses
+
+      acceptance_criteria:
+        - Generates trait bounds ✅
+        - Code compiles ✅
+        - Coverage ≥85%
+
+      files_modified:
+        - crates/decy-codegen/src/generic_gen.rs
+
+      dependencies: ["DECY-096"]
+
+  sprint_metrics:
+    target_coverage: "≥85%"
+    target_unsafe_reduction: "High (void* requires unsafe casts)"
+    target_tests: "18+ tests"
+
+sprint_30:
+  name: "LLM Integration - Hybrid Analysis-Guided Generation"
+  duration: "2 weeks"
+  start_date: "2026-01-07"
+  story_points: 30
+  status: not_started
+
+  goals:
+    - "Create pipeline: static analysis → LLM context"
+    - "Implement LLM-guided code generation"
+    - "Build verification and iteration framework"
+    - "Research idiomatic code generation"
+
+  motivation: |
+    Research shows LLMs + static analysis is promising for idiomatic
+    code generation. This sprint explores hybrid approaches.
+
+    This is RESEARCH - not production feature. Goal is to evaluate
+    feasibility and collect data.
+
+    Reference: docs/specifications/translation-ideas-spec.md §3
+
+  tickets:
+    DECY-098:
+      title: "Build static analysis → LLM context pipeline"
+      type: research
+      priority: low
+      story_points: 10
+      assignee: Claude
+      status: not_started
+      github_issue: null
+      phase: null
+
+      description: |
+        Format static analysis results as structured context for LLM.
+
+      requirements:
+        - Serialize ownership analysis
+        - Serialize lifetime analysis
+        - Serialize lock mappings
+        - Create JSON schema for LLM prompts
+
+      acceptance_criteria:
+        - Generates structured JSON context ✅
+        - Includes all analysis results ✅
+        - LLM can parse context ✅
+
+      files_modified:
+        - crates/decy-llm/src/context_builder.rs (new)
+        - crates/decy-llm/src/lib.rs (new)
+
+      dependencies: ["DECY-074", "DECY-077", "DECY-080"]
+
+    DECY-099:
+      title: "Implement LLM-guided Rust generation"
+      type: research
+      priority: low
+      story_points: 10
+      assignee: Claude
+      status: not_started
+      github_issue: null
+      phase: null
+
+      description: |
+        Use LLM to generate idiomatic Rust guided by analysis results.
+
+      requirements:
+        - Create LLM prompts with analysis context
+        - Query LLM for code generation
+        - Parse LLM output
+        - Handle generation errors
+
+      acceptance_criteria:
+        - LLM generates Rust code ✅
+        - Uses analysis results as guidance ✅
+        - Handles failures gracefully ✅
+
+      files_modified:
+        - crates/decy-llm/src/llm_codegen.rs (new)
+        - crates/decy-llm/src/llm_client.rs (new)
+
+      dependencies: ["DECY-098"]
+
+    DECY-100:
+      title: "Build verification and iteration framework"
+      type: research
+      priority: low
+      story_points: 10
+      assignee: Claude
+      status: not_started
+      github_issue: null
+      phase: null
+
+      description: |
+        Verify LLM-generated code compiles and passes tests.
+        Iterate on failures with error feedback.
+
+      requirements:
+        - Compile generated Rust
+        - Run behavioral tests
+        - Collect compilation errors
+        - Retry with error feedback
+
+      acceptance_criteria:
+        - Verifies compilation ✅
+        - Runs tests ✅
+        - Iterates on failures ✅
+        - Tracks success metrics ✅
+
+      files_modified:
+        - crates/decy-llm/src/verifier.rs (new)
+        - crates/decy-llm/tests/llm_integration_tests.rs (new)
+
+      dependencies: ["DECY-099"]
+
+  sprint_metrics:
+    target_coverage: "≥80% (research code)"
+    target_tests: "10+ tests"
+    research_metrics:
+      - "Compilation success rate"
+      - "Behavioral test pass rate"
+      - "Idiomaticity score (Clippy warnings)"
+      - "Iteration count to success"
+
+  research_notes: |
+    This sprint is EXPERIMENTAL. Goals:
+    - Evaluate LLM + analysis hybrid approach
+    - Measure success rates vs pure static analysis
+    - Identify strengths/weaknesses
+    - Decide if production integration is viable
+
+    Not a production feature - a research prototype.
+
