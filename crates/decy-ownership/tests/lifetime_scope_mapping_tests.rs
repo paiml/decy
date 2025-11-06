@@ -170,7 +170,11 @@ fn test_while_loop_scope() {
     let analyzer = LifetimeAnalyzer::new();
     let scope_tree = analyzer.build_scope_tree(&func);
 
-    assert_eq!(scope_tree.scopes().len(), 2, "While loop creates nested scope");
+    assert_eq!(
+        scope_tree.scopes().len(),
+        2,
+        "While loop creates nested scope"
+    );
 
     let loop_scope = scope_tree.get_scope(1).unwrap();
     assert_eq!(loop_scope.parent, Some(0));
@@ -215,7 +219,11 @@ fn test_deeply_nested_scopes() {
 
     // Verify nesting: scope 2 -> scope 1 -> scope 0
     let inner_scope = scope_tree.get_scope(2).unwrap();
-    assert_eq!(inner_scope.parent, Some(1), "Inner scope parent is outer scope");
+    assert_eq!(
+        inner_scope.parent,
+        Some(1),
+        "Inner scope parent is outer scope"
+    );
     assert!(
         scope_tree.is_nested_in(2, 0),
         "Innermost scope is nested in root"
@@ -290,10 +298,7 @@ fn test_variable_does_not_escape() {
     let lifetimes = analyzer.track_lifetimes(&func, &scope_tree);
 
     let x_lifetime = &lifetimes["x"];
-    assert!(
-        !x_lifetime.escapes,
-        "x should not escape (not returned)"
-    );
+    assert!(!x_lifetime.escapes, "x should not escape (not returned)");
 }
 
 // ============================================================================
@@ -331,7 +336,11 @@ fn test_multiple_variables_same_scope() {
     let scope_tree = analyzer.build_scope_tree(&func);
 
     let root = scope_tree.get_scope(0).unwrap();
-    assert_eq!(root.variables.len(), 3, "Root scope should have 3 variables");
+    assert_eq!(
+        root.variables.len(),
+        3,
+        "Root scope should have 3 variables"
+    );
     assert!(root.variables.contains(&"a".to_string()));
     assert!(root.variables.contains(&"b".to_string()));
     assert!(root.variables.contains(&"c".to_string()));
@@ -365,16 +374,13 @@ fn test_function_parameters_in_root_scope() {
 
     // Note: Current implementation doesn't add parameters to scope tree
     // This test verifies that behavior
-    assert_eq!(
-        scope_tree.scopes().len(),
-        1,
-        "Should have function scope"
-    );
+    assert_eq!(scope_tree.scopes().len(), 1, "Should have function scope");
 
     // Lifetimes should still track variables (including those in return)
     // but parameters themselves may not be in the scope tree
-    assert!(scope_tree.scopes()[0].variables.is_empty() ||
-            !scope_tree.scopes()[0].variables.contains(&"x".to_string()),
+    assert!(
+        scope_tree.scopes()[0].variables.is_empty()
+            || !scope_tree.scopes()[0].variables.contains(&"x".to_string()),
         "Parameters may not be in scope tree (implementation detail)"
     );
 }
@@ -443,7 +449,11 @@ fn test_empty_function_scope() {
     let analyzer = LifetimeAnalyzer::new();
     let scope_tree = analyzer.build_scope_tree(&func);
 
-    assert_eq!(scope_tree.scopes().len(), 1, "Empty function has root scope");
+    assert_eq!(
+        scope_tree.scopes().len(),
+        1,
+        "Empty function has root scope"
+    );
     assert!(
         scope_tree.scopes()[0].variables.is_empty(),
         "Root scope should be empty"
