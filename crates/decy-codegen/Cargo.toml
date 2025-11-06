@@ -25,6 +25,7 @@ tracing.workspace = true
 [dev-dependencies]
 proptest.workspace = true
 decy-parser = { version = "1.0.0", path = "../decy-parser" }
+decy-core = { version = "1.0.0", path = "../decy-core" }
 criterion.workspace = true
 
 [[bench]]
