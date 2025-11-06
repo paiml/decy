@@ -7084,9 +7084,9 @@ sprint_21:
       priority: high
       story_points: 8
       assignee: Claude
-      status: not_started
+      status: in_progress
       github_issue: null
-      phase: null
+      phase: REFACTOR
 
       description: |
         Implement `is_array_parameter()` with proper heuristics to detect
