@@ -68,8 +68,8 @@ impl DataflowGraph {
             dependencies: HashMap::new(),
             use_after_free: HashMap::new(),
             array_bases: HashMap::new(), // DECY-067 GREEN
-            parameters: Vec::new(),       // DECY-071 GREEN
-            body: Vec::new(),             // DECY-071 GREEN
+            parameters: Vec::new(),      // DECY-071 GREEN
+            body: Vec::new(),            // DECY-071 GREEN
         }
     }
 
@@ -196,6 +196,7 @@ impl DataflowGraph {
     }
 
     /// Recursively check if a statement contains array indexing for a variable.
+    #[allow(clippy::only_used_in_recursion)]
     fn statement_has_array_indexing(&self, stmt: &HirStatement, var: &str) -> bool {
         match stmt {
             HirStatement::ArrayIndexAssignment { array, .. } => {
@@ -212,13 +213,14 @@ impl DataflowGraph {
                 then_block
                     .iter()
                     .any(|s| self.statement_has_array_indexing(s, var))
-                    || else_block.as_ref().map_or(false, |blk| {
-                        blk.iter().any(|s| self.statement_has_array_indexing(s, var))
+                    || else_block.as_ref().is_some_and(|blk| {
+                        blk.iter()
+                            .any(|s| self.statement_has_array_indexing(s, var))
                     })
             }
-            HirStatement::While { body, .. } | HirStatement::For { body, .. } => {
-                body.iter().any(|s| self.statement_has_array_indexing(s, var))
-            }
+            HirStatement::While { body, .. } | HirStatement::For { body, .. } => body
+                .iter()
+                .any(|s| self.statement_has_array_indexing(s, var)),
             _ => false,
         }
     }
@@ -254,7 +256,7 @@ impl DataflowGraph {
                 then_block
                     .iter()
                     .any(|s| self.statement_has_pointer_arithmetic(s, var))
-                    || else_block.as_ref().map_or(false, |blk| {
+                    || else_block.as_ref().is_some_and(|blk| {
                         blk.iter()
                             .any(|s| self.statement_has_pointer_arithmetic(s, var))
                     })
@@ -267,17 +269,9 @@ impl DataflowGraph {
     }
 
     /// Check if an expression contains pointer arithmetic for a variable.
-    fn expression_has_pointer_arithmetic(
-        &self,
-        expr: &decy_hir::HirExpression,
-        var: &str,
-    ) -> bool {
+    fn expression_has_pointer_arithmetic(&self, expr: &decy_hir::HirExpression, var: &str) -> bool {
         match expr {
-            HirExpression::BinaryOp {
-                op,
-                left,
-                right: _,
-            } => {
+            HirExpression::BinaryOp { op, left, right: _ } => {
                 // Check if this is pointer arithmetic (ptr + offset or ptr - offset)
                 if matches!(
                     op,
