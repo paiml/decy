@@ -1,15 +1,15 @@
 //! RED phase tests for lock-to-data binding analysis (DECY-077).
 
-use decy_analyzer::lock_analysis::{LockAnalyzer, LockDataMapping, LockRegion};
+use decy_analyzer::lock_analysis::LockAnalyzer;
 use decy_hir::{BinaryOperator, HirExpression, HirFunction, HirStatement, HirType};
 
 /// Helper: Create pthread_mutex_lock call
 fn lock_call(lock_name: &str) -> HirStatement {
     HirStatement::Expression(HirExpression::FunctionCall {
         function: "pthread_mutex_lock".to_string(),
-        arguments: vec![HirExpression::AddressOf(Box::new(
-            HirExpression::Variable(lock_name.to_string()),
-        ))],
+        arguments: vec![HirExpression::AddressOf(Box::new(HirExpression::Variable(
+            lock_name.to_string(),
+        )))],
     })
 }
 
@@ -17,9 +17,9 @@ fn lock_call(lock_name: &str) -> HirStatement {
 fn unlock_call(lock_name: &str) -> HirStatement {
     HirStatement::Expression(HirExpression::FunctionCall {
         function: "pthread_mutex_unlock".to_string(),
-        arguments: vec![HirExpression::AddressOf(Box::new(
-            HirExpression::Variable(lock_name.to_string()),
-        ))],
+        arguments: vec![HirExpression::AddressOf(Box::new(HirExpression::Variable(
+            lock_name.to_string(),
+        )))],
     })
 }
 
