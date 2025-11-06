@@ -184,6 +184,50 @@ impl DataflowGraph {
         }
     }
 
+    /// Get all array parameters and their corresponding length parameters.
+    /// DECY-072 GREEN: Returns (array_param_name, length_param_name) pairs
+    ///
+    /// # Returns
+    ///
+    /// A vector of tuples where:
+    /// - First element is the array parameter name
+    /// - Second element is the corresponding length parameter name (if any)
+    ///
+    /// # Examples
+    ///
+    /// For `fn process(int* arr, int len)` returns `[("arr", Some("len"))]`
+    /// For `fn process(int* ptr)` returns `[]` (not an array parameter)
+    pub fn get_array_parameters(&self) -> Vec<(String, Option<String>)> {
+        let mut array_params = Vec::new();
+
+        for (i, param) in self.parameters.iter().enumerate() {
+            // Only check pointer parameters
+            if !matches!(param.param_type(), HirType::Pointer(_)) {
+                continue;
+            }
+
+            // Check if this is an array parameter
+            if let Some(true) = self.is_array_parameter(param.name()) {
+                // Try to find the corresponding length parameter
+                let length_param = if i + 1 < self.parameters.len() {
+                    let next_param = &self.parameters[i + 1];
+                    // Check if next parameter is integer type (likely a length)
+                    if matches!(next_param.param_type(), HirType::Int) {
+                        Some(next_param.name().to_string())
+                    } else {
+                        None
+                    }
+                } else {
+                    None
+                };
+
+                array_params.push((param.name().to_string(), length_param));
+            }
+        }
+
+        array_params
+    }
+
     /// Check if a variable is used with array indexing in the function body.
     /// DECY-071 GREEN: Helper for array detection
     fn has_array_indexing(&self, var: &str) -> bool {
