@@ -574,15 +574,27 @@ HIR is serializable for debugging: `cargo test -- --nocapture` shows HIR.
 
 ## Current Development Status
 
-**Sprint**: 1 (Foundation & C Parser)
-**Current Ticket**: DECY-001 (clang-sys integration)
-**Phase**: RED (failing tests committed)
+**Version**: 1.0.0 (Released on crates.io)
+**Status**: Active Development
+**Recent Completion**: DECY-072 (Array parameter to slice transformation) - 2025-11-07
 
-### Sprint 1 Tickets
+### Recent Milestones
 
-- **DECY-001**: Setup clang-sys integration (in_progress, RED phase)
-- **DECY-002**: Define HIR structure (not_started)
-- **DECY-003**: Implement basic code generator (not_started)
+- ✅ **DECY-078**: Transform pthread_mutex to Mutex<T> (Nov 6)
+- ✅ **DECY-072**: Array parameters to safe slices (Nov 7)
+- ✅ **DECY-070**: Pointer arithmetic to safe slice indexing
+- ✅ **DECY-041**: Increment/decrement operator support
+
+### Key Features Implemented
+
+- C Parser with clang-sys integration
+- High-level Intermediate Representation (HIR)
+- Dataflow analysis for ownership inference
+- Array parameter detection and slice transformation
+- Pointer arithmetic transformation to safe indexing
+- Concurrency transformation (pthread → Rust sync primitives)
+- Control flow statements (if/else, loops, switch)
+- Type inference and casting
 
 View complete roadmap: `cat roadmap.yaml` or `make roadmap-status`
 
