@@ -7140,9 +7140,14 @@ sprint_21:
       priority: high
       story_points: 8
       assignee: Claude
-      status: in_progress
+      status: done
       github_issue: null
-      phase: GREEN
+      phase: DONE
+      started_date: "2025-11-07"
+      red_date: "2025-11-07"
+      green_date: "2025-11-07"
+      refactor_date: "2025-11-07"
+      completed_date: "2025-11-07"
 
       description: |
         Use array parameter detection to transform C function signatures
@@ -7189,8 +7194,9 @@ sprint_21:
 
       files_modified:
         - crates/decy-codegen/src/lib.rs
-        - crates/decy-core/tests/array_parameter_test.rs (new)
-        - crates/decy-ownership/src/borrow_gen.rs
+        - crates/decy-ownership/src/array_slice.rs
+        - crates/decy-ownership/src/dataflow.rs
+        - crates/decy-codegen/tests/array_parameter_slice_test.rs
 
       dependencies: ["DECY-071"]
 
