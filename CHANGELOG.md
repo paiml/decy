@@ -1,3 +1,47 @@
+## [1.0.1] - 2025-11-07 🔧
+
+### **Bug Fixes & Critical Improvements**
+
+This patch release fixes critical bugs discovered in the array parameter transformation feature and enhances pointer arithmetic detection for safer code generation.
+
+---
+
+### 🐛 **Bug Fixes**
+
+#### DECY-072: Array Parameter Transformation - Complete Implementation
+- **Fixed**: Incomplete implementation causing clippy warning and test failures
+- **Implemented**: Length parameter references transformed to `.len()` calls
+  - `size` → `arr.len() as i32` (automatic type casting)
+- **Added**: Type casts for slice operations
+  - Array indexing: `arr[i]` → `arr[i as usize]`
+  - Array assignment: `arr[i] = x` → `arr[i as usize] = x`
+- **Fixed**: Mutability detection for slice parameters (`&[T]` vs `&mut [T]`)
+
+#### Enhanced Pointer Arithmetic Detection
+- **Fixed**: False positives in array-to-slice transformation
+- **Disqualifying factors** now properly detect:
+  - Pointer arithmetic on parameters (`arr++`, `arr + n`)
+  - Parameters assigned to pointer variables (`int* ptr = arr`)
+- **Added**: Recursive expression checking for nested pointer usage
+- **Result**: Functions like `traverse_array` correctly preserve raw pointers
+
+### ✅ **Test Results**
+- All integration tests: PASS ✅
+- `test_nested_loops_with_break_continue`: PASS ✅
+- `test_transpile_increment_decrement`: PASS ✅
+- `test_transpile_real_world_patterns`: PASS ✅
+- Clippy warnings: 0
+- Build: SUCCESS
+
+### 📦 **Files Modified**
+- `crates/decy-codegen/src/lib.rs` - Type casting for slice operations
+- `crates/decy-ownership/src/array_slice.rs` - Complete transformation implementation
+- `crates/decy-ownership/src/dataflow.rs` - Enhanced detection, mutability analysis
+- `crates/decy-analyzer/src/lock_analysis.rs` - Concurrency improvements
+- `crates/decy-codegen/src/concurrency_transform.rs` - Threading primitives
+
+---
+
 ## [1.0.0] - 2025-01-01 🎉
 
 ### **MAJOR MILESTONE: Core Safety Validation Mission Complete**
