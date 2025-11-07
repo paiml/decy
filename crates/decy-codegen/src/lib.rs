@@ -30,6 +30,7 @@
 #![deny(unsafe_code)]
 
 pub mod box_transform;
+pub mod concurrency_transform;
 pub mod test_generator;
 
 use decy_hir::{BinaryOperator, HirExpression, HirFunction, HirStatement, HirType};
