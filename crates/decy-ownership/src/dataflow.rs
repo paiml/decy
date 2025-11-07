@@ -269,20 +269,16 @@ impl DataflowGraph {
                     false
                 }
             }
-            HirStatement::FieldAssignment { object, .. } => {
-                if let HirExpression::Variable(name) = object {
-                    name == var
-                } else {
-                    false
-                }
-            }
-            HirStatement::DerefAssignment { target, .. } => {
-                if let HirExpression::Variable(name) = target {
-                    name == var
-                } else {
-                    false
-                }
-            }
+            HirStatement::FieldAssignment {
+                object: HirExpression::Variable(name),
+                ..
+            } => name == var,
+            HirStatement::FieldAssignment { .. } => false,
+            HirStatement::DerefAssignment {
+                target: HirExpression::Variable(name),
+                ..
+            } => name == var,
+            HirStatement::DerefAssignment { .. } => false,
             HirStatement::If {
                 then_block,
                 else_block,
