@@ -968,7 +968,8 @@ impl CodeGenerator {
                 }
 
                 // Regular array/slice indexing
-                format!("{}[{}]", array_code, index_code)
+                // DECY-072: Cast index to usize for slice indexing
+                format!("{}[{} as usize]", array_code, index_code)
             }
             HirExpression::SliceIndex { slice, index, .. } => {
                 // DECY-070 GREEN: Generate safe slice indexing (0 unsafe blocks!)
@@ -1073,7 +1074,12 @@ impl CodeGenerator {
             } => {
                 let receiver_code = self.generate_expression_with_context(receiver, ctx);
                 if arguments.is_empty() {
-                    format!("{}.{}()", receiver_code, method)
+                    // DECY-072: Cast .len() to i32 when used with integer comparisons
+                    if method == "len" {
+                        format!("{}.{}() as i32", receiver_code, method)
+                    } else {
+                        format!("{}.{}()", receiver_code, method)
+                    }
                 } else {
                     let args: Vec<String> = arguments
                         .iter()
@@ -1673,8 +1679,9 @@ impl CodeGenerator {
                     index: index.clone(),
                 };
                 let target_type = ctx.infer_expression_type(&target_expr);
+                // DECY-072: Cast index to usize for slice indexing
                 format!(
-                    "{}[{}] = {};",
+                    "{}[{} as usize] = {};",
                     self.generate_expression_with_context(array, ctx),
                     self.generate_expression_with_context(index, ctx),
                     self.generate_expression_with_target_type(value, ctx, target_type.as_ref())
