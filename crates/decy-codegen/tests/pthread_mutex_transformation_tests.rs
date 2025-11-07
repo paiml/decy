@@ -37,6 +37,47 @@ fn unlock_call(lock_name: &str) -> HirStatement {
 }
 
 // ============================================================================
+// CONCURRENCY INFRASTRUCTURE: Test pthread pattern detection
+// ============================================================================
+
+#[test]
+fn test_concurrency_module_detects_pthread_calls() {
+    use decy_codegen::concurrency_transform;
+
+    // Function with pthread lock/unlock pattern
+    let func = HirFunction::new_with_body(
+        "increment".to_string(),
+        HirType::Void,
+        vec![],
+        vec![
+            lock_call("lock"),
+            HirStatement::Assignment {
+                target: "counter".to_string(),
+                value: HirExpression::BinaryOp {
+                    op: BinaryOperator::Add,
+                    left: Box::new(HirExpression::Variable("counter".to_string())),
+                    right: Box::new(HirExpression::IntLiteral(1)),
+                },
+            },
+            unlock_call("lock"),
+        ],
+    );
+
+    // Verify concurrency module can detect pthread patterns
+    assert!(
+        concurrency_transform::has_pthread_mutex_calls(&func),
+        "Should detect pthread_mutex calls"
+    );
+
+    // Verify lock region identification
+    let regions = concurrency_transform::identify_lock_regions(&func);
+    assert_eq!(regions.len(), 1, "Should identify one lock region");
+    assert_eq!(regions[0].0, "lock", "Lock name should be 'lock'");
+    assert_eq!(regions[0].1, 0, "Lock starts at index 0");
+    assert_eq!(regions[0].2, 2, "Lock ends at index 2");
+}
+
+// ============================================================================
 // LOCK ANALYSIS INTEGRATION: Use LockAnalyzer to detect patterns
 // ============================================================================
 
