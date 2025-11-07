@@ -55,10 +55,7 @@ impl LockDataMapping {
 
     /// Add a data variable to a lock's protection set.
     fn add_protected_data(&mut self, lock: String, data: String) {
-        self.lock_to_data
-            .entry(lock)
-            .or_default()
-            .insert(data);
+        self.lock_to_data.entry(lock).or_default().insert(data);
     }
 }
 

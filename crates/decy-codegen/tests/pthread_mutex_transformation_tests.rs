@@ -12,7 +12,10 @@
 
 use decy_analyzer::lock_analysis::LockAnalyzer;
 use decy_codegen::CodeGenerator;
-use decy_hir::{BinaryOperator, HirExpression, HirFunction, HirParameter, HirStatement, HirStruct, HirStructField, HirType};
+use decy_hir::{
+    BinaryOperator, HirExpression, HirFunction, HirParameter, HirStatement, HirStruct,
+    HirStructField, HirType,
+};
 
 // ============================================================================
 // HELPER: Create lock/unlock HIR statements
@@ -21,18 +24,18 @@ use decy_hir::{BinaryOperator, HirExpression, HirFunction, HirParameter, HirStat
 fn lock_call(lock_name: &str) -> HirStatement {
     HirStatement::Expression(HirExpression::FunctionCall {
         function: "pthread_mutex_lock".to_string(),
-        arguments: vec![HirExpression::AddressOf(Box::new(
-            HirExpression::Variable(lock_name.to_string()),
-        ))],
+        arguments: vec![HirExpression::AddressOf(Box::new(HirExpression::Variable(
+            lock_name.to_string(),
+        )))],
     })
 }
 
 fn unlock_call(lock_name: &str) -> HirStatement {
     HirStatement::Expression(HirExpression::FunctionCall {
         function: "pthread_mutex_unlock".to_string(),
-        arguments: vec![HirExpression::AddressOf(Box::new(
-            HirExpression::Variable(lock_name.to_string()),
-        ))],
+        arguments: vec![HirExpression::AddressOf(Box::new(HirExpression::Variable(
+            lock_name.to_string(),
+        )))],
     })
 }
 

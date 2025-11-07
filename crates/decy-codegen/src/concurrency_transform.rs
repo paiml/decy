@@ -79,7 +79,8 @@ fn extract_variable_name(expr: &HirExpression) -> Option<String> {
 pub fn identify_lock_regions(func: &HirFunction) -> Vec<(String, usize, usize)> {
     let mut regions = Vec::new();
     let body = func.body();
-    let mut active_locks: std::collections::HashMap<String, usize> = std::collections::HashMap::new();
+    let mut active_locks: std::collections::HashMap<String, usize> =
+        std::collections::HashMap::new();
 
     for (idx, stmt) in body.iter().enumerate() {
         if let Some(lock_name) = is_pthread_lock(stmt) {
@@ -96,9 +97,9 @@ pub fn identify_lock_regions(func: &HirFunction) -> Vec<(String, usize, usize)> 
 
 /// Checks if a function contains any pthread mutex operations.
 pub fn has_pthread_mutex_calls(func: &HirFunction) -> bool {
-    func.body().iter().any(|stmt| {
-        is_pthread_lock(stmt).is_some() || is_pthread_unlock(stmt).is_some()
-    })
+    func.body()
+        .iter()
+        .any(|stmt| is_pthread_lock(stmt).is_some() || is_pthread_unlock(stmt).is_some())
 }
 
 #[cfg(test)]
@@ -109,18 +110,18 @@ mod tests {
     fn lock_call(lock_name: &str) -> HirStatement {
         HirStatement::Expression(HirExpression::FunctionCall {
             function: "pthread_mutex_lock".to_string(),
-            arguments: vec![HirExpression::AddressOf(Box::new(
-                HirExpression::Variable(lock_name.to_string()),
-            ))],
+            arguments: vec![HirExpression::AddressOf(Box::new(HirExpression::Variable(
+                lock_name.to_string(),
+            )))],
         })
     }
 
     fn unlock_call(lock_name: &str) -> HirStatement {
         HirStatement::Expression(HirExpression::FunctionCall {
             function: "pthread_mutex_unlock".to_string(),
-            arguments: vec![HirExpression::AddressOf(Box::new(
-                HirExpression::Variable(lock_name.to_string()),
-            ))],
+            arguments: vec![HirExpression::AddressOf(Box::new(HirExpression::Variable(
+                lock_name.to_string(),
+            )))],
         })
     }
 
@@ -221,10 +222,7 @@ mod tests {
             object: Box::new(HirExpression::Variable("obj".to_string())),
             field: "field_name".to_string(),
         };
-        assert_eq!(
-            extract_variable_name(&expr),
-            Some("field_name".to_string())
-        );
+        assert_eq!(extract_variable_name(&expr), Some("field_name".to_string()));
     }
 
     #[test]
