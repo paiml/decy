@@ -7596,8 +7596,9 @@ sprint_23:
       assignee: Claude
       status: in_progress
       github_issue: null
-      phase: RED
+      phase: GREEN
       started_date: "2025-11-06"
+      red_date: "2025-11-06"
 
       description: |
         Generate Rust code that merges pthread_mutex and protected data
