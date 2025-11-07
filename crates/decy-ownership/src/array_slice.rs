@@ -186,13 +186,15 @@ impl ArrayParameterTransformer {
             HirStatement::Return(Some(expr)) => {
                 HirStatement::Return(Some(self.transform_expression(expr, array_param_map)))
             }
-            HirStatement::ArrayIndexAssignment { array, index, value } => {
-                HirStatement::ArrayIndexAssignment {
-                    array: Box::new(self.transform_expression(array, array_param_map)),
-                    index: Box::new(self.transform_expression(index, array_param_map)),
-                    value: self.transform_expression(value, array_param_map),
-                }
-            }
+            HirStatement::ArrayIndexAssignment {
+                array,
+                index,
+                value,
+            } => HirStatement::ArrayIndexAssignment {
+                array: Box::new(self.transform_expression(array, array_param_map)),
+                index: Box::new(self.transform_expression(index, array_param_map)),
+                value: self.transform_expression(value, array_param_map),
+            },
             HirStatement::Expression(expr) => {
                 HirStatement::Expression(self.transform_expression(expr, array_param_map))
             }
@@ -246,9 +248,9 @@ impl ArrayParameterTransformer {
             HirExpression::Dereference(inner) => HirExpression::Dereference(Box::new(
                 self.transform_expression(inner, array_param_map),
             )),
-            HirExpression::AddressOf(inner) => {
-                HirExpression::AddressOf(Box::new(self.transform_expression(inner, array_param_map)))
-            }
+            HirExpression::AddressOf(inner) => HirExpression::AddressOf(Box::new(
+                self.transform_expression(inner, array_param_map),
+            )),
             // Literals and other expressions pass through unchanged
             _ => expr.clone(),
         }
