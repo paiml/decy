@@ -79,11 +79,12 @@ impl ArrayParameterTransformer {
 
                 // Transform array parameters to slices
                 if array_param_map.contains_key(param.name()) {
-                    // Check if pointer is mutable (non-const)
-                    let is_mutable = !matches!(param.param_type(), HirType::Pointer(_));
-
                     // Get element type from pointer
                     if let HirType::Pointer(inner) = param.param_type() {
+                        // Check if array is modified (need &mut) or read-only (need &)
+                        // DECY-072: Check dataflow to determine mutability
+                        let is_mutable = dataflow.is_modified(param.name());
+
                         // Create slice type: &[T] or &mut [T]
                         // In HIR, a slice is represented as a Reference to an Array with size=None
                         let slice_type = HirType::Reference {
@@ -213,9 +214,22 @@ impl ArrayParameterTransformer {
         array_param_map: &HashMap<String, Option<String>>,
     ) -> HirExpression {
         match expr {
-            HirExpression::Variable(_name) => {
-                // TODO DECY-072: Transform length parameter references to .len() calls
-                // For now, keep as-is - will be handled at code generation
+            HirExpression::Variable(name) => {
+                // Transform length parameter references to .len() calls
+                // Find if this variable is a length parameter for any array
+                for (array_name, length_param) in array_param_map {
+                    if let Some(len_name) = length_param {
+                        if len_name == name {
+                            // Replace with array.len()
+                            return HirExpression::StringMethodCall {
+                                receiver: Box::new(HirExpression::Variable(array_name.clone())),
+                                method: "len".to_string(),
+                                arguments: vec![],
+                            };
+                        }
+                    }
+                }
+                // Not a length parameter, keep as-is
                 expr.clone()
             }
             HirExpression::BinaryOp { op, left, right } => HirExpression::BinaryOp {
