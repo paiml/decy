@@ -205,7 +205,8 @@ fn test_length_parameter_references_replaced_with_len_method() {
     let rust_code = transpile(c_code).expect("Transpilation should succeed");
 
     // All references to count should be replaced with numbers.len()
-    let count_occurrences = rust_code.matches(" count").count() + rust_code.matches("count ").count();
+    let count_occurrences =
+        rust_code.matches(" count").count() + rust_code.matches("count ").count();
     assert_eq!(
         count_occurrences, 0,
         "Should not have any 'count' variable references in body:\n{}",
@@ -271,7 +272,7 @@ fn test_full_function_with_array_slice_transformation() {
     // Verify slice signature
     assert!(
         rust_code.contains("fn normalize(values: &mut [f32])")
-        || rust_code.contains("pub fn normalize(values: &mut [f32])"),
+            || rust_code.contains("pub fn normalize(values: &mut [f32])"),
         "Should have slice signature:\n{}",
         rust_code
     );
