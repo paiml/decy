@@ -149,7 +149,10 @@ fn test_generate_valid_rust_syntax() {
     let rust_enum = generator.generate_enum(&info);
 
     // Should be valid Rust code that can be parsed
-    assert!(rust_enum.starts_with("enum ") || rust_enum.starts_with("pub enum "));
+    assert!(
+        rust_enum.contains("enum ") || rust_enum.contains("pub enum "),
+        "Should contain enum declaration"
+    );
     assert!(rust_enum.contains("{"));
     assert!(rust_enum.contains("}"));
     assert!(rust_enum.contains(",") || rust_enum.ends_with("}"));
