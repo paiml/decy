@@ -32,6 +32,8 @@
 #![warn(clippy::all)]
 #![deny(unsafe_code)]
 
+pub mod lock_verify;
+
 use anyhow::{Context, Result};
 use syn::{visit::Visit, Block, Expr, ExprUnsafe, ItemFn};
 
