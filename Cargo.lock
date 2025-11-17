@@ -899,6 +899,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "decy-stdlib"
+version = "1.0.1"
+
+[[package]]
 name = "decy-verify"
 version = "1.0.1"
 dependencies = [

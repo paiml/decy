@@ -13,7 +13,7 @@ members = [
     "crates/decy-agent",
     "crates/decy-mcp",
     "crates/decy-repo",
-    "crates/decy",
+    "crates/decy", "crates/decy-stdlib",
 ]
 
 [workspace.package]
