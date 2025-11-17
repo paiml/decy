@@ -791,6 +791,7 @@ dependencies = [
  "decy-hir",
  "decy-ownership",
  "decy-parser",
+ "decy-stdlib",
  "decy-verify",
  "petgraph",
  "proptest",

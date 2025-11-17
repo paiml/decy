@@ -771,11 +771,13 @@ impl StdlibPrototypes {
     pub fn inject_all_prototypes(&self) -> String {
         let mut result = String::new();
 
-        // Type definitions (ISO C99 §7.17, §7.19)
+        // Type definitions (ISO C99 §7.17, §7.19, §7.21)
         result.push_str("// Built-in stdlib prototypes (ISO C99 §7)\n");
         result.push_str("typedef unsigned long size_t;\n");
         result.push_str("typedef long ssize_t;\n");
-        result.push_str("typedef long ptrdiff_t;\n\n");
+        result.push_str("typedef long ptrdiff_t;\n");
+        result.push_str("struct _IO_FILE;\n");
+        result.push_str("typedef struct _IO_FILE FILE;\n\n");
 
         // Inject function prototypes
         let mut protos: Vec<_> = self.functions.values().collect();
