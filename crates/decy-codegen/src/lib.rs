@@ -254,7 +254,7 @@ impl CodeGenerator {
     /// - Converts macro name from SCREAMING_SNAKE_CASE to snake_case
     /// - Infers parameter types (defaults to i32)
     /// - Infers return type from expression
-    /// - Adds #[inline] attribute for performance
+    /// - Adds `#[inline]` attribute for performance
     /// - Transforms ternary operator (? :) to if-else
     /// - Removes unnecessary parentheses
     fn generate_function_like_macro(
@@ -1835,7 +1835,7 @@ impl CodeGenerator {
 
     /// Check if a parameter is modified in the function body (DECY-072 GREEN).
     ///
-    /// Used to determine whether to use &[T] or &mut [T] for array parameters.
+    /// Used to determine whether to use `&[T]` or `&mut [T]` for array parameters.
     fn is_parameter_modified(&self, func: &HirFunction, param_name: &str) -> bool {
         // Check if the parameter is used in any assignment statements
         for stmt in func.body() {
@@ -1886,7 +1886,7 @@ impl CodeGenerator {
 
     /// Convert a pointer type to a slice type (DECY-072 GREEN).
     ///
-    /// Transforms `*mut T` or `*const T` to `&[T]` or `&mut [T]`.
+    /// Transforms `*mut T` or `*const T` to `&\[T]` or `&mut \[T]`.
     fn pointer_to_slice_type(&self, ptr_type: &HirType, is_mutable: bool) -> String {
         if let HirType::Pointer(inner) = ptr_type {
             let element_type = Self::map_type(inner);
