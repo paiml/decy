@@ -66,7 +66,9 @@ fn test_codegen_strlen_to_len() {
     let codegen = CodeGenerator::new();
     let rust_code = codegen.generate_expression(&strlen_expr);
 
-    assert_eq!(rust_code, "s.len()", "strlen should become .len()");
+    // C strlen() returns size_t but is often used with int comparisons
+    // So we cast to i32 to maintain C semantics
+    assert_eq!(rust_code, "s.len() as i32", "strlen should become .len() as i32");
 }
 
 #[test]
