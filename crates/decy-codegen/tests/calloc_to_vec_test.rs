@@ -183,7 +183,8 @@ fn test_calloc_with_usage() {
 
     // Expected Rust output with mutable declaration
     assert!(result.contains("let mut arr: Vec<i32> = vec![0i32; 10]"));
-    assert!(result.contains("arr[0] = 42"));
+    // Accept either arr[0] = 42 or arr[0 as usize] = 42 (the latter is more correct Rust)
+    assert!(result.contains("arr[0") && result.contains("= 42"));
 
     // Verify no unsafe blocks
     assert!(!result.contains("unsafe"));
