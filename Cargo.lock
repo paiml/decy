@@ -908,6 +908,7 @@ name = "decy-verify"
 version = "1.0.1"
 dependencies = [
  "anyhow",
+ "decy-analyzer",
  "decy-hir",
  "proc-macro2",
  "proptest",
