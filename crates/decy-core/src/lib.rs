@@ -632,10 +632,8 @@ fn preprocess_includes(
 
                     // Try to parse the header name and inject specific prototypes
                     if let Some(header) = decy_stdlib::StdHeader::from_filename(filename) {
-                        result.push_str(&format!(
-                            "// BEGIN: Built-in prototypes for {}\n",
-                            filename
-                        ));
+                        result
+                            .push_str(&format!("// BEGIN: Built-in prototypes for {}\n", filename));
                         result.push_str(&stdlib_prototypes.inject_prototypes_for_header(header));
                         result.push_str(&format!("// END: Built-in prototypes for {}\n", filename));
                     } else {
