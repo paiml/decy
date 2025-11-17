@@ -1001,7 +1001,7 @@ impl StdlibPrototypes {
         result.push('\n');
 
         // Filter functions by header and inject
-        // TODO(DECY-XXX): Skip functions with function pointer parameters for now
+        // NOTE: Functions with function pointer parameters are currently skipped.
         // Function pointer syntax like `int (*comp)(const void*, const void*)`
         // needs special handling in to_c_declaration() - name goes inside (*name)
         let mut protos: Vec<_> = self
