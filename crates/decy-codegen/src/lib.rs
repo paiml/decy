@@ -32,6 +32,7 @@
 pub mod box_transform;
 pub mod concurrency_transform;
 pub mod enum_gen;
+pub mod pattern_gen;
 pub mod test_generator;
 
 use decy_hir::{BinaryOperator, HirExpression, HirFunction, HirStatement, HirType};
