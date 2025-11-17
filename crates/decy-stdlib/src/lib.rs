@@ -45,6 +45,38 @@ pub enum StdHeader {
     Time,     // <time.h>
 }
 
+impl StdHeader {
+    /// Parse header name from #include filename
+    ///
+    /// # Examples
+    /// ```
+    /// use decy_stdlib::StdHeader;
+    /// assert_eq!(StdHeader::from_filename("string.h"), Some(StdHeader::String));
+    /// assert_eq!(StdHeader::from_filename("stdio.h"), Some(StdHeader::Stdio));
+    /// assert_eq!(StdHeader::from_filename("unknown.h"), None);
+    /// ```
+    pub fn from_filename(filename: &str) -> Option<Self> {
+        match filename {
+            "assert.h" => Some(Self::Assert),
+            "ctype.h" => Some(Self::Ctype),
+            "errno.h" => Some(Self::Errno),
+            "float.h" => Some(Self::Float),
+            "limits.h" => Some(Self::Limits),
+            "locale.h" => Some(Self::Locale),
+            "math.h" => Some(Self::Math),
+            "setjmp.h" => Some(Self::Setjmp),
+            "signal.h" => Some(Self::Signal),
+            "stdarg.h" => Some(Self::Stdarg),
+            "stddef.h" => Some(Self::Stddef),
+            "stdio.h" => Some(Self::Stdio),
+            "stdlib.h" => Some(Self::Stdlib),
+            "string.h" => Some(Self::String),
+            "time.h" => Some(Self::Time),
+            _ => None,
+        }
+    }
+}
+
 /// Function parameter
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Parameter {
@@ -767,7 +799,59 @@ impl StdlibPrototypes {
         self.functions.get(name)
     }
 
+    /// Inject prototypes for a specific header
+    ///
+    /// Only injects function declarations for the specified header.
+    /// This prevents parser overload from injecting all 55+ prototypes at once.
+    ///
+    /// # Examples
+    /// ```
+    /// use decy_stdlib::{StdlibPrototypes, StdHeader};
+    /// let stdlib = StdlibPrototypes::new();
+    /// let string_protos = stdlib.inject_prototypes_for_header(StdHeader::String);
+    /// assert!(string_protos.contains("strlen"));
+    /// assert!(!string_protos.contains("printf")); // stdio function, not string
+    /// ```
+    pub fn inject_prototypes_for_header(&self, header: StdHeader) -> String {
+        let mut result = String::new();
+
+        // Type definitions (always needed)
+        result.push_str(&format!(
+            "// Built-in prototypes for {:?} (ISO C99 §7)\n",
+            header
+        ));
+        result.push_str("typedef unsigned long size_t;\n");
+        result.push_str("typedef long ssize_t;\n");
+        result.push_str("typedef long ptrdiff_t;\n");
+
+        // Add FILE typedef for stdio.h
+        if header == StdHeader::Stdio {
+            result.push_str("struct _IO_FILE;\n");
+            result.push_str("typedef struct _IO_FILE FILE;\n");
+        }
+
+        result.push('\n');
+
+        // Filter functions by header and inject
+        let mut protos: Vec<_> = self
+            .functions
+            .values()
+            .filter(|p| p.header == header)
+            .collect();
+        protos.sort_by_key(|p| &p.name);
+
+        for proto in protos {
+            result.push_str(&proto.to_c_declaration());
+            result.push('\n');
+        }
+
+        result
+    }
+
     /// Inject all stdlib prototypes as C declarations
+    ///
+    /// **Note**: Prefer `inject_prototypes_for_header()` to avoid parser overload.
+    /// This method injects ALL 55+ prototypes which may cause parsing issues.
     pub fn inject_all_prototypes(&self) -> String {
         let mut result = String::new();
 
