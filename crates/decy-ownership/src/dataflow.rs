@@ -288,7 +288,8 @@ impl DataflowGraph {
                     .iter()
                     .any(|s| Self::statement_modifies_variable(s, var))
                     || else_block.as_ref().is_some_and(|blk| {
-                        blk.iter().any(|s| Self::statement_modifies_variable(s, var))
+                        blk.iter()
+                            .any(|s| Self::statement_modifies_variable(s, var))
                     })
             }
             HirStatement::While { body, .. } | HirStatement::For { body, .. } => body
@@ -388,7 +389,9 @@ impl DataflowGraph {
                 Self::expression_has_pointer_arithmetic(left, var)
                     || Self::expression_has_pointer_arithmetic(right, var)
             }
-            HirExpression::Dereference(inner) => Self::expression_has_pointer_arithmetic(inner, var),
+            HirExpression::Dereference(inner) => {
+                Self::expression_has_pointer_arithmetic(inner, var)
+            }
             HirExpression::AddressOf(inner) => Self::expression_has_pointer_arithmetic(inner, var),
             HirExpression::UnaryOp { operand, .. } => {
                 Self::expression_has_pointer_arithmetic(operand, var)
