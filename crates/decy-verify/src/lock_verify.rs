@@ -2,45 +2,133 @@
 //!
 //! Validates that all accesses to shared data are properly protected by locks
 //! and detects potential deadlocks.
+//!
+//! # Overview
+//!
+//! This module provides comprehensive lock discipline checking for C code that
+//! uses pthread mutexes. It detects two major categories of concurrency bugs:
+//!
+//! 1. **Unprotected Data Access**: Accessing shared data outside locked regions
+//! 2. **Deadlock Risk**: Inconsistent lock ordering across functions
+//!
+//! # Example
+//!
+//! ```no_run
+//! use decy_analyzer::lock_analysis::LockAnalyzer;
+//! use decy_verify::lock_verify::LockDisciplineChecker;
+//! use decy_hir::HirFunction;
+//!
+//! let analyzer = LockAnalyzer::new();
+//! let checker = LockDisciplineChecker::new(&analyzer);
+//!
+//! // Check single function for unprotected access
+//! # let func = HirFunction::new("test".to_string(), decy_hir::HirType::Void, vec![]);
+//! let violations = checker.check_unprotected_access(&func);
+//!
+//! // Check multiple functions for deadlock risk
+//! let warnings = checker.check_deadlock_risk(&[func]);
+//! ```
+//!
+//! # Algorithm
+//!
+//! ## Unprotected Access Detection
+//!
+//! 1. Use `LockAnalyzer` to identify which variables are protected by locks
+//! 2. Find all locked regions in the function
+//! 3. For each statement outside locked regions, check if it accesses protected data
+//! 4. Report violations with statement numbers
+//!
+//! ## Deadlock Detection
+//!
+//! 1. Extract lock acquisition order from each function
+//! 2. Compare orderings pairwise
+//! 3. Detect reverse orderings (e.g., A→B vs B→A) which indicate deadlock risk
+//! 4. Report potential deadlocks with involved locks
 
 use decy_analyzer::lock_analysis::LockAnalyzer;
 use decy_hir::HirFunction;
 
-/// Comprehensive lock discipline report
+/// Comprehensive lock discipline report.
+///
+/// Summarizes all lock discipline violations found in a function or set of functions.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct LockDisciplineReport {
-    /// Number of unprotected data accesses detected
+    /// Number of unprotected data accesses detected.
+    ///
+    /// This counts instances where shared data (identified by lock analysis)
+    /// is accessed outside of any locked region.
     pub unprotected_accesses: usize,
-    /// Number of lock/unlock violations
+
+    /// Number of lock/unlock violations.
+    ///
+    /// This includes:
+    /// - Locks without corresponding unlocks
+    /// - Unlocks without corresponding locks
     pub lock_violations: usize,
-    /// Number of deadlock warnings
+
+    /// Number of deadlock warnings.
+    ///
+    /// This counts potential deadlocks from inconsistent lock ordering.
     pub deadlock_warnings: usize,
 }
 
 impl LockDisciplineReport {
-    /// Check if the code has no lock discipline violations
+    /// Check if the code has no lock discipline violations.
+    ///
+    /// Returns `true` only if all counts are zero.
     pub fn is_clean(&self) -> bool {
-        self.unprotected_accesses == 0
-            && self.lock_violations == 0
-            && self.deadlock_warnings == 0
+        self.unprotected_accesses == 0 && self.lock_violations == 0 && self.deadlock_warnings == 0
     }
 }
 
-/// Lock discipline checker
+/// Lock discipline checker.
+///
+/// Validates lock discipline for pthread mutex usage in C code.
 pub struct LockDisciplineChecker<'a> {
+    /// Reference to the lock analyzer for identifying protected data
     analyzer: &'a LockAnalyzer,
 }
 
 impl<'a> LockDisciplineChecker<'a> {
-    /// Create a new lock discipline checker
+    /// Create a new lock discipline checker.
+    ///
+    /// # Arguments
+    ///
+    /// * `analyzer` - Lock analyzer for identifying protected data and lock regions
     pub fn new(analyzer: &'a LockAnalyzer) -> Self {
         Self { analyzer }
     }
 
-    /// Check for unprotected data accesses
+    /// Check for unprotected data accesses.
     ///
     /// Detects when shared data (identified by lock analysis) is accessed
     /// outside of locked regions.
+    ///
+    /// # Arguments
+    ///
+    /// * `func` - Function to check
+    ///
+    /// # Returns
+    ///
+    /// Vector of violation messages, each describing:
+    /// - The variable name accessed
+    /// - The statement number where the violation occurs
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// # use decy_analyzer::lock_analysis::LockAnalyzer;
+    /// # use decy_verify::lock_verify::LockDisciplineChecker;
+    /// # use decy_hir::HirFunction;
+    /// # let analyzer = LockAnalyzer::new();
+    /// # let func = HirFunction::new("test".to_string(), decy_hir::HirType::Void, vec![]);
+    /// let checker = LockDisciplineChecker::new(&analyzer);
+    /// let violations = checker.check_unprotected_access(&func);
+    ///
+    /// for violation in violations {
+    ///     println!("Lock violation: {}", violation);
+    /// }
+    /// ```
     pub fn check_unprotected_access(&self, func: &HirFunction) -> Vec<String> {
         let mut violations = Vec::new();
 
@@ -97,19 +185,19 @@ impl<'a> LockDisciplineChecker<'a> {
         match stmt {
             HirStatement::Assignment { target, value } => {
                 vars.push(target.clone());
-                self.collect_vars_from_expr(value, &mut vars);
+                Self::collect_vars_from_expr(value, &mut vars);
             }
             HirStatement::VariableDeclaration {
                 initializer: Some(init),
                 ..
             } => {
-                self.collect_vars_from_expr(init, &mut vars);
+                Self::collect_vars_from_expr(init, &mut vars);
             }
             HirStatement::Expression(expr) => {
-                self.collect_vars_from_expr(expr, &mut vars);
+                Self::collect_vars_from_expr(expr, &mut vars);
             }
             HirStatement::Return(Some(expr)) => {
-                self.collect_vars_from_expr(expr, &mut vars);
+                Self::collect_vars_from_expr(expr, &mut vars);
             }
             _ => {}
         }
@@ -118,7 +206,7 @@ impl<'a> LockDisciplineChecker<'a> {
     }
 
     /// Recursively collect variable names from an expression
-    fn collect_vars_from_expr(&self, expr: &decy_hir::HirExpression, vars: &mut Vec<String>) {
+    fn collect_vars_from_expr(expr: &decy_hir::HirExpression, vars: &mut Vec<String>) {
         use decy_hir::HirExpression;
 
         match expr {
@@ -126,29 +214,29 @@ impl<'a> LockDisciplineChecker<'a> {
                 vars.push(name.clone());
             }
             HirExpression::BinaryOp { left, right, .. } => {
-                self.collect_vars_from_expr(left, vars);
-                self.collect_vars_from_expr(right, vars);
+                Self::collect_vars_from_expr(left, vars);
+                Self::collect_vars_from_expr(right, vars);
             }
             HirExpression::UnaryOp { operand, .. } => {
-                self.collect_vars_from_expr(operand, vars);
+                Self::collect_vars_from_expr(operand, vars);
             }
             HirExpression::FunctionCall { arguments, .. } => {
                 for arg in arguments {
-                    self.collect_vars_from_expr(arg, vars);
+                    Self::collect_vars_from_expr(arg, vars);
                 }
             }
             HirExpression::AddressOf(inner) | HirExpression::Dereference(inner) => {
-                self.collect_vars_from_expr(inner, vars);
+                Self::collect_vars_from_expr(inner, vars);
             }
             HirExpression::ArrayIndex { array, index } => {
-                self.collect_vars_from_expr(array, vars);
-                self.collect_vars_from_expr(index, vars);
+                Self::collect_vars_from_expr(array, vars);
+                Self::collect_vars_from_expr(index, vars);
             }
             HirExpression::FieldAccess { object, .. } => {
-                self.collect_vars_from_expr(object, vars);
+                Self::collect_vars_from_expr(object, vars);
             }
             HirExpression::Cast { expr, .. } => {
-                self.collect_vars_from_expr(expr, vars);
+                Self::collect_vars_from_expr(expr, vars);
             }
             _ => {}
         }

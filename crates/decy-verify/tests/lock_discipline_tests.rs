@@ -134,11 +134,7 @@ fn test_detect_read_access_without_lock() {
     let checker = LockDisciplineChecker::new(&analyzer);
     let violations = checker.check_unprotected_access(&func);
 
-    assert_eq!(
-        violations.len(),
-        1,
-        "Should detect unprotected read access"
-    );
+    assert_eq!(violations.len(), 1, "Should detect unprotected read access");
 }
 
 #[test]
@@ -346,7 +342,10 @@ fn test_report_all_violation_types() {
     let checker = LockDisciplineChecker::new(&analyzer);
     let report = checker.check_all(&func);
 
-    assert!(report.unprotected_accesses > 0, "Should detect unprotected access");
+    assert!(
+        report.unprotected_accesses > 0,
+        "Should detect unprotected access"
+    );
     assert!(report.lock_violations > 0, "Should detect unmatched lock");
     assert!(!report.is_clean(), "Should not be clean with violations");
 }
