@@ -630,14 +630,18 @@ fn preprocess_includes(
                     // Mark as injected
                     injected_headers.insert(filename.to_string());
 
-                    // Inject prototypes for commonly used headers
-                    // Full prototype database is injected to avoid missing declarations
-                    result.push_str(&format!(
-                        "// BEGIN: Built-in prototypes for {}\n",
-                        filename
-                    ));
-                    result.push_str(&stdlib_prototypes.inject_all_prototypes());
-                    result.push_str(&format!("// END: Built-in prototypes for {}\n", filename));
+                    // Try to parse the header name and inject specific prototypes
+                    if let Some(header) = decy_stdlib::StdHeader::from_filename(filename) {
+                        result.push_str(&format!(
+                            "// BEGIN: Built-in prototypes for {}\n",
+                            filename
+                        ));
+                        result.push_str(&stdlib_prototypes.inject_prototypes_for_header(header));
+                        result.push_str(&format!("// END: Built-in prototypes for {}\n", filename));
+                    } else {
+                        // Unknown header - just comment it out
+                        result.push_str(&format!("// Unknown system header: {}\n", filename));
+                    }
                 }
 
                 continue;
