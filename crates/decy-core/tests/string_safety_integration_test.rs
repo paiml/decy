@@ -35,7 +35,7 @@ use decy_core::transpile;
 // ============================================================================
 
 #[test]
-#[ignore = "Parser limitation: Cannot handle #include <string.h>. See file header for details."]
+#[ignore = "WIP: Prototype injection causes parser errors. Need to filter by header."]
 fn test_strlen_transpilation() {
     // C code using strlen
     let c_code = r#"
