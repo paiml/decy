@@ -11,22 +11,21 @@
 //! **Safety Goal**: Zero unsafe blocks for string operations
 //! **Validation**: Transpiled Rust code must compile and run safely
 //!
-//! # KNOWN LIMITATION - Parser System Header Support
+//! # FIXED: Parser System Header Support
 //!
-//! **STATUS**: Most tests in this file are currently #[ignore]'d
+//! **STATUS**: Tests now passing with stdlib prototype support! ✅
 //!
-//! **ROOT CAUSE**: The decy parser cannot handle `#include <string.h>` directives.
+//! **SOLUTION**: The decy-stdlib crate provides built-in prototypes for C standard library.
 //! - System includes are commented out during preprocessing
-//! - But code using strlen/strcpy/strcmp/strcat then fails to parse (undefined functions)
-//! - Parser lacks standard library header definitions
+//! - Stdlib prototypes are injected for the specific header (e.g., string.h)
+//! - Parser successfully handles injected prototypes (per-header filtering)
 //!
-//! **FUTURE WORK**: Need to either:
-//! 1. Add built-in definitions for common libc string functions
-//! 2. Implement a minimal C standard library header parser
-//! 3. Mock these functions for testing purposes
+//! **IMPLEMENTATION**: decy-stdlib (Sprint 18)
+//! 1. ✅ Built-in definitions for 55+ stdlib functions (ISO C99 §7)
+//! 2. ✅ Per-header prototype filtering (string.h, stdio.h, stdlib.h)
+//! 3. ✅ Integration with preprocessor for automatic injection
 //!
-//! **TOYOTA WAY - Jidoka (自働化)**: Being honest about current limitations
-//! rather than hiding failing tests. These represent aspirational functionality.
+//! **TOYOTA WAY - Kaizen (改善)**: Continuous improvement through TDD!
 
 use decy_core::transpile;
 
@@ -106,7 +105,6 @@ fn test_strcpy_transpilation_to_string_copy() {
 }
 
 #[test]
-#[ignore = "Parser limitation: Cannot handle #include <string.h>. See file header for details."]
 fn test_strcat_transpilation_to_string_concatenation() {
     // C code using strcat (UNSAFE in C!)
     let c_code = r#"
@@ -208,7 +206,6 @@ fn test_strcmp_transpilation_to_eq() {
 // ============================================================================
 
 #[test]
-#[ignore = "Parser limitation: Cannot handle #include <string.h>. See file header for details."]
 fn test_null_string_handling() {
     // NULL pointer check pattern in C
     let c_code = r#"
@@ -239,7 +236,6 @@ fn test_null_string_handling() {
 }
 
 #[test]
-#[ignore = "Parser limitation: Cannot handle #include <string.h>. See file header for details."]
 fn test_empty_string_handling() {
     // Empty strings should work correctly
     let c_code = r#"
@@ -260,7 +256,6 @@ fn test_empty_string_handling() {
 }
 
 #[test]
-#[ignore = "Parser limitation: Cannot handle #include <string.h>. See file header for details."]
 fn test_unsafe_block_count_target() {
     // CRITICAL: Validate unsafe minimization goal
     let c_code = r#"
@@ -302,7 +297,6 @@ fn test_unsafe_block_count_target() {
 // ============================================================================
 
 #[test]
-#[ignore = "Parser limitation: Cannot handle #include <string.h>. See file header for details."]
 fn test_transpiled_rust_compiles() {
     // The transpiled Rust code should compile
     let c_code = r#"
@@ -333,7 +327,6 @@ fn test_transpiled_rust_compiles() {
 }
 
 #[test]
-#[ignore = "Parser limitation: Cannot handle #include <string.h>. See file header for details."]
 fn test_string_safety_documentation() {
     // Transpiled code should have safety documentation
     let c_code = r#"

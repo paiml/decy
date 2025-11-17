@@ -833,10 +833,17 @@ impl StdlibPrototypes {
         result.push('\n');
 
         // Filter functions by header and inject
+        // TODO(DECY-XXX): Skip functions with function pointer parameters for now
+        // Function pointer syntax like `int (*comp)(const void*, const void*)`
+        // needs special handling in to_c_declaration() - name goes inside (*name)
         let mut protos: Vec<_> = self
             .functions
             .values()
             .filter(|p| p.header == header)
+            .filter(|p| {
+                // Skip functions with function pointer parameters (contain "(*" in type)
+                !p.parameters.iter().any(|param| param.type_str.contains("(*"))
+            })
             .collect();
         protos.sort_by_key(|p| &p.name);
 
