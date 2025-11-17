@@ -791,6 +791,7 @@ dependencies = [
  "decy-hir",
  "decy-ownership",
  "decy-parser",
+ "decy-stdlib",
  "decy-verify",
  "petgraph",
  "proptest",
@@ -897,6 +898,10 @@ dependencies = [
  "tokio",
  "tracing",
 ]
+
+[[package]]
+name = "decy-stdlib"
+version = "1.0.1"
 
 [[package]]
 name = "decy-verify"

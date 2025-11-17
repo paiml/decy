@@ -22,6 +22,7 @@ use decy_ownership::{
     lifetime_gen::LifetimeAnnotator,
 };
 use decy_parser::parser::CParser;
+use decy_stdlib::StdlibPrototypes;
 use petgraph::graph::{DiGraph, NodeIndex};
 use petgraph::visit::Topo;
 use std::collections::HashMap;
@@ -560,19 +561,27 @@ impl Default for TranspilationCache {
 /// Resolves and inlines #include directives recursively, tracking processed files
 /// to prevent infinite loops from circular dependencies.
 ///
+/// **NEW (Stdlib Support)**: Injects built-in C stdlib prototypes when system
+/// headers are encountered, enabling parsing of code that uses stdlib functions
+/// without requiring actual header files.
+///
 /// # Arguments
 ///
 /// * `source` - C source code with #include directives
 /// * `base_dir` - Base directory for resolving relative include paths (None = current dir)
 /// * `processed` - Set of already processed file paths (prevents circular includes)
+/// * `stdlib_prototypes` - Stdlib prototype database for injection (None = create new)
+/// * `injected_headers` - Set of already injected system headers (prevents duplicates)
 ///
 /// # Returns
 ///
-/// Preprocessed C code with includes inlined
+/// Preprocessed C code with includes inlined and stdlib prototypes injected
 fn preprocess_includes(
     source: &str,
     base_dir: Option<&Path>,
     processed: &mut std::collections::HashSet<PathBuf>,
+    stdlib_prototypes: &StdlibPrototypes,
+    injected_headers: &mut std::collections::HashSet<String>,
 ) -> Result<String> {
     let mut result = String::new();
     let base_dir = base_dir.unwrap_or_else(|| Path::new("."));
@@ -611,9 +620,30 @@ fn preprocess_includes(
             };
 
             // Skip system includes (<stdio.h>) - we don't have those files
+            // BUT: Inject stdlib prototypes so parsing succeeds
             if is_system {
-                // Just comment out system includes for now
+                // Comment out the original include
                 result.push_str(&format!("// {}\n", line));
+
+                // Inject stdlib prototypes for this header (only once per header)
+                if !injected_headers.contains(filename) {
+                    // Mark as injected
+                    injected_headers.insert(filename.to_string());
+
+                    // Try to parse the header name and inject specific prototypes
+                    if let Some(header) = decy_stdlib::StdHeader::from_filename(filename) {
+                        result.push_str(&format!(
+                            "// BEGIN: Built-in prototypes for {}\n",
+                            filename
+                        ));
+                        result.push_str(&stdlib_prototypes.inject_prototypes_for_header(header));
+                        result.push_str(&format!("// END: Built-in prototypes for {}\n", filename));
+                    } else {
+                        // Unknown header - just comment it out
+                        result.push_str(&format!("// Unknown system header: {}\n", filename));
+                    }
+                }
+
                 continue;
             }
 
@@ -636,8 +666,13 @@ fn preprocess_includes(
                 let included_dir = include_path.parent().unwrap_or(base_dir);
 
                 // Recursively preprocess the included file
-                let preprocessed =
-                    preprocess_includes(&included_content, Some(included_dir), processed)?;
+                let preprocessed = preprocess_includes(
+                    &included_content,
+                    Some(included_dir),
+                    processed,
+                    stdlib_prototypes,
+                    injected_headers,
+                )?;
 
                 // Add marker comments for debugging
                 result.push_str(&format!("// BEGIN INCLUDE: {}\n", filename));
@@ -704,9 +739,17 @@ pub fn transpile(c_code: &str) -> Result<String> {
 /// # Ok::<(), anyhow::Error>(())
 /// ```
 pub fn transpile_with_includes(c_code: &str, base_dir: Option<&Path>) -> Result<String> {
-    // Step 0: Preprocess #include directives (DECY-056)
+    // Step 0: Preprocess #include directives (DECY-056) + Inject stdlib prototypes
+    let stdlib_prototypes = StdlibPrototypes::new();
     let mut processed_files = std::collections::HashSet::new();
-    let preprocessed = preprocess_includes(c_code, base_dir, &mut processed_files)?;
+    let mut injected_headers = std::collections::HashSet::new();
+    let preprocessed = preprocess_includes(
+        c_code,
+        base_dir,
+        &mut processed_files,
+        &stdlib_prototypes,
+        &mut injected_headers,
+    )?;
 
     // Step 1: Parse C code
     // Note: We don't add standard type definitions (size_t, etc.) here because:

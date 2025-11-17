@@ -18,6 +18,7 @@ decy-analyzer = { version = "1.0.0", path = "../decy-analyzer" }
 decy-ownership = { version = "1.0.0", path = "../decy-ownership" }
 decy-verify = { version = "1.0.0", path = "../decy-verify" }
 decy-codegen = { version = "1.0.0", path = "../decy-codegen" }
+decy-stdlib = { version = "1.0.0", path = "../decy-stdlib" }
 anyhow.workspace = true
 thiserror.workspace = true
 tracing.workspace = true
