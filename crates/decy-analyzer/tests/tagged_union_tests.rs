@@ -73,7 +73,10 @@ fn test_extract_variant_types() {
                 HirType::Union(vec![
                     ("int_val".to_string(), HirType::Int),
                     ("float_val".to_string(), HirType::Float),
-                    ("string_val".to_string(), HirType::Pointer(Box::new(HirType::Char))),
+                    (
+                        "string_val".to_string(),
+                        HirType::Pointer(Box::new(HirType::Char)),
+                    ),
                 ]),
             ),
         ],
