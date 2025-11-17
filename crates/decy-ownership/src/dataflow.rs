@@ -251,7 +251,7 @@ impl DataflowGraph {
     /// DECY-072: Used to determine if slice should be &mut or &
     pub fn is_modified(&self, var: &str) -> bool {
         for stmt in &self.body {
-            if self.statement_modifies_variable(stmt, var) {
+            if Self::statement_modifies_variable(stmt, var) {
                 return true;
             }
         }
@@ -259,7 +259,7 @@ impl DataflowGraph {
     }
 
     /// Check if a statement modifies a variable.
-    fn statement_modifies_variable(&self, stmt: &HirStatement, var: &str) -> bool {
+    fn statement_modifies_variable(stmt: &HirStatement, var: &str) -> bool {
         match stmt {
             HirStatement::Assignment { target, .. } => target == var,
             HirStatement::ArrayIndexAssignment { array, .. } => {
@@ -286,15 +286,15 @@ impl DataflowGraph {
             } => {
                 then_block
                     .iter()
-                    .any(|s| self.statement_modifies_variable(s, var))
+                    .any(|s| Self::statement_modifies_variable(s, var))
                     || else_block.as_ref().is_some_and(|blk| {
                         blk.iter()
-                            .any(|s| self.statement_modifies_variable(s, var))
+                            .any(|s| Self::statement_modifies_variable(s, var))
                     })
             }
             HirStatement::While { body, .. } | HirStatement::For { body, .. } => body
                 .iter()
-                .any(|s| self.statement_modifies_variable(s, var)),
+                .any(|s| Self::statement_modifies_variable(s, var)),
             _ => false,
         }
     }
@@ -333,7 +333,7 @@ impl DataflowGraph {
     /// DECY-071 GREEN: Helper for array detection (negative signal)
     fn has_pointer_arithmetic(&self, var: &str) -> bool {
         for stmt in &self.body {
-            if self.statement_has_pointer_arithmetic(stmt, var) {
+            if Self::statement_has_pointer_arithmetic(stmt, var) {
                 return true;
             }
         }
@@ -341,16 +341,16 @@ impl DataflowGraph {
     }
 
     /// Recursively check if a statement contains pointer arithmetic for a variable.
-    fn statement_has_pointer_arithmetic(&self, stmt: &HirStatement, var: &str) -> bool {
+    fn statement_has_pointer_arithmetic(stmt: &HirStatement, var: &str) -> bool {
         match stmt {
             HirStatement::VariableDeclaration { initializer, .. } => {
                 if let Some(expr) = initializer {
-                    return self.expression_has_pointer_arithmetic(expr, var);
+                    return Self::expression_has_pointer_arithmetic(expr, var);
                 }
                 false
             }
             HirStatement::Assignment { value, .. } => {
-                self.expression_has_pointer_arithmetic(value, var)
+                Self::expression_has_pointer_arithmetic(value, var)
             }
             HirStatement::If {
                 then_block,
@@ -359,21 +359,21 @@ impl DataflowGraph {
             } => {
                 then_block
                     .iter()
-                    .any(|s| self.statement_has_pointer_arithmetic(s, var))
+                    .any(|s| Self::statement_has_pointer_arithmetic(s, var))
                     || else_block.as_ref().is_some_and(|blk| {
                         blk.iter()
-                            .any(|s| self.statement_has_pointer_arithmetic(s, var))
+                            .any(|s| Self::statement_has_pointer_arithmetic(s, var))
                     })
             }
             HirStatement::While { body, .. } | HirStatement::For { body, .. } => body
                 .iter()
-                .any(|s| self.statement_has_pointer_arithmetic(s, var)),
+                .any(|s| Self::statement_has_pointer_arithmetic(s, var)),
             _ => false,
         }
     }
 
     /// Check if an expression contains pointer arithmetic for a variable.
-    fn expression_has_pointer_arithmetic(&self, expr: &decy_hir::HirExpression, var: &str) -> bool {
+    fn expression_has_pointer_arithmetic(expr: &decy_hir::HirExpression, var: &str) -> bool {
         match expr {
             HirExpression::BinaryOp { op, left, right } => {
                 // Check if this is pointer arithmetic (ptr + offset or ptr - offset)
@@ -386,28 +386,24 @@ impl DataflowGraph {
                     }
                 }
                 // Recursively check operands
-                self.expression_has_pointer_arithmetic(left, var)
-                    || self.expression_has_pointer_arithmetic(right, var)
+                Self::expression_has_pointer_arithmetic(left, var)
+                    || Self::expression_has_pointer_arithmetic(right, var)
             }
             HirExpression::Dereference(inner) => {
-                self.expression_has_pointer_arithmetic(inner, var)
+                Self::expression_has_pointer_arithmetic(inner, var)
             }
-            HirExpression::AddressOf(inner) => {
-                self.expression_has_pointer_arithmetic(inner, var)
-            }
+            HirExpression::AddressOf(inner) => Self::expression_has_pointer_arithmetic(inner, var),
             HirExpression::UnaryOp { operand, .. } => {
-                self.expression_has_pointer_arithmetic(operand, var)
+                Self::expression_has_pointer_arithmetic(operand, var)
             }
-            HirExpression::FunctionCall { arguments, .. } => {
-                arguments.iter().any(|arg| self.expression_has_pointer_arithmetic(arg, var))
-            }
+            HirExpression::FunctionCall { arguments, .. } => arguments
+                .iter()
+                .any(|arg| Self::expression_has_pointer_arithmetic(arg, var)),
             HirExpression::ArrayIndex { array, index } => {
-                self.expression_has_pointer_arithmetic(array, var)
-                    || self.expression_has_pointer_arithmetic(index, var)
+                Self::expression_has_pointer_arithmetic(array, var)
+                    || Self::expression_has_pointer_arithmetic(index, var)
             }
-            HirExpression::Cast { expr, .. } => {
-                self.expression_has_pointer_arithmetic(expr, var)
-            }
+            HirExpression::Cast { expr, .. } => Self::expression_has_pointer_arithmetic(expr, var),
             _ => false,
         }
     }
@@ -416,7 +412,7 @@ impl DataflowGraph {
     /// DECY-072: Detects patterns like `int* ptr = arr;`
     fn is_assigned_to_pointer(&self, var: &str) -> bool {
         for stmt in &self.body {
-            if self.statement_assigns_to_pointer(stmt, var) {
+            if Self::statement_assigns_to_pointer(stmt, var) {
                 return true;
             }
         }
@@ -424,7 +420,7 @@ impl DataflowGraph {
     }
 
     /// Check if a statement assigns the variable to a pointer.
-    fn statement_assigns_to_pointer(&self, stmt: &HirStatement, var: &str) -> bool {
+    fn statement_assigns_to_pointer(stmt: &HirStatement, var: &str) -> bool {
         match stmt {
             HirStatement::VariableDeclaration {
                 var_type,
@@ -455,15 +451,15 @@ impl DataflowGraph {
             } => {
                 then_block
                     .iter()
-                    .any(|s| self.statement_assigns_to_pointer(s, var))
+                    .any(|s| Self::statement_assigns_to_pointer(s, var))
                     || else_block.as_ref().is_some_and(|blk| {
                         blk.iter()
-                            .any(|s| self.statement_assigns_to_pointer(s, var))
+                            .any(|s| Self::statement_assigns_to_pointer(s, var))
                     })
             }
             HirStatement::While { body, .. } | HirStatement::For { body, .. } => body
                 .iter()
-                .any(|s| self.statement_assigns_to_pointer(s, var)),
+                .any(|s| Self::statement_assigns_to_pointer(s, var)),
             _ => false,
         }
     }

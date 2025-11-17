@@ -726,7 +726,7 @@ pub enum HirExpression {
         index: Box<HirExpression>,
     },
     /// Safe slice indexing (DECY-069)
-    /// Represents safe, bounds-checked array access: arr[index]
+    /// Represents safe, bounds-checked array access: `arr[index]`
     /// Generated when pointer arithmetic can be transformed to safe indexing.
     /// Unlike ArrayIndex (which may use unsafe), SliceIndex guarantees zero unsafe blocks.
     SliceIndex {
