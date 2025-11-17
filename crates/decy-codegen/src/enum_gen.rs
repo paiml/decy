@@ -1,4 +1,116 @@
 //! Enum generation from tagged unions (DECY-081).
+//!
+//! Transforms C tagged unions into type-safe Rust enums with pattern matching.
+//!
+//! # Overview
+//!
+//! This module generates idiomatic Rust `enum` definitions from C tagged union patterns.
+//! It takes the tagged union metadata extracted by the analyzer and produces clean,
+//! type-safe Rust code that eliminates the unsafe union access pattern.
+//!
+//! # C Tagged Union Pattern
+//!
+//! C code often uses the "tagged union" pattern for variant types:
+//!
+//! ```c
+//! enum ValueType { TYPE_INT, TYPE_FLOAT, TYPE_STRING };
+//!
+//! struct Value {
+//!     enum ValueType tag;  // Discriminant
+//!     union {              // Payload
+//!         int int_value;
+//!         float float_value;
+//!         char* string_value;
+//!     } data;
+//! };
+//! ```
+//!
+//! This is unsafe because:
+//! - The compiler doesn't verify tag matches union field access
+//! - Reading wrong union field causes undefined behavior
+//! - No exhaustiveness checking for tag values
+//!
+//! # Rust Enum Transformation
+//!
+//! This module transforms the unsafe C pattern into safe Rust:
+//!
+//! ```rust
+//! #[derive(Debug, Clone, PartialEq)]
+//! pub enum Value {
+//!     Int(i32),
+//!     Float(f32),
+//!     String(String),
+//! }
+//! ```
+//!
+//! Benefits:
+//! - Type-safe: Compiler ensures tag matches payload
+//! - Exhaustive: Pattern matching requires all variants
+//! - Zero unsafe code in generated output
+//!
+//! # Example
+//!
+//! ```no_run
+//! use decy_analyzer::tagged_union_analysis::TaggedUnionAnalyzer;
+//! use decy_codegen::enum_gen::EnumGenerator;
+//! use decy_hir::{HirStruct, HirStructField, HirType};
+//!
+//! // C: struct Value { enum Tag tag; union { int i; float f; } data; };
+//! let struct_def = HirStruct::new(
+//!     "Value".to_string(),
+//!     vec![
+//!         HirStructField::new("tag".to_string(), HirType::Enum("Tag".to_string())),
+//!         HirStructField::new("data".to_string(), HirType::Union(vec![
+//!             ("i".to_string(), HirType::Int),
+//!             ("f".to_string(), HirType::Float),
+//!         ])),
+//!     ],
+//! );
+//!
+//! // Analyze tagged union
+//! let analyzer = TaggedUnionAnalyzer::new();
+//! let info = analyzer.analyze_struct(&struct_def).unwrap();
+//!
+//! // Generate Rust enum
+//! let generator = EnumGenerator::new();
+//! let rust_enum = generator.generate_enum(&info);
+//!
+//! // Result:
+//! // #[derive(Debug, Clone, PartialEq)]
+//! // pub enum Value {
+//! //     Int(i32),
+//! //     Float(f32),
+//! // }
+//! ```
+//!
+//! # Variant Naming
+//!
+//! The generator produces PascalCase variant names from C union field names:
+//!
+//! - Short names (≤2 chars): Derived from type (e.g., `i` with `int` → `Int`)
+//! - Long names: Converted to PascalCase (e.g., `int_value` → `IntValue`)
+//! - Type-based fallback: When field name is non-descriptive
+//!
+//! # Type Mapping
+//!
+//! C types are mapped to safe Rust equivalents:
+//!
+//! | C Type       | Rust Type  |
+//! |-------------|-----------|
+//! | `int`       | `i32`     |
+//! | `float`     | `f32`     |
+//! | `double`    | `f64`     |
+//! | `char`      | `u8`      |
+//! | `char*`     | `String`  |
+//! | `void`      | `()`      |
+//!
+//! # Quality Guarantees
+//!
+//! - ✅ Zero unsafe code in generated output
+//! - ✅ All variants derive Debug, Clone, PartialEq
+//! - ✅ Public visibility for API usage
+//! - ✅ Valid Rust syntax (parseable by rustc)
+//! - ✅ Exhaustive pattern matching enforced
 
 use decy_analyzer::tagged_union_analysis::TaggedUnionInfo;
 use decy_hir::HirType;
@@ -147,13 +259,21 @@ impl EnumGenerator {
                     format!("[{}]", Self::map_hir_type_to_rust(element_type))
                 }
             }
-            HirType::FunctionPointer { param_types, return_type } => {
-                let params: Vec<String> = param_types.iter().map(Self::map_hir_type_to_rust).collect();
+            HirType::FunctionPointer {
+                param_types,
+                return_type,
+            } => {
+                let params: Vec<String> =
+                    param_types.iter().map(Self::map_hir_type_to_rust).collect();
                 let params_str = params.join(", ");
                 if matches!(**return_type, HirType::Void) {
                     format!("fn({})", params_str)
                 } else {
-                    format!("fn({}) -> {}", params_str, Self::map_hir_type_to_rust(return_type))
+                    format!(
+                        "fn({}) -> {}",
+                        params_str,
+                        Self::map_hir_type_to_rust(return_type)
+                    )
                 }
             }
             HirType::StringLiteral => "&str".to_string(),
