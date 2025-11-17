@@ -11,22 +11,21 @@
 //! **Safety Goal**: ≤30 unsafe blocks per 1000 LOC
 //! **Validation**: Format strings validated at compile time, no format string injection
 //!
-//! # KNOWN LIMITATION - Parser System Header Support
+//! # FIXED: Parser System Header Support
 //!
-//! **STATUS**: All tests in this file are currently #[ignore]'d
+//! **STATUS**: Tests now passing with stdlib prototype support! ✅
 //!
-//! **ROOT CAUSE**: The decy parser cannot handle `#include <stdio.h>` directives.
+//! **SOLUTION**: The decy-stdlib crate provides built-in prototypes for C standard library.
 //! - System includes are commented out during preprocessing
-//! - But code using printf/sprintf/scanf then fails to parse (undefined functions)
-//! - Parser lacks standard library header definitions
+//! - Stdlib prototypes are injected for the specific header (e.g., stdio.h)
+//! - Parser successfully handles injected prototypes (per-header filtering)
 //!
-//! **FUTURE WORK**: Need to either:
-//! 1. Add built-in definitions for common libc functions (printf, sprintf, etc.)
-//! 2. Implement a minimal C standard library header parser
-//! 3. Mock these functions for testing purposes
+//! **IMPLEMENTATION**: decy-stdlib (Sprint 18)
+//! 1. ✅ Built-in definitions for 24 stdio.h functions (ISO C99 §7.21)
+//! 2. ✅ Per-header prototype filtering (string.h, stdio.h, stdlib.h)
+//! 3. ✅ Integration with preprocessor for automatic injection
 //!
-//! **TOYOTA WAY - Jidoka (自働化)**: Being honest about current limitations
-//! rather than hiding failing tests. These represent aspirational functionality.
+//! **TOYOTA WAY - Kaizen (改善)**: Continuous improvement through TDD!
 
 use decy_core::transpile;
 
@@ -35,7 +34,6 @@ use decy_core::transpile;
 // ============================================================================
 
 #[test]
-#[ignore = "Parser limitation: Cannot handle #include <stdio.h>. See file header for details."]
 fn test_safe_printf_with_format_string() {
     // Safe printf with literal format string
     let c_code = r#"
@@ -61,7 +59,6 @@ fn test_safe_printf_with_format_string() {
 }
 
 #[test]
-#[ignore = "Parser limitation: Cannot handle #include <stdio.h>. See file header for details."]
 fn test_printf_multiple_arguments() {
     // printf with multiple format specifiers
     let c_code = r#"
@@ -88,7 +85,6 @@ fn test_printf_multiple_arguments() {
 }
 
 #[test]
-#[ignore = "Parser limitation: Cannot handle #include <stdio.h>. See file header for details."]
 fn test_printf_string_format() {
     // printf with string format specifier
     let c_code = r#"
@@ -118,7 +114,6 @@ fn test_printf_string_format() {
 // ============================================================================
 
 #[test]
-#[ignore = "Parser limitation: Cannot handle #include <stdio.h>. See file header for details."]
 fn test_sprintf_with_bounds() {
     // sprintf (unbounded, dangerous in C)
     let c_code = r#"
@@ -145,7 +140,6 @@ fn test_sprintf_with_bounds() {
 }
 
 #[test]
-#[ignore = "Parser limitation: Cannot handle #include <stdio.h>. See file header for details."]
 fn test_snprintf_bounded() {
     // snprintf (bounded, safer)
     let c_code = r#"
@@ -176,7 +170,6 @@ fn test_snprintf_bounded() {
 // ============================================================================
 
 #[test]
-#[ignore = "Parser limitation: Cannot handle #include <stdio.h>. See file header for details."]
 fn test_scanf_with_width_specifier() {
     // scanf with width specifier (safer)
     let c_code = r#"
@@ -202,7 +195,6 @@ fn test_scanf_with_width_specifier() {
 }
 
 #[test]
-#[ignore = "Parser limitation: Cannot handle #include <stdio.h>. See file header for details."]
 fn test_scanf_integer() {
     // scanf for integer input
     let c_code = r#"
@@ -232,7 +224,6 @@ fn test_scanf_integer() {
 // ============================================================================
 
 #[test]
-#[ignore = "Parser limitation: Cannot handle #include <stdio.h>. See file header for details."]
 fn test_printf_integer_formats() {
     // Various integer format specifiers
     let c_code = r#"
@@ -259,7 +250,6 @@ fn test_printf_integer_formats() {
 }
 
 #[test]
-#[ignore = "Parser limitation: Cannot handle #include <stdio.h>. See file header for details."]
 fn test_printf_float_formats() {
     // Float format specifiers
     let c_code = r#"
@@ -285,7 +275,6 @@ fn test_printf_float_formats() {
 }
 
 #[test]
-#[ignore = "Parser limitation: Cannot handle #include <stdio.h>. See file header for details."]
 fn test_printf_char_format() {
     // Character format specifier
     let c_code = r#"
@@ -315,7 +304,6 @@ fn test_printf_char_format() {
 // ============================================================================
 
 #[test]
-#[ignore = "Parser limitation: Cannot handle #include <stdio.h>. See file header for details."]
 fn test_printf_width_specifier() {
     // Width specifier
     let c_code = r#"
@@ -341,7 +329,6 @@ fn test_printf_width_specifier() {
 }
 
 #[test]
-#[ignore = "Parser limitation: Cannot handle #include <stdio.h>. See file header for details."]
 fn test_printf_precision_specifier() {
     // Precision specifier for floats
     let c_code = r#"
@@ -371,7 +358,6 @@ fn test_printf_precision_specifier() {
 // ============================================================================
 
 #[test]
-#[ignore = "Parser limitation: Cannot handle #include <stdio.h>. See file header for details."]
 fn test_printf_complex_format() {
     // Complex format string with multiple types
     let c_code = r#"
@@ -405,7 +391,6 @@ fn test_printf_complex_format() {
 // ============================================================================
 
 #[test]
-#[ignore = "Parser limitation: Cannot handle #include <stdio.h>. See file header for details."]
 fn test_sprintf_to_buffer() {
     // sprintf to buffer
     let c_code = r#"
@@ -438,7 +423,6 @@ fn test_sprintf_to_buffer() {
 // ============================================================================
 
 #[test]
-#[ignore = "Parser limitation: Cannot handle #include <stdio.h>. See file header for details."]
 fn test_printf_escape_sequences() {
     // Format string with escape sequences
     let c_code = r#"
@@ -467,7 +451,6 @@ fn test_printf_escape_sequences() {
 // ============================================================================
 
 #[test]
-#[ignore = "Parser limitation: Cannot handle #include <stdio.h>. See file header for details."]
 fn test_printf_percent_escape() {
     // Percent sign escaping
     let c_code = r#"
@@ -497,7 +480,6 @@ fn test_printf_percent_escape() {
 // ============================================================================
 
 #[test]
-#[ignore = "Parser limitation: Cannot handle #include <stdio.h>. See file header for details."]
 fn test_unsafe_block_count_target() {
     // CRITICAL: Validate overall unsafe minimization
     let c_code = r#"
@@ -544,7 +526,6 @@ fn test_unsafe_block_count_target() {
 // ============================================================================
 
 #[test]
-#[ignore = "Parser limitation: Cannot handle #include <stdio.h>. See file header for details."]
 fn test_transpiled_format_code_compiles() {
     // Generated Rust should have valid syntax
     let c_code = r#"
@@ -578,7 +559,6 @@ fn test_transpiled_format_code_compiles() {
 }
 
 #[test]
-#[ignore = "Parser limitation: Cannot handle #include <stdio.h>. See file header for details."]
 fn test_format_string_safety_documentation() {
     // Validate generated code quality
     let c_code = r#"
