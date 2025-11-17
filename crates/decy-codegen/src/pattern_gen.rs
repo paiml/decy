@@ -1,8 +1,48 @@
 //! Pattern matching generation from tag checks (DECY-082).
+//!
+//! Transforms C tagged union access patterns (if-else-if chains checking tag fields)
+//! into safe Rust match expressions with exhaustive pattern matching.
+//!
+//! # Transformation
+//!
+//! C code:
+//! ```c
+//! if (v.tag == INT) {
+//!     return v.data.i;
+//! } else if (v.tag == FLOAT) {
+//!     return v.data.f;
+//! } else {
+//!     return -1;
+//! }
+//! ```
+//!
+//! Rust code:
+//! ```rust
+//! match v {
+//!     Value::Int(i) => return i,
+//!     Value::Float(f) => return f,
+//!     _ => return -1,
+//! }
+//! ```
+//!
+//! # Benefits
+//!
+//! - **Type safety**: Compiler verifies correct variant access
+//! - **Exhaustiveness**: All possible cases must be handled
+//! - **Zero unsafe**: No unsafe union field access
+//! - **Pattern binding**: Direct access to variant payloads
 
 use decy_hir::{BinaryOperator, HirExpression, HirStatement};
 
 /// Generator for Rust pattern matching from C tag checks.
+///
+/// # Algorithm
+///
+/// 1. **Detect tag check**: Identify if-conditions comparing tag fields
+/// 2. **Extract variant info**: Parse tag value and union field access
+/// 3. **Generate match arms**: Convert if-else-if chain to match arms
+/// 4. **Capitalize variants**: Convert C constants to PascalCase
+/// 5. **Add wildcard**: Ensure exhaustive matching with `_` arm
 pub struct PatternGenerator;
 
 impl PatternGenerator {
