@@ -54,6 +54,8 @@ pub enum HirType {
     Struct(String),
     /// Enum type (by name)
     Enum(String),
+    /// Union type with named fields
+    Union(Vec<(String, HirType)>),
     /// Array type with optional size (fixed-size or unsized)
     Array {
         /// Element type
