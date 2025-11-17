@@ -2038,9 +2038,8 @@ impl CodeGenerator {
                     // Generate simple slice type without lifetime annotations
                     let type_str = match &p.param_type {
                         AnnotatedType::Reference { inner, mutable, .. } => {
-                            if let AnnotatedType::Simple(HirType::Array {
-                                element_type, ..
-                            }) = &**inner
+                            if let AnnotatedType::Simple(HirType::Array { element_type, .. }) =
+                                &**inner
                             {
                                 if *mutable {
                                     format!("&mut [{}]", Self::map_type(element_type))

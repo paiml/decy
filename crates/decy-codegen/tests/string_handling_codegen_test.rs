@@ -68,7 +68,10 @@ fn test_codegen_strlen_to_len() {
 
     // C strlen() returns size_t but is often used with int comparisons
     // So we cast to i32 to maintain C semantics
-    assert_eq!(rust_code, "s.len() as i32", "strlen should become .len() as i32");
+    assert_eq!(
+        rust_code, "s.len() as i32",
+        "strlen should become .len() as i32"
+    );
 }
 
 #[test]
