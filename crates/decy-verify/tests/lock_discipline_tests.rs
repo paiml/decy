@@ -6,7 +6,7 @@
 //! - Lock discipline violation reporting
 
 use decy_analyzer::lock_analysis::LockAnalyzer;
-use decy_hir::{BinaryOperator, HirExpression, HirFunction, HirStatement, HirType};
+use decy_hir::{HirExpression, HirFunction, HirStatement, HirType};
 use decy_verify::lock_verify::LockDisciplineChecker;
 
 /// Helper: Create pthread_mutex_lock call
