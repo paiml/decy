@@ -7789,7 +7789,7 @@ sprint_24:
   duration: "1 week"
   start_date: "2025-11-26"
   story_points: 21
-  status: not_started
+  status: done
 
   goals:
     - "Detect C tagged unions (enum tag + union data)"
@@ -7940,9 +7940,9 @@ sprint_24:
       priority: medium
       story_points: 5
       assignee: Claude
-      status: not_started
+      status: done
       github_issue: null
-      phase: null
+      phase: DONE
 
       description: |
         Convert C if (tag == X) checks to Rust match expressions.
