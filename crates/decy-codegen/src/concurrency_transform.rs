@@ -1,10 +1,10 @@
 //! Concurrency transformation module for pthread → Rust std::sync conversions.
 //!
 //! Transforms C pthread synchronization primitives to safe Rust equivalents:
-//! - pthread_mutex_t + data → Mutex<T>
-//! - pthread_mutex_lock/unlock → .lock().unwrap() with RAII
+//! - pthread_mutex_t + data → `Mutex<T>`
+//! - pthread_mutex_lock/unlock → `.lock().unwrap()` with RAII
 //!
-//! Part of DECY-078: Transform pthread_mutex to Mutex<T>
+//! Part of DECY-078: Transform pthread_mutex to `Mutex<T>`
 
 use decy_hir::{HirExpression, HirFunction, HirStatement};
 
