@@ -1,6 +1,6 @@
 //! RED phase tests for tagged union pattern detection (DECY-080).
 
-use decy_analyzer::tagged_union_analysis::{TaggedUnionAnalyzer, TaggedUnionInfo};
+use decy_analyzer::tagged_union_analysis::TaggedUnionAnalyzer;
 use decy_hir::{HirStruct, HirStructField, HirType};
 
 #[test]

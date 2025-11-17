@@ -43,9 +43,40 @@ impl TaggedUnionAnalyzer {
     /// - Union is non-empty
     ///
     /// Returns `None` if the struct doesn't match the pattern.
-    pub fn analyze_struct(&self, _struct_def: &HirStruct) -> Option<TaggedUnionInfo> {
-        // RED phase: Stub implementation
-        todo!("DECY-080: Implement tagged union detection")
+    pub fn analyze_struct(&self, struct_def: &HirStruct) -> Option<TaggedUnionInfo> {
+        let fields = struct_def.fields();
+
+        // Find the first enum field (tag)
+        let tag_field = fields.iter().find(|f| matches!(f.field_type(), HirType::Enum(_)))?;
+
+        // Find the first union field (data)
+        let union_field = fields.iter().find(|f| matches!(f.field_type(), HirType::Union(_)))?;
+
+        // Extract union variants
+        if let HirType::Union(variants) = union_field.field_type() {
+            // Empty union is not a valid tagged union
+            if variants.is_empty() {
+                return None;
+            }
+
+            // Build variant info
+            let variant_infos: Vec<VariantInfo> = variants
+                .iter()
+                .map(|(name, payload_type)| VariantInfo {
+                    name: name.clone(),
+                    payload_type: payload_type.clone(),
+                })
+                .collect();
+
+            Some(TaggedUnionInfo {
+                struct_name: struct_def.name().to_string(),
+                tag_field_name: tag_field.name().to_string(),
+                union_field_name: union_field.name().to_string(),
+                variants: variant_infos,
+            })
+        } else {
+            None
+        }
     }
 }
 
