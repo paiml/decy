@@ -8,3 +8,4 @@
 
 pub mod lock_analysis;
 pub mod patterns;
+pub mod tagged_union_analysis;
