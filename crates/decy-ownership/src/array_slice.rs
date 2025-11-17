@@ -108,7 +108,7 @@ impl ArrayParameterTransformer {
         let new_body: Vec<HirStatement> = func
             .body()
             .iter()
-            .map(|stmt| self.transform_statement(stmt, &array_param_map))
+            .map(|stmt| Self::transform_statement(stmt, &array_param_map))
             .collect();
 
         // Create new function with transformed parameters and body
@@ -122,7 +122,6 @@ impl ArrayParameterTransformer {
 
     /// Transform a statement to replace length parameter references with .len()
     fn transform_statement(
-        &self,
         stmt: &HirStatement,
         array_param_map: &HashMap<String, Option<String>>,
     ) -> HirStatement {
@@ -136,34 +135,34 @@ impl ArrayParameterTransformer {
                 var_type: var_type.clone(),
                 initializer: initializer
                     .as_ref()
-                    .map(|expr| self.transform_expression(expr, array_param_map)),
+                    .map(|expr| Self::transform_expression(expr, array_param_map)),
             },
             HirStatement::Assignment { target, value } => HirStatement::Assignment {
                 target: target.clone(),
-                value: self.transform_expression(value, array_param_map),
+                value: Self::transform_expression(value, array_param_map),
             },
             HirStatement::If {
                 condition,
                 then_block,
                 else_block,
             } => HirStatement::If {
-                condition: self.transform_expression(condition, array_param_map),
+                condition: Self::transform_expression(condition, array_param_map),
                 then_block: then_block
                     .iter()
-                    .map(|s| self.transform_statement(s, array_param_map))
+                    .map(|s| Self::transform_statement(s, array_param_map))
                     .collect(),
                 else_block: else_block.as_ref().map(|block| {
                     block
                         .iter()
-                        .map(|s| self.transform_statement(s, array_param_map))
+                        .map(|s| Self::transform_statement(s, array_param_map))
                         .collect()
                 }),
             },
             HirStatement::While { condition, body } => HirStatement::While {
-                condition: self.transform_expression(condition, array_param_map),
+                condition: Self::transform_expression(condition, array_param_map),
                 body: body
                     .iter()
-                    .map(|s| self.transform_statement(s, array_param_map))
+                    .map(|s| Self::transform_statement(s, array_param_map))
                     .collect(),
             },
             HirStatement::For {
@@ -174,30 +173,30 @@ impl ArrayParameterTransformer {
             } => HirStatement::For {
                 init: init
                     .as_ref()
-                    .map(|s| Box::new(self.transform_statement(s, array_param_map))),
-                condition: self.transform_expression(condition, array_param_map),
+                    .map(|s| Box::new(Self::transform_statement(s, array_param_map))),
+                condition: Self::transform_expression(condition, array_param_map),
                 increment: increment
                     .as_ref()
-                    .map(|s| Box::new(self.transform_statement(s, array_param_map))),
+                    .map(|s| Box::new(Self::transform_statement(s, array_param_map))),
                 body: body
                     .iter()
-                    .map(|s| self.transform_statement(s, array_param_map))
+                    .map(|s| Self::transform_statement(s, array_param_map))
                     .collect(),
             },
             HirStatement::Return(Some(expr)) => {
-                HirStatement::Return(Some(self.transform_expression(expr, array_param_map)))
+                HirStatement::Return(Some(Self::transform_expression(expr, array_param_map)))
             }
             HirStatement::ArrayIndexAssignment {
                 array,
                 index,
                 value,
             } => HirStatement::ArrayIndexAssignment {
-                array: Box::new(self.transform_expression(array, array_param_map)),
-                index: Box::new(self.transform_expression(index, array_param_map)),
-                value: self.transform_expression(value, array_param_map),
+                array: Box::new(Self::transform_expression(array, array_param_map)),
+                index: Box::new(Self::transform_expression(index, array_param_map)),
+                value: Self::transform_expression(value, array_param_map),
             },
             HirStatement::Expression(expr) => {
-                HirStatement::Expression(self.transform_expression(expr, array_param_map))
+                HirStatement::Expression(Self::transform_expression(expr, array_param_map))
             }
             // Other statements pass through unchanged
             _ => stmt.clone(),
@@ -209,7 +208,6 @@ impl ArrayParameterTransformer {
     /// Note: For now, we don't transform length parameter references in the body.
     /// This will be handled by the code generator during Rust code generation.
     fn transform_expression(
-        &self,
         expr: &HirExpression,
         array_param_map: &HashMap<String, Option<String>>,
     ) -> HirExpression {
@@ -234,12 +232,12 @@ impl ArrayParameterTransformer {
             }
             HirExpression::BinaryOp { op, left, right } => HirExpression::BinaryOp {
                 op: *op,
-                left: Box::new(self.transform_expression(left, array_param_map)),
-                right: Box::new(self.transform_expression(right, array_param_map)),
+                left: Box::new(Self::transform_expression(left, array_param_map)),
+                right: Box::new(Self::transform_expression(right, array_param_map)),
             },
             HirExpression::UnaryOp { op, operand } => HirExpression::UnaryOp {
                 op: *op,
-                operand: Box::new(self.transform_expression(operand, array_param_map)),
+                operand: Box::new(Self::transform_expression(operand, array_param_map)),
             },
             HirExpression::FunctionCall {
                 function,
@@ -248,22 +246,22 @@ impl ArrayParameterTransformer {
                 function: function.clone(),
                 arguments: arguments
                     .iter()
-                    .map(|arg| self.transform_expression(arg, array_param_map))
+                    .map(|arg| Self::transform_expression(arg, array_param_map))
                     .collect(),
             },
             HirExpression::ArrayIndex { array, index } => HirExpression::ArrayIndex {
-                array: Box::new(self.transform_expression(array, array_param_map)),
-                index: Box::new(self.transform_expression(index, array_param_map)),
+                array: Box::new(Self::transform_expression(array, array_param_map)),
+                index: Box::new(Self::transform_expression(index, array_param_map)),
             },
             HirExpression::Cast { expr, target_type } => HirExpression::Cast {
-                expr: Box::new(self.transform_expression(expr, array_param_map)),
+                expr: Box::new(Self::transform_expression(expr, array_param_map)),
                 target_type: target_type.clone(),
             },
             HirExpression::Dereference(inner) => HirExpression::Dereference(Box::new(
-                self.transform_expression(inner, array_param_map),
+                Self::transform_expression(inner, array_param_map),
             )),
             HirExpression::AddressOf(inner) => HirExpression::AddressOf(Box::new(
-                self.transform_expression(inner, array_param_map),
+                Self::transform_expression(inner, array_param_map),
             )),
             // Literals and other expressions pass through unchanged
             _ => expr.clone(),

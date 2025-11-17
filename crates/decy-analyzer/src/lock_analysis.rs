@@ -1,7 +1,7 @@
 //! Lock-to-data binding analysis for pthread synchronization (DECY-077).
 //!
 //! Analyzes C code with pthread_mutex locks to determine which locks
-//! protect which data variables, enabling safe Mutex<T> generation.
+//! protect which data variables, enabling safe `Mutex<T>` generation.
 
 use decy_hir::{HirExpression, HirFunction, HirStatement};
 use std::collections::{HashMap, HashSet};

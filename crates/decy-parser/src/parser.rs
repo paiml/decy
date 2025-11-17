@@ -3633,8 +3633,8 @@ pub enum Type {
         /// Return type
         return_type: Box<Type>,
     },
-    /// Array type (e.g., int arr[10])
-    /// For typedef assertions like: typedef char check[sizeof(int) == 4 ? 1 : -1]
+    /// Array type (e.g., `int arr[10]`)
+    /// For typedef assertions like: `typedef char check[sizeof(int) == 4 ? 1 : -1]`
     Array {
         /// Element type
         element_type: Box<Type>,

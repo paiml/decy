@@ -708,10 +708,18 @@ pub fn transpile_with_includes(c_code: &str, base_dir: Option<&Path>) -> Result<
     let mut processed_files = std::collections::HashSet::new();
     let preprocessed = preprocess_includes(c_code, base_dir, &mut processed_files)?;
 
+    // Step 0.5: Add standard C type definitions (size_t, etc.)
+    // These are commonly used C types that might not be explicitly typedef'd
+    // Note: Using 'int' for size_t for simplicity in transpilation
+    let with_stdtypes = format!(
+        "typedef int size_t;\n{}",
+        preprocessed
+    );
+
     // Step 1: Parse C code
     let parser = CParser::new().context("Failed to create C parser")?;
     let ast = parser
-        .parse(&preprocessed)
+        .parse(&with_stdtypes)
         .context("Failed to parse C code")?;
 
     // Step 2: Convert to HIR

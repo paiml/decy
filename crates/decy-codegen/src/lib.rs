@@ -1993,8 +1993,23 @@ impl CodeGenerator {
     pub fn generate_annotated_signature(&self, sig: &AnnotatedSignature) -> String {
         let mut result = format!("fn {}", sig.name);
 
-        // Add lifetime parameters if present
-        if !sig.lifetimes.is_empty() {
+        // DECY-072: Check if we have any non-slice reference parameters that need lifetimes
+        // Slices have elided lifetimes and don't need explicit lifetime parameters
+        let has_non_slice_references = sig.parameters.iter().any(|p| {
+            match &p.param_type {
+                AnnotatedType::Reference { inner, .. } => {
+                    // Check if this is NOT a slice (slice = Reference to Array with size=None)
+                    !matches!(
+                        &**inner,
+                        AnnotatedType::Simple(HirType::Array { size: None, .. })
+                    )
+                }
+                _ => false,
+            }
+        });
+
+        // Add lifetime parameters only if we have non-slice references
+        if !sig.lifetimes.is_empty() && has_non_slice_references {
             let lifetime_params: Vec<String> =
                 sig.lifetimes.iter().map(|lt| lt.name.clone()).collect();
             result.push_str(&format!("<{}>", lifetime_params.join(", ")));
@@ -2006,14 +2021,46 @@ impl CodeGenerator {
             .parameters
             .iter()
             .map(|p| {
-                // DECY-041: Add mut for all parameters to match C semantics
-                // In C, parameters are mutable by default (can be reassigned)
-                // DECY-FUTURE: More sophisticated analysis to only add mut when needed
-                format!(
-                    "mut {}: {}",
-                    p.name,
-                    self.annotated_type_to_string(&p.param_type)
-                )
+                // Check if this is a slice parameter (Reference to Array with size=None)
+                let is_slice = match &p.param_type {
+                    AnnotatedType::Reference { inner, .. } => match &**inner {
+                        AnnotatedType::Simple(HirType::Array { size, .. }) => size.is_none(),
+                        _ => false,
+                    },
+                    _ => false,
+                };
+
+                if is_slice {
+                    // DECY-072: Slices don't need 'mut' prefix or explicit lifetimes
+                    // Generate simple slice type without lifetime annotations
+                    let type_str = match &p.param_type {
+                        AnnotatedType::Reference { inner, mutable, .. } => {
+                            if let AnnotatedType::Simple(HirType::Array {
+                                element_type, ..
+                            }) = &**inner
+                            {
+                                if *mutable {
+                                    format!("&mut [{}]", Self::map_type(element_type))
+                                } else {
+                                    format!("&[{}]", Self::map_type(element_type))
+                                }
+                            } else {
+                                self.annotated_type_to_string(&p.param_type)
+                            }
+                        }
+                        _ => self.annotated_type_to_string(&p.param_type),
+                    };
+                    format!("{}: {}", p.name, type_str)
+                } else {
+                    // DECY-041: Add mut for all non-slice parameters to match C semantics
+                    // In C, parameters are mutable by default (can be reassigned)
+                    // DECY-FUTURE: More sophisticated analysis to only add mut when needed
+                    format!(
+                        "mut {}: {}",
+                        p.name,
+                        self.annotated_type_to_string(&p.param_type)
+                    )
+                }
             })
             .collect();
         result.push_str(&params.join(", "));
