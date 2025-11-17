@@ -7886,9 +7886,9 @@ sprint_24:
       priority: high
       story_points: 8
       assignee: Claude
-      status: not_started
+      status: done
       github_issue: null
-      phase: null
+      phase: DONE
 
       description: |
         Transform C tagged unions into Rust enums with variants.
