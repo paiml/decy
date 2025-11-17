@@ -1074,7 +1074,10 @@ impl CodeGenerator {
             } => {
                 let receiver_code = self.generate_expression_with_context(receiver, ctx);
                 if arguments.is_empty() {
-                    // DECY-072: Cast .len() to i32 when used with integer comparisons
+                    // DECY-072: Cast .len() to i32 for slices/arrays (used with i32 loop counters)
+                    // String .len() returns usize which is typically what's needed for strings
+                    // But array/slice .len() often needs i32 for C loop patterns
+                    // We cast for all cases to maintain C semantics (where sizeof returns int)
                     if method == "len" {
                         format!("{}.{}() as i32", receiver_code, method)
                     } else {
@@ -2035,9 +2038,8 @@ impl CodeGenerator {
                     // Generate simple slice type without lifetime annotations
                     let type_str = match &p.param_type {
                         AnnotatedType::Reference { inner, mutable, .. } => {
-                            if let AnnotatedType::Simple(HirType::Array {
-                                element_type, ..
-                            }) = &**inner
+                            if let AnnotatedType::Simple(HirType::Array { element_type, .. }) =
+                                &**inner
                             {
                                 if *mutable {
                                     format!("&mut [{}]", Self::map_type(element_type))
