@@ -205,8 +205,5 @@ fn test_database_is_not_empty() {
     // RED: Will FAIL - database starts empty
     let stdlib = StdlibPrototypes::new();
 
-    assert!(
-        !stdlib.is_empty(),
-        "Prototype database should not be empty"
-    );
+    assert!(!stdlib.is_empty(), "Prototype database should not be empty");
 }
