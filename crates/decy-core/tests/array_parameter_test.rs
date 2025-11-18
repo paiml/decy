@@ -219,9 +219,9 @@ fn test_transform_array_parameter_with_return() {
         result
     );
 
-    // Should use safe array indexing
+    // Should use safe array indexing (with or without usize cast)
     assert!(
-        result.contains("arr[0]"),
+        result.contains("arr[0]") || result.contains("arr[0 as usize]"),
         "Should use safe indexing\nGenerated:\n{}",
         result
     );
