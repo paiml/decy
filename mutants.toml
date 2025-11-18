@@ -1,0 +1,100 @@
+# Mutation Testing Configuration (cargo-mutants)
+# Certeza Methodology: Mutation testing to verify test suite quality
+# Reference: docs/specifications/improve-testing-quality-using-certeza-concepts.md
+#
+# Target: 85%+ mutation score overall, 90%+ for safety-critical crates
+# Run in Tier 3 only (too slow for pre-commit)
+
+# Exclude patterns (don't mutate tests, examples, generated code)
+exclude_globs = [
+    "**/tests/**",
+    "**/examples/**",
+    "**/benches/**",
+    "**/*_test.rs",
+    "**/*_tests.rs",
+    "**/test_*.rs",
+]
+
+# Timeout per mutant test (5x normal test time)
+timeout_multiplier = 5.0
+
+# Minimum mutation score targets per crate
+# cargo-mutants doesn't have built-in thresholds, but we document them here
+# CI will enforce these using scripts/analyze_mutations.py
+
+[targets]
+
+# CRITICAL: Safety-critical crates (90%+ target)
+[targets.decy-ownership]
+minimum_score = 90.0
+risk_level = "CRITICAL"
+rationale = "Core ownership inference; bugs generate unsafe Rust"
+
+[targets.decy-lifetime]
+minimum_score = 90.0
+risk_level = "CRITICAL"
+rationale = "Lifetime errors cause memory unsafety"
+
+# HIGH: Important safety gates (85%+ target)
+[targets.decy-verify]
+minimum_score = 85.0
+risk_level = "HIGH"
+rationale = "Final safety gate before codegen"
+
+[targets.decy-parser]
+minimum_score = 80.0
+risk_level = "HIGH"
+rationale = "Unsafe FFI; exposed to untrusted input"
+# Note: Lower target due to unsafe FFI code
+
+# MEDIUM: Standard quality (85%+ target)
+[targets.decy-codegen]
+minimum_score = 85.0
+risk_level = "MEDIUM"
+rationale = "Generates code, but verify catches errors"
+
+[targets.decy-core]
+minimum_score = 85.0
+risk_level = "MEDIUM"
+rationale = "Orchestration layer"
+
+[targets.decy-analyzer]
+minimum_score = 80.0
+risk_level = "MEDIUM"
+rationale = "Dataflow analysis; errors caught downstream"
+
+# LOW: Data structures (80%+ target)
+[targets.decy-hir]
+minimum_score = 80.0
+risk_level = "LOW"
+rationale = "Data structures; well-typed"
+
+# Skip mutation testing for these crates (tooling/infrastructure)
+[skip]
+crates = [
+    "decy-book",      # mdBook generation
+    "decy-agent",     # Background service
+    "decy-mcp",       # MCP protocol adapter
+    "decy-repo",      # GitHub integration
+    "decy-debugger",  # Debugging tooling
+]
+
+# Mutation operators to enable
+# cargo-mutants automatically applies various mutation operators:
+# - Replace binary operators (+ → -, * → /, == → !=, etc.)
+# - Replace constants (0 → 1, true → false, etc.)
+# - Remove function calls
+# - Replace return values
+# All enabled by default - no need to configure
+
+# Analysis output
+[output]
+format = "json"  # Generate JSON for CI analysis
+path = "target/mutants.json"
+
+# Additional text output for human review
+text_output = "target/mutants.txt"
+
+# Coverage correlation
+# Mutation testing complements coverage - high coverage doesn't guarantee good tests
+# Target: Coverage 95% + Mutation 85% = High confidence
