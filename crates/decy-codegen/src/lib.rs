@@ -31,6 +31,8 @@
 
 pub mod box_transform;
 pub mod concurrency_transform;
+pub mod enum_gen;
+pub mod pattern_gen;
 pub mod test_generator;
 
 use decy_hir::{BinaryOperator, HirExpression, HirFunction, HirStatement, HirType};
@@ -632,6 +634,11 @@ impl CodeGenerator {
             HirType::StringLiteral => "&str".to_string(),
             HirType::OwnedString => "String".to_string(),
             HirType::StringReference => "&str".to_string(),
+            HirType::Union(_) => {
+                // Unions will be transformed to Rust enums
+                // For now, return a placeholder
+                "/* Union type */".to_string()
+            }
         }
     }
 
@@ -1259,6 +1266,11 @@ impl CodeGenerator {
             HirType::StringReference => {
                 // String references default to empty string slice
                 r#""""#.to_string()
+            }
+            HirType::Union(_) => {
+                // Unions will be transformed to enums
+                // Default to the first variant's default value
+                panic!("Union types must be initialized and cannot have default values")
             }
         }
     }
@@ -2197,6 +2209,11 @@ impl CodeGenerator {
             HirType::StringLiteral => r#"    return "";"#.to_string(),
             HirType::OwnedString => "    return String::new();".to_string(),
             HirType::StringReference => r#"    return "";"#.to_string(),
+            HirType::Union(_) => {
+                // Unions will be transformed to enums
+                // Return statement depends on the specific enum variant
+                String::new()
+            }
         }
     }
 
