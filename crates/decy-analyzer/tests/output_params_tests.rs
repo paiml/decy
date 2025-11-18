@@ -3,7 +3,7 @@
 //! These tests verify that we can detect C output parameters and transform them
 //! to idiomatic Rust return values.
 
-use decy_analyzer::output_params::{OutputParamDetector, OutputParameter, ParameterKind};
+use decy_analyzer::output_params::{OutputParamDetector, ParameterKind};
 use decy_hir::{BinaryOperator, HirExpression, HirFunction, HirParameter, HirStatement, HirType};
 
 /// Helper: Create a simple function for testing
