@@ -6,3 +6,4 @@
 # everyone who runs the test benefits from these saved cases.
 cc 3886c57025c622e2e77df902a47dc9ab8dfc301f018d9f45ccaf7e93eecf11dd # shrinks to func_name = "aaa", arr_name = "aab", len_name = "aac"
 cc 87ea9bda1d3fe0810446a5bb66ab4b9fdf2e62c5eff1215784bbd498579b36d5 # shrinks to func_name = "asm", arr_suffix = "", len_suffix = ""
+cc ec6ed752d718ea2d5f37cff4f215d528841d40ca91e5ae2c6fa12ee32f01efdf # shrinks to func_name = "aaa", arr_name = "for"

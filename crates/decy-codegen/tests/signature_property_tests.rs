@@ -31,7 +31,6 @@ proptest! {
     #[test]
     fn prop_array_param_produces_slice(
         func_name in "[a-z]{3,10}",
-        prop_assume!(!is_reserved_keyword(&func_name));
         arr_suffix in "[a-z]{0,5}",
         len_suffix in "[a-z]{0,5}",
     ) {
@@ -82,9 +81,10 @@ proptest! {
     #[test]
     fn prop_mutable_array_produces_mut_slice(
         func_name in "[a-z]{3,10}",
-        prop_assume!(!is_reserved_keyword(&func_name));
         arr_name in "[a-z]{3,8}",
     ) {
+        prop_assume!(!is_reserved_keyword(&func_name));
+        prop_assume!(!is_reserved_keyword(&arr_name));
         prop_assume!(func_name != arr_name);
 
         let c_code = format!(
@@ -116,9 +116,10 @@ proptest! {
     #[test]
     fn prop_char_array_to_u8_slice(
         func_name in "[a-z]{3,10}",
-        prop_assume!(!is_reserved_keyword(&func_name));
         buf_name in "[a-z]{3,8}",
     ) {
+        prop_assume!(!is_reserved_keyword(&func_name));
+        prop_assume!(!is_reserved_keyword(&buf_name));
         prop_assume!(func_name != buf_name);
 
         let c_code = format!(
@@ -153,6 +154,8 @@ proptest! {
         arr1 in "[a-z]{3,6}",
         arr2 in "[a-z]{3,6}",
     ) {
+        prop_assume!(!is_reserved_keyword(&arr1));
+        prop_assume!(!is_reserved_keyword(&arr2));
         prop_assume!(arr1 != arr2);
 
         let c_code = format!(
@@ -197,6 +200,8 @@ proptest! {
     fn prop_length_usage_becomes_method_call(
         arr_name in "[a-z]{3,8}",
     ) {
+        prop_assume!(!is_reserved_keyword(&arr_name));
+
         let c_code = format!(
             r#"
             int sum(int* {}, int len) {{
@@ -243,6 +248,8 @@ proptest! {
         arr_name in "[a-z]{3,8}",
         return_type in prop::sample::select(vec!["int", "float", "double", "char"]),
     ) {
+        prop_assume!(!is_reserved_keyword(&arr_name));
+
         let c_code = format!(
             "{} first(int* {}, int len) {{ return {}[0]; }}",
             return_type, arr_name, arr_name
@@ -280,9 +287,10 @@ proptest! {
     #[test]
     fn prop_no_unsafe_blocks(
         func_name in "[a-z]{3,10}",
-        prop_assume!(!is_reserved_keyword(&func_name));
         arr_name in "[a-z]{3,8}",
     ) {
+        prop_assume!(!is_reserved_keyword(&func_name));
+        prop_assume!(!is_reserved_keyword(&arr_name));
         prop_assume!(func_name != arr_name);
 
         let c_code = format!(
@@ -314,9 +322,10 @@ proptest! {
     #[test]
     fn prop_float_arrays_work(
         func_name in "[a-z]{3,10}",
-        prop_assume!(!is_reserved_keyword(&func_name));
         arr_name in "[a-z]{3,8}",
     ) {
+        prop_assume!(!is_reserved_keyword(&func_name));
+        prop_assume!(!is_reserved_keyword(&arr_name));
         prop_assume!(func_name != arr_name);
 
         let c_code = format!(
@@ -348,9 +357,10 @@ proptest! {
     #[test]
     fn prop_double_arrays_work(
         func_name in "[a-z]{3,10}",
-        prop_assume!(!is_reserved_keyword(&func_name));
         arr_name in "[a-z]{3,8}",
     ) {
+        prop_assume!(!is_reserved_keyword(&func_name));
+        prop_assume!(!is_reserved_keyword(&arr_name));
         prop_assume!(func_name != arr_name);
 
         let c_code = format!(
@@ -382,9 +392,10 @@ proptest! {
     #[test]
     fn prop_empty_body_transformation(
         func_name in "[a-z]{3,10}",
-        prop_assume!(!is_reserved_keyword(&func_name));
         arr_name in "[a-z]{3,8}",
     ) {
+        prop_assume!(!is_reserved_keyword(&func_name));
+        prop_assume!(!is_reserved_keyword(&arr_name));
         prop_assume!(func_name != arr_name);
 
         let c_code = format!(

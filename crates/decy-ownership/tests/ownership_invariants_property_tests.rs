@@ -243,7 +243,7 @@ proptest! {
         let class2 = analyzer.classify_pointer(owner);
         let class3 = analyzer.classify_pointer(owner);
 
-        prop_assert_eq!(class1, class2);
+        prop_assert_eq!(class1.clone(), class2.clone());
         prop_assert_eq!(class2, class3);
         prop_assert_eq!(class1, PointerClassification::Owning);
     }
@@ -268,7 +268,7 @@ proptest! {
 /// Represents a use of a pointer
 #[derive(Debug, Clone)]
 struct PointerUse {
-    ptr: PointerId,
+    _ptr: PointerId,
     after_free: bool,
 }
 
@@ -286,7 +286,7 @@ proptest! {
     ) {
         let ptr = PointerId(ptr_id);
         let usage = PointerUse {
-            ptr,
+            _ptr: ptr,
             after_free: use_after_free,
         };
 
@@ -313,7 +313,7 @@ proptest! {
     /// This is a key pattern for ownership inference.
     #[test]
     fn prop_malloc_free_pairing(
-        alloc_id in 0u32..100,
+        _alloc_id in 0u32..100,
         has_malloc in prop::bool::ANY,
         has_free in prop::bool::ANY,
     ) {

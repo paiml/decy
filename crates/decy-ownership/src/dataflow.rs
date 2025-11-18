@@ -110,6 +110,90 @@ impl DataflowGraph {
         &self.body
     }
 
+    /// Get all array parameters with their associated length parameters.
+    /// Returns a vector of (array_param_name, optional_length_param_name) pairs.
+    pub fn get_array_parameters(&self) -> Vec<(String, Option<String>)> {
+        let mut result = Vec::new();
+
+        for (i, param) in self.parameters.iter().enumerate() {
+            if self.is_array_parameter(param.name()) == Some(true) {
+                // Check if next parameter is likely a length parameter
+                let length_param = if i + 1 < self.parameters.len() {
+                    let next_param = &self.parameters[i + 1];
+                    let next_name = next_param.name().to_lowercase();
+                    if matches!(next_param.param_type(), HirType::Int)
+                        && (next_name.contains("len")
+                            || next_name.contains("size")
+                            || next_name.contains("count")
+                            || next_name.contains("num")
+                            || next_name == "n")
+                    {
+                        Some(next_param.name().to_string())
+                    } else {
+                        None
+                    }
+                } else {
+                    None
+                };
+
+                result.push((param.name().to_string(), length_param));
+            }
+        }
+
+        result
+    }
+
+    /// Check if a parameter is modified (mutated) in the function body.
+    /// Returns true if the parameter is assigned to or passed as mutable reference.
+    pub fn is_modified(&self, var: &str) -> bool {
+        for stmt in &self.body {
+            if self.statement_modifies_var(stmt, var) {
+                return true;
+            }
+        }
+        false
+    }
+
+    /// Check if a statement modifies a variable.
+    fn statement_modifies_var(&self, stmt: &HirStatement, var: &str) -> bool {
+        match stmt {
+            HirStatement::ArrayIndexAssignment { array, .. } => {
+                // arr[i] = value modifies arr
+                if let HirExpression::Variable(name) = &**array {
+                    if name == var {
+                        return true;
+                    }
+                }
+                false
+            }
+            HirStatement::DerefAssignment { target, .. } => {
+                // *ptr = value modifies ptr's contents
+                if let HirExpression::Variable(name) = target {
+                    if name == var {
+                        return true;
+                    }
+                }
+                false
+            }
+            HirStatement::If {
+                then_block,
+                else_block,
+                ..
+            } => {
+                then_block
+                    .iter()
+                    .any(|s| self.statement_modifies_var(s, var))
+                    || else_block
+                        .as_ref()
+                        .is_some_and(|blk| blk.iter().any(|s| self.statement_modifies_var(s, var)))
+            }
+            HirStatement::While { body, .. } | HirStatement::For { body, .. } => {
+                body.iter().any(|s| self.statement_modifies_var(s, var))
+            }
+            _ => false,
+        }
+    }
+
     /// Check if a parameter is an array pointer (has associated length parameter).
     /// DECY-071 GREEN: Proper implementation with multiple heuristics
     /// Detects the pattern: fn(int* arr, int len) where pointer param followed by int param

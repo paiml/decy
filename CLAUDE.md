@@ -930,6 +930,92 @@ cargo test -p decy-debugger --test integration
 
 **Note**: The debugger is designed to be non-invasive - it observes the transpilation pipeline without affecting behavior. All debug commands are read-only operations.
 
+## Renacer Integration (Profiling & Performance Analysis)
+
+Decy integrates with [Renacer](https://github.com/paiml/renacer) for profiling and performance analysis of transpiled Rust code with source mapping back to original C code.
+
+### Source Map Generation
+
+When transpiling with Decy, generate source maps for Renacer integration:
+
+```bash
+# Transpile C to Rust with source map
+decy transpile input.c -o output.rs --source-map
+
+# This generates:
+# - output.rs          (transpiled Rust code)
+# - output.rs.sourcemap.json (source map for Renacer)
+```
+
+### Profiling with Renacer
+
+Use Renacer to profile and debug transpiled code with C source context:
+
+```bash
+# Profile transpiled code with function timing
+renacer --transpiler-map output.rs.sourcemap.json --function-time -- ./output
+
+# Profile with flame graph
+renacer --transpiler-map output.rs.sourcemap.json --flame-graph -- ./output
+
+# Debug with source mapping
+renacer --transpiler-map output.rs.sourcemap.json --debug -- ./output
+```
+
+### Workflow Example
+
+Complete workflow from C source to profiled Rust binary:
+
+```bash
+# 1. Transpile C to Rust with source map
+decy transpile legacy_algorithm.c -o optimized.rs --source-map
+
+# 2. Build the Rust code
+rustc optimized.rs -o optimized
+
+# 3. Profile with Renacer (shows C source locations)
+renacer --transpiler-map optimized.rs.sourcemap.json --function-time -- ./optimized
+```
+
+### Source Map Format
+
+Decy generates source maps in the Renacer-compatible JSON format:
+
+```json
+{
+  "version": 1,
+  "source_file": "input.c",
+  "target_file": "output.rs",
+  "mappings": [
+    {
+      "source_line": 10,
+      "source_column": 0,
+      "target_line": 15,
+      "target_column": 0,
+      "name": "process_data"
+    }
+  ]
+}
+```
+
+### Renacer Ecosystem
+
+Renacer supports multiple transpilers in the paiml ecosystem:
+
+| Transpiler | Source → Target | Use Case |
+|------------|-----------------|----------|
+| **Decy** | C → Rust | Legacy C migration |
+| **Depyler** | Python → Rust | Python performance optimization |
+
+Both transpilers generate compatible source maps for unified profiling with Renacer.
+
+### Benefits
+
+- **Performance Analysis**: Profile transpiled code with original C source context
+- **Debugging**: Set breakpoints and inspect variables mapped to C source
+- **Optimization**: Identify hot spots in transpiled code with C function names
+- **Migration Validation**: Verify transpiled code behaves identically to original
+
 ## Documentation Standards
 
 Every public item needs documentation:
