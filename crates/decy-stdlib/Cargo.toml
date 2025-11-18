@@ -9,5 +9,6 @@ homepage.workspace = true
 documentation.workspace = true
 keywords.workspace = true
 categories.workspace = true
+description = "C standard library prototypes for the Decy C-to-Rust transpiler"
 
 [dependencies]
