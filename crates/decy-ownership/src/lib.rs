@@ -14,3 +14,7 @@ pub mod inference;
 pub mod lifetime;
 pub mod lifetime_gen;
 pub mod struct_lifetime;
+
+// Kani formal verification harnesses (Certeza Phase 4)
+#[cfg(kani)]
+pub mod kani_harnesses;
