@@ -7,5 +7,6 @@
 #![deny(unsafe_code)]
 
 pub mod lock_analysis;
+pub mod output_params;
 pub mod patterns;
 pub mod tagged_union_analysis;
