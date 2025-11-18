@@ -7,7 +7,12 @@ use decy_analyzer::output_params::{OutputParamDetector, ParameterKind};
 use decy_hir::{BinaryOperator, HirExpression, HirFunction, HirParameter, HirStatement, HirType};
 
 /// Helper: Create a simple function for testing
-fn create_test_function(name: &str, params: Vec<HirParameter>, return_type: HirType, body: Vec<HirStatement>) -> HirFunction {
+fn create_test_function(
+    name: &str,
+    params: Vec<HirParameter>,
+    return_type: HirType,
+    body: Vec<HirStatement>,
+) -> HirFunction {
     HirFunction::new_with_body(name.to_string(), return_type, params, body)
 }
 
@@ -82,9 +87,9 @@ fn test_input_parameter_not_detected_as_output() {
             HirStatement::VariableDeclaration {
                 name: "old".to_string(),
                 var_type: HirType::Int,
-                initializer: Some(HirExpression::Dereference(
-                    Box::new(HirExpression::Variable("value".to_string()))
-                )),
+                initializer: Some(HirExpression::Dereference(Box::new(
+                    HirExpression::Variable("value".to_string()),
+                ))),
             },
             // *value = old + 1
             HirStatement::DerefAssignment {
@@ -179,9 +184,7 @@ fn test_fallible_operation_detection() {
                     left: Box::new(HirExpression::Variable("input".to_string())),
                     right: Box::new(HirExpression::NullLiteral),
                 },
-                then_block: vec![
-                    HirStatement::Return(Some(HirExpression::IntLiteral(-1))),
-                ],
+                then_block: vec![HirStatement::Return(Some(HirExpression::IntLiteral(-1)))],
                 else_block: None,
             },
             HirStatement::DerefAssignment {
@@ -197,7 +200,10 @@ fn test_fallible_operation_detection() {
 
     assert_eq!(output_params.len(), 1);
     assert_eq!(output_params[0].name, "result");
-    assert!(output_params[0].is_fallible, "Should detect fallible operation");
+    assert!(
+        output_params[0].is_fallible,
+        "Should detect fallible operation"
+    );
 }
 
 // ============================================================================
@@ -215,12 +221,10 @@ fn test_non_fallible_operation() {
         "get_default",
         vec![create_pointer_param("result")],
         HirType::Void,
-        vec![
-            HirStatement::DerefAssignment {
-                target: HirExpression::Variable("result".to_string()),
-                value: HirExpression::IntLiteral(42),
-            },
-        ],
+        vec![HirStatement::DerefAssignment {
+            target: HirExpression::Variable("result".to_string()),
+            value: HirExpression::IntLiteral(42),
+        }],
     );
 
     let detector = OutputParamDetector::new();
@@ -246,15 +250,17 @@ fn test_parameter_not_written_not_detected() {
         "no_op",
         vec![create_pointer_param("result")],
         HirType::Int,
-        vec![
-            HirStatement::Return(Some(HirExpression::IntLiteral(0))),
-        ],
+        vec![HirStatement::Return(Some(HirExpression::IntLiteral(0)))],
     );
 
     let detector = OutputParamDetector::new();
     let output_params = detector.detect(&func);
 
-    assert_eq!(output_params.len(), 0, "Unwritten parameter should not be detected");
+    assert_eq!(
+        output_params.len(),
+        0,
+        "Unwritten parameter should not be detected"
+    );
 }
 
 // ============================================================================
@@ -281,12 +287,10 @@ fn test_conditional_write_detected_as_output() {
         vec![
             HirStatement::If {
                 condition: HirExpression::Variable("flag".to_string()),
-                then_block: vec![
-                    HirStatement::DerefAssignment {
-                        target: HirExpression::Variable("result".to_string()),
-                        value: HirExpression::IntLiteral(42),
-                    },
-                ],
+                then_block: vec![HirStatement::DerefAssignment {
+                    target: HirExpression::Variable("result".to_string()),
+                    value: HirExpression::IntLiteral(42),
+                }],
                 else_block: None,
             },
             HirStatement::Return(Some(HirExpression::IntLiteral(0))),
@@ -318,19 +322,21 @@ fn test_non_pointer_not_detected() {
             HirParameter::new("b".to_string(), HirType::Int),
         ],
         HirType::Int,
-        vec![
-            HirStatement::Return(Some(HirExpression::BinaryOp {
-                op: BinaryOperator::Add,
-                left: Box::new(HirExpression::Variable("a".to_string())),
-                right: Box::new(HirExpression::Variable("b".to_string())),
-            })),
-        ],
+        vec![HirStatement::Return(Some(HirExpression::BinaryOp {
+            op: BinaryOperator::Add,
+            left: Box::new(HirExpression::Variable("a".to_string())),
+            right: Box::new(HirExpression::Variable("b".to_string())),
+        }))],
     );
 
     let detector = OutputParamDetector::new();
     let output_params = detector.detect(&func);
 
-    assert_eq!(output_params.len(), 0, "Non-pointer parameters should not be detected");
+    assert_eq!(
+        output_params.len(),
+        0,
+        "Non-pointer parameters should not be detected"
+    );
 }
 
 // ============================================================================
@@ -348,17 +354,19 @@ fn test_pointer_read_only_not_output() {
         "read_value",
         vec![create_pointer_param("ptr")],
         HirType::Int,
-        vec![
-            HirStatement::Return(Some(HirExpression::Dereference(
-                Box::new(HirExpression::Variable("ptr".to_string()))
-            ))),
-        ],
+        vec![HirStatement::Return(Some(HirExpression::Dereference(
+            Box::new(HirExpression::Variable("ptr".to_string())),
+        )))],
     );
 
     let detector = OutputParamDetector::new();
     let output_params = detector.detect(&func);
 
-    assert_eq!(output_params.len(), 0, "Read-only pointer should not be output");
+    assert_eq!(
+        output_params.len(),
+        0,
+        "Read-only pointer should not be output"
+    );
 }
 
 // ============================================================================
@@ -377,7 +385,9 @@ fn test_double_pointer_output() {
         "create_object",
         vec![HirParameter::new(
             "obj".to_string(),
-            HirType::Pointer(Box::new(HirType::Pointer(Box::new(HirType::Struct("Object".to_string())))))
+            HirType::Pointer(Box::new(HirType::Pointer(Box::new(HirType::Struct(
+                "Object".to_string(),
+            ))))),
         )],
         HirType::Int,
         vec![
