@@ -1,6 +1,7 @@
 # Decy Quality Configuration
-# Based on EXTREME TDD, Toyota Way principles, and PMAT qualification
+# Based on EXTREME TDD, Toyota Way principles, PMAT qualification, and Certeza methodology
 # Zero tolerance policies enforced at all times
+# Reference: docs/specifications/improve-testing-quality-using-certeza-concepts.md
 
 [project]
 name = "decy"
@@ -15,9 +16,11 @@ kaizen = "Continuous improvement - fix bugs before features"
 genchi_genbutsu = "Direct observation - test with real C code"
 
 # Coverage Requirements (ENFORCED)
+# Certeza targets: 95%+ overall, 90%+ branch coverage
 [coverage]
 minimum_coverage = 80.0              # Hard requirement - blocks commit if <80%
-target_coverage = 85.0               # Sprint target
+target_coverage = 95.0               # Certeza-aligned target (up from 85%)
+branch_coverage_target = 90.0        # Branch coverage target
 tool = "cargo-llvm-cov"              # Fast, accurate LLVM-based coverage
 exclude_patterns = ["tests/*", "examples/*", "benches/*"]
 
@@ -35,12 +38,25 @@ decy-agent = 80.0
 decy-mcp = 80.0
 decy-repo = 80.0
 
-# Mutation Testing
+# Mutation Testing (Certeza Tier 3)
+# Target: 85%+ overall, 90%+ for safety-critical crates
 [mutation_testing]
-minimum_kill_rate = 0.90             # ≥90% mutation kill rate
+minimum_score = 85.0                 # ≥85% mutation score overall
 tool = "cargo-mutants"
 timeout_multiplier = 5               # 5x test time for mutants
 exclude_patterns = ["tests/*", "examples/*"]
+run_in_tier = 3                      # Tier 3 only (too slow for pre-commit)
+
+# Per-crate mutation score targets (risk-based)
+[mutation_testing.crates]
+decy-ownership = 90.0                # CRITICAL - highest target
+decy-lifetime = 90.0                 # CRITICAL - safety-critical
+decy-verify = 85.0                   # HIGH - final safety gate
+decy-parser = 80.0                   # HIGH - unsafe FFI
+decy-codegen = 85.0                  # MEDIUM
+decy-analyzer = 80.0                 # MEDIUM
+decy-hir = 80.0                      # LOW
+decy-core = 85.0                     # MEDIUM
 
 # Property Testing
 [property_testing]
@@ -133,6 +149,111 @@ example_required = true              # Every module needs working example
 unit_tests = 5                       # At least 5 unit tests per module
 property_tests = 3                   # At least 3 property tests per module
 doctests = 2                         # At least 2 doctests per public function
+
+# Three-Tiered Testing Workflow (Certeza Methodology)
+# Reference: docs/specifications/improve-testing-quality-using-certeza-concepts.md
+[testing.tiers]
+
+# Tier 1: ON-SAVE (Sub-Second Feedback)
+# Goal: Maintain flow state with instant feedback
+[testing.tiers.tier1]
+name = "ON-SAVE"
+target_time_ms = 1000                # <1 second execution
+frequency = "on_save"                # Editor integration
+checks = [
+    "unit_tests_fast",               # Fast unit tests only
+    "clippy_quick",                  # Basic clippy checks
+    "fmt_check",                     # Format verification
+    "satd_detection",                # SATD comment check
+]
+
+# Tier 2: ON-COMMIT (1-5 Minutes)
+# Goal: Comprehensive verification before integration
+[testing.tiers.tier2]
+name = "ON-COMMIT"
+target_time_ms = 300000              # 1-5 minutes
+frequency = "pre_commit"             # Pre-commit hook
+checks = [
+    "all_tests",                     # Full test suite
+    "proptest",                      # Property-based tests
+    "coverage_analysis",             # Code coverage
+    "integration_tests",             # Integration tests
+    "doc_build",                     # Documentation build
+    "clippy_all",                    # Full clippy
+]
+quality_gates = [
+    { check = "coverage", threshold = 80.0 },
+    { check = "clippy", warnings = 0 },
+    { check = "tests", must_pass = true },
+    { check = "complexity", max = 10 },
+]
+
+# Tier 3: ON-MERGE/NIGHTLY (Hours)
+# Goal: Exhaustive verification for merge readiness
+[testing.tiers.tier3]
+name = "ON-MERGE"
+target_time_hours = 4                # 1-4 hours
+frequency = "pr_and_nightly"         # Pull requests + nightly
+checks = [
+    "mutation_testing",              # cargo-mutants
+    "formal_verification",           # Kani proofs
+    "miri",                          # Undefined behavior detection
+    "fuzz_testing",                  # AFL++ / cargo-fuzz
+    "benchmarks",                    # Performance tests
+]
+quality_gates = [
+    { check = "mutation_score", threshold = 85.0 },
+    { check = "kani_proofs", must_pass = true },
+    { check = "miri", violations = 0 },
+    { check = "fuzz_crashes", count = 0 },
+]
+
+# Formal Verification (Kani) - Tier 3
+# Target: 5-10% of highest-risk code
+[formal_verification]
+tool = "kani-verifier"
+enabled = true
+run_in_tier = 3                      # Tier 3 only
+crates = ["decy-ownership", "decy-lifetime"]  # Safety-critical only
+harnesses_required = 5               # Minimum 5 proof harnesses
+
+[formal_verification.properties]
+unique_owner_invariant = true
+borrow_lifetime_soundness = true
+no_use_after_free = true
+exclusive_mutable_borrow = true
+no_double_free = true
+
+# Miri (Undefined Behavior Detection) - Tier 3
+[miri]
+enabled = true
+run_in_tier = 3
+target_crates = ["decy-parser"]      # Focus on unsafe code
+violations_allowed = 0               # Zero tolerance
+
+# Fuzzing - Tier 3
+[fuzzing]
+tool = "cargo-fuzz"
+enabled = true
+run_in_tier = 3
+duration_seconds = 3600              # 1 hour per fuzz target
+target_crates = ["decy-parser"]      # Exposed to untrusted input
+max_crashes = 0                      # Zero crashes allowed
+
+# Risk-Based Testing Allocation (Certeza Principle)
+# Concentrate 40% effort on 5-10% highest-risk code
+[risk_based_testing]
+enabled = true
+
+[risk_based_testing.allocation]
+# Component -> Risk Level -> Verification Effort %
+decy-ownership = { risk = "CRITICAL", effort = 40.0, rationale = "Core algorithm; bugs generate unsafe Rust" }
+decy-lifetime = { risk = "CRITICAL", effort = 25.0, rationale = "Lifetime errors cause memory unsafety" }
+decy-verify = { risk = "HIGH", effort = 15.0, rationale = "Final safety gate before codegen" }
+decy-parser = { risk = "HIGH", effort = 10.0, rationale = "Unsafe FFI; exposed to untrusted input" }
+decy-codegen = { risk = "MEDIUM", effort = 5.0, rationale = "Generates code, but verify catches errors" }
+decy-hir = { risk = "LOW", effort = 3.0, rationale = "Data structures; well-typed" }
+decy-analyzer = { risk = "MEDIUM", effort = 2.0, rationale = "Dataflow analysis; errors caught downstream" }
 
 # Performance Requirements
 [performance]

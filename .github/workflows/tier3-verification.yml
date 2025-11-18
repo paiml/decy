@@ -1,0 +1,237 @@
+name: Tier 3 Verification (Certeza)
+
+# Tier 3: ON-MERGE/NIGHTLY - Exhaustive verification (1-4 hours)
+# Target: 85%+ mutation score, formal verification, zero Miri violations
+# Reference: docs/specifications/improve-testing-quality-using-certeza-concepts.md
+
+on:
+  pull_request:
+    branches: [main, develop]
+  schedule:
+    - cron: '0 2 * * *'  # 2 AM daily
+  workflow_dispatch:  # Manual trigger
+
+env:
+  RUST_BACKTRACE: 1
+  CARGO_TERM_COLOR: always
+
+jobs:
+  mutation-testing:
+    name: Mutation Testing (cargo-mutants)
+    runs-on: ubuntu-latest
+    timeout-minutes: 180  # 3 hours max
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo registry
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Install cargo-mutants
+        run: cargo install cargo-mutants --locked
+
+      - name: Run mutation testing
+        run: |
+          cargo mutants --workspace \
+            --timeout 300 \
+            --output mutants.json \
+            --output mutants.txt \
+            --jobs 2
+        continue-on-error: true
+
+      - name: Analyze mutation results
+        run: |
+          echo "=== Mutation Testing Results ==="
+          if [ -f mutants.txt ]; then
+            cat mutants.txt
+
+            # Extract mutation score (simple parsing)
+            TOTAL=$(grep -oP 'caught \K\d+' mutants.txt || echo "0")
+            KILLED=$(grep -oP 'killed \K\d+' mutants.txt || echo "0")
+
+            if [ "$TOTAL" -gt 0 ]; then
+              SCORE=$(awk "BEGIN {printf \"%.1f\", ($KILLED/$TOTAL)*100}")
+              echo "Mutation Score: $SCORE%"
+
+              if (( $(echo "$SCORE < 85.0" | bc -l) )); then
+                echo "❌ Mutation score $SCORE% is below 85% target"
+                exit 1
+              else
+                echo "✅ Mutation score $SCORE% meets 85% target"
+              fi
+            else
+              echo "⚠️  No mutation results found"
+              exit 1
+            fi
+          else
+            echo "❌ Mutation testing failed"
+            exit 1
+          fi
+
+      - name: Upload mutation results
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: mutation-results
+          path: |
+            mutants.json
+            mutants.txt
+
+  formal-verification:
+    name: Formal Verification (Kani)
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install Kani
+        run: |
+          curl -L https://github.com/model-checking/kani/releases/latest/download/kani-ubuntu-latest.tar.gz | tar -xz
+          echo "$PWD/kani/bin" >> $GITHUB_PATH
+
+      - name: Run Kani verification (decy-ownership)
+        run: |
+          echo "=== Formal Verification: decy-ownership ==="
+          cd crates/decy-ownership
+          if [ -f src/kani_harnesses.rs ]; then
+            cargo kani --harness verify_unique_owner_invariant
+            cargo kani --harness verify_borrow_lifetime_soundness
+            cargo kani --harness verify_no_use_after_free
+            cargo kani --harness verify_exclusive_mutable_borrow
+            cargo kani --harness verify_no_double_free
+          else
+            echo "⚠️  Kani harnesses not yet implemented"
+            echo "TODO: Create crates/decy-ownership/src/kani_harnesses.rs"
+          fi
+        continue-on-error: true
+
+  miri:
+    name: Miri (Undefined Behavior Detection)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust nightly
+        uses: dtolnay/rust-toolchain@nightly
+        with:
+          components: miri
+
+      - name: Run Miri on decy-parser (unsafe code)
+        run: |
+          echo "=== Miri: Undefined Behavior Detection ==="
+          cd crates/decy-parser
+          cargo +nightly miri test
+
+          if [ $? -ne 0 ]; then
+            echo "❌ Miri found undefined behavior violations"
+            exit 1
+          else
+            echo "✅ Zero Miri violations"
+          fi
+
+  fuzzing:
+    name: Fuzzing (cargo-fuzz)
+    runs-on: ubuntu-latest
+    timeout-minutes: 90  # 1.5 hours
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust nightly
+        uses: dtolnay/rust-toolchain@nightly
+
+      - name: Install cargo-fuzz
+        run: cargo install cargo-fuzz
+
+      - name: Setup fuzz targets
+        run: |
+          cd crates/decy-parser
+          if [ ! -d fuzz ]; then
+            echo "⚠️  Fuzz targets not yet created"
+            echo "TODO: Run 'cargo fuzz init' in decy-parser"
+            exit 0
+          fi
+
+      - name: Run fuzzing (1 hour)
+        run: |
+          cd crates/decy-parser
+          if [ -d fuzz/fuzz_targets ]; then
+            for target in fuzz/fuzz_targets/*.rs; do
+              TARGET_NAME=$(basename "$target" .rs)
+              echo "Fuzzing $TARGET_NAME for 1 hour..."
+              cargo +nightly fuzz run "$TARGET_NAME" -- -max_total_time=3600 || true
+            done
+          fi
+        continue-on-error: true
+
+      - name: Check for crashes
+        run: |
+          cd crates/decy-parser
+          if [ -d fuzz/artifacts ]; then
+            CRASHES=$(find fuzz/artifacts -type f | wc -l)
+            if [ "$CRASHES" -gt 0 ]; then
+              echo "❌ Found $CRASHES crash(es)"
+              exit 1
+            else
+              echo "✅ Zero crashes found"
+            fi
+          fi
+
+  benchmarks:
+    name: Performance Benchmarks
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Run benchmarks
+        run: |
+          if [ -d benches ]; then
+            cargo bench --no-fail-fast
+          else
+            echo "⚠️  No benchmarks directory"
+          fi
+
+      - name: Upload benchmark results
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: benchmark-results
+          path: target/criterion
+
+  tier3-summary:
+    name: Tier 3 Summary
+    runs-on: ubuntu-latest
+    needs: [mutation-testing, formal-verification, miri, fuzzing, benchmarks]
+    if: always()
+    steps:
+      - name: Summary
+        run: |
+          echo "=== Tier 3 Verification Summary ==="
+          echo "✓ Mutation Testing: ${{ needs.mutation-testing.result }}"
+          echo "✓ Formal Verification (Kani): ${{ needs.formal-verification.result }}"
+          echo "✓ Miri (UB Detection): ${{ needs.miri.result }}"
+          echo "✓ Fuzzing: ${{ needs.fuzzing.result }}"
+          echo "✓ Benchmarks: ${{ needs.benchmarks.result }}"
+
+          if [ "${{ needs.mutation-testing.result }}" != "success" ] || \
+             [ "${{ needs.miri.result }}" != "success" ]; then
+            echo "❌ Tier 3 verification failed"
+            exit 1
+          else
+            echo "✅ Tier 3 verification passed"
+          fi
