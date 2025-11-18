@@ -1,427 +1,405 @@
-//! Property-based tests for signature transformation (DECY-073).
+//! Property-based tests for array parameter signature transformation
 //!
-//! Tests that array parameters are correctly transformed to slices in signatures.
-//! Target: 20 properties × 1000 cases = 20K test cases (combined with detection tests)
+//! DECY-073 RED: These tests verify that array parameters are correctly
+//! transformed to safe Rust slice signatures.
+//!
+//! Target: Additional properties to reach 20K total test cases
 
-use decy_codegen::CodeGenerator;
-use decy_hir::{HirFunction, HirParameter, HirStatement, HirType};
+use decy_core::transpile;
 use proptest::prelude::*;
 
-/// Strategy to generate valid C identifier names
-fn identifier_strategy() -> impl Strategy<Value = String> {
-    prop::string::string_regex("[a-z][a-z0-9_]{0,15}").expect("Valid regex for identifiers")
-}
-
-/// Strategy to generate array-like parameter names
-fn array_name_strategy() -> impl Strategy<Value = String> {
-    prop_oneof![
-        Just("arr".to_string()),
-        Just("array".to_string()),
-        Just("buf".to_string()),
-        Just("buffer".to_string()),
-        Just("data".to_string()),
-        Just("items".to_string()),
-    ]
-}
-
-/// Strategy to generate length-like parameter names
-fn length_name_strategy() -> impl Strategy<Value = String> {
-    prop_oneof![
-        Just("len".to_string()),
-        Just("length".to_string()),
-        Just("size".to_string()),
-        Just("count".to_string()),
-        Just("num".to_string()),
-    ]
+// Helper to check if a name is a reserved keyword
+fn is_reserved_keyword(name: &str) -> bool {
+    ["asm", "auto", "break", "case", "char", "const", "continue", "default",
+     "do", "double", "else", "enum", "extern", "float", "for", "goto",
+     "if", "int", "long", "register", "return", "short", "signed", "sizeof",
+     "static", "struct", "switch", "typedef", "union", "unsigned", "void",
+     "volatile", "while", "fn", "let", "mut", "use", "mod", "pub", "crate",
+     "self", "super", "impl", "trait", "type", "where", "async", "await",
+     "dyn", "move", "ref", "match", "loop", "unsafe", "box"].contains(&name)
 }
 
 // ============================================================================
-// PROPERTY 11: Array param signatures don't contain raw pointers
+// PROPERTY 1: Array parameters always produce slice syntax
 // ============================================================================
+
 proptest! {
     #![proptest_config(ProptestConfig::with_cases(1000))]
 
     #[test]
-    fn prop_array_param_no_raw_pointer(
-        arr_name in array_name_strategy(),
-        len_name in length_name_strategy(),
+    fn prop_array_param_produces_slice(
+        func_name in "[a-z]{3,10}",
+        prop_assume!(!is_reserved_keyword(&func_name));
+        arr_suffix in "[a-z]{0,5}",
+        len_suffix in "[a-z]{0,5}",
     ) {
+        // Filter out reserved keywords
+        prop_assume!(!is_reserved_keyword(&func_name));
+
+        // Use common names to trigger detection heuristics
+        let arr_name = format!("arr{}", arr_suffix);
+        let len_name = format!("len{}", len_suffix);
+
         prop_assume!(arr_name != len_name);
+        prop_assume!(func_name != arr_name && func_name != len_name);
 
-        let params = vec![
-            HirParameter::new(arr_name, HirType::Pointer(Box::new(HirType::Int))),
-            HirParameter::new(len_name, HirType::Int),
-        ];
+        let c_code = format!(
+            "void {}(int* {}, int {}) {{ }}",
+            func_name, arr_name, len_name
+        );
 
-        let func = HirFunction::new("test_func".to_string(), HirType::Void, params);
-        let codegen = CodeGenerator::new();
-        let signature = codegen.generate_signature(&func);
+        let result = transpile(&c_code);
+        assert!(result.is_ok(), "Transpilation should succeed");
 
-        // Property: transformed signatures should not contain *mut or *const
-        prop_assert!(
-            !signature.contains("*mut") && !signature.contains("*const"),
-            "Array param signature should not contain raw pointers: {}",
-            signature
+        let rust_code = result.unwrap();
+
+        // Should contain slice syntax
+        assert!(
+            rust_code.contains(&format!("{}: &[i32]", arr_name)),
+            "Should transform to slice syntax\nGenerated:\n{}",
+            rust_code
+        );
+
+        // Should NOT contain length parameter
+        assert!(
+            !rust_code.contains(&format!("{}: i32", len_name)) &&
+            !rust_code.contains(&format!("{}: usize", len_name)),
+            "Should remove length parameter\nGenerated:\n{}",
+            rust_code
         );
     }
 }
 
 // ============================================================================
-// PROPERTY 12: Array param signatures contain slice syntax
+// PROPERTY 2: Mutable arrays produce mutable slices
 // ============================================================================
+
 proptest! {
     #![proptest_config(ProptestConfig::with_cases(1000))]
 
     #[test]
-    fn prop_array_param_has_slice(
-        arr_name in array_name_strategy(),
-        len_name in length_name_strategy(),
+    fn prop_mutable_array_produces_mut_slice(
+        func_name in "[a-z]{3,10}",
+        prop_assume!(!is_reserved_keyword(&func_name));
+        arr_name in "[a-z]{3,8}",
     ) {
-        prop_assume!(arr_name != len_name);
+        prop_assume!(func_name != arr_name);
 
-        let params = vec![
-            HirParameter::new(arr_name, HirType::Pointer(Box::new(HirType::Int))),
-            HirParameter::new(len_name, HirType::Int),
-        ];
+        let c_code = format!(
+            "void {}(int* {}, int len) {{ {}[0] = 1; }}",
+            func_name, arr_name, arr_name
+        );
 
-        let func = HirFunction::new("test_func".to_string(), HirType::Void, params);
-        let codegen = CodeGenerator::new();
-        let signature = codegen.generate_signature(&func);
+        let result = transpile(&c_code);
+        assert!(result.is_ok(), "Transpilation should succeed");
 
-        // Property: should contain slice syntax &[T] or &mut [T]
-        prop_assert!(
-            signature.contains("&[") || signature.contains("&mut ["),
-            "Array param signature should contain slice syntax: {}",
-            signature
+        let rust_code = result.unwrap();
+
+        // Should contain mutable slice syntax
+        assert!(
+            rust_code.contains(&format!("{}: &mut [i32]", arr_name)),
+            "Should transform to mutable slice\nGenerated:\n{}",
+            rust_code
         );
     }
 }
 
 // ============================================================================
-// PROPERTY 13: Length parameters are removed from signature
+// PROPERTY 3: Char arrays transform to u8 slices
 // ============================================================================
+
 proptest! {
     #![proptest_config(ProptestConfig::with_cases(1000))]
 
     #[test]
-    fn prop_length_param_removed(
-        arr_name in array_name_strategy(),
-        len_name in length_name_strategy(),
+    fn prop_char_array_to_u8_slice(
+        func_name in "[a-z]{3,10}",
+        prop_assume!(!is_reserved_keyword(&func_name));
+        buf_name in "[a-z]{3,8}",
     ) {
-        prop_assume!(arr_name != len_name);
+        prop_assume!(func_name != buf_name);
 
-        let params = vec![
-            HirParameter::new(arr_name, HirType::Pointer(Box::new(HirType::Int))),
-            HirParameter::new(len_name.clone(), HirType::Int),
-        ];
+        let c_code = format!(
+            "void {}(char* {}, int size) {{ {}[0] = 65; }}",
+            func_name, buf_name, buf_name
+        );
 
-        let func = HirFunction::new("test_func".to_string(), HirType::Void, params);
-        let codegen = CodeGenerator::new();
-        let signature = codegen.generate_signature(&func);
+        let result = transpile(&c_code);
+        assert!(result.is_ok(), "Transpilation should succeed");
 
-        // Property: length parameter name should not appear in signature
-        prop_assert!(
-            !signature.contains(&len_name),
-            "Signature should not contain length param '{}': {}",
-            len_name,
-            signature
+        let rust_code = result.unwrap();
+
+        // Should contain u8 slice
+        assert!(
+            rust_code.contains(&format!("{}: &mut [u8]", buf_name)) ||
+            rust_code.contains(&format!("{}: &[u8]", buf_name)),
+            "Should transform char* to u8 slice\nGenerated:\n{}",
+            rust_code
         );
     }
 }
 
 // ============================================================================
-// PROPERTY 14: Non-array pointers remain as raw pointers
+// PROPERTY 4: Multiple array parameters all transformed
 // ============================================================================
+
 proptest! {
     #![proptest_config(ProptestConfig::with_cases(1000))]
 
     #[test]
-    fn prop_non_array_pointer_unchanged(
-        param_name in identifier_strategy(),
+    fn prop_multiple_arrays_all_slices(
+        arr1 in "[a-z]{3,6}",
+        arr2 in "[a-z]{3,6}",
     ) {
-        let params = vec![
-            HirParameter::new(param_name.clone(), HirType::Pointer(Box::new(HirType::Int))),
-        ];
-
-        let func = HirFunction::new("test_func".to_string(), HirType::Void, params);
-        let codegen = CodeGenerator::new();
-        let signature = codegen.generate_signature(&func);
-
-        // Property: non-array pointers should remain as *mut
-        prop_assert!(
-            signature.contains("*mut") || signature.contains(&param_name),
-            "Non-array pointer should remain as raw pointer: {}",
-            signature
-        );
-    }
-}
-
-// ============================================================================
-// PROPERTY 15: Mutable arrays use &mut slices
-// ============================================================================
-proptest! {
-    #![proptest_config(ProptestConfig::with_cases(1000))]
-
-    #[test]
-    fn prop_mutable_array_uses_mut_slice(
-        arr_name in array_name_strategy(),
-        len_name in length_name_strategy(),
-        index in 0..10i32,
-    ) {
-        prop_assume!(arr_name != len_name);
-
-        use decy_hir::HirExpression;
-
-        let params = vec![
-            HirParameter::new(arr_name.clone(), HirType::Pointer(Box::new(HirType::Int))),
-            HirParameter::new(len_name, HirType::Int),
-        ];
-
-        // Create function body with array modification
-        let body = vec![
-            HirStatement::ArrayIndexAssignment {
-                array: Box::new(HirExpression::Variable(arr_name)),
-                index: Box::new(HirExpression::IntLiteral(index)),
-                value: HirExpression::IntLiteral(42),
-            },
-        ];
-
-        let func = HirFunction::new_with_body(
-            "test_func".to_string(),
-            HirType::Void,
-            params,
-            body,
-        );
-
-        let codegen = CodeGenerator::new();
-        let signature = codegen.generate_signature(&func);
-
-        // Property: modified arrays should use &mut slices
-        prop_assert!(
-            signature.contains("&mut ["),
-            "Modified array should use &mut slice: {}",
-            signature
-        );
-    }
-}
-
-// ============================================================================
-// PROPERTY 16: Immutable arrays use & slices
-// ============================================================================
-proptest! {
-    #![proptest_config(ProptestConfig::with_cases(1000))]
-
-    #[test]
-    fn prop_immutable_array_uses_ref_slice(
-        arr_name in array_name_strategy(),
-        len_name in length_name_strategy(),
-    ) {
-        prop_assume!(arr_name != len_name);
-
-        let params = vec![
-            HirParameter::new(arr_name, HirType::Pointer(Box::new(HirType::Int))),
-            HirParameter::new(len_name, HirType::Int),
-        ];
-
-        // No body - just signature (immutable)
-        let func = HirFunction::new("test_func".to_string(), HirType::Void, params);
-        let codegen = CodeGenerator::new();
-        let signature = codegen.generate_signature(&func);
-
-        // Property: unmodified arrays can use & slices
-        // (Note: may also use &mut, so we just check for slice syntax)
-        prop_assert!(
-            signature.contains("&[") || signature.contains("&mut ["),
-            "Array should use slice syntax: {}",
-            signature
-        );
-    }
-}
-
-// ============================================================================
-// PROPERTY 17: Function generation is deterministic
-// ============================================================================
-proptest! {
-    #![proptest_config(ProptestConfig::with_cases(1000))]
-
-    #[test]
-    fn prop_generation_is_deterministic(
-        arr_name in array_name_strategy(),
-        len_name in length_name_strategy(),
-    ) {
-        prop_assume!(arr_name != len_name);
-
-        let params = vec![
-            HirParameter::new(arr_name, HirType::Pointer(Box::new(HirType::Int))),
-            HirParameter::new(len_name, HirType::Int),
-        ];
-
-        let func = HirFunction::new("test_func".to_string(), HirType::Void, params);
-        let codegen = CodeGenerator::new();
-
-        // Generate twice
-        let sig1 = codegen.generate_signature(&func);
-        let sig2 = codegen.generate_signature(&func);
-
-        // Property: same input should produce same output
-        prop_assert_eq!(
-            sig1, sig2,
-            "Signature generation should be deterministic"
-        );
-    }
-}
-
-// ============================================================================
-// PROPERTY 18: Multiple array params all transformed
-// ============================================================================
-proptest! {
-    #![proptest_config(ProptestConfig::with_cases(1000))]
-
-    #[test]
-    fn prop_multiple_arrays_all_transformed(
-        arr1 in array_name_strategy(),
-        arr2 in array_name_strategy(),
-        len1 in length_name_strategy(),
-        len2 in length_name_strategy(),
-    ) {
-        // Ensure unique names
         prop_assume!(arr1 != arr2);
-        prop_assume!(len1 != len2);
-        prop_assume!(arr1 != len1 && arr1 != len2);
-        prop_assume!(arr2 != len1 && arr2 != len2);
 
-        let params = vec![
-            HirParameter::new(arr1.clone(), HirType::Pointer(Box::new(HirType::Int))),
-            HirParameter::new(len1.clone(), HirType::Int),
-            HirParameter::new(arr2.clone(), HirType::Pointer(Box::new(HirType::Int))),
-            HirParameter::new(len2.clone(), HirType::Int),
-        ];
-
-        let func = HirFunction::new("test_func".to_string(), HirType::Void, params);
-        let codegen = CodeGenerator::new();
-        let signature = codegen.generate_signature(&func);
-
-        // Property: both array names should appear in signature
-        prop_assert!(
-            signature.contains(&arr1),
-            "First array '{}' should be in signature: {}",
-            arr1,
-            signature
-        );
-        prop_assert!(
-            signature.contains(&arr2),
-            "Second array '{}' should be in signature: {}",
-            arr2,
-            signature
+        let c_code = format!(
+            "void merge(int* {}, int len1, int* {}, int len2) {{ }}",
+            arr1, arr2
         );
 
-        // Neither length parameter should appear
-        prop_assert!(
-            !signature.contains(&len1),
-            "First length '{}' should not be in signature: {}",
-            len1,
-            signature
+        let result = transpile(&c_code);
+        assert!(result.is_ok(), "Transpilation should succeed");
+
+        let rust_code = result.unwrap();
+
+        // Both should be slices
+        assert!(
+            rust_code.contains(&format!("{}: &[i32]", arr1)),
+            "First array should be slice\nGenerated:\n{}",
+            rust_code
         );
-        prop_assert!(
-            !signature.contains(&len2),
-            "Second length '{}' should not be in signature: {}",
-            len2,
-            signature
+        assert!(
+            rust_code.contains(&format!("{}: &[i32]", arr2)),
+            "Second array should be slice\nGenerated:\n{}",
+            rust_code
+        );
+
+        // No length parameters
+        assert!(
+            !rust_code.contains("len1") && !rust_code.contains("len2"),
+            "Length parameters should be removed\nGenerated:\n{}",
+            rust_code
         );
     }
 }
 
 // ============================================================================
-// PROPERTY 19: Different element types produce different slice types
+// PROPERTY 5: Length usage transformed to .len() calls
 // ============================================================================
+
 proptest! {
     #![proptest_config(ProptestConfig::with_cases(1000))]
 
     #[test]
-    fn prop_element_type_affects_slice_type(
-        arr_name in array_name_strategy(),
-        len_name in length_name_strategy(),
-        element_type in prop_oneof![
-            Just(HirType::Int),
-            Just(HirType::Char),
-            Just(HirType::Float),
-            Just(HirType::Double),
-        ],
+    fn prop_length_usage_becomes_method_call(
+        arr_name in "[a-z]{3,8}",
     ) {
-        prop_assume!(arr_name != len_name);
+        let c_code = format!(
+            r#"
+            int sum(int* {}, int len) {{
+                int total = 0;
+                for (int i = 0; i < len; i++) {{
+                    total = total + {}[i];
+                }}
+                return total;
+            }}
+            "#,
+            arr_name, arr_name
+        );
 
-        let params = vec![
-            HirParameter::new(arr_name, HirType::Pointer(Box::new(element_type.clone()))),
-            HirParameter::new(len_name, HirType::Int),
-        ];
+        let result = transpile(&c_code);
+        assert!(result.is_ok(), "Transpilation should succeed");
 
-        let func = HirFunction::new("test_func".to_string(), HirType::Void, params);
-        let codegen = CodeGenerator::new();
-        let signature = codegen.generate_signature(&func);
+        let rust_code = result.unwrap();
 
-        // Property: signature should contain element type
-        let expected_type = match element_type {
-            HirType::Int => "i32",
-            HirType::Char => "u8",
-            HirType::Float => "f32",
-            HirType::Double => "f64",
+        // Should use .len() method
+        assert!(
+            rust_code.contains(&format!("{}.len()", arr_name)),
+            "Should use .len() method\nGenerated:\n{}",
+            rust_code
+        );
+
+        // Should NOT have standalone 'len' variable
+        assert!(
+            !rust_code.contains("< len") && !rust_code.contains("len:"),
+            "Should not have length variable\nGenerated:\n{}",
+            rust_code
+        );
+    }
+}
+
+// ============================================================================
+// PROPERTY 6: Return values preserved correctly
+// ============================================================================
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(1000))]
+
+    #[test]
+    fn prop_return_type_preserved(
+        arr_name in "[a-z]{3,8}",
+        return_type in prop::sample::select(vec!["int", "float", "double", "char"]),
+    ) {
+        let c_code = format!(
+            "{} first(int* {}, int len) {{ return {}[0]; }}",
+            return_type, arr_name, arr_name
+        );
+
+        let result = transpile(&c_code);
+        assert!(result.is_ok(), "Transpilation should succeed");
+
+        let rust_code = result.unwrap();
+
+        // Should preserve return type
+        let expected_rust_type = match return_type {
+            "int" => "i32",
+            "float" => "f32",
+            "double" => "f64",
+            "char" => "u8",
             _ => unreachable!(),
         };
 
-        prop_assert!(
-            signature.contains(expected_type),
-            "Signature should contain element type '{}': {}",
-            expected_type,
-            signature
+        assert!(
+            rust_code.contains(&format!("-> {}", expected_rust_type)),
+            "Should preserve return type\nGenerated:\n{}",
+            rust_code
         );
     }
 }
 
 // ============================================================================
-// PROPERTY 20: Generated code compiles (syntax check)
+// PROPERTY 7: No unsafe blocks generated
 // ============================================================================
+
 proptest! {
     #![proptest_config(ProptestConfig::with_cases(1000))]
 
     #[test]
-    fn prop_generated_signature_has_valid_syntax(
-        arr_name in array_name_strategy(),
-        len_name in length_name_strategy(),
+    fn prop_no_unsafe_blocks(
+        func_name in "[a-z]{3,10}",
+        prop_assume!(!is_reserved_keyword(&func_name));
+        arr_name in "[a-z]{3,8}",
     ) {
-        prop_assume!(arr_name != len_name);
+        prop_assume!(func_name != arr_name);
 
-        let params = vec![
-            HirParameter::new(arr_name, HirType::Pointer(Box::new(HirType::Int))),
-            HirParameter::new(len_name, HirType::Int),
-        ];
-
-        let func = HirFunction::new("test_func".to_string(), HirType::Void, params);
-        let codegen = CodeGenerator::new();
-        let code = codegen.generate_function(&func);
-
-        // Property: generated code should have basic syntax validity
-        // Check for balanced braces
-        let open_braces = code.matches('{').count();
-        let close_braces = code.matches('}').count();
-        prop_assert_eq!(
-            open_braces, close_braces,
-            "Braces should be balanced in generated code"
+        let c_code = format!(
+            "void {}(int* {}, int len) {{ {}[0] = 42; }}",
+            func_name, arr_name, arr_name
         );
 
-        // Check for balanced parentheses in signature
-        let sig_end = code.find('{').unwrap_or(code.len());
-        let sig = &code[..sig_end];
-        let open_parens = sig.matches('(').count();
-        let close_parens = sig.matches(')').count();
-        prop_assert_eq!(
-            open_parens, close_parens,
-            "Parentheses should be balanced in signature"
+        let result = transpile(&c_code);
+        assert!(result.is_ok(), "Transpilation should succeed");
+
+        let rust_code = result.unwrap();
+
+        // Must NOT contain unsafe keyword
+        assert!(
+            !rust_code.contains("unsafe"),
+            "Should not generate unsafe blocks\nGenerated:\n{}",
+            rust_code
+        );
+    }
+}
+
+// ============================================================================
+// PROPERTY 8: Float array parameters work
+// ============================================================================
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(1000))]
+
+    #[test]
+    fn prop_float_arrays_work(
+        func_name in "[a-z]{3,10}",
+        prop_assume!(!is_reserved_keyword(&func_name));
+        arr_name in "[a-z]{3,8}",
+    ) {
+        prop_assume!(func_name != arr_name);
+
+        let c_code = format!(
+            "void {}(float* {}, int len) {{ }}",
+            func_name, arr_name
         );
 
-        // Check that it starts with "fn "
-        prop_assert!(
-            code.starts_with("fn "),
-            "Generated code should start with 'fn '"
+        let result = transpile(&c_code);
+        assert!(result.is_ok(), "Transpilation should succeed");
+
+        let rust_code = result.unwrap();
+
+        // Should be f32 slice
+        assert!(
+            rust_code.contains(&format!("{}: &[f32]", arr_name)),
+            "Should transform float* to &[f32]\nGenerated:\n{}",
+            rust_code
+        );
+    }
+}
+
+// ============================================================================
+// PROPERTY 9: Double array parameters work
+// ============================================================================
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(1000))]
+
+    #[test]
+    fn prop_double_arrays_work(
+        func_name in "[a-z]{3,10}",
+        prop_assume!(!is_reserved_keyword(&func_name));
+        arr_name in "[a-z]{3,8}",
+    ) {
+        prop_assume!(func_name != arr_name);
+
+        let c_code = format!(
+            "void {}(double* {}, int len) {{ }}",
+            func_name, arr_name
+        );
+
+        let result = transpile(&c_code);
+        assert!(result.is_ok(), "Transpilation should succeed");
+
+        let rust_code = result.unwrap();
+
+        // Should be f64 slice
+        assert!(
+            rust_code.contains(&format!("{}: &[f64]", arr_name)),
+            "Should transform double* to &[f64]\nGenerated:\n{}",
+            rust_code
+        );
+    }
+}
+
+// ============================================================================
+// PROPERTY 10: Empty body functions work
+// ============================================================================
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(1000))]
+
+    #[test]
+    fn prop_empty_body_transformation(
+        func_name in "[a-z]{3,10}",
+        prop_assume!(!is_reserved_keyword(&func_name));
+        arr_name in "[a-z]{3,8}",
+    ) {
+        prop_assume!(func_name != arr_name);
+
+        let c_code = format!(
+            "void {}(int* {}, int len) {{ }}",
+            func_name, arr_name
+        );
+
+        let result = transpile(&c_code);
+        assert!(result.is_ok(), "Transpilation should succeed");
+
+        let rust_code = result.unwrap();
+
+        // Should still transform signature
+        assert!(
+            rust_code.contains(&format!("{}: &[i32]", arr_name)),
+            "Empty body should still transform signature\nGenerated:\n{}",
+            rust_code
         );
     }
 }
