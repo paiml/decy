@@ -58,6 +58,7 @@ impl BoxTransformer {
             | HirType::Reference { .. }
             | HirType::Struct(_)
             | HirType::Enum(_)
+            | HirType::Union(_)
             | HirType::Array { .. }
             | HirType::FunctionPointer { .. }
             | HirType::StringLiteral

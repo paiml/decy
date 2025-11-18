@@ -437,6 +437,10 @@ expected_kill_rate = 0.90
             HirType::StringLiteral => r#""test string""#.to_string(),
             HirType::OwnedString => r#"String::from("test string")"#.to_string(),
             HirType::StringReference => r#""test string""#.to_string(),
+            HirType::Union(_) => {
+                // Unions will be transformed to enums, default to first variant
+                "todo!(\"Union default value\")".to_string()
+            }
         }
     }
 }
