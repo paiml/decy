@@ -600,7 +600,15 @@ impl CodeGenerator {
                 format!("Option<{}>", Self::map_type(inner))
             }
             HirType::Reference { inner, mutable } => {
-                if *mutable {
+                // DECY-072: Special case for slices: &Vec<T> → &[T]
+                if let HirType::Vec(element_type) = &**inner {
+                    let element_str = Self::map_type(element_type);
+                    if *mutable {
+                        format!("&mut [{}]", element_str)
+                    } else {
+                        format!("&[{}]", element_str)
+                    }
+                } else if *mutable {
                     format!("&mut {}", Self::map_type(inner))
                 } else {
                     format!("&{}", Self::map_type(inner))
@@ -2129,6 +2137,17 @@ impl CodeGenerator {
                 mutable,
                 lifetime,
             } => {
+                // DECY-072: Special case for slices: &Vec<T> → &[T]
+                // Check if inner is a Vec type
+                if let AnnotatedType::Simple(HirType::Vec(element_type)) = &**inner {
+                    let element_str = Self::map_type(element_type);
+                    if *mutable {
+                        return format!("&mut [{}]", element_str);
+                    } else {
+                        return format!("&[{}]", element_str);
+                    }
+                }
+
                 let mut result = String::from("&");
 
                 // Add lifetime if present
@@ -2833,6 +2852,108 @@ impl CodeGenerator {
             self.generate_expression(constant.value())
         )
     }
+
+    /// Generate a global variable declaration with storage class specifiers.
+    ///
+    /// Transforms C global variables with storage classes to appropriate Rust declarations:
+    /// - `static` → `static mut` (mutable static)
+    /// - `extern` → `extern "C" { static }`
+    /// - `const` → `const`
+    /// - `static const` → `const` (const is stronger than static)
+    /// - Plain global → `static mut` (default to mutable)
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use decy_codegen::CodeGenerator;
+    /// use decy_hir::{HirConstant, HirType, HirExpression};
+    ///
+    /// let codegen = CodeGenerator::new();
+    ///
+    /// // static int counter = 0; → static mut counter: i32 = 0;
+    /// let global = HirConstant::new(
+    ///     "counter".to_string(),
+    ///     HirType::Int,
+    ///     HirExpression::IntLiteral(0),
+    /// );
+    /// let code = codegen.generate_global_variable(&global, true, false, false);
+    /// assert!(code.contains("static mut counter: i32 = 0"));
+    /// ```
+    ///
+    /// # Arguments
+    ///
+    /// * `variable` - The HIR constant representing the global variable
+    /// * `is_static` - Whether the variable has `static` storage class
+    /// * `is_extern` - Whether the variable has `extern` storage class
+    /// * `is_const` - Whether the variable has `const` qualifier
+    ///
+    /// # Safety
+    ///
+    /// Note: `static mut` in Rust requires unsafe blocks to access, which increases
+    /// unsafe usage. However, this is necessary to preserve C semantics for mutable globals.
+    ///
+    /// Reference: ISO C99 §6.7.1 (Storage-class specifiers), K&R §4.2
+    pub fn generate_global_variable(
+        &self,
+        variable: &decy_hir::HirConstant,
+        is_static: bool,
+        is_extern: bool,
+        is_const: bool,
+    ) -> String {
+        let var_name = variable.name();
+        let value_expr = self.generate_expression(variable.value());
+
+        // Determine Rust type (special handling for string literals)
+        let rust_type = if matches!(
+            variable.const_type(),
+            HirType::Pointer(inner) if matches!(**inner, HirType::Char)
+        ) && is_const
+        {
+            // const char* → &str or &'static str
+            "&str".to_string()
+        } else {
+            Self::map_type(variable.const_type())
+        };
+
+        // Handle different storage class combinations
+        if is_extern {
+            // extern int x; → extern "C" { static x: i32; }
+            format!(
+                "extern \"C\" {{\n    static {}: {};\n}}",
+                var_name, rust_type
+            )
+        } else if is_const {
+            // const int x = 10; → const x: i32 = 10;
+            // static const int x = 10; → const x: i32 = 10; (const is stronger)
+            format!("const {}: {} = {};", var_name, rust_type, value_expr)
+        } else {
+            // static int x = 0; → static mut x: i32 = 0;
+            // int x = 0; → static mut x: i32 = 0; (default)
+            // Special handling for arrays: [0; 10] for array initialization
+            let init_expr = if let HirType::Array { element_type, size } = variable.const_type() {
+                if let Some(size_val) = size {
+                    format!(
+                        "[{}; {}]",
+                        self.generate_expression(variable.value()),
+                        size_val
+                    )
+                } else {
+                    value_expr
+                }
+            } else if matches!(variable.const_type(), HirType::Pointer(_)) {
+                // Handle NULL pointer initialization
+                if matches!(variable.value(), HirExpression::IntLiteral(0)) {
+                    "std::ptr::null_mut()".to_string()
+                } else {
+                    value_expr
+                }
+            } else {
+                value_expr
+            };
+
+            format!("static mut {}: {} = {};", var_name, rust_type, init_expr)
+        }
+    }
 }
 
 impl Default for CodeGenerator {
@@ -2876,3 +2997,7 @@ mod switch_codegen_tests;
 #[cfg(test)]
 #[path = "switch_property_tests.rs"]
 mod switch_property_tests;
+
+#[cfg(test)]
+#[path = "global_variable_codegen_tests.rs"]
+mod global_variable_codegen_tests;
