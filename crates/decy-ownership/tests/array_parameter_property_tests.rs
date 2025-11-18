@@ -5,7 +5,7 @@
 //!
 //! Target: 20 properties × 1000 cases = 20,000 test cases
 
-use decy_hir::{HirFunction, HirParameter, HirStatement, HirType, HirExpression};
+use decy_hir::{HirExpression, HirFunction, HirParameter, HirStatement, HirType};
 use decy_ownership::dataflow::DataflowAnalyzer;
 use proptest::prelude::*;
 
