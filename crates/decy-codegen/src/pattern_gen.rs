@@ -17,7 +17,7 @@
 //! ```
 //!
 //! Rust code:
-//! ```rust
+//! ```rust,ignore
 //! match v {
 //!     Value::Int(i) => return i,
 //!     Value::Float(f) => return f,
@@ -63,8 +63,8 @@ impl PatternGenerator {
     pub fn transform_tag_check(&self, stmt: &HirStatement) -> String {
         if let HirStatement::If {
             condition,
-            then_block,
-            else_block,
+            then_block: _,
+            else_block: _,
         } = stmt
         {
             // Check if this is a tag comparison
@@ -241,10 +241,8 @@ impl PatternGenerator {
             return "{}".to_string();
         }
 
-        if stmts.len() == 1 {
-            if matches!(&stmts[0], HirStatement::Return(Some(_))) {
-                return "/* return value */".to_string();
-            }
+        if stmts.len() == 1 && matches!(&stmts[0], HirStatement::Return(Some(_))) {
+            return "/* return value */".to_string();
         }
 
         "{ /* block */ }".to_string()
