@@ -285,6 +285,87 @@ The pre-commit hook (`./git/hooks/pre-commit`) runs automatically and checks:
 
 **Important**: Use `git commit --no-verify` ONLY during RED phase when tests should fail.
 
+## Three-Tiered Testing Workflow (Certeza Methodology)
+
+Decy uses a **three-tiered testing workflow** inspired by the Certeza framework to balance rapid feedback with comprehensive verification.
+
+**Reference**: `docs/specifications/improve-testing-quality-using-certeza-concepts.md`
+
+### Tier 1: ON-SAVE (Sub-Second Feedback)
+
+**Goal**: Maintain flow state with instant feedback (<1 second)
+**Frequency**: Every file save (editor integration)
+
+```bash
+# Run Tier 1 checks
+./scripts/on-save.sh
+```
+
+**Checks**:
+- Fast unit tests (`cargo test --lib`)
+- Quick clippy (`cargo clippy --quiet`)
+- Format check (`cargo fmt --check`)
+- SATD detection (grep for TODO/FIXME/HACK)
+
+**Why**: Research shows context-switching costs 23 minutes of productivity. Sub-second feedback prevents mental interruption during TDD RED-GREEN-REFACTOR cycles.
+
+### Tier 2: ON-COMMIT (1-5 Minutes)
+
+**Goal**: Comprehensive verification before integration
+**Frequency**: Pre-commit hook (enforced)
+
+```bash
+# Run Tier 2 checks (current pre-commit hook)
+make quality-gates
+```
+
+**Checks**:
+- Full test suite (`cargo test --all-targets`)
+- Property-based tests (PropTest, 1000 cases each)
+- Coverage analysis (`cargo llvm-cov`)
+- Integration tests
+- Documentation build
+
+**Quality Gates** (enforced):
+- Coverage ≥80% (85% target, 90% for `decy-ownership`)
+- All tests pass
+- Clippy warnings = 0
+- SATD comments = 0
+- Cyclomatic complexity ≤10
+
+### Tier 3: ON-MERGE/NIGHTLY (Hours)
+
+**Goal**: Exhaustive verification for merge readiness
+**Frequency**: Pull requests + nightly builds (CI/CD)
+
+```bash
+# Tier 3 runs automatically in CI
+# See: .github/workflows/tier3-verification.yml
+```
+
+**Checks**:
+- **Mutation testing** (`cargo mutants`) - Target: 85%+ score
+- **Formal verification** (Kani) - Prove ownership invariants
+- **Miri** - Detect undefined behavior in unsafe code
+- **Fuzz testing** (cargo-fuzz) - 1 hour per target
+- **Performance benchmarks** (`cargo bench`)
+
+**Quality Gates**:
+- Mutation score ≥85% overall (≥90% for `decy-ownership`)
+- All Kani proofs pass
+- Zero Miri violations
+- Zero fuzz crashes
+
+### Workflow Summary
+
+| Tier | Timing | Frequency | Target Time | Purpose |
+|------|--------|-----------|-------------|---------|
+| **Tier 1** | ON-SAVE | Every save | <1 second | Fast feedback loop |
+| **Tier 2** | ON-COMMIT | Pre-commit | 1-5 minutes | Quality gates |
+| **Tier 3** | ON-MERGE | PR/nightly | 1-4 hours | Exhaustive verification |
+
+**Key Principle**: Never mix slow checks (mutation, Kani, Miri) into fast feedback loops. This preserves developer flow state.
+
 ### Testing Requirements (Per Module)
 
 Every module needs 4 types of tests:
