@@ -97,7 +97,9 @@ fn test_exhaustive_match_with_default_case() {
             right: Box::new(HirExpression::Variable("INT".to_string())),
         },
         then_block: vec![HirStatement::Return(Some(HirExpression::IntLiteral(0)))],
-        else_block: Some(vec![HirStatement::Return(Some(HirExpression::IntLiteral(1)))]),
+        else_block: Some(vec![HirStatement::Return(Some(HirExpression::IntLiteral(
+            1,
+        )))]),
     };
 
     let generator = PatternGenerator::new();
@@ -186,7 +188,9 @@ fn test_nested_tag_checks() {
                 right: Box::new(HirExpression::Variable("BINARY_OP".to_string())),
             },
             then_block: vec![HirStatement::Return(Some(HirExpression::IntLiteral(2)))],
-            else_block: Some(vec![HirStatement::Return(Some(HirExpression::IntLiteral(3)))]),
+            else_block: Some(vec![HirStatement::Return(Some(HirExpression::IntLiteral(
+                3,
+            )))]),
         }]),
     };
 
