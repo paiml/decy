@@ -90,7 +90,7 @@ impl OutputParamDetector {
 
         // Analyze function body
         for stmt in func.body() {
-            self.analyze_statement(stmt, &mut reads, &mut writes);
+            Self::analyze_statement_internal(stmt, &mut reads, &mut writes);
         }
 
         // Detect fallible functions (multiple return values, typically 0 for success, non-zero for error)
@@ -144,8 +144,7 @@ impl OutputParamDetector {
     }
 
     /// Analyze a statement to track parameter reads and writes.
-    fn analyze_statement(
-        &self,
+    fn analyze_statement_internal(
         stmt: &decy_hir::HirStatement,
         reads: &mut HashMap<String, bool>,
         writes: &mut HashMap<String, bool>,
@@ -166,24 +165,25 @@ impl OutputParamDetector {
                 }
 
                 // Check value expression for reads
-                self.analyze_expression(value, reads, writes);
+                Self::analyze_expression_internal(value, reads);
             }
 
             // Variable declarations can read from parameters
-            HirStatement::VariableDeclaration { initializer, .. } => {
-                if let Some(expr) = initializer {
-                    self.analyze_expression(expr, reads, writes);
-                }
+            HirStatement::VariableDeclaration {
+                initializer: Some(expr),
+                ..
+            } => {
+                Self::analyze_expression_internal(expr, reads);
             }
 
             // Assignment can read from parameters
             HirStatement::Assignment { value, .. } => {
-                self.analyze_expression(value, reads, writes);
+                Self::analyze_expression_internal(value, reads);
             }
 
             // Return statement can read from parameters
             HirStatement::Return(Some(expr)) => {
-                self.analyze_expression(expr, reads, writes);
+                Self::analyze_expression_internal(expr, reads);
             }
 
             // Control flow statements
@@ -192,21 +192,21 @@ impl OutputParamDetector {
                 then_block,
                 else_block,
             } => {
-                self.analyze_expression(condition, reads, writes);
+                Self::analyze_expression_internal(condition, reads);
                 for s in then_block {
-                    self.analyze_statement(s, reads, writes);
+                    Self::analyze_statement_internal(s, reads, writes);
                 }
                 if let Some(else_stmts) = else_block {
                     for s in else_stmts {
-                        self.analyze_statement(s, reads, writes);
+                        Self::analyze_statement_internal(s, reads, writes);
                     }
                 }
             }
 
             HirStatement::While { condition, body } => {
-                self.analyze_expression(condition, reads, writes);
+                Self::analyze_expression_internal(condition, reads);
                 for s in body {
-                    self.analyze_statement(s, reads, writes);
+                    Self::analyze_statement_internal(s, reads, writes);
                 }
             }
 
@@ -217,14 +217,14 @@ impl OutputParamDetector {
                 body,
             } => {
                 if let Some(init_stmt) = init {
-                    self.analyze_statement(init_stmt, reads, writes);
+                    Self::analyze_statement_internal(init_stmt, reads, writes);
                 }
-                self.analyze_expression(condition, reads, writes);
+                Self::analyze_expression_internal(condition, reads);
                 if let Some(inc_stmt) = increment {
-                    self.analyze_statement(inc_stmt, reads, writes);
+                    Self::analyze_statement_internal(inc_stmt, reads, writes);
                 }
                 for s in body {
-                    self.analyze_statement(s, reads, writes);
+                    Self::analyze_statement_internal(s, reads, writes);
                 }
             }
 
@@ -233,21 +233,21 @@ impl OutputParamDetector {
                 cases,
                 default_case,
             } => {
-                self.analyze_expression(condition, reads, writes);
+                Self::analyze_expression_internal(condition, reads);
                 for case in cases {
                     for s in &case.body {
-                        self.analyze_statement(s, reads, writes);
+                        Self::analyze_statement_internal(s, reads, writes);
                     }
                 }
                 if let Some(default_stmts) = default_case {
                     for s in default_stmts {
-                        self.analyze_statement(s, reads, writes);
+                        Self::analyze_statement_internal(s, reads, writes);
                     }
                 }
             }
 
             HirStatement::Expression(expr) => {
-                self.analyze_expression(expr, reads, writes);
+                Self::analyze_expression_internal(expr, reads);
             }
 
             _ => {}
@@ -255,11 +255,9 @@ impl OutputParamDetector {
     }
 
     /// Analyze an expression to track parameter reads.
-    fn analyze_expression(
-        &self,
+    fn analyze_expression_internal(
         expr: &decy_hir::HirExpression,
         reads: &mut HashMap<String, bool>,
-        _writes: &mut HashMap<String, bool>,
     ) {
         use decy_hir::HirExpression;
 
@@ -275,31 +273,39 @@ impl OutputParamDetector {
 
             // Binary operations
             HirExpression::BinaryOp { left, right, .. } => {
-                self.analyze_expression(left, reads, _writes);
-                self.analyze_expression(right, reads, _writes);
+                Self::analyze_expression_internal(left, reads);
+                Self::analyze_expression_internal(right, reads);
             }
 
             // Unary operations
             HirExpression::UnaryOp { operand, .. } => {
-                self.analyze_expression(operand, reads, _writes);
+                Self::analyze_expression_internal(operand, reads);
             }
 
             // Function calls
             HirExpression::FunctionCall { arguments, .. } => {
                 for arg in arguments {
-                    self.analyze_expression(arg, reads, _writes);
+                    Self::analyze_expression_internal(arg, reads);
                 }
             }
 
             // Field access
-            HirExpression::FieldAccess { object, .. } | HirExpression::PointerFieldAccess { pointer: object, .. } => {
-                self.analyze_expression(object, reads, _writes);
+            HirExpression::FieldAccess { object, .. }
+            | HirExpression::PointerFieldAccess {
+                pointer: object, ..
+            } => {
+                Self::analyze_expression_internal(object, reads);
             }
 
             // Array indexing
-            HirExpression::ArrayIndex { array, index } | HirExpression::SliceIndex { slice: array, index, .. } => {
-                self.analyze_expression(array, reads, _writes);
-                self.analyze_expression(index, reads, _writes);
+            HirExpression::ArrayIndex { array, index }
+            | HirExpression::SliceIndex {
+                slice: array,
+                index,
+                ..
+            } => {
+                Self::analyze_expression_internal(array, reads);
+                Self::analyze_expression_internal(index, reads);
             }
 
             _ => {}
