@@ -104,6 +104,12 @@ impl DataflowGraph {
         self.array_bases.get(var).map(|s| s.as_str())
     }
 
+    /// Get the function body for mutation analysis.
+    /// DECY-072 GREEN: Access function body to check for parameter mutations
+    pub fn body(&self) -> &[HirStatement] {
+        &self.body
+    }
+
     /// Check if a parameter is an array pointer (has associated length parameter).
     /// DECY-071 GREEN: Proper implementation with multiple heuristics
     /// Detects the pattern: fn(int* arr, int len) where pointer param followed by int param
@@ -170,18 +176,10 @@ impl DataflowGraph {
             signals += 1;
         }
 
-        // Heuristic 4: Check for pointer arithmetic (DISQUALIFYING)
-        // DECY-072: If the parameter is used in pointer arithmetic (arr++, arr + n, etc.),
-        // it MUST remain a raw pointer, not a slice
+        // Heuristic 4: Check for pointer arithmetic (negative signal)
         if self.has_pointer_arithmetic(var) {
-            return Some(false); // Disqualify immediately
-        }
-
-        // Heuristic 5: Check if parameter is assigned to pointer variable (DISQUALIFYING)
-        // DECY-072: If arr is assigned to another pointer (e.g., int* ptr = arr),
-        // it needs to remain a raw pointer, not a slice
-        if self.is_assigned_to_pointer(var) {
-            return Some(false); // Disqualify immediately
+            confidence -= 2; // Pointer arithmetic suggests non-array usage
+            signals += 1;
         }
 
         // Decision: require at least 2 signals and positive confidence
@@ -190,50 +188,6 @@ impl DataflowGraph {
         } else {
             Some(false)
         }
-    }
-
-    /// Get all array parameters and their corresponding length parameters.
-    /// DECY-072 GREEN: Returns (array_param_name, length_param_name) pairs
-    ///
-    /// # Returns
-    ///
-    /// A vector of tuples where:
-    /// - First element is the array parameter name
-    /// - Second element is the corresponding length parameter name (if any)
-    ///
-    /// # Examples
-    ///
-    /// For `fn process(int* arr, int len)` returns `[("arr", Some("len"))]`
-    /// For `fn process(int* ptr)` returns `[]` (not an array parameter)
-    pub fn get_array_parameters(&self) -> Vec<(String, Option<String>)> {
-        let mut array_params = Vec::new();
-
-        for (i, param) in self.parameters.iter().enumerate() {
-            // Only check pointer parameters
-            if !matches!(param.param_type(), HirType::Pointer(_)) {
-                continue;
-            }
-
-            // Check if this is an array parameter
-            if let Some(true) = self.is_array_parameter(param.name()) {
-                // Try to find the corresponding length parameter
-                let length_param = if i + 1 < self.parameters.len() {
-                    let next_param = &self.parameters[i + 1];
-                    // Check if next parameter is integer type (likely a length)
-                    if matches!(next_param.param_type(), HirType::Int) {
-                        Some(next_param.name().to_string())
-                    } else {
-                        None
-                    }
-                } else {
-                    None
-                };
-
-                array_params.push((param.name().to_string(), length_param));
-            }
-        }
-
-        array_params
     }
 
     /// Check if a variable is used with array indexing in the function body.
@@ -245,58 +199,6 @@ impl DataflowGraph {
             }
         }
         false
-    }
-
-    /// Check if a variable/parameter is modified in the function body.
-    /// DECY-072: Used to determine if slice should be &mut or &
-    pub fn is_modified(&self, var: &str) -> bool {
-        for stmt in &self.body {
-            if Self::statement_modifies_variable(stmt, var) {
-                return true;
-            }
-        }
-        false
-    }
-
-    /// Check if a statement modifies a variable.
-    fn statement_modifies_variable(stmt: &HirStatement, var: &str) -> bool {
-        match stmt {
-            HirStatement::Assignment { target, .. } => target == var,
-            HirStatement::ArrayIndexAssignment { array, .. } => {
-                if let HirExpression::Variable(name) = &**array {
-                    name == var
-                } else {
-                    false
-                }
-            }
-            HirStatement::FieldAssignment {
-                object: HirExpression::Variable(name),
-                ..
-            } => name == var,
-            HirStatement::FieldAssignment { .. } => false,
-            HirStatement::DerefAssignment {
-                target: HirExpression::Variable(name),
-                ..
-            } => name == var,
-            HirStatement::DerefAssignment { .. } => false,
-            HirStatement::If {
-                then_block,
-                else_block,
-                ..
-            } => {
-                then_block
-                    .iter()
-                    .any(|s| Self::statement_modifies_variable(s, var))
-                    || else_block.as_ref().is_some_and(|blk| {
-                        blk.iter()
-                            .any(|s| Self::statement_modifies_variable(s, var))
-                    })
-            }
-            HirStatement::While { body, .. } | HirStatement::For { body, .. } => body
-                .iter()
-                .any(|s| Self::statement_modifies_variable(s, var)),
-            _ => false,
-        }
     }
 
     /// Recursively check if a statement contains array indexing for a variable.
@@ -333,7 +235,7 @@ impl DataflowGraph {
     /// DECY-071 GREEN: Helper for array detection (negative signal)
     fn has_pointer_arithmetic(&self, var: &str) -> bool {
         for stmt in &self.body {
-            if Self::statement_has_pointer_arithmetic(stmt, var) {
+            if self.statement_has_pointer_arithmetic(stmt, var) {
                 return true;
             }
         }
@@ -341,16 +243,16 @@ impl DataflowGraph {
     }
 
     /// Recursively check if a statement contains pointer arithmetic for a variable.
-    fn statement_has_pointer_arithmetic(stmt: &HirStatement, var: &str) -> bool {
+    fn statement_has_pointer_arithmetic(&self, stmt: &HirStatement, var: &str) -> bool {
         match stmt {
             HirStatement::VariableDeclaration { initializer, .. } => {
                 if let Some(expr) = initializer {
-                    return Self::expression_has_pointer_arithmetic(expr, var);
+                    return self.expression_has_pointer_arithmetic(expr, var);
                 }
                 false
             }
             HirStatement::Assignment { value, .. } => {
-                Self::expression_has_pointer_arithmetic(value, var)
+                self.expression_has_pointer_arithmetic(value, var)
             }
             HirStatement::If {
                 then_block,
@@ -359,23 +261,23 @@ impl DataflowGraph {
             } => {
                 then_block
                     .iter()
-                    .any(|s| Self::statement_has_pointer_arithmetic(s, var))
+                    .any(|s| self.statement_has_pointer_arithmetic(s, var))
                     || else_block.as_ref().is_some_and(|blk| {
                         blk.iter()
-                            .any(|s| Self::statement_has_pointer_arithmetic(s, var))
+                            .any(|s| self.statement_has_pointer_arithmetic(s, var))
                     })
             }
             HirStatement::While { body, .. } | HirStatement::For { body, .. } => body
                 .iter()
-                .any(|s| Self::statement_has_pointer_arithmetic(s, var)),
+                .any(|s| self.statement_has_pointer_arithmetic(s, var)),
             _ => false,
         }
     }
 
     /// Check if an expression contains pointer arithmetic for a variable.
-    fn expression_has_pointer_arithmetic(expr: &decy_hir::HirExpression, var: &str) -> bool {
+    fn expression_has_pointer_arithmetic(&self, expr: &decy_hir::HirExpression, var: &str) -> bool {
         match expr {
-            HirExpression::BinaryOp { op, left, right } => {
+            HirExpression::BinaryOp { op, left, right: _ } => {
                 // Check if this is pointer arithmetic (ptr + offset or ptr - offset)
                 if matches!(
                     op,
@@ -385,81 +287,8 @@ impl DataflowGraph {
                         return name == var;
                     }
                 }
-                // Recursively check operands
-                Self::expression_has_pointer_arithmetic(left, var)
-                    || Self::expression_has_pointer_arithmetic(right, var)
-            }
-            HirExpression::Dereference(inner) => {
-                Self::expression_has_pointer_arithmetic(inner, var)
-            }
-            HirExpression::AddressOf(inner) => Self::expression_has_pointer_arithmetic(inner, var),
-            HirExpression::UnaryOp { operand, .. } => {
-                Self::expression_has_pointer_arithmetic(operand, var)
-            }
-            HirExpression::FunctionCall { arguments, .. } => arguments
-                .iter()
-                .any(|arg| Self::expression_has_pointer_arithmetic(arg, var)),
-            HirExpression::ArrayIndex { array, index } => {
-                Self::expression_has_pointer_arithmetic(array, var)
-                    || Self::expression_has_pointer_arithmetic(index, var)
-            }
-            HirExpression::Cast { expr, .. } => Self::expression_has_pointer_arithmetic(expr, var),
-            _ => false,
-        }
-    }
-
-    /// Check if a parameter is assigned to another pointer variable.
-    /// DECY-072: Detects patterns like `int* ptr = arr;`
-    fn is_assigned_to_pointer(&self, var: &str) -> bool {
-        for stmt in &self.body {
-            if Self::statement_assigns_to_pointer(stmt, var) {
-                return true;
-            }
-        }
-        false
-    }
-
-    /// Check if a statement assigns the variable to a pointer.
-    fn statement_assigns_to_pointer(stmt: &HirStatement, var: &str) -> bool {
-        match stmt {
-            HirStatement::VariableDeclaration {
-                var_type,
-                initializer,
-                ..
-            } => {
-                // Check if this declares a pointer and initializes it with our variable
-                if matches!(var_type, HirType::Pointer(_)) {
-                    if let Some(HirExpression::Variable(init_var)) = initializer {
-                        return init_var == var;
-                    }
-                }
                 false
             }
-            HirStatement::Assignment { target, value } => {
-                // Check if assigning our variable to a pointer variable
-                // We'd need to track variable types to know if `target` is a pointer
-                // For now, just check if the value is our variable
-                if let HirExpression::Variable(value_var) = value {
-                    return value_var == var && target != var; // assigned to different var
-                }
-                false
-            }
-            HirStatement::If {
-                then_block,
-                else_block,
-                ..
-            } => {
-                then_block
-                    .iter()
-                    .any(|s| Self::statement_assigns_to_pointer(s, var))
-                    || else_block.as_ref().is_some_and(|blk| {
-                        blk.iter()
-                            .any(|s| Self::statement_assigns_to_pointer(s, var))
-                    })
-            }
-            HirStatement::While { body, .. } | HirStatement::For { body, .. } => body
-                .iter()
-                .any(|s| Self::statement_assigns_to_pointer(s, var)),
             _ => false,
         }
     }

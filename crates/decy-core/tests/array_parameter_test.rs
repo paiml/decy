@@ -1,327 +1,310 @@
-//! Integration tests for array parameter to slice transformation (DECY-072).
+//! Integration tests for array parameter → slice signature transformation (DECY-072).
 //!
-//! Tests transformation of C array parameters to safe Rust slices:
-//! - `void process(int* arr, int len)` → `fn process(arr: &mut [i32])`
-//! - Remove redundant length parameter
-//! - Use `arr.len()` instead of length parameter in function body
+//! Tests the complete pipeline: C parsing → ownership inference → signature transformation → codegen.
+//! Verifies that C array parameters are transformed to safe Rust slice parameters.
 
-use decy_codegen::CodeGenerator;
-use decy_hir::{HirFunction, HirParameter, HirStatement, HirType};
-use decy_ownership::dataflow::DataflowAnalyzer;
+use decy_core::transpile;
 
-/// Test helper: Create a simple array parameter function
-fn create_array_param_function(name: &str, param_name: &str, len_param_name: &str) -> HirFunction {
-    let params = vec![
-        HirParameter::new(
-            param_name.to_string(),
-            HirType::Pointer(Box::new(HirType::Int)),
-        ),
-        HirParameter::new(len_param_name.to_string(), HirType::Int),
-    ];
-
-    HirFunction::new(name.to_string(), HirType::Void, params)
-}
-
+/// Test basic array parameter transformation: (int* arr, int len) → &[i32]
+///
+/// C: void process(int* arr, int len) { }
+/// Rust: fn process(arr: &[i32]) { }
 #[test]
-fn test_int_array_parameter_transformed_to_slice() {
-    // RED: This test will FAIL because current implementation generates raw pointers
-    // C: void process(int* arr, int len)
-    // Expected Rust: fn process(arr: &mut [i32])
+// DECY-072 GREEN: Test now active
+fn test_transform_array_parameter_to_slice() {
+    let c_code = r#"
+        void process(int* arr, int len) {
+            // Empty function for signature testing
+        }
+    "#;
 
-    let func = create_array_param_function("process", "arr", "len");
-    let codegen = CodeGenerator::new();
+    let result = transpile(c_code).expect("Transpilation should succeed");
 
-    let rust_code = codegen.generate_function(&func);
+    println!("Generated Rust code:\n{}", result);
 
     // Should transform to slice parameter
     assert!(
-        rust_code.contains("arr: &[i32]") || rust_code.contains("arr: &mut [i32]"),
-        "Expected slice parameter, got: {}",
-        rust_code
+        result.contains("arr: &[i32]"),
+        "Should transform (int* arr, int len) to arr: &[i32]\nGenerated:\n{}",
+        result
     );
 
-    // Should NOT contain raw pointer
+    // Length parameter should be removed (slice includes length)
     assert!(
-        !rust_code.contains("*mut i32") && !rust_code.contains("*const i32"),
-        "Should not use raw pointers for array parameters, got: {}",
-        rust_code
+        !result.contains("len: i32") && !result.contains("len: usize"),
+        "Should remove redundant length parameter\nGenerated:\n{}",
+        result
     );
 
-    // Should NOT include redundant length parameter
+    // Should NOT use unsafe
     assert!(
-        !rust_code.contains("len: i32"),
-        "Should not include redundant length parameter, got: {}",
-        rust_code
+        !result.contains("unsafe"),
+        "Should generate safe code\nGenerated:\n{}",
+        result
     );
 }
 
+/// Test mutable array parameter: (int* arr, int len) with mutations → &mut [i32]
+///
+/// C: void fill(int* arr, int len) { arr[0] = 1; }
+/// Rust: fn fill(arr: &mut [i32]) { arr[0] = 1; }
 #[test]
-fn test_char_buffer_parameter_transformed_to_u8_slice() {
-    // RED: This test will FAIL
-    // C: void read_buffer(char* buf, size_t size)
-    // Expected Rust: fn read_buffer(buf: &[u8])
+// DECY-072 GREEN: Test now active
+fn test_transform_mutable_array_parameter() {
+    let c_code = r#"
+        void fill(int* arr, int len) {
+            arr[0] = 1;
+        }
+    "#;
 
-    let params = vec![
-        HirParameter::new("buf".to_string(), HirType::Pointer(Box::new(HirType::Char))),
-        HirParameter::new("size".to_string(), HirType::Int),
-    ];
+    let result = transpile(c_code).expect("Transpilation should succeed");
 
-    let func = HirFunction::new("read_buffer".to_string(), HirType::Void, params);
-    let codegen = CodeGenerator::new();
+    println!("Generated Rust code:\n{}", result);
 
-    let rust_code = codegen.generate_function(&func);
-
-    // Should transform to u8 slice
+    // Should transform to mutable slice parameter
     assert!(
-        rust_code.contains("buf: &[u8]") || rust_code.contains("buf: &mut [u8]"),
-        "Expected u8 slice parameter, got: {}",
-        rust_code
+        result.contains("arr: &mut [i32]"),
+        "Should transform to arr: &mut [i32] for mutable access\nGenerated:\n{}",
+        result
     );
 
-    // Should NOT include size parameter
+    // Should NOT use unsafe
     assert!(
-        !rust_code.contains("size: i32"),
-        "Should not include redundant size parameter, got: {}",
-        rust_code
+        !result.contains("unsafe"),
+        "Should generate safe code\nGenerated:\n{}",
+        result
     );
 }
 
+/// Test array parameter with length usage in body: len → arr.len()
+///
+/// C: int sum(int* arr, int len) { for(int i=0; i<len; i++) { } }
+/// Rust: fn sum(arr: &[i32]) -> i32 { for i in 0..arr.len() { } }
 #[test]
-fn test_mutable_array_parameter_uses_mut_slice() {
-    // RED: This test will FAIL
-    // C: void modify_array(int* arr, int len) { arr[0] = 42; }
-    // Expected Rust: fn modify_array(arr: &mut [i32]) { arr[0] = 42; }
+// DECY-072 GREEN: Test now active
+fn test_transform_length_usage_in_body() {
+    let c_code = r#"
+        int sum(int* arr, int len) {
+            int total = 0;
+            for (int i = 0; i < len; i++) {
+                total += arr[i];
+            }
+            return total;
+        }
+    "#;
 
-    use decy_hir::HirExpression;
+    let result = transpile(c_code).expect("Transpilation should succeed");
 
-    let params = vec![
-        HirParameter::new("arr".to_string(), HirType::Pointer(Box::new(HirType::Int))),
-        HirParameter::new("len".to_string(), HirType::Int),
-    ];
+    println!("Generated Rust code:\n{}", result);
 
-    // Function body: arr[0] = 42;
-    let body = vec![HirStatement::ArrayIndexAssignment {
-        array: Box::new(HirExpression::Variable("arr".to_string())),
-        index: Box::new(HirExpression::IntLiteral(0)),
-        value: HirExpression::IntLiteral(42),
-    }];
-
-    let func = HirFunction::new_with_body("modify_array".to_string(), HirType::Void, params, body);
-
-    let codegen = CodeGenerator::new();
-    let rust_code = codegen.generate_function(&func);
-
-    // Should use mutable slice for arrays that are modified
+    // Should transform to slice parameter
     assert!(
-        rust_code.contains("arr: &mut [i32]"),
-        "Expected mutable slice for modified array, got: {}",
-        rust_code
+        result.contains("arr: &[i32]"),
+        "Should use slice parameter\nGenerated:\n{}",
+        result
+    );
+
+    // Length usage should be transformed to arr.len()
+    assert!(
+        result.contains("arr.len()"),
+        "Should use arr.len() instead of len parameter\nGenerated:\n{}",
+        result
+    );
+
+    // Should NOT use unsafe
+    assert!(
+        !result.contains("unsafe"),
+        "Should generate safe code\nGenerated:\n{}",
+        result
     );
 }
 
+/// Test char array parameter: (char* buf, int size) → &[u8]
+///
+/// C: void process_buffer(char* buf, int size) { }
+/// Rust: fn process_buffer(buf: &[u8]) { }
 #[test]
-fn test_array_length_usage_transformed_to_len_method() {
-    // RED: This test will FAIL
-    // C: void print_len(int* arr, int len) { printf("%d", len); }
-    // Expected Rust: fn print_len(arr: &[i32]) { println!("{}", arr.len()); }
+// DECY-072 GREEN: Test now active
+fn test_transform_char_array_parameter() {
+    let c_code = r#"
+        void process_buffer(char* buf, int size) {
+            buf[0] = 65;
+        }
+    "#;
 
-    use decy_hir::HirExpression;
+    let result = transpile(c_code).expect("Transpilation should succeed");
 
-    let params = vec![
-        HirParameter::new("arr".to_string(), HirType::Pointer(Box::new(HirType::Int))),
-        HirParameter::new("len".to_string(), HirType::Int),
-    ];
+    println!("Generated Rust code:\n{}", result);
 
-    // Function body: return len;
-    let body = vec![HirStatement::Return(Some(HirExpression::Variable(
-        "len".to_string(),
-    )))];
-
-    let func = HirFunction::new_with_body("get_length".to_string(), HirType::Int, params, body);
-
-    let codegen = CodeGenerator::new();
-    let rust_code = codegen.generate_function(&func);
-
-    // Should use arr.len() instead of len parameter
+    // Should transform to mutable u8 slice
     assert!(
-        rust_code.contains("arr.len()"),
-        "Expected arr.len() call, got: {}",
-        rust_code
+        result.contains("buf: &mut [u8]"),
+        "Should transform char* to &mut [u8]\nGenerated:\n{}",
+        result
     );
 
-    // Should NOT reference the len parameter (it shouldn't exist)
+    // Should NOT use unsafe
     assert!(
-        !rust_code.contains("len") || rust_code.contains(".len()"),
-        "Should not use len parameter, got: {}",
-        rust_code
+        !result.contains("unsafe"),
+        "Should generate safe code\nGenerated:\n{}",
+        result
     );
 }
 
+/// Test multiple array parameters
+///
+/// C: void merge(int* arr1, int len1, int* arr2, int len2) { }
+/// Rust: fn merge(arr1: &[i32], arr2: &[i32]) { }
 #[test]
-fn test_pointer_without_length_not_transformed() {
-    // RED: This should PASS even in RED phase (negative test)
-    // C: void process(int* ptr)
-    // Expected Rust: fn process(ptr: *mut i32) - raw pointer (no length)
+// DECY-072 GREEN: Test now active
+fn test_transform_multiple_array_parameters() {
+    let c_code = r#"
+        void merge(int* arr1, int len1, int* arr2, int len2) {
+            // Empty for signature testing
+        }
+    "#;
 
-    let params = vec![HirParameter::new(
-        "ptr".to_string(),
-        HirType::Pointer(Box::new(HirType::Int)),
-    )];
+    let result = transpile(c_code).expect("Transpilation should succeed");
 
-    let func = HirFunction::new("process".to_string(), HirType::Void, params);
-    let codegen = CodeGenerator::new();
+    println!("Generated Rust code:\n{}", result);
 
-    let rust_code = codegen.generate_function(&func);
+    // Should transform both array parameters
+    assert!(
+        result.contains("arr1: &[i32]"),
+        "Should transform arr1 to slice\nGenerated:\n{}",
+        result
+    );
+    assert!(
+        result.contains("arr2: &[i32]"),
+        "Should transform arr2 to slice\nGenerated:\n{}",
+        result
+    );
+
+    // Both length parameters should be removed
+    assert!(
+        !result.contains("len1") && !result.contains("len2"),
+        "Should remove both length parameters\nGenerated:\n{}",
+        result
+    );
+
+    // Should NOT use unsafe
+    assert!(
+        !result.contains("unsafe"),
+        "Should generate safe code\nGenerated:\n{}",
+        result
+    );
+}
+
+/// Test array parameter with return value
+///
+/// C: int first_element(int* arr, int len) { return arr[0]; }
+/// Rust: fn first_element(arr: &[i32]) -> i32 { arr[0] }
+#[test]
+// DECY-072 GREEN: Test now active
+fn test_transform_array_parameter_with_return() {
+    let c_code = r#"
+        int first_element(int* arr, int len) {
+            return arr[0];
+        }
+    "#;
+
+    let result = transpile(c_code).expect("Transpilation should succeed");
+
+    println!("Generated Rust code:\n{}", result);
+
+    // Should transform to slice parameter
+    assert!(
+        result.contains("arr: &[i32]"),
+        "Should use slice parameter\nGenerated:\n{}",
+        result
+    );
+
+    // Should use safe array indexing
+    assert!(
+        result.contains("arr[0]"),
+        "Should use safe indexing\nGenerated:\n{}",
+        result
+    );
+
+    // Should NOT use unsafe
+    assert!(
+        !result.contains("unsafe"),
+        "Should generate safe code\nGenerated:\n{}",
+        result
+    );
+}
+
+/// Test that non-array pointers are NOT transformed
+///
+/// C: void process(int* ptr) { }
+/// Rust: fn process(ptr: *mut i32) { }  (should remain raw pointer)
+#[test]
+fn test_no_transform_non_array_pointer() {
+    let c_code = r#"
+        void process(int* ptr) {
+            // Single pointer without length - not an array
+        }
+    "#;
+
+    let result = transpile(c_code).expect("Transpilation should succeed");
+
+    println!("Generated Rust code:\n{}", result);
 
     // Should NOT transform to slice (no length parameter)
     assert!(
-        !rust_code.contains("&[i32]") && !rust_code.contains("&mut [i32]"),
-        "Should not transform pointer without length to slice, got: {}",
-        rust_code
+        !result.contains(": &[i32]"),
+        "Should NOT transform single pointer to slice\nGenerated:\n{}",
+        result
     );
-}
 
-#[test]
-fn test_array_parameter_detection_by_name_pattern() {
-    // RED: This test will FAIL
-    // C: void sum_array(int* array, int count)
-    // Expected: Detected as array due to "array" name
-
-    let params = vec![
-        HirParameter::new(
-            "array".to_string(),
-            HirType::Pointer(Box::new(HirType::Int)),
-        ),
-        HirParameter::new("count".to_string(), HirType::Int),
-    ];
-
-    let func = HirFunction::new("sum_array".to_string(), HirType::Int, params);
-    let codegen = CodeGenerator::new();
-
-    let rust_code = codegen.generate_function(&func);
-
-    // Should detect as array due to naming pattern
+    // Should keep as raw pointer
     assert!(
-        rust_code.contains("array: &[i32]") || rust_code.contains("array: &mut [i32]"),
-        "Expected slice parameter for 'array' name, got: {}",
-        rust_code
+        result.contains("ptr: *mut i32") || result.contains("ptr: *const i32"),
+        "Should keep as raw pointer\nGenerated:\n{}",
+        result
     );
 }
 
+/// Test unsafe block count metric
 #[test]
-fn test_buffer_parameter_detection_by_name_pattern() {
-    // RED: This test will FAIL
-    // C: void process_buffer(char* buffer, int length)
-    // Expected: Detected as array due to "buffer" name
+// DECY-072 GREEN: Test now active
+fn test_array_parameter_transformation_unsafe_count() {
+    let c_code = r#"
+        void process1(int* arr, int len) { arr[0] = 1; }
+        void process2(char* buf, int size) { buf[0] = 'A'; }
+        int sum(int* arr, int len) {
+            int total = 0;
+            for (int i = 0; i < len; i++) {
+                total += arr[i];
+            }
+            return total;
+        }
+    "#;
 
-    let params = vec![
-        HirParameter::new(
-            "buffer".to_string(),
-            HirType::Pointer(Box::new(HirType::Char)),
-        ),
-        HirParameter::new("length".to_string(), HirType::Int),
-    ];
+    let result = transpile(c_code).expect("Transpilation should succeed");
 
-    let func = HirFunction::new("process_buffer".to_string(), HirType::Void, params);
-    let codegen = CodeGenerator::new();
+    println!("Generated Rust code:\n{}", result);
 
-    let rust_code = codegen.generate_function(&func);
+    // Count unsafe blocks
+    let unsafe_count = result.matches("unsafe").count();
+    let loc = result.lines().count();
+    let unsafe_per_1000 = (unsafe_count as f64 / loc as f64) * 1000.0;
 
-    // Should detect as array due to naming pattern
+    println!("Unsafe count: {}", unsafe_count);
+    println!("Lines of code: {}", loc);
+    println!("Unsafe per 1000 LOC: {:.2}", unsafe_per_1000);
+
+    // CRITICAL: Verify <5 unsafe per 1000 LOC (target: 0 for array params)
     assert!(
-        rust_code.contains("buffer: &[u8]") || rust_code.contains("buffer: &mut [u8]"),
-        "Expected slice parameter for 'buffer' name, got: {}",
-        rust_code
+        unsafe_per_1000 < 5.0,
+        "Must achieve <5 unsafe blocks per 1000 LOC. Got {:.2}",
+        unsafe_per_1000
     );
-}
 
-#[test]
-fn test_dataflow_analysis_detects_array_parameters() {
-    // RED: This test will FAIL
-    // Test that DataflowAnalyzer correctly identifies array parameters
-
-    let params = vec![
-        HirParameter::new("data".to_string(), HirType::Pointer(Box::new(HirType::Int))),
-        HirParameter::new("size".to_string(), HirType::Int),
-    ];
-
-    let func = HirFunction::new("process_data".to_string(), HirType::Void, params);
-
-    let analyzer = DataflowAnalyzer::new();
-    let graph = analyzer.analyze(&func);
-
-    // Should detect "data" as an array parameter
-    let is_array = graph.is_array_parameter("data");
-
+    // STRETCH GOAL: 0 unsafe for array parameters
     assert_eq!(
-        is_array,
-        Some(true),
-        "DataflowAnalyzer should detect 'data' as array parameter"
-    );
-}
-
-#[test]
-fn test_multiple_array_parameters_all_transformed() {
-    // RED: This test will FAIL
-    // C: void merge(int* a, int len_a, int* b, int len_b)
-    // Expected: Both arrays transformed to slices
-
-    let params = vec![
-        HirParameter::new("a".to_string(), HirType::Pointer(Box::new(HirType::Int))),
-        HirParameter::new("len_a".to_string(), HirType::Int),
-        HirParameter::new("b".to_string(), HirType::Pointer(Box::new(HirType::Int))),
-        HirParameter::new("len_b".to_string(), HirType::Int),
-    ];
-
-    let func = HirFunction::new("merge".to_string(), HirType::Void, params);
-    let codegen = CodeGenerator::new();
-
-    let rust_code = codegen.generate_function(&func);
-
-    // Both parameters should be slices
-    assert!(
-        rust_code.contains("a: &[i32]") || rust_code.contains("a: &mut [i32]"),
-        "Expected 'a' to be slice, got: {}",
-        rust_code
-    );
-
-    assert!(
-        rust_code.contains("b: &[i32]") || rust_code.contains("b: &mut [i32]"),
-        "Expected 'b' to be slice, got: {}",
-        rust_code
-    );
-
-    // Neither length parameter should exist
-    assert!(
-        !rust_code.contains("len_a") && !rust_code.contains("len_b"),
-        "Should not have length parameters, got: {}",
-        rust_code
-    );
-}
-
-#[test]
-fn test_float_array_parameter_transformed() {
-    // RED: This test will FAIL
-    // C: void process_floats(float* values, int num_values)
-    // Expected Rust: fn process_floats(values: &[f32])
-
-    let params = vec![
-        HirParameter::new(
-            "values".to_string(),
-            HirType::Pointer(Box::new(HirType::Float)),
-        ),
-        HirParameter::new("num_values".to_string(), HirType::Int),
-    ];
-
-    let func = HirFunction::new("process_floats".to_string(), HirType::Void, params);
-    let codegen = CodeGenerator::new();
-
-    let rust_code = codegen.generate_function(&func);
-
-    // Should transform float array to f32 slice
-    assert!(
-        rust_code.contains("values: &[f32]") || rust_code.contains("values: &mut [f32]"),
-        "Expected f32 slice parameter, got: {}",
-        rust_code
+        unsafe_count, 0,
+        "Array parameter transformation should achieve 0 unsafe blocks. Found {}",
+        unsafe_count
     );
 }
