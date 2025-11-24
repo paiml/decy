@@ -1,0 +1,38 @@
+
+Found 2 C files:
+  - helper.c
+  - main.c
+
+✓ No circular dependencies detected
+
+Build order:
+  1. helper.c
+  2. main.c
+
+Project is ready for transpilation.
+% time     seconds  usecs/call     calls    errors syscall
+------ ----------- ----------- --------- --------- ----------------
+ 29.46    0.000855          11        77           mmap
+ 10.44    0.000303           6        48           futex
+  7.96    0.000231           7        30        11 newfstatat
+ 10.20    0.000296           9        30        11 openat
+  9.82    0.000285          10        28           read
+ 11.10    0.000322          12        26           mprotect
+  5.17    0.000150           7        19           close
+  3.93    0.000114           8        13           write
+  2.86    0.000083          10         8           brk
+  1.10    0.000032           6         5           rt_sigaction
+  1.65    0.000048          12         4           pread64
+  0.90    0.000026           6         4           unknown
+  0.65    0.000019           6         3           sigaltstack
+  0.83    0.000024          12         2           getdents64
+  0.59    0.000017           8         2           statx
+  0.65    0.000019           9         2         1 arch_prctl
+  1.00    0.000029          14         2           munmap
+  0.52    0.000015           7         2           getrandom
+  0.21    0.000006           6         1           set_tid_address
+  0.45    0.000013          13         1         1 access
+  0.21    0.000006           6         1           set_robust_list
+  0.31    0.000009           9         1           poll
+------ ----------- ----------- --------- --------- ----------------
+100.00    0.002902           9       309        24 total

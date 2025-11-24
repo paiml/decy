@@ -271,10 +271,80 @@ jobs:
       - name: Build release
         run: cargo build --workspace --all-features --release --verbose
 
+  performance-validation:
+    name: Performance Validation (Renacer)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install LLVM/Clang
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y llvm-14-dev libclang-14-dev clang-14
+          echo "LLVM_CONFIG_PATH=/usr/bin/llvm-config-14" >> $GITHUB_ENV
+          echo "LIBCLANG_PATH=/usr/lib/llvm-14/lib" >> $GITHUB_ENV
+
+      - name: Install Renacer
+        run: cargo install renacer --version 0.6.2
+
+      - name: Cache cargo registry
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/registry
+          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Cache cargo index
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/git
+          key: ${{ runner.os }}-cargo-index-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Cache cargo build
+        uses: actions/cache@v4
+        with:
+          path: target
+          key: ${{ runner.os }}-cargo-build-target-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Build decy
+        run: cargo build --release --bin decy
+
+      - name: Capture Golden Traces
+        run: ./scripts/capture_golden_traces.sh
+
+      - name: Validate Performance Budgets
+        run: |
+          # Check transpilation < 50ms (6× safety margin from 8.165ms baseline)
+          RUNTIME=$(grep "total" golden_traces/transpile_simple_summary.txt | awk '{print $2}')
+          if (( $(echo "$RUNTIME > 0.05" | bc -l) )); then
+            echo "❌ Transpilation exceeded 50ms budget: ${RUNTIME}s"
+            exit 1
+          fi
+          echo "✅ Transpilation within budget: ${RUNTIME}s (< 0.05s)"
+
+          # Check dependency analysis < 10ms
+          RUNTIME=$(grep "total" golden_traces/check_project_summary.txt | awk '{print $2}')
+          if (( $(echo "$RUNTIME > 0.01" | bc -l) )); then
+            echo "❌ Dependency analysis exceeded 10ms budget: ${RUNTIME}s"
+            exit 1
+          fi
+          echo "✅ Dependency analysis within budget: ${RUNTIME}s (< 0.01s)"
+
+          echo "✅ All performance budgets met!"
+
+      - name: Upload Trace Artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: golden-traces
+          path: golden_traces/
+
   quality-summary:
     name: Quality Summary
     runs-on: ubuntu-latest
-    needs: [format, clippy, test, coverage, doc, satd, build]
+    needs: [format, clippy, test, coverage, doc, satd, build, performance-validation]
     if: always()
     steps:
       - name: Check if all jobs passed
@@ -289,3 +359,4 @@ jobs:
           echo "  ✅ Documentation complete"
           echo "  ✅ No SATD comments"
           echo "  ✅ Build successful"
+          echo "  ✅ Performance validation passed"
