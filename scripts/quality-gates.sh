@@ -259,6 +259,74 @@ check_documentation() {
     return 0
 }
 
+check_performance() {
+    print_section "9. Performance Regression Check (Renacer)"
+
+    # Check if Renacer is installed
+    if ! command -v renacer &> /dev/null; then
+        print_warning "Renacer not installed, skipping performance checks"
+        print_info "Install: cargo install renacer --version 0.6.2"
+        print_info "Or run: make renacer-install"
+        return 0
+    fi
+
+    # Check if capture script exists
+    if [ ! -f ./scripts/capture_golden_traces.sh ]; then
+        print_warning "Golden trace capture script not found, skipping performance checks"
+        return 0
+    fi
+
+    # Check if release binary exists
+    if [ ! -f ./target/release/decy ]; then
+        print_info "Building release binary for performance validation..."
+        cargo build --release --bin decy --quiet 2>&1 || true
+    fi
+
+    if [ ! -f ./target/release/decy ]; then
+        print_warning "Release binary not found, skipping performance checks"
+        return 0
+    fi
+
+    print_info "Capturing golden traces..."
+    if ! ./scripts/capture_golden_traces.sh > /dev/null 2>&1; then
+        print_warning "Failed to capture golden traces, skipping performance checks"
+        return 0
+    fi
+
+    # Check if golden traces were generated
+    if [ ! -f golden_traces/transpile_simple_summary.txt ]; then
+        print_warning "Golden traces not generated, skipping performance checks"
+        return 0
+    fi
+
+    print_info "Validating performance against baselines..."
+
+    # Baseline from 2025-11-24: 8.165ms
+    local TRANSPILE_BASELINE=0.008165
+    local TRANSPILE_NEW=$(grep "total" golden_traces/transpile_simple_summary.txt | awk '{print $2}' || echo "0")
+
+    if [ "$TRANSPILE_NEW" = "0" ] || [ -z "$TRANSPILE_NEW" ]; then
+        print_warning "Could not parse transpilation runtime"
+        return 0
+    fi
+
+    # Check for regression (>20% slowdown)
+    local regression_check=$(echo "$TRANSPILE_NEW > $TRANSPILE_BASELINE * 1.2" | bc -l)
+
+    if [ "$regression_check" -eq 1 ]; then
+        print_failure "Performance regression detected: ${TRANSPILE_NEW}s vs ${TRANSPILE_BASELINE}s baseline (>20% slower)"
+        print_info "Current: ${TRANSPILE_NEW}s"
+        print_info "Baseline: ${TRANSPILE_BASELINE}s (from 2025-11-24)"
+        print_info "Threshold: $(echo "$TRANSPILE_BASELINE * 1.2" | bc -l)s (+20%)"
+        print_info "Review golden_traces/ANALYSIS.md for details"
+        return "$EXIT_TEST_FAIL"
+    else
+        print_success "Performance validation passed: ${TRANSPILE_NEW}s (baseline: ${TRANSPILE_BASELINE}s)"
+    fi
+
+    return 0
+}
+
 print_summary() {
     echo ""
     echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
@@ -301,6 +369,7 @@ main() {
     check_satd || exit_code=$?
     check_unsafe_usage || exit_code=$?
     check_documentation || exit_code=$?
+    check_performance || exit_code=$?
 
     print_summary || exit_code=$?
 
