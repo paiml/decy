@@ -365,3 +365,52 @@ Actual performance is 612× faster than budget (8.165ms vs 5000ms), so you have 
 
 **Integration Team**: Noah (renacer)
 **Date**: 2025-11-24
+
+---
+
+## Advanced Features
+
+For advanced Renacer integration features, see:
+
+### **📘 RENACER_ADVANCED_INTEGRATION.md**
+
+Extended documentation covering:
+- **Flamegraph Analysis**: Hotspot detection with visual profiling
+- **Behavioral Anomaly Detection**: Catch unexpected syscall patterns (async runtime, networking)
+- **Ownership Inference Validation**: Performance and correctness testing
+- **Custom Syscall Clustering**: decy-specific pattern analysis
+- **Test Suite Integration**: Automated regression and performance tests
+- **Semantic Equivalence Validation**: Ensure optimizations preserve correctness
+
+### **⚙️ decy-clusters.toml**
+
+Custom syscall cluster configuration for decy-specific analysis:
+- **CParsing**: C source parsing and header processing (expected)
+- **OwnershipInference**: Memory allocation patterns (expected)
+- **RustCodegen**: Generated code output (expected)
+- **Concurrency**: CRITICAL - detects accidental async runtime (unexpected!)
+- **Networking**: CRITICAL - detects telemetry or malicious behavior (unexpected!)
+- **ProcessControl**: CRITICAL - detects subprocess spawning (unexpected!)
+
+Usage:
+```bash
+renacer analyze --baseline golden.trace --current current.trace \
+               --clusters decy-clusters.toml
+```
+
+### **🧪 Test Suite Integration**
+
+New performance test files:
+- `crates/decy-core/tests/test_performance_regression.rs` - Statistical regression detection
+- `crates/decy-ownership/tests/test_ownership_inference_perf.rs` - Ownership inference validation
+
+Run tests:
+```bash
+cargo test --test test_performance_regression
+cargo test --test test_ownership_inference_perf
+```
+
+---
+
+**Integration Team**: Noah (renacer)
+**Date**: 2025-11-24

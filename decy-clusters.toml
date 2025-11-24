@@ -1,0 +1,87 @@
+# Renacer Syscall Cluster Configuration for decy
+# Custom cluster definitions for C-to-Rust transpiler analysis
+
+[[cluster]]
+name = "CParsing"
+description = "C source parsing and header processing"
+syscalls = ["read", "mmap", "munmap", "open", "openat", "close"]
+expected_for_transpiler = true
+anomaly_threshold = 0.30
+severity = "medium"
+
+[[cluster]]
+name = "OwnershipInference"
+description = "Memory allocation for ownership inference algorithm"
+syscalls = ["mmap", "brk", "munmap"]
+expected_for_transpiler = true
+anomaly_threshold = 0.50
+severity = "medium"
+
+[[cluster]]
+name = "RustCodegen"
+description = "Writing generated Rust code"
+syscalls = ["write", "writev", "fsync"]
+expected_for_transpiler = true
+anomaly_threshold = 0.20
+severity = "medium"
+
+[[cluster]]
+name = "FileIO"
+description = "General file I/O operations"
+syscalls = ["read", "write", "open", "openat", "close", "lseek", "stat", "fstat"]
+expected_for_transpiler = true
+anomaly_threshold = 0.25
+severity = "low"
+
+[[cluster]]
+name = "MemoryAllocation"
+description = "Dynamic memory allocation and management"
+syscalls = ["mmap", "munmap", "brk", "sbrk"]
+expected_for_transpiler = true
+anomaly_threshold = 0.40
+severity = "medium"
+
+[[cluster]]
+name = "Concurrency"
+description = "UNEXPECTED - async/threading in single-shot transpiler"
+syscalls = ["futex", "pthread_create", "clone", "set_robust_list"]
+expected_for_transpiler = false
+anomaly_threshold = 0.05
+severity = "critical"
+comment = "decy is single-threaded. Any concurrency syscalls indicate accidental async runtime."
+
+[[cluster]]
+name = "ProcessControl"
+description = "UNEXPECTED - subprocess spawning"
+syscalls = ["fork", "vfork", "execve", "waitpid", "wait4"]
+expected_for_transpiler = false
+anomaly_threshold = 0.05
+severity = "critical"
+comment = "decy should not spawn subprocesses. Check for accidental shell invocations."
+
+[[cluster]]
+name = "Networking"
+description = "UNEXPECTED - network calls (telemetry?)"
+syscalls = ["socket", "connect", "send", "recv", "sendto", "recvfrom"]
+expected_for_transpiler = false
+anomaly_threshold = 0.05
+severity = "critical"
+comment = "Transpiler should not make network calls. Check for telemetry or dependency issues."
+
+[[cluster]]
+name = "DynamicLinking"
+description = "Dynamic library loading (LLVM/clang-sys)"
+syscalls = ["mmap", "mprotect", "open", "openat"]
+expected_for_transpiler = true
+anomaly_threshold = 0.60
+severity = "low"
+comment = "LLVM/clang-sys dynamic linking is expected and unavoidable."
+
+[[cluster]]
+name = "DebugTracing"
+description = "Debug/tracing infrastructure"
+syscalls = ["write", "writev", "ioctl"]
+expected_for_transpiler = true
+anomaly_threshold = 0.80
+severity = "low"
+comment = "Low-level debug output is acceptable in development builds."
