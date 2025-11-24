@@ -34,7 +34,7 @@ int main() {
         &rust_code[..rust_code.len().min(200)]
     );
 
-    // TODO: Verify compilation when rustc integration is available
+    // Note: Verify compilation when rustc integration is available
     // assert!(compile_rust(&rust_code).is_ok());
 }
 

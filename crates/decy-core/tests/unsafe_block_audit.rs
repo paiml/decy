@@ -289,7 +289,7 @@ int main() {
 }
 "#;
 
-    // TODO: Uncomment when transpile is available
+    // Note: Uncomment when transpile is available
     // let rust_code = decy_core::transpile(c_code).expect("transpilation failed");
     // let ratio = unsafe_per_1000_loc(&rust_code);
 

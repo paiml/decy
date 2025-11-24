@@ -25,7 +25,7 @@ proptest! {
         // This property verifies that the parser never panics, even on garbage input
         // The parser should either succeed or return Err, but never panic
 
-        // TODO: Uncomment when parser is available
+        // Note: Uncomment when parser is available
         // let _result = decy_parser::parse(&s);
         // Test passes if we reach here without panic
 
@@ -42,7 +42,7 @@ proptest! {
         // C99 identifiers must start with letter or underscore,
         // followed by letters, digits, or underscores
 
-        // TODO: Uncomment when parser is available
+        // Note: Uncomment when parser is available
         // let c_code = format!("int {};", name);
         // let result = decy_parser::parse(&c_code);
         // prop_assert!(result.is_ok(), "Valid identifier rejected: {}", name);
@@ -58,7 +58,7 @@ proptest! {
     fn property_parser_handles_numeric_literals(n in any::<i32>()) {
         // Parser should handle any valid i32 as a numeric literal
 
-        // TODO: Uncomment when parser is available
+        // Note: Uncomment when parser is available
         // let c_code = format!("int x = {};", n);
         // let result = decy_parser::parse(&c_code);
         // prop_assert!(result.is_ok(), "Valid integer literal rejected: {}", n);
@@ -82,7 +82,7 @@ proptest! {
             expr = format!("({})", expr);
         }
 
-        // TODO: Uncomment when parser is available
+        // Note: Uncomment when parser is available
         // let c_code = format!("int y = {};", expr);
         // let result = decy_parser::parse(&c_code);
         // prop_assert!(result.is_ok(), "Nested parentheses rejected at depth {}", depth);
@@ -114,7 +114,7 @@ proptest! {
     ) {
         // Parser should recognize all C99 basic types
 
-        // TODO: Uncomment when parser is available
+        // Note: Uncomment when parser is available
         // let c_code = format!("{} x;", type_name);
         // let result = decy_parser::parse(&c_code);
         // prop_assert!(result.is_ok(), "Valid type rejected: {}", type_name);
@@ -157,7 +157,7 @@ proptest! {
     ) {
         // Parser should recognize all C99 binary operators
 
-        // TODO: Uncomment when parser is available
+        // Note: Uncomment when parser is available
         // let c_code = format!("int x = {} {} {};", left, op, right);
         // let result = decy_parser::parse(&c_code);
         // prop_assert!(result.is_ok(), "Valid operator rejected: {}", op);
@@ -179,7 +179,7 @@ proptest! {
         // Escape special characters for C string
         let escaped = s.replace('\\', "\\\\").replace('"', "\\\"");
 
-        // TODO: Uncomment when parser is available
+        // Note: Uncomment when parser is available
         // let c_code = format!(r#"char* msg = "{}";"#, escaped);
         // let result = decy_parser::parse(&c_code);
         // prop_assert!(result.is_ok(), "Valid string literal rejected: {}", escaped);

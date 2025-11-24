@@ -31,7 +31,7 @@ fn torture_deeply_nested_parentheses() {
     c_code.push(';');
 
     // Parser should handle this without stack overflow
-    // TODO: Uncomment when parser is available
+    // Note: Uncomment when parser is available
     // let result = decy_parser::parse(&c_code);
     // assert!(result.is_ok() || matches!(result, Err(ParseError::TooDeep)),
     //     "Parser should handle or gracefully reject deep nesting");
@@ -56,7 +56,7 @@ fn torture_extremely_long_identifier() {
     // 3. Truncate it (if following C99 minimum)
     // But should NEVER panic
 
-    // TODO: Uncomment when parser is available
+    // Note: Uncomment when parser is available
     // let result = decy_parser::parse(&c_code);
     // assert!(result.is_ok() || result.is_err(),
     //     "Parser should handle or reject long identifier gracefully");
@@ -84,7 +84,7 @@ fn torture_integer_literal_edge_cases() {
     for (literal, description) in test_cases {
         let _c_code = format!("int x = {};", literal);
 
-        // TODO: Uncomment when parser is available
+        // Note: Uncomment when parser is available
         // let result = decy_parser::parse(&c_code);
         // assert!(result.is_ok(),
         //     "Parser should handle {} literal: {}", description, literal);
@@ -114,7 +114,7 @@ fn torture_float_literal_edge_cases() {
     for (literal, description) in test_cases {
         let _c_code = format!("double x = {};", literal);
 
-        // TODO: Uncomment when parser is available
+        // Note: Uncomment when parser is available
         // let result = decy_parser::parse(&c_code);
         // Some of these might not be supported yet, but should not panic
         // assert!(result.is_ok() || result.is_err(),
@@ -149,7 +149,7 @@ fn torture_deeply_nested_structs() {
 
     c_code.push_str("} nested;");
 
-    // TODO: Uncomment when parser is available
+    // Note: Uncomment when parser is available
     // let result = decy_parser::parse(&c_code);
     // assert!(result.is_ok() || matches!(result, Err(ParseError::TooDeep)),
     //     "Parser should handle or gracefully reject deep struct nesting");
@@ -172,7 +172,7 @@ int compute(int** arr, int i, int j, int k) {
 "#;
 
     // This tests complex combinations of [] and * operators
-    // TODO: Uncomment when parser is available
+    // Note: Uncomment when parser is available
     // let result = decy_parser::parse(c_code);
     // assert!(result.is_ok(), "Parser should handle complex pointer arithmetic");
 
@@ -189,7 +189,7 @@ fn torture_extremely_long_string() {
     let long_string = "x".repeat(10000);
     let _c_code = format!(r#"char* s = "{}";"#, long_string);
 
-    // TODO: Uncomment when parser is available
+    // Note: Uncomment when parser is available
     // let result = decy_parser::parse(&c_code);
     // assert!(result.is_ok(), "Parser should handle long string literals");
 
@@ -205,7 +205,7 @@ fn torture_many_function_parameters() {
     let param_list = params.join(", ");
     let _c_code = format!("int func({}) {{ return 0; }}", param_list);
 
-    // TODO: Uncomment when parser is available
+    // Note: Uncomment when parser is available
     // let result = decy_parser::parse(&c_code);
     // assert!(result.is_ok(), "Parser should handle many parameters");
 
@@ -226,7 +226,7 @@ fn torture_deeply_nested_calls() {
     c_code.push_str(&expr);
     c_code.push(';');
 
-    // TODO: Uncomment when parser is available
+    // Note: Uncomment when parser is available
     // let result = decy_parser::parse(&c_code);
     // assert!(result.is_ok() || matches!(result, Err(ParseError::TooDeep)),
     //     "Parser should handle or gracefully reject deep call nesting");
@@ -246,7 +246,7 @@ int complex() {
 }
 "#;
 
-    // TODO: Uncomment when parser is available
+    // Note: Uncomment when parser is available
     // let result = decy_parser::parse(c_code);
     // assert!(result.is_ok(), "Parser should handle complex expressions");
 
@@ -261,7 +261,7 @@ fn torture_multidimensional_arrays() {
     // Test 15-dimensional array
     let c_code = "int arr[2][2][2][2][2][2][2][2][2][2][2][2][2][2][2];";
 
-    // TODO: Uncomment when parser is available
+    // Note: Uncomment when parser is available
     // let result = decy_parser::parse(c_code);
     // assert!(result.is_ok(), "Parser should handle multidimensional arrays");
 

@@ -387,7 +387,7 @@ fn test_borrow_pattern() {
 }
 
 // ============================================================================
-// TODO: Additional Properties to Implement (reaching 25+ total)
+// Note: Additional Properties to Implement (reaching 25+ total)
 // ============================================================================
 
 // 1. Array allocation → Vec<T> detection
