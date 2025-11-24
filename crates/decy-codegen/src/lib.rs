@@ -2930,7 +2930,11 @@ impl CodeGenerator {
             // static int x = 0; → static mut x: i32 = 0;
             // int x = 0; → static mut x: i32 = 0; (default)
             // Special handling for arrays: [0; 10] for array initialization
-            let init_expr = if let HirType::Array { element_type: _, size } = variable.const_type() {
+            let init_expr = if let HirType::Array {
+                element_type: _,
+                size,
+            } = variable.const_type()
+            {
                 if let Some(size_val) = size {
                     format!(
                         "[{}; {}]",
