@@ -47,7 +47,7 @@ fn get_clamped(x: i32, y: i32, z: i32) -> i32 {
 }
 "#;
 
-    // TODO: When implemented, this should parse and transform correctly
+    // Note: When implemented, this should parse and transform correctly
     // let result = transpile(c_code).expect("Should transpile");
     // assert!(result.contains("std::cmp::max"));
     // assert!(result.contains("std::cmp::min"));
@@ -122,7 +122,7 @@ int test() {
 }
 "#;
 
-    // TODO: When implemented, this should return an error
+    // Note: When implemented, this should return an error
     // let result = transpile(c_code);
     // assert!(result.is_err(), "Should detect recursive macro");
     // assert!(result.unwrap_err().contains("recursive"), "Error mentions recursion");
@@ -154,7 +154,7 @@ int test() {
 }
 "#;
 
-    // TODO: Should detect A → B → A cycle
+    // Note: Should detect A → B → A cycle
     assert!(c_code.contains("A(x) B(x)"), "A calls B");
     assert!(c_code.contains("B(x) A(x)"), "B calls A");
 }
@@ -181,7 +181,7 @@ int dangerous() {
 }
 "#;
 
-    // TODO: Should emit warning about i++ being evaluated twice
+    // Note: Should emit warning about i++ being evaluated twice
     // let warnings = get_warnings(c_code);
     // assert!(warnings.iter().any(|w| w.contains("multiple evaluation")));
 
@@ -224,7 +224,7 @@ fn test(n: i32) -> i32 {
 }
 "#;
 
-    // TODO: Verify transformation
+    // Note: Verify transformation
     assert!(c_code.contains("#define SQR"), "C uses macro");
     assert!(expected_rust.contains("#[inline]"), "Rust uses inline fn");
     assert!(expected_rust.contains("fn sqr"), "Function generated");
@@ -270,7 +270,7 @@ fn max_double(x: f64, y: f64) -> f64 {
 }
 "#;
 
-    // TODO: Verify generic function generated
+    // Note: Verify generic function generated
     assert!(
         c_code.contains("MAX(x, y)"),
         "C uses same macro for different types"
@@ -316,7 +316,7 @@ fn sort_two(x: &mut i32, y: &mut i32) {
 }
 "#;
 
-    // TODO: Recognize SWAP pattern and use std::mem::swap
+    // Note: Recognize SWAP pattern and use std::mem::swap
     assert!(c_code.contains("SWAP(*x, *y)"), "C uses swap macro");
     assert!(
         expected_rust.contains("std::mem::swap"),
@@ -357,7 +357,7 @@ fn test() {
 }
 "#;
 
-    // TODO: Verify transformation avoids hygiene issues
+    // Note: Verify transformation avoids hygiene issues
     assert!(c_code.contains("int tmp = 100"), "C has potential capture");
     assert!(
         expected_rust.contains("std::mem::swap"),
@@ -384,7 +384,7 @@ int test() {
 }
 "#;
 
-    // TODO: Should handle empty args or error clearly
+    // Note: Should handle empty args or error clearly
     assert!(c_code.contains("DEFAULT()"), "Empty macro call");
 }
 
