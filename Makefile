@@ -4,7 +4,7 @@
 .PHONY: help install install-rust install-llvm install-tools check-llvm \
         build test test-fast test-all test-unit test-integration test-doc \
         test-examples test-cli test-cli-verbose coverage mutation lint fmt check clean quality-gates \
-        verify-install pre-commit-setup kaizen
+        verify-install pre-commit-setup kaizen renacer-install renacer-capture renacer-validate
 
 # Default target
 .DEFAULT_GOAL := help
@@ -285,6 +285,38 @@ quality-gates: ## Run all quality gates (pre-commit checks)
 		export LLVM_CONFIG_PATH=/usr/bin/llvm-config-14; \
 		export LIBCLANG_PATH=/usr/lib/llvm-14/lib; \
 	fi && ./scripts/quality-gates.sh
+
+##@ Performance Validation (Renacer)
+
+renacer-install: ## Install Renacer from crates.io
+	@echo "📦 Installing Renacer..."
+	@cargo install renacer --version 0.6.2
+	@echo "✅ Renacer installed (version 0.6.2)"
+
+renacer-capture: ## Capture golden traces for performance baselines
+	@echo "📊 Capturing golden traces..."
+	@if [ ! -f ./scripts/capture_golden_traces.sh ]; then \
+		echo "❌ scripts/capture_golden_traces.sh not found"; \
+		exit 1; \
+	fi
+	@chmod +x ./scripts/capture_golden_traces.sh
+	@./scripts/capture_golden_traces.sh
+	@echo "✅ Golden traces captured in golden_traces/"
+
+renacer-validate: build-release renacer-capture ## Validate performance against baselines
+	@echo "🔍 Validating performance against baselines..."
+	@if [ ! -f golden_traces/transpile_simple_summary.txt ]; then \
+		echo "❌ Golden traces not found. Run 'make renacer-capture' first."; \
+		exit 1; \
+	fi
+	@TRANSPILE_NEW=$$(grep "total" golden_traces/transpile_simple_summary.txt | awk '{print $$2}'); \
+	TRANSPILE_BASELINE=0.008165; \
+	echo "  Transpile simple: $${TRANSPILE_NEW}s (baseline: $${TRANSPILE_BASELINE}s)"; \
+	if [ $$(echo "$$TRANSPILE_NEW > $$TRANSPILE_BASELINE * 1.2" | bc -l) -eq 1 ]; then \
+		echo "❌ Performance regression: $${TRANSPILE_NEW}s vs $${TRANSPILE_BASELINE}s baseline (>20% slower)"; \
+		exit 1; \
+	fi
+	@echo "✅ Performance validation passed (no regression detected)"
 
 ##@ Documentation
 
