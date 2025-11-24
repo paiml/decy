@@ -228,7 +228,7 @@ fn test_length_parameter_references_replaced_with_len_method() {
 // ============================================================================
 
 #[test]
-#[ignore = "DECY-XXX: Array detection heuristics need refinement - transforms when ptr arithmetic present"]
+#[ignore = "DECY-TBD: Array detection heuristics need refinement - transforms when ptr arithmetic present"]
 fn test_array_with_pointer_arithmetic_not_transformed() {
     let c_code = r#"
         void process_with_arithmetic(int* arr, int len) {
@@ -255,7 +255,7 @@ fn test_array_with_pointer_arithmetic_not_transformed() {
 // ============================================================================
 
 #[test]
-#[ignore = "DECY-XXX: Slice signature has unnecessary lifetime/mut annotations"]
+#[ignore = "DECY-TBD: Slice signature has unnecessary lifetime/mut annotations"]
 fn test_full_function_with_array_slice_transformation() {
     let c_code = r#"
         void normalize(float* values, int n) {

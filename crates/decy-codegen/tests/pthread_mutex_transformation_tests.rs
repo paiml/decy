@@ -122,7 +122,7 @@ fn test_lock_analyzer_detects_protected_data() {
 // ============================================================================
 
 #[test]
-#[ignore] // TODO(DECY-078): Implement Mutex<T> transformation in CodeGenerator
+#[ignore] // Note(DECY-078): Implement Mutex<T> transformation in CodeGenerator
 fn test_codegen_transforms_lock_to_mutex() {
     // Create a struct with a lock and protected data
     // Based on lock analysis, this should generate Mutex<T>
@@ -137,7 +137,7 @@ fn test_codegen_transforms_lock_to_mutex() {
     let codegen = CodeGenerator::new();
     let rust_code = codegen.generate_struct(&counter_struct);
 
-    // TODO(DECY-078): After implementation, this should transform to:
+    // Note(DECY-078): After implementation, this should transform to:
     // struct Counter {
     //     value: Mutex<i32>
     // }
@@ -153,7 +153,7 @@ fn test_codegen_transforms_lock_to_mutex() {
 }
 
 #[test]
-#[ignore] // TODO(DECY-078): Implement lock/unlock transformation
+#[ignore] // Note(DECY-078): Implement lock/unlock transformation
 fn test_codegen_transforms_lock_unlock_to_raii() {
     // Function with lock/unlock pattern
     let func = HirFunction::new_with_body(
@@ -180,7 +180,7 @@ fn test_codegen_transforms_lock_unlock_to_raii() {
     let codegen = CodeGenerator::new();
     let rust_code = codegen.generate_function(&func);
 
-    // TODO(DECY-078): After implementation, this should transform to:
+    // Note(DECY-078): After implementation, this should transform to:
     // fn increment(c: &Counter) {
     //     let mut guard = c.value.lock().unwrap();
     //     *guard += 1;
@@ -265,7 +265,7 @@ fn test_lock_analyzer_identifies_multiple_protected_variables() {
 }
 
 #[test]
-#[ignore] // TODO(DECY-078): Implement multi-mutex struct transformation
+#[ignore] // Note(DECY-078): Implement multi-mutex struct transformation
 fn test_codegen_handles_multiple_mutexes() {
     // Struct with two locks protecting different data
     let stats_struct = HirStruct::new(
@@ -281,7 +281,7 @@ fn test_codegen_handles_multiple_mutexes() {
     let codegen = CodeGenerator::new();
     let rust_code = codegen.generate_struct(&stats_struct);
 
-    // TODO(DECY-078): Should transform to:
+    // Note(DECY-078): Should transform to:
     // struct Stats {
     //     count: Mutex<i32>,
     //     sum: Mutex<i32>
