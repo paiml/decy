@@ -196,6 +196,54 @@ mod tests {
     }
 
     #[test]
+    fn test_c_construct_all_variants() {
+        // RawPointer mutable
+        let ptr_mut = CConstruct::RawPointer {
+            is_const: false,
+            pointee: "float".into(),
+        };
+        assert_eq!(ptr_mut.to_string(), "float*");
+
+        // Array without size
+        let arr_unsized = CConstruct::Array {
+            element: "int".into(),
+            size: None,
+        };
+        assert_eq!(arr_unsized.to_string(), "int[]");
+
+        // String const
+        let str_const = CConstruct::String { is_const: true };
+        assert_eq!(str_const.to_string(), "const char*");
+
+        // String mutable
+        let str_mut = CConstruct::String { is_const: false };
+        assert_eq!(str_mut.to_string(), "char*");
+
+        // Struct
+        let s = CConstruct::Struct {
+            name: "Node".into(),
+            has_pointers: true,
+        };
+        assert_eq!(s.to_string(), "struct Node");
+
+        // Union
+        let u = CConstruct::Union {
+            name: "Data".into(),
+        };
+        assert_eq!(u.to_string(), "union Data");
+
+        // Function pointer
+        let fp = CConstruct::FunctionPointer {
+            signature: "int, int".into(),
+        };
+        assert_eq!(fp.to_string(), "(*)(int, int)");
+
+        // Void pointer
+        let vp = CConstruct::VoidPointer;
+        assert_eq!(vp.to_string(), "void*");
+    }
+
+    #[test]
     fn test_source_span_overlap() {
         let span1 = SourceSpan::line("test.c", 10);
         let span2 = SourceSpan::line("test.c", 10);
@@ -206,6 +254,29 @@ mod tests {
 
         let span4 = SourceSpan::line("other.c", 10);
         assert!(!span1.overlaps(&span4));
+    }
+
+    #[test]
+    fn test_source_span_display() {
+        let span = SourceSpan::line("src/main.c", 42);
+        assert_eq!(span.to_string(), "src/main.c:42:1");
+    }
+
+    #[test]
+    fn test_source_span_multi_line() {
+        let span = SourceSpan {
+            file: "test.c".into(),
+            start_line: 10,
+            start_col: 5,
+            end_line: 15,
+            end_col: 10,
+        };
+
+        let single = SourceSpan::line("test.c", 12);
+        assert!(span.overlaps(&single)); // 12 is within 10-15
+
+        let outside = SourceSpan::line("test.c", 20);
+        assert!(!span.overlaps(&outside));
     }
 
     #[test]
@@ -223,5 +294,45 @@ mod tests {
         assert_eq!(strings.len(), 3);
         assert!(strings[0].contains("int*"));
         assert!(strings[1].contains("pointer_ownership"));
+    }
+
+    #[test]
+    fn test_context_with_c_span() {
+        let ctx = CDecisionContext::new(
+            CConstruct::VoidPointer,
+            CDecisionCategory::RawPointerCast,
+        )
+        .with_c_span(SourceSpan::line("test.c", 100));
+
+        assert!(ctx.c_span.is_some());
+        assert_eq!(ctx.c_span.as_ref().unwrap().start_line, 100);
+    }
+
+    #[test]
+    fn test_lifetime_decision_variants() {
+        let elided = LifetimeDecision::Elided;
+        assert!(matches!(elided, LifetimeDecision::Elided));
+
+        let explicit = LifetimeDecision::Explicit("'a".into());
+        assert!(matches!(explicit, LifetimeDecision::Explicit(_)));
+
+        let static_lt = LifetimeDecision::Static;
+        assert!(matches!(static_lt, LifetimeDecision::Static));
+
+        let bound = LifetimeDecision::InputBound("'input".into());
+        assert!(matches!(bound, LifetimeDecision::InputBound(_)));
+    }
+
+    #[test]
+    fn test_context_default_values() {
+        let ctx = CDecisionContext::new(
+            CConstruct::VoidPointer,
+            CDecisionCategory::UnsafeBlock,
+        );
+
+        assert!(ctx.c_span.is_none());
+        assert!(ctx.rust_span.is_none());
+        assert!(ctx.c_context.is_empty());
+        assert_eq!(ctx.hir_hash, 0);
     }
 }
