@@ -82,7 +82,10 @@ impl ErrorHistogram {
 
     /// Record an error
     pub fn record_error(&mut self, error_code: &str) {
-        *self.by_error_code.entry(error_code.to_string()).or_default() += 1;
+        *self
+            .by_error_code
+            .entry(error_code.to_string())
+            .or_default() += 1;
         let category = categorize_error(error_code);
         *self.by_category.entry(category).or_default() += 1;
     }
@@ -163,21 +166,18 @@ impl DiversityMetrics {
 }
 
 /// Compare two error histograms for diversity
-pub fn compare_histograms(primary: &ErrorHistogram, comparison: &ErrorHistogram) -> DiversityMetrics {
+pub fn compare_histograms(
+    primary: &ErrorHistogram,
+    comparison: &ErrorHistogram,
+) -> DiversityMetrics {
     let p_dist = primary.error_distribution();
     let q_dist = comparison.error_distribution();
 
     // Get all unique error codes
-    let all_codes: std::collections::HashSet<_> = p_dist
-        .keys()
-        .chain(q_dist.keys())
-        .cloned()
-        .collect();
+    let all_codes: std::collections::HashSet<_> =
+        p_dist.keys().chain(q_dist.keys()).cloned().collect();
 
-    let shared: usize = p_dist
-        .keys()
-        .filter(|k| q_dist.contains_key(*k))
-        .count();
+    let shared: usize = p_dist.keys().filter(|k| q_dist.contains_key(*k)).count();
 
     // Calculate JS divergence
     let js_divergence = jensen_shannon_divergence(&p_dist, &q_dist, &all_codes);
@@ -312,7 +312,12 @@ impl DiversityValidation {
     }
 
     /// Add a comparison corpus
-    pub fn add_comparison(&mut self, name: &str, histogram: ErrorHistogram, config: &DiversityConfig) {
+    pub fn add_comparison(
+        &mut self,
+        name: &str,
+        histogram: ErrorHistogram,
+        config: &DiversityConfig,
+    ) {
         let metrics = compare_histograms(&self.primary_histogram, &histogram);
 
         // Check thresholds
@@ -332,7 +337,8 @@ impl DiversityValidation {
             self.passed = false;
         }
 
-        self.comparisons.push((name.to_string(), histogram, metrics));
+        self.comparisons
+            .push((name.to_string(), histogram, metrics));
     }
 
     /// Generate a validation report
@@ -694,7 +700,10 @@ mod tests {
         hist.record_construct(CConstruct::RawPointer);
         hist.record_construct(CConstruct::Struct);
 
-        assert_eq!(hist.construct_coverage.get(&CConstruct::RawPointer), Some(&2));
+        assert_eq!(
+            hist.construct_coverage.get(&CConstruct::RawPointer),
+            Some(&2)
+        );
         assert_eq!(hist.construct_coverage.get(&CConstruct::Struct), Some(&1));
     }
 

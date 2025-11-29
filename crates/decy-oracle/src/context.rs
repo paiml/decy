@@ -66,32 +66,20 @@ impl SourceSpan {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum CConstruct {
     /// Raw pointer: *T
-    RawPointer {
-        is_const: bool,
-        pointee: String,
-    },
+    RawPointer { is_const: bool, pointee: String },
     /// Array: T[N] or T[]
     Array {
         element: String,
         size: Option<usize>,
     },
     /// String: char* or const char*
-    String {
-        is_const: bool,
-    },
+    String { is_const: bool },
     /// Struct with potential pointer fields
-    Struct {
-        name: String,
-        has_pointers: bool,
-    },
+    Struct { name: String, has_pointers: bool },
     /// Union
-    Union {
-        name: String,
-    },
+    Union { name: String },
     /// Function pointer
-    FunctionPointer {
-        signature: String,
-    },
+    FunctionPointer { signature: String },
     /// void*
     VoidPointer,
 }
@@ -298,11 +286,8 @@ mod tests {
 
     #[test]
     fn test_context_with_c_span() {
-        let ctx = CDecisionContext::new(
-            CConstruct::VoidPointer,
-            CDecisionCategory::RawPointerCast,
-        )
-        .with_c_span(SourceSpan::line("test.c", 100));
+        let ctx = CDecisionContext::new(CConstruct::VoidPointer, CDecisionCategory::RawPointerCast)
+            .with_c_span(SourceSpan::line("test.c", 100));
 
         assert!(ctx.c_span.is_some());
         assert_eq!(ctx.c_span.as_ref().unwrap().start_line, 100);
@@ -325,10 +310,7 @@ mod tests {
 
     #[test]
     fn test_context_default_values() {
-        let ctx = CDecisionContext::new(
-            CConstruct::VoidPointer,
-            CDecisionCategory::UnsafeBlock,
-        );
+        let ctx = CDecisionContext::new(CConstruct::VoidPointer, CDecisionCategory::UnsafeBlock);
 
         assert!(ctx.c_span.is_none());
         assert!(ctx.rust_span.is_none());

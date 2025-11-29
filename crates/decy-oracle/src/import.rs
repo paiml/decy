@@ -43,7 +43,10 @@ pub enum ImportDecision {
 impl ImportDecision {
     /// Check if decision allows import
     pub fn allows_import(&self) -> bool {
-        matches!(self, ImportDecision::Accept | ImportDecision::AcceptWithWarning(_))
+        matches!(
+            self,
+            ImportDecision::Accept | ImportDecision::AcceptWithWarning(_)
+        )
     }
 }
 
@@ -85,8 +88,16 @@ impl ImportStats {
 
     /// Get acceptance rate for a strategy
     pub fn acceptance_rate(&self, strategy: FixStrategy) -> f32 {
-        let accepted = self.accepted_by_strategy.get(&strategy).copied().unwrap_or(0);
-        let rejected = self.rejected_by_strategy.get(&strategy).copied().unwrap_or(0);
+        let accepted = self
+            .accepted_by_strategy
+            .get(&strategy)
+            .copied()
+            .unwrap_or(0);
+        let rejected = self
+            .rejected_by_strategy
+            .get(&strategy)
+            .copied()
+            .unwrap_or(0);
         let total = accepted + rejected;
         if total == 0 {
             0.0
@@ -147,7 +158,9 @@ pub fn analyze_fix_strategy(fix_diff: &str) -> FixStrategy {
     }
 
     // Lifetime patterns (check before borrow since 'a appears in both)
-    if fix_diff.contains("<'a>") || fix_diff.contains("'static") || fix_diff.contains("'_")
+    if fix_diff.contains("<'a>")
+        || fix_diff.contains("'static")
+        || fix_diff.contains("'_")
         || (fix_diff.contains("'a") && fix_diff.contains("fn "))
     {
         return FixStrategy::AddLifetime;
@@ -155,17 +168,24 @@ pub fn analyze_fix_strategy(fix_diff: &str) -> FixStrategy {
 
     // Borrow patterns - check for borrow additions in function signatures
     // Look for patterns like ": &String" or ": &mut Vec" or "(x: &"
-    if fix_diff.contains(": &mut ") || fix_diff.contains(": &")
-        || fix_diff.contains("(&self)") || fix_diff.contains("(&mut self)")
-        || fix_diff.contains("(x: &") || fix_diff.contains("(y: &") || fix_diff.contains("(z: &")
+    if fix_diff.contains(": &mut ")
+        || fix_diff.contains(": &")
+        || fix_diff.contains("(&self)")
+        || fix_diff.contains("(&mut self)")
+        || fix_diff.contains("(x: &")
+        || fix_diff.contains("(y: &")
+        || fix_diff.contains("(z: &")
         || (fix_diff.contains("&") && fix_diff.contains("+ fn"))
     {
         return FixStrategy::AddBorrow;
     }
 
     // Option patterns
-    if fix_diff.contains("Option<") || fix_diff.contains("Some(") || fix_diff.contains(".unwrap()")
-        || fix_diff.contains(".is_none()") || fix_diff.contains(".is_some()")
+    if fix_diff.contains("Option<")
+        || fix_diff.contains("Some(")
+        || fix_diff.contains(".unwrap()")
+        || fix_diff.contains(".is_none()")
+        || fix_diff.contains(".is_some()")
     {
         return FixStrategy::WrapInOption;
     }
@@ -176,7 +196,8 @@ pub fn analyze_fix_strategy(fix_diff: &str) -> FixStrategy {
     }
 
     // Type annotation patterns (only if no borrow/option/result)
-    if fix_diff.contains(": i32") || fix_diff.contains(": String")
+    if fix_diff.contains(": i32")
+        || fix_diff.contains(": String")
         || (fix_diff.contains(": ") && !fix_diff.contains(": &"))
     {
         return FixStrategy::AddTypeAnnotation;
@@ -244,16 +265,12 @@ pub fn smart_import_filter(
         FixStrategy::AddTypeAnnotation => {
             // Type annotation patterns depend on type system differences
             if config.source_language == SourceLanguage::Python {
-                ImportDecision::AcceptWithWarning(
-                    "Verify type mapping for C context".to_string(),
-                )
+                ImportDecision::AcceptWithWarning("Verify type mapping for C context".to_string())
             } else {
                 ImportDecision::Accept
             }
         }
-        FixStrategy::Unknown => {
-            ImportDecision::Reject("Unknown fix strategy".to_string())
-        }
+        FixStrategy::Unknown => ImportDecision::Reject("Unknown fix strategy".to_string()),
     }
 }
 
@@ -444,16 +461,25 @@ mod tests {
         stats.record(FixStrategy::AddBorrow, &ImportDecision::Accept);
 
         assert_eq!(stats.total_evaluated, 1);
-        assert_eq!(stats.accepted_by_strategy.get(&FixStrategy::AddBorrow), Some(&1));
+        assert_eq!(
+            stats.accepted_by_strategy.get(&FixStrategy::AddBorrow),
+            Some(&1)
+        );
     }
 
     #[test]
     fn test_import_stats_record_reject() {
         let mut stats = ImportStats::new();
-        stats.record(FixStrategy::AddClone, &ImportDecision::Reject("reason".into()));
+        stats.record(
+            FixStrategy::AddClone,
+            &ImportDecision::Reject("reason".into()),
+        );
 
         assert_eq!(stats.total_evaluated, 1);
-        assert_eq!(stats.rejected_by_strategy.get(&FixStrategy::AddClone), Some(&1));
+        assert_eq!(
+            stats.rejected_by_strategy.get(&FixStrategy::AddClone),
+            Some(&1)
+        );
     }
 
     #[test]
@@ -479,7 +505,10 @@ mod tests {
         stats.record(FixStrategy::AddBorrow, &ImportDecision::Accept);
         stats.record(FixStrategy::AddBorrow, &ImportDecision::Accept);
         stats.record(FixStrategy::AddBorrow, &ImportDecision::Accept);
-        stats.record(FixStrategy::AddBorrow, &ImportDecision::Reject("reason".into()));
+        stats.record(
+            FixStrategy::AddBorrow,
+            &ImportDecision::Reject("reason".into()),
+        );
 
         let rate = stats.acceptance_rate(FixStrategy::AddBorrow);
         assert!((rate - 0.75).abs() < 0.01);
@@ -490,7 +519,10 @@ mod tests {
         let mut stats = ImportStats::new();
         stats.record(FixStrategy::AddBorrow, &ImportDecision::Accept);
         stats.record(FixStrategy::AddClone, &ImportDecision::Accept);
-        stats.record(FixStrategy::Unknown, &ImportDecision::Reject("reason".into()));
+        stats.record(
+            FixStrategy::Unknown,
+            &ImportDecision::Reject("reason".into()),
+        );
 
         let rate = stats.overall_acceptance_rate();
         assert!((rate - 0.666).abs() < 0.01);
