@@ -765,6 +765,19 @@ impl CodeGenerator {
                 format!("&{}", inner_code)
             }
             HirExpression::StringLiteral(s) => format!("\"{}\"", s),
+            HirExpression::CharLiteral(c) => {
+                // For char literals, convert to u8 equivalent
+                // '\0' = 0, 'a' = 97, etc.
+                let val = *c as u8;
+                if val == 0 {
+                    "0u8".to_string()
+                } else if val.is_ascii_graphic() || val == b' ' {
+                    format!("b'{}'", val as char)
+                } else {
+                    // For non-printable characters, use the numeric value
+                    format!("{}u8", val)
+                }
+            }
             HirExpression::Variable(name) => name.clone(),
             HirExpression::BinaryOp { op, left, right } => {
                 // Check for Option comparison with NULL → is_none() / is_some()

@@ -677,6 +677,8 @@ pub enum HirExpression {
     IntLiteral(i32),
     /// String literal (C: "hello" → Rust: "hello")
     StringLiteral(String),
+    /// Character literal (C: 'a', '\0', '\n' → Rust: b'a', 0, b'\n')
+    CharLiteral(i8),
     /// Variable reference
     Variable(String),
     /// Binary operation (left op right)
@@ -1075,6 +1077,7 @@ impl HirExpression {
         match ast_expr {
             Expression::IntLiteral(value) => HirExpression::IntLiteral(*value),
             Expression::StringLiteral(value) => HirExpression::StringLiteral(value.clone()),
+            Expression::CharLiteral(value) => HirExpression::CharLiteral(*value),
             Expression::Variable(name) => HirExpression::Variable(name.clone()),
             Expression::BinaryOp { op, left, right } => HirExpression::BinaryOp {
                 op: convert_binary_operator(*op),

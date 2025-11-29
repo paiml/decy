@@ -697,6 +697,7 @@ impl DataflowAnalyzer {
             }
             HirExpression::IntLiteral(_)
             | HirExpression::StringLiteral(_)
+            | HirExpression::CharLiteral(_)
             | HirExpression::Sizeof { .. }
             | HirExpression::NullLiteral => {
                 // No tracking needed for literals, sizeof, or NULL
