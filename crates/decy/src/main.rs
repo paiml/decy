@@ -219,6 +219,18 @@ enum OracleAction {
         #[arg(long)]
         dry_run: bool,
     },
+    /// Query oracle for fix patterns for a specific error code
+    Query {
+        /// Rustc error code (e.g., E0308, E0382)
+        #[arg(long, value_name = "CODE")]
+        error: String,
+        /// Optional context for better pattern matching
+        #[arg(long, value_name = "CONTEXT")]
+        context: Option<String>,
+        /// Output format: text, json
+        #[arg(long, default_value = "text")]
+        format: String,
+    },
 }
 
 fn main() -> Result<()> {
@@ -1604,6 +1616,92 @@ fn handle_oracle_command(action: OracleAction) -> Result<()> {
                 } else {
                     println!();
                     println!("⚠ No traces generated - check corpus files");
+                }
+
+                Ok(())
+            }
+
+            OracleAction::Query {
+                error,
+                context,
+                format,
+            } => {
+                use decy_oracle::bootstrap::get_bootstrap_patterns;
+
+                // Validate error code format (EXXXX)
+                if !error.starts_with('E') || error.len() != 5 {
+                    anyhow::bail!(
+                        "Invalid error code format: {}\n\nExpected format: EXXXX (e.g., E0308, E0382)",
+                        error
+                    );
+                }
+
+                // Query bootstrap patterns for this error code
+                let patterns = get_bootstrap_patterns();
+                let matching: Vec<_> = patterns
+                    .iter()
+                    .filter(|p| p.error_code == error)
+                    .collect();
+
+                if format.to_lowercase() == "json" {
+                    // JSON output
+                    let json_patterns: Vec<_> = matching
+                        .iter()
+                        .map(|p| {
+                            serde_json::json!({
+                                "error_code": p.error_code,
+                                "decision": p.decision,
+                                "description": p.description,
+                                "fix_diff": p.fix_diff,
+                            })
+                        })
+                        .collect();
+
+                    println!(
+                        "{}",
+                        serde_json::to_string_pretty(&serde_json::json!({
+                            "error_code": error,
+                            "context": context,
+                            "patterns_found": matching.len(),
+                            "patterns": json_patterns,
+                        }))?
+                    );
+                } else {
+                    // Text output
+                    println!("=== Oracle Query: {} ===", error);
+                    println!();
+
+                    if let Some(ref ctx) = context {
+                        println!("Context: {}", ctx);
+                        println!();
+                    }
+
+                    if matching.is_empty() {
+                        println!("No patterns found for error code {}", error);
+                        println!();
+                        println!("Tip: Use 'decy oracle bootstrap' to load seed patterns");
+                    } else {
+                        println!("Found {} pattern(s) for {}:", matching.len(), error);
+                        println!();
+
+                        for (i, pattern) in matching.iter().enumerate() {
+                            println!("--- Pattern {} ---", i + 1);
+                            println!("Decision: {}", pattern.decision);
+                            println!("Description: {}", pattern.description);
+                            println!();
+                            println!("Fix:");
+                            for line in pattern.fix_diff.lines() {
+                                if line.starts_with('-') {
+                                    println!("  {}", line);
+                                } else if line.starts_with('+') {
+                                    println!("  {}", line);
+                                } else {
+                                    println!("  {}", line);
+                                }
+                            }
+                            println!();
+                        }
+                    }
                 }
 
                 Ok(())
