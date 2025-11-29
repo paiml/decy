@@ -6,3 +6,4 @@
 # everyone who runs the test benefits from these saved cases.
 cc 9e7e11d8c0b7c20d52b24aceeff4ba449424a0be19374ba634d17d4251c78eac # shrinks to buf_name = "aaa", size_name = "aaa"
 cc 089e51821d173f292ed7f9a32648264214dd1e63b0a3a2bbe10d42a374fff5c1 # shrinks to arr_name = "aaa", len_name = "aaa"
+cc 6b4509ebc823bbea95a23446fd7a91b4cbce6562b4828ec8d13b36d9a8c548c0 # shrinks to arr_name = "aaa", unknown_name = "len"
