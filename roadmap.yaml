@@ -9236,7 +9236,7 @@ sprint_18:
       priority: critical
       story_points: 8
       assignee: Claude
-      status: not_started
+      status: in_progress
       phase: RED
       github_issue: null
 
