@@ -9171,8 +9171,8 @@ sprint_oracle_training:
       priority: high
       story_points: 5
       assignee: Claude
-      status: in_progress
-      phase: RED
+      status: done
+      phase: DONE
 
       description: |
         Implement `decy oracle query` command per spec Section 6.7.
