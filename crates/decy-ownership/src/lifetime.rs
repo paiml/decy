@@ -287,6 +287,7 @@ impl LifetimeAnalyzer {
             }
             HirExpression::IntLiteral(_)
             | HirExpression::StringLiteral(_)
+            | HirExpression::CharLiteral(_)
             | HirExpression::Sizeof { .. }
             | HirExpression::NullLiteral => false,
             HirExpression::IsNotNull(inner) => self.expression_uses_variable(inner, var_name),

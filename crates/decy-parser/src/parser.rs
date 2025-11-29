@@ -446,6 +446,7 @@ fn try_extract_expression(cursor: CXCursor) -> Option<Expression> {
     match kind {
         CXCursor_IntegerLiteral => extract_int_literal(cursor),
         CXCursor_StringLiteral => extract_string_literal(cursor),
+        110 => extract_char_literal(cursor), // CXCursor_CharacterLiteral
         CXCursor_DeclRefExpr => extract_variable_ref(cursor),
         CXCursor_BinaryOperator => extract_binary_op(cursor),
         CXCursor_CallExpr => extract_function_call(cursor),
@@ -1166,6 +1167,7 @@ extern "C" fn visit_if_children(
             if_data.condition = match kind {
                 CXCursor_BinaryOperator => extract_binary_op(cursor),
                 CXCursor_IntegerLiteral => extract_int_literal(cursor),
+                110 => extract_char_literal(cursor), // CXCursor_CharacterLiteral
                 CXCursor_DeclRefExpr => extract_variable_ref(cursor),
                 CXCursor_CallExpr => extract_function_call(cursor),
                 CXCursor_UnaryOperator => extract_unary_op(cursor),
@@ -1296,6 +1298,7 @@ extern "C" fn visit_for_children(
             for_data.condition = match kind {
                 CXCursor_BinaryOperator => extract_binary_op(cursor),
                 CXCursor_IntegerLiteral => extract_int_literal(cursor),
+                110 => extract_char_literal(cursor), // CXCursor_CharacterLiteral
                 CXCursor_DeclRefExpr => extract_variable_ref(cursor),
                 CXCursor_CallExpr => extract_function_call(cursor),
                 CXCursor_UnaryOperator => extract_unary_op(cursor),
@@ -1396,6 +1399,7 @@ extern "C" fn visit_while_children(
             while_data.condition = match kind {
                 CXCursor_BinaryOperator => extract_binary_op(cursor),
                 CXCursor_IntegerLiteral => extract_int_literal(cursor),
+                110 => extract_char_literal(cursor), // CXCursor_CharacterLiteral
                 CXCursor_DeclRefExpr => extract_variable_ref(cursor),
                 CXCursor_CallExpr => extract_function_call(cursor),
                 CXCursor_UnaryOperator => extract_unary_op(cursor),
@@ -1706,6 +1710,13 @@ extern "C" fn visit_expression(
             }
             CXChildVisit_Continue
         }
+        110 => {
+            // Character literal (CXCursor_CharacterLiteral)
+            if let Some(expr) = extract_char_literal(cursor) {
+                *expr_opt = Some(expr);
+            }
+            CXChildVisit_Continue
+        }
         CXCursor_DeclRefExpr => {
             // Variable reference (e.g., "a" or "b" in "a + b")
             if let Some(expr) = extract_variable_ref(cursor) {
@@ -1863,6 +1874,101 @@ fn extract_string_literal(cursor: CXCursor) -> Option<Expression> {
     Some(Expression::StringLiteral(value))
 }
 
+/// Extract a character literal expression.
+/// Handles plain characters ('a'), escape sequences ('\0', '\n', '\t', etc.)
+fn extract_char_literal(cursor: CXCursor) -> Option<Expression> {
+    // SAFETY: Get the extent (source range) of the cursor
+    let extent = unsafe { clang_getCursorExtent(cursor) };
+
+    // SAFETY: Get the translation unit from the cursor
+    let tu = unsafe { clang_Cursor_getTranslationUnit(cursor) };
+
+    if tu.is_null() {
+        return Some(Expression::CharLiteral(0));
+    }
+
+    // SAFETY: Tokenize the extent
+    let mut tokens = ptr::null_mut();
+    let mut num_tokens = 0;
+
+    unsafe {
+        clang_tokenize(tu, extent, &mut tokens, &mut num_tokens);
+    }
+
+    let mut value: i8 = 0;
+
+    if num_tokens > 0 {
+        // SAFETY: Get the spelling of the first token
+        unsafe {
+            let token_cxstring = clang_getTokenSpelling(tu, *tokens);
+            let c_str = CStr::from_ptr(clang_getCString(token_cxstring));
+            if let Ok(token_str) = c_str.to_str() {
+                // Remove surrounding quotes from character literal
+                let inner = token_str.trim_matches('\'');
+                value = parse_char_literal(inner);
+            }
+            clang_disposeString(token_cxstring);
+
+            // SAFETY: Dispose tokens
+            clang_disposeTokens(tu, tokens, num_tokens);
+        }
+    }
+
+    Some(Expression::CharLiteral(value))
+}
+
+/// Parse a character literal string (without quotes) into its i8 value.
+/// Handles escape sequences like \0, \n, \t, \r, \\, \', \"
+fn parse_char_literal(s: &str) -> i8 {
+    if s.is_empty() {
+        return 0;
+    }
+
+    let mut chars = s.chars();
+    let first = chars.next().unwrap();
+
+    if first == '\\' {
+        // Escape sequence
+        match chars.next() {
+            Some('0') => 0,        // null character
+            Some('n') => b'\n' as i8,
+            Some('t') => b'\t' as i8,
+            Some('r') => b'\r' as i8,
+            Some('\\') => b'\\' as i8,
+            Some('\'') => b'\'' as i8,
+            Some('"') => b'"' as i8,
+            Some('a') => 7,        // bell
+            Some('b') => 8,        // backspace
+            Some('f') => 12,       // form feed
+            Some('v') => 11,       // vertical tab
+            Some('x') => {
+                // Hex escape: \xNN
+                let hex: String = chars.take(2).collect();
+                i8::from_str_radix(&hex, 16).unwrap_or(0)
+            }
+            Some(c) if c.is_ascii_digit() => {
+                // Octal escape: \NNN
+                let mut octal = String::new();
+                octal.push(c);
+                for _ in 0..2 {
+                    if let Some(d) = chars.next() {
+                        if d.is_ascii_digit() && d < '8' {
+                            octal.push(d);
+                        } else {
+                            break;
+                        }
+                    }
+                }
+                i8::from_str_radix(&octal, 8).unwrap_or(0)
+            }
+            _ => first as i8,
+        }
+    } else {
+        // Plain character
+        first as i8
+    }
+}
+
 /// Extract a variable reference expression.
 fn extract_variable_ref(cursor: CXCursor) -> Option<Expression> {
     // Get variable name
@@ -1921,6 +2027,13 @@ extern "C" fn visit_binary_operand(
         }
         CXCursor_StringLiteral => {
             if let Some(expr) = extract_string_literal(cursor) {
+                operands.push(expr);
+            }
+            CXChildVisit_Continue
+        }
+        110 => {
+            // Character literal (CXCursor_CharacterLiteral)
+            if let Some(expr) = extract_char_literal(cursor) {
                 operands.push(expr);
             }
             CXChildVisit_Continue
@@ -2187,6 +2300,13 @@ extern "C" fn visit_call_argument(
         }
         CXCursor_StringLiteral => {
             if let Some(expr) = extract_string_literal(cursor) {
+                arg_data.arguments.push(expr);
+            }
+            CXChildVisit_Continue
+        }
+        110 => {
+            // Character literal (CXCursor_CharacterLiteral)
+            if let Some(expr) = extract_char_literal(cursor) {
                 arg_data.arguments.push(expr);
             }
             CXChildVisit_Continue
@@ -2998,6 +3118,8 @@ pub enum Expression {
     IntLiteral(i32),
     /// String literal: `"hello"`
     StringLiteral(String),
+    /// Character literal: `'a'`, `'\0'`, `'\n'`
+    CharLiteral(i8),
     /// Variable reference: `x`
     Variable(String),
     /// Binary operation: `a + b`
