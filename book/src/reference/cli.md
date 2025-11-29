@@ -288,6 +288,117 @@ decy oracle validate ../reprorusted-c-cli/coreutils/
 - Error distribution by category
 - Oracle query metrics
 
+#### `decy oracle query`
+
+Query oracle for fix patterns for a specific rustc error code.
+
+```bash
+decy oracle query --error <CODE> [OPTIONS]
+```
+
+**Options:**
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--error <CODE>` | Rustc error code (e.g., E0308, E0382) | required |
+| `--context <TEXT>` | Optional code context for better matching | none |
+| `--format <FORMAT>` | Output format (text, json) | text |
+
+**Examples:**
+```bash
+# Query patterns for type mismatch
+decy oracle query --error E0308
+
+# Query with context
+decy oracle query --error E0382 --context "let x = value; use(x);"
+
+# JSON output for tooling
+decy oracle query --error E0308 --format json
+```
+
+#### `decy oracle train`
+
+Train oracle on a C corpus using CITL feedback loop.
+
+```bash
+decy oracle train --corpus <DIR> [OPTIONS]
+```
+
+**Options:**
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--corpus <DIR>` | Path to corpus directory containing C files | required |
+| `--tier <TIER>` | Training tier: P0 (simple), P1 (I/O), P2 (complex) | P0 |
+| `--dry-run` | Preview training without saving patterns | disabled |
+
+**Examples:**
+```bash
+# Train on P0 tier
+decy oracle train --corpus ./c-corpus --tier P0
+
+# Preview training
+decy oracle train --corpus ./c-corpus --dry-run
+```
+
+#### `decy oracle generate-traces`
+
+Generate Golden Traces from C corpus for model training.
+
+```bash
+decy oracle generate-traces --corpus <DIR> --output <FILE> [OPTIONS]
+```
+
+**Options:**
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--corpus <DIR>` | Path to corpus directory containing C files | required |
+| `--output <FILE>` | Output file path for JSONL traces | required |
+| `--tier <TIER>` | Training tier: P0 (simple), P1 (I/O), P2 (complex) | P0 |
+| `--dry-run` | Preview generation without writing output | disabled |
+
+**Examples:**
+```bash
+# Generate P0 traces
+decy oracle generate-traces \
+    --corpus ./c-corpus \
+    --output ./traces.jsonl \
+    --tier P0
+
+# Preview generation
+decy oracle generate-traces \
+    --corpus ./c-corpus \
+    --output ./traces.jsonl \
+    --dry-run
+```
+
+#### `decy oracle export`
+
+Export patterns to dataset format for HuggingFace.
+
+```bash
+decy oracle export <FILE> [OPTIONS]
+```
+
+**Arguments:**
+- `<FILE>` - Output file path
+
+**Options:**
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--format <FORMAT>` | Export format: jsonl, chatml, alpaca, parquet | jsonl |
+| `--with-card` | Also generate dataset card (README.md) | disabled |
+
+**Examples:**
+```bash
+# Export to JSONL
+decy oracle export ./patterns.jsonl --format jsonl
+
+# Export with dataset card
+decy oracle export ./dataset.jsonl --format jsonl --with-card
+
+# Export to ChatML format
+decy oracle export ./patterns.chatml --format chatml
+```
+
 ## Oracle Integration
 
 The oracle integration uses entrenar's CITL (Compiler-in-the-Loop Training) system to automatically fix rustc errors during transpilation.
