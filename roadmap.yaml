@@ -9236,8 +9236,9 @@ sprint_18:
       priority: critical
       story_points: 8
       assignee: Claude
-      status: in_progress
-      phase: RED
+      status: done
+      phase: DONE
+      completed_date: "2025-11-29"
       github_issue: null
 
       description: |
@@ -9333,7 +9334,7 @@ sprint_18:
       priority: high
       story_points: 5
       assignee: Claude
-      status: not_started
+      status: in_progress
       phase: RED
       github_issue: null
 
