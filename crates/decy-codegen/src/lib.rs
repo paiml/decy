@@ -848,11 +848,13 @@ impl CodeGenerator {
                 if matches!(op, BinaryOperator::Add | BinaryOperator::Subtract) {
                     if let HirExpression::Variable(var_name) = &**left {
                         if ctx.is_pointer(var_name) {
-                            // This is pointer arithmetic - generate unsafe pointer method calls
+                            // This is pointer arithmetic - generate pointer method calls
+                            // Note: wrapping_add/wrapping_sub are safe methods on raw pointers
+                            // Only offset_from needs unsafe
                             return match op {
                                 BinaryOperator::Add => {
                                     format!(
-                                        "unsafe {{ {}.wrapping_add({} as usize) }}",
+                                        "{}.wrapping_add({} as usize)",
                                         left_str, right_str
                                     )
                                 }
@@ -861,21 +863,22 @@ impl CodeGenerator {
                                     if let HirExpression::Variable(right_var) = &**right {
                                         if ctx.is_pointer(right_var) {
                                             // ptr - ptr: calculate difference (returns isize, cast to i32 for C compatibility)
+                                            // offset_from requires unsafe
                                             format!(
                                                 "unsafe {{ {}.offset_from({}) as i32 }}",
                                                 left_str, right_str
                                             )
                                         } else {
-                                            // ptr - integer offset
+                                            // ptr - integer offset (safe)
                                             format!(
-                                                "unsafe {{ {}.wrapping_sub({} as usize) }}",
+                                                "{}.wrapping_sub({} as usize)",
                                                 left_str, right_str
                                             )
                                         }
                                     } else {
-                                        // ptr - integer offset (literal or expression)
+                                        // ptr - integer offset (literal or expression, safe)
                                         format!(
-                                            "unsafe {{ {}.wrapping_sub({} as usize) }}",
+                                            "{}.wrapping_sub({} as usize)",
                                             left_str, right_str
                                         )
                                     }
@@ -1846,11 +1849,18 @@ impl CodeGenerator {
                 // Infer the type of *target for null pointer detection
                 let target_type = ctx
                     .infer_expression_type(&HirExpression::Dereference(Box::new(target.clone())));
-                format!(
-                    "*{} = {};",
-                    self.generate_expression_with_context(target, ctx),
-                    self.generate_expression_with_target_type(value, ctx, target_type.as_ref())
-                )
+                let target_code = self.generate_expression_with_context(target, ctx);
+                let value_code =
+                    self.generate_expression_with_target_type(value, ctx, target_type.as_ref());
+
+                // DECY-124: Check if target is a raw pointer - if so, wrap in unsafe
+                if let HirExpression::Variable(var_name) = target {
+                    if ctx.is_pointer(var_name) {
+                        return format!("unsafe {{ *{} = {}; }}", target_code, value_code);
+                    }
+                }
+
+                format!("*{} = {};", target_code, value_code)
             }
             HirStatement::ArrayIndexAssignment {
                 array,
@@ -2005,8 +2015,9 @@ impl CodeGenerator {
                             // (e.g., ptr = ptr + 1) - keep as raw pointer
                             if self.uses_pointer_arithmetic(func, &p.name) {
                                 // Keep as raw pointer - will need unsafe blocks
+                                // DECY-124: Add mut since the pointer is reassigned
                                 let inner_type = Self::map_type(inner);
-                                return Some(format!("{}: *mut {}", p.name, inner_type));
+                                return Some(format!("mut {}: *mut {}", p.name, inner_type));
                             }
                             // Transform pointer param to mutable reference
                             // Check if the param is modified in the function body
@@ -2404,8 +2415,9 @@ impl CodeGenerator {
                         if let Some(f) = func {
                             if self.uses_pointer_arithmetic(f, &p.name) {
                                 // Keep as raw pointer - needs pointer arithmetic
+                                // DECY-124: Add mut since the pointer is reassigned
                                 let inner_type = Self::map_type(inner);
-                                return format!("{}: *mut {}", p.name, inner_type);
+                                return format!("mut {}: *mut {}", p.name, inner_type);
                             }
                         }
                         // Transform *mut T → &mut T for safety
@@ -2760,17 +2772,25 @@ impl CodeGenerator {
         let mut ctx = TypeContext::from_function(func);
 
         // DECY-111: Transform pointer parameters to references in the context
+        // DECY-123/124: Only transform if NOT using pointer arithmetic
         // This prevents unsafe blocks from being generated for reference dereferences
         for param in func.parameters() {
             if let HirType::Pointer(inner) = param.param_type() {
-                // Re-register the parameter as a mutable reference type
-                ctx.add_variable(
-                    param.name().to_string(),
-                    HirType::Reference {
-                        inner: inner.clone(),
-                        mutable: true,
-                    },
-                );
+                // DECY-124: Keep as pointer in context if pointer arithmetic is used
+                // This ensures proper unsafe wrapping_add/wrapping_sub codegen
+                if self.uses_pointer_arithmetic(func, param.name()) {
+                    // Keep as pointer - codegen will generate unsafe blocks
+                    ctx.add_variable(param.name().to_string(), param.param_type().clone());
+                } else {
+                    // Re-register the parameter as a mutable reference type
+                    ctx.add_variable(
+                        param.name().to_string(),
+                        HirType::Reference {
+                            inner: inner.clone(),
+                            mutable: true,
+                        },
+                    );
+                }
             }
         }
 
