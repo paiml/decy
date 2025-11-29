@@ -1823,6 +1823,23 @@ impl CodeGenerator {
                         None
                     }
                 } else {
+                    // DECY-111: Check if this is a pointer parameter that should become a reference
+                    if let Some(orig_param) =
+                        func.parameters().iter().find(|fp| fp.name() == p.name)
+                    {
+                        if let HirType::Pointer(inner) = orig_param.param_type() {
+                            // Transform pointer param to mutable reference
+                            // Check if the param is modified in the function body
+                            let is_mutable = self.is_parameter_deref_modified(func, &p.name);
+                            let inner_type = Self::map_type(inner);
+                            if is_mutable {
+                                return Some(format!("{}: &mut {}", p.name, inner_type));
+                            } else {
+                                // Read-only pointer becomes immutable reference
+                                return Some(format!("{}: &{}", p.name, inner_type));
+                            }
+                        }
+                    }
                     // Regular parameter with lifetime annotation
                     let type_str = self.annotated_type_to_string(&p.param_type);
                     // In C, parameters are mutable by default (can be reassigned)
@@ -1864,6 +1881,64 @@ impl CodeGenerator {
             }
         }
         false
+    }
+
+    /// Check if a pointer parameter is dereferenced and modified (DECY-111 GREEN).
+    ///
+    /// Used to determine whether to use `&T` or `&mut T` for pointer parameters.
+    /// Returns true if the parameter is used in:
+    /// - `*ptr = value;` (DerefAssignment)
+    /// - `ptr[i] = value;` (ArrayIndexAssignment with pointer)
+    fn is_parameter_deref_modified(&self, func: &HirFunction, param_name: &str) -> bool {
+        for stmt in func.body() {
+            if self.statement_deref_modifies_variable(stmt, param_name) {
+                return true;
+            }
+        }
+        false
+    }
+
+    /// Recursively check if a statement deref-modifies a variable (DECY-111 GREEN).
+    #[allow(clippy::only_used_in_recursion)]
+    fn statement_deref_modifies_variable(&self, stmt: &HirStatement, var_name: &str) -> bool {
+        match stmt {
+            HirStatement::DerefAssignment { target, .. } => {
+                // Check if this is *ptr = value where ptr is our variable
+                if let HirExpression::Variable(name) = target {
+                    return name == var_name;
+                }
+                false
+            }
+            HirStatement::ArrayIndexAssignment { array, .. } => {
+                // Check if this is ptr[i] = value where ptr is our variable
+                if let HirExpression::Variable(name) = &**array {
+                    return name == var_name;
+                }
+                false
+            }
+            HirStatement::Assignment { target, .. } => {
+                // Check if this is directly assigning to dereferenced pointer
+                // e.g., *a = expr would be target = "a" with some expr
+                target == var_name
+            }
+            HirStatement::If {
+                then_block,
+                else_block,
+                ..
+            } => {
+                then_block
+                    .iter()
+                    .any(|s| self.statement_deref_modifies_variable(s, var_name))
+                    || else_block.as_ref().is_some_and(|blk| {
+                        blk.iter()
+                            .any(|s| self.statement_deref_modifies_variable(s, var_name))
+                    })
+            }
+            HirStatement::While { body, .. } | HirStatement::For { body, .. } => body
+                .iter()
+                .any(|s| self.statement_deref_modifies_variable(s, var_name)),
+            _ => false,
+        }
     }
 
     /// Recursively check if a statement modifies a variable (DECY-072 GREEN).
@@ -2074,6 +2149,14 @@ impl CodeGenerator {
                     };
                     format!("{}: {}", p.name, type_str)
                 } else {
+                    // DECY-111: Transform pointer parameters to mutable references
+                    // Check if param type is a simple pointer (not already a reference)
+                    if let AnnotatedType::Simple(HirType::Pointer(inner)) = &p.param_type {
+                        // Transform *mut T → &mut T for safety
+                        // All pointer params become &mut since C allows writing through them
+                        let inner_type = Self::map_type(inner);
+                        return format!("{}: &mut {}", p.name, inner_type);
+                    }
                     // DECY-041: Add mut for all non-slice parameters to match C semantics
                     // In C, parameters are mutable by default (can be reassigned)
                     // DECY-FUTURE: More sophisticated analysis to only add mut when needed
@@ -2399,6 +2482,21 @@ impl CodeGenerator {
 
         // DECY-041: Initialize type context with function parameters for pointer arithmetic
         let mut ctx = TypeContext::from_function(func);
+
+        // DECY-111: Transform pointer parameters to references in the context
+        // This prevents unsafe blocks from being generated for reference dereferences
+        for param in func.parameters() {
+            if let HirType::Pointer(inner) = param.param_type() {
+                // Re-register the parameter as a mutable reference type
+                ctx.add_variable(
+                    param.name().to_string(),
+                    HirType::Reference {
+                        inner: inner.clone(),
+                        mutable: true,
+                    },
+                );
+            }
+        }
 
         // Add struct definitions to context for field type lookup
         for struct_def in structs {
