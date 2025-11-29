@@ -1638,10 +1638,7 @@ fn handle_oracle_command(action: OracleAction) -> Result<()> {
 
                 // Query bootstrap patterns for this error code
                 let patterns = get_bootstrap_patterns();
-                let matching: Vec<_> = patterns
-                    .iter()
-                    .filter(|p| p.error_code == error)
-                    .collect();
+                let matching: Vec<_> = patterns.iter().filter(|p| p.error_code == error).collect();
 
                 if format.to_lowercase() == "json" {
                     // JSON output
@@ -1691,13 +1688,7 @@ fn handle_oracle_command(action: OracleAction) -> Result<()> {
                             println!();
                             println!("Fix:");
                             for line in pattern.fix_diff.lines() {
-                                if line.starts_with('-') {
-                                    println!("  {}", line);
-                                } else if line.starts_with('+') {
-                                    println!("  {}", line);
-                                } else {
-                                    println!("  {}", line);
-                                }
+                                println!("  {}", line);
                             }
                             println!();
                         }
