@@ -269,7 +269,10 @@ fn cli_oracle_train_dry_run_no_side_effects() {
         .output()
         .expect("stats failed");
 
-    assert_eq!(before.stdout, after.stdout, "Dry run should not modify patterns");
+    assert_eq!(
+        before.stdout, after.stdout,
+        "Dry run should not modify patterns"
+    );
 }
 
 // ============================================================================
