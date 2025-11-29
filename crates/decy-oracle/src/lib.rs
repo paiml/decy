@@ -38,15 +38,26 @@ mod oracle;
 pub mod retirement;
 pub mod verification;
 
+#[cfg(feature = "citl")]
+pub use bootstrap::{create_bootstrapped_store, seed_pattern_store};
+pub use bootstrap::{get_bootstrap_patterns, BootstrapPattern, BootstrapStats};
 pub use config::OracleConfig;
 pub use context::{CConstruct, CDecisionContext, LifetimeDecision};
+pub use dataset::{
+    generate_dataset_card, DatasetExporter, DatasetStats, ExportFormat, TrainingExample,
+};
 pub use decisions::CDecisionCategory;
+pub use diversity::{
+    analyze_corpus, categorize_error, compare_histograms, CConstruct as DiversityCConstruct,
+    DiversityConfig, DiversityMetrics, DiversityValidation, ErrorCategory, ErrorHistogram,
+};
 pub use error::OracleError;
 pub use import::{
     analyze_fix_strategy, smart_import_filter, FixStrategy, ImportDecision, ImportStats,
     SmartImportConfig, SourceLanguage,
 };
 pub use metrics::{CIReport, CIThresholds, OracleMetrics};
+pub use oracle::{DecyOracle, RustcError};
 pub use retirement::{
     run_retirement_sweep, PatternRetirementPolicy, PatternStats, RetirementConfig,
     RetirementDecision, RetirementReason, RetirementSweepResult,
@@ -54,17 +65,6 @@ pub use retirement::{
 pub use verification::{
     check_rust_compilation, run_test_suite, verify_fix_semantically, TestResult,
     VerificationConfig, VerificationResult, VerificationStats,
-};
-pub use diversity::{
-    analyze_corpus, compare_histograms, categorize_error, CConstruct as DiversityCConstruct,
-    DiversityConfig, DiversityMetrics, DiversityValidation, ErrorCategory, ErrorHistogram,
-};
-pub use oracle::{DecyOracle, RustcError};
-pub use bootstrap::{BootstrapPattern, BootstrapStats, get_bootstrap_patterns};
-#[cfg(feature = "citl")]
-pub use bootstrap::{create_bootstrapped_store, seed_pattern_store};
-pub use dataset::{
-    generate_dataset_card, DatasetExporter, DatasetStats, ExportFormat, TrainingExample,
 };
 
 #[cfg(feature = "citl")]
