@@ -31,6 +31,7 @@ pub mod dataset;
 mod decisions;
 pub mod diversity;
 mod error;
+pub mod golden_trace;
 pub mod import;
 mod metrics;
 mod oracle;
