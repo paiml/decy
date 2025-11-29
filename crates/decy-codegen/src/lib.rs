@@ -47,6 +47,9 @@ struct TypeContext {
     structs: HashMap<String, Vec<(String, HirType)>>, // struct_name -> [(field_name, field_type)]
     // DECY-117: Track function signatures for call site reference mutability
     functions: HashMap<String, Vec<HirType>>, // func_name -> [param_types]
+    // DECY-116: Track which argument indices to skip at call sites (removed length params)
+    // func_name -> [(array_arg_index, len_arg_index_to_skip)]
+    slice_func_args: HashMap<String, Vec<(usize, usize)>>,
 }
 
 impl TypeContext {
@@ -55,12 +58,23 @@ impl TypeContext {
             variables: HashMap::new(),
             structs: HashMap::new(),
             functions: HashMap::new(),
+            slice_func_args: HashMap::new(),
         }
     }
 
     /// DECY-117: Register a function signature for call site reference mutability
     fn add_function(&mut self, name: String, param_types: Vec<HirType>) {
         self.functions.insert(name, param_types);
+    }
+
+    /// DECY-116: Register which args to skip at call sites for slice functions
+    fn add_slice_func_args(&mut self, name: String, arg_mappings: Vec<(usize, usize)>) {
+        self.slice_func_args.insert(name, arg_mappings);
+    }
+
+    /// DECY-116: Get the arg indices to skip for a function (length params removed)
+    fn get_slice_func_len_indices(&self, func_name: &str) -> Option<&Vec<(usize, usize)>> {
+        self.slice_func_args.get(func_name)
     }
 
     /// DECY-117: Get the expected parameter type for a function call
@@ -940,12 +954,32 @@ impl CodeGenerator {
                         }
                     }
                     // Default: pass through function call as-is
-                    // DECY-117: Check parameter types for reference mutability
+                    // DECY-116 + DECY-117: Transform call sites for slice functions and reference mutability
                     _ => {
+                        // DECY-116: Check if this function has slice params (with removed length args)
+                        let slice_mappings = ctx.get_slice_func_len_indices(function);
+                        let len_indices_to_skip: std::collections::HashSet<usize> = slice_mappings
+                            .map(|mappings| mappings.iter().map(|(_, len_idx)| *len_idx).collect())
+                            .unwrap_or_default();
+                        let array_indices: std::collections::HashSet<usize> = slice_mappings
+                            .map(|mappings| mappings.iter().map(|(arr_idx, _)| *arr_idx).collect())
+                            .unwrap_or_default();
+
                         let args: Vec<String> = arguments
                             .iter()
                             .enumerate()
-                            .map(|(i, arg)| {
+                            .filter_map(|(i, arg)| {
+                                // DECY-116: Skip length arguments that were removed
+                                if len_indices_to_skip.contains(&i) {
+                                    return None;
+                                }
+
+                                // DECY-116: Convert array args to slice references
+                                if array_indices.contains(&i) {
+                                    let arg_code = self.generate_expression_with_context(arg, ctx);
+                                    return Some(format!("&{}", arg_code));
+                                }
+
                                 // DECY-117: If arg is AddressOf (via UnaryOp or direct) and param expects &mut, generate &mut
                                 let is_address_of = matches!(arg, HirExpression::AddressOf(_))
                                     || matches!(
@@ -972,12 +1006,12 @@ impl CodeGenerator {
 
                                     let inner_code = self.generate_expression_with_context(inner, ctx);
                                     if expects_mut {
-                                        format!("&mut {}", inner_code)
+                                        Some(format!("&mut {}", inner_code))
                                     } else {
-                                        format!("&{}", inner_code)
+                                        Some(format!("&{}", inner_code))
                                     }
                                 } else {
-                                    self.generate_expression_with_context(arg, ctx)
+                                    Some(self.generate_expression_with_context(arg, ctx))
                                 }
                             })
                             .collect();
@@ -2532,7 +2566,7 @@ impl CodeGenerator {
         func: &HirFunction,
         sig: &AnnotatedSignature,
     ) -> String {
-        self.generate_function_with_lifetimes_and_structs(func, sig, &[], &[])
+        self.generate_function_with_lifetimes_and_structs(func, sig, &[], &[], &[])
     }
 
     /// Generate a complete function from HIR with lifetime annotations and struct definitions.
@@ -2545,12 +2579,14 @@ impl CodeGenerator {
     /// * `sig` - The annotated signature with lifetime annotations
     /// * `structs` - Struct definitions for field type awareness
     /// * `all_functions` - All function signatures for DECY-117 call site mutability
+    /// * `slice_func_args` - DECY-116: func_name -> [(array_idx, len_idx)] for call site transformation
     pub fn generate_function_with_lifetimes_and_structs(
         &self,
         func: &HirFunction,
         sig: &AnnotatedSignature,
         structs: &[decy_hir::HirStruct],
         all_functions: &[(String, Vec<HirType>)],
+        slice_func_args: &[(String, Vec<(usize, usize)>)],
     ) -> String {
         let mut code = String::new();
 
@@ -2584,6 +2620,11 @@ impl CodeGenerator {
         // DECY-117: Add all function signatures for call site reference mutability
         for (func_name, param_types) in all_functions {
             ctx.add_function(func_name.clone(), param_types.clone());
+        }
+
+        // DECY-116: Add slice function arg mappings for call site transformation
+        for (func_name, arg_mappings) in slice_func_args {
+            ctx.add_slice_func_args(func_name.clone(), arg_mappings.clone());
         }
 
         // Generate body statements if present
