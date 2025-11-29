@@ -991,8 +991,9 @@ impl CodeGenerator {
                 // SliceIndex represents pointer arithmetic transformed to safe indexing
                 let slice_code = self.generate_expression_with_context(slice, ctx);
                 let index_code = self.generate_expression_with_context(index, ctx);
-                // Generate: slice[index] - guaranteed safe, bounds-checked at runtime
-                format!("{}[{}]", slice_code, index_code)
+                // DECY-113: Generate: slice[index as usize] - cast i32 index to usize
+                // Slice indexing requires usize, but C typically uses int (i32)
+                format!("{}[{} as usize]", slice_code, index_code)
             }
             HirExpression::Sizeof { type_name } => {
                 // sizeof(int) → std::mem::size_of::<i32>() as i32
@@ -1782,13 +1783,24 @@ impl CodeGenerator {
         let mut skip_params = std::collections::HashSet::new();
 
         // First pass: identify array parameters and their associated length parameters
+        // DECY-113: Only skip params with length-like names to avoid removing non-length params
         for (idx, param) in func.parameters().iter().enumerate() {
             if let Some(true) = graph.is_array_parameter(param.name()) {
                 // This is an array parameter - mark the next param as length param to skip
+                // but only if it has a length-like name
                 if idx + 1 < func.parameters().len() {
                     let next_param = &func.parameters()[idx + 1];
                     if matches!(next_param.param_type(), HirType::Int) {
-                        skip_params.insert(next_param.name().to_string());
+                        let param_name = next_param.name().to_lowercase();
+                        // Only skip if the name suggests it's a length/size parameter
+                        if param_name.contains("len")
+                            || param_name.contains("size")
+                            || param_name.contains("count")
+                            || param_name == "n"
+                            || param_name == "num"
+                        {
+                            skip_params.insert(next_param.name().to_string());
+                        }
                     }
                 }
             }
@@ -2354,14 +2366,24 @@ impl CodeGenerator {
         let mut length_to_array: std::collections::HashMap<String, String> =
             std::collections::HashMap::new();
 
+        // DECY-113: Only map length params with length-like names
         for (idx, param) in func.parameters().iter().enumerate() {
             if let Some(true) = graph.is_array_parameter(param.name()) {
                 // This is an array parameter - map the next param to this array
+                // but only if it has a length-like name
                 if idx + 1 < func.parameters().len() {
                     let next_param = &func.parameters()[idx + 1];
                     if matches!(next_param.param_type(), HirType::Int) {
-                        length_to_array
-                            .insert(next_param.name().to_string(), param.name().to_string());
+                        let param_name = next_param.name().to_lowercase();
+                        if param_name.contains("len")
+                            || param_name.contains("size")
+                            || param_name.contains("count")
+                            || param_name == "n"
+                            || param_name == "num"
+                        {
+                            length_to_array
+                                .insert(next_param.name().to_string(), param.name().to_string());
+                        }
                     }
                 }
             }

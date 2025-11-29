@@ -175,14 +175,24 @@ impl BorrowGenerator {
                 );
                 transformed_params.push(HirParameter::new(param.name().to_string(), slice_type));
 
-                // Check if next parameter is the length parameter
+                // DECY-113: Check if next parameter is the length parameter
+                // Only treat it as length if it has a length-like name
                 if i + 1 < params.len() {
                     let next_param = &params[i + 1];
                     if matches!(next_param.param_type(), HirType::Int) {
-                        // This is the length parameter - skip it and record the mapping
-                        length_params_to_remove
-                            .insert(next_param.name().to_string(), param.name().to_string());
-                        skip_next = true;
+                        let param_name = next_param.name().to_lowercase();
+                        // Only skip/transform if the name suggests it's a length/size parameter
+                        if param_name.contains("len")
+                            || param_name.contains("size")
+                            || param_name.contains("count")
+                            || param_name == "n"
+                            || param_name == "num"
+                        {
+                            // This is the length parameter - skip it and record the mapping
+                            length_params_to_remove
+                                .insert(next_param.name().to_string(), param.name().to_string());
+                            skip_next = true;
+                        }
                     }
                 }
             } else {
