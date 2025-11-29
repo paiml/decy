@@ -22,6 +22,8 @@ pub struct OracleOptions {
     pub patterns_path: Option<std::path::PathBuf>,
     /// Enable pattern capture for learning
     pub capture_patterns: bool,
+    /// Path to import patterns from (cross-project transfer)
+    pub import_patterns_path: Option<std::path::PathBuf>,
 }
 
 impl OracleOptions {
@@ -34,12 +36,19 @@ impl OracleOptions {
             max_retries: 3,
             patterns_path: None,
             capture_patterns: false,
+            import_patterns_path: None,
         }
     }
 
     /// Create options with pattern capture enabled
     pub fn with_capture(mut self, capture: bool) -> Self {
         self.capture_patterns = capture;
+        self
+    }
+
+    /// Create options with pattern import path
+    pub fn with_import(mut self, path: Option<std::path::PathBuf>) -> Self {
+        self.import_patterns_path = path;
         self
     }
 
@@ -71,6 +80,8 @@ pub struct OracleTranspileResult {
     pub remaining_errors: Vec<String>,
     /// Number of patterns captured for learning
     pub patterns_captured: usize,
+    /// Number of patterns imported from another project
+    pub patterns_imported: usize,
 }
 
 /// Parse rustc error output into structured errors
@@ -136,6 +147,13 @@ pub fn transpile_with_oracle(
     let mut oracle = DecyOracle::new(config)
         .context("Failed to initialize oracle")?;
 
+    // Import patterns from another project if specified
+    let patterns_imported = if let Some(ref import_path) = options.import_patterns_path {
+        oracle.import_patterns(import_path).unwrap_or(0)
+    } else {
+        0
+    };
+
     // Initial transpilation
     let mut rust_code = decy_core::transpile(c_code)
         .context("Initial transpilation failed")?;
@@ -148,6 +166,7 @@ pub fn transpile_with_oracle(
         compilation_success: false,
         remaining_errors: Vec::new(),
         patterns_captured: 0,
+        patterns_imported,
     };
 
     // Track errors with pending fix verification
@@ -240,6 +259,7 @@ pub fn transpile_with_oracle(
         compilation_success: false,
         remaining_errors: vec!["Oracle feature not enabled".into()],
         patterns_captured: 0,
+        patterns_imported: 0,
     })
 }
 
@@ -395,12 +415,24 @@ error[E0499]: cannot borrow `data` as mutable more than once
             compilation_success: true,
             remaining_errors: vec![],
             patterns_captured: 3,
+            patterns_imported: 7,
         };
 
         assert!(result.compilation_success);
         assert_eq!(result.oracle_queries, 5);
         assert_eq!(result.fixes_applied, 2);
         assert_eq!(result.patterns_captured, 3);
+        assert_eq!(result.patterns_imported, 7);
+    }
+
+    #[test]
+    fn test_with_import() {
+        let path = std::path::PathBuf::from("/tmp/patterns.apr");
+        let opts = OracleOptions::new(true, None, false).with_import(Some(path.clone()));
+        assert_eq!(opts.import_patterns_path, Some(path));
+
+        let opts = OracleOptions::new(true, None, false).with_import(None);
+        assert!(opts.import_patterns_path.is_none());
     }
 
     #[test]
