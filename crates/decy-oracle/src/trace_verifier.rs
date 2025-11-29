@@ -211,7 +211,7 @@ impl TraceVerifier {
     pub fn verify_trace(&mut self, trace: &GoldenTrace) -> VerificationResult {
         let start = std::time::Instant::now();
         let mut errors = Vec::new();
-        let mut warnings = Vec::new();
+        let warnings = Vec::new();
 
         // Wrap in main if needed for compilation
         let rust_code = if trace.rust_snippet.contains("fn main") {
