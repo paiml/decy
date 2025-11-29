@@ -1,0 +1,27 @@
+[package]
+name = "decy-oracle"
+description = "CITL oracle integration for decy C→Rust transpiler"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+decy-hir = { path = "../decy-hir" }
+decy-ownership = { path = "../decy-ownership" }
+# TODO: Switch to crates.io once entrenar 0.2.1+ with citl feature is published
+entrenar = { path = "../../../entrenar", features = ["citl"], optional = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+toml = { workspace = true }
+dirs = { workspace = true }
+
+[dev-dependencies]
+tempfile = { workspace = true }
+proptest = { workspace = true }
+
+[features]
+default = []
+citl = ["entrenar"]

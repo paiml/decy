@@ -13,6 +13,7 @@ members = [
     "crates/decy-agent",
     "crates/decy-mcp",
     "crates/decy-repo",
+    "crates/decy-oracle",
     "crates/decy", "crates/decy-stdlib",
 ]
 
@@ -43,6 +44,8 @@ petgraph = "0.6"  # For dependency graphs
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 serde_yaml = "0.9"
+toml = "0.8"
+dirs = "5.0"
 
 # Cryptography
 sha2 = "0.10"  # For SHA-256 hashing (cache invalidation)
