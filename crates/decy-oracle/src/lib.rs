@@ -36,6 +36,7 @@ pub mod import;
 mod metrics;
 mod oracle;
 pub mod retirement;
+pub mod trace_verifier;
 pub mod verification;
 
 #[cfg(feature = "citl")]
