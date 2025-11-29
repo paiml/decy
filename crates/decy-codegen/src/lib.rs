@@ -1049,6 +1049,26 @@ impl CodeGenerator {
                                         Some(format!("&{}", inner_code))
                                     }
                                 } else {
+                                    // DECY-125: Check if param is raw pointer and arg needs conversion
+                                    let param_type = ctx.get_function_param_type(function, i);
+                                    let is_raw_pointer_param =
+                                        param_type.map(|t| matches!(t, HirType::Pointer(_))).unwrap_or(false);
+
+                                    if is_raw_pointer_param {
+                                        // Convert array/variable to .as_mut_ptr()
+                                        if let HirExpression::Variable(var_name) = arg {
+                                            // Check if it's an array type in context
+                                            let var_type = ctx.get_type(var_name);
+                                            if matches!(var_type, Some(HirType::Array { .. })) {
+                                                return Some(format!("{}.as_mut_ptr()", var_name));
+                                            }
+                                        }
+                                        // Convert string literal to .as_ptr() as *mut u8
+                                        if let HirExpression::StringLiteral(s) = arg {
+                                            return Some(format!("\"{}\".as_ptr() as *mut u8", s));
+                                        }
+                                    }
+
                                     Some(self.generate_expression_with_context(arg, ctx))
                                 }
                             })
