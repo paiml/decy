@@ -8997,7 +8997,7 @@ sprint_oracle_training:
       story_points: 13
       assignee: Claude
       status: in_progress
-      phase: RED
+      phase: REFACTOR
 
       description: |
         Implement `decy oracle train` command that runs the CITL feedback loop:
