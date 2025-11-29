@@ -9217,3 +9217,249 @@ sprint_oracle_training:
       - "Oracle accuracy on validation set"
       - "Cross-project transfer rate"
       - "Pattern retirement rate"
+
+# Sprint 18: Safe Pointer Transformations
+sprint_18:
+  name: "Safe Pointer Transformations"
+  duration: "2 weeks"
+  goals:
+    - Transform C pointer params to Rust references
+    - Fix array initialization codegen
+    - Handle slice indexing with proper types
+    - Improve struct codegen with Default derive
+  story_points: 34
+
+  tickets:
+    DECY-111:
+      title: "Transform pointer parameters to mutable references"
+      type: feature
+      priority: critical
+      story_points: 8
+      assignee: Claude
+      status: not_started
+      phase: RED
+      github_issue: null
+
+      description: |
+        Transform C pointer parameters to Rust mutable/immutable references
+        instead of raw pointers. This is critical for safe Rust codegen.
+
+        C: void swap(int *a, int *b)
+        Current: fn swap(mut a: *mut i32, mut b: *mut i32)
+        Expected: fn swap(a: &mut i32, b: &mut i32)
+
+        Also fix call sites:
+        C: swap(&x, &y)
+        Current: swap(&x, &y) - type mismatch with *mut
+        Expected: swap(&mut x, &mut y) - correct reference types
+
+      requirements:
+        - Detect pointer parameters in function signatures
+        - Analyze usage patterns (read-only vs mutable)
+        - Transform to &T or &mut T based on usage
+        - Update call sites with proper reference syntax
+        - Only use raw pointers for FFI boundaries
+
+      acceptance_criteria:
+        - swap_ptr.c transpiles without E0308 errors
+        - mut_borrow.c transpiles without E0308 errors
+        - double_ptr.c transpiles without E0308 errors
+        - Unsafe blocks reduced by >50%
+        - All tests pass
+
+      test_strategy: |
+        RED: Write failing tests for pointer param transformation
+        - test_pointer_param_to_mut_ref()
+        - test_readonly_param_to_ref()
+        - test_call_site_ref_syntax()
+        GREEN: Implement ownership inference for params
+        REFACTOR: Reduce unsafe blocks, add edge case tests
+
+      files_modified:
+        - crates/decy-ownership/src/inference.rs
+        - crates/decy-codegen/src/function.rs
+        - crates/decy/tests/pointer_to_reference_tests.rs
+
+    DECY-112:
+      title: "Fix array initialization codegen"
+      type: bug
+      priority: critical
+      story_points: 5
+      assignee: Claude
+      status: in_progress
+      phase: RED
+      github_issue: null
+
+      description: |
+        Fix array initialization to generate correct Rust code.
+
+        C: int nums[5];
+        Current: let mut nums: [i32; 5] = 5;  // WRONG
+        Expected: let mut nums: [i32; 5] = [0; 5];  // CORRECT
+
+        Also handle initialized arrays:
+        C: int nums[3] = {1, 2, 3};
+        Expected: let nums: [i32; 3] = [1, 2, 3];
+
+      requirements:
+        - Detect array declarations in HIR
+        - Generate proper array initialization syntax
+        - Handle both uninitialized and initialized arrays
+        - Support multi-dimensional arrays
+
+      acceptance_criteria:
+        - array_sum.c transpiles with correct array init
+        - No E0308 type mismatch errors
+        - Uninitialized arrays use [default; N] syntax
+        - Initialized arrays use [a, b, c] syntax
+
+      test_strategy: |
+        RED: Write failing tests for array init
+        - test_uninitialized_array_init()
+        - test_initialized_array_init()
+        - test_multidim_array_init()
+        GREEN: Fix codegen for array declarations
+        REFACTOR: Handle edge cases (VLA, flexible arrays)
+
+      files_modified:
+        - crates/decy-codegen/src/declaration.rs
+        - crates/decy-codegen/src/expression.rs
+        - crates/decy/tests/array_init_tests.rs
+
+    DECY-113:
+      title: "Fix slice indexing with proper usize conversion"
+      type: bug
+      priority: high
+      story_points: 5
+      assignee: Claude
+      status: not_started
+      phase: RED
+      github_issue: null
+
+      description: |
+        Fix slice indexing to use usize instead of i32.
+
+        C: sum = sum + *(arr + i);  // where i is int
+        Current: sum = sum + arr[i];  // E0277: can't index by i32
+        Expected: sum = sum + arr[i as usize];
+
+        Also handle function call sites for slices:
+        C: sum_array(nums, 5)
+        Current: sum_array(nums, 5)  // E0061: wrong number of args
+        Expected: sum_array(&nums)  // proper slice reference
+
+      requirements:
+        - Insert `as usize` cast for slice indices
+        - Handle pointer arithmetic conversions
+        - Fix function call sites for slice params
+        - Maintain loop counter type for comparisons
+
+      acceptance_criteria:
+        - array_sum.c transpiles without E0277 errors
+        - No slice index type mismatch errors
+        - Call sites properly convert arrays to slices
+        - Loop comparisons work with length
+
+      test_strategy: |
+        RED: Write failing tests for slice indexing
+        - test_slice_index_i32_to_usize()
+        - test_array_to_slice_call_site()
+        - test_pointer_arithmetic_to_index()
+        GREEN: Add usize casts and slice conversions
+        REFACTOR: Optimize unnecessary casts
+
+      files_modified:
+        - crates/decy-codegen/src/expression.rs
+        - crates/decy-codegen/src/function_call.rs
+        - crates/decy/tests/slice_index_tests.rs
+
+    DECY-114:
+      title: "Add Default derive for structs"
+      type: feature
+      priority: high
+      story_points: 3
+      assignee: Claude
+      status: not_started
+      phase: RED
+      github_issue: null
+
+      description: |
+        Derive Default trait for structs that need zero-initialization.
+
+        Current: #[derive(Debug, Clone, PartialEq, Eq)]
+        Expected: #[derive(Debug, Clone, Default, PartialEq, Eq)]
+
+        Also handle struct field initialization:
+        C: struct Node n; n.value = 0; n.next = NULL;
+        Current: Node::default()  // E0599: no default
+        Expected: Node::default() works with derive
+
+      requirements:
+        - Add Default to derive list for all structs
+        - Handle structs with pointer fields (null default)
+        - Handle structs with non-Default fields
+
+      acceptance_criteria:
+        - linked_list.c transpiles without E0599 errors
+        - All structs derive Default
+        - Pointer fields default to null_mut()
+        - Tests verify default initialization
+
+      test_strategy: |
+        RED: Write failing test for struct default
+        - test_struct_derives_default()
+        - test_struct_with_pointer_default()
+        GREEN: Add Default to struct codegen
+        REFACTOR: Handle non-Default field cases
+
+      files_modified:
+        - crates/decy-codegen/src/struct.rs
+        - crates/decy/tests/struct_default_tests.rs
+
+    DECY-115:
+      title: "Transform linked list pointers to Option<Box<T>>"
+      type: feature
+      priority: high
+      story_points: 13
+      assignee: Claude
+      status: not_started
+      phase: RED
+      github_issue: null
+
+      description: |
+        Transform linked list patterns from raw pointers to safe Rust idioms.
+
+        C: struct Node { int value; struct Node *next; };
+        Current: pub next: *mut Node  // raw pointer
+        Expected: pub next: Option<Box<Node>>  // safe Rust
+
+        Handle NULL checks:
+        C: while (current != 0) { ... current = current->next; }
+        Current: while current != std::ptr::null_mut() { ... }
+        Expected: while let Some(ref node) = current { ... }
+
+      requirements:
+        - Detect self-referential struct patterns
+        - Transform recursive pointers to Option<Box<T>>
+        - Update NULL comparisons to Option matching
+        - Handle linked list traversal idioms
+
+      acceptance_criteria:
+        - linked_list.c transpiles to safe Rust
+        - No raw pointers in linked list code
+        - NULL checks become Option patterns
+        - Code compiles without unsafe blocks
+
+      test_strategy: |
+        RED: Write failing tests for linked list transform
+        - test_recursive_struct_to_option_box()
+        - test_null_check_to_option_match()
+        - test_linked_list_traversal()
+        GREEN: Implement ownership inference for recursive types
+        REFACTOR: Handle complex patterns (doubly-linked, etc.)
+
+      files_modified:
+        - crates/decy-ownership/src/recursive.rs (new)
+        - crates/decy-codegen/src/struct.rs
+        - crates/decy-codegen/src/expression.rs
+        - crates/decy/tests/linked_list_transform_tests.rs
