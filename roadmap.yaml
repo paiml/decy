@@ -9042,7 +9042,7 @@ sprint_oracle_training:
       story_points: 8
       assignee: Claude
       status: in_progress
-      phase: RED
+      phase: GREEN
 
       description: |
         Implement GoldenTrace struct as defined in unified spec Section 6.3.
@@ -9086,7 +9086,7 @@ sprint_oracle_training:
       story_points: 8
       assignee: Claude
       status: not_started
-      phase: RED
+      phase: GREEN
 
       description: |
         Implement Poka-Yoke verification gate per spec Section 6.2.
@@ -9127,7 +9127,7 @@ sprint_oracle_training:
       story_points: 13
       assignee: Claude
       status: not_started
-      phase: RED
+      phase: GREEN
 
       description: |
         Implement the Data Factory pipeline per spec Section 2.1.
