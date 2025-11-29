@@ -1595,10 +1595,16 @@ impl CodeGenerator {
                 // return N; in main becomes std::process::exit(N);
                 if function_name == Some("main") {
                     if let Some(expr) = expr_opt {
-                        format!(
-                            "std::process::exit({});",
-                            self.generate_expression_with_context(expr, ctx)
-                        )
+                        let expr_code = self.generate_expression_with_context(expr, ctx);
+                        // DECY-126: Check if expression type needs cast to i32
+                        // exit() expects i32, but char/u8 expressions need casting
+                        let expr_type = ctx.infer_expression_type(expr);
+                        let needs_cast = matches!(expr_type, Some(HirType::Char));
+                        if needs_cast {
+                            format!("std::process::exit({} as i32);", expr_code)
+                        } else {
+                            format!("std::process::exit({});", expr_code)
+                        }
                     } else {
                         "std::process::exit(0);".to_string()
                     }
