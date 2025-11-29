@@ -755,6 +755,22 @@ fn extract_var_decl(cursor: CXCursor) -> Option<Statement> {
         clang_visitChildren(cursor, visit_expression, init_ptr as CXClientData);
     }
 
+    // DECY-112 FIX: For array types, the visit_expression callback may incorrectly
+    // capture the array size as an initializer. For example, `int nums[5];` has
+    // the integer literal 5 as a child node (the array size), which gets captured.
+    //
+    // Fix: If the variable is an array type and the initializer is an integer literal
+    // that matches the array size, clear the initializer (it's the size, not an init).
+    let initializer = match (&var_type, &initializer) {
+        (Type::Array { size: Some(array_size), .. }, Some(Expression::IntLiteral(init_val)))
+            if i64::from(*init_val) == *array_size =>
+        {
+            // The "initializer" is actually the array size expression, not a real initializer
+            None
+        }
+        _ => initializer,
+    };
+
     Some(Statement::VariableDeclaration {
         name,
         var_type,
