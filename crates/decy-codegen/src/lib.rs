@@ -1431,6 +1431,48 @@ impl CodeGenerator {
                     }
                 }
 
+                // DECY-118: Transform pointer variables initialized with &x to references
+                // C: int *p = &x;  →  Rust: let p = &mut x;
+                if let HirType::Pointer(inner_type) = var_type {
+                    if let Some(init_expr) = initializer {
+                        // Check if initializer is an address-of expression
+                        let is_address_of = matches!(init_expr, HirExpression::AddressOf(_))
+                            || matches!(
+                                init_expr,
+                                HirExpression::UnaryOp {
+                                    op: decy_hir::UnaryOperator::AddressOf,
+                                    ..
+                                }
+                            );
+
+                        if is_address_of {
+                            // Extract the inner expression
+                            let inner_expr = match init_expr {
+                                HirExpression::AddressOf(inner) => inner.as_ref(),
+                                HirExpression::UnaryOp { operand, .. } => operand.as_ref(),
+                                _ => unreachable!(),
+                            };
+
+                            // Transform to mutable reference
+                            let ref_type = HirType::Reference {
+                                inner: inner_type.clone(),
+                                mutable: true,
+                            };
+
+                            // Add to context as reference type (not pointer)
+                            ctx.add_variable(name.clone(), ref_type.clone());
+
+                            let inner_code = self.generate_expression_with_context(inner_expr, ctx);
+                            return format!(
+                                "let mut {}: {} = &mut {};",
+                                name,
+                                Self::map_type(&ref_type),
+                                inner_code
+                            );
+                        }
+                    }
+                }
+
                 // Add variable to type context for pointer arithmetic detection
                 ctx.add_variable(name.clone(), var_type.clone());
 
