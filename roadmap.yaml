@@ -2845,7 +2845,7 @@ sprint_9:
       assignee: Claude
       status: done
       github_issue: null
-      phase: GREEN
+      phase: DONE
       completion: "GREEN phase complete - HirMacroDefinition struct with 11 unit tests + 3 doctests"
 
       description: |
@@ -5401,7 +5401,7 @@ sprint_18:
       assignee: Claude
       status: done
       github_issue: null
-      phase: GREEN
+      phase: DONE
       started_date: "2025-10-22"
       completed_date: "2025-10-22"
 
@@ -8996,7 +8996,7 @@ sprint_oracle_training:
       priority: critical
       story_points: 13
       assignee: Claude
-      status: in_progress
+      status: done
       phase: REFACTOR
 
       description: |
@@ -9041,8 +9041,8 @@ sprint_oracle_training:
       priority: critical
       story_points: 8
       assignee: Claude
-      status: in_progress
-      phase: GREEN
+      status: done
+      phase: DONE
 
       description: |
         Implement GoldenTrace struct as defined in unified spec Section 6.3.
@@ -9085,8 +9085,8 @@ sprint_oracle_training:
       priority: critical
       story_points: 8
       assignee: Claude
-      status: not_started
-      phase: GREEN
+      status: in_progress
+      phase: RED
 
       description: |
         Implement Poka-Yoke verification gate per spec Section 6.2.
@@ -9127,7 +9127,7 @@ sprint_oracle_training:
       story_points: 13
       assignee: Claude
       status: not_started
-      phase: GREEN
+      phase: DONE
 
       description: |
         Implement the Data Factory pipeline per spec Section 2.1.
