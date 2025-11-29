@@ -11,11 +11,14 @@ repository.workspace = true
 decy-hir = { path = "../decy-hir" }
 decy-ownership = { path = "../decy-ownership" }
 entrenar = { version = "0.2.1", features = ["citl"], optional = true }
+alimentar = { version = "0.2.0", optional = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 thiserror = { workspace = true }
 toml = { workspace = true }
 dirs = { workspace = true }
+tracing = { workspace = true }
+walkdir = { workspace = true }
 
 [dev-dependencies]
 tempfile = { workspace = true }
@@ -24,3 +27,4 @@ proptest = { workspace = true }
 [features]
 default = []
 citl = ["entrenar"]
+dataset = ["alimentar"]

@@ -36,6 +36,10 @@ pub enum OracleError {
     /// Diff application failed
     #[error("Failed to apply diff: {0}")]
     DiffError(String),
+
+    /// Export error
+    #[error("Export error: {0}")]
+    ExportError(String),
 }
 
 impl From<std::io::Error> for OracleError {

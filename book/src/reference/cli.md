@@ -157,6 +157,137 @@ decy repl
 - Use multi-line mode for function definitions
 - Type `exit` or `quit` to leave
 
+### `decy oracle`
+
+Oracle management commands for training and maintenance.
+
+```bash
+decy oracle <COMMAND>
+```
+
+**Subcommands:**
+
+#### `decy oracle bootstrap`
+
+Bootstrap the oracle with seed patterns for cold start. This command loads predefined patterns for common C→Rust transpilation errors, solving the cold start problem where the oracle has no patterns to learn from.
+
+```bash
+decy oracle bootstrap [OPTIONS]
+```
+
+**Options:**
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--dry-run` | Show available patterns without saving | disabled |
+
+**Example:**
+```bash
+# Preview bootstrap patterns
+decy oracle bootstrap --dry-run
+
+# Bootstrap the oracle
+decy oracle bootstrap
+```
+
+**Bootstrap Patterns Include:**
+- **E0308** (Type mismatch): pointer_to_reference, type_coercion, array_to_slice
+- **E0133** (Unsafe required): unsafe_deref, unsafe_extern
+- **E0382** (Use after move): clone_before_move, borrow_instead_of_move
+- **E0499** (Multiple mutable borrows): sequential_mutable_borrow, use_stdlib_method
+- **E0506** (Assign to borrowed): reorder_borrow
+- **E0597** (Value not live long enough): extend_lifetime, return_owned
+- **E0515** (Return reference to local): return_owned, clone_return
+
+#### `decy oracle seed`
+
+Import patterns from another project's .apr file.
+
+```bash
+decy oracle seed --from <FILE>
+```
+
+**Options:**
+| Flag | Description | Required |
+|------|-------------|----------|
+| `--from <FILE>` | Path to .apr file to import | yes |
+
+**Example:**
+```bash
+# Seed from depyler patterns
+decy oracle seed --from ../depyler/depyler.apr
+```
+
+#### `decy oracle stats`
+
+Show oracle statistics.
+
+```bash
+decy oracle stats [OPTIONS]
+```
+
+**Options:**
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--format <FORMAT>` | Output format (json, markdown, prometheus) | markdown |
+
+**Examples:**
+```bash
+# Default markdown output
+decy oracle stats
+
+# JSON for CI pipelines
+decy oracle stats --format json
+
+# Prometheus for monitoring
+decy oracle stats --format prometheus
+```
+
+#### `decy oracle retire`
+
+Retire obsolete patterns for oracle hygiene.
+
+```bash
+decy oracle retire [OPTIONS]
+```
+
+**Options:**
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--dry-run` | Preview retirements without applying | disabled |
+| `--archive-path <FILE>` | Save retired patterns to file | none |
+
+**Examples:**
+```bash
+# Preview retirements
+decy oracle retire --dry-run
+
+# Apply retirements with archive
+decy oracle retire --archive-path ./retired-patterns.apr
+```
+
+#### `decy oracle validate`
+
+Validate oracle on a corpus with diversity analysis.
+
+```bash
+decy oracle validate <DIR>
+```
+
+**Arguments:**
+- `<DIR>` - Path to corpus directory containing C files
+
+**Example:**
+```bash
+# Validate on reprorusted-c-cli corpus
+decy oracle validate ../reprorusted-c-cli/coreutils/
+```
+
+**Output includes:**
+- Corpus diversity analysis (file count, LOC, C construct coverage)
+- Transpilation success/failure rates
+- Error distribution by category
+- Oracle query metrics
+
 ## Oracle Integration
 
 The oracle integration uses entrenar's CITL (Compiler-in-the-Loop Training) system to automatically fix rustc errors during transpilation.
