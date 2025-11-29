@@ -234,12 +234,15 @@ fn test_transform_array_parameter_with_return() {
     );
 }
 
-/// Test that non-array pointers are NOT transformed
+/// Test that non-array pointers are transformed to references (DECY-111)
 ///
 /// C: void process(int* ptr) { }
-/// Rust: fn process(ptr: *mut i32) { }  (should remain raw pointer)
+/// Rust: fn process(ptr: &mut i32) { }  (pointer becomes reference)
+///
+/// DECY-111: Pointer params are now transformed to references for safe Rust code.
+/// Non-array pointers become &T or &mut T based on modification analysis.
 #[test]
-fn test_no_transform_non_array_pointer() {
+fn test_non_array_pointer_becomes_reference() {
     let c_code = r#"
         void process(int* ptr) {
             // Single pointer without length - not an array
@@ -257,10 +260,10 @@ fn test_no_transform_non_array_pointer() {
         result
     );
 
-    // Should keep as raw pointer
+    // DECY-111: Should transform pointer to reference (not raw pointer)
     assert!(
-        result.contains("ptr: *mut i32") || result.contains("ptr: *const i32"),
-        "Should keep as raw pointer\nGenerated:\n{}",
+        result.contains("ptr: &mut i32") || result.contains("ptr: &i32"),
+        "Should transform to reference\nGenerated:\n{}",
         result
     );
 }

@@ -71,7 +71,8 @@ fn test_function_with_pointer_parameter() {
     let rust_code = codegen.generate_function(&hir_func);
 
     assert!(rust_code.contains("fn process"));
-    assert!(rust_code.contains("data: *mut i32"));
+    // DECY-111: Pointer params transformed to references (immutable when not modified)
+    assert!(rust_code.contains("data: &i32"));
 }
 
 #[test]

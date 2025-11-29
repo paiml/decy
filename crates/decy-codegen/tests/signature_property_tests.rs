@@ -10,15 +10,29 @@ use proptest::prelude::*;
 
 // Helper to check if a name is a reserved keyword
 fn is_reserved_keyword(name: &str) -> bool {
-    [
+    // Exact reserved keywords
+    let exact_reserved = [
         "asm", "auto", "break", "case", "char", "const", "continue", "default", "do", "double",
         "else", "enum", "extern", "float", "for", "goto", "if", "int", "long", "register",
         "return", "short", "signed", "sizeof", "static", "struct", "switch", "typedef", "union",
         "unsigned", "void", "volatile", "while", "fn", "let", "mut", "use", "mod", "pub", "crate",
         "self", "super", "impl", "trait", "type", "where", "async", "await", "dyn", "move", "ref",
         "match", "loop", "unsafe", "box",
-    ]
-    .contains(&name)
+        // DECY-111: Common parameter names that conflict with test patterns
+        "len", "size", "count", "idx",
+    ];
+
+    if exact_reserved.contains(&name) {
+        return true;
+    }
+
+    // Names starting with "len" will trigger false positives in tests
+    // because "< lena" contains "< len" as substring
+    if name.starts_with("len") {
+        return true;
+    }
+
+    false
 }
 
 // ============================================================================
