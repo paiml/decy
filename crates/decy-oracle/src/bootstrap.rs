@@ -9,8 +9,6 @@
 //! - **Yokoten** (横展): Cross-project pattern sharing from depyler ownership patterns
 //! - **Jidoka** (自働化): Automated bootstrap when no patterns exist
 
-use crate::error::OracleError;
-
 #[cfg(feature = "citl")]
 use entrenar::citl::{DecisionPatternStore, FixPattern};
 
@@ -229,8 +227,7 @@ pub fn seed_pattern_store(store: &mut DecisionPatternStore) -> Result<usize, Ora
     let mut count = 0;
 
     for bp in patterns {
-        let pattern = FixPattern::new(bp.error_code, bp.fix_diff)
-            .with_decision(bp.decision);
+        let pattern = FixPattern::new(bp.error_code, bp.fix_diff).with_decision(bp.decision);
 
         if store.index_fix(pattern).is_ok() {
             count += 1;
@@ -243,8 +240,8 @@ pub fn seed_pattern_store(store: &mut DecisionPatternStore) -> Result<usize, Ora
 /// Create a new pattern store with bootstrap patterns pre-loaded
 #[cfg(feature = "citl")]
 pub fn create_bootstrapped_store() -> Result<DecisionPatternStore, OracleError> {
-    let mut store = DecisionPatternStore::new()
-        .map_err(|e| OracleError::PatternStoreError(e.to_string()))?;
+    let mut store =
+        DecisionPatternStore::new().map_err(|e| OracleError::PatternStoreError(e.to_string()))?;
 
     seed_pattern_store(&mut store)?;
 
@@ -272,7 +269,10 @@ impl BootstrapStats {
         };
 
         for p in patterns {
-            *stats.by_error_code.entry(p.error_code.to_string()).or_default() += 1;
+            *stats
+                .by_error_code
+                .entry(p.error_code.to_string())
+                .or_default() += 1;
             *stats.by_decision.entry(p.decision.to_string()).or_default() += 1;
         }
 
@@ -308,14 +308,20 @@ mod tests {
     #[test]
     fn test_bootstrap_patterns_not_empty() {
         let patterns = get_bootstrap_patterns();
-        assert!(!patterns.is_empty(), "Bootstrap patterns should not be empty");
+        assert!(
+            !patterns.is_empty(),
+            "Bootstrap patterns should not be empty"
+        );
     }
 
     #[test]
     fn test_bootstrap_patterns_count() {
         let patterns = get_bootstrap_patterns();
         // Should have substantial coverage
-        assert!(patterns.len() >= 20, "Should have at least 20 bootstrap patterns");
+        assert!(
+            patterns.len() >= 20,
+            "Should have at least 20 bootstrap patterns"
+        );
     }
 
     #[test]
@@ -388,9 +394,18 @@ mod tests {
     fn test_bootstrap_stats_has_common_error_codes() {
         let stats = BootstrapStats::from_patterns();
         // Should have patterns for key C→Rust errors
-        assert!(stats.by_error_code.contains_key("E0308"), "Should have E0308 (type mismatch)");
-        assert!(stats.by_error_code.contains_key("E0133"), "Should have E0133 (unsafe)");
-        assert!(stats.by_error_code.contains_key("E0382"), "Should have E0382 (use after move)");
+        assert!(
+            stats.by_error_code.contains_key("E0308"),
+            "Should have E0308 (type mismatch)"
+        );
+        assert!(
+            stats.by_error_code.contains_key("E0133"),
+            "Should have E0133 (unsafe)"
+        );
+        assert!(
+            stats.by_error_code.contains_key("E0382"),
+            "Should have E0382 (use after move)"
+        );
     }
 
     #[test]
@@ -408,7 +423,11 @@ mod tests {
         let mut store = DecisionPatternStore::new().unwrap();
         let count = seed_pattern_store(&mut store).unwrap();
         assert!(count > 0, "Should seed at least some patterns");
-        assert_eq!(count, store.len(), "Store should contain all seeded patterns");
+        assert_eq!(
+            count,
+            store.len(),
+            "Store should contain all seeded patterns"
+        );
     }
 
     #[cfg(feature = "citl")]

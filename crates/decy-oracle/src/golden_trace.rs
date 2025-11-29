@@ -364,9 +364,9 @@ impl GoldenTraceDataset {
         let mut file = std::fs::File::create(path)?;
 
         for trace in &self.traces {
-            let json = trace.to_jsonl().map_err(|e| {
-                std::io::Error::new(std::io::ErrorKind::InvalidData, e.to_string())
-            })?;
+            let json = trace
+                .to_jsonl()
+                .map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidData, e.to_string()))?;
             writeln!(file, "{}", json)?;
         }
 
@@ -388,9 +388,8 @@ impl GoldenTraceDataset {
     /// Export entire dataset to Alpaca JSON file
     pub fn export_alpaca(&self, path: &Path) -> std::io::Result<()> {
         let examples: Vec<_> = self.traces.iter().map(|t| t.to_alpaca()).collect();
-        let json = serde_json::to_string_pretty(&examples).map_err(|e| {
-            std::io::Error::new(std::io::ErrorKind::InvalidData, e.to_string())
-        })?;
+        let json = serde_json::to_string_pretty(&examples)
+            .map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidData, e.to_string()))?;
         std::fs::write(path, json)
     }
 

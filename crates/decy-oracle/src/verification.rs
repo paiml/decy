@@ -27,7 +27,10 @@ pub enum VerificationResult {
 impl VerificationResult {
     /// Check if verification allows pattern promotion
     pub fn allows_promotion(&self) -> bool {
-        matches!(self, VerificationResult::FullyVerified | VerificationResult::CompilesOnly)
+        matches!(
+            self,
+            VerificationResult::FullyVerified | VerificationResult::CompilesOnly
+        )
     }
 
     /// Get confidence weight for pattern scoring
@@ -168,7 +171,7 @@ pub fn check_rust_compilation(rust_code: &str, config: &VerificationConfig) -> R
     let temp_dir = config
         .work_dir
         .clone()
-        .unwrap_or_else(|| std::env::temp_dir());
+        .unwrap_or_else(std::env::temp_dir);
 
     // Create unique temp file names using atomic counter for thread safety
     static COUNTER: AtomicU64 = AtomicU64::new(0);
@@ -190,10 +193,14 @@ pub fn check_rust_compilation(rust_code: &str, config: &VerificationConfig) -> R
     // Allow warnings but catch errors
     let output = Command::new("rustc")
         .args([
-            "--edition", "2021",
-            "--crate-type", "lib",
-            "--emit", "metadata",
-            "-A", "warnings",  // Allow warnings, only catch errors
+            "--edition",
+            "2021",
+            "--crate-type",
+            "lib",
+            "--emit",
+            "metadata",
+            "-A",
+            "warnings", // Allow warnings, only catch errors
             "-o",
         ])
         .arg(&temp_output)
@@ -235,9 +242,7 @@ pub fn run_test_suite(test_path: &Path, _rust_code: &str) -> TestResult {
     // Run tests using shell scripts or cargo test
     let test_script = test_path.join("run_tests.sh");
     if test_script.exists() {
-        let output = Command::new("bash")
-            .arg(&test_script)
-            .output();
+        let output = Command::new("bash").arg(&test_script).output();
 
         match output {
             Ok(result) if result.status.success() => TestResult::AllPassed,
@@ -305,8 +310,14 @@ mod tests {
     fn test_verification_result_confidence_weight() {
         assert!((VerificationResult::FullyVerified.confidence_weight() - 1.0).abs() < f32::EPSILON);
         assert!((VerificationResult::CompilesOnly.confidence_weight() - 0.6).abs() < f32::EPSILON);
-        assert!((VerificationResult::BehaviorChanged(vec![]).confidence_weight() - 0.0).abs() < f32::EPSILON);
-        assert!((VerificationResult::CompileFailed("".into()).confidence_weight() - 0.0).abs() < f32::EPSILON);
+        assert!(
+            (VerificationResult::BehaviorChanged(vec![]).confidence_weight() - 0.0).abs()
+                < f32::EPSILON
+        );
+        assert!(
+            (VerificationResult::CompileFailed("".into()).confidence_weight() - 0.0).abs()
+                < f32::EPSILON
+        );
     }
 
     #[test]
@@ -407,8 +418,8 @@ mod tests {
     fn test_verification_stats_average_confidence() {
         let mut stats = VerificationStats::new();
 
-        stats.record(&VerificationResult::FullyVerified);  // 1.0
-        stats.record(&VerificationResult::CompilesOnly);   // 0.6
+        stats.record(&VerificationResult::FullyVerified); // 1.0
+        stats.record(&VerificationResult::CompilesOnly); // 0.6
 
         // Average: (1.0 + 0.6) / 2 = 0.8
         assert!((stats.average_confidence() - 0.8).abs() < 0.01);
