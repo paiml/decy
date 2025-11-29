@@ -29,7 +29,8 @@ fn test_generate_struct_with_derive() {
     let simple_struct = HirStruct::new("Simple".to_string(), fields);
     let code = codegen.generate_struct(&simple_struct);
 
-    assert!(code.contains("#[derive(Debug, Clone, PartialEq"));
+    // DECY-114: Struct now derives Default
+    assert!(code.contains("#[derive(Debug, Clone, Default, PartialEq"));
     assert!(code.contains("pub struct Simple"));
 }
 
