@@ -50,6 +50,10 @@ enum Commands {
         /// Capture verified fix patterns for learning
         #[arg(long)]
         capture: bool,
+
+        /// Import patterns from another .apr file (cross-project transfer)
+        #[arg(long, value_name = "FILE")]
+        import_patterns: Option<PathBuf>,
     },
     /// Transpile an entire C project (directory)
     TranspileProject {
@@ -96,6 +100,10 @@ enum Commands {
         /// Capture verified fix patterns for learning
         #[arg(long)]
         capture: bool,
+
+        /// Import patterns from another .apr file (cross-project transfer)
+        #[arg(long, value_name = "FILE")]
+        import_patterns: Option<PathBuf>,
     },
     /// Check project and show build order (dry-run)
     CheckProject {
@@ -134,9 +142,11 @@ fn main() -> Result<()> {
             oracle_threshold,
             auto_fix,
             capture,
+            import_patterns,
         }) => {
             let oracle_opts = OracleOptions::new(oracle, Some(oracle_threshold), auto_fix)
-                .with_capture(capture);
+                .with_capture(capture)
+                .with_import(import_patterns);
             transpile_file(input, output, &oracle_opts)?;
         }
         Some(Commands::TranspileProject {
@@ -151,9 +161,11 @@ fn main() -> Result<()> {
             oracle_threshold,
             auto_fix,
             capture,
+            import_patterns,
         }) => {
             let oracle_opts = OracleOptions::new(oracle, Some(oracle_threshold), auto_fix)
-                .with_capture(capture);
+                .with_capture(capture)
+                .with_import(import_patterns);
             transpile_project(
                 input,
                 output,
@@ -279,6 +291,9 @@ fn transpile_file(input: PathBuf, output: Option<PathBuf>, oracle_opts: &OracleO
 fn print_oracle_stats(result: &OracleTranspileResult) {
     eprintln!();
     eprintln!("=== Oracle Statistics ===");
+    if result.patterns_imported > 0 {
+        eprintln!("Patterns imported: {}", result.patterns_imported);
+    }
     eprintln!("Queries: {}", result.oracle_queries);
     eprintln!("Fixes applied: {}", result.fixes_applied);
     eprintln!("Retries: {}", result.retries_used);
