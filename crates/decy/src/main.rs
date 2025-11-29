@@ -3,7 +3,10 @@
 #![warn(clippy::all)]
 #![deny(unsafe_code)]
 
+mod oracle_integration;
 mod repl;
+
+use oracle_integration::{OracleOptions, OracleTranspileResult};
 
 use anyhow::{Context, Result};
 use clap::{Parser, Subcommand};
@@ -31,6 +34,18 @@ enum Commands {
         /// Output file (default: stdout)
         #[arg(short, long, value_name = "FILE")]
         output: Option<PathBuf>,
+
+        /// Enable CITL oracle for error correction
+        #[arg(long)]
+        oracle: bool,
+
+        /// Confidence threshold for oracle suggestions (0.0-1.0)
+        #[arg(long, default_value = "0.7")]
+        oracle_threshold: f32,
+
+        /// Automatically apply oracle fixes
+        #[arg(long)]
+        auto_fix: bool,
     },
     /// Transpile an entire C project (directory)
     TranspileProject {
@@ -61,6 +76,18 @@ enum Commands {
         /// Show summary statistics after transpilation
         #[arg(long)]
         stats: bool,
+
+        /// Enable CITL oracle for error correction
+        #[arg(long)]
+        oracle: bool,
+
+        /// Confidence threshold for oracle suggestions (0.0-1.0)
+        #[arg(long, default_value = "0.7")]
+        oracle_threshold: f32,
+
+        /// Automatically apply oracle fixes
+        #[arg(long)]
+        auto_fix: bool,
     },
     /// Check project and show build order (dry-run)
     CheckProject {
@@ -92,8 +119,15 @@ fn main() -> Result<()> {
     let cli = Cli::parse();
 
     match cli.command {
-        Some(Commands::Transpile { input, output }) => {
-            transpile_file(input, output)?;
+        Some(Commands::Transpile {
+            input,
+            output,
+            oracle,
+            oracle_threshold,
+            auto_fix,
+        }) => {
+            let oracle_opts = OracleOptions::new(oracle, Some(oracle_threshold), auto_fix);
+            transpile_file(input, output, &oracle_opts)?;
         }
         Some(Commands::TranspileProject {
             input,
@@ -103,8 +137,21 @@ fn main() -> Result<()> {
             quiet,
             dry_run,
             stats,
+            oracle,
+            oracle_threshold,
+            auto_fix,
         }) => {
-            transpile_project(input, output, !no_cache, verbose, quiet, dry_run, stats)?;
+            let oracle_opts = OracleOptions::new(oracle, Some(oracle_threshold), auto_fix);
+            transpile_project(
+                input,
+                output,
+                !no_cache,
+                verbose,
+                quiet,
+                dry_run,
+                stats,
+                &oracle_opts,
+            )?;
         }
         Some(Commands::CheckProject { input }) => {
             check_project(input)?;
@@ -136,7 +183,7 @@ fn main() -> Result<()> {
     Ok(())
 }
 
-fn transpile_file(input: PathBuf, output: Option<PathBuf>) -> Result<()> {
+fn transpile_file(input: PathBuf, output: Option<PathBuf>, oracle_opts: &OracleOptions) -> Result<()> {
     // Read input file
     let c_code = fs::read_to_string(&input).with_context(|| {
         format!(
@@ -148,14 +195,23 @@ fn transpile_file(input: PathBuf, output: Option<PathBuf>) -> Result<()> {
     // Get base directory for #include resolution (DECY-056)
     let base_dir = input.parent();
 
-    // Transpile using decy-core with #include support
-    let rust_code = decy_core::transpile_with_includes(&c_code, base_dir).with_context(|| {
-        format!(
-            "Failed to transpile {}\n\nTry: Check if the C code has syntax errors\n  or: Preprocess the file first: gcc -E {} -o preprocessed.c",
-            input.display(),
-            input.display()
-        )
-    })?;
+    // Transpile - use oracle if enabled
+    let (rust_code, oracle_result) = if oracle_opts.should_use_oracle() {
+        let result = oracle_integration::transpile_with_oracle(&c_code, oracle_opts)
+            .with_context(|| format!("Oracle-assisted transpilation failed for {}", input.display()))?;
+        let code = result.rust_code.clone();
+        (code, Some(result))
+    } else {
+        // Standard transpilation using decy-core with #include support
+        let code = decy_core::transpile_with_includes(&c_code, base_dir).with_context(|| {
+            format!(
+                "Failed to transpile {}\n\nTry: Check if the C code has syntax errors\n  or: Preprocess the file first: gcc -E {} -o preprocessed.c",
+                input.display(),
+                input.display()
+            )
+        })?;
+        (code, None)
+    };
 
     // DECY-AUDIT-002: Detect if the source has no main function and provide guidance
     let has_main = rust_code.contains("fn main(");
@@ -163,7 +219,7 @@ fn transpile_file(input: PathBuf, output: Option<PathBuf>) -> Result<()> {
     // Write output
     match output {
         Some(output_path) => {
-            fs::write(&output_path, rust_code).with_context(|| {
+            fs::write(&output_path, &rust_code).with_context(|| {
                 format!("Failed to write output file: {}", output_path.display())
             })?;
             eprintln!(
@@ -171,6 +227,11 @@ fn transpile_file(input: PathBuf, output: Option<PathBuf>) -> Result<()> {
                 input.display(),
                 output_path.display()
             );
+
+            // Show oracle statistics if used
+            if let Some(ref result) = oracle_result {
+                print_oracle_stats(result);
+            }
 
             // DECY-AUDIT-002: Provide compilation guidance for library-only files
             if !has_main {
@@ -184,6 +245,11 @@ fn transpile_file(input: PathBuf, output: Option<PathBuf>) -> Result<()> {
             // Write to stdout
             print!("{}", rust_code);
 
+            // Show oracle statistics if used
+            if let Some(ref result) = oracle_result {
+                print_oracle_stats(result);
+            }
+
             // DECY-AUDIT-002: Provide compilation guidance for library-only files
             // Only show this to stderr if writing to stdout
             if !has_main {
@@ -196,6 +262,25 @@ fn transpile_file(input: PathBuf, output: Option<PathBuf>) -> Result<()> {
     }
 
     Ok(())
+}
+
+fn print_oracle_stats(result: &OracleTranspileResult) {
+    eprintln!();
+    eprintln!("=== Oracle Statistics ===");
+    eprintln!("Queries: {}", result.oracle_queries);
+    eprintln!("Fixes applied: {}", result.fixes_applied);
+    eprintln!("Retries: {}", result.retries_used);
+    if result.compilation_success {
+        eprintln!("✓ Compilation: SUCCESS");
+    } else {
+        eprintln!("✗ Compilation: FAILED");
+        if !result.remaining_errors.is_empty() {
+            eprintln!("Remaining errors: {}", result.remaining_errors.len());
+            for err in &result.remaining_errors {
+                eprintln!("  - {}", err);
+            }
+        }
+    }
 }
 
 fn audit_file(input: PathBuf, verbose: bool) -> Result<()> {
@@ -314,6 +399,7 @@ fn transpile_project(
     quiet: bool,
     dry_run: bool,
     stats: bool,
+    oracle_opts: &OracleOptions,
 ) -> Result<()> {
     use decy_core::{DependencyGraph, TranspilationCache};
     use indicatif::{ProgressBar, ProgressStyle};
