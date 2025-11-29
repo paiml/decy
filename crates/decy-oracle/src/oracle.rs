@@ -106,16 +106,33 @@ impl DecyOracle {
         error: &RustcError,
         context: &CDecisionContext,
     ) -> Option<FixSuggestion> {
-        let store = self.store.as_ref()?;
+        let store = match self.store.as_ref() {
+            Some(s) => s,
+            None => {
+                self.metrics.record_miss(&error.code);
+                return None;
+            }
+        };
 
         let context_strings = context.to_context_strings();
-        let suggestions = store
-            .suggest_fix(&error.code, &context_strings, self.config.max_suggestions)
-            .ok()?;
+        let suggestions = match store.suggest_fix(&error.code, &context_strings, self.config.max_suggestions) {
+            Ok(s) => s,
+            Err(_) => {
+                self.metrics.record_miss(&error.code);
+                return None;
+            }
+        };
 
-        let best = suggestions
+        let best = match suggestions
             .into_iter()
-            .find(|s| s.weighted_score() >= self.config.confidence_threshold)?;
+            .find(|s| s.weighted_score() >= self.config.confidence_threshold)
+        {
+            Some(b) => b,
+            None => {
+                self.metrics.record_miss(&error.code);
+                return None;
+            }
+        };
 
         self.metrics.record_hit(&error.code);
         Some(best)
@@ -172,11 +189,10 @@ impl DecyOracle {
 
         let mut count = 0;
         for code in &transferable {
-            if let Ok(patterns) = other_store.patterns_for_error(code) {
-                for pattern in patterns {
-                    if store.index_fix(pattern.clone()).is_ok() {
-                        count += 1;
-                    }
+            let patterns = other_store.patterns_for_error(code);
+            for pattern in patterns {
+                if store.index_fix(pattern.clone()).is_ok() {
+                    count += 1;
                 }
             }
         }

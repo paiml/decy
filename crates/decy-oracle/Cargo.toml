@@ -10,8 +10,7 @@ repository.workspace = true
 [dependencies]
 decy-hir = { path = "../decy-hir" }
 decy-ownership = { path = "../decy-ownership" }
-# TODO: Switch to crates.io once entrenar 0.2.1+ with citl feature is published
-entrenar = { path = "../../../entrenar", features = ["citl"], optional = true }
+entrenar = { version = "0.2.1", features = ["citl"], optional = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 thiserror = { workspace = true }
