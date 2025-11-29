@@ -892,12 +892,36 @@ pub fn transpile_with_includes(c_code: &str, base_dir: Option<&Path>) -> Result<
         rust_code.push('\n');
     }
 
+    // DECY-117: Build function signatures for call site reference mutability
+    let all_function_sigs: Vec<(String, Vec<decy_hir::HirType>)> = transformed_functions
+        .iter()
+        .map(|(func, _sig)| {
+            let param_types: Vec<decy_hir::HirType> = func
+                .parameters()
+                .iter()
+                .map(|p| {
+                    // Transform pointer params to mutable references (matching DECY-111)
+                    if let decy_hir::HirType::Pointer(inner) = p.param_type() {
+                        decy_hir::HirType::Reference {
+                            inner: inner.clone(),
+                            mutable: true,
+                        }
+                    } else {
+                        p.param_type().clone()
+                    }
+                })
+                .collect();
+            (func.name().to_string(), param_types)
+        })
+        .collect();
+
     // Generate functions with struct definitions for field type awareness
     for (func, annotated_sig) in &transformed_functions {
         let generated = code_generator.generate_function_with_lifetimes_and_structs(
             func,
             annotated_sig,
             &hir_structs,
+            &all_function_sigs,
         );
         rust_code.push_str(&generated);
         rust_code.push('\n');
