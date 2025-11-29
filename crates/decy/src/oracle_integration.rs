@@ -24,6 +24,8 @@ pub struct OracleOptions {
     pub capture_patterns: bool,
     /// Path to import patterns from (cross-project transfer)
     pub import_patterns_path: Option<std::path::PathBuf>,
+    /// Report format (json, markdown, prometheus)
+    pub report_format: Option<String>,
 }
 
 impl OracleOptions {
@@ -37,6 +39,7 @@ impl OracleOptions {
             patterns_path: None,
             capture_patterns: false,
             import_patterns_path: None,
+            report_format: None,
         }
     }
 
@@ -49,6 +52,12 @@ impl OracleOptions {
     /// Create options with pattern import path
     pub fn with_import(mut self, path: Option<std::path::PathBuf>) -> Self {
         self.import_patterns_path = path;
+        self
+    }
+
+    /// Create options with report format
+    pub fn with_report_format(mut self, format: Option<String>) -> Self {
+        self.report_format = format;
         self
     }
 
@@ -433,6 +442,15 @@ error[E0499]: cannot borrow `data` as mutable more than once
 
         let opts = OracleOptions::new(true, None, false).with_import(None);
         assert!(opts.import_patterns_path.is_none());
+    }
+
+    #[test]
+    fn test_with_report_format() {
+        let opts = OracleOptions::new(true, None, false).with_report_format(Some("json".into()));
+        assert_eq!(opts.report_format, Some("json".into()));
+
+        let opts = OracleOptions::new(true, None, false).with_report_format(None);
+        assert!(opts.report_format.is_none());
     }
 
     #[test]

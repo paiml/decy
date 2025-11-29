@@ -54,6 +54,10 @@ enum Commands {
         /// Import patterns from another .apr file (cross-project transfer)
         #[arg(long, value_name = "FILE")]
         import_patterns: Option<PathBuf>,
+
+        /// Output oracle metrics report (json, markdown, prometheus)
+        #[arg(long, value_name = "FORMAT")]
+        oracle_report: Option<String>,
     },
     /// Transpile an entire C project (directory)
     TranspileProject {
@@ -104,6 +108,10 @@ enum Commands {
         /// Import patterns from another .apr file (cross-project transfer)
         #[arg(long, value_name = "FILE")]
         import_patterns: Option<PathBuf>,
+
+        /// Output oracle metrics report (json, markdown, prometheus)
+        #[arg(long, value_name = "FORMAT")]
+        oracle_report: Option<String>,
     },
     /// Check project and show build order (dry-run)
     CheckProject {
@@ -143,10 +151,12 @@ fn main() -> Result<()> {
             auto_fix,
             capture,
             import_patterns,
+            oracle_report,
         }) => {
             let oracle_opts = OracleOptions::new(oracle, Some(oracle_threshold), auto_fix)
                 .with_capture(capture)
-                .with_import(import_patterns);
+                .with_import(import_patterns)
+                .with_report_format(oracle_report);
             transpile_file(input, output, &oracle_opts)?;
         }
         Some(Commands::TranspileProject {
@@ -162,10 +172,12 @@ fn main() -> Result<()> {
             auto_fix,
             capture,
             import_patterns,
+            oracle_report,
         }) => {
             let oracle_opts = OracleOptions::new(oracle, Some(oracle_threshold), auto_fix)
                 .with_capture(capture)
-                .with_import(import_patterns);
+                .with_import(import_patterns)
+                .with_report_format(oracle_report);
             transpile_project(
                 input,
                 output,
@@ -254,7 +266,7 @@ fn transpile_file(input: PathBuf, output: Option<PathBuf>, oracle_opts: &OracleO
 
             // Show oracle statistics if used
             if let Some(ref result) = oracle_result {
-                print_oracle_stats(result);
+                print_oracle_stats(result, oracle_opts);
             }
 
             // DECY-AUDIT-002: Provide compilation guidance for library-only files
@@ -271,7 +283,7 @@ fn transpile_file(input: PathBuf, output: Option<PathBuf>, oracle_opts: &OracleO
 
             // Show oracle statistics if used
             if let Some(ref result) = oracle_result {
-                print_oracle_stats(result);
+                print_oracle_stats(result, oracle_opts);
             }
 
             // DECY-AUDIT-002: Provide compilation guidance for library-only files
@@ -288,7 +300,14 @@ fn transpile_file(input: PathBuf, output: Option<PathBuf>, oracle_opts: &OracleO
     Ok(())
 }
 
-fn print_oracle_stats(result: &OracleTranspileResult) {
+fn print_oracle_stats(result: &OracleTranspileResult, opts: &OracleOptions) {
+    // Check if we should output in a specific format
+    if let Some(ref format) = opts.report_format {
+        print_oracle_report(result, format);
+        return;
+    }
+
+    // Default human-readable output
     eprintln!();
     eprintln!("=== Oracle Statistics ===");
     if result.patterns_imported > 0 {
@@ -310,6 +329,45 @@ fn print_oracle_stats(result: &OracleTranspileResult) {
                 eprintln!("  - {}", err);
             }
         }
+    }
+}
+
+fn print_oracle_report(result: &OracleTranspileResult, format: &str) {
+    #[cfg(feature = "oracle")]
+    {
+        use decy_oracle::{CIReport, CIThresholds, OracleMetrics};
+
+        // Build metrics from result
+        let mut metrics = OracleMetrics::default();
+        metrics.queries = result.oracle_queries as u64;
+        metrics.hits = result.fixes_applied as u64; // Approximation
+        metrics.misses = (result.oracle_queries - result.fixes_applied) as u64;
+        metrics.fixes_applied = result.fixes_applied as u64;
+        metrics.fixes_verified = if result.compilation_success {
+            result.fixes_applied as u64
+        } else {
+            0
+        };
+        metrics.patterns_captured = result.patterns_captured as u64;
+
+        let report = CIReport::from_metrics(metrics, CIThresholds::default());
+
+        match format.to_lowercase().as_str() {
+            "json" => println!("{}", report.to_json()),
+            "markdown" | "md" => println!("{}", report.to_markdown()),
+            "prometheus" | "prom" => {
+                let m = &report.metrics;
+                println!("{}", m.to_prometheus());
+            }
+            _ => {
+                eprintln!("Unknown report format: {}. Use: json, markdown, prometheus", format);
+            }
+        }
+    }
+
+    #[cfg(not(feature = "oracle"))]
+    {
+        eprintln!("Oracle report format '{}' requires --features oracle", format);
     }
 }
 

@@ -35,7 +35,7 @@ pub use config::OracleConfig;
 pub use context::{CConstruct, CDecisionContext, LifetimeDecision};
 pub use decisions::CDecisionCategory;
 pub use error::OracleError;
-pub use metrics::OracleMetrics;
+pub use metrics::{CIReport, CIThresholds, OracleMetrics};
 pub use oracle::{DecyOracle, RustcError};
 
 #[cfg(feature = "citl")]
