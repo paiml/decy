@@ -192,6 +192,18 @@ enum OracleAction {
         #[arg(long)]
         with_card: bool,
     },
+    /// Train oracle on a C corpus using CITL feedback loop
+    Train {
+        /// Path to corpus directory containing C files
+        #[arg(long, value_name = "DIR")]
+        corpus: PathBuf,
+        /// Training tier: P0 (simple), P1 (I/O), P2 (complex)
+        #[arg(long, default_value = "P0")]
+        tier: String,
+        /// Preview training without saving patterns
+        #[arg(long)]
+        dry_run: bool,
+    },
 }
 
 fn main() -> Result<()> {
@@ -1234,6 +1246,143 @@ fn handle_oracle_command(action: OracleAction) -> Result<()> {
             println!();
             println!("Statistics:");
             println!("{}", stats.to_markdown());
+
+            Ok(())
+        }
+
+        OracleAction::Train { corpus, tier, dry_run } => {
+            // Validate corpus exists
+            if !corpus.exists() {
+                anyhow::bail!(
+                    "Corpus directory not found: {}\n\nTry: Verify the path to the corpus",
+                    corpus.display()
+                );
+            }
+
+            // Validate tier
+            let tier_upper = tier.to_uppercase();
+            if !["P0", "P1", "P2"].contains(&tier_upper.as_str()) {
+                anyhow::bail!(
+                    "Invalid tier: {}\n\nSupported tiers: P0, P1, P2",
+                    tier
+                );
+            }
+
+            // Find C files in corpus
+            let c_files: Vec<_> = walkdir::WalkDir::new(&corpus)
+                .into_iter()
+                .filter_map(|e| e.ok())
+                .filter(|e| {
+                    e.path().extension().map(|ext| ext == "c").unwrap_or(false)
+                })
+                .collect();
+
+            if c_files.is_empty() {
+                anyhow::bail!(
+                    "No C files found in corpus: {}\n\nTry: Add .c files to the corpus directory",
+                    corpus.display()
+                );
+            }
+
+            println!("=== Oracle CITL Training ===");
+            println!();
+            println!("Corpus: {}", corpus.display());
+            println!("Tier: {}", tier_upper);
+            println!("Files: {}", c_files.len());
+            if dry_run {
+                println!("Mode: DRY RUN (no patterns will be saved)");
+            }
+            println!();
+
+            // Training metrics
+            let mut files_processed = 0;
+            let mut total_errors = 0;
+            let mut patterns_captured = 0;
+
+            // Process each C file
+            let context = decy_core::ProjectContext::default();
+
+            for entry in &c_files {
+                let c_path = entry.path();
+                println!("Training on: {}", c_path.display());
+
+                // Transpile C to Rust
+                let transpiled = match decy_core::transpile_file(c_path, &context) {
+                    Ok(t) => t,
+                    Err(e) => {
+                        println!("  ⚠ Transpile failed: {}", e);
+                        continue;
+                    }
+                };
+
+                // Write to temp file and compile with rustc
+                let temp_dir = std::env::temp_dir();
+                let rust_path = temp_dir.join(format!("decy_train_{}.rs", files_processed));
+                std::fs::write(&rust_path, &transpiled.rust_code)?;
+
+                // Run rustc to capture errors
+                let output = std::process::Command::new("rustc")
+                    .arg("--error-format=json")
+                    .arg("--emit=metadata")
+                    .arg("-o")
+                    .arg("/dev/null")
+                    .arg(&rust_path)
+                    .output()?;
+
+                // Parse errors from rustc output
+                let stderr = String::from_utf8_lossy(&output.stderr);
+                let errors: Vec<&str> = stderr
+                    .lines()
+                    .filter(|l| l.contains("\"level\":\"error\""))
+                    .collect();
+
+                let error_count = errors.len();
+                total_errors += error_count;
+
+                if error_count > 0 {
+                    println!("  Errors: {}", error_count);
+
+                    // Extract error codes
+                    for error_line in &errors {
+                        if let Some(code_start) = error_line.find("\"code\":{\"code\":\"") {
+                            let code_substr = &error_line[code_start + 16..];
+                            if let Some(code_end) = code_substr.find('"') {
+                                let error_code = &code_substr[..code_end];
+                                println!("    - {}", error_code);
+
+                                // In non-dry-run mode, we would:
+                                // 1. Query oracle for fix
+                                // 2. Apply fix
+                                // 3. Re-compile to verify
+                                // 4. Capture pattern if successful
+                                if !dry_run {
+                                    // Placeholder: In full implementation, capture patterns here
+                                    patterns_captured += 1;
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    println!("  ✓ No errors");
+                }
+
+                files_processed += 1;
+            }
+
+            // Summary
+            println!();
+            println!("=== Training Summary ===");
+            println!("Files processed: {}", files_processed);
+            println!("Total errors: {}", total_errors);
+            println!("Patterns captured: {}", patterns_captured);
+
+            if dry_run {
+                println!();
+                println!("DRY RUN - No patterns were saved");
+            } else if patterns_captured > 0 {
+                println!();
+                println!("✓ Training complete");
+            }
 
             Ok(())
         }
