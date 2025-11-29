@@ -561,6 +561,8 @@ proptest! {
         unknown_name in "[a-z]{3,8}",
     ) {
         prop_assume!(arr_name != unknown_name);
+        // "len" is a known parameter in the function, so exclude it from "unknown" names
+        prop_assume!(unknown_name != "len");
 
         let params = vec![
             HirParameter::new(arr_name, HirType::Pointer(Box::new(HirType::Int))),

@@ -810,6 +810,42 @@ pub fn transpile_with_includes(c_code: &str, base_dir: Option<&Path>) -> Result<
         })
         .collect();
 
+    // DECY-116: Build slice function arg mappings BEFORE transformation (while we still have original params)
+    let slice_func_args: Vec<(String, Vec<(usize, usize)>)> = hir_functions
+        .iter()
+        .filter_map(|func| {
+            let mut mappings = Vec::new();
+            let params = func.parameters();
+
+            for (i, param) in params.iter().enumerate() {
+                // Check if this is a pointer param (potential array)
+                if matches!(param.param_type(), decy_hir::HirType::Pointer(_)) {
+                    // Check if next param is an int with length-like name
+                    if i + 1 < params.len() {
+                        let next_param = &params[i + 1];
+                        if matches!(next_param.param_type(), decy_hir::HirType::Int) {
+                            let param_name = next_param.name().to_lowercase();
+                            if param_name.contains("len")
+                                || param_name.contains("size")
+                                || param_name.contains("count")
+                                || param_name == "n"
+                                || param_name == "num"
+                            {
+                                mappings.push((i, i + 1));
+                            }
+                        }
+                    }
+                }
+            }
+
+            if mappings.is_empty() {
+                None
+            } else {
+                Some((func.name().to_string(), mappings))
+            }
+        })
+        .collect();
+
     // Step 3: Analyze ownership and lifetimes
     let mut transformed_functions = Vec::new();
 
@@ -916,12 +952,14 @@ pub fn transpile_with_includes(c_code: &str, base_dir: Option<&Path>) -> Result<
         .collect();
 
     // Generate functions with struct definitions for field type awareness
+    // Note: slice_func_args was built at line 814 BEFORE transformation to capture original params
     for (func, annotated_sig) in &transformed_functions {
         let generated = code_generator.generate_function_with_lifetimes_and_structs(
             func,
             annotated_sig,
             &hir_structs,
             &all_function_sigs,
+            &slice_func_args,
         );
         rust_code.push_str(&generated);
         rust_code.push('\n');
