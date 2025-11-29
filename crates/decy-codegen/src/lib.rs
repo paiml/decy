@@ -1996,10 +1996,18 @@ impl CodeGenerator {
                     }
                 } else {
                     // DECY-111: Check if this is a pointer parameter that should become a reference
+                    // DECY-123: Skip transformation if pointer arithmetic is used
                     if let Some(orig_param) =
                         func.parameters().iter().find(|fp| fp.name() == p.name)
                     {
                         if let HirType::Pointer(inner) = orig_param.param_type() {
+                            // DECY-123: Don't transform to reference if pointer arithmetic is used
+                            // (e.g., ptr = ptr + 1) - keep as raw pointer
+                            if self.uses_pointer_arithmetic(func, &p.name) {
+                                // Keep as raw pointer - will need unsafe blocks
+                                let inner_type = Self::map_type(inner);
+                                return Some(format!("{}: *mut {}", p.name, inner_type));
+                            }
                             // Transform pointer param to mutable reference
                             // Check if the param is modified in the function body
                             let is_mutable = self.is_parameter_deref_modified(func, &p.name);
@@ -2109,6 +2117,62 @@ impl CodeGenerator {
             HirStatement::While { body, .. } | HirStatement::For { body, .. } => body
                 .iter()
                 .any(|s| self.statement_deref_modifies_variable(s, var_name)),
+            _ => false,
+        }
+    }
+
+    /// Check if a parameter uses pointer arithmetic in the function body (DECY-123).
+    ///
+    /// Used to determine whether a pointer parameter should remain a raw pointer
+    /// instead of being transformed to a reference.
+    /// Returns true if the parameter is used in:
+    /// - `ptr = ptr + n;` (pointer arithmetic assignment)
+    /// - `ptr = ptr - n;` (pointer arithmetic assignment)
+    /// - `ptr += n;` or `ptr -= n;` (compound pointer arithmetic)
+    fn uses_pointer_arithmetic(&self, func: &HirFunction, param_name: &str) -> bool {
+        for stmt in func.body() {
+            if self.statement_uses_pointer_arithmetic(stmt, param_name) {
+                return true;
+            }
+        }
+        false
+    }
+
+    /// Recursively check if a statement uses pointer arithmetic on a variable (DECY-123).
+    #[allow(clippy::only_used_in_recursion)]
+    fn statement_uses_pointer_arithmetic(&self, stmt: &HirStatement, var_name: &str) -> bool {
+        match stmt {
+            HirStatement::Assignment { target, value } => {
+                // Check if this is var = var + n or var = var - n (pointer arithmetic)
+                if target == var_name {
+                    if let HirExpression::BinaryOp { op, left, .. } = value {
+                        if matches!(op, BinaryOperator::Add | BinaryOperator::Subtract) {
+                            if let HirExpression::Variable(name) = &**left {
+                                if name == var_name {
+                                    return true;
+                                }
+                            }
+                        }
+                    }
+                }
+                false
+            }
+            HirStatement::If {
+                then_block,
+                else_block,
+                ..
+            } => {
+                then_block
+                    .iter()
+                    .any(|s| self.statement_uses_pointer_arithmetic(s, var_name))
+                    || else_block.as_ref().is_some_and(|blk| {
+                        blk.iter()
+                            .any(|s| self.statement_uses_pointer_arithmetic(s, var_name))
+                    })
+            }
+            HirStatement::While { body, .. } | HirStatement::For { body, .. } => body
+                .iter()
+                .any(|s| self.statement_uses_pointer_arithmetic(s, var_name)),
             _ => false,
         }
     }
@@ -2261,6 +2325,17 @@ impl CodeGenerator {
     /// assert!(rust_sig.contains("&'a i32"));
     /// ```
     pub fn generate_annotated_signature(&self, sig: &AnnotatedSignature) -> String {
+        self.generate_annotated_signature_with_func(sig, None)
+    }
+
+    /// Generate a function signature from an annotated signature with optional function body access.
+    ///
+    /// When `func` is provided, pointer arithmetic detection is enabled (DECY-123).
+    pub fn generate_annotated_signature_with_func(
+        &self,
+        sig: &AnnotatedSignature,
+        func: Option<&HirFunction>,
+    ) -> String {
         let mut result = format!("fn {}", sig.name);
 
         // DECY-072: Check if we have any non-slice reference parameters that need lifetimes
@@ -2322,8 +2397,17 @@ impl CodeGenerator {
                     format!("{}: {}", p.name, type_str)
                 } else {
                     // DECY-111: Transform pointer parameters to mutable references
+                    // DECY-123: Skip transformation if pointer arithmetic is used
                     // Check if param type is a simple pointer (not already a reference)
                     if let AnnotatedType::Simple(HirType::Pointer(inner)) = &p.param_type {
+                        // DECY-123: If we have function body access, check for pointer arithmetic
+                        if let Some(f) = func {
+                            if self.uses_pointer_arithmetic(f, &p.name) {
+                                // Keep as raw pointer - needs pointer arithmetic
+                                let inner_type = Self::map_type(inner);
+                                return format!("{}: *mut {}", p.name, inner_type);
+                            }
+                        }
                         // Transform *mut T → &mut T for safety
                         // All pointer params become &mut since C allows writing through them
                         let inner_type = Self::map_type(inner);
@@ -2668,7 +2752,8 @@ impl CodeGenerator {
         let mut code = String::new();
 
         // Generate signature with lifetimes
-        code.push_str(&self.generate_annotated_signature(sig));
+        // DECY-123: Pass function for pointer arithmetic detection
+        code.push_str(&self.generate_annotated_signature_with_func(sig, Some(func)));
         code.push_str(" {\n");
 
         // DECY-041: Initialize type context with function parameters for pointer arithmetic
