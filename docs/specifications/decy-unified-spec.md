@@ -493,17 +493,32 @@ pub struct GoldenTrace {
 ### 6.7 CLI Commands
 
 ```bash
-# Query oracle for pattern
+# Query oracle for fix patterns
 decy oracle query --error E0308 --context "let x: &mut i32 = ptr"
 
-# Train on corpus
+# Train on corpus with CITL feedback loop
 decy oracle train --corpus ./training_corpus --tier P0
 
-# Show statistics
-decy oracle stats
+# Generate Golden Traces for model training
+decy oracle generate-traces --corpus ./corpus --output traces.jsonl --tier P0
 
-# Export patterns
-decy oracle export --format jsonl --output patterns.jsonl
+# Show oracle statistics (CI integration)
+decy oracle stats --format prometheus
+
+# Export patterns to HuggingFace dataset format
+decy oracle export --format jsonl --output patterns.jsonl --with-card
+
+# Bootstrap with seed patterns (cold start)
+decy oracle bootstrap
+
+# Cross-project pattern transfer
+decy oracle seed --from ./other-project/patterns.apr
+
+# Validate patterns against corpus
+decy oracle validate ./corpus
+
+# Retire obsolete patterns
+decy oracle retire --dry-run
 ```
 
 ---
