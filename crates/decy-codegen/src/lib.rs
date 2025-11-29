@@ -45,6 +45,8 @@ use std::collections::HashMap;
 struct TypeContext {
     variables: HashMap<String, HirType>,
     structs: HashMap<String, Vec<(String, HirType)>>, // struct_name -> [(field_name, field_type)]
+    // DECY-117: Track function signatures for call site reference mutability
+    functions: HashMap<String, Vec<HirType>>, // func_name -> [param_types]
 }
 
 impl TypeContext {
@@ -52,7 +54,18 @@ impl TypeContext {
         Self {
             variables: HashMap::new(),
             structs: HashMap::new(),
+            functions: HashMap::new(),
         }
+    }
+
+    /// DECY-117: Register a function signature for call site reference mutability
+    fn add_function(&mut self, name: String, param_types: Vec<HirType>) {
+        self.functions.insert(name, param_types);
+    }
+
+    /// DECY-117: Get the expected parameter type for a function call
+    fn get_function_param_type(&self, func_name: &str, param_index: usize) -> Option<&HirType> {
+        self.functions.get(func_name).and_then(|params| params.get(param_index))
     }
 
     fn from_function(func: &HirFunction) -> Self {
@@ -927,10 +940,46 @@ impl CodeGenerator {
                         }
                     }
                     // Default: pass through function call as-is
+                    // DECY-117: Check parameter types for reference mutability
                     _ => {
                         let args: Vec<String> = arguments
                             .iter()
-                            .map(|arg| self.generate_expression_with_context(arg, ctx))
+                            .enumerate()
+                            .map(|(i, arg)| {
+                                // DECY-117: If arg is AddressOf (via UnaryOp or direct) and param expects &mut, generate &mut
+                                let is_address_of = matches!(arg, HirExpression::AddressOf(_))
+                                    || matches!(
+                                        arg,
+                                        HirExpression::UnaryOp {
+                                            op: decy_hir::UnaryOperator::AddressOf,
+                                            ..
+                                        }
+                                    );
+
+                                if is_address_of {
+                                    // Extract the inner expression
+                                    let inner = match arg {
+                                        HirExpression::AddressOf(inner) => inner.as_ref(),
+                                        HirExpression::UnaryOp { operand, .. } => operand.as_ref(),
+                                        _ => unreachable!(),
+                                    };
+
+                                    // Check if the function expects &mut for this parameter
+                                    let expects_mut = ctx
+                                        .get_function_param_type(function, i)
+                                        .map(|t| matches!(t, HirType::Reference { mutable: true, .. }))
+                                        .unwrap_or(true); // Default to &mut for safety
+
+                                    let inner_code = self.generate_expression_with_context(inner, ctx);
+                                    if expects_mut {
+                                        format!("&mut {}", inner_code)
+                                    } else {
+                                        format!("&{}", inner_code)
+                                    }
+                                } else {
+                                    self.generate_expression_with_context(arg, ctx)
+                                }
+                            })
                             .collect();
                         format!("{}({})", function, args.join(", "))
                     }
@@ -2483,18 +2532,25 @@ impl CodeGenerator {
         func: &HirFunction,
         sig: &AnnotatedSignature,
     ) -> String {
-        self.generate_function_with_lifetimes_and_structs(func, sig, &[])
+        self.generate_function_with_lifetimes_and_structs(func, sig, &[], &[])
     }
 
     /// Generate a complete function from HIR with lifetime annotations and struct definitions.
     ///
-    /// Takes the HIR function, its annotated signature, and struct definitions to generate
-    /// Rust code with proper lifetime annotations and field type awareness for null pointer detection.
+    /// Takes the HIR function, its annotated signature, struct definitions, and all function
+    /// signatures for call site reference mutability.
+    ///
+    /// # Arguments
+    /// * `func` - The HIR function to generate
+    /// * `sig` - The annotated signature with lifetime annotations
+    /// * `structs` - Struct definitions for field type awareness
+    /// * `all_functions` - All function signatures for DECY-117 call site mutability
     pub fn generate_function_with_lifetimes_and_structs(
         &self,
         func: &HirFunction,
         sig: &AnnotatedSignature,
         structs: &[decy_hir::HirStruct],
+        all_functions: &[(String, Vec<HirType>)],
     ) -> String {
         let mut code = String::new();
 
@@ -2523,6 +2579,11 @@ impl CodeGenerator {
         // Add struct definitions to context for field type lookup
         for struct_def in structs {
             ctx.add_struct(struct_def);
+        }
+
+        // DECY-117: Add all function signatures for call site reference mutability
+        for (func_name, param_types) in all_functions {
+            ctx.add_function(func_name.clone(), param_types.clone());
         }
 
         // Generate body statements if present
