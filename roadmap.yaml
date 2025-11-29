@@ -9086,7 +9086,7 @@ sprint_oracle_training:
       story_points: 8
       assignee: Claude
       status: in_progress
-      phase: RED
+      phase: GREEN
 
       description: |
         Implement Poka-Yoke verification gate per spec Section 6.2.

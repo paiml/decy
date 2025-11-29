@@ -94,7 +94,8 @@ fn main() {
 
     let result = verifier.verify_compilation(rust_code);
     assert!(result.is_err());
-    assert!(result.unwrap_err().contains("E0308") || result.unwrap_err().contains("error"));
+    let err = result.unwrap_err();
+    assert!(err.contains("E0308") || err.contains("error"));
 }
 
 #[test]
@@ -204,7 +205,7 @@ fn uses_unsafe() {
 
 #[test]
 fn test_verify_golden_trace_valid() {
-    let verifier = TraceVerifier::new();
+    let mut verifier = TraceVerifier::new();
 
     let trace = GoldenTrace::new(
         "int x = 10;".to_string(),
@@ -220,7 +221,7 @@ fn test_verify_golden_trace_valid() {
 
 #[test]
 fn test_verify_golden_trace_invalid_rust() {
-    let verifier = TraceVerifier::new();
+    let mut verifier = TraceVerifier::new();
 
     let trace = GoldenTrace::new(
         "int x = 10;".to_string(),
@@ -242,7 +243,7 @@ fn test_verify_golden_trace_with_unsafe() {
         max_clippy_warnings: 0,
         timeout_secs: 30,
     };
-    let verifier = TraceVerifier::with_config(config);
+    let mut verifier = TraceVerifier::with_config(config);
 
     let trace = GoldenTrace::new(
         "int* ptr = (int*)0;".to_string(),
