@@ -11,7 +11,7 @@ pub struct OracleConfig {
     pub patterns_path: PathBuf,
 
     /// Confidence threshold for suggestions (0.0-1.0)
-    pub confidence_threshold: f64,
+    pub confidence_threshold: f32,
 
     /// Maximum suggestions to return
     pub max_suggestions: usize,
@@ -27,7 +27,7 @@ impl Default for OracleConfig {
     fn default() -> Self {
         Self {
             patterns_path: default_patterns_path(),
-            confidence_threshold: 0.7,
+            confidence_threshold: 0.7_f32,
             max_suggestions: 5,
             auto_fix: false,
             max_retries: 3,
@@ -83,7 +83,7 @@ mod tests {
     #[test]
     fn test_config_default() {
         let config = OracleConfig::default();
-        assert_eq!(config.confidence_threshold, 0.7);
+        assert!((config.confidence_threshold - 0.7_f32).abs() < f32::EPSILON);
         assert_eq!(config.max_suggestions, 5);
         assert!(!config.auto_fix);
         assert_eq!(config.max_retries, 3);
@@ -98,7 +98,7 @@ auto_fix = true
 max_retries = 5
 "#;
         let config: OracleConfig = toml::from_str(toml).unwrap();
-        assert_eq!(config.confidence_threshold, 0.85);
+        assert!((config.confidence_threshold - 0.85_f32).abs() < f32::EPSILON);
         assert_eq!(config.max_suggestions, 10);
         assert!(config.auto_fix);
         assert_eq!(config.max_retries, 5);
