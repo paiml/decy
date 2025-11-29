@@ -734,6 +734,36 @@ impl CodeGenerator {
                 }
                 val.to_string()
             }
+            // DECY-119: Handle AddressOf when target is raw pointer (struct field assignment)
+            // C: node.next = &x;  →  Rust: node.next = &mut x as *mut T;
+            HirExpression::AddressOf(inner) => {
+                if let Some(HirType::Pointer(ptr_inner)) = target_type {
+                    let inner_code = self.generate_expression_with_context(inner, ctx);
+                    let ptr_type = Self::map_type(&HirType::Pointer(ptr_inner.clone()));
+                    return format!("&mut {} as {}", inner_code, ptr_type);
+                }
+                // Fall through to default AddressOf handling
+                let inner_code = self.generate_expression_with_context(inner, ctx);
+                if matches!(**inner, HirExpression::Dereference(_)) {
+                    format!("&({})", inner_code)
+                } else {
+                    format!("&{}", inner_code)
+                }
+            }
+            // DECY-119: Handle UnaryOp AddressOf as well
+            HirExpression::UnaryOp {
+                op: decy_hir::UnaryOperator::AddressOf,
+                operand,
+            } => {
+                if let Some(HirType::Pointer(ptr_inner)) = target_type {
+                    let inner_code = self.generate_expression_with_context(operand, ctx);
+                    let ptr_type = Self::map_type(&HirType::Pointer(ptr_inner.clone()));
+                    return format!("&mut {} as {}", inner_code, ptr_type);
+                }
+                // Fall through to default handling
+                let inner_code = self.generate_expression_with_context(operand, ctx);
+                format!("&{}", inner_code)
+            }
             HirExpression::StringLiteral(s) => format!("\"{}\"", s),
             HirExpression::Variable(name) => name.clone(),
             HirExpression::BinaryOp { op, left, right } => {
@@ -857,15 +887,7 @@ impl CodeGenerator {
 
                 format!("*{}", inner_code)
             }
-            HirExpression::AddressOf(inner) => {
-                let inner_code = self.generate_expression_with_context(inner, ctx);
-                // Add parentheses for non-trivial expressions
-                if matches!(**inner, HirExpression::Dereference(_)) {
-                    format!("&({})", inner_code)
-                } else {
-                    format!("&{}", inner_code)
-                }
-            }
+            // Note: HirExpression::AddressOf is handled earlier in this match with target_type awareness
             HirExpression::UnaryOp { op, operand } => {
                 use decy_hir::UnaryOperator;
                 match op {
