@@ -15,7 +15,7 @@
 use anyhow::{Context, Result};
 use decy_analyzer::patterns::PatternDetector;
 use decy_codegen::CodeGenerator;
-use decy_hir::HirFunction;
+use decy_hir::{HirExpression, HirFunction, HirStatement};
 use decy_ownership::{
     array_slice::ArrayParameterTransformer, borrow_gen::BorrowGenerator,
     dataflow::DataflowAnalyzer, inference::OwnershipInferencer, lifetime::LifetimeAnalyzer,
@@ -929,6 +929,7 @@ pub fn transpile_with_includes(c_code: &str, base_dir: Option<&Path>) -> Result<
     }
 
     // DECY-117: Build function signatures for call site reference mutability
+    // DECY-125: Keep pointers as pointers when pointer arithmetic is used
     let all_function_sigs: Vec<(String, Vec<decy_hir::HirType>)> = transformed_functions
         .iter()
         .map(|(func, _sig)| {
@@ -937,10 +938,17 @@ pub fn transpile_with_includes(c_code: &str, base_dir: Option<&Path>) -> Result<
                 .iter()
                 .map(|p| {
                     // Transform pointer params to mutable references (matching DECY-111)
+                    // DECY-125: But keep as pointer if pointer arithmetic is used
                     if let decy_hir::HirType::Pointer(inner) = p.param_type() {
-                        decy_hir::HirType::Reference {
-                            inner: inner.clone(),
-                            mutable: true,
+                        // Check if this param uses pointer arithmetic
+                        if uses_pointer_arithmetic(func, p.name()) {
+                            // Keep as raw pointer
+                            p.param_type().clone()
+                        } else {
+                            decy_hir::HirType::Reference {
+                                inner: inner.clone(),
+                                mutable: true,
+                            }
                         }
                     } else {
                         p.param_type().clone()
@@ -1149,6 +1157,57 @@ fn generate_ffi_declarations(functions: &[String]) -> String {
 
     ffi.push_str("}\n");
     ffi
+}
+
+/// Check if a function parameter uses pointer arithmetic (DECY-125).
+///
+/// Returns true if the parameter is used in `p = p + n` or `p = p - n` patterns.
+fn uses_pointer_arithmetic(func: &HirFunction, param_name: &str) -> bool {
+    for stmt in func.body() {
+        if statement_uses_pointer_arithmetic(stmt, param_name) {
+            return true;
+        }
+    }
+    false
+}
+
+/// Recursively check if a statement uses pointer arithmetic on a variable (DECY-125).
+fn statement_uses_pointer_arithmetic(stmt: &HirStatement, var_name: &str) -> bool {
+    use decy_hir::BinaryOperator;
+    match stmt {
+        HirStatement::Assignment { target, value } => {
+            // Check if this is var = var + n or var = var - n (pointer arithmetic)
+            if target == var_name {
+                if let HirExpression::BinaryOp { op, left, .. } = value {
+                    if matches!(op, BinaryOperator::Add | BinaryOperator::Subtract) {
+                        if let HirExpression::Variable(name) = &**left {
+                            if name == var_name {
+                                return true;
+                            }
+                        }
+                    }
+                }
+            }
+            false
+        }
+        HirStatement::If {
+            then_block,
+            else_block,
+            ..
+        } => {
+            then_block
+                .iter()
+                .any(|s| statement_uses_pointer_arithmetic(s, var_name))
+                || else_block.as_ref().is_some_and(|blk| {
+                    blk.iter()
+                        .any(|s| statement_uses_pointer_arithmetic(s, var_name))
+                })
+        }
+        HirStatement::While { body, .. } | HirStatement::For { body, .. } => body
+            .iter()
+            .any(|s| statement_uses_pointer_arithmetic(s, var_name)),
+        _ => false,
+    }
 }
 
 #[cfg(test)]
