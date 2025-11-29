@@ -121,33 +121,63 @@ mod tests {
 
     #[test]
     fn test_category_display() {
-        assert_eq!(CDecisionCategory::PointerOwnership.to_string(), "pointer_ownership");
+        assert_eq!(
+            CDecisionCategory::PointerOwnership.to_string(),
+            "pointer_ownership"
+        );
         assert_eq!(CDecisionCategory::UnsafeBlock.to_string(), "unsafe_block");
     }
 
     #[test]
     fn test_category_display_all() {
         // Ownership
-        assert_eq!(CDecisionCategory::ArrayOwnership.to_string(), "array_ownership");
-        assert_eq!(CDecisionCategory::StringOwnership.to_string(), "string_ownership");
+        assert_eq!(
+            CDecisionCategory::ArrayOwnership.to_string(),
+            "array_ownership"
+        );
+        assert_eq!(
+            CDecisionCategory::StringOwnership.to_string(),
+            "string_ownership"
+        );
 
         // Lifetime
-        assert_eq!(CDecisionCategory::LifetimeElision.to_string(), "lifetime_elision");
-        assert_eq!(CDecisionCategory::StructLifetime.to_string(), "struct_lifetime");
-        assert_eq!(CDecisionCategory::ReturnLifetime.to_string(), "return_lifetime");
+        assert_eq!(
+            CDecisionCategory::LifetimeElision.to_string(),
+            "lifetime_elision"
+        );
+        assert_eq!(
+            CDecisionCategory::StructLifetime.to_string(),
+            "struct_lifetime"
+        );
+        assert_eq!(
+            CDecisionCategory::ReturnLifetime.to_string(),
+            "return_lifetime"
+        );
 
         // Unsafe
-        assert_eq!(CDecisionCategory::RawPointerCast.to_string(), "raw_pointer_cast");
+        assert_eq!(
+            CDecisionCategory::RawPointerCast.to_string(),
+            "raw_pointer_cast"
+        );
         assert_eq!(CDecisionCategory::NullCheck.to_string(), "null_check");
 
         // Type mapping
-        assert_eq!(CDecisionCategory::IntegerPromotion.to_string(), "integer_promotion");
+        assert_eq!(
+            CDecisionCategory::IntegerPromotion.to_string(),
+            "integer_promotion"
+        );
         assert_eq!(CDecisionCategory::EnumMapping.to_string(), "enum_mapping");
         assert_eq!(CDecisionCategory::UnionMapping.to_string(), "union_mapping");
 
         // Concurrency
-        assert_eq!(CDecisionCategory::MutexWrapping.to_string(), "mutex_wrapping");
-        assert_eq!(CDecisionCategory::AtomicMapping.to_string(), "atomic_mapping");
+        assert_eq!(
+            CDecisionCategory::MutexWrapping.to_string(),
+            "mutex_wrapping"
+        );
+        assert_eq!(
+            CDecisionCategory::AtomicMapping.to_string(),
+            "atomic_mapping"
+        );
     }
 
     #[test]
@@ -224,25 +254,47 @@ mod tests {
 
         for cat in all_categories {
             let errors = cat.associated_errors();
-            assert!(!errors.is_empty(), "Category {:?} has no associated errors", cat);
+            assert!(
+                !errors.is_empty(),
+                "Category {:?} has no associated errors",
+                cat
+            );
         }
     }
 
     #[test]
     fn test_transferable_error_codes() {
         // E0382 (borrow of moved value) should appear in ownership categories
-        assert!(CDecisionCategory::PointerOwnership.associated_errors().contains(&"E0382"));
-        assert!(CDecisionCategory::ArrayOwnership.associated_errors().contains(&"E0382"));
-        assert!(CDecisionCategory::MutexWrapping.associated_errors().contains(&"E0382"));
+        assert!(CDecisionCategory::PointerOwnership
+            .associated_errors()
+            .contains(&"E0382"));
+        assert!(CDecisionCategory::ArrayOwnership
+            .associated_errors()
+            .contains(&"E0382"));
+        assert!(CDecisionCategory::MutexWrapping
+            .associated_errors()
+            .contains(&"E0382"));
 
         // E0597 (borrowed value does not live long enough) in lifetime categories
-        assert!(CDecisionCategory::LifetimeElision.associated_errors().contains(&"E0597"));
-        assert!(CDecisionCategory::StructLifetime.associated_errors().contains(&"E0597"));
-        assert!(CDecisionCategory::ReturnLifetime.associated_errors().contains(&"E0597"));
+        assert!(CDecisionCategory::LifetimeElision
+            .associated_errors()
+            .contains(&"E0597"));
+        assert!(CDecisionCategory::StructLifetime
+            .associated_errors()
+            .contains(&"E0597"));
+        assert!(CDecisionCategory::ReturnLifetime
+            .associated_errors()
+            .contains(&"E0597"));
 
         // E0133 (unsafe block required) in unsafe categories
-        assert!(CDecisionCategory::UnsafeBlock.associated_errors().contains(&"E0133"));
-        assert!(CDecisionCategory::RawPointerCast.associated_errors().contains(&"E0133"));
-        assert!(CDecisionCategory::UnionMapping.associated_errors().contains(&"E0133"));
+        assert!(CDecisionCategory::UnsafeBlock
+            .associated_errors()
+            .contains(&"E0133"));
+        assert!(CDecisionCategory::RawPointerCast
+            .associated_errors()
+            .contains(&"E0133"));
+        assert!(CDecisionCategory::UnionMapping
+            .associated_errors()
+            .contains(&"E0133"));
     }
 }

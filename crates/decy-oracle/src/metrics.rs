@@ -187,8 +187,8 @@ pub struct CIThresholds {
 impl Default for CIThresholds {
     fn default() -> Self {
         Self {
-            min_hit_rate: 0.5,  // 50% hit rate
-            min_fix_rate: 0.8,  // 80% fix success rate
+            min_hit_rate: 0.5, // 50% hit rate
+            min_fix_rate: 0.8, // 80% fix success rate
         }
     }
 }
@@ -239,7 +239,11 @@ Thresholds: Hit Rate >= {:.0}%, Fix Rate >= {:.0}%
             self.metrics.fixes_verified,
             self.fix_success_rate_pct,
             self.metrics.patterns_captured,
-            if self.passed { "✅ PASSED" } else { "❌ FAILED" },
+            if self.passed {
+                "✅ PASSED"
+            } else {
+                "❌ FAILED"
+            },
             self.thresholds.min_hit_rate * 100.0,
             self.thresholds.min_fix_rate * 100.0,
         )

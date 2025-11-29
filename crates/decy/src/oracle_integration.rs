@@ -95,7 +95,7 @@ pub struct OracleTranspileResult {
 }
 
 /// Parse rustc error output into structured errors
-#[cfg(feature = "oracle")]
+#[cfg(feature = "citl")]
 pub fn parse_rustc_errors(stderr: &str) -> Vec<RustcError> {
     let mut errors = Vec::new();
 
@@ -114,7 +114,7 @@ pub fn parse_rustc_errors(stderr: &str) -> Vec<RustcError> {
 }
 
 /// Create decision context from C code construct
-#[cfg(feature = "oracle")]
+#[cfg(feature = "citl")]
 pub fn create_context_for_error(
     _error: &RustcError,
     _c_code: &str,
@@ -130,8 +130,8 @@ pub fn create_context_for_error(
     )
 }
 
-/// Transpile with oracle assistance
-#[cfg(feature = "oracle")]
+/// Transpile with oracle assistance (requires citl feature for full functionality)
+#[cfg(feature = "citl")]
 pub fn transpile_with_oracle(
     c_code: &str,
     options: &OracleOptions,
@@ -256,8 +256,8 @@ pub fn transpile_with_oracle(
     Ok(result)
 }
 
-/// Stub for non-oracle builds
-#[cfg(not(feature = "oracle"))]
+/// Stub for non-citl builds (basic transpilation without oracle assistance)
+#[cfg(not(feature = "citl"))]
 pub fn transpile_with_oracle(
     c_code: &str,
     _options: &OracleOptions,
@@ -269,13 +269,14 @@ pub fn transpile_with_oracle(
         fixes_applied: 0,
         retries_used: 0,
         compilation_success: false,
-        remaining_errors: vec!["Oracle feature not enabled".into()],
+        remaining_errors: vec!["CITL feature not enabled - basic transpilation only".into()],
         patterns_captured: 0,
         patterns_imported: 0,
     })
 }
 
 /// Check if Rust code compiles
+#[cfg(feature = "citl")]
 fn check_rust_compilation(rust_code: &str) -> Result<(), String> {
     use std::process::Command;
     use std::time::{SystemTime, UNIX_EPOCH};
@@ -314,7 +315,7 @@ fn check_rust_compilation(rust_code: &str) -> Result<(), String> {
 }
 
 /// Apply a unified diff to Rust code
-#[cfg(feature = "oracle")]
+#[cfg(feature = "citl")]
 fn apply_fix(rust_code: &str, diff: &str) -> Result<String, String> {
     // Simple line-based diff application
     // Format: "- old line\n+ new line"

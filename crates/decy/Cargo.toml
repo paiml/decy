@@ -34,7 +34,10 @@ walkdir.workspace = true
 
 [features]
 default = []
-oracle = ["decy-oracle", "decy-oracle/citl"]
+# Basic oracle features (golden trace, verification) - no external deps
+oracle = ["decy-oracle"]
+# Full CITL with entrenar integration
+citl = ["oracle", "decy-oracle/citl"]
 
 [dev-dependencies]
 proptest.workspace = true
