@@ -21,11 +21,7 @@ fn decy_cmd() -> Command {
 
 #[test]
 fn cli_oracle_stats_exits_zero() {
-    decy_cmd()
-        .arg("oracle")
-        .arg("stats")
-        .assert()
-        .success();
+    decy_cmd().arg("oracle").arg("stats").assert().success();
 }
 
 #[test]
@@ -35,7 +31,9 @@ fn cli_oracle_stats_default_format_markdown() {
         .arg("stats")
         .assert()
         .success()
-        .stdout(predicate::str::contains("Oracle CI Report").or(predicate::str::contains("oracle")));
+        .stdout(
+            predicate::str::contains("Oracle CI Report").or(predicate::str::contains("oracle")),
+        );
 }
 
 #[test]
