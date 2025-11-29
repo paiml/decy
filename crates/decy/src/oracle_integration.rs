@@ -20,6 +20,8 @@ pub struct OracleOptions {
     pub max_retries: usize,
     /// Path to patterns file
     pub patterns_path: Option<std::path::PathBuf>,
+    /// Enable pattern capture for learning
+    pub capture_patterns: bool,
 }
 
 impl OracleOptions {
@@ -31,12 +33,24 @@ impl OracleOptions {
             auto_fix,
             max_retries: 3,
             patterns_path: None,
+            capture_patterns: false,
         }
+    }
+
+    /// Create options with pattern capture enabled
+    pub fn with_capture(mut self, capture: bool) -> Self {
+        self.capture_patterns = capture;
+        self
     }
 
     /// Check if oracle is enabled and should be used
     pub fn should_use_oracle(&self) -> bool {
         self.enabled
+    }
+
+    /// Check if pattern capture is enabled
+    pub fn should_capture(&self) -> bool {
+        self.capture_patterns
     }
 }
 
@@ -55,6 +69,8 @@ pub struct OracleTranspileResult {
     pub compilation_success: bool,
     /// Remaining errors (if any)
     pub remaining_errors: Vec<String>,
+    /// Number of patterns captured for learning
+    pub patterns_captured: usize,
 }
 
 /// Parse rustc error output into structured errors
@@ -131,13 +147,28 @@ pub fn transpile_with_oracle(
         retries_used: 0,
         compilation_success: false,
         remaining_errors: Vec::new(),
+        patterns_captured: 0,
     };
+
+    // Track errors with pending fix verification
+    let mut pending_verified: Vec<RustcError> = Vec::new();
 
     // Oracle feedback loop
     for retry in 0..options.max_retries {
         // Check compilation
         match check_rust_compilation(&rust_code) {
             Ok(()) => {
+                // Compilation succeeded - verify pending fixes
+                for error in &pending_verified {
+                    oracle.record_fix_verified(error);
+                    result.patterns_captured += 1;
+                }
+
+                // Save patterns if capture is enabled
+                if options.capture_patterns && !pending_verified.is_empty() {
+                    let _ = oracle.save(); // Best-effort save
+                }
+
                 result.compilation_success = true;
                 result.rust_code = rust_code;
                 return Ok(result);
@@ -151,6 +182,9 @@ pub fn transpile_with_oracle(
                     result.rust_code = rust_code;
                     return Ok(result);
                 }
+
+                // Clear pending - previous fixes didn't fully resolve issues
+                pending_verified.clear();
 
                 // Try oracle for each error
                 let mut any_fix_applied = false;
@@ -167,6 +201,8 @@ pub fn transpile_with_oracle(
                                 result.fixes_applied += 1;
                                 any_fix_applied = true;
                                 oracle.record_fix_applied(error);
+                                // Track for verification on next compile
+                                pending_verified.push(error.clone());
                             }
                         }
                     } else {
@@ -203,6 +239,7 @@ pub fn transpile_with_oracle(
         retries_used: 0,
         compilation_success: false,
         remaining_errors: vec!["Oracle feature not enabled".into()],
+        patterns_captured: 0,
     })
 }
 
@@ -301,6 +338,23 @@ mod tests {
     }
 
     #[test]
+    fn test_with_capture() {
+        let opts = OracleOptions::new(true, None, false).with_capture(true);
+        assert!(opts.should_capture());
+        assert!(opts.capture_patterns);
+
+        let opts = OracleOptions::new(true, None, false).with_capture(false);
+        assert!(!opts.should_capture());
+    }
+
+    #[test]
+    fn test_capture_patterns_default() {
+        let opts = OracleOptions::default();
+        assert!(!opts.capture_patterns);
+        assert!(!opts.should_capture());
+    }
+
+    #[test]
     #[cfg(feature = "oracle")]
     fn test_parse_rustc_errors() {
         let stderr = r#"error[E0382]: borrow of moved value: `x`
@@ -340,11 +394,13 @@ error[E0499]: cannot borrow `data` as mutable more than once
             retries_used: 1,
             compilation_success: true,
             remaining_errors: vec![],
+            patterns_captured: 3,
         };
 
         assert!(result.compilation_success);
         assert_eq!(result.oracle_queries, 5);
         assert_eq!(result.fixes_applied, 2);
+        assert_eq!(result.patterns_captured, 3);
     }
 
     #[test]
