@@ -2858,7 +2858,8 @@ impl CodeGenerator {
             .any(|f| matches!(f.field_type(), HirType::Reference { .. }));
 
         // Add derive attribute
-        code.push_str("#[derive(Debug, Clone, PartialEq, Eq)]\n");
+        // DECY-114: Add Default derive for struct initialization with ::default()
+        code.push_str("#[derive(Debug, Clone, Default, PartialEq, Eq)]\n");
 
         // Add struct declaration with or without lifetime
         if needs_lifetimes {
