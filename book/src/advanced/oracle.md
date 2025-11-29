@@ -521,9 +521,113 @@ decy oracle validate ../reprorusted-c-cli/validation/
 decy oracle retire --dry-run
 ```
 
+## AI-First Model Training
+
+Decy's oracle supports generating training data for LLM fine-tuning. The goal is to train a model that "intuits" safe C-to-Rust transformations.
+
+### Golden Traces
+
+Golden Traces are verified C→Rust transformation pairs used as training data:
+
+```rust
+pub struct GoldenTrace {
+    pub c_snippet: String,       // Input C code
+    pub rust_snippet: String,    // Verified safe Rust output
+    pub safety_explanation: String, // Chain-of-thought reasoning
+    pub tier: TraceTier,         // P0/P1/P2 complexity
+}
+```
+
+### Generating Training Data
+
+```bash
+# Generate Golden Traces from a C corpus
+decy oracle generate-traces \
+    --corpus ./c-corpus \
+    --output ./traces.jsonl \
+    --tier P0
+
+# Preview without writing (dry run)
+decy oracle generate-traces \
+    --corpus ./c-corpus \
+    --output ./traces.jsonl \
+    --dry-run
+```
+
+**Training Tiers**:
+
+| Tier | Complexity | Examples |
+|------|------------|----------|
+| P0 | Simple | Type casts, basic functions |
+| P1 | Medium | File I/O, format strings |
+| P2 | Complex | Ownership, lifetimes, concurrency |
+
+### Querying Fix Patterns
+
+Look up fix patterns for specific rustc error codes:
+
+```bash
+# Query patterns for type mismatch errors
+decy oracle query --error E0308
+
+# Query with context for better matches
+decy oracle query --error E0382 --context "let x = value; use(x);"
+
+# Get JSON output for tooling integration
+decy oracle query --error E0308 --format json
+```
+
+**Supported Error Codes**:
+
+| Code | Description | Pattern Count |
+|------|-------------|---------------|
+| E0308 | Type mismatch | 12+ patterns |
+| E0133 | Unsafe required | 3+ patterns |
+| E0382 | Use after move | 5+ patterns |
+| E0499 | Multiple mutable borrows | 3+ patterns |
+| E0597 | Lifetime issues | 4+ patterns |
+
+### Export to HuggingFace
+
+Export patterns in ML-ready formats:
+
+```bash
+# JSONL format (default)
+decy oracle export ./patterns.jsonl --format jsonl
+
+# ChatML format for chat fine-tuning
+decy oracle export ./patterns.chatml --format chatml
+
+# Alpaca format
+decy oracle export ./patterns.alpaca --format alpaca
+
+# Generate dataset card
+decy oracle export ./patterns.jsonl --format jsonl --with-card
+```
+
+### Training Workflow
+
+Complete workflow for generating model training data:
+
+```bash
+# 1. Bootstrap with seed patterns
+decy oracle bootstrap
+
+# 2. Generate traces from corpus
+decy oracle generate-traces \
+    --corpus ./reprorusted-c-cli \
+    --output ./golden-traces.jsonl \
+    --tier P0
+
+# 3. Export to HuggingFace format
+decy oracle export ./dataset.jsonl --format jsonl --with-card
+
+# 4. View statistics
+decy oracle stats --format markdown
+```
+
 ## Related Documentation
 
 - [CLI Reference](../reference/cli.md) - Complete command reference
 - [entrenar CITL](https://github.com/paiml/entrenar) - Pattern storage system
-- [Training Specification](../../docs/specifications/training-oracle-spec.md) - Full training specification
-- [Oracle Integration Spec](../../docs/specifications/oracle-integration-spec.md) - Technical specification
+- [Unified Specification](../../docs/specifications/decy-unified-spec.md) - Full technical specification
