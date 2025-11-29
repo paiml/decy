@@ -204,6 +204,21 @@ enum OracleAction {
         #[arg(long)]
         dry_run: bool,
     },
+    /// Generate Golden Traces from C corpus for model training
+    GenerateTraces {
+        /// Path to corpus directory containing C files
+        #[arg(long, value_name = "DIR")]
+        corpus: PathBuf,
+        /// Output file path for JSONL traces
+        #[arg(long, value_name = "FILE")]
+        output: PathBuf,
+        /// Training tier: P0 (simple), P1 (I/O), P2 (complex)
+        #[arg(long, default_value = "P0")]
+        tier: String,
+        /// Preview generation without writing output
+        #[arg(long)]
+        dry_run: bool,
+    },
 }
 
 fn main() -> Result<()> {
@@ -949,16 +964,26 @@ fn handle_oracle_command(action: OracleAction) -> Result<()> {
                 return Ok(());
             }
 
-            // Bootstrap the oracle
-            let config = OracleConfig::default();
-            let mut oracle = DecyOracle::new(config)?;
+            // Bootstrap requires citl feature for pattern store
+            #[cfg(feature = "citl")]
+            {
+                let config = OracleConfig::default();
+                let mut oracle = DecyOracle::new(config)?;
 
-            let count = oracle.bootstrap()?;
-            oracle.save()?;
+                let count = oracle.bootstrap()?;
+                oracle.save()?;
 
-            println!();
-            println!("✓ Bootstrapped oracle with {} patterns", count);
-            println!("  Patterns saved to: {}", OracleConfig::default().patterns_path.display());
+                println!();
+                println!("✓ Bootstrapped oracle with {} patterns", count);
+                println!("  Patterns saved to: {}", OracleConfig::default().patterns_path.display());
+            }
+
+            #[cfg(not(feature = "citl"))]
+            {
+                println!();
+                println!("⚠ Pattern saving requires the 'citl' feature");
+                println!("  Bootstrap patterns shown above can be used manually");
+            }
 
             Ok(())
         }
@@ -972,47 +997,59 @@ fn handle_oracle_command(action: OracleAction) -> Result<()> {
                 );
             }
 
-            println!("Seeding oracle from: {}", from.display());
+            #[cfg(feature = "citl")]
+            {
+                println!("Seeding oracle from: {}", from.display());
 
-            let config = OracleConfig::default();
-            let mut oracle = DecyOracle::new(config)?;
+                let config = OracleConfig::default();
+                let mut oracle = DecyOracle::new(config)?;
 
-            let (count, stats) = oracle.import_patterns_with_stats(
-                &from,
-                decy_oracle::SmartImportConfig::default(),
-            )?;
+                let (count, stats) = oracle.import_patterns_with_stats(
+                    &from,
+                    decy_oracle::SmartImportConfig::default(),
+                )?;
 
-            println!();
-            println!("=== Import Results ===");
-            println!("Patterns imported: {}", count);
-            println!("Total evaluated: {}", stats.total_evaluated);
-            println!(
-                "Acceptance rate: {:.1}%",
-                stats.overall_acceptance_rate() * 100.0
-            );
-            println!();
-            println!("Import statistics by strategy:");
-            for (strategy, count) in &stats.accepted_by_strategy {
-                let rejected = stats.rejected_by_strategy.get(strategy).copied().unwrap_or(0);
-                let total = count + rejected;
+                println!();
+                println!("=== Import Results ===");
+                println!("Patterns imported: {}", count);
+                println!("Total evaluated: {}", stats.total_evaluated);
                 println!(
-                    "  {:?}: {}/{} accepted ({:.1}%)",
-                    strategy,
-                    count,
-                    total,
-                    if total > 0 {
-                        (*count as f64 / total as f64) * 100.0
-                    } else {
-                        0.0
-                    }
+                    "Acceptance rate: {:.1}%",
+                    stats.overall_acceptance_rate() * 100.0
                 );
+                println!();
+                println!("Import statistics by strategy:");
+                for (strategy, count) in &stats.accepted_by_strategy {
+                    let rejected = stats.rejected_by_strategy.get(strategy).copied().unwrap_or(0);
+                    let total = count + rejected;
+                    println!(
+                        "  {:?}: {}/{} accepted ({:.1}%)",
+                        strategy,
+                        count,
+                        total,
+                        if total > 0 {
+                            (*count as f64 / total as f64) * 100.0
+                        } else {
+                            0.0
+                        }
+                    );
+                }
+
+                // Save updated oracle
+                oracle.save()?;
+                println!();
+                println!("✓ Oracle patterns saved");
             }
 
-            // Save updated oracle
-            oracle.save()?;
-            println!();
-            println!("✓ Oracle patterns saved");
+            #[cfg(not(feature = "citl"))]
+            {
+                let _ = from;
+                return Err(anyhow::anyhow!(
+                    "Pattern import requires the 'citl' feature.\n\nTry: cargo build -p decy --features citl"
+                ));
+            }
 
+            #[allow(unreachable_code)]
             Ok(())
         }
 
@@ -1386,6 +1423,215 @@ fn handle_oracle_command(action: OracleAction) -> Result<()> {
 
             Ok(())
         }
+
+        OracleAction::GenerateTraces { corpus, output, tier, dry_run } => {
+            use decy_oracle::golden_trace::{GoldenTrace, TraceTier, GoldenTraceDataset};
+            use decy_oracle::trace_verifier::TraceVerifier;
+
+            // Validate corpus exists
+            if !corpus.exists() {
+                anyhow::bail!(
+                    "Corpus directory not found: {}\n\nTry: Verify the path to the corpus",
+                    corpus.display()
+                );
+            }
+
+            // Validate tier
+            let tier_upper = tier.to_uppercase();
+            let trace_tier = match tier_upper.as_str() {
+                "P0" => TraceTier::P0,
+                "P1" => TraceTier::P1,
+                "P2" => TraceTier::P2,
+                _ => anyhow::bail!(
+                    "Invalid tier: {}\n\nSupported tiers: P0, P1, P2",
+                    tier
+                ),
+            };
+
+            // Find C files in corpus
+            let c_files: Vec<_> = walkdir::WalkDir::new(&corpus)
+                .into_iter()
+                .filter_map(|e| e.ok())
+                .filter(|e| {
+                    e.path().extension().map(|ext| ext == "c").unwrap_or(false)
+                })
+                .collect();
+
+            if c_files.is_empty() {
+                anyhow::bail!(
+                    "No C files found in corpus: {}\n\nTry: Add .c files to the corpus directory",
+                    corpus.display()
+                );
+            }
+
+            println!("=== Golden Trace Generation ===");
+            println!();
+            println!("Corpus: {}", corpus.display());
+            println!("Output: {}", output.display());
+            println!("Tier: {}", trace_tier);
+            println!("Files: {}", c_files.len());
+            if dry_run {
+                println!("Mode: DRY RUN (no output file will be written)");
+            }
+            println!();
+
+            // Track generation metrics
+            let mut files_processed = 0;
+            let mut traces_generated = 0;
+            let mut traces_verified = 0;
+            let mut traces_failed = 0;
+            let mut traces_skipped = 0;
+
+            // Create dataset and verifier
+            let mut dataset = GoldenTraceDataset::new();
+            let mut verifier = TraceVerifier::new();
+
+            // Process each C file
+            let context = decy_core::ProjectContext::default();
+
+            for entry in &c_files {
+                let c_path = entry.path();
+                let filename = c_path.file_name()
+                    .and_then(|s| s.to_str())
+                    .unwrap_or("unknown");
+
+                println!("Processing: {}", c_path.display());
+
+                // Read C source
+                let c_code = match std::fs::read_to_string(c_path) {
+                    Ok(code) => code,
+                    Err(e) => {
+                        println!("  ⚠ Failed to read: {}", e);
+                        traces_skipped += 1;
+                        continue;
+                    }
+                };
+
+                // Transpile C to Rust
+                let transpiled = match decy_core::transpile_file(c_path, &context) {
+                    Ok(t) => t,
+                    Err(e) => {
+                        println!("  ⚠ Transpile failed: {}", e);
+                        traces_failed += 1;
+                        continue;
+                    }
+                };
+
+                // Create Golden Trace
+                let trace = GoldenTrace::new(
+                    c_code.clone(),
+                    transpiled.rust_code.clone(),
+                    trace_tier,
+                    filename,
+                );
+
+                // Verify the trace
+                let result = verifier.verify_trace(&trace);
+
+                if result.passed {
+                    println!("  ✓ Verified - generating trace");
+                    traces_verified += 1;
+
+                    // Generate safety explanation (Chain of Thought)
+                    let explanation = generate_safety_explanation(&c_code, &transpiled.rust_code, trace_tier);
+                    let trace_with_explanation = trace.with_safety_explanation(&explanation);
+
+                    dataset.add_trace(trace_with_explanation);
+                    traces_generated += 1;
+                } else {
+                    println!("  ✗ Verification failed: {:?}", result.errors);
+                    traces_failed += 1;
+                }
+
+                files_processed += 1;
+            }
+
+            // Summary
+            println!();
+            println!("=== Generation Summary ===");
+            println!("Files processed: {}", files_processed);
+            println!("Traces generated: {}", traces_generated);
+            println!("Traces verified: {}", traces_verified);
+            println!("Traces failed: {}", traces_failed);
+            println!("Traces skipped: {}", traces_skipped);
+
+            if dry_run {
+                println!();
+                println!("DRY RUN - Would generate {} traces", traces_generated);
+                println!("Would write to: {}", output.display());
+            } else if traces_generated > 0 {
+                // Export to JSONL
+                dataset.export_jsonl(&output)?;
+                println!();
+                println!("✓ Exported {} Golden Traces to {}", traces_generated, output.display());
+            } else {
+                println!();
+                println!("⚠ No traces generated - check corpus files");
+            }
+
+            Ok(())
+        }
         }
     }
+}
+
+/// Generate a safety explanation (Chain of Thought) for the C→Rust transformation
+#[cfg(feature = "oracle")]
+fn generate_safety_explanation(c_code: &str, rust_code: &str, tier: decy_oracle::golden_trace::TraceTier) -> String {
+    use decy_oracle::golden_trace::TraceTier;
+
+    let mut explanation = String::new();
+
+    explanation.push_str("## Safety Analysis\n\n");
+
+    // Analyze based on tier
+    match tier {
+        TraceTier::P0 => {
+            explanation.push_str("### Tier P0: Simple Pattern Transformation\n\n");
+            explanation.push_str("This is a straightforward type transformation. ");
+            explanation.push_str("The C code uses primitive types that map directly to Rust's safe type system.\n\n");
+        }
+        TraceTier::P1 => {
+            explanation.push_str("### Tier P1: I/O and Pointer Transformation\n\n");
+            explanation.push_str("This transformation involves pointer handling. ");
+        }
+        TraceTier::P2 => {
+            explanation.push_str("### Tier P2: Complex Memory Management\n\n");
+            explanation.push_str("This transformation involves complex memory patterns. ");
+        }
+    }
+
+    // Detect specific patterns
+    if c_code.contains("malloc") || c_code.contains("free") {
+        explanation.push_str("**Memory Management**: ");
+        explanation.push_str("The C code uses manual memory allocation (malloc/free). ");
+        explanation.push_str("The Rust code uses RAII patterns (Box, Vec) for automatic memory management, ");
+        explanation.push_str("eliminating potential use-after-free and memory leak vulnerabilities.\n\n");
+    }
+
+    if c_code.contains("*") && (c_code.contains("int *") || c_code.contains("char *")) {
+        explanation.push_str("**Pointer Safety**: ");
+        explanation.push_str("The C code uses raw pointers. ");
+        explanation.push_str("The Rust code converts these to references (&T, &mut T) with borrow checking, ");
+        explanation.push_str("ensuring memory safety at compile time.\n\n");
+    }
+
+    if c_code.contains("NULL") {
+        explanation.push_str("**Null Safety**: ");
+        explanation.push_str("The C code checks for NULL. ");
+        explanation.push_str("The Rust code uses Option<T> to encode nullability in the type system, ");
+        explanation.push_str("preventing null pointer dereferences.\n\n");
+    }
+
+    if rust_code.contains("unsafe") {
+        explanation.push_str("**Unsafe Blocks**: ");
+        explanation.push_str("Some unsafe operations remain where Rust cannot statically verify safety. ");
+        explanation.push_str("These are minimized and isolated with documented safety invariants.\n\n");
+    } else {
+        explanation.push_str("**100% Safe**: ");
+        explanation.push_str("The generated Rust code contains no unsafe blocks, ");
+        explanation.push_str("providing compile-time memory safety guarantees.\n\n");
+    }
+
+    explanation
 }

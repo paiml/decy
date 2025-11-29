@@ -115,13 +115,14 @@ impl DecyOracle {
         };
 
         let context_strings = context.to_context_strings();
-        let suggestions = match store.suggest_fix(&error.code, &context_strings, self.config.max_suggestions) {
-            Ok(s) => s,
-            Err(_) => {
-                self.metrics.record_miss(&error.code);
-                return None;
-            }
-        };
+        let suggestions =
+            match store.suggest_fix(&error.code, &context_strings, self.config.max_suggestions) {
+                Ok(s) => s,
+                Err(_) => {
+                    self.metrics.record_miss(&error.code);
+                    return None;
+                }
+            };
 
         let best = match suggestions
             .into_iter()
@@ -140,11 +141,7 @@ impl DecyOracle {
 
     /// Query for fix suggestion (stub when citl feature disabled)
     #[cfg(not(feature = "citl"))]
-    pub fn suggest_fix(
-        &mut self,
-        error: &RustcError,
-        _context: &CDecisionContext,
-    ) -> Option<()> {
+    pub fn suggest_fix(&mut self, error: &RustcError, _context: &CDecisionContext) -> Option<()> {
         self.metrics.record_miss(&error.code);
         None
     }
@@ -359,8 +356,7 @@ mod tests {
 
     #[test]
     fn test_rustc_error() {
-        let error = RustcError::new("E0382", "borrow of moved value")
-            .with_location("test.rs", 42);
+        let error = RustcError::new("E0382", "borrow of moved value").with_location("test.rs", 42);
         assert_eq!(error.code, "E0382");
         assert_eq!(error.line, Some(42));
     }
@@ -376,8 +372,7 @@ mod tests {
 
     #[test]
     fn test_rustc_error_chained_builder() {
-        let error = RustcError::new("E0506", "cannot assign")
-            .with_location("src/main.rs", 100);
+        let error = RustcError::new("E0506", "cannot assign").with_location("src/main.rs", 100);
         assert_eq!(error.code, "E0506");
         assert_eq!(error.file, Some("src/main.rs".into()));
         assert_eq!(error.line, Some(100));

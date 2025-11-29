@@ -168,10 +168,7 @@ pub fn check_rust_compilation(rust_code: &str, config: &VerificationConfig) -> R
     use std::sync::atomic::{AtomicU64, Ordering};
 
     // Create temporary directory for all output files
-    let temp_dir = config
-        .work_dir
-        .clone()
-        .unwrap_or_else(std::env::temp_dir);
+    let temp_dir = config.work_dir.clone().unwrap_or_else(std::env::temp_dir);
 
     // Create unique temp file names using atomic counter for thread safety
     static COUNTER: AtomicU64 = AtomicU64::new(0);

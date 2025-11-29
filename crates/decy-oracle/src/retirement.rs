@@ -24,7 +24,10 @@ pub enum RetirementDecision {
 impl RetirementDecision {
     /// Check if pattern should be removed from active use
     pub fn should_remove(&self) -> bool {
-        matches!(self, RetirementDecision::Retire(_) | RetirementDecision::Archive(_))
+        matches!(
+            self,
+            RetirementDecision::Retire(_) | RetirementDecision::Archive(_)
+        )
     }
 
     /// Get the reason if retiring
@@ -46,32 +49,51 @@ pub enum RetirementReason {
         window_days: u32,
     },
     /// Pattern has high failure rate
-    HighFailureRate {
-        success_rate: f32,
-        threshold: f32,
-    },
+    HighFailureRate { success_rate: f32, threshold: f32 },
     /// Pattern superseded by better alternative
     Superseded {
         better_pattern_id: String,
         improvement: f32,
     },
     /// Manually deprecated by maintainer
-    ManualDeprecation {
-        reason: String,
-    },
+    ManualDeprecation { reason: String },
 }
 
 impl std::fmt::Display for RetirementReason {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            RetirementReason::LowUsage { uses, threshold, window_days } => {
-                write!(f, "Low usage: {} uses in {} days (threshold: {})", uses, window_days, threshold)
+            RetirementReason::LowUsage {
+                uses,
+                threshold,
+                window_days,
+            } => {
+                write!(
+                    f,
+                    "Low usage: {} uses in {} days (threshold: {})",
+                    uses, window_days, threshold
+                )
             }
-            RetirementReason::HighFailureRate { success_rate, threshold } => {
-                write!(f, "High failure rate: {:.1}% (threshold: {:.1}%)", success_rate * 100.0, threshold * 100.0)
+            RetirementReason::HighFailureRate {
+                success_rate,
+                threshold,
+            } => {
+                write!(
+                    f,
+                    "High failure rate: {:.1}% (threshold: {:.1}%)",
+                    success_rate * 100.0,
+                    threshold * 100.0
+                )
             }
-            RetirementReason::Superseded { better_pattern_id, improvement } => {
-                write!(f, "Superseded by {} (+{:.1}% success)", better_pattern_id, improvement * 100.0)
+            RetirementReason::Superseded {
+                better_pattern_id,
+                improvement,
+            } => {
+                write!(
+                    f,
+                    "Superseded by {} (+{:.1}% success)",
+                    better_pattern_id,
+                    improvement * 100.0
+                )
             }
             RetirementReason::ManualDeprecation { reason } => {
                 write!(f, "Manually deprecated: {}", reason)
@@ -394,19 +416,25 @@ mod tests {
             uses: 0,
             threshold: 5,
             window_days: 30
-        }).should_remove());
+        })
+        .should_remove());
         assert!(RetirementDecision::Archive(RetirementReason::LowUsage {
             uses: 0,
             threshold: 5,
             window_days: 30
-        }).should_remove());
+        })
+        .should_remove());
     }
 
     #[test]
     fn test_retirement_decision_reason() {
         assert!(RetirementDecision::Keep.reason().is_none());
 
-        let reason = RetirementReason::LowUsage { uses: 0, threshold: 5, window_days: 30 };
+        let reason = RetirementReason::LowUsage {
+            uses: 0,
+            threshold: 5,
+            window_days: 30,
+        };
         let decision = RetirementDecision::Retire(reason.clone());
         assert!(decision.reason().is_some());
     }
@@ -603,12 +631,21 @@ mod tests {
         let mut result = RetirementSweepResult::new();
 
         result.record("pat-1", &RetirementDecision::Keep);
-        result.record("pat-2", &RetirementDecision::Retire(
-            RetirementReason::LowUsage { uses: 0, threshold: 5, window_days: 30 }
-        ));
-        result.record("pat-3", &RetirementDecision::Archive(
-            RetirementReason::HighFailureRate { success_rate: 0.1, threshold: 0.3 }
-        ));
+        result.record(
+            "pat-2",
+            &RetirementDecision::Retire(RetirementReason::LowUsage {
+                uses: 0,
+                threshold: 5,
+                window_days: 30,
+            }),
+        );
+        result.record(
+            "pat-3",
+            &RetirementDecision::Archive(RetirementReason::HighFailureRate {
+                success_rate: 0.1,
+                threshold: 0.3,
+            }),
+        );
 
         assert_eq!(result.total_evaluated, 3);
         assert_eq!(result.kept, 1);

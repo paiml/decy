@@ -152,7 +152,11 @@ impl DatasetExporter {
         }
 
         std::fs::write(path, &output).map_err(|e| {
-            OracleError::ExportError(format!("Failed to write JSONL to {}: {}", path.display(), e))
+            OracleError::ExportError(format!(
+                "Failed to write JSONL to {}: {}",
+                path.display(),
+                e
+            ))
         })?;
 
         Ok(self.examples.len())
@@ -255,7 +259,11 @@ impl DatasetExporter {
         let path = path.as_ref();
 
         // Build Arrow arrays from examples
-        let error_codes: Vec<&str> = self.examples.iter().map(|e| e.error_code.as_str()).collect();
+        let error_codes: Vec<&str> = self
+            .examples
+            .iter()
+            .map(|e| e.error_code.as_str())
+            .collect();
         let decisions: Vec<&str> = self.examples.iter().map(|e| e.decision.as_str()).collect();
         let fix_diffs: Vec<&str> = self.examples.iter().map(|e| e.fix_diff.as_str()).collect();
         let descriptions: Vec<&str> = self
@@ -270,14 +278,26 @@ impl DatasetExporter {
 
         // Create dataset from arrays
         let dataset = ArrowDataset::from_columns(vec![
-            ("error_code", Box::new(error_codes) as Box<dyn std::any::Any>),
+            (
+                "error_code",
+                Box::new(error_codes) as Box<dyn std::any::Any>,
+            ),
             ("decision", Box::new(decisions) as Box<dyn std::any::Any>),
             ("fix_diff", Box::new(fix_diffs) as Box<dyn std::any::Any>),
-            ("description", Box::new(descriptions) as Box<dyn std::any::Any>),
+            (
+                "description",
+                Box::new(descriptions) as Box<dyn std::any::Any>,
+            ),
             ("source", Box::new(sources) as Box<dyn std::any::Any>),
             ("verified", Box::new(verified) as Box<dyn std::any::Any>),
-            ("success_count", Box::new(success_counts) as Box<dyn std::any::Any>),
-            ("failure_count", Box::new(failure_counts) as Box<dyn std::any::Any>),
+            (
+                "success_count",
+                Box::new(success_counts) as Box<dyn std::any::Any>,
+            ),
+            (
+                "failure_count",
+                Box::new(failure_counts) as Box<dyn std::any::Any>,
+            ),
         ])
         .map_err(|e| OracleError::ExportError(format!("Failed to create Arrow dataset: {}", e)))?;
 
@@ -308,9 +328,7 @@ impl DatasetExporter {
         let mut verified_count = 0;
 
         for example in &self.examples {
-            *by_error_code
-                .entry(example.error_code.clone())
-                .or_default() += 1;
+            *by_error_code.entry(example.error_code.clone()).or_default() += 1;
             *by_decision.entry(example.decision.clone()).or_default() += 1;
             *by_source.entry(example.source.clone()).or_default() += 1;
             if example.verified {

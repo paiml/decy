@@ -311,7 +311,10 @@ fn test_to_alpaca_format() {
 
     assert!(alpaca["instruction"].as_str().is_some());
     assert_eq!(alpaca["input"], "int x = 10;");
-    assert!(alpaca["output"].as_str().unwrap().contains("let x: i32 = 10;"));
+    assert!(alpaca["output"]
+        .as_str()
+        .unwrap()
+        .contains("let x: i32 = 10;"));
 }
 
 #[test]

@@ -249,6 +249,12 @@ impl GoldenTrace {
         self.safety_explanation = explanation;
     }
 
+    /// Builder-style method to add safety explanation
+    pub fn with_safety_explanation(mut self, explanation: &str) -> Self {
+        self.safety_explanation = explanation.to_string();
+        self
+    }
+
     /// Generate a chain-of-thought explanation based on transformations
     pub fn generate_explanation(&mut self) {
         let mut explanation = String::new();
