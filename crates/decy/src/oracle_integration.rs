@@ -4,21 +4,27 @@
 //! implementing the Jidoka (automation with human intelligence) principle
 //! from the Toyota Way.
 
-#[cfg(feature = "oracle")]
-use decy_oracle::{CDecisionCategory, CDecisionContext, CConstruct, DecyOracle, OracleConfig, RustcError};
+#[cfg(feature = "citl")]
+use decy_oracle::{
+    CConstruct, CDecisionCategory, CDecisionContext, DecyOracle, OracleConfig, RustcError,
+};
 
 /// Oracle-related CLI options
 #[derive(Debug, Clone, Default)]
 pub struct OracleOptions {
     /// Enable oracle-assisted transpilation
     pub enabled: bool,
-    /// Confidence threshold for auto-fix (0.0-1.0)
+    /// Confidence threshold for auto-fix (0.0-1.0) - used by citl feature
+    #[allow(dead_code)]
     pub threshold: f32,
-    /// Enable automatic fix application
+    /// Enable automatic fix application - used by citl feature
+    #[allow(dead_code)]
     pub auto_fix: bool,
-    /// Maximum retry attempts
+    /// Maximum retry attempts - used by citl feature
+    #[allow(dead_code)]
     pub max_retries: usize,
-    /// Path to patterns file
+    /// Path to patterns file - used by citl feature
+    #[allow(dead_code)]
     pub patterns_path: Option<std::path::PathBuf>,
     /// Enable pattern capture for learning
     pub capture_patterns: bool,
@@ -156,8 +162,7 @@ pub fn transpile_with_oracle(
         }
     };
 
-    let mut oracle = DecyOracle::new(config)
-        .context("Failed to initialize oracle")?;
+    let mut oracle = DecyOracle::new(config).context("Failed to initialize oracle")?;
 
     // Import patterns from another project if specified
     let patterns_imported = if let Some(ref import_path) = options.import_patterns_path {
@@ -167,8 +172,7 @@ pub fn transpile_with_oracle(
     };
 
     // Initial transpilation
-    let mut rust_code = decy_core::transpile(c_code)
-        .context("Initial transpilation failed")?;
+    let mut rust_code = decy_core::transpile(c_code).context("Initial transpilation failed")?;
 
     let mut result = OracleTranspileResult {
         rust_code: rust_code.clone(),
@@ -465,11 +469,20 @@ error[E0499]: cannot borrow `data` as mutable more than once
             eprintln!("Compilation error: {}", e);
         }
         // Skip test if rustc is not available
-        if result.as_ref().err().map(|e| e.contains("Failed to run rustc")).unwrap_or(false) {
+        if result
+            .as_ref()
+            .err()
+            .map(|e| e.contains("Failed to run rustc"))
+            .unwrap_or(false)
+        {
             eprintln!("Skipping test: rustc not available");
             return;
         }
-        assert!(result.is_ok(), "Expected compilation to succeed, got: {:?}", result);
+        assert!(
+            result.is_ok(),
+            "Expected compilation to succeed, got: {:?}",
+            result
+        );
     }
 
     #[test]
