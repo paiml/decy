@@ -438,6 +438,7 @@ fn print_oracle_stats(result: &OracleTranspileResult, opts: &OracleOptions) {
     }
 }
 
+#[allow(unused_variables)]
 fn print_oracle_report(result: &OracleTranspileResult, format: &str) {
     #[cfg(feature = "oracle")]
     {

@@ -137,7 +137,9 @@ mod tests {
         let codegen = CodeGenerator::new();
         let signature = codegen.generate_signature(&func);
 
-        assert_eq!(signature, "fn process(mut data: *mut i32)");
+        // DECY-111: Pointer params now become references
+        // Since this function has no body (read-only), it gets immutable ref
+        assert_eq!(signature, "fn process(data: &i32)");
     }
 
     #[test]
