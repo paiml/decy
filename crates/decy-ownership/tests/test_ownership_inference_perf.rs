@@ -142,8 +142,6 @@ fn test_ownership_inference_unsafe_reduction_target() {
 
 #[cfg(test)]
 mod integration {
-    use super::*;
-
     /// Example: Measure ownership inference overhead
     ///
     /// In practice, this would:

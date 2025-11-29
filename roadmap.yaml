@@ -8788,3 +8788,258 @@ sprint_30:
 
     Not a production feature - a research prototype.
 
+
+# ============================================================================
+# ORACLE TRAINING SPRINT
+# ============================================================================
+
+sprint_oracle_training:
+  name: "Oracle Training Pipeline - CITL Bootstrap"
+  duration: "2 weeks"
+  start_date: "2025-11-29"
+  story_points: 34
+  status: done
+
+  goals:
+    - "Implement smart import filter for cross-project pattern transfer"
+    - "Add semantic verification (compile + test) for pattern promotion"
+    - "Implement pattern retirement policy for oracle hygiene"
+    - "Create CLI commands for oracle training workflow"
+    - "Integrate with reprorusted-c-cli corpus"
+
+  motivation: |
+    The decy-oracle infrastructure is complete but empty. This sprint
+    populates the oracle with fix patterns using the reprorusted-c-cli
+    corpus and enables cross-project pattern transfer from depyler.
+    
+    Reference: docs/specifications/training-oracle-spec.md v1.1.0
+    Reviewed by: Gemini (CLI Agent) - Approved with 4 recommendations
+
+  tickets:
+    DECY-101:
+      title: "Smart import filter with fix strategy verification"
+      type: feature
+      priority: high
+      story_points: 8
+      assignee: Claude
+      status: done
+      github_issue: null
+      phase: DONE
+
+      description: |
+        Filter imported patterns by fix strategy applicability, not just 
+        error code. Python ownership issues differ from C issues.
+        
+        Implements Gemini recommendation: "smart import is better than 
+        blind bulk import"
+
+      requirements:
+        - Analyze fix strategy type (AddClone, AddBorrow, etc.)
+        - Filter Python-specific patterns
+        - Track import statistics by strategy
+
+      acceptance_criteria:
+        - AddBorrow patterns import at 95%
+        - AddClone patterns import at 60% (Python-specific filtered)
+        - WrapInOption patterns import at 70%
+        - Import statistics tracked
+
+      files_modified:
+        - crates/decy-oracle/src/import.rs (new)
+        - crates/decy-oracle/src/lib.rs
+
+      dependencies: []
+
+    DECY-102:
+      title: "Semantic verification with test suite integration"
+      type: feature
+      priority: high
+      story_points: 8
+      assignee: Claude
+      status: done
+      github_issue: null
+      phase: DONE
+
+      description: |
+        Patterns must pass both rustc AND unit tests before promotion.
+        Implements Jidoka principle - stop the line on defects.
+        
+        Implements Gemini recommendation: "compilation alone is insufficient"
+
+      requirements:
+        - Run rustc compilation check
+        - Execute original C test suite against transpiled Rust
+        - Track verification level (FullyVerified, CompilesOnly, etc.)
+        - Weight patterns by verification confidence
+
+      acceptance_criteria:
+        - FullyVerified patterns get weight 1.0
+        - CompilesOnly patterns get weight 0.6
+        - BehaviorChanged patterns rejected
+        - Test suite execution integrated
+
+      files_modified:
+        - crates/decy-oracle/src/verification.rs (new)
+        - crates/decy-oracle/src/lib.rs
+
+      dependencies: ["DECY-101"]
+
+    DECY-103:
+      title: "Pattern retirement policy for oracle hygiene"
+      type: feature
+      priority: medium
+      story_points: 5
+      assignee: Claude
+      status: done
+      github_issue: null
+      phase: DONE
+
+      description: |
+        Prune obsolete patterns that are rarely used or superseded.
+        Implements Kaizen principle - continuous improvement.
+        
+        Implements Gemini recommendation: "define retirement policy"
+
+      requirements:
+        - Track pattern usage statistics
+        - Retire low-usage patterns (< 5 uses in 30 days)
+        - Retire high-failure patterns (success_rate < 0.3)
+        - Retire superseded patterns
+        - Archive retired patterns for analysis
+
+      acceptance_criteria:
+        - Usage tracking per pattern
+        - Retirement sweep identifies obsolete patterns
+        - Archived patterns accessible for analysis
+        - CLI command: `decy oracle retire`
+
+      files_modified:
+        - crates/decy-oracle/src/retirement.rs (new)
+        - crates/decy-oracle/src/lib.rs
+
+      dependencies: ["DECY-102"]
+
+    DECY-104:
+      title: "Oracle training CLI commands"
+      type: feature
+      priority: high
+      story_points: 8
+      assignee: Claude
+      status: done
+      github_issue: null
+      phase: DONE
+
+      description: |
+        CLI commands for oracle training workflow:
+        - decy oracle seed --from <path>
+        - decy oracle train --corpus <path>
+        - decy oracle validate --corpus <path>
+        - decy oracle retire --dry-run
+        - decy oracle stats --format <json|markdown|prometheus>
+
+      requirements:
+        - Seed command imports depyler patterns
+        - Train command runs CITL loop on corpus
+        - Validate command checks oracle accuracy
+        - Retire command prunes obsolete patterns
+        - Stats command exports metrics
+
+      acceptance_criteria:
+        - All 5 commands implemented
+        - CLI contract tests pass
+        - Integration with reprorusted-c-cli verified
+
+      files_modified:
+        - crates/decy/src/main.rs
+        - crates/decy/src/commands/oracle.rs (new)
+        - crates/decy/tests/cli_contract_oracle.rs (new)
+
+      dependencies: ["DECY-103"]
+
+    DECY-105:
+      title: "Corpus diversity validation"
+      type: quality
+      priority: medium
+      story_points: 5
+      assignee: Claude
+      status: done
+      github_issue: null
+      phase: DONE
+
+      description: |
+        Ensure reprorusted-c-cli error distribution matches broader C code.
+        Implements Genchi Genbutsu - go and see the real data.
+        
+        Implements Gemini recommendation: "corpus diversity check"
+
+      requirements:
+        - Extract error histogram from C codebase
+        - Compare distributions using Jensen-Shannon divergence
+        - Generate diversity report
+        - Threshold: JS divergence < 0.15
+
+      acceptance_criteria:
+        - Error histogram extraction works
+        - JS divergence calculation correct
+        - Diversity report generated
+        - Threshold enforcement
+
+      files_modified:
+        - crates/decy-oracle/src/diversity.rs (new)
+        - crates/decy/src/commands/oracle.rs
+
+      dependencies: ["DECY-104"]
+
+    DECY-106:
+      title: "CITL training command with feedback loop"
+      type: feature
+      priority: critical
+      story_points: 13
+      assignee: Claude
+      status: in_progress
+      phase: RED
+
+      description: |
+        Implement `decy oracle train` command that runs the CITL feedback loop:
+        1. Transpile C files from corpus
+        2. Compile with rustc, capture errors
+        3. Query oracle for fix suggestions
+        4. Apply fixes, re-compile to verify
+        5. Capture verified patterns to .apr
+
+        Per spec Section 2.1 and 3.2.
+
+      requirements:
+        - Train command accepts --corpus <DIR>
+        - Supports --tier P0|P1|P2 for curriculum learning
+        - CITL loop: transpile → compile → fix → verify → capture
+        - Progress reporting during training
+        - Pattern capture for verified fixes
+
+      acceptance_criteria:
+        - decy oracle train --corpus <DIR> works
+        - Errors captured from rustc
+        - Fixes suggested from oracle
+        - Verified fixes saved to .apr
+        - Training metrics reported
+
+      test_strategy: |
+        RED: Write CLI contract tests for train command
+        GREEN: Implement minimal train loop
+        REFACTOR: Add curriculum learning, metrics
+
+      files_modified:
+        - crates/decy/src/main.rs (add Train subcommand)
+        - crates/decy-oracle/src/training.rs (new)
+        - crates/decy/tests/cli_contract_oracle_train.rs (new)
+
+      dependencies: ["DECY-105"]
+
+  sprint_metrics:
+    target_coverage: "≥85%"
+    target_tests: "50+ tests"
+    oracle_metrics:
+      - "Pattern count after training"
+      - "Oracle accuracy on validation set"
+      - "Cross-project transfer rate"
+      - "Pattern retirement rate"

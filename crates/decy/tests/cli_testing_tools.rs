@@ -12,6 +12,7 @@ use std::path::PathBuf;
 use tempfile::TempDir;
 
 /// Helper: Create decy command
+#[allow(deprecated)]
 pub fn decy_cmd() -> Command {
     Command::cargo_bin("decy").expect("Failed to find decy binary")
 }

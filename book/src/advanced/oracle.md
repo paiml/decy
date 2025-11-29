@@ -317,8 +317,213 @@ Fix Success Rate: 40%
 2. Patterns may be project-specific; rebuild pattern library
 3. Check for project-specific type definitions
 
+## Oracle Training
+
+The oracle learns from transpilation errors through a structured training pipeline. This section covers the CLI commands and workflow for training.
+
+### Training CLI Commands
+
+```bash
+# Seed oracle with patterns from another project (cross-project transfer)
+decy oracle seed --from ../depyler/depyler.apr
+
+# Show oracle statistics
+decy oracle stats
+decy oracle stats --format json
+decy oracle stats --format prometheus
+
+# Retire obsolete patterns (Kaizen - continuous improvement)
+decy oracle retire --dry-run
+decy oracle retire --archive-path ./retired-patterns.apr
+
+# Validate oracle on a corpus
+decy oracle validate ./corpus/
+```
+
+### Training Workflow
+
+The recommended training workflow follows Toyota Way principles:
+
+#### Phase 1: Bootstrap (Yokoten)
+
+**Option A: Cold Start Bootstrap** (Recommended for new installations)
+
+Use the built-in bootstrap patterns for common C→Rust errors:
+
+```bash
+# Preview available bootstrap patterns
+decy oracle bootstrap --dry-run
+
+# Bootstrap the oracle with seed patterns
+decy oracle bootstrap
+
+# Verify patterns loaded
+decy oracle stats
+```
+
+This loads 25+ predefined patterns for errors like:
+- E0308 (type mismatch): pointer_to_reference, type_coercion
+- E0133 (unsafe): unsafe_deref, unsafe_extern
+- E0382 (use after move): clone_before_move, borrow_instead_of_move
+- E0499 (multiple mutable borrows): sequential_mutable_borrow
+- E0597/E0515 (lifetime): extend_lifetime, return_owned
+
+**Option B: Cross-Project Import**
+
+Seed the oracle with patterns from related projects:
+
+```bash
+# Import ownership/lifetime patterns from depyler (Python→Rust)
+decy oracle seed --from ../depyler/depyler.apr
+
+# Check import statistics
+decy oracle stats
+```
+
+**Smart Import Filtering**: Not all patterns transfer between languages. The oracle's smart import filter:
+- Accepts: `AddBorrow`, `AddLifetime` patterns (universal)
+- Filters: Python-specific patterns (list cloning, etc.)
+- Warns: Ambiguous patterns for manual review
+
+#### Phase 2: Corpus Training (Genchi Genbutsu)
+
+Train on real C code using the reprorusted-c-cli corpus:
+
+```bash
+# Clone training corpus
+git clone https://github.com/paiml/reprorusted-c-cli ../reprorusted-c-cli
+
+# Validate corpus diversity
+decy oracle validate ../reprorusted-c-cli/coreutils/
+
+# Train with pattern capture
+decy transpile-project \
+    --oracle \
+    --auto-fix \
+    --capture \
+    ../reprorusted-c-cli/coreutils/ \
+    -o ./output/
+```
+
+#### Phase 3: Validation (Jidoka)
+
+Verify fix quality with semantic validation:
+
+```bash
+# Run validation on held-out corpus
+decy oracle validate ./test-corpus/
+
+# Check metrics
+decy oracle stats --format markdown
+```
+
+**Semantic Verification**: Patterns must pass both:
+1. **Compilation check**: `rustc` compiles without errors
+2. **Test suite check**: Unit tests pass (when available)
+
+Patterns that only compile get weight 0.6; fully verified patterns get weight 1.0.
+
+#### Phase 4: Maintenance (Kaizen)
+
+Retire obsolete patterns periodically:
+
+```bash
+# Preview retirements
+decy oracle retire --dry-run
+
+# Apply retirements
+decy oracle retire --archive-path ./archive/retired-$(date +%Y%m%d).apr
+```
+
+**Retirement Policy**:
+- Low usage: < 5 uses in 30 days
+- High failure: < 30% success rate
+- Superseded: Better pattern exists with > 20% improvement
+
+### Corpus Diversity Validation
+
+The oracle validates training corpus diversity using Jensen-Shannon divergence:
+
+```bash
+decy oracle validate ./corpus/
+```
+
+Output:
+```
+=== Corpus Diversity Analysis ===
+Files: 19
+Lines of code: 6180
+
+C Construct Coverage:
+  RawPointer: 45
+  MallocFree: 23
+  Struct: 18
+  ForLoop: 67
+  Switch: 12
+
+=== Validation Results ===
+Files processed: 19
+Transpile success: 15
+Transpile failed: 4
+Success rate: 78.9%
+
+Error Distribution:
+  E0382: 3 (Ownership)
+  E0597: 1 (Lifetime)
+
+✅ Corpus diversity validation: PASSED
+```
+
+**Acceptance Criteria**: Jensen-Shannon divergence < 0.15 between training corpus and external validation corpora.
+
+### Training Metrics
+
+Monitor training progress with these metrics:
+
+| Metric | Target | Description |
+|--------|--------|-------------|
+| Hit Rate | ≥ 50% | Queries returning suggestions |
+| Fix Success Rate | ≥ 80% | Fixes that compile successfully |
+| Full Verification Rate | ≥ 60% | Fixes passing tests |
+| Pattern Count | Growing | Accumulated patterns |
+| Retirement Rate | < 10% | Patterns retired per sweep |
+
+### Example: Training on reprorusted-c-cli
+
+Complete training workflow:
+
+```bash
+# 1. Clone corpus
+git clone https://github.com/paiml/reprorusted-c-cli ../reprorusted-c-cli
+
+# 2. Bootstrap oracle (cold start)
+decy oracle bootstrap
+decy oracle stats
+
+# 3. Train on coreutils
+for util in ../reprorusted-c-cli/coreutils/*/; do
+    echo "Training on: $util"
+    decy transpile-project \
+        --oracle \
+        --auto-fix \
+        --capture \
+        "$util" \
+        -o "./trained-output/$(basename $util)/"
+done
+
+# 4. Check results
+decy oracle stats --format markdown
+
+# 5. Validate on held-out set
+decy oracle validate ../reprorusted-c-cli/validation/
+
+# 6. Retire low-quality patterns
+decy oracle retire --dry-run
+```
+
 ## Related Documentation
 
 - [CLI Reference](../reference/cli.md) - Complete command reference
 - [entrenar CITL](https://github.com/paiml/entrenar) - Pattern storage system
-- [Oracle Specification](../../docs/specifications/oracle-integration-spec.md) - Technical specification
+- [Training Specification](../../docs/specifications/training-oracle-spec.md) - Full training specification
+- [Oracle Integration Spec](../../docs/specifications/oracle-integration-spec.md) - Technical specification
