@@ -9085,8 +9085,8 @@ sprint_oracle_training:
       priority: critical
       story_points: 8
       assignee: Claude
-      status: in_progress
-      phase: GREEN
+      status: done
+      phase: DONE
 
       description: |
         Implement Poka-Yoke verification gate per spec Section 6.2.
@@ -9126,7 +9126,7 @@ sprint_oracle_training:
       priority: critical
       story_points: 13
       assignee: Claude
-      status: not_started
+      status: done
       phase: DONE
 
       description: |
@@ -9164,6 +9164,50 @@ sprint_oracle_training:
         - crates/decy/tests/cli_contract_oracle_traces.rs (new)
 
       dependencies: ["DECY-108"]
+
+    DECY-110:
+      title: "Oracle query command for pattern lookup"
+      type: feature
+      priority: high
+      story_points: 5
+      assignee: Claude
+      status: in_progress
+      phase: RED
+
+      description: |
+        Implement `decy oracle query` command per spec Section 6.7.
+        Query oracle for fix patterns for specific error codes.
+
+        CLI: decy oracle query --error E0308 --context "let x: &mut i32 = ptr"
+
+        Features:
+        1. Query by error code (E0308, E0382, etc.)
+        2. Optional context for better matches
+        3. Show matching patterns and fixes
+        4. Confidence scores for matches
+
+      requirements:
+        - Query oracle by error code
+        - Show matching fix patterns
+        - Display confidence scores
+        - Pretty-print fix diffs
+
+      acceptance_criteria:
+        - Can query patterns by error code
+        - Shows relevant fix suggestions
+        - Handles missing patterns gracefully
+        - Works with bootstrap patterns
+
+      test_strategy: |
+        RED: Write CLI contract tests for query command
+        GREEN: Implement query command
+        REFACTOR: Add context matching, confidence display
+
+      files_modified:
+        - crates/decy/src/main.rs (add Query command)
+        - crates/decy/tests/cli_contract_oracle_query.rs (new)
+
+      dependencies: ["DECY-104"]
 
   sprint_metrics:
     target_coverage: "≥85%"
