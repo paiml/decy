@@ -46,6 +46,10 @@ enum Commands {
         /// Automatically apply oracle fixes
         #[arg(long)]
         auto_fix: bool,
+
+        /// Capture verified fix patterns for learning
+        #[arg(long)]
+        capture: bool,
     },
     /// Transpile an entire C project (directory)
     TranspileProject {
@@ -88,6 +92,10 @@ enum Commands {
         /// Automatically apply oracle fixes
         #[arg(long)]
         auto_fix: bool,
+
+        /// Capture verified fix patterns for learning
+        #[arg(long)]
+        capture: bool,
     },
     /// Check project and show build order (dry-run)
     CheckProject {
@@ -125,8 +133,10 @@ fn main() -> Result<()> {
             oracle,
             oracle_threshold,
             auto_fix,
+            capture,
         }) => {
-            let oracle_opts = OracleOptions::new(oracle, Some(oracle_threshold), auto_fix);
+            let oracle_opts = OracleOptions::new(oracle, Some(oracle_threshold), auto_fix)
+                .with_capture(capture);
             transpile_file(input, output, &oracle_opts)?;
         }
         Some(Commands::TranspileProject {
@@ -140,8 +150,10 @@ fn main() -> Result<()> {
             oracle,
             oracle_threshold,
             auto_fix,
+            capture,
         }) => {
-            let oracle_opts = OracleOptions::new(oracle, Some(oracle_threshold), auto_fix);
+            let oracle_opts = OracleOptions::new(oracle, Some(oracle_threshold), auto_fix)
+                .with_capture(capture);
             transpile_project(
                 input,
                 output,
@@ -270,6 +282,9 @@ fn print_oracle_stats(result: &OracleTranspileResult) {
     eprintln!("Queries: {}", result.oracle_queries);
     eprintln!("Fixes applied: {}", result.fixes_applied);
     eprintln!("Retries: {}", result.retries_used);
+    if result.patterns_captured > 0 {
+        eprintln!("Patterns captured: {}", result.patterns_captured);
+    }
     if result.compilation_success {
         eprintln!("✓ Compilation: SUCCESS");
     } else {
