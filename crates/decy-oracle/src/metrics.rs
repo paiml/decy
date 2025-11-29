@@ -138,6 +138,112 @@ decy_oracle_fix_success_rate {}
             self.fix_success_rate()
         )
     }
+
+    /// Export as JSON (for CI integration)
+    pub fn to_json(&self) -> String {
+        serde_json::to_string_pretty(self).unwrap_or_else(|_| "{}".to_string())
+    }
+
+    /// Check if metrics meet CI thresholds
+    pub fn meets_ci_thresholds(&self, min_hit_rate: f64, min_fix_rate: f64) -> bool {
+        // No queries = passes (nothing to measure)
+        if self.queries == 0 {
+            return true;
+        }
+        // Check hit rate threshold
+        if self.hit_rate() < min_hit_rate {
+            return false;
+        }
+        // Only check fix rate if fixes were attempted
+        if self.fixes_applied > 0 && self.fix_success_rate() < min_fix_rate {
+            return false;
+        }
+        true
+    }
+}
+
+/// CI report output format
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CIReport {
+    /// Summary metrics
+    pub metrics: OracleMetrics,
+    /// Hit rate percentage
+    pub hit_rate_pct: f64,
+    /// Fix success rate percentage
+    pub fix_success_rate_pct: f64,
+    /// Whether CI thresholds were met
+    pub passed: bool,
+    /// Threshold configuration
+    pub thresholds: CIThresholds,
+}
+
+/// CI threshold configuration
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CIThresholds {
+    pub min_hit_rate: f64,
+    pub min_fix_rate: f64,
+}
+
+impl Default for CIThresholds {
+    fn default() -> Self {
+        Self {
+            min_hit_rate: 0.5,  // 50% hit rate
+            min_fix_rate: 0.8,  // 80% fix success rate
+        }
+    }
+}
+
+impl CIReport {
+    /// Create a CI report from metrics
+    pub fn from_metrics(metrics: OracleMetrics, thresholds: CIThresholds) -> Self {
+        let passed = metrics.meets_ci_thresholds(thresholds.min_hit_rate, thresholds.min_fix_rate);
+        Self {
+            hit_rate_pct: metrics.hit_rate() * 100.0,
+            fix_success_rate_pct: metrics.fix_success_rate() * 100.0,
+            metrics,
+            passed,
+            thresholds,
+        }
+    }
+
+    /// Export as JSON
+    pub fn to_json(&self) -> String {
+        serde_json::to_string_pretty(self).unwrap_or_else(|_| "{}".to_string())
+    }
+
+    /// Export as markdown
+    pub fn to_markdown(&self) -> String {
+        format!(
+            r#"## Oracle CI Report
+
+| Metric | Value |
+|--------|-------|
+| Queries | {} |
+| Hits | {} |
+| Misses | {} |
+| Hit Rate | {:.1}% |
+| Fixes Applied | {} |
+| Fixes Verified | {} |
+| Fix Success Rate | {:.1}% |
+| Patterns Captured | {} |
+
+### Status: {}
+
+Thresholds: Hit Rate >= {:.0}%, Fix Rate >= {:.0}%
+"#,
+            self.metrics.queries,
+            self.metrics.hits,
+            self.metrics.misses,
+            self.hit_rate_pct,
+            self.metrics.fixes_applied,
+            self.metrics.fixes_verified,
+            self.fix_success_rate_pct,
+            self.metrics.patterns_captured,
+            if self.passed { "✅ PASSED" } else { "❌ FAILED" },
+            self.thresholds.min_hit_rate * 100.0,
+            self.thresholds.min_fix_rate * 100.0,
+        )
+    }
 }
 
 #[cfg(test)]
@@ -173,5 +279,87 @@ mod tests {
         assert_eq!(metrics.by_error_code["E0382"].hits, 2);
         assert_eq!(metrics.by_error_code["E0499"].queries, 1);
         assert_eq!(metrics.by_error_code["E0499"].hits, 0);
+    }
+
+    #[test]
+    fn test_fix_success_rate() {
+        let mut metrics = OracleMetrics::default();
+        metrics.record_fix_applied("E0382");
+        metrics.record_fix_applied("E0382");
+        metrics.record_fix_verified("E0382");
+
+        assert_eq!(metrics.fixes_applied, 2);
+        assert_eq!(metrics.fixes_verified, 1);
+        assert!((metrics.fix_success_rate() - 0.5).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_to_json() {
+        let mut metrics = OracleMetrics::default();
+        metrics.record_hit("E0382");
+        let json = metrics.to_json();
+        assert!(json.contains("\"queries\": 1"));
+        assert!(json.contains("\"hits\": 1"));
+    }
+
+    #[test]
+    fn test_meets_ci_thresholds_no_queries() {
+        let metrics = OracleMetrics::default();
+        // No queries = passes
+        assert!(metrics.meets_ci_thresholds(0.5, 0.8));
+    }
+
+    #[test]
+    fn test_meets_ci_thresholds_pass() {
+        let mut metrics = OracleMetrics::default();
+        metrics.record_hit("E0382");
+        metrics.record_hit("E0382");
+        metrics.record_fix_applied("E0382");
+        metrics.record_fix_verified("E0382");
+
+        // 100% hit rate, 100% fix rate - should pass
+        assert!(metrics.meets_ci_thresholds(0.5, 0.8));
+    }
+
+    #[test]
+    fn test_meets_ci_thresholds_fail() {
+        let mut metrics = OracleMetrics::default();
+        metrics.record_miss("E0382");
+        metrics.record_miss("E0382");
+
+        // 0% hit rate - should fail
+        assert!(!metrics.meets_ci_thresholds(0.5, 0.8));
+    }
+
+    #[test]
+    fn test_ci_report_from_metrics() {
+        let mut metrics = OracleMetrics::default();
+        metrics.record_hit("E0382");
+        metrics.record_fix_applied("E0382");
+        metrics.record_fix_verified("E0382");
+
+        let report = CIReport::from_metrics(metrics, CIThresholds::default());
+        assert!(report.passed);
+        assert!((report.hit_rate_pct - 100.0).abs() < 0.01);
+        assert!((report.fix_success_rate_pct - 100.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_ci_report_to_markdown() {
+        let mut metrics = OracleMetrics::default();
+        metrics.record_hit("E0382");
+
+        let report = CIReport::from_metrics(metrics, CIThresholds::default());
+        let md = report.to_markdown();
+        assert!(md.contains("Oracle CI Report"));
+        assert!(md.contains("| Queries | 1 |"));
+        assert!(md.contains("PASSED"));
+    }
+
+    #[test]
+    fn test_ci_thresholds_default() {
+        let thresholds = CIThresholds::default();
+        assert!((thresholds.min_hit_rate - 0.5).abs() < 0.01);
+        assert!((thresholds.min_fix_rate - 0.8).abs() < 0.01);
     }
 }
