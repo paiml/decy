@@ -392,7 +392,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg(feature = "oracle")]
+    #[cfg(feature = "citl")]
     fn test_parse_rustc_errors() {
         let stderr = r#"error[E0382]: borrow of moved value: `x`
    --> test.rs:5:10
@@ -413,7 +413,7 @@ error[E0499]: cannot borrow `data` as mutable more than once
     }
 
     #[test]
-    #[cfg(feature = "oracle")]
+    #[cfg(feature = "citl")]
     fn test_apply_fix() {
         let rust_code = "let x = value.clone();";
         let diff = "- value.clone()\n+ value.to_owned()";
@@ -462,6 +462,7 @@ error[E0499]: cannot borrow `data` as mutable more than once
     }
 
     #[test]
+    #[cfg(feature = "citl")]
     fn test_check_rust_compilation_valid() {
         let valid_code = "fn main() {}";
         let result = check_rust_compilation(valid_code);
@@ -486,6 +487,7 @@ error[E0499]: cannot borrow `data` as mutable more than once
     }
 
     #[test]
+    #[cfg(feature = "citl")]
     fn test_check_rust_compilation_invalid() {
         let invalid_code = "fn main() { let x: i32 = \"not an int\"; }";
         let result = check_rust_compilation(invalid_code);
