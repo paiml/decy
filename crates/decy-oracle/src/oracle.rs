@@ -229,11 +229,44 @@ mod tests {
     }
 
     #[test]
+    fn test_oracle_pattern_count_empty() {
+        let config = OracleConfig::default();
+        let oracle = DecyOracle::new(config).unwrap();
+        assert_eq!(oracle.pattern_count(), 0);
+    }
+
+    #[test]
+    fn test_oracle_config_access() {
+        let mut config = OracleConfig::default();
+        config.confidence_threshold = 0.9;
+        let oracle = DecyOracle::new(config).unwrap();
+        assert!((oracle.config().confidence_threshold - 0.9).abs() < f32::EPSILON);
+    }
+
+    #[test]
     fn test_rustc_error() {
         let error = RustcError::new("E0382", "borrow of moved value")
             .with_location("test.rs", 42);
         assert_eq!(error.code, "E0382");
         assert_eq!(error.line, Some(42));
+    }
+
+    #[test]
+    fn test_rustc_error_without_location() {
+        let error = RustcError::new("E0499", "cannot borrow as mutable more than once");
+        assert_eq!(error.code, "E0499");
+        assert_eq!(error.message, "cannot borrow as mutable more than once");
+        assert!(error.file.is_none());
+        assert!(error.line.is_none());
+    }
+
+    #[test]
+    fn test_rustc_error_chained_builder() {
+        let error = RustcError::new("E0506", "cannot assign")
+            .with_location("src/main.rs", 100);
+        assert_eq!(error.code, "E0506");
+        assert_eq!(error.file, Some("src/main.rs".into()));
+        assert_eq!(error.line, Some(100));
     }
 
     #[test]
@@ -253,5 +286,51 @@ mod tests {
         // No patterns, should be a miss
         let _ = oracle.suggest_fix(&error, &context);
         assert_eq!(oracle.metrics().misses, 1);
+    }
+
+    #[test]
+    fn test_record_miss() {
+        let config = OracleConfig::default();
+        let mut oracle = DecyOracle::new(config).unwrap();
+
+        let error = RustcError::new("E0597", "borrowed value does not live long enough");
+        oracle.record_miss(&error);
+        assert_eq!(oracle.metrics().misses, 1);
+        assert_eq!(oracle.metrics().queries, 1);
+    }
+
+    #[test]
+    fn test_record_fix_applied() {
+        let config = OracleConfig::default();
+        let mut oracle = DecyOracle::new(config).unwrap();
+
+        let error = RustcError::new("E0382", "use of moved value");
+        oracle.record_fix_applied(&error);
+        assert_eq!(oracle.metrics().fixes_applied, 1);
+    }
+
+    #[test]
+    fn test_record_fix_verified() {
+        let config = OracleConfig::default();
+        let mut oracle = DecyOracle::new(config).unwrap();
+
+        let error = RustcError::new("E0515", "cannot return reference to local");
+        oracle.record_fix_verified(&error);
+        assert_eq!(oracle.metrics().fixes_verified, 1);
+    }
+
+    #[test]
+    fn test_multiple_error_codes_tracked() {
+        let config = OracleConfig::default();
+        let mut oracle = DecyOracle::new(config).unwrap();
+
+        oracle.record_miss(&RustcError::new("E0382", "test"));
+        oracle.record_miss(&RustcError::new("E0499", "test"));
+        oracle.record_miss(&RustcError::new("E0382", "test"));
+
+        let metrics = oracle.metrics();
+        assert_eq!(metrics.misses, 3);
+        assert_eq!(metrics.by_error_code.get("E0382").unwrap().queries, 2);
+        assert_eq!(metrics.by_error_code.get("E0499").unwrap().queries, 1);
     }
 }
