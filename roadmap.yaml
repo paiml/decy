@@ -9035,6 +9035,136 @@ sprint_oracle_training:
 
       dependencies: ["DECY-105"]
 
+    DECY-107:
+      title: "GoldenTrace struct for model training data"
+      type: feature
+      priority: critical
+      story_points: 8
+      assignee: Claude
+      status: in_progress
+      phase: RED
+
+      description: |
+        Implement GoldenTrace struct as defined in unified spec Section 6.3.
+        This is the core data structure for AI model training:
+        - c_snippet: Input C code
+        - rust_snippet: Verified output Rust
+        - safety_explanation: Chain-of-thought for model
+        - metadata: Tier, transformations, constructs
+
+        Per spec: "The pipeline's primary output is training data, not just code"
+
+      requirements:
+        - GoldenTrace struct with all fields from spec
+        - TraceTier enum (P0, P1, P2)
+        - SafetyTransformation enum
+        - Export to JSONL, ChatML, Alpaca formats
+        - Dataset statistics tracking
+
+      acceptance_criteria:
+        - GoldenTrace can be serialized to JSONL
+        - ChatML format matches instruction fine-tuning spec
+        - Dataset card generation works
+        - 100% test coverage for struct
+
+      test_strategy: |
+        RED: Write tests for GoldenTrace serialization
+        GREEN: Implement struct and serialization
+        REFACTOR: Add dataset statistics, card generation
+
+      files_modified:
+        - crates/decy-oracle/src/golden_trace.rs (new)
+        - crates/decy-oracle/src/lib.rs (export)
+        - crates/decy-oracle/tests/golden_trace_tests.rs (new)
+
+      dependencies: ["DECY-106"]
+
+    DECY-108:
+      title: "Verification gate for Golden Trace quality"
+      type: feature
+      priority: critical
+      story_points: 8
+      assignee: Claude
+      status: not_started
+      phase: RED
+
+      description: |
+        Implement Poka-Yoke verification gate per spec Section 6.2.
+        Only SAFE, COMPILING Rust enters the training dataset.
+
+        The verifier acts as the hard quality gate:
+        1. Compile Rust with rustc
+        2. Check for unsafe blocks
+        3. Run clippy
+        4. Validate against safety invariants
+
+      requirements:
+        - Verification passes/fails Golden Traces
+        - Failed traces are rejected from dataset
+        - Verification stats reported
+        - Configurable strictness levels
+
+      acceptance_criteria:
+        - Invalid Rust never enters dataset
+        - Unsafe code flagged appropriately
+        - Verification metrics exported
+
+      test_strategy: |
+        RED: Write tests for verification gate
+        GREEN: Implement verification logic
+        REFACTOR: Add metrics, configurability
+
+      files_modified:
+        - crates/decy-oracle/src/trace_verifier.rs (new)
+        - crates/decy-verify/src/lib.rs (integrate)
+
+      dependencies: ["DECY-107"]
+
+    DECY-109:
+      title: "Golden Trace generation pipeline"
+      type: feature
+      priority: critical
+      story_points: 13
+      assignee: Claude
+      status: not_started
+      phase: RED
+
+      description: |
+        Implement the Data Factory pipeline per spec Section 2.1.
+        Generate Golden Traces from C corpus:
+
+        1. Parse C source
+        2. Transpile to Rust (heuristic engine)
+        3. Verify Rust compiles and is safe
+        4. Generate safety explanation (CoT)
+        5. Export as GoldenTrace to JSONL
+
+        Target: 10,000+ Golden Traces for model training.
+
+      requirements:
+        - decy oracle generate-traces --corpus <DIR> --output <FILE>
+        - Progress reporting during generation
+        - Failure tracking and retry logic
+        - Curriculum-based generation (P0 first)
+
+      acceptance_criteria:
+        - Can generate traces from C corpus
+        - Only verified traces exported
+        - Stats show success/failure rates
+        - JSONL output matches spec format
+
+      test_strategy: |
+        RED: Write CLI contract tests for generate-traces
+        GREEN: Implement trace generation pipeline
+        REFACTOR: Add curriculum, metrics, HuggingFace export
+
+      files_modified:
+        - crates/decy/src/main.rs (add GenerateTraces command)
+        - crates/decy-oracle/src/trace_generator.rs (new)
+        - crates/decy/tests/cli_contract_oracle_traces.rs (new)
+
+      dependencies: ["DECY-108"]
+
   sprint_metrics:
     target_coverage: "≥85%"
     target_tests: "50+ tests"
