@@ -36,7 +36,7 @@ pub use context::{CConstruct, CDecisionContext, LifetimeDecision};
 pub use decisions::CDecisionCategory;
 pub use error::OracleError;
 pub use metrics::OracleMetrics;
-pub use oracle::DecyOracle;
+pub use oracle::{DecyOracle, RustcError};
 
 #[cfg(feature = "citl")]
 pub use oracle::FixSuggestion;

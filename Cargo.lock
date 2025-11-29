@@ -1030,6 +1030,7 @@ dependencies = [
  "decy-book",
  "decy-core",
  "decy-mcp",
+ "decy-oracle",
  "decy-repo",
  "decy-verify",
  "indicatif",
