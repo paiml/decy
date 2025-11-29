@@ -67,6 +67,7 @@ impl OracleOptions {
     }
 
     /// Check if pattern capture is enabled
+    #[cfg(test)]
     pub fn should_capture(&self) -> bool {
         self.capture_patterns
     }
@@ -139,18 +140,20 @@ pub fn transpile_with_oracle(
 
     // Initialize oracle
     let config = if let Some(ref path) = options.patterns_path {
-        let mut cfg = OracleConfig::default();
-        cfg.patterns_path = path.clone();
-        cfg.confidence_threshold = options.threshold;
-        cfg.auto_fix = options.auto_fix;
-        cfg.max_retries = options.max_retries;
-        cfg
+        OracleConfig {
+            patterns_path: path.clone(),
+            confidence_threshold: options.threshold,
+            auto_fix: options.auto_fix,
+            max_retries: options.max_retries,
+            ..Default::default()
+        }
     } else {
-        let mut cfg = OracleConfig::default();
-        cfg.confidence_threshold = options.threshold;
-        cfg.auto_fix = options.auto_fix;
-        cfg.max_retries = options.max_retries;
-        cfg
+        OracleConfig {
+            confidence_threshold: options.threshold,
+            auto_fix: options.auto_fix,
+            max_retries: options.max_retries,
+            ..Default::default()
+        }
     };
 
     let mut oracle = DecyOracle::new(config)
@@ -322,13 +325,13 @@ fn apply_fix(rust_code: &str, diff: &str) -> Result<String, String> {
 
     while i < lines.len() {
         let line = lines[i];
-        if line.starts_with("- ") {
-            let old = &line[2..];
-            if i + 1 < lines.len() && lines[i + 1].starts_with("+ ") {
-                let new = &lines[i + 1][2..];
-                result = result.replace(old, new);
-                i += 2;
-                continue;
+        if let Some(old) = line.strip_prefix("- ") {
+            if i + 1 < lines.len() {
+                if let Some(new) = lines[i + 1].strip_prefix("+ ") {
+                    result = result.replace(old, new);
+                    i += 2;
+                    continue;
+                }
             }
         }
         i += 1;

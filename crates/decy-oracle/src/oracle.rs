@@ -175,8 +175,23 @@ impl DecyOracle {
     }
 
     /// Import patterns from another .apr file (cross-project transfer)
+    ///
+    /// Uses the smart import filter to verify fix strategies are applicable
+    /// to C→Rust context (not just Python→Rust patterns).
     #[cfg(feature = "citl")]
     pub fn import_patterns(&mut self, path: &std::path::Path) -> Result<usize, OracleError> {
+        self.import_patterns_with_config(path, crate::import::SmartImportConfig::default())
+    }
+
+    /// Import patterns with custom configuration
+    #[cfg(feature = "citl")]
+    pub fn import_patterns_with_config(
+        &mut self,
+        path: &std::path::Path,
+        config: crate::import::SmartImportConfig,
+    ) -> Result<usize, OracleError> {
+        use crate::import::{smart_import_filter, ImportStats};
+
         let other_store = DecisionPatternStore::load_apr(path)
             .map_err(|e| OracleError::PatternStoreError(e.to_string()))?;
 
@@ -188,16 +203,76 @@ impl DecyOracle {
         });
 
         let mut count = 0;
+        let mut stats = ImportStats::new();
+
         for code in &transferable {
             let patterns = other_store.patterns_for_error(code);
             for pattern in patterns {
-                if store.index_fix(pattern.clone()).is_ok() {
-                    count += 1;
+                // Apply smart import filter
+                let strategy = crate::import::analyze_fix_strategy(&pattern.fix_diff);
+                let decision = smart_import_filter(&pattern.fix_diff, &pattern.metadata, &config);
+
+                stats.record(strategy, &decision);
+
+                if decision.allows_import() {
+                    if store.index_fix(pattern.clone()).is_ok() {
+                        count += 1;
+                    }
                 }
             }
         }
 
+        // Log import statistics
+        if stats.total_evaluated > 0 {
+            tracing::info!(
+                "Import stats: {}/{} patterns accepted ({:.1}%)",
+                count,
+                stats.total_evaluated,
+                stats.overall_acceptance_rate() * 100.0
+            );
+        }
+
         Ok(count)
+    }
+
+    /// Import patterns with statistics tracking
+    #[cfg(feature = "citl")]
+    pub fn import_patterns_with_stats(
+        &mut self,
+        path: &std::path::Path,
+        config: crate::import::SmartImportConfig,
+    ) -> Result<(usize, crate::import::ImportStats), OracleError> {
+        use crate::import::{smart_import_filter, ImportStats};
+
+        let other_store = DecisionPatternStore::load_apr(path)
+            .map_err(|e| OracleError::PatternStoreError(e.to_string()))?;
+
+        let transferable = ["E0382", "E0499", "E0506", "E0597", "E0515"];
+
+        let store = self.store.get_or_insert_with(|| {
+            DecisionPatternStore::new().expect("Failed to create pattern store")
+        });
+
+        let mut count = 0;
+        let mut stats = ImportStats::new();
+
+        for code in &transferable {
+            let patterns = other_store.patterns_for_error(code);
+            for pattern in patterns {
+                let strategy = crate::import::analyze_fix_strategy(&pattern.fix_diff);
+                let decision = smart_import_filter(&pattern.fix_diff, &pattern.metadata, &config);
+
+                stats.record(strategy, &decision);
+
+                if decision.allows_import() {
+                    if store.index_fix(pattern.clone()).is_ok() {
+                        count += 1;
+                    }
+                }
+            }
+        }
+
+        Ok((count, stats))
     }
 
     /// Save patterns to .apr file
@@ -213,6 +288,35 @@ impl DecyOracle {
         }
         Ok(())
     }
+
+    /// Bootstrap the oracle with seed patterns for cold start
+    ///
+    /// This loads predefined patterns for common C→Rust transpilation errors,
+    /// solving the cold start problem where the oracle has no patterns to learn from.
+    ///
+    /// # Toyota Way Principles
+    ///
+    /// - **Genchi Genbutsu**: Patterns derived from real C→Rust errors
+    /// - **Yokoten**: Cross-project pattern sharing
+    /// - **Jidoka**: Automated quality built-in
+    #[cfg(feature = "citl")]
+    pub fn bootstrap(&mut self) -> Result<usize, OracleError> {
+        use crate::bootstrap::seed_pattern_store;
+
+        let store = self.store.get_or_insert_with(|| {
+            DecisionPatternStore::new().expect("Failed to create pattern store")
+        });
+
+        seed_pattern_store(store)
+    }
+
+    /// Check if bootstrap patterns are needed
+    ///
+    /// Returns true if the oracle has no patterns or very few patterns,
+    /// indicating that bootstrapping would be beneficial.
+    pub fn needs_bootstrap(&self) -> bool {
+        self.pattern_count() < 10
+    }
 }
 
 #[cfg(test)]
@@ -222,23 +326,33 @@ mod tests {
     use crate::decisions::CDecisionCategory;
 
     #[test]
-    fn test_oracle_creation() {
-        let config = OracleConfig::default();
+    fn test_oracle_creation_no_patterns() {
+        // Use a path that doesn't exist to test no-patterns case
+        let config = OracleConfig {
+            patterns_path: std::path::PathBuf::from("/tmp/nonexistent_test_patterns.apr"),
+            ..Default::default()
+        };
         let oracle = DecyOracle::new(config).unwrap();
         assert!(!oracle.has_patterns()); // No patterns file exists
     }
 
     #[test]
     fn test_oracle_pattern_count_empty() {
-        let config = OracleConfig::default();
+        // Use a path that doesn't exist to test empty case
+        let config = OracleConfig {
+            patterns_path: std::path::PathBuf::from("/tmp/nonexistent_test_patterns.apr"),
+            ..Default::default()
+        };
         let oracle = DecyOracle::new(config).unwrap();
         assert_eq!(oracle.pattern_count(), 0);
     }
 
     #[test]
     fn test_oracle_config_access() {
-        let mut config = OracleConfig::default();
-        config.confidence_threshold = 0.9;
+        let config = OracleConfig {
+            confidence_threshold: 0.9,
+            ..Default::default()
+        };
         let oracle = DecyOracle::new(config).unwrap();
         assert!((oracle.config().confidence_threshold - 0.9).abs() < f32::EPSILON);
     }

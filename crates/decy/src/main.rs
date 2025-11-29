@@ -137,6 +137,61 @@ enum Commands {
         #[arg(short, long)]
         verbose: bool,
     },
+    /// Oracle management commands
+    Oracle {
+        #[command(subcommand)]
+        action: OracleAction,
+    },
+}
+
+#[derive(Subcommand, Debug)]
+enum OracleAction {
+    /// Bootstrap oracle with seed patterns for cold start
+    Bootstrap {
+        /// Show available patterns without saving
+        #[arg(long)]
+        dry_run: bool,
+    },
+    /// Seed oracle with patterns from another project
+    Seed {
+        /// Path to .apr file to import from (e.g., depyler patterns)
+        #[arg(long, value_name = "FILE")]
+        from: PathBuf,
+    },
+    /// Show oracle statistics
+    Stats {
+        /// Output format: json, markdown, prometheus
+        #[arg(long, default_value = "markdown")]
+        format: String,
+    },
+    /// Retire obsolete patterns
+    Retire {
+        /// Preview retirements without applying
+        #[arg(long)]
+        dry_run: bool,
+
+        /// Archive retired patterns to this path
+        #[arg(long, value_name = "FILE")]
+        archive_path: Option<PathBuf>,
+    },
+    /// Validate oracle on a corpus
+    Validate {
+        /// Path to corpus directory
+        #[arg(value_name = "DIR")]
+        corpus: PathBuf,
+    },
+    /// Export patterns to dataset format for HuggingFace
+    Export {
+        /// Output file path
+        #[arg(value_name = "FILE")]
+        output: PathBuf,
+        /// Export format: jsonl, chatml, alpaca, parquet
+        #[arg(long, default_value = "jsonl")]
+        format: String,
+        /// Also generate dataset card (README.md)
+        #[arg(long)]
+        with_card: bool,
+    },
 }
 
 fn main() -> Result<()> {
@@ -200,6 +255,9 @@ fn main() -> Result<()> {
         }
         Some(Commands::Audit { input, verbose }) => {
             audit_file(input, verbose)?;
+        }
+        Some(Commands::Oracle { action }) => {
+            handle_oracle_command(action)?;
         }
         None => {
             // No subcommand - show info
@@ -338,17 +396,19 @@ fn print_oracle_report(result: &OracleTranspileResult, format: &str) {
         use decy_oracle::{CIReport, CIThresholds, OracleMetrics};
 
         // Build metrics from result
-        let mut metrics = OracleMetrics::default();
-        metrics.queries = result.oracle_queries as u64;
-        metrics.hits = result.fixes_applied as u64; // Approximation
-        metrics.misses = (result.oracle_queries - result.fixes_applied) as u64;
-        metrics.fixes_applied = result.fixes_applied as u64;
-        metrics.fixes_verified = if result.compilation_success {
-            result.fixes_applied as u64
-        } else {
-            0
+        let metrics = OracleMetrics {
+            queries: result.oracle_queries as u64,
+            hits: result.fixes_applied as u64, // Approximation
+            misses: (result.oracle_queries - result.fixes_applied) as u64,
+            fixes_applied: result.fixes_applied as u64,
+            fixes_verified: if result.compilation_success {
+                result.fixes_applied as u64
+            } else {
+                0
+            },
+            patterns_captured: result.patterns_captured as u64,
+            ..Default::default()
         };
-        metrics.patterns_captured = result.patterns_captured as u64;
 
         let report = CIReport::from_metrics(metrics, CIThresholds::default());
 
@@ -479,6 +539,7 @@ fn audit_file(input: PathBuf, verbose: bool) -> Result<()> {
     Ok(())
 }
 
+#[allow(clippy::too_many_arguments)]
 fn transpile_project(
     input_dir: PathBuf,
     output_dir: PathBuf,
@@ -487,7 +548,7 @@ fn transpile_project(
     quiet: bool,
     dry_run: bool,
     stats: bool,
-    oracle_opts: &OracleOptions,
+    _oracle_opts: &OracleOptions,
 ) -> Result<()> {
     use decy_core::{DependencyGraph, TranspilationCache};
     use indicatif::{ProgressBar, ProgressStyle};
@@ -837,4 +898,345 @@ fn show_cache_stats(input_dir: PathBuf) -> Result<()> {
     }
 
     Ok(())
+}
+
+fn handle_oracle_command(action: OracleAction) -> Result<()> {
+    #[cfg(not(feature = "oracle"))]
+    {
+        let _ = action;
+        anyhow::bail!(
+            "Oracle commands require the 'oracle' feature.\n\nTry: cargo build -p decy --features oracle"
+        );
+    }
+
+    #[cfg(feature = "oracle")]
+    {
+        use decy_oracle::{
+            DecyOracle, OracleConfig, PatternRetirementPolicy,
+        };
+
+        match action {
+        OracleAction::Bootstrap { dry_run } => {
+            use decy_oracle::bootstrap::{BootstrapStats, get_bootstrap_patterns};
+
+            println!("=== Oracle Bootstrap ===");
+            println!();
+
+            // Show available bootstrap patterns
+            let stats = BootstrapStats::from_patterns();
+            println!("{}", stats.to_string_pretty());
+
+            if dry_run {
+                println!();
+                println!("DRY RUN MODE - Patterns shown but not saved");
+                println!();
+                println!("Available patterns:");
+                for p in get_bootstrap_patterns() {
+                    println!("  [{}] {}: {}", p.error_code, p.decision, p.description);
+                }
+                return Ok(());
+            }
+
+            // Bootstrap the oracle
+            let config = OracleConfig::default();
+            let mut oracle = DecyOracle::new(config)?;
+
+            let count = oracle.bootstrap()?;
+            oracle.save()?;
+
+            println!();
+            println!("✓ Bootstrapped oracle with {} patterns", count);
+            println!("  Patterns saved to: {}", OracleConfig::default().patterns_path.display());
+
+            Ok(())
+        }
+
+        OracleAction::Seed { from } => {
+            // Import patterns from another .apr file
+            if !from.exists() {
+                anyhow::bail!(
+                    "Pattern file not found: {}\n\nTry: Verify the path to the .apr file",
+                    from.display()
+                );
+            }
+
+            println!("Seeding oracle from: {}", from.display());
+
+            let config = OracleConfig::default();
+            let mut oracle = DecyOracle::new(config)?;
+
+            let (count, stats) = oracle.import_patterns_with_stats(
+                &from,
+                decy_oracle::SmartImportConfig::default(),
+            )?;
+
+            println!();
+            println!("=== Import Results ===");
+            println!("Patterns imported: {}", count);
+            println!("Total evaluated: {}", stats.total_evaluated);
+            println!(
+                "Acceptance rate: {:.1}%",
+                stats.overall_acceptance_rate() * 100.0
+            );
+            println!();
+            println!("Import statistics by strategy:");
+            for (strategy, count) in &stats.accepted_by_strategy {
+                let rejected = stats.rejected_by_strategy.get(strategy).copied().unwrap_or(0);
+                let total = count + rejected;
+                println!(
+                    "  {:?}: {}/{} accepted ({:.1}%)",
+                    strategy,
+                    count,
+                    total,
+                    if total > 0 {
+                        (*count as f64 / total as f64) * 100.0
+                    } else {
+                        0.0
+                    }
+                );
+            }
+
+            // Save updated oracle
+            oracle.save()?;
+            println!();
+            println!("✓ Oracle patterns saved");
+
+            Ok(())
+        }
+
+        OracleAction::Stats { format } => {
+            let config = OracleConfig::default();
+            let oracle = DecyOracle::new(config)?;
+
+            let metrics = oracle.metrics();
+
+            match format.to_lowercase().as_str() {
+                "json" => {
+                    println!("{}", metrics.to_json());
+                }
+                "markdown" | "md" => {
+                    use decy_oracle::{CIReport, CIThresholds};
+                    let report = CIReport::from_metrics(metrics.clone(), CIThresholds::default());
+                    println!("{}", report.to_markdown());
+                }
+                "prometheus" | "prom" => {
+                    println!("{}", metrics.to_prometheus());
+                }
+                _ => {
+                    println!("=== Oracle Statistics ===");
+                    println!("Pattern count: {}", oracle.pattern_count());
+                    println!("Total queries: {}", metrics.queries);
+                    println!("Cache hits: {}", metrics.hits);
+                    println!("Cache misses: {}", metrics.misses);
+                    println!("Fixes applied: {}", metrics.fixes_applied);
+                    println!("Fixes verified: {}", metrics.fixes_verified);
+                    if metrics.queries > 0 {
+                        let hit_rate = (metrics.hits as f64 / metrics.queries as f64) * 100.0;
+                        println!("Hit rate: {:.1}%", hit_rate);
+                    }
+                }
+            }
+
+            Ok(())
+        }
+
+        OracleAction::Retire {
+            dry_run,
+            archive_path,
+        } => {
+            let config = OracleConfig::default();
+            let oracle = DecyOracle::new(config)?;
+
+            let policy = PatternRetirementPolicy::new();
+
+            // For now, we don't have pattern statistics available without the citl feature
+            // This is a placeholder that would integrate with actual pattern tracking
+            println!("=== Pattern Retirement Analysis ===");
+            println!("Pattern count: {}", oracle.pattern_count());
+
+            if dry_run {
+                println!();
+                println!("DRY RUN MODE - No patterns will be retired");
+                println!();
+                println!("Retirement policy thresholds:");
+                println!("  Min uses: {}", policy.config().min_usage_threshold);
+                println!("  Min success rate: {:.1}%", policy.config().min_success_rate * 100.0);
+                println!("  Window: {} days", policy.config().evaluation_window_days);
+            } else {
+                println!();
+                if let Some(ref archive) = archive_path {
+                    println!("Archive path: {}", archive.display());
+                }
+                println!();
+                println!("Note: Full retirement requires pattern usage statistics.");
+                println!("Run with --dry-run to see policy thresholds.");
+            }
+
+            Ok(())
+        }
+
+        OracleAction::Validate { corpus } => {
+            if !corpus.exists() {
+                anyhow::bail!(
+                    "Corpus directory not found: {}\n\nTry: Verify the path to the corpus",
+                    corpus.display()
+                );
+            }
+
+            println!("Validating oracle on corpus: {}", corpus.display());
+            println!();
+
+            // Analyze corpus diversity (Genchi Genbutsu)
+            use decy_oracle::diversity::{analyze_corpus, DiversityValidation};
+            let histogram = analyze_corpus(&corpus).map_err(|e| {
+                anyhow::anyhow!("Failed to analyze corpus: {}", e)
+            })?;
+
+            println!("=== Corpus Diversity Analysis ===");
+            println!("Files: {}", histogram.total_files);
+            println!("Lines of code: {}", histogram.total_loc);
+            println!();
+
+            // Show C construct coverage
+            if !histogram.construct_coverage.is_empty() {
+                println!("C Construct Coverage:");
+                for (construct, count) in &histogram.construct_coverage {
+                    println!("  {:?}: {}", construct, count);
+                }
+                println!();
+            }
+
+            // Find C files in corpus
+            let c_files: Vec<_> = walkdir::WalkDir::new(&corpus)
+                .into_iter()
+                .filter_map(|e| e.ok())
+                .filter(|e| e.path().extension().and_then(|s| s.to_str()) == Some("c"))
+                .collect();
+
+            println!("Found {} C files in corpus", c_files.len());
+
+            let config = OracleConfig::default();
+            let mut oracle = DecyOracle::new(config)?;
+
+            // Track errors during transpilation
+            let mut error_histogram = decy_oracle::diversity::ErrorHistogram::new();
+            let mut transpile_success = 0;
+            let mut transpile_failed = 0;
+
+            for entry in &c_files {
+                let path = entry.path();
+                let c_code = match std::fs::read_to_string(path) {
+                    Ok(c) => c,
+                    Err(_) => continue,
+                };
+
+                match decy_core::transpile(&c_code) {
+                    Ok(_) => transpile_success += 1,
+                    Err(e) => {
+                        transpile_failed += 1;
+                        // Extract error code if possible
+                        let error_str = e.to_string();
+                        if let Some(code_start) = error_str.find("E0") {
+                            let code: String = error_str[code_start..].chars().take(5).collect();
+                            error_histogram.record_error(&code);
+                            oracle.record_miss(&decy_oracle::RustcError::new(&code, &error_str));
+                        } else {
+                            error_histogram.record_error("E0000");
+                            oracle.record_miss(&decy_oracle::RustcError::new("E0000", "transpilation failed"));
+                        }
+                    }
+                }
+            }
+
+            println!();
+            println!("=== Validation Results ===");
+            println!("Files processed: {}", c_files.len());
+            println!("Transpile success: {}", transpile_success);
+            println!("Transpile failed: {}", transpile_failed);
+            if !c_files.is_empty() {
+                let success_rate = (transpile_success as f64 / c_files.len() as f64) * 100.0;
+                println!("Success rate: {:.1}%", success_rate);
+            }
+
+            // Show error distribution
+            if !error_histogram.by_error_code.is_empty() {
+                println!();
+                println!("Error Distribution:");
+                for (code, count) in &error_histogram.by_error_code {
+                    let category = decy_oracle::diversity::categorize_error(code);
+                    println!("  {}: {} ({:?})", code, count, category);
+                }
+            }
+
+            println!();
+            println!("Oracle metrics after validation:");
+            let metrics = oracle.metrics();
+            println!("  Queries: {}", metrics.queries);
+            println!("  Misses: {}", metrics.misses);
+
+            // Generate diversity validation report
+            let validation = DiversityValidation::new(error_histogram);
+            if validation.passed {
+                println!();
+                println!("✅ Corpus diversity validation: PASSED");
+            }
+
+            Ok(())
+        }
+
+        OracleAction::Export { output, format, with_card } => {
+            use decy_oracle::dataset::{DatasetExporter, generate_dataset_card};
+
+            println!("=== Oracle Dataset Export ===");
+            println!();
+
+            let exporter = DatasetExporter::new();
+            let stats = exporter.stats();
+
+            println!("Patterns to export: {}", exporter.len());
+            println!("Verified: {}", stats.verified);
+            println!();
+
+            let count = match format.to_lowercase().as_str() {
+                "jsonl" => {
+                    println!("Exporting to JSONL format...");
+                    exporter.export_jsonl(&output)?
+                }
+                "chatml" => {
+                    println!("Exporting to ChatML format...");
+                    exporter.export_chatml(&output)?
+                }
+                "alpaca" => {
+                    println!("Exporting to Alpaca format...");
+                    exporter.export_alpaca(&output)?
+                }
+                "parquet" => {
+                    println!("Exporting to Parquet format...");
+                    exporter.export_parquet(&output)?
+                }
+                _ => {
+                    anyhow::bail!(
+                        "Unknown export format: {}\n\nSupported formats: jsonl, chatml, alpaca, parquet",
+                        format
+                    );
+                }
+            };
+
+            println!("✓ Exported {} patterns to {}", count, output.display());
+
+            if with_card {
+                let card_path = output.with_file_name("README.md");
+                let card = generate_dataset_card(&stats);
+                std::fs::write(&card_path, &card)?;
+                println!("✓ Generated dataset card: {}", card_path.display());
+            }
+
+            println!();
+            println!("Statistics:");
+            println!("{}", stats.to_markdown());
+
+            Ok(())
+        }
+        }
+    }
 }

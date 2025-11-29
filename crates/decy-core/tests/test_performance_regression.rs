@@ -108,8 +108,6 @@ fn test_transpile_simple_performance_budget() {
 
 #[cfg(test)]
 mod integration {
-    use super::*;
-
     /// Example: Load golden trace measurements
     ///
     /// In practice, this would parse golden_traces/transpile_simple_summary.txt

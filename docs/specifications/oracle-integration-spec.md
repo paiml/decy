@@ -1,7 +1,7 @@
 # Oracle Integration Specification for Decy
 
 **Version**: 1.0.0
-**Status**: Draft
+**Status**: Complete
 **Author**: PAIML Team
 **Date**: 2025-11-29
 **Related**: [depyler#172](https://github.com/paiml/depyler/issues/172), [entrenar CITL](https://github.com/paiml/entrenar)
