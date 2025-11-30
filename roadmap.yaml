@@ -9752,3 +9752,68 @@ sprint_31_single_shot:
       test_command: |
         cargo run --quiet -- transpile examples/data_structures/binary_tree.c > /tmp/bt.rs
         rustc --edition 2021 /tmp/bt.rs -o /tmp/bt
+
+    DECY-123:
+      title: "Fix hash_table.c type inference and call site transformation"
+      type: bug
+      priority: high
+      story_points: 8
+      assignee: Claude
+      status: done
+      phase: DONE
+      completed_date: "2025-11-30"
+
+      description: |
+        Fix hash_table.c transpilation issues related to:
+        1. Type inference through complex expressions (field access, pointer deref)
+        2. Box to raw pointer conversion for array element assignment
+        3. Raw pointer to reference conversion at call sites
+
+        This reduced hash_table.c errors from 11 to 8.
+        Remaining 8 errors are const char* related (see DECY-135).
+
+      acceptance_criteria:
+        - Type inference works through FieldAccess and PointerFieldAccess
+        - Box<T> assigns to *mut T generate Box::into_raw()
+        - Raw pointer args to &mut params generate unsafe { &mut *ptr }
+        - binary_tree.c still compiles (0 errors)
+        - hash_table.c reduced from 11 to 8 errors
+
+      files_modified:
+        - crates/decy-codegen/src/lib.rs
+        - crates/decy-codegen/src/codegen_tests.rs
+        - crates/decy-codegen/src/string_codegen_tests.rs
+
+    DECY-135:
+      title: "Transform const char* to &str for string parameters"
+      type: feature
+      priority: high
+      story_points: 13
+      assignee: null
+      status: not_started
+      phase: null
+
+      description: |
+        C's `const char*` should become `&str` in Rust, not `&mut u8`.
+        This is the final blocker for hash_table.c compilation.
+
+        Required changes:
+        1. Parser: Track const qualifier on pointee types in HirType::Pointer
+        2. Codegen: Map const char* → &str
+        3. String literal arguments naturally work with &str parameters
+
+        Current behavior:
+        - void hash_insert(HashTable* t, const char* key, int value)
+        - Generates: fn hash_insert(t: &mut HashTable, key: &mut u8, value: i32)
+        - Should be: fn hash_insert(t: &mut HashTable, key: &str, value: i32)
+
+      acceptance_criteria:
+        - const char* parameters become &str
+        - String literal arguments work with &str params
+        - strlen(str) works on &str (generate str.len())
+        - hash_table.c compiles with 0 errors
+
+      files_modified:
+        - crates/decy-parser/src/parser.rs
+        - crates/decy-hir/src/lib.rs
+        - crates/decy-codegen/src/lib.rs

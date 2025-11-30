@@ -201,10 +201,12 @@ impl TypeContext {
             HirExpression::Variable(name) => self.get_type(name).cloned(),
             HirExpression::Dereference(inner) => {
                 // If inner is *mut T, then *inner is T
-                if let Some(HirType::Pointer(pointee_type)) = self.infer_expression_type(inner) {
-                    Some(*pointee_type)
-                } else {
-                    None
+                // DECY-123: Also handle Box<T> and &T/&mut T deref → T
+                match self.infer_expression_type(inner) {
+                    Some(HirType::Pointer(pointee_type)) => Some(*pointee_type),
+                    Some(HirType::Box(inner_type)) => Some(*inner_type),
+                    Some(HirType::Reference { inner: ref_inner, .. }) => Some(*ref_inner),
+                    _ => None,
                 }
             }
             HirExpression::ArrayIndex { array, index: _ } => {
@@ -219,8 +221,48 @@ impl TypeContext {
                     None
                 }
             }
+            // DECY-123: Handle field access to enable type inference through struct fields
+            HirExpression::FieldAccess { object, field } => {
+                // Get the struct type from the object expression
+                if let Some(obj_type) = self.infer_expression_type(object) {
+                    self.get_field_type_from_type(&obj_type, field)
+                } else {
+                    None
+                }
+            }
+            // DECY-123: Handle pointer field access (ptr->field)
+            HirExpression::PointerFieldAccess { pointer, field } => {
+                // Get the pointee type (struct) from the pointer expression
+                if let Some(ptr_type) = self.infer_expression_type(pointer) {
+                    match ptr_type {
+                        HirType::Pointer(inner) | HirType::Box(inner) => {
+                            self.get_field_type_from_type(&inner, field)
+                        }
+                        // DECY-123: Handle Reference types (&T, &mut T)
+                        HirType::Reference { inner, .. } => {
+                            self.get_field_type_from_type(&inner, field)
+                        }
+                        _ => None,
+                    }
+                } else {
+                    None
+                }
+            }
             _ => None,
         }
+    }
+
+    /// DECY-123: Helper to get field type from a struct type
+    fn get_field_type_from_type(&self, obj_type: &HirType, field_name: &str) -> Option<HirType> {
+        let struct_name = match obj_type {
+            HirType::Struct(name) => name,
+            _ => return None,
+        };
+        let fields = self.structs.get(struct_name)?;
+        fields
+            .iter()
+            .find(|(name, _)| name == field_name)
+            .map(|(_, field_type)| field_type.clone())
     }
 }
 
@@ -1545,6 +1587,24 @@ impl CodeGenerator {
                                         }
                                     }
 
+                                    // DECY-123: Check if param expects &mut but arg is raw pointer
+                                    let is_ref_param = param_type
+                                        .map(|t| matches!(t, HirType::Reference { .. }))
+                                        .unwrap_or(false);
+                                    if is_ref_param {
+                                        if let HirExpression::Variable(var_name) = arg {
+                                            let var_type = ctx.get_type(var_name);
+                                            // Raw pointer to reference: unsafe { &mut *ptr }
+                                            if matches!(var_type, Some(HirType::Pointer(_))) {
+                                                return Some(format!(
+                                                    "unsafe {{ &mut *{} }}",
+                                                    var_name
+                                                ));
+                                            }
+                                        }
+                                    }
+
+
                                     Some(self.generate_expression_with_context(arg, ctx))
                                 }
                             })
@@ -1915,10 +1975,10 @@ impl CodeGenerator {
                 panic!("References must be initialized and cannot have default values")
             }
             HirType::Struct(name) => {
-                // DECY-123: Use zeroed() as fallback for structs that may not impl Default
-                // (e.g., structs with arrays > 32 elements)
-                // This is safe for C structs where zero-initialization is valid
-                format!("unsafe {{ std::mem::zeroed::<{}>() }}", name)
+                // Use ::default() for struct initialization
+                // For structs with large arrays (>32 elements), see DECY-123 special handling
+                // in variable declaration codegen where struct definitions are available
+                format!("{}::default()", name)
             }
             HirType::Enum(name) => {
                 format!("{}::default()", name)

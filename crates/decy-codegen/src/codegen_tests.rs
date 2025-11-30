@@ -690,7 +690,8 @@ mod tests {
 
     #[test]
     fn test_generate_while_with_break() {
-        // RED PHASE: This test will FAIL
+        // GREEN PHASE: while(1) becomes while (1) != 0 in Rust
+        // DECY-131: Non-boolean conditions are wrapped with != 0
         let while_stmt = HirStatement::While {
             condition: HirExpression::IntLiteral(1),
             body: vec![
@@ -706,7 +707,8 @@ mod tests {
         let codegen = CodeGenerator::new();
         let code = codegen.generate_statement(&while_stmt);
 
-        assert!(code.contains("while 1"));
+        // DECY-131: while(1) → while (1) != 0 for proper Rust boolean
+        assert!(code.contains("while (1) != 0"));
         assert!(code.contains("let mut x: i32 = 5;"));
         assert!(code.contains("break;"));
     }
