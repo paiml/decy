@@ -163,6 +163,14 @@ impl TypeContext {
                     return None;
                 }
             }
+            // DECY-115: Handle Box<Struct> for heap-allocated structs
+            HirType::Box(inner) => {
+                if let HirType::Struct(name) = &**inner {
+                    name
+                } else {
+                    return None;
+                }
+            }
             _ => return None,
         };
 
@@ -818,7 +826,18 @@ impl CodeGenerator {
                     format!("{}u8", val)
                 }
             }
-            HirExpression::Variable(name) => name.clone(),
+            HirExpression::Variable(name) => {
+                // DECY-115: Box to raw pointer conversion for return statements
+                // When returning a Box<T> but function returns *mut T, use Box::into_raw
+                if let Some(HirType::Pointer(_)) = target_type {
+                    if let Some(var_type) = ctx.get_type(name) {
+                        if matches!(var_type, HirType::Box(_)) {
+                            return format!("Box::into_raw({})", name);
+                        }
+                    }
+                }
+                name.clone()
+            }
             HirExpression::BinaryOp { op, left, right } => {
                 // Check for Option comparison with NULL → is_none() / is_some()
                 // p == NULL → p.is_none(), p != NULL → p.is_some()
