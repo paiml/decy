@@ -2848,12 +2848,10 @@ extern "C" fn visit_init_list_children(
         }
 
         // If exactly 2 children and first is IntLiteral (index), take second (value)
-        if children.len() == 2 {
-            if matches!(&children[0], Expression::IntLiteral(_)) {
-                // This is a designated initializer [idx] = value - take the value
-                initializers.push(children[1].clone());
-                return CXChildVisit_Continue;
-            }
+        if children.len() == 2 && matches!(&children[0], Expression::IntLiteral(_)) {
+            // This is a designated initializer [idx] = value - take the value
+            initializers.push(children[1].clone());
+            return CXChildVisit_Continue;
         }
 
         // Not a designated initializer - fall through to recursion
