@@ -200,6 +200,7 @@ impl EnumGenerator {
         match payload_type {
             HirType::Void => "None".to_string(),
             HirType::Int => "Int".to_string(),
+            HirType::UnsignedInt => "UInt".to_string(), // DECY-158
             HirType::Float => "Float".to_string(),
             HirType::Double => "Double".to_string(),
             HirType::Char => "Char".to_string(),
@@ -226,6 +227,7 @@ impl EnumGenerator {
         match hir_type {
             HirType::Void => "()".to_string(),
             HirType::Int => "i32".to_string(),
+            HirType::UnsignedInt => "u32".to_string(), // DECY-158
             HirType::Float => "f32".to_string(),
             HirType::Double => "f64".to_string(),
             HirType::Char => "u8".to_string(),

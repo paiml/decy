@@ -397,6 +397,7 @@ expected_kill_rate = 0.90
         match hir_type {
             HirType::Void => "()".to_string(),
             HirType::Int => "42".to_string(),
+            HirType::UnsignedInt => "42u32".to_string(), // DECY-158
             HirType::Float => "3.14".to_string(),
             HirType::Double => "2.718".to_string(),
             HirType::Char => "b'A'".to_string(),
