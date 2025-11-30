@@ -40,7 +40,8 @@ fn count_safety_comments(code: &str) -> usize {
     // Count both formats:
     // - "// SAFETY:" (line comment)
     // - "/* SAFETY:" (block comment)
-    let line_comments = code.lines()
+    let line_comments = code
+        .lines()
         .filter(|line| {
             let trimmed = line.trim();
             trimmed.starts_with("// SAFETY:") || trimmed.starts_with("// SAFETY :")

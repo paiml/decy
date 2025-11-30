@@ -10005,3 +10005,40 @@ sprint_31_single_shot:
       files_modified:
         - crates/decy-codegen/src/lib.rs
         - crates/decy-codegen/tests/option_box_test.rs
+
+    DECY-145:
+      title: "E2E validation of example corpus - all C examples compile"
+      type: quality
+      priority: high
+      story_points: 5
+      assignee: Claude
+      status: done
+      phase: DONE
+
+      description: |
+        Validate that ALL C examples in the examples/ directory transpile
+        and compile successfully. This addresses QA Items #81-90 (Integration & E2E).
+
+        The test should:
+        1. Find all .c files in examples/
+        2. Transpile each with decy
+        3. Compile the resulting Rust with rustc
+        4. Report any failures
+
+        This is a critical regression test - if examples stop compiling,
+        we've introduced a bug.
+
+      acceptance_criteria:
+        - All examples/simple/*.c compile
+        - All examples/data_structures/*.c compile
+        - All examples/moderate/*.c compile (where applicable)
+        - Test reports which files pass/fail
+        - Zero failures required for GREEN
+
+      test_strategy: |
+        1. RED: Create E2E test that validates all examples
+        2. GREEN: Fix any failing examples
+        3. REFACTOR: Add to CI/CD pipeline
+
+      files_modified:
+        - crates/decy-codegen/tests/e2e_examples_test.rs
