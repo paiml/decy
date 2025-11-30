@@ -222,7 +222,9 @@ fn test_transform_array_parameter_with_return() {
     // Should use safe array indexing (with or without usize cast)
     // DECY-150: Accept parenthesized indexing pattern arr[(0) as usize]
     assert!(
-        result.contains("arr[0]") || result.contains("arr[0 as usize]") || result.contains("arr[(0)"),
+        result.contains("arr[0]")
+            || result.contains("arr[0 as usize]")
+            || result.contains("arr[(0)"),
         "Should use safe indexing\nGenerated:\n{}",
         result
     );

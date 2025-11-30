@@ -1235,9 +1235,9 @@ fn statement_compares_to_null(stmt: &HirStatement, var_name: &str) -> bool {
             then_block
                 .iter()
                 .any(|s| statement_compares_to_null(s, var_name))
-                || else_block.as_ref().is_some_and(|blk| {
-                    blk.iter().any(|s| statement_compares_to_null(s, var_name))
-                })
+                || else_block
+                    .as_ref()
+                    .is_some_and(|blk| blk.iter().any(|s| statement_compares_to_null(s, var_name)))
         }
         HirStatement::While { condition, body } => {
             expression_compares_to_null(condition, var_name)
@@ -1253,9 +1253,11 @@ fn statement_compares_to_null(stmt: &HirStatement, var_name: &str) -> bool {
             condition, cases, ..
         } => {
             expression_compares_to_null(condition, var_name)
-                || cases
-                    .iter()
-                    .any(|c| c.body.iter().any(|s| statement_compares_to_null(s, var_name)))
+                || cases.iter().any(|c| {
+                    c.body
+                        .iter()
+                        .any(|s| statement_compares_to_null(s, var_name))
+                })
         }
         _ => false,
     }
@@ -1273,12 +1275,19 @@ fn expression_compares_to_null(expr: &HirExpression, var_name: &str) -> bool {
         HirExpression::BinaryOp { op, left, right } => {
             // Check for var == NULL or var != NULL
             if matches!(op, BinaryOperator::Equal | BinaryOperator::NotEqual) {
-                let left_is_var = matches!(&**left, HirExpression::Variable(name) if name == var_name);
+                let left_is_var =
+                    matches!(&**left, HirExpression::Variable(name) if name == var_name);
                 let right_is_var =
                     matches!(&**right, HirExpression::Variable(name) if name == var_name);
                 // NULL can be NullLiteral or IntLiteral(0) (when NULL macro expands to 0)
-                let left_is_null = matches!(&**left, HirExpression::NullLiteral | HirExpression::IntLiteral(0));
-                let right_is_null = matches!(&**right, HirExpression::NullLiteral | HirExpression::IntLiteral(0));
+                let left_is_null = matches!(
+                    &**left,
+                    HirExpression::NullLiteral | HirExpression::IntLiteral(0)
+                );
+                let right_is_null = matches!(
+                    &**right,
+                    HirExpression::NullLiteral | HirExpression::IntLiteral(0)
+                );
 
                 if (left_is_var && right_is_null) || (right_is_var && left_is_null) {
                     return true;
