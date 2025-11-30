@@ -230,7 +230,9 @@ impl TypeContext {
                 match self.infer_expression_type(inner) {
                     Some(HirType::Pointer(pointee_type)) => Some(*pointee_type),
                     Some(HirType::Box(inner_type)) => Some(*inner_type),
-                    Some(HirType::Reference { inner: ref_inner, .. }) => Some(*ref_inner),
+                    Some(HirType::Reference {
+                        inner: ref_inner, ..
+                    }) => Some(*ref_inner),
                     _ => None,
                 }
             }
@@ -322,10 +324,7 @@ impl CodeGenerator {
     /// DECY-143: Generate unsafe statement with SAFETY comment.
     /// For statement-level unsafe blocks (ending with semicolon).
     fn unsafe_stmt(code: &str, safety_reason: &str) -> String {
-        format!(
-            "// SAFETY: {}\n    unsafe {{ {}; }}",
-            safety_reason, code
-        )
+        format!("// SAFETY: {}\n    unsafe {{ {}; }}", safety_reason, code)
     }
 
     /// Generate Rust code for a macro definition.
@@ -939,8 +938,9 @@ impl CodeGenerator {
                                             return format!("{}.as_mut_ptr()", name);
                                         } else {
                                             // Immutable slice: use .as_ptr() with cast
-                                            let ptr_type =
-                                                Self::map_type(&HirType::Pointer(ptr_inner.clone()));
+                                            let ptr_type = Self::map_type(&HirType::Pointer(
+                                                ptr_inner.clone(),
+                                            ));
                                             return format!("{}.as_ptr() as {}", name, ptr_type);
                                         }
                                     }
@@ -1032,8 +1032,12 @@ impl CodeGenerator {
                                 HirExpression::IntLiteral(0) | HirExpression::NullLiteral
                             ) {
                                 return match op {
-                                    BinaryOperator::Equal => "false /* Box never null */".to_string(),
-                                    BinaryOperator::NotEqual => "true /* Box never null */".to_string(),
+                                    BinaryOperator::Equal => {
+                                        "false /* Box never null */".to_string()
+                                    }
+                                    BinaryOperator::NotEqual => {
+                                        "true /* Box never null */".to_string()
+                                    }
                                     _ => unreachable!(),
                                 };
                             }
@@ -1077,7 +1081,10 @@ impl CodeGenerator {
                                             // offset_from requires unsafe
                                             // DECY-143: Add SAFETY comment
                                             Self::unsafe_block(
-                                                &format!("{}.offset_from({}) as i32", left_str, right_str),
+                                                &format!(
+                                                    "{}.offset_from({}) as i32",
+                                                    left_str, right_str
+                                                ),
                                                 "both pointers derive from same allocation",
                                             )
                                         } else {
@@ -1289,10 +1296,17 @@ impl CodeGenerator {
                                     ..
                                 } = &arguments[0]
                                 {
-                                    let count_code = self.generate_expression_with_context(left, ctx);
-                                    return format!("vec![{}; {} as usize]", default_val, count_code);
+                                    let count_code =
+                                        self.generate_expression_with_context(left, ctx);
+                                    return format!(
+                                        "vec![{}; {} as usize]",
+                                        default_val, count_code
+                                    );
                                 } else {
-                                    return format!("Vec::<{}>::with_capacity({} as usize)", elem_type_str, size_code);
+                                    return format!(
+                                        "Vec::<{}>::with_capacity({} as usize)",
+                                        elem_type_str, size_code
+                                    );
                                 }
                             }
 
@@ -2487,12 +2501,12 @@ impl CodeGenerator {
                             HirType::Box(inner) => {
                                 // DECY-141: Use Box::default() for safe zero-initialization
                                 // if the inner type is a struct that derives Default
-                                let use_default = if let HirType::Struct(struct_name) = inner.as_ref()
-                                {
-                                    ctx.struct_has_default(struct_name)
-                                } else {
-                                    false
-                                };
+                                let use_default =
+                                    if let HirType::Struct(struct_name) = inner.as_ref() {
+                                        ctx.struct_has_default(struct_name)
+                                    } else {
+                                        false
+                                    };
 
                                 if use_default {
                                     // Safe: struct derives Default
@@ -2627,9 +2641,7 @@ impl CodeGenerator {
 
                 // Generate while condition
                 // DECY-138: Check for string iteration pattern: while (*str) → while !str.is_empty()
-                let cond_str = if let Some(str_var) =
-                    Self::get_string_deref_var(condition, ctx)
-                {
+                let cond_str = if let Some(str_var) = Self::get_string_deref_var(condition, ctx) {
                     format!("!{}.is_empty()", str_var)
                 } else {
                     // DECY-123: If condition is not already boolean, wrap with != 0
@@ -3331,7 +3343,11 @@ impl CodeGenerator {
     /// not single struct allocations (malloc(sizeof(T))).
     fn is_malloc_call(expr: &HirExpression) -> bool {
         match expr {
-            HirExpression::FunctionCall { function, arguments, .. } if function == "malloc" => {
+            HirExpression::FunctionCall {
+                function,
+                arguments,
+                ..
+            } if function == "malloc" => {
                 // Check if this is an array allocation: malloc(n * sizeof(T))
                 // Single struct allocation: malloc(sizeof(T)) should NOT match
                 if arguments.len() == 1 {
@@ -3952,7 +3968,9 @@ impl CodeGenerator {
                         // DECY-138: Add mut for string iteration patterns (param reassignment)
                         // Must check BEFORE other pointer transformations
                         if let Some(f) = func {
-                            if let Some(orig_param) = f.parameters().iter().find(|fp| fp.name() == p.name) {
+                            if let Some(orig_param) =
+                                f.parameters().iter().find(|fp| fp.name() == p.name)
+                            {
                                 if orig_param.is_const_char_pointer() {
                                     return format!("mut {}: &str", p.name);
                                 }
@@ -4756,7 +4774,8 @@ impl CodeGenerator {
         }
 
         // Add fields
-        let struct_name = hir_struct.name();
+        // Note: struct_name reserved for DECY-144 self-referential pointer detection
+        let _struct_name = hir_struct.name();
         for field in hir_struct.fields() {
             // DECY-136: Flexible array members (Array with size: None) → Vec<T>
             // C99 §6.7.2.1: struct { int size; char data[]; } → Vec<u8>
