@@ -930,11 +930,22 @@ impl CodeGenerator {
                         // &T or &mut T assigned to *mut T needs coercion (pointer cast)
                         match var_type {
                             HirType::Reference { inner, mutable } => {
-                                // Check if inner is an array/slice
-                                if let HirType::Array { element_type, .. } = inner.as_ref() {
+                                // DECY-149: Check if inner is an array/slice or Vec (both represent slices)
+                                // BorrowGenerator uses Vec as internal representation for slices
+                                let element_type_match = match inner.as_ref() {
+                                    HirType::Array { element_type, .. } => {
+                                        Some((element_type.as_ref(), *mutable))
+                                    }
+                                    HirType::Vec(elem_type) => {
+                                        Some((elem_type.as_ref(), *mutable))
+                                    }
+                                    _ => None,
+                                };
+
+                                if let Some((elem_type, is_mutable)) = element_type_match {
                                     // Slice: verify element types match
-                                    if element_type.as_ref() == ptr_inner.as_ref() {
-                                        if *mutable {
+                                    if elem_type == ptr_inner.as_ref() {
+                                        if is_mutable {
                                             // Mutable slice: use .as_mut_ptr()
                                             return format!("{}.as_mut_ptr()", name);
                                         } else {
@@ -4275,20 +4286,39 @@ impl CodeGenerator {
         // Initialize type context for tracking variable types across statements
         let mut ctx = TypeContext::from_function(func);
 
-        // DECY-129: Update context to reflect pointer-to-reference transformations
+        // DECY-129/DECY-148: Update context to reflect pointer-to-reference transformations
         // When pointer params are transformed to &mut T in signature, context must match
+        // DECY-148: Distinguish array params (slices) from struct pointer params (references)
         for param in func.parameters() {
             if let HirType::Pointer(inner) = param.param_type() {
                 // Check if this pointer uses pointer arithmetic (keep as raw pointer)
                 if !self.uses_pointer_arithmetic(func, param.name()) {
-                    // Re-register the parameter as a mutable reference type
-                    ctx.add_variable(
-                        param.name().to_string(),
-                        HirType::Reference {
-                            inner: inner.clone(),
-                            mutable: true,
-                        },
-                    );
+                    // DECY-148: Check if this is an ARRAY parameter
+                    let is_array_param = graph.is_array_parameter(param.name()).unwrap_or(false);
+
+                    if is_array_param {
+                        // Array parameter → register as slice (Reference to Array)
+                        ctx.add_variable(
+                            param.name().to_string(),
+                            HirType::Reference {
+                                inner: Box::new(HirType::Array {
+                                    element_type: inner.clone(),
+                                    size: None, // Slice (unsized array)
+                                }),
+                                mutable: true,
+                            },
+                        );
+                    } else {
+                        // Struct pointer → register as Reference to inner type
+                        let is_mutable = self.is_parameter_deref_modified(func, param.name());
+                        ctx.add_variable(
+                            param.name().to_string(),
+                            HirType::Reference {
+                                inner: inner.clone(),
+                                mutable: is_mutable,
+                            },
+                        );
+                    }
                 }
             }
         }
