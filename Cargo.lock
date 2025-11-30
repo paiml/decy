@@ -1194,6 +1194,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "decy-llm"
+version = "1.0.2"
+dependencies = [
+ "decy-analyzer",
+ "decy-hir",
+ "decy-ownership",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "thiserror 1.0.69",
+]
+
+[[package]]
 name = "decy-mcp"
 version = "1.0.2"
 dependencies = [
