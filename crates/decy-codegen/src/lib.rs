@@ -1331,8 +1331,48 @@ impl CodeGenerator {
                         }
                     }
                     // DECY-093: waitpid → .wait() (generated alongside spawn)
-                    "waitpid" | "wait" | "wait3" | "wait4" => {
-                        "/* waitpid handled by Command API .wait() */".to_string()
+                    "waitpid" | "wait3" | "wait4" => {
+                        "/* waitpid handled by Command API */ child.wait().expect(\"wait failed\")".to_string()
+                    }
+                    // DECY-094: wait(&status) → child.wait()
+                    "wait" => {
+                        "child.wait().expect(\"wait failed\")".to_string()
+                    }
+                    // DECY-094: WEXITSTATUS(status) → status.code().unwrap_or(-1)
+                    "WEXITSTATUS" => {
+                        if !arguments.is_empty() {
+                            let status_var = self.generate_expression_with_context(&arguments[0], ctx);
+                            format!("{}.code().unwrap_or(-1)", status_var)
+                        } else {
+                            "/* WEXITSTATUS requires status arg */".to_string()
+                        }
+                    }
+                    // DECY-094: WIFEXITED(status) → status.success()
+                    "WIFEXITED" => {
+                        if !arguments.is_empty() {
+                            let status_var = self.generate_expression_with_context(&arguments[0], ctx);
+                            format!("{}.success()", status_var)
+                        } else {
+                            "/* WIFEXITED requires status arg */".to_string()
+                        }
+                    }
+                    // DECY-094: WIFSIGNALED(status) → status.signal().is_some()
+                    "WIFSIGNALED" => {
+                        if !arguments.is_empty() {
+                            let status_var = self.generate_expression_with_context(&arguments[0], ctx);
+                            format!("{}.signal().is_some()", status_var)
+                        } else {
+                            "/* WIFSIGNALED requires status arg */".to_string()
+                        }
+                    }
+                    // DECY-094: WTERMSIG(status) → status.signal().unwrap_or(0)
+                    "WTERMSIG" => {
+                        if !arguments.is_empty() {
+                            let status_var = self.generate_expression_with_context(&arguments[0], ctx);
+                            format!("{}.signal().unwrap_or(0)", status_var)
+                        } else {
+                            "/* WTERMSIG requires status arg */".to_string()
+                        }
                     }
                     // Default: pass through function call as-is
                     // DECY-116 + DECY-117: Transform call sites for slice functions and reference mutability
