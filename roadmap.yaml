@@ -9667,8 +9667,10 @@ sprint_31_single_shot:
       priority: critical
       story_points: 8
       assignee: Claude
-      status: not_started
-      phase: null
+      status: done
+      phase: DONE
+      completed_date: "2025-11-30"
+      notes: "Verified working - binary_tree.c compiles correctly"
 
       description: |
         sizeof(TreeNode) followed by statements causes code corruption.
@@ -9692,8 +9694,10 @@ sprint_31_single_shot:
       priority: critical
       story_points: 5
       assignee: Claude
-      status: not_started
-      phase: null
+      status: done
+      phase: DONE
+      completed_date: "2025-11-30"
+      notes: "Verified working - binary_tree.c compiles correctly"
 
       description: |
         NULL comparisons in if statements generate invalid code.
@@ -9715,8 +9719,10 @@ sprint_31_single_shot:
       priority: high
       story_points: 2
       assignee: Claude
-      status: not_started
-      phase: null
+      status: done
+      phase: DONE
+      completed_date: "2025-11-30"
+      notes: "Verified - no info notes in transpiled output"
 
       description: |
         Informational notes like "ℹ Note: No main function found"
@@ -9737,8 +9743,10 @@ sprint_31_single_shot:
       priority: critical
       story_points: 3
       assignee: Claude
-      status: not_started
-      phase: null
+      status: done
+      phase: DONE
+      completed_date: "2025-11-30"
+      notes: "Verified - binary_tree.c transpiles and compiles successfully"
 
       description: |
         Final verification that binary_tree.c produces compilable Rust.
@@ -9790,9 +9798,10 @@ sprint_31_single_shot:
       priority: high
       story_points: 13
       assignee: Claude
-      status: in_progress
-      phase: GREEN
+      status: done
+      phase: DONE
       completed_date: "2025-11-30"
+      notes: "Verified - hash_table.c compiles successfully with &str params"
 
       description: |
         C's `const char*` should become `&str` in Rust, not `&mut u8`.
