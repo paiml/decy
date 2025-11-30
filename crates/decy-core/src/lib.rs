@@ -946,6 +946,7 @@ pub fn transpile_with_includes(c_code: &str, base_dir: Option<&Path>) -> Result<
 
     // DECY-117: Build function signatures for call site reference mutability
     // DECY-125: Keep pointers as pointers when pointer arithmetic is used
+    // DECY-159: Keep pointers as pointers when NULL comparison is used
     let all_function_sigs: Vec<(String, Vec<decy_hir::HirType>)> = transformed_functions
         .iter()
         .map(|(func, _sig)| {
@@ -955,9 +956,12 @@ pub fn transpile_with_includes(c_code: &str, base_dir: Option<&Path>) -> Result<
                 .map(|p| {
                     // Transform pointer params to mutable references (matching DECY-111)
                     // DECY-125: But keep as pointer if pointer arithmetic is used
+                    // DECY-159: Also keep as pointer if compared to NULL (NULL is valid input)
                     if let decy_hir::HirType::Pointer(inner) = p.param_type() {
-                        // Check if this param uses pointer arithmetic
-                        if uses_pointer_arithmetic(func, p.name()) {
+                        // Check if this param uses pointer arithmetic or is compared to NULL
+                        if uses_pointer_arithmetic(func, p.name())
+                            || pointer_compared_to_null(func, p.name())
+                        {
                             // Keep as raw pointer
                             p.param_type().clone()
                         } else {
@@ -1199,6 +1203,94 @@ fn uses_pointer_arithmetic(func: &HirFunction, param_name: &str) -> bool {
         }
     }
     false
+}
+
+/// DECY-159: Check if a pointer parameter is compared to NULL.
+///
+/// If a pointer is compared to NULL, it means NULL is a valid input value.
+/// Such parameters must remain as raw pointers, not references,
+/// to avoid dereferencing NULL at call sites.
+fn pointer_compared_to_null(func: &HirFunction, param_name: &str) -> bool {
+    for stmt in func.body() {
+        if statement_compares_to_null(stmt, param_name) {
+            return true;
+        }
+    }
+    false
+}
+
+/// DECY-159: Recursively check if a statement compares a variable to NULL.
+fn statement_compares_to_null(stmt: &HirStatement, var_name: &str) -> bool {
+    match stmt {
+        HirStatement::If {
+            condition,
+            then_block,
+            else_block,
+        } => {
+            // Check if condition is var == NULL or var != NULL
+            if expression_compares_to_null(condition, var_name) {
+                return true;
+            }
+            // Recurse into blocks
+            then_block
+                .iter()
+                .any(|s| statement_compares_to_null(s, var_name))
+                || else_block.as_ref().is_some_and(|blk| {
+                    blk.iter().any(|s| statement_compares_to_null(s, var_name))
+                })
+        }
+        HirStatement::While { condition, body } => {
+            expression_compares_to_null(condition, var_name)
+                || body.iter().any(|s| statement_compares_to_null(s, var_name))
+        }
+        HirStatement::For {
+            condition, body, ..
+        } => {
+            expression_compares_to_null(condition, var_name)
+                || body.iter().any(|s| statement_compares_to_null(s, var_name))
+        }
+        HirStatement::Switch {
+            condition, cases, ..
+        } => {
+            expression_compares_to_null(condition, var_name)
+                || cases
+                    .iter()
+                    .any(|c| c.body.iter().any(|s| statement_compares_to_null(s, var_name)))
+        }
+        _ => false,
+    }
+}
+
+/// DECY-159: Check if an expression compares a variable to NULL.
+///
+/// NULL in C can be:
+/// - `NullLiteral` (explicit NULL)
+/// - `IntLiteral(0)` (NULL macro expanded to 0)
+/// - Cast of 0 to void* (less common)
+fn expression_compares_to_null(expr: &HirExpression, var_name: &str) -> bool {
+    use decy_hir::BinaryOperator;
+    match expr {
+        HirExpression::BinaryOp { op, left, right } => {
+            // Check for var == NULL or var != NULL
+            if matches!(op, BinaryOperator::Equal | BinaryOperator::NotEqual) {
+                let left_is_var = matches!(&**left, HirExpression::Variable(name) if name == var_name);
+                let right_is_var =
+                    matches!(&**right, HirExpression::Variable(name) if name == var_name);
+                // NULL can be NullLiteral or IntLiteral(0) (when NULL macro expands to 0)
+                let left_is_null = matches!(&**left, HirExpression::NullLiteral | HirExpression::IntLiteral(0));
+                let right_is_null = matches!(&**right, HirExpression::NullLiteral | HirExpression::IntLiteral(0));
+
+                if (left_is_var && right_is_null) || (right_is_var && left_is_null) {
+                    return true;
+                }
+            }
+            // Recurse into binary op children for nested comparisons
+            expression_compares_to_null(left, var_name)
+                || expression_compares_to_null(right, var_name)
+        }
+        HirExpression::UnaryOp { operand, .. } => expression_compares_to_null(operand, var_name),
+        _ => false,
+    }
 }
 
 /// Recursively check if a statement uses pointer arithmetic on a variable (DECY-125).
