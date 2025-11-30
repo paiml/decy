@@ -6,14 +6,16 @@
 // C pattern: while (*str) { ... *str++; }
 // Rust pattern: while !str.is_empty() { byte = str.as_bytes()[0]; str = &str[1..]; }
 
-use std::process::Command;
 use std::io::Write;
+use std::process::Command;
 use tempfile::NamedTempFile;
 
 /// Helper to transpile C code and return the generated Rust
 fn transpile_c(c_code: &str) -> String {
     let mut temp_file = NamedTempFile::new().expect("Failed to create temp file");
-    temp_file.write_all(c_code.as_bytes()).expect("Failed to write C code");
+    temp_file
+        .write_all(c_code.as_bytes())
+        .expect("Failed to write C code");
 
     let output = Command::new("cargo")
         .args(["run", "-p", "decy", "--quiet", "--", "transpile"])
@@ -54,8 +56,9 @@ char test(const char* s) {
     // If s is &str, we can't just dereference it
     if rust_code.contains("s: &str") {
         assert!(
-            rust_code.contains("as_bytes") || rust_code.contains("bytes()") ||
-            !rust_code.contains("*s"),
+            rust_code.contains("as_bytes")
+                || rust_code.contains("bytes()")
+                || !rust_code.contains("*s"),
             "If parameter is &str, should not have raw *s dereference. Got: {}",
             rust_code
         );
@@ -162,10 +165,16 @@ unsigned int hash(const char* key) {
 
     // Write to temp file and try to compile
     let mut temp_file = NamedTempFile::with_suffix(".rs").expect("Failed to create temp file");
-    temp_file.write_all(rust_code.as_bytes()).expect("Failed to write Rust code");
+    temp_file
+        .write_all(rust_code.as_bytes())
+        .expect("Failed to write Rust code");
 
     let output = Command::new("rustc")
-        .args(["--crate-type=lib", "--edition=2021", "--crate-name=test_hash"])
+        .args([
+            "--crate-type=lib",
+            "--edition=2021",
+            "--crate-name=test_hash",
+        ])
         .arg(temp_file.path())
         .arg("-o")
         .arg("/tmp/test_hash_compile")
@@ -180,9 +189,9 @@ unsigned int hash(const char* key) {
         // - binary assignment operation `+=` cannot be applied to type `&str`
         // - cannot add `str` to `i32`
         assert!(
-            stderr.contains("can't compare") ||
-            stderr.contains("cannot be applied") ||
-            stderr.contains("cannot add"),
+            stderr.contains("can't compare")
+                || stderr.contains("cannot be applied")
+                || stderr.contains("cannot add"),
             "DECY-138: Hash function should compile once string iteration is fixed.\nErrors:\n{}",
             stderr
         );

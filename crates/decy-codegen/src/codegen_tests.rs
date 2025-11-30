@@ -1517,25 +1517,32 @@ fn test_mutable_slice_to_mutable_pointer_coercion() {
 #[test]
 fn test_const_char_becomes_str() {
     // DECY-135: const char* should become &str
-    use decy_parser::parser::CParser;
     use decy_hir::HirFunction;
-    
+    use decy_parser::parser::CParser;
+
     let code = r#"void test_const(const char* str) {}"#;
     let parser = CParser::new().unwrap();
     let ast = parser.parse(code).unwrap();
-    
+
     let hir_func = HirFunction::from_ast_function(&ast.functions()[0]);
-    
+
     // Check HIR has is_pointee_const
-    assert!(hir_func.parameters()[0].is_pointee_const(), 
-        "HIR parameter should have is_pointee_const = true");
-    assert!(hir_func.parameters()[0].is_const_char_pointer(),
-        "HIR parameter should be detected as const char pointer");
-    
+    assert!(
+        hir_func.parameters()[0].is_pointee_const(),
+        "HIR parameter should have is_pointee_const = true"
+    );
+    assert!(
+        hir_func.parameters()[0].is_const_char_pointer(),
+        "HIR parameter should be detected as const char pointer"
+    );
+
     // Check codegen generates &str
     let codegen = CodeGenerator::new();
     let signature = codegen.generate_signature(&hir_func);
-    
-    assert!(signature.contains("&str"), 
-        "const char* should become &str, got: {}", signature);
+
+    assert!(
+        signature.contains("&str"),
+        "const char* should become &str, got: {}",
+        signature
+    );
 }

@@ -136,8 +136,7 @@ Rectangle* create_rectangle(int w, int h) {
 
     // Should use Box::default() for allocation
     assert!(
-        rust_code.contains("Box::default()")
-            || rust_code.contains("Box::<Rectangle>::default()"),
+        rust_code.contains("Box::default()") || rust_code.contains("Box::<Rectangle>::default()"),
         "DECY-141: Should use Box::default() for structs with Default derive. Got:\n{}",
         rust_code
     );

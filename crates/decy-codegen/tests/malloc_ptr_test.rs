@@ -148,8 +148,9 @@ void set_key(Entry* entry, const char* src) {
 
     // Should NOT generate just `src.to_string();` as a standalone statement
     // That's a no-op that doesn't copy anything to entry->key
-    let has_noop_string =
-        rust_code.contains("src.to_string();") && !rust_code.contains("entry") && !rust_code.contains("key =");
+    let has_noop_string = rust_code.contains("src.to_string();")
+        && !rust_code.contains("entry")
+        && !rust_code.contains("key =");
 
     // The strcpy should actually write to the destination
     // Either as a copy operation or as an unsafe memory operation
