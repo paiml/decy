@@ -241,9 +241,10 @@ proptest! {
             rust_code
         );
 
-        // Should NOT have standalone 'len' variable
+        // Should NOT have standalone 'len' variable (not part of array name)
+        // Use more specific patterns to avoid false positives like "alen:" containing "len:"
         assert!(
-            !rust_code.contains("< len") && !rust_code.contains("len:"),
+            !rust_code.contains("< len") && !rust_code.contains(", len:") && !rust_code.contains("(len:"),
             "Should not have length variable\nGenerated:\n{}",
             rust_code
         );
