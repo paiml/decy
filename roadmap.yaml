@@ -9895,3 +9895,36 @@ sprint_31_single_shot:
       files_modified:
         - crates/decy-codegen/src/lib.rs
         - crates/decy-codegen/tests/box_default_test.rs
+
+    DECY-142:
+      title: "Fix Vec return type inference - prevent dangling pointer"
+      type: bug
+      priority: critical
+      story_points: 5
+      assignee: Claude
+      status: in_progress
+      phase: RED
+
+      description: |
+        Functions that allocate with malloc and return the pointer should
+        return Vec<T> instead of *mut T to prevent dangling pointers.
+
+        Current (DANGEROUS):
+        fn create_array(n: i32) -> *mut i32 {
+            let arr: Vec<i32> = vec![0i32; n as usize];
+            return arr.as_mut_ptr();  // Vec dropped, pointer dangles!
+        }
+
+        Expected (SAFE):
+        fn create_array(n: i32) -> Vec<i32> {
+            vec![0i32; n as usize]  // Return owned Vec
+        }
+
+      acceptance_criteria:
+        - malloc returning pointer → return Vec<T>
+        - No dangling pointers from Vec.as_mut_ptr()
+        - Callers updated to use Vec
+
+      files_modified:
+        - crates/decy-codegen/src/lib.rs
+        - crates/decy-codegen/tests/vec_return_test.rs
