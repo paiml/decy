@@ -8383,9 +8383,9 @@ sprint_27:
       priority: medium
       story_points: 6
       assignee: Claude
-      status: in_progress
+      status: done
       github_issue: null
-      phase: GREEN
+      phase: DONE
 
       description: |
         Use BufReader/BufWriter and Read/Write traits.
