@@ -883,15 +883,31 @@ pub fn transpile_with_includes(c_code: &str, base_dir: Option<&Path>) -> Result<
     let code_generator = CodeGenerator::new();
     let mut rust_code = String::new();
 
-    // Generate struct definitions first
+    // DECY-119: Track emitted definitions to avoid duplicates
+    let mut emitted_structs = std::collections::HashSet::new();
+    let mut emitted_typedefs = std::collections::HashSet::new();
+
+    // Generate struct definitions first (deduplicated)
     for hir_struct in &hir_structs {
+        let struct_name = hir_struct.name();
+        if emitted_structs.contains(struct_name) {
+            continue; // Skip duplicate
+        }
+        emitted_structs.insert(struct_name.to_string());
+
         let struct_code = code_generator.generate_struct(hir_struct);
         rust_code.push_str(&struct_code);
         rust_code.push('\n');
     }
 
-    // Generate typedefs (DECY-054, DECY-057)
+    // Generate typedefs (DECY-054, DECY-057) - deduplicated
     for typedef in &hir_typedefs {
+        let typedef_name = typedef.name();
+        if emitted_typedefs.contains(typedef_name) {
+            continue; // Skip duplicate
+        }
+        emitted_typedefs.insert(typedef_name.to_string());
+
         if let Ok(typedef_code) = code_generator.generate_typedef(typedef) {
             rust_code.push_str(&typedef_code);
             rust_code.push('\n');
