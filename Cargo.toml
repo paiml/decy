@@ -15,6 +15,7 @@ members = [
     "crates/decy-repo",
     "crates/decy-oracle",
     "crates/decy", "crates/decy-stdlib",
+    "crates/decy-llm",
 ]
 
 [workspace.package]
