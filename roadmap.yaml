@@ -8689,18 +8689,23 @@ sprint_30:
       priority: low
       story_points: 10
       assignee: Claude
-      status: not_started
+      status: done
       github_issue: null
-      phase: null
+      phase: DONE
+      completed_date: "2025-11-30"
+      actual_metrics:
+        tests: "10 tests passing"
+        clippy_warnings: 0
+        coverage: "100% (context builder)"
 
       description: |
         Format static analysis results as structured context for LLM.
 
       requirements:
-        - Serialize ownership analysis
-        - Serialize lifetime analysis
-        - Serialize lock mappings
-        - Create JSON schema for LLM prompts
+        - Serialize ownership analysis ✅
+        - Serialize lifetime analysis ✅
+        - Serialize lock mappings ✅
+        - Create JSON schema for LLM prompts ✅
 
       acceptance_criteria:
         - Generates structured JSON context ✅
@@ -8708,8 +8713,10 @@ sprint_30:
         - LLM can parse context ✅
 
       files_modified:
+        - crates/decy-llm/Cargo.toml (new)
         - crates/decy-llm/src/context_builder.rs (new)
         - crates/decy-llm/src/lib.rs (new)
+        - crates/decy-llm/tests/context_builder_tests.rs (new)
 
       dependencies: ["DECY-074", "DECY-077", "DECY-080"]
 
