@@ -53,6 +53,9 @@ struct TypeContext {
     // DECY-134: Track string iteration params that use index-based access
     // Maps param_name -> index_var_name (e.g., "dest" -> "dest_idx")
     string_iter_params: HashMap<String, String>,
+    // DECY-134b: Track which functions have string iteration params (for call site transformation)
+    // Maps func_name -> list of (param_index, is_mutable) for string iter params
+    string_iter_funcs: HashMap<String, Vec<(usize, bool)>>,
 }
 
 impl TypeContext {
@@ -63,7 +66,18 @@ impl TypeContext {
             functions: HashMap::new(),
             slice_func_args: HashMap::new(),
             string_iter_params: HashMap::new(),
+            string_iter_funcs: HashMap::new(),
         }
+    }
+
+    /// DECY-134b: Register a function's string iteration params for call site transformation
+    fn add_string_iter_func(&mut self, func_name: String, params: Vec<(usize, bool)>) {
+        self.string_iter_funcs.insert(func_name, params);
+    }
+
+    /// DECY-134b: Get string iteration param info for a function
+    fn get_string_iter_func(&self, func_name: &str) -> Option<&Vec<(usize, bool)>> {
+        self.string_iter_funcs.get(func_name)
     }
 
     /// DECY-134: Register a string iteration param with its index variable name
@@ -1284,6 +1298,39 @@ impl CodeGenerator {
                                         Some(format!("&{}", inner_code))
                                     }
                                 } else {
+                                    // DECY-134b: Check if this function has string iteration params
+                                    if let Some(string_iter_params) = ctx.get_string_iter_func(function) {
+                                        // Check if this argument index is a string iteration param
+                                        if let Some((_, is_mutable)) = string_iter_params.iter().find(|(idx, _)| *idx == i) {
+                                            // Transform argument to slice reference
+                                            // array → &mut array or &array
+                                            // string literal → b"string" (byte slice)
+                                            if let HirExpression::Variable(var_name) = arg {
+                                                let var_type = ctx.get_type(var_name);
+                                                if matches!(var_type, Some(HirType::Array { .. })) {
+                                                    if *is_mutable {
+                                                        return Some(format!("&mut {}", var_name));
+                                                    } else {
+                                                        return Some(format!("&{}", var_name));
+                                                    }
+                                                }
+                                            }
+                                            if let HirExpression::StringLiteral(s) = arg {
+                                                // String literal becomes byte slice reference
+                                                return Some(format!("b\"{}\"", s));
+                                            }
+                                            // AddressOf expressions (e.g., &buffer) - extract inner
+                                            if let HirExpression::AddressOf(inner) = arg {
+                                                let inner_code = self.generate_expression_with_context(inner, ctx);
+                                                if *is_mutable {
+                                                    return Some(format!("&mut {}", inner_code));
+                                                } else {
+                                                    return Some(format!("&{}", inner_code));
+                                                }
+                                            }
+                                        }
+                                    }
+
                                     // DECY-125: Check if param is raw pointer and arg needs conversion
                                     let param_type = ctx.get_function_param_type(function, i);
                                     let is_raw_pointer_param =
@@ -2469,10 +2516,10 @@ impl CodeGenerator {
                 }
                 false
             }
-            HirStatement::Assignment { target, .. } => {
-                // Check if this is directly assigning to dereferenced pointer
-                // e.g., *a = expr would be target = "a" with some expr
-                target == var_name
+            HirStatement::Assignment { .. } => {
+                // Regular variable assignment (src = src + 1) does NOT modify *src
+                // Only DerefAssignment (*src = value) modifies the pointed-to value
+                false
             }
             HirStatement::If {
                 then_block,
@@ -2548,6 +2595,25 @@ impl CodeGenerator {
                 .any(|s| self.statement_uses_pointer_arithmetic(s, var_name)),
             _ => false,
         }
+    }
+
+    /// DECY-134b: Get all string iteration params for a function.
+    ///
+    /// Returns a list of (param_index, is_mutable) for each char* param that uses pointer arithmetic.
+    /// Used by decy-core to build string_iter_funcs info for call site transformation.
+    pub fn get_string_iteration_params(&self, func: &HirFunction) -> Vec<(usize, bool)> {
+        func.parameters()
+            .iter()
+            .enumerate()
+            .filter_map(|(i, param)| {
+                if self.is_string_iteration_param(func, param.name()) {
+                    let is_mutable = self.is_parameter_deref_modified(func, param.name());
+                    Some((i, is_mutable))
+                } else {
+                    None
+                }
+            })
+            .collect()
     }
 
     /// DECY-134: Check if a char* parameter is used in a string iteration pattern.
@@ -3150,7 +3216,7 @@ impl CodeGenerator {
         func: &HirFunction,
         sig: &AnnotatedSignature,
     ) -> String {
-        self.generate_function_with_lifetimes_and_structs(func, sig, &[], &[], &[])
+        self.generate_function_with_lifetimes_and_structs(func, sig, &[], &[], &[], &[])
     }
 
     /// Generate a complete function from HIR with lifetime annotations and struct definitions.
@@ -3164,6 +3230,7 @@ impl CodeGenerator {
     /// * `structs` - Struct definitions for field type awareness
     /// * `all_functions` - All function signatures for DECY-117 call site mutability
     /// * `slice_func_args` - DECY-116: func_name -> [(array_idx, len_idx)] for call site transformation
+    /// * `string_iter_funcs` - DECY-134b: func_name -> [(param_idx, is_mutable)] for string iteration
     pub fn generate_function_with_lifetimes_and_structs(
         &self,
         func: &HirFunction,
@@ -3171,6 +3238,7 @@ impl CodeGenerator {
         structs: &[decy_hir::HirStruct],
         all_functions: &[(String, Vec<HirType>)],
         slice_func_args: &[(String, Vec<(usize, usize)>)],
+        string_iter_funcs: &[(String, Vec<(usize, bool)>)],
     ) -> String {
         let mut code = String::new();
 
@@ -3239,6 +3307,11 @@ impl CodeGenerator {
         // DECY-116: Add slice function arg mappings for call site transformation
         for (func_name, arg_mappings) in slice_func_args {
             ctx.add_slice_func_args(func_name.clone(), arg_mappings.clone());
+        }
+
+        // DECY-134b: Add string iteration function info for call site transformation
+        for (func_name, params) in string_iter_funcs {
+            ctx.add_string_iter_func(func_name.clone(), params.clone());
         }
 
         // Generate body statements if present
