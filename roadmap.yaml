@@ -8632,11 +8632,9 @@ sprint_29:
       priority: medium
       story_points: 6
       assignee: Claude
-      status: not_started
+      status: in_progress
       github_issue: null
-      phase: null
-
-      phase: null
+      phase: RED
 
       description: |
         Add trait bounds based on operations (Clone, Copy, Ord, etc.).
