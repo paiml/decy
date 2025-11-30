@@ -9863,3 +9863,34 @@ sprint_31_single_shot:
       files_modified:
         - crates/decy-codegen/src/lib.rs
         - crates/decy-codegen/tests/malloc_ptr_test.rs
+
+    DECY-141:
+      title: "Replace mem::zeroed with Box::default() for structs with Default"
+      type: refactor
+      priority: medium
+      story_points: 5
+      assignee: Claude
+      status: in_progress
+      phase: RED
+
+      description: |
+        Reduce unsafe blocks by using Box::default() instead of
+        Box::new(unsafe { std::mem::zeroed::<T>() }) for types that derive Default.
+
+        Current (unsafe):
+        let mut entry: Box<Entry> = Box::new(unsafe { std::mem::zeroed::<Entry>() });
+
+        Expected (safe):
+        let mut entry: Box<Entry> = Box::default();
+
+        This eliminates one unsafe block per struct allocation.
+
+      acceptance_criteria:
+        - Structs with #[derive(Default)] use Box::default()
+        - Only structs without Default use mem::zeroed
+        - Unsafe block count reduced
+        - hash_table.c and binary_tree.c still compile
+
+      files_modified:
+        - crates/decy-codegen/src/lib.rs
+        - crates/decy-codegen/tests/box_default_test.rs
