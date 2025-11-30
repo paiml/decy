@@ -34,10 +34,8 @@ fn known_issue_files() -> HashSet<&'static str> {
     // Multiple issues: printf format, raw pointer indexing, type mismatches
     known.insert("string_builder.c");
 
-    // DECY-157: malloc for struct returns Vec<u8> instead of *mut Struct
-    // C: Node* node = malloc(sizeof(Node));
-    // Issue: Vec<u8> cannot be assigned to *mut Node
-    known.insert("linked_list.c");
+    // DECY-160: FIXED - malloc for struct now returns Box::into_raw(Box::default())
+    // linked_list.c now passes
 
     known
 }
