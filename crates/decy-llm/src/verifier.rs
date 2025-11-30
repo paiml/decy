@@ -100,7 +100,8 @@ impl IterationContext {
 
         // Add to feedback
         for error in &errors {
-            self.feedback.push(format!("Iteration {}: {}", self.iteration, error));
+            self.feedback
+                .push(format!("Iteration {}: {}", self.iteration, error));
         }
 
         self.iteration += 1;
@@ -152,7 +153,7 @@ impl CodeVerifier {
         // Basic validation - check if code looks valid
         if code.code.trim().is_empty() {
             return Ok(VerificationResult::compile_failure(vec![
-                "Empty code".to_string(),
+                "Empty code".to_string()
             ]));
         }
 
