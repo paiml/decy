@@ -930,6 +930,23 @@ impl CodeGenerator {
                             };
                         }
                     }
+
+                    // DECY-119: Box null check → always true/false (Box allocation never fails)
+                    // Similar to Vec, Box::new() never returns null - it panics on OOM
+                    if let HirExpression::Variable(var_name) = &**left {
+                        if let Some(HirType::Box(_)) = ctx.get_type(var_name) {
+                            if matches!(
+                                **right,
+                                HirExpression::IntLiteral(0) | HirExpression::NullLiteral
+                            ) {
+                                return match op {
+                                    BinaryOperator::Equal => "false /* Box never null */".to_string(),
+                                    BinaryOperator::NotEqual => "true /* Box never null */".to_string(),
+                                    _ => unreachable!(),
+                                };
+                            }
+                        }
+                    }
                 }
 
                 let left_code = self.generate_expression_with_context(left, ctx);
@@ -1264,17 +1281,20 @@ impl CodeGenerator {
                     }
                     // DECY-132: printf(fmt, ...) → print! macro
                     // Reference: K&R §7.2, ISO C99 §7.19.6.3
+                    // DECY-119: Convert C format specifiers to Rust
                     "printf" => {
                         if !arguments.is_empty() {
                             let fmt = self.generate_expression_with_context(&arguments[0], ctx);
+                            // Convert C format specifiers to Rust
+                            let rust_fmt = Self::convert_c_format_to_rust(&fmt);
                             if arguments.len() == 1 {
-                                format!("print!(\"{{}}\", {})", fmt)
+                                format!("print!({})", rust_fmt)
                             } else {
                                 let args: Vec<String> = arguments[1..]
                                     .iter()
                                     .map(|a| self.generate_expression_with_context(a, ctx))
                                     .collect();
-                                format!("print!(\"{{}}\", format!({}, {}))", fmt, args.join(", "))
+                                format!("print!({}, {})", rust_fmt, args.join(", "))
                             }
                         } else {
                             "print!(\"\")".to_string()
@@ -1933,6 +1953,40 @@ impl CodeGenerator {
         }
     }
 
+    /// Convert C printf format specifiers to Rust format specifiers.
+    /// DECY-119: %d → {}, %s → {}, %f → {}, etc.
+    fn convert_c_format_to_rust(c_fmt: &str) -> String {
+        // If it's a quoted string literal, process the contents
+        let trimmed = c_fmt.trim();
+        if trimmed.starts_with('"') && trimmed.ends_with('"') && trimmed.len() >= 2 {
+            let inner = &trimmed[1..trimmed.len() - 1];
+            let converted = inner
+                .replace("%d", "{}")
+                .replace("%i", "{}")
+                .replace("%u", "{}")
+                .replace("%ld", "{}")
+                .replace("%lu", "{}")
+                .replace("%lld", "{}")
+                .replace("%llu", "{}")
+                .replace("%f", "{}")
+                .replace("%lf", "{}")
+                .replace("%e", "{:e}")
+                .replace("%E", "{:E}")
+                .replace("%g", "{}")
+                .replace("%s", "{}")
+                .replace("%c", "{}")
+                .replace("%p", "{:p}")
+                .replace("%x", "{:x}")
+                .replace("%X", "{:X}")
+                .replace("%o", "{:o}")
+                .replace("%%", "%");
+            format!("\"{}\"", converted)
+        } else {
+            // Not a string literal, return as-is
+            c_fmt.to_string()
+        }
+    }
+
     /// Generate code for a statement.
     pub fn generate_statement(&self, stmt: &HirStatement) -> String {
         self.generate_statement_for_function(stmt, None)
@@ -2586,13 +2640,27 @@ impl CodeGenerator {
             } => {
                 // Look up field type for null pointer detection
                 let field_type = ctx.get_field_type(object, field);
-                // Generate obj.field = value (works for both ptr->field and obj.field in Rust)
-                format!(
-                    "{}.{} = {};",
-                    self.generate_expression_with_context(object, ctx),
-                    field,
-                    self.generate_expression_with_target_type(value, ctx, field_type.as_ref())
-                )
+                let obj_code = self.generate_expression_with_context(object, ctx);
+                let value_code =
+                    self.generate_expression_with_target_type(value, ctx, field_type.as_ref());
+
+                // DECY-119: Check if object is a raw pointer - need unsafe deref
+                let obj_type = if let HirExpression::Variable(name) = object {
+                    ctx.get_type(name)
+                } else {
+                    None
+                };
+
+                if matches!(obj_type, Some(HirType::Pointer(_))) {
+                    // Raw pointer field assignment needs unsafe block
+                    format!(
+                        "unsafe {{ (*{}).{} = {}; }}",
+                        obj_code, field, value_code
+                    )
+                } else {
+                    // Regular struct field assignment
+                    format!("{}.{} = {};", obj_code, field, value_code)
+                }
             }
             HirStatement::Free { pointer } => {
                 // free(ptr) → automatic drop via RAII
