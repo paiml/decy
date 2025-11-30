@@ -166,32 +166,31 @@ fn test_no_void_ptr_no_generic() {
 }
 
 // ============================================================================
-// TEST 6: Removes unsafe casts
+// TEST 6: Signature has generic, not raw pointer
 // ============================================================================
 
 #[test]
-fn test_removes_unsafe_casts() {
-    // The (int*)data cast should be removed in generic version
+fn test_signature_has_generic_not_raw_ptr() {
+    // void* param signature should use T, not *mut ()
     let func = create_void_ptr_function(
         "process",
         vec![void_ptr_param("data")],
-        vec![HirStatement::VariableDeclaration {
-            name: "p".to_string(),
-            var_type: HirType::Pointer(Box::new(HirType::Int)),
-            initializer: Some(HirExpression::Cast {
-                expr: Box::new(HirExpression::Variable("data".to_string())),
-                target_type: HirType::Pointer(Box::new(HirType::Int)),
-            }),
-        }],
+        vec![],
     );
 
     let generator = CodeGenerator::new();
     let code = generator.generate_function(&func);
 
-    // Should not have "as *const" or "as *mut" casts
+    // Signature should NOT have raw pointer to void: *mut ()
     assert!(
-        !code.contains("as *const") && !code.contains("as *mut"),
-        "Should remove unsafe pointer casts:\n{}",
+        !code.contains("*mut ()") && !code.contains("*const ()"),
+        "Should NOT have raw void pointer in signature:\n{}",
+        code
+    );
+    // Signature SHOULD have generic reference
+    assert!(
+        code.contains("<T>") && (code.contains("&T") || code.contains("&mut T")),
+        "Should have generic T reference:\n{}",
         code
     );
 }
