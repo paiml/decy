@@ -11,3 +11,4 @@ pub mod output_params;
 pub mod patterns;
 pub mod subprocess_analysis;
 pub mod tagged_union_analysis;
+pub mod void_ptr_analysis;
