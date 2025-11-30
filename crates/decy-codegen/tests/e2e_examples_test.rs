@@ -62,13 +62,19 @@ fn transpile_and_compile(c_file: &Path) -> Result<(), String> {
         return Err("Transpile produced empty output".to_string());
     }
 
-    // Step 2: Write to temp file with unique name per C file and thread
-    // Use full path hash to ensure uniqueness across directories with same filename
+    // Step 2: Write to temp file with unique name per C file, thread, and timestamp
+    // DECY-153: Use thread ID and timestamp to prevent race conditions in parallel tests
     let temp_dir = std::env::temp_dir();
     let path_hash = {
         use std::hash::{Hash, Hasher};
         let mut hasher = std::collections::hash_map::DefaultHasher::new();
         c_file.hash(&mut hasher);
+        std::thread::current().id().hash(&mut hasher);
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos()
+            .hash(&mut hasher);
         hasher.finish()
     };
     let file_stem = c_file.file_stem().unwrap().to_string_lossy();
