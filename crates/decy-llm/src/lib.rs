@@ -9,5 +9,7 @@
 #![deny(unsafe_code)]
 
 pub mod context_builder;
+pub mod llm_codegen;
 
 pub use context_builder::{AnalysisContext, ContextBuilder, FunctionContext};
+pub use llm_codegen::{CodegenPrompt, GeneratedCode, LlmCodegen, LlmError};

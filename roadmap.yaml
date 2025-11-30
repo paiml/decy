@@ -8726,9 +8726,9 @@ sprint_30:
       priority: low
       story_points: 10
       assignee: Claude
-      status: not_started
+      status: in_progress
       github_issue: null
-      phase: null
+      phase: RED
 
       description: |
         Use LLM to generate idiomatic Rust guided by analysis results.
