@@ -8088,7 +8088,7 @@ sprint_25:
       assignee: Claude
       status: in_progress
       github_issue: null
-      phase: RED
+      phase: REFACTOR
 
       description: |
         Transform output parameters to Rust return values.
