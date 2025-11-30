@@ -9789,9 +9789,10 @@ sprint_31_single_shot:
       type: feature
       priority: high
       story_points: 13
-      assignee: null
-      status: not_started
-      phase: null
+      assignee: Claude
+      status: in_progress
+      phase: GREEN
+      completed_date: "2025-11-30"
 
       description: |
         C's `const char*` should become `&str` in Rust, not `&mut u8`.
