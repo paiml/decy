@@ -7,10 +7,7 @@ use decy_hir::{HirExpression, HirFunction, HirParameter, HirStatement, HirType};
 
 /// Helper: Create void* parameter
 fn void_ptr_param(name: &str) -> HirParameter {
-    HirParameter::new(
-        name.to_string(),
-        HirType::Pointer(Box::new(HirType::Void)),
-    )
+    HirParameter::new(name.to_string(), HirType::Pointer(Box::new(HirType::Void)))
 }
 
 /// Helper: Create function with void* params
@@ -29,11 +26,7 @@ fn create_void_ptr_function(
 #[test]
 fn test_single_void_ptr_becomes_generic() {
     // void process(void* data) → fn process<T>(data: &T)
-    let func = create_void_ptr_function(
-        "process",
-        vec![void_ptr_param("data")],
-        vec![],
-    );
+    let func = create_void_ptr_function("process", vec![void_ptr_param("data")], vec![]);
 
     let generator = CodeGenerator::new();
     let code = generator.generate_function(&func);
@@ -73,11 +66,7 @@ fn test_two_void_ptr_same_generic() {
     );
     // Both params should use same T
     let t_count = code.matches("&T").count() + code.matches("&mut T").count();
-    assert!(
-        t_count >= 2,
-        "Both params should use T:\n{}",
-        code
-    );
+    assert!(t_count >= 2, "Both params should use T:\n{}", code);
 }
 
 // ============================================================================
@@ -132,11 +121,7 @@ fn test_void_ptr_read_becomes_ref() {
     let code = generator.generate_function(&func);
 
     // Should prefer &T over &mut T for read-only
-    assert!(
-        code.contains("<T>"),
-        "Should have generic T:\n{}",
-        code
-    );
+    assert!(code.contains("<T>"), "Should have generic T:\n{}", code);
 }
 
 // ============================================================================
@@ -172,11 +157,7 @@ fn test_no_void_ptr_no_generic() {
 #[test]
 fn test_signature_has_generic_not_raw_ptr() {
     // void* param signature should use T, not *mut ()
-    let func = create_void_ptr_function(
-        "process",
-        vec![void_ptr_param("data")],
-        vec![],
-    );
+    let func = create_void_ptr_function("process", vec![void_ptr_param("data")], vec![]);
 
     let generator = CodeGenerator::new();
     let code = generator.generate_function(&func);
