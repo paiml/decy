@@ -10215,3 +10215,39 @@ sprint_31_single_shot:
       files_modified:
         - crates/decy-codegen/src/lib.rs
         - crates/decy-codegen/tests/slice_to_ptr_test.rs
+
+    DECY-150:
+      title: "Fix array index type mismatch in reverse-style calculations"
+      type: bug
+      priority: high
+      story_points: 2
+      assignee: Claude
+      status: done
+      phase: DONE
+
+      description: |
+        Array index expressions like `buffer[size - 1 - i]` caused type mismatch
+        errors due to Rust's `as` operator precedence.
+
+        Root cause: The `as usize` cast was applied after the index expression
+        without parentheses, so `buffer[size - 1 - i as usize]` parsed as
+        `buffer[size - 1 - (i as usize)]`, mixing i32 and usize types.
+
+        Fix: Wrap entire index expression in parentheses before applying cast:
+        `buffer[(size - 1 - i) as usize]`
+
+      acceptance_criteria:
+        - Array index calculations use consistent types
+        - buffer_ops.c compiles
+        - E2E tests pass
+
+      test_strategy: |
+        RED: Create tests for array index reverse pattern
+        GREEN: Add parentheses to index expression before as usize cast
+        REFACTOR: Update affected tests to accept new pattern
+
+      files_modified:
+        - crates/decy-codegen/src/lib.rs
+        - crates/decy-codegen/tests/array_index_type_test.rs
+        - crates/decy-codegen/tests/calloc_to_vec_test.rs
+        - crates/decy-codegen/tests/vla_to_vec_test.rs
