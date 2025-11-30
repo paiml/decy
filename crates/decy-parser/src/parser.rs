@@ -3080,12 +3080,12 @@ fn convert_type(cx_type: CXType) -> Option<Type> {
         CXType_Void => Some(Type::Void),
         CXType_Int => Some(Type::Int),
         CXType_UInt => Some(Type::UnsignedInt), // DECY-158: unsigned int → u32
-        CXType_UChar => Some(Type::Char), // unsigned char → u8 (DECY-057 fix)
+        CXType_UChar => Some(Type::Char),       // unsigned char → u8 (DECY-057 fix)
         CXType_UShort => Some(Type::UnsignedInt), // unsigned short → u32 (safe approximation)
         CXType_ULong => Some(Type::UnsignedInt), // unsigned long → u32 (safe approximation)
-        CXType_Short => Some(Type::Int), // short → i32
-        CXType_Long => Some(Type::Int), // long → i32
-        CXType_LongLong => Some(Type::Int), // long long → i32 (simplified)
+        CXType_Short => Some(Type::Int),        // short → i32
+        CXType_Long => Some(Type::Int),         // long → i32
+        CXType_LongLong => Some(Type::Int),     // long long → i32 (simplified)
         CXType_ULongLong => Some(Type::UnsignedInt), // DECY-158: unsigned long long → u32
         CXType_Float => Some(Type::Float),
         CXType_Double => Some(Type::Double),
