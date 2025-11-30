@@ -3,7 +3,7 @@
 //! Verifies that static analysis results are properly serialized
 //! as structured JSON for LLM prompts.
 
-use decy_llm::{AnalysisContext, ContextBuilder, FunctionContext};
+use decy_llm::{AnalysisContext, ContextBuilder};
 
 // ============================================================================
 // TEST 1: Create empty context builder
@@ -13,7 +13,10 @@ use decy_llm::{AnalysisContext, ContextBuilder, FunctionContext};
 fn test_create_context_builder() {
     let builder = ContextBuilder::new();
     let context = builder.build();
-    assert!(context.functions.is_empty(), "Empty builder should have no functions");
+    assert!(
+        context.functions.is_empty(),
+        "Empty builder should have no functions"
+    );
 }
 
 // ============================================================================
@@ -28,7 +31,10 @@ fn test_add_function_to_context() {
     let context = builder.build();
     assert_eq!(context.functions.len(), 1);
     assert_eq!(context.functions[0].name, "process");
-    assert_eq!(context.functions[0].c_signature, "void process(int* data, size_t len)");
+    assert_eq!(
+        context.functions[0].c_signature,
+        "void process(int* data, size_t len)"
+    );
 }
 
 // ============================================================================
@@ -40,8 +46,20 @@ fn test_add_ownership_inference() {
     let mut builder = ContextBuilder::new();
     builder
         .add_function("transfer", "void transfer(int* dest, int* src)")
-        .add_ownership("transfer", "dest", "mutable_borrow", 0.95, "Mutated via assignment")
-        .add_ownership("transfer", "src", "immutable_borrow", 0.9, "Read-only access");
+        .add_ownership(
+            "transfer",
+            "dest",
+            "mutable_borrow",
+            0.95,
+            "Mutated via assignment",
+        )
+        .add_ownership(
+            "transfer",
+            "src",
+            "immutable_borrow",
+            0.9,
+            "Read-only access",
+        );
 
     let context = builder.build();
     let func = &context.functions[0];
@@ -66,7 +84,7 @@ fn test_add_lifetime_info() {
     let mut builder = ContextBuilder::new();
     builder
         .add_function("create", "int* create()")
-        .add_lifetime("create", "result", 0, true);  // Escapes function
+        .add_lifetime("create", "result", 0, true); // Escapes function
 
     let context = builder.build();
     let func = &context.functions[0];
@@ -86,7 +104,11 @@ fn test_add_lock_mapping() {
     let mut builder = ContextBuilder::new();
     builder
         .add_function("sync_update", "void sync_update()")
-        .add_lock_mapping("sync_update", "counter_mutex", vec!["counter".to_string(), "total".to_string()]);
+        .add_lock_mapping(
+            "sync_update",
+            "counter_mutex",
+            vec!["counter".to_string(), "total".to_string()],
+        );
 
     let context = builder.build();
     let func = &context.functions[0];
@@ -149,7 +171,13 @@ fn test_complex_function_context() {
     let mut builder = ContextBuilder::new();
     builder
         .add_function("thread_safe_update", "void thread_safe_update(Counter* c)")
-        .add_ownership("thread_safe_update", "c", "mutable_borrow", 0.9, "Modified under lock")
+        .add_ownership(
+            "thread_safe_update",
+            "c",
+            "mutable_borrow",
+            0.9,
+            "Modified under lock",
+        )
         .add_lifetime("thread_safe_update", "c", 0, false)
         .add_lock_mapping("thread_safe_update", "mutex", vec!["c".to_string()]);
 
@@ -216,7 +244,8 @@ fn test_json_roundtrip() {
         .add_lifetime("roundtrip", "y", 0, false);
 
     let json = builder.to_json().expect("Serialization failed");
-    let deserialized: AnalysisContext = serde_json::from_str(&json).expect("Deserialization failed");
+    let deserialized: AnalysisContext =
+        serde_json::from_str(&json).expect("Deserialization failed");
 
     assert_eq!(deserialized.functions.len(), 1);
     assert_eq!(deserialized.functions[0].name, "roundtrip");
