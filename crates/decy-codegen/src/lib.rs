@@ -868,14 +868,17 @@ impl CodeGenerator {
                     // arr == 0 or arr == NULL for Vec types should become `false` (or removed)
                     // because vec![] never returns null - it panics on OOM instead
                     if let HirExpression::Variable(var_name) = &**left {
-                        if ctx.is_vec(var_name) {
-                            if matches!(**right, HirExpression::IntLiteral(0) | HirExpression::NullLiteral) {
-                                return match op {
-                                    BinaryOperator::Equal => "false /* Vec never null */".to_string(),
-                                    BinaryOperator::NotEqual => "true /* Vec never null */".to_string(),
-                                    _ => unreachable!(),
-                                };
-                            }
+                        if ctx.is_vec(var_name)
+                            && matches!(
+                                **right,
+                                HirExpression::IntLiteral(0) | HirExpression::NullLiteral
+                            )
+                        {
+                            return match op {
+                                BinaryOperator::Equal => "false /* Vec never null */".to_string(),
+                                BinaryOperator::NotEqual => "true /* Vec never null */".to_string(),
+                                _ => unreachable!(),
+                            };
                         }
                     }
                 }
