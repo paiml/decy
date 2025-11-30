@@ -95,11 +95,16 @@ impl VoidPtrAnalyzer {
         matches!(ty, HirType::Pointer(inner) if matches!(inner.as_ref(), HirType::Void))
     }
 
-    fn detect_pattern(&self, func: &HirFunction, void_params: &[&decy_hir::HirParameter]) -> VoidPtrPattern {
+    fn detect_pattern(
+        &self,
+        func: &HirFunction,
+        void_params: &[&decy_hir::HirParameter],
+    ) -> VoidPtrPattern {
         let param_count = void_params.len();
-        let has_size_param = func.parameters().iter().any(|p| {
-            p.name().contains("size") || p.name() == "n" || p.name() == "len"
-        });
+        let has_size_param = func
+            .parameters()
+            .iter()
+            .any(|p| p.name().contains("size") || p.name() == "n" || p.name() == "len");
         let returns_int = matches!(func.return_type(), HirType::Int);
 
         // Swap pattern: two void* + size
@@ -108,7 +113,10 @@ impl VoidPtrAnalyzer {
         }
 
         // Compare pattern: two void* returning int
-        if param_count == 2 && returns_int && (func.name().contains("cmp") || func.name() == "compare") {
+        if param_count == 2
+            && returns_int
+            && (func.name().contains("cmp") || func.name() == "compare")
+        {
             return VoidPtrPattern::Compare;
         }
 
@@ -131,27 +139,37 @@ impl VoidPtrAnalyzer {
 
     fn analyze_statement(&self, stmt: &HirStatement, param_name: &str, info: &mut VoidPtrInfo) {
         match stmt {
-            HirStatement::VariableDeclaration { initializer: Some(init), .. } => {
+            HirStatement::VariableDeclaration {
+                initializer: Some(init),
+                ..
+            } => {
                 self.analyze_expression(init, param_name, info);
             }
             HirStatement::DerefAssignment { target, value } => {
                 // Write through void* - implies mutable constraint
-                if self.expr_uses_param(target, param_name) {
-                    if !info.constraints.contains(&TypeConstraint::Mutable) {
-                        info.constraints.push(TypeConstraint::Mutable);
-                    }
+                if self.expr_uses_param(target, param_name)
+                    && !info.constraints.contains(&TypeConstraint::Mutable)
+                {
+                    info.constraints.push(TypeConstraint::Mutable);
                 }
                 self.analyze_expression(target, param_name, info);
                 self.analyze_expression(value, param_name, info);
             }
-            HirStatement::If { condition, then_block, else_block, .. } => {
+            HirStatement::If {
+                condition,
+                then_block,
+                else_block,
+                ..
+            } => {
                 self.analyze_expression(condition, param_name, info);
                 self.analyze_body(then_block, param_name, info);
                 if let Some(else_stmts) = else_block {
                     self.analyze_body(else_stmts, param_name, info);
                 }
             }
-            HirStatement::While { condition, body, .. } => {
+            HirStatement::While {
+                condition, body, ..
+            } => {
                 self.analyze_expression(condition, param_name, info);
                 self.analyze_body(body, param_name, info);
             }
@@ -170,7 +188,10 @@ impl VoidPtrAnalyzer {
 
     fn analyze_expression(&self, expr: &HirExpression, param_name: &str, info: &mut VoidPtrInfo) {
         match expr {
-            HirExpression::Cast { expr: inner, target_type } => {
+            HirExpression::Cast {
+                expr: inner,
+                target_type,
+            } => {
                 // Found a cast - extract the type
                 if self.expr_uses_param(inner, param_name) {
                     if let HirType::Pointer(inner_type) = target_type {
