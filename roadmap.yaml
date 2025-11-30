@@ -10089,3 +10089,47 @@ sprint_31_single_shot:
       files_modified:
         - crates/decy-codegen/src/lib.rs
         - crates/decy-codegen/tests/slice_to_ptr_test.rs
+
+    DECY-147:
+      title: "Fix anonymous typedef struct parsing"
+      type: bug
+      priority: high
+      story_points: 3
+      assignee: Claude
+      status: in_progress
+      phase: RED
+
+      description: |
+        Anonymous typedef struct pattern is not being parsed correctly:
+
+        C code:
+          typedef struct {
+              char* data;
+              size_t length;
+          } StringBuilder;
+
+        Current broken output:
+          pub type StringBuilder = ;
+
+        Expected output:
+          pub struct StringBuilder {
+              pub data: *mut u8,
+              pub length: usize,
+          }
+
+        This fixes DECY-145 known issue: string_builder.c
+
+      acceptance_criteria:
+        - Anonymous typedef struct generates proper struct definition
+        - string_builder.c transpiles and compiles
+        - E2E tests pass
+
+      test_strategy: |
+        RED: Create tests expecting proper struct for anonymous typedef
+        GREEN: Fix parser/codegen to handle anonymous typedef struct
+        REFACTOR: Pass quality gates
+
+      files_modified:
+        - crates/decy-parser/src/lib.rs
+        - crates/decy-codegen/src/lib.rs
+        - crates/decy-codegen/tests/typedef_struct_test.rs
