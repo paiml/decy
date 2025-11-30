@@ -959,6 +959,19 @@ pub fn transpile_with_includes(c_code: &str, base_dir: Option<&Path>) -> Result<
         })
         .collect();
 
+    // DECY-134b: Build string iteration function info for call site transformation
+    let string_iter_funcs: Vec<(String, Vec<(usize, bool)>)> = transformed_functions
+        .iter()
+        .filter_map(|(func, _)| {
+            let params = code_generator.get_string_iteration_params(func);
+            if params.is_empty() {
+                None
+            } else {
+                Some((func.name().to_string(), params))
+            }
+        })
+        .collect();
+
     // Generate functions with struct definitions for field type awareness
     // Note: slice_func_args was built at line 814 BEFORE transformation to capture original params
     for (func, annotated_sig) in &transformed_functions {
@@ -968,6 +981,7 @@ pub fn transpile_with_includes(c_code: &str, base_dir: Option<&Path>) -> Result<
             &hir_structs,
             &all_function_sigs,
             &slice_func_args,
+            &string_iter_funcs,
         );
         rust_code.push_str(&generated);
         rust_code.push('\n');
