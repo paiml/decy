@@ -4,7 +4,7 @@
 //! inference results, transforming C pointers into safe Rust references.
 
 use crate::inference::OwnershipInference;
-use decy_hir::{HirFunction, HirParameter, HirType};
+use decy_hir::{HirExpression, HirFunction, HirParameter, HirStatement, HirType};
 use std::collections::HashMap;
 
 /// Borrow code generator.
@@ -114,9 +114,10 @@ impl BorrowGenerator {
         let dataflow_graph = dataflow_analyzer.analyze(func);
 
         // DECY-072: Transform parameters with array detection
+        // DECY-161: Also pass function to check for pointer arithmetic
         let (transformed_params, length_params_to_remove) = self
             .transform_parameters_with_array_detection(
-                func.parameters(),
+                func,
                 inferences,
                 &dataflow_graph,
             );
@@ -146,13 +147,15 @@ impl BorrowGenerator {
 
     /// Transform parameters with array parameter detection.
     /// DECY-072: Detects array parameters and transforms them to slices.
+    /// DECY-161: Skip slice transformation if parameter uses pointer arithmetic.
     /// Returns (transformed_params, length_params_to_remove)
     fn transform_parameters_with_array_detection(
         &self,
-        params: &[HirParameter],
+        func: &HirFunction,
         inferences: &HashMap<String, OwnershipInference>,
         dataflow_graph: &crate::dataflow::DataflowGraph,
     ) -> (Vec<HirParameter>, HashMap<String, String>) {
+        let params = func.parameters();
         let mut transformed_params = Vec::new();
         let mut length_params_to_remove = HashMap::new(); // length_param_name -> array_param_name
         let mut skip_next = false;
@@ -165,6 +168,14 @@ impl BorrowGenerator {
 
             // Check if this is an array parameter
             if let Some(true) = dataflow_graph.is_array_parameter(param.name()) {
+                // DECY-161: Check if parameter uses pointer arithmetic
+                // If so, keep as raw pointer (slices don't support arr++ or arr + n)
+                if Self::uses_pointer_arithmetic(func, param.name()) {
+                    // Keep as raw pointer
+                    transformed_params.push(param.clone());
+                    continue;
+                }
+
                 // This is an array parameter!
                 // Transform pointer to slice type
                 // DECY-135: Use with_type to preserve is_pointee_const
@@ -825,6 +836,58 @@ impl BorrowGenerator {
             | HirExpression::Variable(_)
             | HirExpression::Sizeof { .. }
             | HirExpression::NullLiteral => expr.clone(),
+        }
+    }
+
+    /// DECY-161: Check if a parameter uses pointer arithmetic in the function body.
+    ///
+    /// Parameters that use pointer arithmetic (arr++, arr = arr + n) cannot be
+    /// transformed to slices because slices don't support these operations.
+    fn uses_pointer_arithmetic(func: &HirFunction, param_name: &str) -> bool {
+        for stmt in func.body() {
+            if Self::statement_uses_pointer_arithmetic(stmt, param_name) {
+                return true;
+            }
+        }
+        false
+    }
+
+    /// Recursively check if a statement uses pointer arithmetic on a variable.
+    fn statement_uses_pointer_arithmetic(stmt: &HirStatement, var_name: &str) -> bool {
+        use decy_hir::BinaryOperator;
+        match stmt {
+            HirStatement::Assignment { target, value } => {
+                // Check if this is var = var + n or var = var - n (pointer arithmetic)
+                if target == var_name {
+                    if let HirExpression::BinaryOp { op, left, .. } = value {
+                        if matches!(op, BinaryOperator::Add | BinaryOperator::Subtract) {
+                            if let HirExpression::Variable(name) = &**left {
+                                if name == var_name {
+                                    return true;
+                                }
+                            }
+                        }
+                    }
+                }
+                false
+            }
+            HirStatement::If {
+                then_block,
+                else_block,
+                ..
+            } => {
+                then_block
+                    .iter()
+                    .any(|s| Self::statement_uses_pointer_arithmetic(s, var_name))
+                    || else_block.as_ref().is_some_and(|blk| {
+                        blk.iter()
+                            .any(|s| Self::statement_uses_pointer_arithmetic(s, var_name))
+                    })
+            }
+            HirStatement::While { body, .. } | HirStatement::For { body, .. } => body
+                .iter()
+                .any(|s| Self::statement_uses_pointer_arithmetic(s, var_name)),
+            _ => false,
         }
     }
 }
