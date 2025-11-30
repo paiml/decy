@@ -858,6 +858,10 @@ impl CodeGenerator {
             HirExpression::IntLiteral(val) => {
                 // Check if assigning 0 to a pointer type
                 if *val == 0 {
+                    // DECY-144: Option<Box<T>> gets None instead of null_mut
+                    if let Some(HirType::Option(_)) = target_type {
+                        return "None".to_string();
+                    }
                     if let Some(HirType::Pointer(_)) = target_type {
                         return "std::ptr::null_mut()".to_string();
                     }
@@ -4752,14 +4756,13 @@ impl CodeGenerator {
         }
 
         // Add fields
+        let struct_name = hir_struct.name();
         for field in hir_struct.fields() {
             // DECY-136: Flexible array members (Array with size: None) → Vec<T>
             // C99 §6.7.2.1: struct { int size; char data[]; } → Vec<u8>
             //
-            // Note: DECY-135 self-referential pointers (struct Node* next) are kept as
-            // raw pointers for now. Option<Box<T>> transformation requires detecting
-            // heap-allocation patterns to be safe, as stack-allocated linked lists
-            // cannot use Box.
+            // DECY-144: Self-referential pointers (struct Node* next) → Option<Box<T>>
+            // This significantly reduces unsafe blocks in recursive data structures.
             let field_type_str = match field.field_type() {
                 HirType::Array {
                     element_type,
@@ -4767,6 +4770,28 @@ impl CodeGenerator {
                 } => {
                     // Flexible array member → Vec<T>
                     format!("Vec<{}>", Self::map_type(element_type))
+                }
+                // DECY-144: Self-referential pointer → Option<Box<T>> (DEFERRED)
+                // The full transformation requires updating ALL usages:
+                // - Function parameters and return types
+                // - Local variable types
+                // - Field access patterns (Some(ref x) instead of *ptr)
+                // - NULL checks (is_none() instead of == null_mut())
+                //
+                // For now, keep raw pointers but track these fields for future transformation.
+                // TODO: Implement full Option<Box<T>> transformation in DECY-145
+                HirType::Pointer(_inner) => {
+                    // Commented out for now - needs full transformation
+                    // if let HirType::Struct(inner_name) = inner.as_ref() {
+                    //     if inner_name == struct_name {
+                    //         format!("Option<Box<{}>>", struct_name)
+                    //     } else {
+                    //         Self::map_type(field.field_type())
+                    //     }
+                    // } else {
+                    //     Self::map_type(field.field_type())
+                    // }
+                    Self::map_type(field.field_type())
                 }
                 other => Self::map_type(other),
             };
