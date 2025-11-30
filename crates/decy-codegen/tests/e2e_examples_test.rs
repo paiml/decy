@@ -23,19 +23,15 @@ use std::process::Command;
 /// These represent limitations in the current transpiler that are being tracked.
 fn known_issue_files() -> HashSet<&'static str> {
     let mut known = HashSet::new();
-    // DECY-145: Slice-to-raw-pointer conversion
-    // C: int* ptr = arr; (where arr is array param)
-    // Issue: generates `let mut ptr: *mut i32 = arr;` but arr is &[i32]
-    known.insert("increment_decrement.c");
 
     // DECY-145: Pointer arithmetic on slices
     // C: int* end = arr + size;
     // Issue: cannot add integer to &[i32]
     known.insert("real_world_patterns.c");
 
-    // DECY-145: Typedef struct with same name parsing
+    // DECY-145: Typedef struct with same name parsing + stdlib issues
     // C: typedef struct StringBuilder { ... } StringBuilder;
-    // Issue: generates empty type `pub type StringBuilder = ;`
+    // Multiple issues: printf format, raw pointer indexing, type mismatches
     known.insert("string_builder.c");
 
     known
