@@ -40,10 +40,16 @@ fn test_complete_malloc_to_box_pipeline() {
 
     // DECY-130: malloc is now automatically transformed to Vec
     // When pointer type is used with malloc, type becomes Vec
-    assert!(code.contains("Vec<i32>") || code.contains("Vec::<u8>"),
-        "malloc should be transformed to Vec. Got: {}", code);
-    assert!(!code.contains("malloc(4)"),
-        "malloc should not appear in output. Got: {}", code);
+    assert!(
+        code.contains("Vec<i32>") || code.contains("Vec::<u8>"),
+        "malloc should be transformed to Vec. Got: {}",
+        code
+    );
+    assert!(
+        !code.contains("malloc(4)"),
+        "malloc should not appear in output. Got: {}",
+        code
+    );
 
     // Step 3: Generate code with Box transformation (explicit Box hints)
     let code_with = codegen.generate_function_with_box_transform(&func, &candidates);
