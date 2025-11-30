@@ -961,13 +961,12 @@ impl CodeGenerator {
                                     return format!("{}.as_mut_ptr()", name);
                                 }
                             }
-                            // DECY-146: Handle Pointer(T) → Pointer(T) when parameter
-                            // was transformed to slice but TypeContext has original type.
-                            // This happens when array+length pattern is detected.
+                            // DECY-148: Handle Pointer(T) → Pointer(T)
+                            // When context has raw pointer type, just return the variable directly
+                            // No conversion needed - it's already a raw pointer!
                             HirType::Pointer(_var_inner) => {
-                                // Original pointer type but likely a slice parameter
-                                // Use .as_mut_ptr() as slices are typically mutable
-                                return format!("{}.as_mut_ptr()", name);
+                                // Raw pointer stays as raw pointer - just return it
+                                return name.clone();
                             }
                             _ => {}
                         }
@@ -4428,6 +4427,11 @@ impl CodeGenerator {
         // DECY-111: Transform pointer parameters to references in the context
         // DECY-123/124: Only transform if NOT using pointer arithmetic
         // This prevents unsafe blocks from being generated for reference dereferences
+        // DECY-148: Use DataflowAnalyzer to determine which params are array params
+        use decy_ownership::dataflow::DataflowAnalyzer;
+        let analyzer = DataflowAnalyzer::new();
+        let graph = analyzer.analyze(func);
+
         for param in func.parameters() {
             // DECY-138: Check for const char* → &str transformation FIRST
             // This enables proper string iteration pattern codegen
@@ -4449,20 +4453,34 @@ impl CodeGenerator {
                     // Keep as pointer - codegen will generate unsafe blocks
                     ctx.add_variable(param.name().to_string(), param.param_type().clone());
                 } else {
-                    // DECY-146: Re-register the parameter as a SLICE type (Reference to Array)
-                    // This enables proper .as_ptr()/.as_mut_ptr() generation when
-                    // slice parameters are assigned to raw pointers.
-                    // The signature generates &[T] or &mut [T], so context should match.
-                    ctx.add_variable(
-                        param.name().to_string(),
-                        HirType::Reference {
-                            inner: Box::new(HirType::Array {
-                                element_type: inner.clone(),
-                                size: None, // Slice (unsized array)
-                            }),
-                            mutable: true,
-                        },
-                    );
+                    // DECY-148: Check if this is an ARRAY parameter (detected by dataflow analysis)
+                    let is_array_param = graph.is_array_parameter(param.name()).unwrap_or(false);
+
+                    if is_array_param {
+                        // DECY-146: Array parameter → register as slice (Reference to Array)
+                        // This enables proper .as_ptr()/.as_mut_ptr() generation
+                        ctx.add_variable(
+                            param.name().to_string(),
+                            HirType::Reference {
+                                inner: Box::new(HirType::Array {
+                                    element_type: inner.clone(),
+                                    size: None, // Slice (unsized array)
+                                }),
+                                mutable: true,
+                            },
+                        );
+                    } else {
+                        // DECY-148: Non-array struct pointer → register as Reference to inner type
+                        // This enables proper `&mut T as *mut _` coercion on return
+                        let is_mutable = self.is_parameter_deref_modified(func, param.name());
+                        ctx.add_variable(
+                            param.name().to_string(),
+                            HirType::Reference {
+                                inner: inner.clone(),
+                                mutable: is_mutable,
+                            },
+                        );
+                    }
                 }
             }
         }

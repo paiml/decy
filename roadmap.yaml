@@ -10132,3 +10132,45 @@ sprint_31_single_shot:
       files_modified:
         - crates/decy-parser/src/parser.rs
         - crates/decy-codegen/tests/typedef_struct_test.rs
+
+    DECY-148:
+      title: "Fix raw pointer return incorrectly calling .as_mut_ptr()"
+      type: bug
+      priority: high
+      story_points: 2
+      assignee: Claude
+      status: in_progress
+      phase: RED
+
+      description: |
+        When a function returns a raw pointer parameter, codegen incorrectly
+        calls .as_mut_ptr() on it:
+
+        C code:
+          TreeNode* insert(TreeNode* root, int value) {
+              // ...
+              return root;
+          }
+
+        Current broken output:
+          return root.as_mut_ptr();  // ERROR: *mut T has no as_mut_ptr()
+
+        Expected output:
+          return root;  // Just return the pointer directly
+
+        Root cause: DECY-146 added Pointer(_) case that applies .as_mut_ptr()
+        too aggressively. Should only apply to slice parameters.
+
+      acceptance_criteria:
+        - Raw pointer return generates direct return (no .as_mut_ptr())
+        - binary_tree.c compiles
+        - E2E tests pass
+
+      test_strategy: |
+        RED: Create test for raw pointer return
+        GREEN: Fix codegen to not call as_mut_ptr on raw pointers
+        REFACTOR: Pass quality gates
+
+      files_modified:
+        - crates/decy-codegen/src/lib.rs
+        - crates/decy-codegen/tests/raw_ptr_return_test.rs
