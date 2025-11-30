@@ -220,8 +220,13 @@ extern "C" fn visit_function(
         }
     } else if kind == CXCursor_TypedefDecl {
         // Extract typedef information
-        if let Some(typedef) = extract_typedef(cursor) {
+        // DECY-147: Handle anonymous struct typedefs
+        let (typedef_opt, struct_opt) = extract_typedef(cursor);
+        if let Some(typedef) = typedef_opt {
             ast.add_typedef(typedef);
+        }
+        if let Some(struct_def) = struct_opt {
+            ast.add_struct(struct_def);
         }
     } else if kind == CXCursor_StructDecl {
         // Extract struct information
@@ -328,7 +333,11 @@ fn extract_function(cursor: CXCursor) -> Option<Function> {
                     false
                 }
             };
-            parameters.push(Parameter::new_with_const(param_name, param_type, is_pointee_const));
+            parameters.push(Parameter::new_with_const(
+                param_name,
+                param_type,
+                is_pointee_const,
+            ));
         }
     }
 
@@ -344,7 +353,8 @@ fn extract_function(cursor: CXCursor) -> Option<Function> {
 }
 
 /// Extract typedef information from a clang cursor.
-fn extract_typedef(cursor: CXCursor) -> Option<Typedef> {
+/// Returns (Option<Typedef>, Option<Struct>) - struct is Some when typedef is for anonymous struct.
+fn extract_typedef(cursor: CXCursor) -> (Option<Typedef>, Option<Struct>) {
     // SAFETY: Getting typedef name
     let name_cxstring = unsafe { clang_getCursorSpelling(cursor) };
     let name = unsafe {
@@ -356,9 +366,40 @@ fn extract_typedef(cursor: CXCursor) -> Option<Typedef> {
 
     // SAFETY: Getting underlying type of typedef
     let cx_type = unsafe { clang_getTypedefDeclUnderlyingType(cursor) };
-    let underlying_type = convert_type(cx_type)?;
 
-    Some(Typedef::new(name, underlying_type))
+    // DECY-147: Check if underlying type is anonymous struct
+    // Anonymous struct pattern: typedef struct { ... } Name;
+    let canonical = unsafe { clang_getCanonicalType(cx_type) };
+    if canonical.kind == CXType_Record {
+        let decl = unsafe { clang_getTypeDeclaration(canonical) };
+        let struct_name_cxstring = unsafe { clang_getCursorSpelling(decl) };
+        let struct_name = unsafe {
+            let c_str = CStr::from_ptr(clang_getCString(struct_name_cxstring));
+            let sn = c_str.to_string_lossy().into_owned();
+            clang_disposeString(struct_name_cxstring);
+            sn
+        };
+
+        // If struct name is empty, this is an anonymous struct typedef
+        if struct_name.is_empty() {
+            // Extract struct fields from the declaration
+            let mut fields = Vec::new();
+            let fields_ptr = &mut fields as *mut Vec<StructField>;
+
+            unsafe {
+                clang_visitChildren(decl, visit_struct_fields, fields_ptr as CXClientData);
+            }
+
+            // Return struct with typedef name, no typedef needed
+            return (None, Some(Struct::new(name, fields)));
+        }
+    }
+
+    let underlying_type = convert_type(cx_type);
+    match underlying_type {
+        Some(ut) => (Some(Typedef::new(name, ut)), None),
+        None => (None, None),
+    }
 }
 
 /// Extract struct information from a clang cursor.
@@ -2724,7 +2765,9 @@ fn extract_sizeof(cursor: CXCursor) -> Option<Expression> {
     // DECY-119: sizeof must be the FIRST token, otherwise this cursor
     // is not a sizeof expression (it might just contain one elsewhere)
     if num_tokens == 0 {
-        unsafe { clang_disposeTokens(tu, tokens, num_tokens); }
+        unsafe {
+            clang_disposeTokens(tu, tokens, num_tokens);
+        }
         return None;
     }
 
@@ -2738,7 +2781,9 @@ fn extract_sizeof(cursor: CXCursor) -> Option<Expression> {
     };
 
     if !first_token_is_sizeof {
-        unsafe { clang_disposeTokens(tu, tokens, num_tokens); }
+        unsafe {
+            clang_disposeTokens(tu, tokens, num_tokens);
+        }
         return None;
     }
 
@@ -3118,9 +3163,37 @@ fn convert_type(cx_type: CXType) -> Option<Type> {
             convert_type(canonical)
         }
         CXType_Typedef => {
-            // Typedef types wrap the actual underlying type
-            // Get the canonical type to unwrap it
+            // DECY-147: For typedefs to anonymous structs, use typedef name as struct name
+            // Example: typedef struct { int x; } Point; → Type::Struct("Point")
             let canonical = unsafe { clang_getCanonicalType(cx_type) };
+
+            // Check if this is a typedef to an anonymous struct
+            if canonical.kind == CXType_Record {
+                let decl = unsafe { clang_getTypeDeclaration(canonical) };
+                let struct_name_cxstring = unsafe { clang_getCursorSpelling(decl) };
+                let struct_name = unsafe {
+                    let c_str = CStr::from_ptr(clang_getCString(struct_name_cxstring));
+                    let sn = c_str.to_string_lossy().into_owned();
+                    clang_disposeString(struct_name_cxstring);
+                    sn
+                };
+
+                // If struct is anonymous, use the typedef name instead
+                if struct_name.is_empty() {
+                    // Get the typedef name from the declaration
+                    let typedef_decl = unsafe { clang_getTypeDeclaration(cx_type) };
+                    let typedef_name_cxstring = unsafe { clang_getCursorSpelling(typedef_decl) };
+                    let typedef_name = unsafe {
+                        let c_str = CStr::from_ptr(clang_getCString(typedef_name_cxstring));
+                        let tn = c_str.to_string_lossy().into_owned();
+                        clang_disposeString(typedef_name_cxstring);
+                        tn
+                    };
+                    return Some(Type::Struct(typedef_name));
+                }
+            }
+
+            // Default: recursively convert the canonical type
             convert_type(canonical)
         }
         CXType_ConstantArray => {
