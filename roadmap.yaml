@@ -9870,8 +9870,9 @@ sprint_31_single_shot:
       priority: medium
       story_points: 5
       assignee: Claude
-      status: in_progress
-      phase: RED
+      status: done
+      phase: DONE
+      completed_date: "2025-11-30"
 
       description: |
         Reduce unsafe blocks by using Box::default() instead of
