@@ -1944,6 +1944,12 @@ impl CodeGenerator {
             BinaryOperator::GreaterEqual => ">=",
             BinaryOperator::LogicalAnd => "&&",
             BinaryOperator::LogicalOr => "||",
+            // DECY-137: Bitwise and shift operators
+            BinaryOperator::LeftShift => "<<",
+            BinaryOperator::RightShift => ">>",
+            BinaryOperator::BitwiseAnd => "&",
+            BinaryOperator::BitwiseOr => "|",
+            BinaryOperator::BitwiseXor => "^",
         }
     }
 
