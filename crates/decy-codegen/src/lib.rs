@@ -829,10 +829,38 @@ impl CodeGenerator {
             HirExpression::Variable(name) => {
                 // DECY-115: Box to raw pointer conversion for return statements
                 // When returning a Box<T> but function returns *mut T, use Box::into_raw
-                if let Some(HirType::Pointer(_)) = target_type {
+                if let Some(HirType::Pointer(ptr_inner)) = target_type {
                     if let Some(var_type) = ctx.get_type(name) {
                         if matches!(var_type, HirType::Box(_)) {
                             return format!("Box::into_raw({})", name);
+                        }
+                        // DECY-118: Slice to raw pointer coercion
+                        // &[T] or &mut [T] assigned to *mut T needs .as_ptr() / .as_mut_ptr()
+                        match var_type {
+                            HirType::Reference { inner, mutable } => {
+                                // Check if inner is an array/slice
+                                if let HirType::Array { element_type, .. } = inner.as_ref() {
+                                    // Verify element types match
+                                    if element_type.as_ref() == ptr_inner.as_ref() {
+                                        if *mutable {
+                                            // Mutable slice: use .as_mut_ptr()
+                                            return format!("{}.as_mut_ptr()", name);
+                                        } else {
+                                            // Immutable slice: use .as_ptr() with cast
+                                            let ptr_type =
+                                                Self::map_type(&HirType::Pointer(ptr_inner.clone()));
+                                            return format!("{}.as_ptr() as {}", name, ptr_type);
+                                        }
+                                    }
+                                }
+                            }
+                            // Also handle Vec<T> to *mut T
+                            HirType::Vec(elem_type) => {
+                                if elem_type.as_ref() == ptr_inner.as_ref() {
+                                    return format!("{}.as_mut_ptr()", name);
+                                }
+                            }
+                            _ => {}
                         }
                     }
                 }
