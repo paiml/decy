@@ -222,8 +222,12 @@ fn test_vla_with_usage() {
 
     // Expected: Vec with assignment
     assert!(result.contains("let mut arr = vec![0i32; n]"));
-    // Accept either arr[0] = 42 or arr[0 as usize] = 42 (the latter is more correct Rust)
-    assert!(result.contains("arr[0") && result.contains("= 42"));
+    // DECY-150: Accept either arr[0], arr[0 as usize], or arr[(0) as usize]
+    assert!(
+        (result.contains("arr[0") || result.contains("arr[(0)")) && result.contains("= 42"),
+        "Expected arr[...] = 42 in output, got: {}",
+        result
+    );
 
     // Verify no unsafe blocks
     assert!(!result.contains("unsafe"));

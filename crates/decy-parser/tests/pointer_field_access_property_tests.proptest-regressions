@@ -5,3 +5,4 @@
 # It is recommended to check this file in to source control so that
 # everyone who runs the test benefits from these saved cases.
 cc 6756e2f94eed7c6cfbfc947f3f5dcc261dbd488d6b2cba51cd2392420123ac54 # shrinks to _var_name = "a", field1 = "a", field2 = "if"
+cc b2506e385a2402c01e9cb49536bb08afe8e53bd73a10f781f46cedcf965ec64d # shrinks to (c_code, _, field_name) = ("\n            struct Data {\n                int asm;\n            };\n\n            int test(struct Data* a) {\n                return a->asm;\n            }\n            ", "a", "asm")

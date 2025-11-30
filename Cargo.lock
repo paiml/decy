@@ -44,7 +44,7 @@ dependencies = [
 
 [[package]]
 name = "alimentar"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "arrow",
  "arrow-csv",
@@ -5275,7 +5275,9 @@ dependencies = [
 
 [[package]]
 name = "trueno-db"
-version = "0.3.3"
+version = "0.3.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "072f77c3c03d7c75728ee4931fa15f0e3d2eac7944d569fdbdc5d914dd2bb8f7"
 dependencies = [
  "anyhow",
  "arrow",
