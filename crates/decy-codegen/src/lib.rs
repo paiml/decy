@@ -227,21 +227,32 @@ impl TypeContext {
             HirExpression::Dereference(inner) => {
                 // If inner is *mut T, then *inner is T
                 // DECY-123: Also handle Box<T> and &T/&mut T deref → T
+                // DECY-151: Also handle Vec<T> (slice representation) deref → T
                 match self.infer_expression_type(inner) {
                     Some(HirType::Pointer(pointee_type)) => Some(*pointee_type),
                     Some(HirType::Box(inner_type)) => Some(*inner_type),
                     Some(HirType::Reference {
                         inner: ref_inner, ..
                     }) => Some(*ref_inner),
+                    // DECY-151: Vec<T> represents slices, deref gives element type
+                    Some(HirType::Vec(elem_type)) => Some(*elem_type),
                     _ => None,
                 }
             }
             HirExpression::ArrayIndex { array, index: _ } => {
-                // If array is [T; N] or *mut T, then array[i] is T
+                // If array is [T; N], *mut T, or &[T], then array[i] is T
                 if let Some(array_type) = self.infer_expression_type(array) {
                     match array_type {
                         HirType::Array { element_type, .. } => Some(*element_type),
                         HirType::Pointer(element_type) => Some(*element_type),
+                        // DECY-151: Handle slice types (&[T] or &mut [T])
+                        // BorrowGenerator uses Reference { inner: Vec(T) } for slices
+                        HirType::Reference { inner, .. } => match *inner {
+                            HirType::Vec(elem_type) => Some(*elem_type),
+                            HirType::Array { element_type, .. } => Some(*element_type),
+                            _ => None,
+                        },
+                        HirType::Vec(elem_type) => Some(*elem_type),
                         _ => None,
                     }
                 } else {
@@ -1152,6 +1163,43 @@ impl CodeGenerator {
                     };
 
                     return format!("{} {} {}", left_bool, op_str, right_bool);
+                }
+
+                // DECY-151: Char to int promotion for arithmetic operations
+                // In C, char arithmetic like *s1 - *s2 is auto-promoted to int
+                // When target type is i32 and operands are char (u8), cast to i32
+                if matches!(
+                    op,
+                    BinaryOperator::Add
+                        | BinaryOperator::Subtract
+                        | BinaryOperator::Multiply
+                        | BinaryOperator::Divide
+                        | BinaryOperator::Modulo
+                ) {
+                    // Check if target type is Int and operands might be Char
+                    if let Some(HirType::Int) = target_type {
+                        // Infer operand types
+                        let left_type = ctx.infer_expression_type(left);
+                        let right_type = ctx.infer_expression_type(right);
+
+                        // If either operand is Char (u8), cast both to i32 for proper arithmetic
+                        let left_is_char = matches!(left_type, Some(HirType::Char));
+                        let right_is_char = matches!(right_type, Some(HirType::Char));
+
+                        if left_is_char || right_is_char {
+                            let left_cast = if left_is_char {
+                                format!("({} as i32)", left_str)
+                            } else {
+                                left_str.clone()
+                            };
+                            let right_cast = if right_is_char {
+                                format!("({} as i32)", right_str)
+                            } else {
+                                right_str.clone()
+                            };
+                            return format!("{} {} {}", left_cast, op_str, right_cast);
+                        }
+                    }
                 }
 
                 format!("{} {} {}", left_str, op_str, right_str)
