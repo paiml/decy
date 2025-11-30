@@ -9,3 +9,4 @@ cc 87ea9bda1d3fe0810446a5bb66ab4b9fdf2e62c5eff1215784bbd498579b36d5 # shrinks to
 cc ec6ed752d718ea2d5f37cff4f215d528841d40ca91e5ae2c6fa12ee32f01efdf # shrinks to func_name = "aaa", arr_name = "for"
 cc b426e337073a500accb1d05b44a1ff370235b0ff4c00aaab1555e6498a77d498 # shrinks to arr_name = "len"
 cc 95c2191c957f2bd33b0b89554c7f6185e8d50544cbabedc9d3ca01e5bce031e8 # shrinks to arr_name = "alen"
+cc 53ce513887de79d80df91645ecf9057152a938e382423c318623df3ad2fdb704 # shrinks to func_name = "unix", arr_name = "aaa"
