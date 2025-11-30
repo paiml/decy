@@ -146,6 +146,10 @@ impl TypeContext {
         matches!(self.get_type(name), Some(HirType::Option(_)))
     }
 
+    fn is_vec(&self, name: &str) -> bool {
+        matches!(self.get_type(name), Some(HirType::Vec(_)))
+    }
+
     /// Infer the type of an expression based on the context.
     /// Returns None if the type cannot be inferred.
     fn infer_expression_type(&self, expr: &HirExpression) -> Option<HirType> {
@@ -825,6 +829,21 @@ impl CodeGenerator {
                             }
                         }
                     }
+
+                    // DECY-130: Vec null check → always false (Vec allocation never fails in safe Rust)
+                    // arr == 0 or arr == NULL for Vec types should become `false` (or removed)
+                    // because vec![] never returns null - it panics on OOM instead
+                    if let HirExpression::Variable(var_name) = &**left {
+                        if ctx.is_vec(var_name) {
+                            if matches!(**right, HirExpression::IntLiteral(0) | HirExpression::NullLiteral) {
+                                return match op {
+                                    BinaryOperator::Equal => "false /* Vec never null */".to_string(),
+                                    BinaryOperator::NotEqual => "true /* Vec never null */".to_string(),
+                                    _ => unreachable!(),
+                                };
+                            }
+                        }
+                    }
                 }
 
                 let left_code = self.generate_expression_with_context(left, ctx);
@@ -889,6 +908,28 @@ impl CodeGenerator {
                     }
                 }
 
+                // DECY-131: Handle logical operators with integer operands
+                // In C, non-zero integers are truthy. In Rust, we need explicit conversion.
+                if matches!(op, BinaryOperator::LogicalAnd | BinaryOperator::LogicalOr) {
+                    // Check if operands are likely integers (not already boolean comparisons)
+                    let left_needs_bool = !Self::is_boolean_expression(left);
+                    let right_needs_bool = !Self::is_boolean_expression(right);
+
+                    let left_bool = if left_needs_bool {
+                        format!("({} != 0)", left_str)
+                    } else {
+                        left_str.clone()
+                    };
+
+                    let right_bool = if right_needs_bool {
+                        format!("({} != 0)", right_str)
+                    } else {
+                        right_str.clone()
+                    };
+
+                    return format!("{} {} {}", left_bool, op_str, right_bool);
+                }
+
                 format!("{} {} {}", left_str, op_str, right_str)
             }
             HirExpression::Dereference(inner) => {
@@ -936,6 +977,17 @@ impl CodeGenerator {
                     UnaryOperator::PreDecrement => {
                         let operand_code = self.generate_expression_with_context(operand, ctx);
                         format!("{{ {} -= 1; {} }}", operand_code, operand_code)
+                    }
+                    // DECY-131: Logical NOT on integer → x == 0
+                    UnaryOperator::LogicalNot => {
+                        let operand_code = self.generate_expression_with_context(operand, ctx);
+                        // If operand is already boolean, just negate it
+                        if Self::is_boolean_expression(operand) {
+                            format!("!{}", operand_code)
+                        } else {
+                            // For integers: !x → x == 0
+                            format!("{} == 0", operand_code)
+                        }
                     }
                     // Simple prefix operators
                     _ => {
@@ -989,6 +1041,161 @@ impl CodeGenerator {
                                 .map(|arg| self.generate_expression_with_context(arg, ctx))
                                 .collect();
                             format!("{}({})", function, args.join(", "))
+                        }
+                    }
+                    // DECY-130: malloc(size) → vec![0; count] or Vec::with_capacity()
+                    // Reference: K&R §B5, ISO C99 §7.20.3.3
+                    "malloc" => {
+                        if arguments.len() == 1 {
+                            // Try to detect n * sizeof(T) pattern
+                            if let HirExpression::BinaryOp {
+                                op: BinaryOperator::Multiply,
+                                left,
+                                ..
+                            } = &arguments[0]
+                            {
+                                // malloc(n * sizeof(T)) → vec![0i32; n]
+                                let count_code = self.generate_expression_with_context(left, ctx);
+                                format!("vec![0i32; {} as usize]", count_code)
+                            } else {
+                                // malloc(size) → Vec::with_capacity(size)
+                                let size_code =
+                                    self.generate_expression_with_context(&arguments[0], ctx);
+                                format!("Vec::<u8>::with_capacity({} as usize)", size_code)
+                            }
+                        } else {
+                            "Vec::new()".to_string()
+                        }
+                    }
+                    // DECY-130: calloc(count, size) → vec![0; count]
+                    // Reference: K&R §B5, ISO C99 §7.20.3.1
+                    "calloc" => {
+                        if arguments.len() == 2 {
+                            let count_code =
+                                self.generate_expression_with_context(&arguments[0], ctx);
+                            format!("vec![0i32; {} as usize]", count_code)
+                        } else {
+                            "Vec::new()".to_string()
+                        }
+                    }
+                    // DECY-130: free(ptr) → drop(ptr) or comment (RAII handles it)
+                    // Reference: K&R §B5, ISO C99 §7.20.3.2
+                    "free" => {
+                        if arguments.len() == 1 {
+                            let ptr_code =
+                                self.generate_expression_with_context(&arguments[0], ctx);
+                            format!("drop({})", ptr_code)
+                        } else {
+                            "/* free() */".to_string()
+                        }
+                    }
+                    // DECY-132: fopen(filename, mode) → std::fs::File::open/create
+                    // Reference: K&R §7.5, ISO C99 §7.19.5.3
+                    "fopen" => {
+                        if arguments.len() == 2 {
+                            let filename =
+                                self.generate_expression_with_context(&arguments[0], ctx);
+                            let mode = self.generate_expression_with_context(&arguments[1], ctx);
+                            // Check mode: "r" → open, "w" → create
+                            if mode.contains('w') || mode.contains('a') {
+                                format!(
+                                    "std::fs::File::create({}).ok()",
+                                    filename
+                                )
+                            } else {
+                                format!(
+                                    "std::fs::File::open({}).ok()",
+                                    filename
+                                )
+                            }
+                        } else {
+                            "None /* fopen requires 2 args */".to_string()
+                        }
+                    }
+                    // DECY-132: fclose(f) → drop(f) (RAII handles cleanup)
+                    // Reference: K&R §7.5, ISO C99 §7.19.5.1
+                    "fclose" => {
+                        if arguments.len() == 1 {
+                            let file_code =
+                                self.generate_expression_with_context(&arguments[0], ctx);
+                            format!("drop({})", file_code)
+                        } else {
+                            "/* fclose() */".to_string()
+                        }
+                    }
+                    // DECY-132: fgetc(f) → f.bytes().next().unwrap_or(Err(...))
+                    // Reference: K&R §7.5, ISO C99 §7.19.7.1
+                    "fgetc" | "getc" => {
+                        if arguments.len() == 1 {
+                            let file_code =
+                                self.generate_expression_with_context(&arguments[0], ctx);
+                            format!(
+                                "{{ use std::io::Read; let mut buf = [0u8; 1]; {}.read(&mut buf).map(|_| buf[0] as i32).unwrap_or(-1) }}",
+                                file_code
+                            )
+                        } else {
+                            "-1 /* fgetc requires 1 arg */".to_string()
+                        }
+                    }
+                    // DECY-132: fputc(c, f) → f.write(&[c as u8])
+                    // Reference: K&R §7.5, ISO C99 §7.19.7.3
+                    "fputc" | "putc" => {
+                        if arguments.len() == 2 {
+                            let char_code =
+                                self.generate_expression_with_context(&arguments[0], ctx);
+                            let file_code =
+                                self.generate_expression_with_context(&arguments[1], ctx);
+                            format!(
+                                "{{ use std::io::Write; {}.write(&[{} as u8]).map(|_| {} as i32).unwrap_or(-1) }}",
+                                file_code, char_code, char_code
+                            )
+                        } else {
+                            "-1 /* fputc requires 2 args */".to_string()
+                        }
+                    }
+                    // DECY-132: fprintf(f, fmt, ...) → write!(f, fmt, ...)
+                    // Reference: K&R §7.2, ISO C99 §7.19.6.1
+                    "fprintf" => {
+                        if arguments.len() >= 2 {
+                            let file_code =
+                                self.generate_expression_with_context(&arguments[0], ctx);
+                            let fmt = self.generate_expression_with_context(&arguments[1], ctx);
+                            if arguments.len() == 2 {
+                                format!(
+                                    "{{ use std::io::Write; write!({}, {}).map(|_| 0).unwrap_or(-1) }}",
+                                    file_code, fmt
+                                )
+                            } else {
+                                // Has format args - simplified version
+                                let args: Vec<String> = arguments[2..]
+                                    .iter()
+                                    .map(|a| self.generate_expression_with_context(a, ctx))
+                                    .collect();
+                                format!(
+                                    "{{ use std::io::Write; write!({}, {}, {}).map(|_| 0).unwrap_or(-1) }}",
+                                    file_code, fmt, args.join(", ")
+                                )
+                            }
+                        } else {
+                            "-1 /* fprintf requires 2+ args */".to_string()
+                        }
+                    }
+                    // DECY-132: printf(fmt, ...) → print! macro
+                    // Reference: K&R §7.2, ISO C99 §7.19.6.3
+                    "printf" => {
+                        if !arguments.is_empty() {
+                            let fmt = self.generate_expression_with_context(&arguments[0], ctx);
+                            if arguments.len() == 1 {
+                                format!("print!(\"{{}}\", {})", fmt)
+                            } else {
+                                let args: Vec<String> = arguments[1..]
+                                    .iter()
+                                    .map(|a| self.generate_expression_with_context(a, ctx))
+                                    .collect();
+                                format!("print!(\"{{}}\", format!({}, {}))", fmt, args.join(", "))
+                            }
+                        } else {
+                            "print!(\"\")".to_string()
                         }
                     }
                     // Default: pass through function call as-is
@@ -1100,11 +1307,14 @@ impl CodeGenerator {
                     }
                     // For other expressions (variables, array index, etc), we need explicit deref
                     _ => {
-                        format!(
-                            "(*{}).{}",
-                            self.generate_expression_with_context(pointer, ctx),
-                            field
-                        )
+                        let ptr_code = self.generate_expression_with_context(pointer, ctx);
+                        // DECY-129: Check if pointer is a raw pointer - if so, wrap in unsafe
+                        if let HirExpression::Variable(var_name) = &**pointer {
+                            if ctx.is_pointer(var_name) {
+                                return format!("unsafe {{ (*{}).{} }}", ptr_code, field);
+                            }
+                        }
+                        format!("(*{}).{}", ptr_code, field)
                     }
                 }
             }
@@ -1340,6 +1550,32 @@ impl CodeGenerator {
         }
     }
 
+    /// Check if an expression already produces a boolean result.
+    /// Used to avoid redundant `!= 0` conversions for expressions that are already boolean.
+    fn is_boolean_expression(expr: &HirExpression) -> bool {
+        match expr {
+            // Comparison operators always produce bool
+            HirExpression::BinaryOp { op, .. } => matches!(
+                op,
+                BinaryOperator::Equal
+                    | BinaryOperator::NotEqual
+                    | BinaryOperator::LessThan
+                    | BinaryOperator::GreaterThan
+                    | BinaryOperator::LessEqual
+                    | BinaryOperator::GreaterEqual
+                    | BinaryOperator::LogicalAnd
+                    | BinaryOperator::LogicalOr
+            ),
+            // Logical NOT produces bool
+            HirExpression::UnaryOp {
+                op: decy_hir::UnaryOperator::LogicalNot,
+                ..
+            } => true,
+            // Other expressions are assumed to be non-boolean (integers, etc.)
+            _ => false,
+        }
+    }
+
     /// Convert binary operator to string.
     fn binary_operator_to_string(op: &BinaryOperator) -> &'static str {
         match op {
@@ -1489,52 +1725,44 @@ impl CodeGenerator {
                     }
                 }
 
-                // DECY-118: Transform pointer variables initialized with &x to references
-                // C: int *p = &x;  →  Rust: let p = &mut x;
-                if let HirType::Pointer(inner_type) = var_type {
-                    if let Some(init_expr) = initializer {
-                        // Check if initializer is an address-of expression
-                        let is_address_of = matches!(init_expr, HirExpression::AddressOf(_))
-                            || matches!(
-                                init_expr,
-                                HirExpression::UnaryOp {
-                                    op: decy_hir::UnaryOperator::AddressOf,
-                                    ..
-                                }
-                            );
+                // DECY-118: DISABLED for local variables due to double pointer issues (DECY-128)
+                // When a local pointer's address is taken (e.g., &p in set_value(&p, 42)),
+                // transforming `int *p = &x` to `&mut x` breaks type compatibility.
+                // The transformation works for parameters (which are passed by value),
+                // but not for locals where &p may be needed.
+                // TODO: Re-enable with analysis to detect when &p is used
+                // Original transform: int *p = &x;  →  Rust: let p = &mut x;
 
-                        if is_address_of {
-                            // Extract the inner expression
-                            let inner_expr = match init_expr {
-                                HirExpression::AddressOf(inner) => inner.as_ref(),
-                                HirExpression::UnaryOp { operand, .. } => operand.as_ref(),
-                                _ => unreachable!(),
-                            };
+                // DECY-130: Check if this is a malloc/calloc initialization
+                // If so, change the type from *mut T to Vec<T>
+                let is_malloc_init = if let Some(init_expr) = initializer {
+                    matches!(init_expr, HirExpression::Malloc { .. })
+                        || matches!(
+                            init_expr,
+                            HirExpression::FunctionCall { function, .. }
+                            if function == "malloc" || function == "calloc"
+                        )
+                        || matches!(init_expr, HirExpression::Calloc { .. })
+                } else {
+                    false
+                };
 
-                            // Transform to mutable reference
-                            let ref_type = HirType::Reference {
-                                inner: inner_type.clone(),
-                                mutable: true,
-                            };
-
-                            // Add to context as reference type (not pointer)
-                            ctx.add_variable(name.clone(), ref_type.clone());
-
-                            let inner_code = self.generate_expression_with_context(inner_expr, ctx);
-                            return format!(
-                                "let mut {}: {} = &mut {};",
-                                name,
-                                Self::map_type(&ref_type),
-                                inner_code
-                            );
-                        }
+                // Adjust type for malloc initialization: *mut T → Vec<T>
+                let (_actual_type, type_str) = if is_malloc_init {
+                    if let HirType::Pointer(inner) = var_type {
+                        let vec_type = HirType::Vec(inner.clone());
+                        ctx.add_variable(name.clone(), vec_type.clone());
+                        (vec_type.clone(), Self::map_type(&vec_type))
+                    } else {
+                        ctx.add_variable(name.clone(), var_type.clone());
+                        (var_type.clone(), Self::map_type(var_type))
                     }
-                }
+                } else {
+                    ctx.add_variable(name.clone(), var_type.clone());
+                    (var_type.clone(), Self::map_type(var_type))
+                };
 
-                // Add variable to type context for pointer arithmetic detection
-                ctx.add_variable(name.clone(), var_type.clone());
-
-                let mut code = format!("let mut {}: {}", name, Self::map_type(var_type));
+                let mut code = format!("let mut {}: {}", name, type_str);
                 if let Some(init_expr) = initializer {
                     // Special handling for Malloc expressions - use var_type to generate correct Box::new
                     if matches!(init_expr, HirExpression::Malloc { .. }) {
@@ -1626,10 +1854,14 @@ impl CodeGenerator {
                 let mut code = String::new();
 
                 // Generate if condition
-                code.push_str(&format!(
-                    "if {} {{\n",
-                    self.generate_expression_with_context(condition, ctx)
-                ));
+                // DECY-131: If condition is not already boolean, wrap with != 0
+                let cond_code = self.generate_expression_with_context(condition, ctx);
+                let cond_str = if Self::is_boolean_expression(condition) {
+                    cond_code
+                } else {
+                    format!("({}) != 0", cond_code)
+                };
+                code.push_str(&format!("if {} {{\n", cond_str));
 
                 // Generate then block
                 for stmt in then_block {
@@ -1879,10 +2111,49 @@ impl CodeGenerator {
                 let value_code =
                     self.generate_expression_with_target_type(value, ctx, target_type.as_ref());
 
+                // Helper to strip nested unsafe blocks - returns owned String to avoid lifetime issues
+                fn strip_unsafe(code: &str) -> String {
+                    if code.starts_with("unsafe { ") && code.ends_with(" }") {
+                        code.strip_prefix("unsafe { ")
+                            .and_then(|s| s.strip_suffix(" }"))
+                            .unwrap_or(code)
+                            .to_string()
+                    } else {
+                        code.to_string()
+                    }
+                }
+
                 // DECY-124: Check if target is a raw pointer - if so, wrap in unsafe
                 if let HirExpression::Variable(var_name) = target {
                     if ctx.is_pointer(var_name) {
-                        return format!("unsafe {{ *{} = {}; }}", target_code, value_code);
+                        // DECY-127: Strip nested unsafe from value_code to avoid warnings
+                        let clean_value = strip_unsafe(&value_code);
+                        return format!("unsafe {{ *{} = {}; }}", target_code, clean_value);
+                    }
+                }
+
+                // DECY-128: Check if target is Dereference(Variable) where variable holds a raw pointer
+                // e.g., **ptr = val where ptr is &mut *mut T
+                // *ptr yields *mut T (raw pointer), so **ptr needs unsafe
+                if let HirExpression::Dereference(inner) = target {
+                    if let HirExpression::Variable(var_name) = &**inner {
+                        // Check if dereferencing yields a raw pointer
+                        // This happens when var_type is Reference to Pointer or Pointer to Pointer
+                        if let Some(var_type) = ctx.get_type(var_name) {
+                            let yields_raw_ptr = match var_type {
+                                HirType::Reference { inner: ref_inner, .. } => {
+                                    matches!(&**ref_inner, HirType::Pointer(_))
+                                }
+                                HirType::Pointer(ptr_inner) => {
+                                    matches!(&**ptr_inner, HirType::Pointer(_))
+                                }
+                                _ => false,
+                            };
+                            if yields_raw_ptr {
+                                let clean_value = strip_unsafe(&value_code);
+                                return format!("unsafe {{ *{} = {}; }}", target_code, clean_value);
+                            }
+                        }
                     }
                 }
 
@@ -2677,6 +2948,24 @@ impl CodeGenerator {
 
         // Initialize type context for tracking variable types across statements
         let mut ctx = TypeContext::from_function(func);
+
+        // DECY-129: Update context to reflect pointer-to-reference transformations
+        // When pointer params are transformed to &mut T in signature, context must match
+        for param in func.parameters() {
+            if let HirType::Pointer(inner) = param.param_type() {
+                // Check if this pointer uses pointer arithmetic (keep as raw pointer)
+                if !self.uses_pointer_arithmetic(func, param.name()) {
+                    // Re-register the parameter as a mutable reference type
+                    ctx.add_variable(
+                        param.name().to_string(),
+                        HirType::Reference {
+                            inner: inner.clone(),
+                            mutable: true,
+                        },
+                    );
+                }
+            }
+        }
 
         // Generate body statements if present
         if func.body().is_empty() {

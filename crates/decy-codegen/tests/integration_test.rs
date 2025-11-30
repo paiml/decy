@@ -34,13 +34,18 @@ fn test_complete_malloc_to_box_pipeline() {
     assert_eq!(candidates.len(), 1);
     assert_eq!(candidates[0].variable, "ptr");
 
-    // Step 2: Generate code without transformation
+    // Step 2: Generate code - DECY-130 now transforms malloc automatically
     let codegen = CodeGenerator::new();
-    let code_without = codegen.generate_function(&func);
-    assert!(code_without.contains("*mut i32"));
-    assert!(code_without.contains("malloc(4)"));
+    let code = codegen.generate_function(&func);
 
-    // Step 3: Generate code with Box transformation
+    // DECY-130: malloc is now automatically transformed to Vec
+    // When pointer type is used with malloc, type becomes Vec
+    assert!(code.contains("Vec<i32>") || code.contains("Vec::<u8>"),
+        "malloc should be transformed to Vec. Got: {}", code);
+    assert!(!code.contains("malloc(4)"),
+        "malloc should not appear in output. Got: {}", code);
+
+    // Step 3: Generate code with Box transformation (explicit Box hints)
     let code_with = codegen.generate_function_with_box_transform(&func, &candidates);
     assert!(code_with.contains("Box<i32>"));
     assert!(code_with.contains("Box::new(0)"));

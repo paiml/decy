@@ -106,7 +106,8 @@ fn test_generate_string_return_type() {
 #[test]
 fn test_string_literal_in_function_call() {
     // C: printf("Hello, %s!", name);
-    // Rust: printf("Hello, {}!", name);
+    // DECY-132: printf is now transformed to print! macro
+    // Rust: print!("{}", format!("Hello, %s!", name))
     let call_expr = HirExpression::FunctionCall {
         function: "printf".to_string(),
         arguments: vec![
@@ -118,8 +119,9 @@ fn test_string_literal_in_function_call() {
     let codegen = CodeGenerator::new();
     let code = codegen.generate_expression(&call_expr);
 
-    assert!(code.contains("printf"));
-    assert!(code.contains("\"Hello, %s!\""));
+    // DECY-132: printf is now transformed to print! macro
+    assert!(code.contains("print!"));
+    assert!(code.contains("Hello, %s!"));
     assert!(code.contains("name"));
 }
 
