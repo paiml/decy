@@ -97,11 +97,7 @@ fn test_fixed_size_float_array_declaration() {
     let codegen = CodeGenerator::new();
     let code = codegen.generate_function(&func);
 
-    assert!(
-        code.contains("[f32; 5]"),
-        "Expected [f32; 5] in:\n{}",
-        code
-    );
+    assert!(code.contains("[f32; 5]"), "Expected [f32; 5] in:\n{}", code);
     assert!(
         code.contains("[0.0f32; 5]"),
         "Expected [0.0f32; 5] initialization in:\n{}",
@@ -208,7 +204,10 @@ fn test_multidimensional_array_type_mapping() {
 
     let rust_type = CodeGenerator::map_type(&outer_array);
 
-    assert_eq!(rust_type, "[[i32; 4]; 3]", "Nested array type mapping failed");
+    assert_eq!(
+        rust_type, "[[i32; 4]; 3]",
+        "Nested array type mapping failed"
+    );
 }
 
 /// Test double array declaration.
@@ -233,11 +232,7 @@ fn test_fixed_size_double_array_declaration() {
     let codegen = CodeGenerator::new();
     let code = codegen.generate_function(&func);
 
-    assert!(
-        code.contains("[f64; 3]"),
-        "Expected [f64; 3] in:\n{}",
-        code
-    );
+    assert!(code.contains("[f64; 3]"), "Expected [f64; 3] in:\n{}", code);
     assert!(
         code.contains("[0.0f64; 3]"),
         "Expected [0.0f64; 3] initialization in:\n{}",
