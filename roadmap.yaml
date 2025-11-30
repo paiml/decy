@@ -9818,3 +9818,38 @@ sprint_31_single_shot:
         - crates/decy-parser/src/parser.rs
         - crates/decy-hir/src/lib.rs
         - crates/decy-codegen/src/lib.rs
+
+    DECY-140:
+      title: "Fix malloc-to-raw-pointer and strcpy codegen for struct fields"
+      type: bug
+      priority: high
+      story_points: 8
+      assignee: Claude
+      status: in_progress
+      phase: RED
+
+      description: |
+        Fix remaining hash_table.c compilation errors:
+        1. malloc assigned to *mut u8 field generates Vec, should generate raw pointer
+        2. strcpy(struct_field, src) doesn't copy to destination
+
+        C code:
+        entry->key = (char*)malloc(strlen(key) + 1);
+        strcpy(entry->key, key);
+
+        Current generated (broken):
+        entry.key = Vec::<u8>::with_capacity(...);  // Vec can't assign to *mut u8
+        key.to_string();  // No-op, doesn't copy to entry.key
+
+        Expected:
+        entry.key = Box::leak(vec![0u8; ...].into_boxed_slice()).as_mut_ptr();
+        // And strcpy should copy bytes to entry.key
+
+      acceptance_criteria:
+        - malloc assigned to *mut u8 generates raw pointer (not Vec)
+        - strcpy with struct field destination generates proper copy
+        - hash_table.c compiles with 0 errors
+
+      files_modified:
+        - crates/decy-codegen/src/lib.rs
+        - crates/decy-codegen/tests/malloc_ptr_test.rs
