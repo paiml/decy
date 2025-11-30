@@ -3078,10 +3078,11 @@ impl CodeGenerator {
     ) -> String {
         let mut result = format!("fn {}", sig.name);
 
-        // DECY-084: Detect output parameters for transformation
+        // DECY-084/085: Detect output parameters for transformation
+        // DECY-085: Support multiple output params as tuple
         use decy_analyzer::output_params::{OutputParamDetector, ParameterKind};
         let mut skip_output_params = std::collections::HashSet::new();
-        let mut output_param_type: Option<HirType> = None;
+        let mut output_param_types: Vec<HirType> = Vec::new(); // DECY-085: collect ALL output types
         let mut output_is_fallible = false;
 
         if let Some(f) = func {
@@ -3095,11 +3096,18 @@ impl CodeGenerator {
                 .filter(|p| !matches!(p.param_type(), HirType::Pointer(_)))
                 .count();
 
+            // Count potential output params for heuristic
+            let output_param_count = output_params
+                .iter()
+                .filter(|op| op.kind == ParameterKind::Output)
+                .count();
+
             for op in &output_params {
                 if op.kind == ParameterKind::Output {
                     // Heuristic: Only treat as output param if:
                     // 1. There are other input parameters (output is derived from inputs)
                     // 2. Or, the name suggests it's an output (result, out, output, ret, etc.)
+                    // 3. DECY-085: Or, there are multiple output params (void func with multiple outs)
                     let is_output_name = {
                         let name_lower = op.name.to_lowercase();
                         name_lower.contains("result")
@@ -3107,15 +3115,28 @@ impl CodeGenerator {
                             || name_lower.contains("ret")
                             || name_lower == "len"
                             || name_lower == "size"
+                            // Common dimension/coordinate names
+                            || name_lower == "x"
+                            || name_lower == "y"
+                            || name_lower == "z"
+                            || name_lower == "w"
+                            || name_lower == "h"
+                            || name_lower == "width"
+                            || name_lower == "height"
+                            || name_lower == "r"
+                            || name_lower == "g"
+                            || name_lower == "b"
+                            || name_lower == "count"
+                            || name_lower == "avg"
                     };
 
-                    if input_param_count > 0 || is_output_name {
+                    if input_param_count > 0 || is_output_name || output_param_count >= 2 {
                         skip_output_params.insert(op.name.clone());
                         output_is_fallible = op.is_fallible;
-                        // Get the output parameter's inner type
+                        // DECY-085: Collect all output parameter types
                         if let Some(param) = f.parameters().iter().find(|p| p.name() == op.name) {
                             if let HirType::Pointer(inner) = param.param_type() {
-                                output_param_type = Some((**inner).clone());
+                                output_param_types.push((**inner).clone());
                             }
                         }
                     }
@@ -3235,14 +3256,26 @@ impl CodeGenerator {
             return result;
         }
 
-        // DECY-084: Generate return type considering output parameters
-        if let Some(out_type) = output_param_type {
-            let out_type_str = Self::map_type(&out_type);
+        // DECY-084/085: Generate return type considering output parameters
+        // DECY-085: Multiple outputs become tuple
+        if !output_param_types.is_empty() {
+            let out_type_str = if output_param_types.len() == 1 {
+                // Single output param: return T
+                Self::map_type(&output_param_types[0])
+            } else {
+                // Multiple output params: return (T1, T2, ...)
+                let type_strs: Vec<String> = output_param_types
+                    .iter()
+                    .map(|t| Self::map_type(t))
+                    .collect();
+                format!("({})", type_strs.join(", "))
+            };
+
             if output_is_fallible {
                 // Fallible function: int func(..., T* out) -> Result<T, i32>
                 result.push_str(&format!(" -> Result<{}, i32>", out_type_str));
             } else {
-                // Non-fallible void function: void func(..., T* out) -> T
+                // Non-fallible void function: void func(..., T* out) -> T or (T1, T2)
                 result.push_str(&format!(" -> {}", out_type_str));
             }
         } else {

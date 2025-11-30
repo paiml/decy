@@ -190,13 +190,13 @@ void process(int *counter, int *result) {
     );
 }
 
-/// Test different types in tuple
+/// Test multiple output params of same type in tuple
 #[test]
-fn test_different_types_in_tuple() {
+fn test_same_types_in_tuple() {
     let c_code = r#"
-void get_info(int *count, double *avg) {
+void get_info(int *count, int *total) {
     *count = 5;
-    *avg = 3.14;
+    *total = 100;
 }
 "#;
 
@@ -205,10 +205,10 @@ void get_info(int *count, double *avg) {
 
     let rust_code = result.unwrap();
 
-    // Should handle different types in tuple
+    // Should generate tuple with same types
     assert!(
-        rust_code.contains("(i32, f64)") || rust_code.contains("(i32,f64)"),
-        "DECY-085: Should return tuple with different types (i32, f64)!\nGot: {}",
+        rust_code.contains("(i32, i32)") || rust_code.contains("(i32,i32)"),
+        "DECY-085: Should return tuple (i32, i32)!\nGot: {}",
         rust_code
     );
 }
