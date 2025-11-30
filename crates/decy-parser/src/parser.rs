@@ -2823,34 +2823,59 @@ extern "C" fn visit_init_list_children(
         return CXChildVisit_Continue;
     }
 
-    // DECY-133b: Handle designated array initializers [idx] = value
-    // Clang C API exposes these as UnexposedExpr with children: [index, value]
-    // We need to extract the VALUE (second child), not the index
+    // DECY-133b: Handle designated initializers
+    // Array: [idx] = value  → UnexposedExpr with children [IntLiteral(idx), value]
+    // Struct: .field = value → UnexposedExpr with children [MemberRef, value]
     if kind == CXCursor_UnexposedExpr {
-        // Collect all children to check if this is a designated initializer
-        let mut children: Vec<Expression> = Vec::new();
-        let children_ptr = &mut children as *mut Vec<Expression>;
+        // Collect cursor kinds and expressions for all children
+        #[repr(C)]
+        struct ChildInfo {
+            kinds: Vec<u32>,
+            exprs: Vec<Expression>,
+        }
 
-        extern "C" fn collect_children(
+        let mut info = ChildInfo {
+            kinds: Vec::new(),
+            exprs: Vec::new(),
+        };
+        let info_ptr = &mut info as *mut ChildInfo;
+
+        extern "C" fn collect_child_info(
             cursor: CXCursor,
             _parent: CXCursor,
             client_data: CXClientData,
         ) -> CXChildVisitResult {
-            let children = unsafe { &mut *(client_data as *mut Vec<Expression>) };
-            if let Some(expr) = try_extract_expression(cursor) {
-                children.push(expr);
+            let info = unsafe { &mut *(client_data as *mut ChildInfo) };
+            let kind = unsafe { clang_getCursorKind(cursor) };
+            info.kinds.push(kind as u32);
+
+            // Try to extract expression, including InitListExpr
+            if kind == 119 {
+                // InitListExpr - extract as CompoundLiteral
+                if let Some(expr) = extract_init_list(cursor) {
+                    info.exprs.push(expr);
+                }
+            } else if let Some(expr) = try_extract_expression(cursor) {
+                info.exprs.push(expr);
             }
             CXChildVisit_Continue
         }
 
         unsafe {
-            clang_visitChildren(cursor, collect_children, children_ptr as CXClientData);
+            clang_visitChildren(cursor, collect_child_info, info_ptr as CXClientData);
         }
 
-        // If exactly 2 children and first is IntLiteral (index), take second (value)
-        if children.len() == 2 && matches!(&children[0], Expression::IntLiteral(_)) {
-            // This is a designated initializer [idx] = value - take the value
-            initializers.push(children[1].clone());
+        // Array designated init: [idx] = value → 2 children, first is IntLiteral
+        if info.exprs.len() == 2 && matches!(&info.exprs[0], Expression::IntLiteral(_)) {
+            initializers.push(info.exprs[1].clone());
+            return CXChildVisit_Continue;
+        }
+
+        // Struct field designated init: .field = value → first kind is MemberRef (47)
+        // Second child is the value (could be InitListExpr or other expression)
+        if info.kinds.len() == 2 && info.kinds[0] == 47 && !info.exprs.is_empty() {
+            // Take the last expression (the value)
+            initializers.push(info.exprs.last().unwrap().clone());
             return CXChildVisit_Continue;
         }
 
