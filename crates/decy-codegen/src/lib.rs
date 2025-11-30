@@ -313,6 +313,21 @@ impl CodeGenerator {
         }
     }
 
+    /// DECY-143: Generate unsafe block with SAFETY comment.
+    /// All unsafe blocks should have a comment explaining why the operation is safe.
+    fn unsafe_block(code: &str, safety_reason: &str) -> String {
+        format!("/* SAFETY: {} */ unsafe {{ {} }}", safety_reason, code)
+    }
+
+    /// DECY-143: Generate unsafe statement with SAFETY comment.
+    /// For statement-level unsafe blocks (ending with semicolon).
+    fn unsafe_stmt(code: &str, safety_reason: &str) -> String {
+        format!(
+            "// SAFETY: {}\n    unsafe {{ {}; }}",
+            safety_reason, code
+        )
+    }
+
     /// Generate Rust code for a macro definition.
     ///
     /// Transforms C #define macros to Rust const declarations (for object-like macros)
@@ -1056,9 +1071,10 @@ impl CodeGenerator {
                                         if ctx.is_pointer(right_var) {
                                             // ptr - ptr: calculate difference (returns isize, cast to i32 for C compatibility)
                                             // offset_from requires unsafe
-                                            format!(
-                                                "unsafe {{ {}.offset_from({}) as i32 }}",
-                                                left_str, right_str
+                                            // DECY-143: Add SAFETY comment
+                                            Self::unsafe_block(
+                                                &format!("{}.offset_from({}) as i32", left_str, right_str),
+                                                "both pointers derive from same allocation",
                                             )
                                         } else {
                                             // ptr - integer offset (safe)
@@ -1140,7 +1156,11 @@ impl CodeGenerator {
                 // DECY-041: Check if dereferencing a raw pointer - if so, wrap in unsafe
                 if let HirExpression::Variable(var_name) = &**inner {
                     if ctx.is_pointer(var_name) {
-                        return format!("unsafe {{ *{} }}", inner_code);
+                        // DECY-143: Add SAFETY comment
+                        return Self::unsafe_block(
+                            &format!("*{}", inner_code),
+                            "pointer is valid and properly aligned from caller contract",
+                        );
                     }
                 }
 
@@ -1685,9 +1705,10 @@ impl CodeGenerator {
                                             let var_type = ctx.get_type(var_name);
                                             // Raw pointer to reference: unsafe { &mut *ptr }
                                             if matches!(var_type, Some(HirType::Pointer(_))) {
-                                                return Some(format!(
-                                                    "unsafe {{ &mut *{} }}",
-                                                    var_name
+                                                // DECY-143: Add SAFETY comment
+                                                return Some(Self::unsafe_block(
+                                                    &format!("&mut *{}", var_name),
+                                                    "pointer is non-null and valid for the duration of the call",
                                                 ));
                                             }
                                         }
@@ -1708,11 +1729,11 @@ impl CodeGenerator {
                                         // Check if arg is PointerFieldAccess (entry->key pattern)
                                         if let HirExpression::PointerFieldAccess { pointer, field } = arg {
                                             // Generate CStr conversion for null-terminated C string
-                                            // unsafe { std::ffi::CStr::from_ptr((*entry).key as *const i8).to_str().unwrap_or("") }
+                                            // DECY-143: Add SAFETY comment
                                             let ptr_code = self.generate_expression_with_context(pointer, ctx);
-                                            return Some(format!(
-                                                "unsafe {{ std::ffi::CStr::from_ptr((*{}).{} as *const i8).to_str().unwrap_or(\"\") }}",
-                                                ptr_code, field
+                                            return Some(Self::unsafe_block(
+                                                &format!("std::ffi::CStr::from_ptr((*{}).{} as *const i8).to_str().unwrap_or(\"\")", ptr_code, field),
+                                                "string pointer is null-terminated and valid",
                                             ));
                                         }
                                     }
@@ -1752,7 +1773,11 @@ impl CodeGenerator {
                         // DECY-129: Check if pointer is a raw pointer - if so, wrap in unsafe
                         if let HirExpression::Variable(var_name) = &**pointer {
                             if ctx.is_pointer(var_name) {
-                                return format!("unsafe {{ (*{}).{} }}", ptr_code, field);
+                                // DECY-143: Add SAFETY comment
+                                return Self::unsafe_block(
+                                    &format!("(*{}).{}", ptr_code, field),
+                                    "pointer is non-null and points to valid struct",
+                                );
                             }
                         }
                         format!("(*{}).{}", ptr_code, field)
@@ -1767,9 +1792,10 @@ impl CodeGenerator {
                 if let HirExpression::Variable(var_name) = &**array {
                     if ctx.is_pointer(var_name) {
                         // Raw pointer indexing: arr[i] becomes unsafe { *arr.add(i as usize) }
-                        return format!(
-                            "unsafe {{ *{}.add({} as usize) }}",
-                            array_code, index_code
+                        // DECY-143: Add SAFETY comment
+                        return Self::unsafe_block(
+                            &format!("*{}.add({} as usize)", array_code, index_code),
+                            "index is within bounds of allocated array",
                         );
                     }
                 }
@@ -2469,10 +2495,11 @@ impl CodeGenerator {
                                     code.push_str(" = Box::default();");
                                 } else {
                                     // Fallback: use zeroed for structs with large arrays or unknown types
+                                    // DECY-143: Add SAFETY comment
                                     let inner_type = Self::map_type(inner);
                                     code.push_str(&format!(
-                                        " = Box::new(unsafe {{ std::mem::zeroed::<{}>() }});",
-                                        inner_type
+                                        " = Box::new(/* SAFETY: {} is valid when zero-initialized */ unsafe {{ std::mem::zeroed::<{}>() }});",
+                                        inner_type, inner_type
                                     ));
                                 }
                             }
@@ -2872,7 +2899,11 @@ impl CodeGenerator {
                     if ctx.is_pointer(var_name) {
                         // DECY-127: Strip nested unsafe from value_code to avoid warnings
                         let clean_value = strip_unsafe(&value_code);
-                        return format!("unsafe {{ *{} = {}; }}", target_code, clean_value);
+                        // DECY-143: Add SAFETY comment
+                        return Self::unsafe_stmt(
+                            &format!("*{} = {}", target_code, clean_value),
+                            "pointer is valid, aligned, and not aliased during write",
+                        );
                     }
                 }
 
@@ -2897,7 +2928,11 @@ impl CodeGenerator {
                             };
                             if yields_raw_ptr {
                                 let clean_value = strip_unsafe(&value_code);
-                                return format!("unsafe {{ *{} = {}; }}", target_code, clean_value);
+                                // DECY-143: Add SAFETY comment
+                                return Self::unsafe_stmt(
+                                    &format!("*{} = {}", target_code, clean_value),
+                                    "double pointer dereference - inner pointer is valid and writable",
+                                );
                             }
                         }
                     }
@@ -2944,9 +2979,10 @@ impl CodeGenerator {
 
                 if matches!(obj_type, Some(HirType::Pointer(_))) {
                     // Raw pointer field assignment needs unsafe block
-                    format!(
-                        "unsafe {{ (*{}).{} = {}; }}",
-                        obj_code, field, value_code
+                    // DECY-143: Add SAFETY comment
+                    Self::unsafe_stmt(
+                        &format!("(*{}).{} = {}", obj_code, field, value_code),
+                        "pointer is non-null and points to valid struct with exclusive access",
                     )
                 } else {
                     // Regular struct field assignment
