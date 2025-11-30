@@ -229,7 +229,8 @@ fn test_free_in_conditional_eliminated() {
     let result = codegen.generate_function(&func);
 
     // Expected: if block should be empty or minimal
-    assert!(result.contains("if condition"));
+    // DECY-131: Non-boolean conditions are now wrapped with != 0
+    assert!(result.contains("if (condition) != 0"));
 
     // Critical: NO free() or drop() should appear
     assert!(!result.contains("free"));
