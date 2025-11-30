@@ -12,6 +12,9 @@
 #[cfg(feature = "citl")]
 use entrenar::citl::{DecisionPatternStore, FixPattern};
 
+#[cfg(feature = "citl")]
+use crate::error::OracleError;
+
 /// Bootstrap pattern definition
 #[derive(Debug, Clone)]
 pub struct BootstrapPattern {
