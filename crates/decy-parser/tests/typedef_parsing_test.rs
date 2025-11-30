@@ -42,7 +42,9 @@ fn test_typedef_pointer() {
 
 #[test]
 fn test_typedef_struct() {
-    // Test that struct typedef is parsed
+    // Test that anonymous struct typedef is parsed as a struct (DECY-147)
+    // Anonymous struct typedefs like `typedef struct { ... } Name;` are
+    // converted directly to structs for cleaner Rust codegen.
     let parser = CParser::new().expect("Parser creation failed");
     let source = r#"
         typedef struct {
@@ -53,11 +55,16 @@ fn test_typedef_struct() {
 
     let ast = parser.parse(source).expect("Parsing should succeed");
 
-    assert_eq!(ast.typedefs().len(), 1);
+    // DECY-147: Anonymous struct typedefs become structs directly
+    assert_eq!(
+        ast.structs().len(),
+        1,
+        "Anonymous struct typedef should create a struct"
+    );
 
-    let typedef = &ast.typedefs()[0];
-    assert_eq!(typedef.name(), "Point");
-    assert!(typedef.is_struct(), "Should be recognized as struct type");
+    let s = &ast.structs()[0];
+    assert_eq!(s.name(), "Point");
+    assert_eq!(s.fields().len(), 2);
 }
 
 #[test]
