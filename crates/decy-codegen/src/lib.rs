@@ -1559,26 +1559,43 @@ impl CodeGenerator {
                 literal_type,
                 initializers,
             } => {
-                // C: (struct Point){10, 20} → Rust: Point { field0: 10, field1: 20 }
+                // C: (struct Point){10, 20} → Rust: Point { x: 10, y: 20 }
                 // C: (int[]){1, 2, 3} → Rust: vec![1, 2, 3] or [1, 2, 3]
                 // Sprint 19 Feature (DECY-060)
+                // DECY-133: Use actual field names from struct definition
                 match literal_type {
                     HirType::Struct(name) => {
-                        // Generate struct literal: StructName { field0: val0, field1: val1, ... }
+                        // Generate struct literal: StructName { x: val0, y: val1, ..Default::default() }
                         if initializers.is_empty() {
                             // Empty struct: Point {}
                             format!("{} {{}}", name)
                         } else {
+                            // DECY-133: Look up struct field names from context
+                            let struct_fields = ctx.structs.get(name);
+                            let num_struct_fields = struct_fields.map(|f| f.len()).unwrap_or(0);
+
                             let fields: Vec<String> = initializers
                                 .iter()
                                 .enumerate()
                                 .map(|(i, init)| {
                                     let init_code =
                                         self.generate_expression_with_context(init, ctx);
-                                    format!("field{}: {}", i, init_code)
+                                    // Use actual field name if available, fallback to field{i}
+                                    let field_name = struct_fields
+                                        .and_then(|f| f.get(i))
+                                        .map(|(name, _)| name.as_str())
+                                        .unwrap_or_else(|| Box::leak(format!("field{}", i).into_boxed_str()));
+                                    format!("{}: {}", field_name, init_code)
                                 })
                                 .collect();
-                            format!("{} {{ {} }}", name, fields.join(", "))
+
+                            // DECY-133: Add ..Default::default() if not all fields are initialized
+                            // This handles designated initializers that skip fields
+                            if initializers.len() < num_struct_fields {
+                                format!("{} {{ {}, ..Default::default() }}", name, fields.join(", "))
+                            } else {
+                                format!("{} {{ {} }}", name, fields.join(", "))
+                            }
                         }
                     }
                     HirType::Array { .. } => {
