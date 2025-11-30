@@ -1879,14 +1879,21 @@ impl CodeGenerator {
                         // Also check if the malloc argument is NOT an array pattern (n * sizeof)
                         let is_array_pattern = if let Some(init_expr) = initializer {
                             match init_expr {
-                                HirExpression::FunctionCall { function, arguments }
-                                    if function == "malloc" || function == "calloc" => {
-                                    arguments.first().map(|arg| {
-                                        matches!(arg, HirExpression::BinaryOp {
-                                            op: decy_hir::BinaryOperator::Multiply, ..
-                                        })
-                                    }).unwrap_or(false)
-                                }
+                                HirExpression::FunctionCall {
+                                    function,
+                                    arguments,
+                                } if function == "malloc" || function == "calloc" => arguments
+                                    .first()
+                                    .map(|arg| {
+                                        matches!(
+                                            arg,
+                                            HirExpression::BinaryOp {
+                                                op: decy_hir::BinaryOperator::Multiply,
+                                                ..
+                                            }
+                                        )
+                                    })
+                                    .unwrap_or(false),
                                 _ => false,
                             }
                         } else {
@@ -2695,28 +2702,42 @@ impl CodeGenerator {
     #[allow(clippy::only_used_in_recursion)]
     fn statement_uses_null_comparison(&self, stmt: &HirStatement, var_name: &str) -> bool {
         match stmt {
-            HirStatement::If { condition, then_block, else_block, .. } => {
+            HirStatement::If {
+                condition,
+                then_block,
+                else_block,
+                ..
+            } => {
                 // Check condition for NULL comparison
                 if self.expression_compares_to_null(condition, var_name) {
                     return true;
                 }
                 // Recursively check nested statements
-                then_block.iter().any(|s| self.statement_uses_null_comparison(s, var_name))
+                then_block
+                    .iter()
+                    .any(|s| self.statement_uses_null_comparison(s, var_name))
                     || else_block.as_ref().is_some_and(|blk| {
-                        blk.iter().any(|s| self.statement_uses_null_comparison(s, var_name))
+                        blk.iter()
+                            .any(|s| self.statement_uses_null_comparison(s, var_name))
                     })
             }
-            HirStatement::While { condition, body, .. } => {
+            HirStatement::While {
+                condition, body, ..
+            } => {
                 if self.expression_compares_to_null(condition, var_name) {
                     return true;
                 }
-                body.iter().any(|s| self.statement_uses_null_comparison(s, var_name))
+                body.iter()
+                    .any(|s| self.statement_uses_null_comparison(s, var_name))
             }
-            HirStatement::For { condition, body, .. } => {
+            HirStatement::For {
+                condition, body, ..
+            } => {
                 if self.expression_compares_to_null(condition, var_name) {
                     return true;
                 }
-                body.iter().any(|s| self.statement_uses_null_comparison(s, var_name))
+                body.iter()
+                    .any(|s| self.statement_uses_null_comparison(s, var_name))
             }
             _ => false,
         }
