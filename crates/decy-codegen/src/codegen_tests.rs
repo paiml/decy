@@ -1428,3 +1428,86 @@ fn test_main_function_with_return_becomes_exit() {
     assert!(!code.contains("-> i32")); // Must NOT have -> i32
     assert!(code.contains("std::process::exit(0)")); // return 0 becomes exit
 }
+
+// ============================================================================
+// DECY-118: Slice-to-Pointer Type Coercion Tests
+// ============================================================================
+
+#[test]
+fn test_slice_to_raw_pointer_coercion() {
+    // DECY-118 RED PHASE: This test will FAIL
+    // When a slice parameter is assigned to a raw pointer,
+    // we need to insert .as_ptr() or .as_mut_ptr()
+    use decy_hir::{HirExpression, HirParameter, HirStatement};
+
+    // Simulates: void traverse_array(int* arr) { int* ptr = arr; }
+    // Where arr is already transformed to &[i32]
+    // Generated should be: let mut ptr: *mut i32 = arr.as_ptr() as *mut i32;
+    let func = HirFunction::new_with_body(
+        "traverse_array".to_string(),
+        HirType::Void,
+        vec![HirParameter::new(
+            "arr".to_string(),
+            HirType::Reference {
+                inner: Box::new(HirType::Array {
+                    element_type: Box::new(HirType::Int),
+                    size: None, // Dynamic slice
+                }),
+                mutable: false,
+            },
+        )],
+        vec![HirStatement::VariableDeclaration {
+            name: "ptr".to_string(),
+            var_type: HirType::Pointer(Box::new(HirType::Int)),
+            initializer: Some(HirExpression::Variable("arr".to_string())),
+        }],
+    );
+
+    let codegen = CodeGenerator::new();
+    let code = codegen.generate_function(&func);
+
+    // The generated code must coerce the slice to a raw pointer
+    // Should contain .as_ptr() or .as_mut_ptr() conversion
+    assert!(
+        code.contains(".as_ptr()") || code.contains(".as_mut_ptr()"),
+        "Should insert slice-to-pointer coercion, got: {}",
+        code
+    );
+}
+
+#[test]
+fn test_mutable_slice_to_mutable_pointer_coercion() {
+    // DECY-118 RED PHASE: This test will FAIL
+    // Mutable slice to mutable pointer should use .as_mut_ptr()
+    use decy_hir::{HirExpression, HirParameter, HirStatement};
+
+    let func = HirFunction::new_with_body(
+        "modify_array".to_string(),
+        HirType::Void,
+        vec![HirParameter::new(
+            "arr".to_string(),
+            HirType::Reference {
+                inner: Box::new(HirType::Array {
+                    element_type: Box::new(HirType::Int),
+                    size: None,
+                }),
+                mutable: true, // Mutable reference
+            },
+        )],
+        vec![HirStatement::VariableDeclaration {
+            name: "ptr".to_string(),
+            var_type: HirType::Pointer(Box::new(HirType::Int)), // *mut i32
+            initializer: Some(HirExpression::Variable("arr".to_string())),
+        }],
+    );
+
+    let codegen = CodeGenerator::new();
+    let code = codegen.generate_function(&func);
+
+    // Should use .as_mut_ptr() for mutable slices
+    assert!(
+        code.contains(".as_mut_ptr()"),
+        "Should use .as_mut_ptr() for mutable slice, got: {}",
+        code
+    );
+}
