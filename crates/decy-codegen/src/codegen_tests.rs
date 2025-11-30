@@ -1091,34 +1091,25 @@ fn test_generate_box_variable_declaration() {
 // These tests are disabled until HirType::Vec and Vec transform methods are implemented
 
 #[test]
-#[ignore = "RED phase - waiting for HirType::Vec implementation"]
 fn test_type_mapping_vec_int() {
-    // RED PHASE: Waiting for full implementation
-    // Test that HirType::Vec maps to Vec<T>
-    // Uncomment when ready:
-    // use decy_hir::HirType;
-    // let vec_type = HirType::Vec(Box::new(HirType::Int));
-    // assert_eq!(CodeGenerator::map_type(&vec_type), "Vec<i32>");
+    // HirType::Vec maps to Vec<T>
+    use decy_hir::HirType;
+    let vec_type = HirType::Vec(Box::new(HirType::Int));
+    assert_eq!(CodeGenerator::map_type(&vec_type), "Vec<i32>");
 }
 
 #[test]
-#[ignore = "RED phase - waiting for HirType::Vec implementation"]
 fn test_type_mapping_vec_char() {
-    // RED PHASE: Waiting for full implementation
-    // Uncomment when ready:
-    // use decy_hir::HirType;
-    // let vec_type = HirType::Vec(Box::new(HirType::Char));
-    // assert_eq!(CodeGenerator::map_type(&vec_type), "Vec<u8>");
+    use decy_hir::HirType;
+    let vec_type = HirType::Vec(Box::new(HirType::Char));
+    assert_eq!(CodeGenerator::map_type(&vec_type), "Vec<u8>");
 }
 
 #[test]
-#[ignore = "RED phase - waiting for HirType::Vec implementation"]
 fn test_type_mapping_vec_double() {
-    // RED PHASE: Waiting for full implementation
-    // Uncomment when ready:
-    // use decy_hir::HirType;
-    // let vec_type = HirType::Vec(Box::new(HirType::Double));
-    // assert_eq!(CodeGenerator::map_type(&vec_type), "Vec<f64>");
+    use decy_hir::HirType;
+    let vec_type = HirType::Vec(Box::new(HirType::Double));
+    assert_eq!(CodeGenerator::map_type(&vec_type), "Vec<f64>");
 }
 
 #[test]
