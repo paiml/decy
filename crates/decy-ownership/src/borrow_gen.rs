@@ -789,6 +789,35 @@ impl BorrowGenerator {
                 )),
                 element_type: element_type.clone(),
             },
+            // DECY-139: Handle increment/decrement expressions
+            HirExpression::PostIncrement { operand } => HirExpression::PostIncrement {
+                operand: Box::new(self.transform_expression_with_length_replacement(
+                    operand,
+                    inferences,
+                    length_params_to_remove,
+                )),
+            },
+            HirExpression::PreIncrement { operand } => HirExpression::PreIncrement {
+                operand: Box::new(self.transform_expression_with_length_replacement(
+                    operand,
+                    inferences,
+                    length_params_to_remove,
+                )),
+            },
+            HirExpression::PostDecrement { operand } => HirExpression::PostDecrement {
+                operand: Box::new(self.transform_expression_with_length_replacement(
+                    operand,
+                    inferences,
+                    length_params_to_remove,
+                )),
+            },
+            HirExpression::PreDecrement { operand } => HirExpression::PreDecrement {
+                operand: Box::new(self.transform_expression_with_length_replacement(
+                    operand,
+                    inferences,
+                    length_params_to_remove,
+                )),
+            },
             // Leaf expressions - no transformation needed
             HirExpression::IntLiteral(_)
             | HirExpression::StringLiteral(_)

@@ -739,6 +739,34 @@ pub enum HirExpression {
         /// Operand
         operand: Box<HirExpression>,
     },
+    /// Post-increment expression (x++)
+    /// C semantics: returns old value, then increments
+    /// Rust: { let tmp = x; x += 1; tmp }
+    PostIncrement {
+        /// The operand to increment
+        operand: Box<HirExpression>,
+    },
+    /// Pre-increment expression (++x)
+    /// C semantics: increments first, then returns new value
+    /// Rust: { x += 1; x }
+    PreIncrement {
+        /// The operand to increment
+        operand: Box<HirExpression>,
+    },
+    /// Post-decrement expression (x--)
+    /// C semantics: returns old value, then decrements
+    /// Rust: { let tmp = x; x -= 1; tmp }
+    PostDecrement {
+        /// The operand to decrement
+        operand: Box<HirExpression>,
+    },
+    /// Pre-decrement expression (--x)
+    /// C semantics: decrements first, then returns new value
+    /// Rust: { x -= 1; x }
+    PreDecrement {
+        /// The operand to decrement
+        operand: Box<HirExpression>,
+    },
     /// Function call (function_name(args...))
     FunctionCall {
         /// Function name
@@ -1153,18 +1181,20 @@ impl HirExpression {
                     field: field.clone(),
                 }
             }
-            // Increment/decrement expressions in expression context
-            // Note: For post-increment/decrement, we just return the value (semantics differ from C)
-            // ptr++ in expression becomes just ptr (simplified - proper implementation needs temporary)
-            Expression::PostIncrement { operand } | Expression::PreIncrement { operand } => {
-                // Simplified: just return the operand value
-                // Proper implementation would require statement-level side effects
-                HirExpression::from_ast_expression(operand)
-            }
-            Expression::PostDecrement { operand } | Expression::PreDecrement { operand } => {
-                // Simplified: just return the operand value
-                HirExpression::from_ast_expression(operand)
-            }
+            // DECY-139: Increment/decrement expressions in expression context
+            // Properly preserve the increment/decrement for codegen to emit correct Rust
+            Expression::PostIncrement { operand } => HirExpression::PostIncrement {
+                operand: Box::new(HirExpression::from_ast_expression(operand)),
+            },
+            Expression::PreIncrement { operand } => HirExpression::PreIncrement {
+                operand: Box::new(HirExpression::from_ast_expression(operand)),
+            },
+            Expression::PostDecrement { operand } => HirExpression::PostDecrement {
+                operand: Box::new(HirExpression::from_ast_expression(operand)),
+            },
+            Expression::PreDecrement { operand } => HirExpression::PreDecrement {
+                operand: Box::new(HirExpression::from_ast_expression(operand)),
+            },
             Expression::Sizeof { type_name } => HirExpression::Sizeof {
                 type_name: type_name.clone(),
             },

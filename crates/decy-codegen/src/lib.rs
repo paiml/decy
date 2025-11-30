@@ -1880,6 +1880,40 @@ impl CodeGenerator {
                     }
                 }
             }
+            // DECY-139: Post-increment expression (x++)
+            // C semantics: returns old value, then increments
+            // Rust: { let __tmp = x; x += 1; __tmp }
+            HirExpression::PostIncrement { operand } => {
+                let operand_code = self.generate_expression_with_context(operand, ctx);
+                format!(
+                    "{{ let __tmp = {operand}; {operand} += 1; __tmp }}",
+                    operand = operand_code
+                )
+            }
+            // DECY-139: Pre-increment expression (++x)
+            // C semantics: increments first, then returns new value
+            // Rust: { x += 1; x }
+            HirExpression::PreIncrement { operand } => {
+                let operand_code = self.generate_expression_with_context(operand, ctx);
+                format!("{{ {operand} += 1; {operand} }}", operand = operand_code)
+            }
+            // DECY-139: Post-decrement expression (x--)
+            // C semantics: returns old value, then decrements
+            // Rust: { let __tmp = x; x -= 1; __tmp }
+            HirExpression::PostDecrement { operand } => {
+                let operand_code = self.generate_expression_with_context(operand, ctx);
+                format!(
+                    "{{ let __tmp = {operand}; {operand} -= 1; __tmp }}",
+                    operand = operand_code
+                )
+            }
+            // DECY-139: Pre-decrement expression (--x)
+            // C semantics: decrements first, then returns new value
+            // Rust: { x -= 1; x }
+            HirExpression::PreDecrement { operand } => {
+                let operand_code = self.generate_expression_with_context(operand, ctx);
+                format!("{{ {operand} -= 1; {operand} }}", operand = operand_code)
+            }
         }
     }
 
