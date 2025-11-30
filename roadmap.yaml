@@ -9465,3 +9465,67 @@ sprint_18:
         - crates/decy-codegen/src/struct.rs
         - crates/decy-codegen/src/expression.rs
         - crates/decy/tests/linked_list_transform_tests.rs
+
+    DECY-116:
+      title: "[P0] Fix multiply operator incorrectly parsed as subtract in recursive calls"
+      type: bug
+      priority: critical
+      story_points: 5
+      assignee: Claude
+      status: in_progress
+      phase: RED
+      github_issue: null
+
+      description: |
+        CRITICAL BUG blocking single-shot compile.
+
+        When the right-hand side of a multiply operator (*) is a function call
+        with an arithmetic expression argument, the * is incorrectly converted
+        to subtraction (-).
+
+        C input:
+          return n * factorial(n - 1);
+
+        Current (WRONG):
+          return n - factorial(n - 1);
+
+        Expected:
+          return n * factorial(n - 1);
+
+        Workaround: Use intermediate variable
+          int sub = factorial(n - 1);
+          return n * sub;  // This works
+
+        Root cause hypothesis: Parser confusing * (multiply) with * (dereference)
+        when followed by function call containing subtraction.
+
+      requirements:
+        - Identify root cause in parser or codegen
+        - Fix binary operator handling for multiply
+        - Ensure * is preserved in all expression contexts
+        - Add regression tests
+
+      acceptance_criteria:
+        - `n * func(n - 1)` transpiles to `n * func(n - 1)`
+        - `a * b * func(c)` works correctly
+        - Nested arithmetic in function args preserved
+        - All existing tests pass
+        - 5+ regression tests added
+
+      test_strategy: |
+        RED Phase:
+        - test_multiply_with_recursive_call()
+        - test_multiply_with_function_call_subtraction_arg()
+        - test_chained_multiply_with_calls()
+        - test_multiply_vs_deref_disambiguation()
+        GREEN Phase:
+        - Fix parser/codegen binary operator handling
+        - Make all tests pass
+        REFACTOR Phase:
+        - Add property tests for operator preservation
+        - Meet quality gates
+
+      files_modified:
+        - crates/decy-parser/src/parser.rs (likely)
+        - crates/decy-codegen/src/expression.rs (likely)
+        - crates/decy-core/tests/multiply_operator_tests.rs (new)
