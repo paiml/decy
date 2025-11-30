@@ -10394,3 +10394,29 @@ sprint_31_single_shot:
 
       files_modified:
         - crates/decy-oracle/Cargo.toml
+
+    DECY-156:
+      title: "Remove increment_decrement.c from known issues"
+      type: quality
+      priority: low
+      story_points: 1
+      assignee: Claude
+      status: done
+      phase: DONE
+
+      description: |
+        The slice-to-raw-pointer conversion issue was fixed in previous commits.
+        increment_decrement.c now compiles successfully and should not be in
+        the known issues list.
+
+        E2E results improved: 80% pass rate (100% excluding known issues)
+
+      acceptance_criteria:
+        - increment_decrement.c shows as passed in E2E tests
+        - Known issues list only contains actual failures
+
+      test_strategy: |
+        Run E2E tests and verify increment_decrement.c passes
+
+      files_modified:
+        - crates/decy-codegen/tests/e2e_examples_test.rs
