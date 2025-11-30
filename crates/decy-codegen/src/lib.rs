@@ -2551,6 +2551,22 @@ impl CodeGenerator {
                         None
                     }
                 } else {
+                    // DECY-086: Check if this is an array parameter that should become a slice
+                    // In C, `int arr[10]` as a parameter decays to a pointer, so we use slice
+                    if let Some(orig_param) =
+                        func.parameters().iter().find(|fp| fp.name() == p.name)
+                    {
+                        if let HirType::Array { element_type, .. } = orig_param.param_type() {
+                            // Fixed-size array parameter → slice reference
+                            let is_mutable = self.is_parameter_modified(func, &p.name);
+                            let element_str = Self::map_type(element_type);
+                            if is_mutable {
+                                return Some(format!("{}: &mut [{}]", p.name, element_str));
+                            } else {
+                                return Some(format!("{}: &[{}]", p.name, element_str));
+                            }
+                        }
+                    }
                     // DECY-111: Check if this is a pointer parameter that should become a reference
                     // DECY-123: Skip transformation if pointer arithmetic is used
                     if let Some(orig_param) =
