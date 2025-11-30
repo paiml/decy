@@ -9935,8 +9935,8 @@ sprint_31_single_shot:
       priority: high
       story_points: 3
       assignee: Claude
-      status: in_progress
-      phase: RED
+      status: done
+      phase: DONE
 
       description: |
         Every unsafe block in generated Rust code should have a SAFETY comment
