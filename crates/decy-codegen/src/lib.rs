@@ -1300,6 +1300,44 @@ impl CodeGenerator {
                             "-1 /* fputs requires 2 args */".to_string()
                         }
                     }
+                    // DECY-093: fork() → Command usage (no direct equivalent, skip)
+                    "fork" => {
+                        "/* fork() transformed to Command API */ 0".to_string()
+                    }
+                    // DECY-093: execl/execlp → Command::new().status()
+                    "execl" | "execlp" | "execle" | "execv" | "execvp" | "execve" => {
+                        if !arguments.is_empty() {
+                            let cmd = self.generate_expression_with_context(&arguments[0], ctx);
+                            // Skip argv[0] (program name repeated), collect remaining args before NULL
+                            let args: Vec<String> = arguments
+                                .iter()
+                                .skip(2) // Skip cmd path and argv[0]
+                                .filter(|a| !matches!(a, HirExpression::NullLiteral))
+                                .map(|a| self.generate_expression_with_context(a, ctx))
+                                .collect();
+                            if args.is_empty() {
+                                format!(
+                                    "{{ use std::process::Command; Command::new({}).status().expect(\"command failed\"); }}",
+                                    cmd
+                                )
+                            } else {
+                                let arg_chain: String = args
+                                    .iter()
+                                    .map(|a| format!(".arg({})", a))
+                                    .collect();
+                                format!(
+                                    "{{ use std::process::Command; Command::new({}){}.status().expect(\"command failed\"); }}",
+                                    cmd, arg_chain
+                                )
+                            }
+                        } else {
+                            "/* exec requires args */".to_string()
+                        }
+                    }
+                    // DECY-093: waitpid → .wait() (generated alongside spawn)
+                    "waitpid" | "wait" | "wait3" | "wait4" => {
+                        "/* waitpid handled by Command API .wait() */".to_string()
+                    }
                     // Default: pass through function call as-is
                     // DECY-116 + DECY-117: Transform call sites for slice functions and reference mutability
                     _ => {
