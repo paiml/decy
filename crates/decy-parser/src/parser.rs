@@ -2979,6 +2979,19 @@ fn convert_type(cx_type: CXType) -> Option<Type> {
                 size,
             })
         }
+        114 => {
+            // CXType_IncompleteArray - flexible array member (C99 §6.7.2.1)
+            // DECY-136: char data[] → Vec<u8>
+            // Flexible array members have no size specified
+            let element_cx_type = unsafe { clang_getArrayElementType(cx_type) };
+            let element_type = convert_type(element_cx_type)?;
+
+            // Generate as Array with size None (will be transformed to Vec in codegen)
+            Some(Type::Array {
+                element_type: Box::new(element_type),
+                size: None,
+            })
+        }
         _ => None,
     }
 }
