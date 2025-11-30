@@ -2443,7 +2443,7 @@ impl CodeGenerator {
                 // transforming `int *p = &x` to `&mut x` breaks type compatibility.
                 // The transformation works for parameters (which are passed by value),
                 // but not for locals where &p may be needed.
-                // TODO: Re-enable with analysis to detect when &p is used
+                // See DECY-128 for tracking re-enabling this with address-taken analysis.
                 // Original transform: int *p = &x;  →  Rust: let p = &mut x;
 
                 // DECY-130: Check if this is a malloc/calloc initialization
@@ -4922,7 +4922,7 @@ impl CodeGenerator {
                 // - NULL checks (is_none() instead of == null_mut())
                 //
                 // For now, keep raw pointers but track these fields for future transformation.
-                // TODO: Implement full Option<Box<T>> transformation in DECY-145
+                // See DECY-145 for full Option<Box<T>> transformation implementation.
                 HirType::Pointer(_inner) => {
                     // Commented out for now - needs full transformation
                     // if let HirType::Struct(inner_name) = inner.as_ref() {
