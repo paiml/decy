@@ -2,7 +2,7 @@
 //!
 //! Verifies that generated code is compiled, tested, and iterated on failures.
 
-use decy_llm::{CodeVerifier, GeneratedCode, IterationContext, VerificationLoop, VerificationResult};
+use decy_llm::{CodeVerifier, IterationContext, VerificationLoop, VerificationResult};
 
 // ============================================================================
 // TEST 1: Create success result
