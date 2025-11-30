@@ -8466,7 +8466,7 @@ sprint_28:
       assignee: Claude
       status: in_progress
       github_issue: null
-      phase: GREEN
+      phase: REFACTOR
 
       description: |
         Identify fork/exec patterns for subprocess creation.

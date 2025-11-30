@@ -64,15 +64,15 @@ impl SubprocessDetector {
     fn analyze_statement(&self, stmt: &HirStatement, pattern: &mut ForkExecPattern) {
         match stmt {
             HirStatement::VariableDeclaration {
-                name, initializer, ..
+                name,
+                initializer: Some(init),
+                ..
             } => {
-                if let Some(init) = initializer {
-                    if self.is_fork_call(init) {
-                        pattern.has_fork = true;
-                        pattern.pid_var = Some(name.clone());
-                    }
-                    self.analyze_expression(init, pattern);
+                if self.is_fork_call(init) {
+                    pattern.has_fork = true;
+                    pattern.pid_var = Some(name.clone());
                 }
+                self.analyze_expression(init, pattern);
             }
             HirStatement::Expression(expr) => {
                 self.analyze_expression(expr, pattern);
@@ -95,21 +95,19 @@ impl SubprocessDetector {
     }
 
     fn analyze_expression(&self, expr: &HirExpression, pattern: &mut ForkExecPattern) {
-        match expr {
-            HirExpression::FunctionCall {
-                function,
-                arguments,
-            } => {
-                if function == "fork" {
-                    pattern.has_fork = true;
-                } else if self.exec_functions.contains(&function.as_str()) {
-                    pattern.has_exec = true;
-                    self.extract_exec_args(arguments, pattern);
-                } else if self.wait_functions.contains(&function.as_str()) {
-                    pattern.has_wait = true;
-                }
+        if let HirExpression::FunctionCall {
+            function,
+            arguments,
+        } = expr
+        {
+            if function == "fork" {
+                pattern.has_fork = true;
+            } else if self.exec_functions.contains(&function.as_str()) {
+                pattern.has_exec = true;
+                self.extract_exec_args(arguments, pattern);
+            } else if self.wait_functions.contains(&function.as_str()) {
+                pattern.has_wait = true;
             }
-            _ => {}
         }
     }
 
