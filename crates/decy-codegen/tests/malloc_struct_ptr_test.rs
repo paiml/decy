@@ -31,7 +31,9 @@ fn create_malloc_struct_function() -> HirFunction {
                 var_type: node_ptr_type.clone(),
                 initializer: Some(HirExpression::FunctionCall {
                     function: "malloc".to_string(),
-                    arguments: vec![HirExpression::Sizeof { type_name: "Node".to_string() }],
+                    arguments: vec![HirExpression::Sizeof {
+                        type_name: "Node".to_string(),
+                    }],
                 }),
             },
             // node->data = value;
@@ -119,7 +121,9 @@ fn test_malloc_struct_in_assignment() {
                 target: "node".to_string(),
                 value: HirExpression::FunctionCall {
                     function: "malloc".to_string(),
-                    arguments: vec![HirExpression::Sizeof { type_name: "Node".to_string() }],
+                    arguments: vec![HirExpression::Sizeof {
+                        type_name: "Node".to_string(),
+                    }],
                 },
             },
             HirStatement::Return(Some(HirExpression::Variable("node".to_string()))),
