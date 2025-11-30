@@ -948,9 +948,7 @@ impl CodeGenerator {
                                     HirType::Array { element_type, .. } => {
                                         Some((element_type.as_ref(), *mutable))
                                     }
-                                    HirType::Vec(elem_type) => {
-                                        Some((elem_type.as_ref(), *mutable))
-                                    }
+                                    HirType::Vec(elem_type) => Some((elem_type.as_ref(), *mutable)),
                                     _ => None,
                                 };
 
@@ -3209,8 +3207,15 @@ impl CodeGenerator {
 
         // First pass: identify array parameters and their associated length parameters
         // DECY-113: Only skip params with length-like names to avoid removing non-length params
+        // DECY-162: Don't skip length param if array uses pointer arithmetic (stays as raw pointer)
         for (idx, param) in func.parameters().iter().enumerate() {
             if let Some(true) = graph.is_array_parameter(param.name()) {
+                // DECY-162: Don't skip length param if array uses pointer arithmetic
+                // Raw pointers don't have .len(), so we need to keep the size param
+                if self.uses_pointer_arithmetic(func, param.name()) {
+                    continue; // Skip adding length param to skip_params
+                }
+
                 // This is an array parameter - mark the next param as length param to skip
                 // but only if it has a length-like name
                 if idx + 1 < func.parameters().len() {
@@ -4328,8 +4333,15 @@ impl CodeGenerator {
             std::collections::HashMap::new();
 
         // DECY-113: Only map length params with length-like names
+        // DECY-162: Don't map length params when array uses pointer arithmetic (stays raw pointer)
         for (idx, param) in func.parameters().iter().enumerate() {
             if let Some(true) = graph.is_array_parameter(param.name()) {
+                // DECY-162: Skip if array param uses pointer arithmetic
+                // Raw pointers don't have .len(), so we keep the size param as-is
+                if self.uses_pointer_arithmetic(func, param.name()) {
+                    continue;
+                }
+
                 // This is an array parameter - map the next param to this array
                 // but only if it has a length-like name
                 if idx + 1 < func.parameters().len() {

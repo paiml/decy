@@ -24,10 +24,7 @@ fn create_array_ptr_arithmetic_function() -> HirFunction {
         "sum_array".to_string(),
         HirType::Int,
         vec![
-            HirParameter::new(
-                "arr".to_string(),
-                HirType::Pointer(Box::new(HirType::Int)),
-            ),
+            HirParameter::new("arr".to_string(), HirType::Pointer(Box::new(HirType::Int))),
             HirParameter::new("size".to_string(), HirType::Int),
         ],
         vec![
@@ -124,6 +121,45 @@ fn test_array_param_with_ptr_arithmetic_uses_mut() {
     assert!(
         rust_code.contains("mut arr: *mut"),
         "Array param with pointer arithmetic should be 'mut arr: *mut'. Got:\n{}",
+        rust_code
+    );
+}
+
+#[test]
+fn test_array_param_with_ptr_arithmetic_keeps_size_param() {
+    // DECY-162: When array param uses pointer arithmetic and stays as raw pointer,
+    // the size parameter should NOT be removed from the signature.
+    // Raw pointers don't have .len(), so we need to keep the size param.
+    let func = create_array_ptr_arithmetic_function();
+
+    let generator = decy_codegen::CodeGenerator::new();
+    let rust_code = generator.generate_function(&func);
+
+    println!("Generated code:\n{}", rust_code);
+
+    // Should keep 'size' parameter since arr is raw pointer (no .len())
+    assert!(
+        rust_code.contains("size: i32") || rust_code.contains("mut size: i32"),
+        "Size param should be kept when array uses pointer arithmetic. Got:\n{}",
+        rust_code
+    );
+}
+
+#[test]
+fn test_array_param_with_ptr_arithmetic_no_arr_len() {
+    // DECY-162: When arr stays as raw pointer, should NOT generate arr.len()
+    // because raw pointers don't have .len() method
+    let func = create_array_ptr_arithmetic_function();
+
+    let generator = decy_codegen::CodeGenerator::new();
+    let rust_code = generator.generate_function(&func);
+
+    println!("Generated code:\n{}", rust_code);
+
+    // Should NOT contain arr.len() since arr is *mut i32
+    assert!(
+        !rust_code.contains("arr.len()"),
+        "Should not call .len() on raw pointer. Got:\n{}",
         rust_code
     );
 }

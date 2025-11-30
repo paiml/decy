@@ -115,12 +115,8 @@ impl BorrowGenerator {
 
         // DECY-072: Transform parameters with array detection
         // DECY-161: Also pass function to check for pointer arithmetic
-        let (transformed_params, length_params_to_remove) = self
-            .transform_parameters_with_array_detection(
-                func,
-                inferences,
-                &dataflow_graph,
-            );
+        let (transformed_params, length_params_to_remove) =
+            self.transform_parameters_with_array_detection(func, inferences, &dataflow_graph);
 
         // DECY-070 + DECY-072: Transform function body
         // - Convert pointer arithmetic to SliceIndex (DECY-070)
