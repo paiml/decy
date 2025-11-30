@@ -1,0 +1,23 @@
+[package]
+name = "decy-llm"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+documentation.workspace = true
+keywords = ["c", "rust", "transpiler", "llm", "ai"]
+categories = ["development-tools"]
+description = "LLM context builder for Decy C-to-Rust transpiler"
+
+[dependencies]
+decy-hir = { path = "../decy-hir" }
+decy-analyzer = { path = "../decy-analyzer" }
+decy-ownership = { path = "../decy-ownership" }
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true
