@@ -1397,6 +1397,14 @@ impl CodeGenerator {
                                         size_code
                                     );
                                 }
+                                // DECY-160: For struct pointers like *mut Node: use Box::into_raw(Box::default())
+                                // This allocates a default-initialized struct and returns a raw pointer to it
+                                if let HirType::Struct(struct_name) = inner.as_ref() {
+                                    return format!(
+                                        "Box::into_raw(Box::<{}>::default())",
+                                        struct_name
+                                    );
+                                }
                             }
 
                             // Try to detect n * sizeof(T) pattern
