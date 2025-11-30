@@ -171,16 +171,18 @@ fn test_fork_exec_wait_generates_wait() {
                         HirExpression::NullLiteral,
                     ],
                 })],
-                else_block: Some(vec![HirStatement::Expression(HirExpression::FunctionCall {
-                    function: "waitpid".to_string(),
-                    arguments: vec![
-                        HirExpression::Variable("pid".to_string()),
-                        HirExpression::AddressOf(Box::new(HirExpression::Variable(
-                            "status".to_string(),
-                        ))),
-                        HirExpression::IntLiteral(0),
-                    ],
-                })]),
+                else_block: Some(vec![HirStatement::Expression(
+                    HirExpression::FunctionCall {
+                        function: "waitpid".to_string(),
+                        arguments: vec![
+                            HirExpression::Variable("pid".to_string()),
+                            HirExpression::AddressOf(Box::new(HirExpression::Variable(
+                                "status".to_string(),
+                            ))),
+                            HirExpression::IntLiteral(0),
+                        ],
+                    },
+                )]),
             },
         ],
     );
