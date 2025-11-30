@@ -1847,12 +1847,44 @@ impl CodeGenerator {
                     false
                 };
 
-                // Adjust type for malloc initialization: *mut T → Vec<T>
+                // Adjust type for malloc initialization:
+                // - Struct pointer → Box<T> (single allocation)
+                // - Primitive pointer with array pattern (n * sizeof) → Vec<T>
+                // - Other → Vec<T> (default for dynamic allocation)
                 let (_actual_type, type_str) = if is_malloc_init {
                     if let HirType::Pointer(inner) = var_type {
-                        let vec_type = HirType::Vec(inner.clone());
-                        ctx.add_variable(name.clone(), vec_type.clone());
-                        (vec_type.clone(), Self::map_type(&vec_type))
+                        // Check if this is a struct allocation (should use Box)
+                        // vs array allocation (should use Vec)
+                        let is_struct_alloc = matches!(&**inner, HirType::Struct(_));
+
+                        // Also check if the malloc argument is NOT an array pattern (n * sizeof)
+                        let is_array_pattern = if let Some(init_expr) = initializer {
+                            match init_expr {
+                                HirExpression::FunctionCall { function, arguments }
+                                    if function == "malloc" || function == "calloc" => {
+                                    arguments.first().map(|arg| {
+                                        matches!(arg, HirExpression::BinaryOp {
+                                            op: decy_hir::BinaryOperator::Multiply, ..
+                                        })
+                                    }).unwrap_or(false)
+                                }
+                                _ => false,
+                            }
+                        } else {
+                            false
+                        };
+
+                        if is_struct_alloc && !is_array_pattern {
+                            // Single struct allocation → Box<T>
+                            let box_type = HirType::Box(inner.clone());
+                            ctx.add_variable(name.clone(), box_type.clone());
+                            (box_type.clone(), Self::map_type(&box_type))
+                        } else {
+                            // Array allocation or primitive → Vec<T>
+                            let vec_type = HirType::Vec(inner.clone());
+                            ctx.add_variable(name.clone(), vec_type.clone());
+                            (vec_type.clone(), Self::map_type(&vec_type))
+                        }
                     } else {
                         ctx.add_variable(name.clone(), var_type.clone());
                         (var_type.clone(), Self::map_type(var_type))
@@ -1899,6 +1931,39 @@ impl CodeGenerator {
                             _ => {
                                 // Default to Box::new(0i32) for other types
                                 code.push_str(" = Box::new(0i32);");
+                            }
+                        }
+                    } else if is_malloc_init {
+                        // Handle FunctionCall { function: "malloc" } for struct allocations
+                        // Generate Box::new or Vec based on the MODIFIED type (_actual_type)
+                        match &_actual_type {
+                            HirType::Box(inner) => {
+                                code.push_str(&format!(
+                                    " = Box::new({}::default());",
+                                    Self::map_type(inner)
+                                ));
+                            }
+                            HirType::Vec(_) => {
+                                // Use the expression generator for Vec allocation
+                                code.push_str(&format!(
+                                    " = {};",
+                                    self.generate_expression_with_target_type(
+                                        init_expr,
+                                        ctx,
+                                        Some(var_type)
+                                    )
+                                ));
+                            }
+                            _ => {
+                                // Fallback to expression generator
+                                code.push_str(&format!(
+                                    " = {};",
+                                    self.generate_expression_with_target_type(
+                                        init_expr,
+                                        ctx,
+                                        Some(var_type)
+                                    )
+                                ));
                             }
                         }
                     } else {
