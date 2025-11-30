@@ -93,7 +93,7 @@ impl CodegenPrompt {
                         info.confidence * 100.0
                     ));
                 }
-                prompt.push_str("\n");
+                prompt.push('\n');
             }
         }
 
@@ -105,7 +105,9 @@ impl CodegenPrompt {
 
         prompt.push_str("## Task\n");
         prompt.push_str("Generate idiomatic, safe Rust code that is functionally equivalent to the C code above.\n");
-        prompt.push_str("Use the static analysis context to guide ownership and borrowing decisions.\n");
+        prompt.push_str(
+            "Use the static analysis context to guide ownership and borrowing decisions.\n",
+        );
 
         prompt
     }
