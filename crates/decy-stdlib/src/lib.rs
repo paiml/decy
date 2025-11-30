@@ -991,6 +991,8 @@ impl StdlibPrototypes {
         result.push_str("typedef unsigned long size_t;\n");
         result.push_str("typedef long ssize_t;\n");
         result.push_str("typedef long ptrdiff_t;\n");
+        // NULL macro (ISO C99 §7.17) - use simple 0 to avoid parser issues
+        result.push_str("#define NULL 0\n");
 
         // Add FILE typedef for stdio.h
         if header == StdHeader::Stdio {
@@ -1037,6 +1039,8 @@ impl StdlibPrototypes {
         result.push_str("typedef unsigned long size_t;\n");
         result.push_str("typedef long ssize_t;\n");
         result.push_str("typedef long ptrdiff_t;\n");
+        // NULL macro (ISO C99 §7.17) - use simple 0 to avoid parser issues
+        result.push_str("#define NULL 0\n");
         result.push_str("struct _IO_FILE;\n");
         result.push_str("typedef struct _IO_FILE FILE;\n\n");
 
