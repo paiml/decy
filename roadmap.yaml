@@ -10316,3 +10316,29 @@ sprint_31_single_shot:
 
       files_modified:
         - crates/decy-parser/tests/pointer_field_access_property_tests.rs
+
+    DECY-153:
+      title: "Fix flaky E2E test with thread-safe temp files"
+      type: bug
+      priority: medium
+      story_points: 1
+      assignee: Claude
+      status: done
+      phase: DONE
+
+      description: |
+        The test_simple_examples_compile test was failing intermittently
+        due to temp file collisions when running in parallel with other tests.
+
+        Fix: Add thread ID and nanosecond timestamp to temp file hash to
+        ensure uniqueness across parallel test runs.
+
+      acceptance_criteria:
+        - E2E test passes consistently in parallel execution
+        - No temp file race conditions
+
+      test_strategy: |
+        Run cargo test --workspace multiple times to verify stability
+
+      files_modified:
+        - crates/decy-codegen/tests/e2e_examples_test.rs
