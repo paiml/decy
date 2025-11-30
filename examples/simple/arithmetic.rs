@@ -1,7 +1,6 @@
-fn add(a: i32, b: i32) -> i32 {
+fn add(mut a: i32, mut b: i32) -> i32 {
     return a + b;
 }
-
-fn multiply(x: i32, y: i32) -> i32 {
+fn multiply(mut x: i32, mut y: i32) -> i32 {
     return x * y;
 }

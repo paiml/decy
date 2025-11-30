@@ -1,60 +1,54 @@
-// DECY-041: Real-world pointer arithmetic patterns
-// Transpiled to safe Rust using slices
-
-// Array traversal with pointer arithmetic - transpiled to iterator
-fn sum_array(arr: &[i32]) -> i32 {
+fn sum_array<'a>(mut arr: &[i32]) -> i32 {
     let mut sum: i32 = 0;
-    for &val in arr {
-        sum += val;
-    }
+    let mut end: *mut i32 = arr + arr.len() as i32;
+    while arr < end {
+    sum = sum + *arr;
+    arr = arr + 1;
+}
     return sum;
 }
-
-// Find first occurrence in array
-fn find_first(arr: &[i32], target: i32) -> i32 {
-    let mut i: i32;
+fn find_first<'a>(mut arr: &[i32], mut target: i32) -> i32 {
+    let mut i: i32 = 0i32;
     i = 0;
-    while (i as usize) < arr.len() {
-        if arr[i as usize] == target {
-            return i;
-        }
-        i += 1;
-    }
+while i < arr.len() as i32 {
+    if arr[i as usize] == target {
+    return i;
+}
+    i = i + 1;
+}
     return -1;
 }
-
-// Count occurrences with continue
-fn count_even(arr: &[i32]) -> i32 {
+fn count_even<'a>(mut arr: &[i32]) -> i32 {
     let mut count: i32 = 0;
-    let mut i: usize;
+    let mut i: i32 = 0i32;
     i = 0;
-    while i < arr.len() {
-        if arr[i] % 2 == 1 {
-            i += 1;
-            continue;  // Skip odd numbers
-        }
-        count += 1;
-        i += 1;
-    }
+while i < arr.len() as i32 {
+    if (arr[i as usize] % 2) == 1 {
+    continue;
+}
+    count = count + 1;
+    i = i + 1;
+}
     return count;
 }
-
-// Early exit with break
-fn linear_search(arr: &[i32], target: i32) -> i32 {
+fn linear_search<'a>(mut arr: &[i32], mut target: i32) -> i32 {
     let mut found: i32 = 0;
-    let mut i: usize;
+    let mut i: i32 = 0i32;
     i = 0;
-    while i < arr.len() {
-        if arr[i] == target {
-            found = 1;
-            break;  // Early exit when found
-        }
-        i += 1;
-    }
+while i < arr.len() as i32 {
+    if arr[i as usize] == target {
+    found = 1;
+    break;
+}
+    i = i + 1;
+}
     return found;
 }
-
-// String length calculation (classic pointer arithmetic) - transpiled to safe slice
-fn string_length(s: &str) -> i32 {
-    return s.len() as i32;
+fn string_length(str: &[u8]) -> i32 {
+    let mut str_idx: usize = 0;
+    let mut start: *mut u8 = str;
+    while str[str_idx] != 0u8 {
+    str_idx += 1 as usize;
+}
+    return str - start;
 }
