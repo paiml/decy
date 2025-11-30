@@ -167,13 +167,14 @@ impl BorrowGenerator {
             if let Some(true) = dataflow_graph.is_array_parameter(param.name()) {
                 // This is an array parameter!
                 // Transform pointer to slice type
+                // DECY-135: Use with_type to preserve is_pointee_const
                 let slice_type = self.transform_to_slice_type(
                     param.param_type(),
                     param.name(),
                     inferences,
                     dataflow_graph,
                 );
-                transformed_params.push(HirParameter::new(param.name().to_string(), slice_type));
+                transformed_params.push(param.with_type(slice_type));
 
                 // DECY-113: Check if next parameter is the length parameter
                 // Only treat it as length if it has a length-like name
@@ -197,12 +198,10 @@ impl BorrowGenerator {
                 }
             } else {
                 // Not an array parameter - keep as is (with normal transformation)
+                // DECY-135: Use with_type to preserve is_pointee_const for const char* → &str
                 let transformed_type =
                     self.transform_type(param.param_type(), param.name(), inferences);
-                transformed_params.push(HirParameter::new(
-                    param.name().to_string(),
-                    transformed_type,
-                ));
+                transformed_params.push(param.with_type(transformed_type));
             }
         }
 
