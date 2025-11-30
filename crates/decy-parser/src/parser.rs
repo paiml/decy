@@ -1778,6 +1778,14 @@ extern "C" fn visit_expression(
                 CXChildVisit_Recurse
             }
         }
+        119 => {
+            // CXCursor_InitListExpr - initializer list for struct/array
+            // DECY-133: Handle designated initializers like {.x = 10, .y = 20}
+            if let Some(expr) = extract_init_list(cursor) {
+                *expr_opt = Some(expr);
+            }
+            CXChildVisit_Continue
+        }
         _ => CXChildVisit_Recurse,
     }
 }
@@ -2756,6 +2764,76 @@ fn extract_compound_literal(cursor: CXCursor) -> Option<Expression> {
         literal_type,
         initializers,
     })
+}
+
+/// DECY-133: Extract an initializer list expression for struct/array initialization.
+///
+/// Handles C99 designated initializers like `{.x = 10, .y = 20}` or `{[2] = 100}`.
+/// Clang resolves designated initializers to positional order and inserts ImplicitValueInitExpr
+/// for uninitialized fields.
+fn extract_init_list(cursor: CXCursor) -> Option<Expression> {
+    // SAFETY: Getting the type of the initializer list
+    let literal_cx_type = unsafe { clang_getCursorType(cursor) };
+    let literal_type = convert_type(literal_cx_type)?;
+
+    // Extract initializer expressions by visiting children
+    let mut initializers: Vec<Expression> = Vec::new();
+    let initializers_ptr = &mut initializers as *mut Vec<Expression>;
+
+    unsafe {
+        clang_visitChildren(
+            cursor,
+            visit_init_list_children,
+            initializers_ptr as CXClientData,
+        );
+    }
+
+    Some(Expression::CompoundLiteral {
+        literal_type,
+        initializers,
+    })
+}
+
+/// Visitor callback to extract initializers from an InitListExpr.
+/// DECY-133: Handles both regular and designated initializers.
+#[allow(non_upper_case_globals)]
+extern "C" fn visit_init_list_children(
+    cursor: CXCursor,
+    _parent: CXCursor,
+    client_data: CXClientData,
+) -> CXChildVisitResult {
+    let initializers = unsafe { &mut *(client_data as *mut Vec<Expression>) };
+    let kind = unsafe { clang_getCursorKind(cursor) };
+
+    // Handle ImplicitValueInitExpr (115) - default value for uninitialized fields
+    // This appears when designated initializers skip some fields
+    if kind == 115 {
+        // Get the type to determine the default value
+        let cx_type = unsafe { clang_getCursorType(cursor) };
+        if let Some(var_type) = convert_type(cx_type) {
+            // Generate appropriate default based on type
+            let default_expr = match var_type {
+                Type::Int => Expression::IntLiteral(0),
+                Type::Float | Type::Double => Expression::IntLiteral(0), // Will be cast
+                Type::Char => Expression::IntLiteral(0),
+                _ => Expression::IntLiteral(0), // Fallback
+            };
+            initializers.push(default_expr);
+        }
+        return CXChildVisit_Continue;
+    }
+
+    // Try to extract any expression as an initializer
+    if let Some(expr) = try_extract_expression(cursor) {
+        initializers.push(expr);
+        return CXChildVisit_Continue;
+    }
+
+    // For some expression types, recurse
+    match kind {
+        CXCursor_UnexposedExpr | CXCursor_ParenExpr => CXChildVisit_Recurse,
+        _ => CXChildVisit_Continue,
+    }
 }
 
 /// Visitor callback to extract initializers from a compound literal.
