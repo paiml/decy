@@ -2915,6 +2915,12 @@ impl CodeGenerator {
                     if let Some(orig_param) =
                         func.parameters().iter().find(|fp| fp.name() == p.name)
                     {
+                        // DECY-135: const char* → &str transformation
+                        // Must check BEFORE other pointer transformations
+                        if orig_param.is_const_char_pointer() {
+                            return Some(format!("{}: &str", p.name));
+                        }
+
                         if let HirType::Pointer(inner) = orig_param.param_type() {
                             // DECY-096: void* param becomes generic &T or &mut T
                             if matches!(**inner, HirType::Void) && has_void_ptr {
@@ -3582,6 +3588,15 @@ impl CodeGenerator {
                     // DECY-123: Skip transformation if pointer arithmetic is used
                     // Check if param type is a simple pointer (not already a reference)
                     if let AnnotatedType::Simple(HirType::Pointer(inner)) = &p.param_type {
+                        // DECY-135: const char* → &str transformation
+                        // Must check BEFORE other pointer transformations
+                        if let Some(f) = func {
+                            if let Some(orig_param) = f.parameters().iter().find(|fp| fp.name() == p.name) {
+                                if orig_param.is_const_char_pointer() {
+                                    return format!("{}: &str", p.name);
+                                }
+                            }
+                        }
                         // DECY-134: Check for string iteration pattern FIRST
                         if let Some(f) = func {
                             if self.is_string_iteration_param(f, &p.name) {
