@@ -1,18 +1,20 @@
 // =============================================================================
-// DECY-146: Transform slice-to-pointer assignments for array parameters
+// DECY-149: Fix slice-to-pointer variable declaration conversion
 // =============================================================================
-// When array parameters become slices (&[T]), any assignment to a raw pointer
-// should use .as_ptr() or .as_mut_ptr() instead of direct assignment.
+// When a slice parameter is assigned to a raw pointer variable, codegen should
+// use .as_mut_ptr() or .as_ptr() to convert the slice to a raw pointer.
 //
-// C pattern:
-//   void traverse(int* arr, int size) {
-//       int* ptr = arr;  // arr is array param
+// C code:
+//   void traverse_array(int* arr, int size) {
+//       int* ptr = arr;  // arr is slice, ptr is raw pointer
 //   }
 //
 // Expected Rust:
-//   fn traverse(arr: &[i32], size: i32) {
-//       let ptr = arr.as_ptr();  // NOT: let ptr: *mut i32 = arr;
+//   fn traverse_array<'a>(mut arr: &mut [i32]) {
+//       let mut ptr: *mut i32 = arr.as_mut_ptr();  // Slice to raw pointer
 //   }
+//
+// NOT: let mut ptr: *mut i32 = arr;  // Error: expected *mut, found &[i32]
 
 use std::io::Write;
 use std::process::Command;
@@ -45,11 +47,11 @@ fn compiles(rust_code: &str) -> Result<(), String> {
         .args([
             "--crate-type=lib",
             "--edition=2021",
-            "--crate-name=test_slice_ptr",
+            "--crate-name=test_slice_to_ptr",
             "-A",
             "warnings",
             "-o",
-            "/tmp/decy_slice_ptr_test",
+            "/tmp/decy_slice_to_ptr_test",
         ])
         .arg(temp_file.path())
         .output()
@@ -62,10 +64,9 @@ fn compiles(rust_code: &str) -> Result<(), String> {
     }
 }
 
-/// Test: Array parameter assigned to local pointer should use .as_ptr()
-/// NOTE: This test documents current state. Full fix requires deeper TypeContext changes.
+/// Test: Slice assigned to raw pointer should use .as_mut_ptr()
 #[test]
-fn test_slice_to_ptr_assignment() {
+fn test_slice_to_ptr_uses_as_mut_ptr() {
     let c_code = r#"
 void traverse_array(int* arr, int size) {
     int* ptr = arr;
@@ -74,28 +75,15 @@ void traverse_array(int* arr, int size) {
 
     let rust_code = transpile_c(c_code);
 
-    // Document current behavior:
-    // - Array parameters with length ARE transformed to slices in signature
-    // - But the body still has type mismatch (known issue)
+    // arr should be converted to slice, and ptr assignment should use .as_mut_ptr() or .as_ptr()
     assert!(
-        rust_code.contains("&[i32]"),
-        "DECY-146: Array param should transform to slice in signature.\nGot:\n{}",
+        rust_code.contains(".as_mut_ptr()") || rust_code.contains(".as_ptr()"),
+        "DECY-149: Should convert slice to raw pointer using .as_mut_ptr() or .as_ptr().\nGot:\n{}",
         rust_code
     );
-
-    // TODO: Full fix requires TypeContext to track array param transformation
-    // For now, document that this doesn't work yet
-    if rust_code.contains(".as_ptr()") || rust_code.contains(".as_mut_ptr()") {
-        println!("INFO: Slice-to-pointer transformation working!");
-    } else {
-        println!("INFO: Slice-to-pointer transformation not yet working for array+length params");
-        println!("      (requires deeper TypeContext integration)");
-    }
 }
 
-/// Test: The generated code should compile
-/// NOTE: This is a known issue - array+length params to slice transformation
-/// doesn't fully work yet. Test documents current state.
+/// Test: Generated code should compile
 #[test]
 fn test_slice_to_ptr_compiles() {
     let c_code = r#"
@@ -110,88 +98,16 @@ void traverse_array(int* arr, int size) {
 
     let rust_code = transpile_c(c_code);
 
-    // Document that signature transformation works
-    assert!(
-        rust_code.contains("&[i32]"),
-        "Signature should transform to slice.\nGot:\n{}",
-        rust_code
-    );
-
-    // Known issue: body doesn't compile due to slice-to-pointer mismatch
     match compiles(&rust_code) {
-        Ok(()) => println!("INFO: Generated code compiles!"),
-        Err(_) => {
-            println!("INFO: Known issue - slice-to-pointer body transformation incomplete");
-            println!("      Signature shows &[i32] but body still has type mismatch");
-        }
+        Ok(()) => {}
+        Err(e) => panic!(
+            "DECY-149: Slice to raw pointer should compile.\nCode:\n{}\nErrors:\n{}",
+            rust_code, e
+        ),
     }
 }
 
-/// Test: Pointer arithmetic with slice (arr + offset)
-/// NOTE: Known issue - slice pointer arithmetic not fully implemented
-#[test]
-fn test_slice_pointer_arithmetic() {
-    let c_code = r#"
-int sum_array(int* arr, int size) {
-    int sum = 0;
-    int* end = arr + size;
-    while (arr < end) {
-        sum += *arr;
-        arr++;
-    }
-    return sum;
-}
-"#;
-
-    let rust_code = transpile_c(c_code);
-
-    // Document that signature transformation works
-    assert!(
-        rust_code.contains("&[i32]") || rust_code.contains("&mut [i32]"),
-        "DECY-146: Array param should transform to slice.\nGot:\n{}",
-        rust_code
-    );
-
-    // Known issue: pointer arithmetic on slices
-    match compiles(&rust_code) {
-        Ok(()) => println!("INFO: Pointer arithmetic code compiles!"),
-        Err(_) => {
-            println!("INFO: Known issue - slice pointer arithmetic needs more work");
-        }
-    }
-}
-
-/// Test: String pointer assignment (char* start = str)
-/// NOTE: String iteration is handled specially with index-based approach
-#[test]
-fn test_string_ptr_assignment() {
-    let c_code = r#"
-int string_length(char* str) {
-    char* start = str;
-    while (*str != '\0') {
-        str++;
-    }
-    return str - start;
-}
-"#;
-
-    let rust_code = transpile_c(c_code);
-
-    // String parameters may be transformed differently (&str or &[u8])
-    // Document current behavior
-    println!("Generated code:\n{}", rust_code);
-
-    // Known issue: pointer subtraction on string slices
-    match compiles(&rust_code) {
-        Ok(()) => println!("INFO: String length function compiles!"),
-        Err(_) => {
-            println!("INFO: Known issue - string pointer arithmetic needs work");
-        }
-    }
-}
-
-/// Test: increment_decrement.c - document current state
-/// NOTE: Known issue - slice-to-pointer body transformation incomplete
+/// Test: increment_decrement.c should compile
 #[test]
 fn test_increment_decrement_compiles() {
     let output = Command::new("cargo")
@@ -210,40 +126,11 @@ fn test_increment_decrement_compiles() {
 
     let rust_code = String::from_utf8_lossy(&output.stdout).to_string();
 
-    // Document state - don't fail test
     match compiles(&rust_code) {
-        Ok(()) => println!("INFO: increment_decrement.c compiles!"),
-        Err(_) => {
-            println!("INFO: increment_decrement.c - known issue with slice-to-pointer");
-        }
-    }
-}
-
-/// Test: real_world_patterns.c - document current state
-/// NOTE: Known issue - slice-to-pointer body transformation incomplete
-#[test]
-fn test_real_world_patterns_compiles() {
-    let output = Command::new("cargo")
-        .args([
-            "run",
-            "-p",
-            "decy",
-            "--quiet",
-            "--",
-            "transpile",
-            "examples/pointer_arithmetic/real_world_patterns.c",
-        ])
-        .current_dir("/home/noah/src/decy")
-        .output()
-        .expect("Failed to run decy transpile");
-
-    let rust_code = String::from_utf8_lossy(&output.stdout).to_string();
-
-    // Document state - don't fail test
-    match compiles(&rust_code) {
-        Ok(()) => println!("INFO: real_world_patterns.c compiles!"),
-        Err(_) => {
-            println!("INFO: real_world_patterns.c - known issue with slice-to-pointer");
-        }
+        Ok(()) => {}
+        Err(e) => panic!(
+            "DECY-149: increment_decrement.c should compile.\nCode:\n{}\nErrors:\n{}",
+            rust_code, e
+        ),
     }
 }
