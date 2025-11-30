@@ -110,16 +110,18 @@ Point* create_point(void) {
 #[test]
 fn test_struct_with_default_derive_uses_box_default() {
     let c_code = r#"
-typedef struct Entry {
-    int value;
-    struct Entry* next;
-} Entry;
+typedef struct Rectangle {
+    int width;
+    int height;
+    int area;
+} Rectangle;
 
-Entry* create_entry(int val) {
-    Entry* e = (Entry*)malloc(sizeof(Entry));
-    e->value = val;
-    e->next = NULL;
-    return e;
+Rectangle* create_rectangle(int w, int h) {
+    Rectangle* r = (Rectangle*)malloc(sizeof(Rectangle));
+    r->width = w;
+    r->height = h;
+    r->area = w * h;
+    return r;
 }
 "#;
 
@@ -135,7 +137,7 @@ Entry* create_entry(int val) {
     // Should use Box::default() for allocation
     assert!(
         rust_code.contains("Box::default()")
-            || rust_code.contains("Box::<Entry>::default()"),
+            || rust_code.contains("Box::<Rectangle>::default()"),
         "DECY-141: Should use Box::default() for structs with Default derive. Got:\n{}",
         rust_code
     );
