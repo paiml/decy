@@ -9611,8 +9611,8 @@ qa_audit_nov_2025:
       priority: critical
       story_points: 8
       assignee: Claude
-      status: not_started
-      phase: null
+      status: done
+      phase: DONE
       github_issue: null
       discovered_by: "QA Audit Nov 30, 2025"
 
@@ -9637,5 +9637,14 @@ qa_audit_nov_2025:
         - No type mismatch errors from rustc
 
       files_modified:
-        - crates/decy-codegen/src/type_coercion.rs (new)
         - crates/decy-codegen/src/lib.rs
+        - crates/decy-codegen/src/codegen_tests.rs (2 new tests)
+
+      resolution_notes: |
+        Implemented slice-to-pointer coercion in generate_expression_with_target_type:
+        - &[T] assigned to *mut T → .as_ptr() as *mut T
+        - &mut [T] assigned to *mut T → .as_mut_ptr()
+        - Vec<T> assigned to *mut T → .as_mut_ptr()
+
+        This fixes type mismatch errors in generated code where array parameters
+        (transformed to slices) are assigned to local pointer variables.
