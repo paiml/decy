@@ -2,7 +2,7 @@
 //!
 //! Verifies LLM-guided Rust generation with analysis context.
 
-use decy_llm::{CodegenPrompt, ContextBuilder, GeneratedCode, LlmCodegen, LlmError};
+use decy_llm::{CodegenPrompt, ContextBuilder, LlmCodegen};
 
 // ============================================================================
 // TEST 1: Create codegen prompt
@@ -64,8 +64,8 @@ fn test_render_prompt_includes_context() {
 
 #[test]
 fn test_create_llm_codegen() {
-    let codegen = LlmCodegen::new("test-model");
-    assert!(true); // Just verify creation doesn't panic
+    let _codegen = LlmCodegen::new("test-model");
+    // Just verify creation doesn't panic
 }
 
 // ============================================================================
@@ -167,7 +167,6 @@ fn test_validate_invalid_code() {
 
 #[test]
 fn test_default_model() {
-    let codegen = LlmCodegen::default();
+    let _codegen = LlmCodegen::default();
     // Should create without panic using default model
-    assert!(true);
 }
