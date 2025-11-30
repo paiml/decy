@@ -2646,6 +2646,7 @@ fn extract_field_access(cursor: CXCursor) -> Option<Expression> {
 }
 
 /// Extract a sizeof expression.
+/// DECY-119: Only match if sizeof is the FIRST token (not from other statements)
 fn extract_sizeof(cursor: CXCursor) -> Option<Expression> {
     // Get the translation unit
     let tu = unsafe { clang_Cursor_getTranslationUnit(cursor) };
@@ -2664,11 +2665,34 @@ fn extract_sizeof(cursor: CXCursor) -> Option<Expression> {
         clang_tokenize(tu, extent, &mut tokens, &mut num_tokens);
     }
 
-    let mut is_sizeof = false;
-    let mut type_name = String::new();
+    // DECY-119: sizeof must be the FIRST token, otherwise this cursor
+    // is not a sizeof expression (it might just contain one elsewhere)
+    if num_tokens == 0 {
+        unsafe { clang_disposeTokens(tu, tokens, num_tokens); }
+        return None;
+    }
 
-    // Look through tokens to find "sizeof" keyword and extract type name
-    for i in 0..num_tokens {
+    let first_token_is_sizeof = unsafe {
+        let token = *tokens.add(0);
+        let token_cxstring = clang_getTokenSpelling(tu, token);
+        let c_str = CStr::from_ptr(clang_getCString(token_cxstring));
+        let is_sizeof = c_str.to_str().map(|s| s == "sizeof").unwrap_or(false);
+        clang_disposeString(token_cxstring);
+        is_sizeof
+    };
+
+    if !first_token_is_sizeof {
+        unsafe { clang_disposeTokens(tu, tokens, num_tokens); }
+        return None;
+    }
+
+    let mut type_name = String::new();
+    let mut paren_depth = 0;
+    let mut in_sizeof_parens = false;
+
+    // Look through tokens to extract type name (skip first token which is "sizeof")
+    // DECY-119: Track paren depth to stop at closing paren
+    for i in 1..num_tokens {
         unsafe {
             let token = *tokens.add(i as usize);
             let token_kind = clang_getTokenKind(token);
@@ -2676,12 +2700,18 @@ fn extract_sizeof(cursor: CXCursor) -> Option<Expression> {
             let c_str = CStr::from_ptr(clang_getCString(token_cxstring));
 
             if let Ok(token_str) = c_str.to_str() {
-                if token_str == "sizeof" {
-                    is_sizeof = true;
-                } else if is_sizeof
+                if token_str == "(" {
+                    paren_depth += 1;
+                    in_sizeof_parens = true;
+                } else if token_str == ")" {
+                    paren_depth -= 1;
+                    // DECY-119: Stop when we close the sizeof parenthesis
+                    if paren_depth == 0 && in_sizeof_parens {
+                        clang_disposeString(token_cxstring);
+                        break;
+                    }
+                } else if in_sizeof_parens
                     && (token_kind == CXToken_Identifier || token_kind == CXToken_Keyword)
-                    && token_str != "("
-                    && token_str != ")"
                 {
                     // This is part of the type name (e.g., "int", "Data", "struct")
                     if !type_name.is_empty() {
@@ -2699,7 +2729,8 @@ fn extract_sizeof(cursor: CXCursor) -> Option<Expression> {
         clang_disposeTokens(tu, tokens, num_tokens);
     }
 
-    if is_sizeof && !type_name.is_empty() {
+    // We already verified first token is sizeof, just check we got a type name
+    if !type_name.is_empty() {
         Some(Expression::Sizeof { type_name })
     } else {
         None
