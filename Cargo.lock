@@ -1664,6 +1664,7 @@ dependencies = [
  "bytemuck",
  "chrono",
  "clap",
+ "clap_complete",
  "dirs 5.0.1",
  "ed25519-dalek",
  "hex",
