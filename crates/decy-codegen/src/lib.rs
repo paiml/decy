@@ -1917,10 +1917,8 @@ impl CodeGenerator {
                     }
                 } else {
                     // DECY-088: Check for char* with string literal initializer → &str
-                    let is_string_literal_init = matches!(
-                        initializer,
-                        Some(HirExpression::StringLiteral(_))
-                    );
+                    let is_string_literal_init =
+                        matches!(initializer, Some(HirExpression::StringLiteral(_)));
                     let is_char_pointer = matches!(
                         var_type,
                         HirType::Pointer(inner) if matches!(&**inner, HirType::Char)
