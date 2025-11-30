@@ -3079,14 +3079,14 @@ fn convert_type(cx_type: CXType) -> Option<Type> {
     match cx_type.kind {
         CXType_Void => Some(Type::Void),
         CXType_Int => Some(Type::Int),
-        CXType_UInt => Some(Type::Int), // unsigned int → i32 (simplified)
+        CXType_UInt => Some(Type::UnsignedInt), // DECY-158: unsigned int → u32
         CXType_UChar => Some(Type::Char), // unsigned char → u8 (DECY-057 fix)
-        CXType_UShort => Some(Type::Int), // unsigned short → i32 (simplified)
-        CXType_ULong => Some(Type::Int), // unsigned long → i32 (simplified for now)
+        CXType_UShort => Some(Type::UnsignedInt), // unsigned short → u32 (safe approximation)
+        CXType_ULong => Some(Type::UnsignedInt), // unsigned long → u32 (safe approximation)
         CXType_Short => Some(Type::Int), // short → i32
         CXType_Long => Some(Type::Int), // long → i32
         CXType_LongLong => Some(Type::Int), // long long → i32 (simplified)
-        CXType_ULongLong => Some(Type::Int), // unsigned long long → i32 (simplified)
+        CXType_ULongLong => Some(Type::UnsignedInt), // DECY-158: unsigned long long → u32
         CXType_Float => Some(Type::Float),
         CXType_Double => Some(Type::Double),
         CXType_Char_S | CXType_Char_U => Some(Type::Char),
@@ -3628,12 +3628,14 @@ impl Typedef {
         match &self.underlying_type {
             Type::Void => "void",
             Type::Int => "int",
+            Type::UnsignedInt => "unsigned int", // DECY-158
             Type::Float => "float",
             Type::Double => "double",
             Type::Char => "char",
             Type::Pointer(inner) => match **inner {
                 Type::Char => "char*",
                 Type::Int => "int*",
+                Type::UnsignedInt => "unsigned int*", // DECY-158
                 Type::Float => "float*",
                 Type::Double => "double*",
                 Type::Void => "void*",
@@ -4090,6 +4092,8 @@ pub enum Type {
     Void,
     /// int
     Int,
+    /// unsigned int (DECY-158)
+    UnsignedInt,
     /// float
     Float,
     /// double
