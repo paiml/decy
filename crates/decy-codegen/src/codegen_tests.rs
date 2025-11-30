@@ -915,7 +915,10 @@ mod tests {
         let code = codegen.generate_statement(&var_decl);
 
         // DECY-130: malloc is now transformed to Vec
-        assert_eq!(code, "let mut ptr: Vec<i32> = Vec::<u8>::with_capacity(40 as usize);");
+        assert_eq!(
+            code,
+            "let mut ptr: Vec<i32> = Vec::<u8>::with_capacity(40 as usize);"
+        );
     }
 
     // DECY-009 Phase 2: Assignment statement tests (RED phase)

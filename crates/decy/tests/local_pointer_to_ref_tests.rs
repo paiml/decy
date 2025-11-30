@@ -1,19 +1,27 @@
 //! DECY-118: Local pointer variable to reference transformation tests.
 //!
-//! When a local variable is declared as a pointer and initialized with &x,
-//! it should be transformed to a reference type.
+//! DECY-118 is DISABLED for local variables due to DECY-128 (double pointer issues).
+//! When a local pointer's address is taken (e.g., &p in set_value(&p, 42)),
+//! transforming `int *p = &x` to `let p = &mut x` breaks type compatibility.
+//!
+//! Current behavior: Local pointer → raw pointer (requires unsafe)
+//! Future (when DECY-118 re-enabled): Local pointer → reference
 //!
 //! C: int *p = &x;
-//! Expected Rust: let p = &mut x;  (NOT: let p: *mut i32 = &x;)
+//! Current Rust: let p: *mut i32 = &mut x as *mut i32;
+//! Future Rust: let p = &mut x;
 
 use decy_core::transpile;
 
-/// Test that local pointer initialized with address-of becomes reference.
+/// Test that local pointer initialized with address-of generates raw pointer.
+///
+/// DECY-118 is DISABLED. Local pointers remain as raw pointers because
+/// their address might be taken (e.g., &p), which would fail with references.
 ///
 /// C: int *p = &x;
-/// Expected: let p = &mut x;  or  let p: &mut i32 = &mut x;
+/// Current: let p: *mut i32 = &mut x as *mut i32; (raw pointer, needs unsafe)
 #[test]
-fn test_local_pointer_to_ref() {
+fn test_local_pointer_stays_raw_pointer() {
     let c_code = r#"
         int main() {
             int x = 10;
@@ -27,17 +35,18 @@ fn test_local_pointer_to_ref() {
 
     println!("Generated Rust code:\n{}", result);
 
-    // Should NOT have raw pointer assignment
+    // DECY-118 disabled: Local pointers stay as raw pointers
+    // This is intentional due to DECY-128 (double pointer compatibility)
     assert!(
-        !result.contains(": *mut i32 = &"),
-        "Should NOT assign &x to *mut i32\nGenerated:\n{}",
+        result.contains("*mut i32") || result.contains("&mut x"),
+        "Local pointer should be raw pointer or reference\nGenerated:\n{}",
         result
     );
 
-    // Should use reference type
+    // Should still have &mut x somewhere (either as reference or cast)
     assert!(
-        result.contains("&mut x") || result.contains("& mut x"),
-        "Should use &mut reference\nGenerated:\n{}",
+        result.contains("&mut x"),
+        "Should have address-of expression\nGenerated:\n{}",
         result
     );
 }

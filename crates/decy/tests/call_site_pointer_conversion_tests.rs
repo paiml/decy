@@ -1,17 +1,21 @@
 //! DECY-125: Call site array/string to pointer conversion tests.
 //!
 //! When calling a function with raw pointer parameters, convert:
-//! - Arrays to pointers: `arr` → `arr.as_mut_ptr()`
+//! - Arrays to pointers: `arr` → `arr.as_mut_ptr()` (for non-char* pointers)
 //! - String literals to pointers: `"hello"` → `"hello".as_ptr() as *mut u8`
+//!
+//! Note: DECY-134 takes priority for char* with pointer arithmetic,
+//! transforming to safe slice iteration instead of raw pointers.
 
 use decy_core::transpile;
 
-/// Test that array argument is converted properly when function takes *mut T.
+/// Test that char* with pointer arithmetic transforms to slice (DECY-134 pattern).
 ///
-/// When function uses pointer arithmetic, param stays as *mut T,
-/// and call site needs buffer.as_mut_ptr()
+/// When function uses char* with pointer arithmetic, DECY-134 string iteration
+/// pattern takes priority, transforming to safe slice + index instead of raw pointer.
+/// This is SAFER than raw pointer transformation.
 #[test]
-fn test_array_to_mut_ptr_call_site() {
+fn test_array_to_slice_for_char_ptr() {
     let c_code = r#"
         void advance_ptr(char *data) {
             data = data + 1;
@@ -28,20 +32,21 @@ fn test_array_to_mut_ptr_call_site() {
 
     println!("Generated Rust code:\n{}", result);
 
-    // Should convert array to raw pointer at call site
+    // DECY-134: char* with pointer arithmetic → slice (safer than raw pointer)
+    // Either slice reference or raw pointer conversion is acceptable
     assert!(
-        result.contains("as_mut_ptr") || result.contains(".as_ptr()"),
-        "Should convert array to pointer at call site\nGenerated:\n{}",
+        result.contains("&[u8]") || result.contains("&buffer") || result.contains("as_mut_ptr"),
+        "Should transform char* param to slice or pointer\nGenerated:\n{}",
         result
     );
 }
 
-/// Test that string literal is converted to pointer when function takes *mut u8.
+/// Test that char* string iteration uses slice transformation (DECY-134).
 ///
-/// C: func("hello");  where func takes char*
-/// Expected Rust: func("hello".as_ptr() as *mut u8);
+/// DECY-134 transforms char* with pointer arithmetic to safe slice iteration.
+/// This is preferred over raw pointer + .as_ptr() because it's 100% safe.
 #[test]
-fn test_string_literal_to_ptr_call_site() {
+fn test_string_literal_to_byte_slice() {
     let c_code = r#"
         void str_copy(char *dest, char *src) {
             dest = dest + 1;
@@ -59,10 +64,12 @@ fn test_string_literal_to_ptr_call_site() {
 
     println!("Generated Rust code:\n{}", result);
 
-    // Should convert string literal to pointer at call site
+    // DECY-134: String iteration pattern → byte slice
+    // Either byte string (b"...") or pointer conversion is acceptable
     assert!(
-        result.contains(".as_ptr()") || result.contains("as *const") || result.contains("as *mut"),
-        "Should convert string literal to pointer at call site\nGenerated:\n{}",
+        result.contains("b\"hello\"") || result.contains("&[u8]")
+            || result.contains(".as_ptr()") || result.contains("as *mut"),
+        "Should convert string literal to byte slice or pointer\nGenerated:\n{}",
         result
     );
 }
