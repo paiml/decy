@@ -10420,3 +10420,35 @@ sprint_31_single_shot:
 
       files_modified:
         - crates/decy-codegen/tests/e2e_examples_test.rs
+
+    DECY-157:
+      title: "Add real-world examples to E2E test suite"
+      type: quality
+      priority: medium
+      story_points: 2
+      assignee: Claude
+      status: done
+      phase: DONE
+
+      description: |
+        Added examples/real-world directory to E2E test coverage.
+        These examples validate fixes from DECY-150, DECY-151.
+
+        Results:
+        - buffer_ops.c ✓ (DECY-150 fix)
+        - string_utils.c ✓ (DECY-151 fix)
+        - math_utils.c ✓
+        - linked_list.c ⚠ (known issue: malloc struct type)
+
+        E2E improved: 11 passed, 3 known issues (78.6% pass rate)
+
+      acceptance_criteria:
+        - real-world directory included in E2E summary
+        - linked_list.c documented as known issue
+        - Pass rate 100% excluding known issues
+
+      test_strategy: |
+        Run E2E tests and verify all real-world examples are tested
+
+      files_modified:
+        - crates/decy-codegen/tests/e2e_examples_test.rs
