@@ -9,4 +9,5 @@
 pub mod lock_analysis;
 pub mod output_params;
 pub mod patterns;
+pub mod subprocess_analysis;
 pub mod tagged_union_analysis;
