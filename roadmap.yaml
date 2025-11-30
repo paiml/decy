@@ -9928,3 +9928,41 @@ sprint_31_single_shot:
       files_modified:
         - crates/decy-codegen/src/lib.rs
         - crates/decy-codegen/tests/vec_return_test.rs
+
+    DECY-143:
+      title: "Add SAFETY comments to unsafe blocks"
+      type: quality
+      priority: high
+      story_points: 3
+      assignee: Claude
+      status: in_progress
+      phase: RED
+
+      description: |
+        Every unsafe block in generated Rust code should have a SAFETY comment
+        explaining why the operation is safe. This is a Rust convention that:
+        1. Documents the safety invariants being upheld
+        2. Helps code reviewers understand the reasoning
+        3. Makes auditing unsafe code easier
+        
+        Current state: hash_table.c and binary_tree.c generate unsafe blocks
+        without SAFETY comments. This is a quality gap (QA Item #49, #73).
+
+        Example:
+        // SAFETY: pointer is valid and properly aligned, derived from Box allocation
+        unsafe { *ptr = value; }
+
+      acceptance_criteria:
+        - All generated unsafe blocks have SAFETY comments
+        - Comments explain why the operation is safe
+        - hash_table.c and binary_tree.c output includes SAFETY comments
+        - Tests verify SAFETY comment presence
+
+      test_strategy: |
+        1. RED: Write test that checks for SAFETY comments in unsafe blocks
+        2. GREEN: Generate SAFETY comments in codegen
+        3. REFACTOR: Improve comment quality and specificity
+
+      files_modified:
+        - crates/decy-codegen/src/lib.rs
+        - crates/decy-codegen/tests/safety_comments_test.rs
