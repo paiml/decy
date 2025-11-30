@@ -2139,6 +2139,7 @@ fn extract_binary_operator(cursor: CXCursor) -> Option<BinaryOperator> {
 
     let mut candidates: Vec<(usize, BinaryOperator)> = Vec::new();
     let mut found_first_operand = false;
+    let mut paren_depth: i32 = 0; // Track parenthesis nesting depth
 
     for i in 0..num_tokens {
         unsafe {
@@ -2150,29 +2151,39 @@ fn extract_binary_operator(cursor: CXCursor) -> Option<BinaryOperator> {
                 found_first_operand = true;
             }
 
-            // Collect all operator candidates after the first operand
-            if token_kind == CXToken_Punctuation && found_first_operand {
+            // Track parenthesis depth to avoid operators inside function calls
+            if token_kind == CXToken_Punctuation {
                 let token_cxstring = clang_getTokenSpelling(tu, token);
                 let c_str = CStr::from_ptr(clang_getCString(token_cxstring));
                 if let Ok(token_str) = c_str.to_str() {
-                    let op = match token_str {
-                        "+" => Some(BinaryOperator::Add),
-                        "-" => Some(BinaryOperator::Subtract),
-                        "*" => Some(BinaryOperator::Multiply),
-                        "/" => Some(BinaryOperator::Divide),
-                        "%" => Some(BinaryOperator::Modulo),
-                        "==" => Some(BinaryOperator::Equal),
-                        "!=" => Some(BinaryOperator::NotEqual),
-                        "<" => Some(BinaryOperator::LessThan),
-                        ">" => Some(BinaryOperator::GreaterThan),
-                        "<=" => Some(BinaryOperator::LessEqual),
-                        ">=" => Some(BinaryOperator::GreaterEqual),
-                        "&&" => Some(BinaryOperator::LogicalAnd),
-                        "||" => Some(BinaryOperator::LogicalOr),
-                        _ => None,
-                    };
-                    if let Some(op) = op {
-                        candidates.push((i as usize, op));
+                    match token_str {
+                        "(" => paren_depth += 1,
+                        ")" => paren_depth = paren_depth.saturating_sub(1),
+                        _ => {}
+                    }
+
+                    // Only collect operator candidates at depth 0 (outside parentheses)
+                    // This fixes DECY-116: n * func(n - 1) was picking up the - inside parens
+                    if found_first_operand && paren_depth == 0 {
+                        let op = match token_str {
+                            "+" => Some(BinaryOperator::Add),
+                            "-" => Some(BinaryOperator::Subtract),
+                            "*" => Some(BinaryOperator::Multiply),
+                            "/" => Some(BinaryOperator::Divide),
+                            "%" => Some(BinaryOperator::Modulo),
+                            "==" => Some(BinaryOperator::Equal),
+                            "!=" => Some(BinaryOperator::NotEqual),
+                            "<" => Some(BinaryOperator::LessThan),
+                            ">" => Some(BinaryOperator::GreaterThan),
+                            "<=" => Some(BinaryOperator::LessEqual),
+                            ">=" => Some(BinaryOperator::GreaterEqual),
+                            "&&" => Some(BinaryOperator::LogicalAnd),
+                            "||" => Some(BinaryOperator::LogicalOr),
+                            _ => None,
+                        };
+                        if let Some(op) = op {
+                            candidates.push((i as usize, op));
+                        }
                     }
                 }
                 clang_disposeString(token_cxstring);
