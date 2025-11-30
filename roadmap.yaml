@@ -9572,8 +9572,8 @@ qa_audit_nov_2025:
       priority: critical
       story_points: 8
       assignee: Claude
-      status: not_started
-      phase: null
+      status: done
+      phase: DONE
       github_issue: null
       discovered_by: "QA Audit Nov 30, 2025"
 
@@ -9598,8 +9598,12 @@ qa_audit_nov_2025:
         - Cross-platform: Linux, macOS, Windows
 
       files_modified:
-        - crates/decy-parser/src/parser.rs
-        - crates/decy-parser/src/include_paths.rs (new)
+        - crates/decy-parser/tests/system_include_tests.rs (new - 7 tests)
+
+      resolution_notes: |
+        System include path discovery works via libclang's built-in detection.
+        Verified by 7 tests including binary_tree.c parsing.
+        No code changes needed - libclang automatically finds system headers.
 
     DECY-118:
       title: "[P0] Add type coercion pass for slice-to-pointer transitions"
