@@ -1915,7 +1915,10 @@ impl CodeGenerator {
                 panic!("References must be initialized and cannot have default values")
             }
             HirType::Struct(name) => {
-                format!("{}::default()", name)
+                // DECY-123: Use zeroed() as fallback for structs that may not impl Default
+                // (e.g., structs with arrays > 32 elements)
+                // This is safe for C structs where zero-initialization is valid
+                format!("unsafe {{ std::mem::zeroed::<{}>() }}", name)
             }
             HirType::Enum(name) => {
                 format!("{}::default()", name)
@@ -2191,9 +2194,12 @@ impl CodeGenerator {
                         // Generate Box::new or Vec based on the MODIFIED type (_actual_type)
                         match &_actual_type {
                             HirType::Box(inner) => {
+                                // DECY-123: Use zeroed() instead of default() for structs
+                                // to handle structs with large arrays
+                                let inner_type = Self::map_type(inner);
                                 code.push_str(&format!(
-                                    " = Box::new({}::default());",
-                                    Self::map_type(inner)
+                                    " = Box::new(unsafe {{ std::mem::zeroed::<{}>() }});",
+                                    inner_type
                                 ));
                             }
                             HirType::Vec(_) => {
@@ -2315,10 +2321,14 @@ impl CodeGenerator {
                 let mut code = String::new();
 
                 // Generate while condition
-                code.push_str(&format!(
-                    "while {} {{\n",
-                    self.generate_expression_with_context(condition, ctx)
-                ));
+                // DECY-123: If condition is not already boolean, wrap with != 0
+                let cond_code = self.generate_expression_with_context(condition, ctx);
+                let cond_str = if Self::is_boolean_expression(condition) {
+                    cond_code
+                } else {
+                    format!("({}) != 0", cond_code)
+                };
+                code.push_str(&format!("while {} {{\n", cond_str));
 
                 // Generate loop body
                 for stmt in body {
@@ -4258,9 +4268,23 @@ impl CodeGenerator {
             .iter()
             .any(|f| matches!(f.field_type(), HirType::Reference { .. }));
 
+        // DECY-123: Check if struct has large arrays (> 32 elements) that don't impl Default
+        // Rust arrays only implement Default for sizes up to 32
+        let has_large_array = hir_struct.fields().iter().any(|f| {
+            matches!(
+                f.field_type(),
+                HirType::Array { size: Some(n), .. } if *n > 32
+            )
+        });
+
         // Add derive attribute
         // DECY-114: Add Default derive for struct initialization with ::default()
-        code.push_str("#[derive(Debug, Clone, Default, PartialEq, Eq)]\n");
+        // DECY-123: Skip Default for large arrays
+        if has_large_array {
+            code.push_str("#[derive(Debug, Clone, PartialEq, Eq)]\n");
+        } else {
+            code.push_str("#[derive(Debug, Clone, Default, PartialEq, Eq)]\n");
+        }
 
         // Add struct declaration with or without lifetime
         if needs_lifetimes {
