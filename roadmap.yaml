@@ -9554,3 +9554,84 @@ sprint_18:
         - crates/decy-parser/src/parser.rs (likely)
         - crates/decy-codegen/src/expression.rs (likely)
         - crates/decy-core/tests/multiply_operator_tests.rs (new)
+
+# =============================================================================
+# P0 BUGS IDENTIFIED BY QA AUDIT (Nov 30, 2025)
+# =============================================================================
+
+qa_audit_nov_2025:
+  auditor: "QA Agent (Gemini CLI)"
+  methodology: "Toyota Production System (Genchi Genbutsu)"
+  verified_success_rate: "33% (6/18 examples)"
+  grade_revision: "B+ → D+"
+
+  tickets:
+    DECY-117:
+      title: "[P0] Fix system include path discovery in parser"
+      type: bug
+      priority: critical
+      story_points: 8
+      assignee: Claude
+      status: not_started
+      phase: null
+      github_issue: null
+      discovered_by: "QA Audit Nov 30, 2025"
+
+      description: |
+        ROOT CAUSE ANALYSIS (5 Whys):
+        1. binary_tree.c fails with "C source has syntax errors"
+        2. Parser (clang-sys) failed to process the input file
+        3. File uses <stdlib.h> and <stdio.h>, minimal.c (passed) does not
+        4. Parser configuration missing correct system include paths
+        5. Lack of robust, environment-agnostic system header discovery
+
+      requirements:
+        - Detect system include paths dynamically (clang -v -E -)
+        - Support cross-platform header discovery
+        - Fallback to common paths if detection fails
+        - Add tests with stdlib.h includes
+
+      acceptance_criteria:
+        - binary_tree.c transpiles without "syntax errors"
+        - hash_table.c transpiles successfully
+        - Files using <stdio.h>, <stdlib.h>, <string.h> work
+        - Cross-platform: Linux, macOS, Windows
+
+      files_modified:
+        - crates/decy-parser/src/parser.rs
+        - crates/decy-parser/src/include_paths.rs (new)
+
+    DECY-118:
+      title: "[P0] Add type coercion pass for slice-to-pointer transitions"
+      type: bug
+      priority: critical
+      story_points: 8
+      assignee: Claude
+      status: not_started
+      phase: null
+      github_issue: null
+      discovered_by: "QA Audit Nov 30, 2025"
+
+      description: |
+        ROOT CAUSE ANALYSIS (5 Whys):
+        1. increment_decrement.rs fails: `let mut ptr: *mut i32 = arr;`
+        2. arr is &[i32] (safe), ptr is *mut i32 (C style)
+        3. Transpiler identified array but failed to bridge to raw pointer
+        4. Missing semantic rule for "Safe Slice to Raw Pointer"
+        5. Missing .as_mut_ptr() / .as_ptr() cast insertion
+
+      requirements:
+        - Detect &[T] assigned to *mut T or *const T
+        - Insert .as_mut_ptr() for mutable pointers
+        - Insert .as_ptr() for const pointers
+        - Handle array decay patterns correctly
+
+      acceptance_criteria:
+        - increment_decrement.c compiles successfully
+        - compound_assignments.c compiles successfully
+        - Generated code uses explicit casts
+        - No type mismatch errors from rustc
+
+      files_modified:
+        - crates/decy-codegen/src/type_coercion.rs (new)
+        - crates/decy-codegen/src/lib.rs
