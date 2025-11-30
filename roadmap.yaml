@@ -8411,9 +8411,10 @@ sprint_27:
       priority: medium
       story_points: 6
       assignee: Claude
-      status: not_started
+      status: done
       github_issue: null
-      phase: null
+      phase: DONE
+      completed_date: "2025-11-30"
 
       description: |
         Verify files are automatically closed via RAII.
