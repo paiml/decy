@@ -894,6 +894,12 @@ impl CodeGenerator {
                 }
             }
             HirExpression::Variable(name) => {
+                // DECY-142: Vec to Vec - return directly (no conversion needed)
+                // When target type is Vec<T> and variable is Vec<T>, return as-is
+                if let Some(HirType::Vec(_)) = target_type {
+                    // Variable being returned in Vec-return context - return directly
+                    return name.clone();
+                }
                 // DECY-115: Box to raw pointer conversion for return statements
                 // When returning a Box<T> but function returns *mut T, use Box::into_raw
                 if let Some(HirType::Pointer(ptr_inner)) = target_type {
@@ -1241,11 +1247,30 @@ impl CodeGenerator {
                     }
                     // DECY-130: malloc(size) → vec![0; count] or Vec::with_capacity()
                     // DECY-140: When target is raw pointer (*mut u8), use Box::leak for allocation
+                    // DECY-142: When target is Vec<T>, generate vec with correct element type
                     // Reference: K&R §B5, ISO C99 §7.20.3.3
                     "malloc" => {
                         if arguments.len() == 1 {
                             let size_code =
                                 self.generate_expression_with_context(&arguments[0], ctx);
+
+                            // DECY-142: Check if target is Vec<T> - generate vec with correct element type
+                            if let Some(HirType::Vec(elem_type)) = target_type {
+                                let elem_type_str = Self::map_type(elem_type);
+                                let default_val = Self::default_value_for_type(elem_type);
+                                // Try to detect n * sizeof(T) pattern for count
+                                if let HirExpression::BinaryOp {
+                                    op: BinaryOperator::Multiply,
+                                    left,
+                                    ..
+                                } = &arguments[0]
+                                {
+                                    let count_code = self.generate_expression_with_context(left, ctx);
+                                    return format!("vec![{}; {} as usize]", default_val, count_code);
+                                } else {
+                                    return format!("Vec::<{}>::with_capacity({} as usize)", elem_type_str, size_code);
+                                }
+                            }
 
                             // DECY-140: Check if target is raw pointer - generate raw allocation
                             if let Some(HirType::Pointer(inner)) = target_type {
@@ -3196,17 +3221,115 @@ impl CodeGenerator {
                 sig.push_str(&format!(" -> {}", out_type_str));
             }
         } else {
-            // Generate return type with lifetime annotation (skip for void)
-            if !matches!(
-                &annotated_sig.return_type,
-                AnnotatedType::Simple(HirType::Void)
-            ) {
-                let return_type_str = self.annotated_type_to_string(&annotated_sig.return_type);
-                sig.push_str(&format!(" -> {}", return_type_str));
+            // DECY-142: Check if function returns malloc'd array → use Vec<T>
+            if let Some(vec_element_type) = self.detect_vec_return(func) {
+                let element_type_str = Self::map_type(&vec_element_type);
+                sig.push_str(&format!(" -> Vec<{}>", element_type_str));
+            } else {
+                // Generate return type with lifetime annotation (skip for void)
+                if !matches!(
+                    &annotated_sig.return_type,
+                    AnnotatedType::Simple(HirType::Void)
+                ) {
+                    let return_type_str = self.annotated_type_to_string(&annotated_sig.return_type);
+                    sig.push_str(&format!(" -> {}", return_type_str));
+                }
             }
         }
 
         sig
+    }
+
+    /// DECY-142: Check if function returns a malloc-allocated array.
+    /// Returns Some(element_type) if the function allocates with malloc and returns it.
+    /// This pattern should use Vec<T> return type instead of *mut T.
+    fn detect_vec_return(&self, func: &HirFunction) -> Option<HirType> {
+        // Only applies to functions returning pointer types
+        let return_type = func.return_type();
+        let element_type = match return_type {
+            HirType::Pointer(inner) => inner.as_ref().clone(),
+            _ => return None,
+        };
+
+        // Look for pattern: var = malloc(...); return var;
+        // or: return malloc(...);
+        let mut malloc_vars: std::collections::HashSet<String> = std::collections::HashSet::new();
+
+        for stmt in func.body() {
+            // Track variables assigned from malloc
+            if let HirStatement::VariableDeclaration {
+                name,
+                initializer: Some(init_expr),
+                ..
+            } = stmt
+            {
+                if Self::is_malloc_call(init_expr) {
+                    malloc_vars.insert(name.clone());
+                }
+            }
+
+            // Check return statements
+            if let HirStatement::Return(Some(ret_expr)) = stmt {
+                // Direct return of malloc
+                if Self::is_malloc_call(ret_expr) {
+                    return Some(element_type);
+                }
+                // Return of a variable that was assigned from malloc
+                if let HirExpression::Variable(var_name) = ret_expr {
+                    if malloc_vars.contains(var_name) {
+                        return Some(element_type);
+                    }
+                }
+            }
+        }
+
+        None
+    }
+
+    /// Helper to check if an expression is a malloc call for ARRAY allocation.
+    /// DECY-142: Only returns true for array allocations (malloc(n * sizeof(T))),
+    /// not single struct allocations (malloc(sizeof(T))).
+    fn is_malloc_call(expr: &HirExpression) -> bool {
+        match expr {
+            HirExpression::FunctionCall { function, arguments, .. } if function == "malloc" => {
+                // Check if this is an array allocation: malloc(n * sizeof(T))
+                // Single struct allocation: malloc(sizeof(T)) should NOT match
+                if arguments.len() == 1 {
+                    Self::is_array_allocation_size(&arguments[0])
+                } else {
+                    false
+                }
+            }
+            HirExpression::Malloc { size } => {
+                // Check if this is an array allocation
+                Self::is_array_allocation_size(size)
+            }
+            // DECY-142: Check through cast expressions (e.g., (int*)malloc(...))
+            HirExpression::Cast { expr: inner, .. } => Self::is_malloc_call(inner),
+            _ => false,
+        }
+    }
+
+    /// Check if a malloc size expression indicates array allocation (n * sizeof(T))
+    /// vs single struct allocation (sizeof(T) or constant).
+    fn is_array_allocation_size(size_expr: &HirExpression) -> bool {
+        match size_expr {
+            // n * sizeof(T) pattern - this is array allocation
+            HirExpression::BinaryOp {
+                op: decy_hir::BinaryOperator::Multiply,
+                ..
+            } => true,
+            // sizeof(T) alone - this is single struct allocation, NOT array
+            HirExpression::Sizeof { .. } => false,
+            // Constant - likely single allocation
+            HirExpression::IntLiteral(_) => false,
+            // Variable could be array size, but be conservative
+            HirExpression::Variable(_) => false,
+            // Recurse through casts
+            HirExpression::Cast { expr: inner, .. } => Self::is_array_allocation_size(inner),
+            // Other expressions - be conservative, assume not array
+            _ => false,
+        }
     }
 
     /// Check if a parameter is modified in the function body (DECY-072 GREEN).
@@ -3865,6 +3988,14 @@ impl CodeGenerator {
                 result.push_str(&format!(" -> {}", out_type_str));
             }
         } else {
+            // DECY-142: Check for Vec return type (malloc'd array returns)
+            if let Some(f) = func {
+                if let Some(vec_element_type) = self.detect_vec_return(f) {
+                    let element_type_str = Self::map_type(&vec_element_type);
+                    result.push_str(&format!(" -> Vec<{}>", element_type_str));
+                    return result;
+                }
+            }
             // Add return type if not void
             if return_type_str != "()" {
                 result.push_str(&format!(" -> {}", return_type_str));
@@ -4088,6 +4219,13 @@ impl CodeGenerator {
             }
         }
 
+        // DECY-142: Detect Vec-return functions for correct return type handling
+        let effective_return_type = if let Some(element_type) = self.detect_vec_return(func) {
+            HirType::Vec(Box::new(element_type))
+        } else {
+            func.return_type().clone()
+        };
+
         // Generate body statements if present
         if func.body().is_empty() {
             // Generate stub body with return statement
@@ -4104,7 +4242,7 @@ impl CodeGenerator {
                     stmt,
                     Some(func.name()),
                     &mut ctx,
-                    Some(func.return_type()),
+                    Some(&effective_return_type),
                 );
 
                 // DECY-072 GREEN: Replace length parameter references with arr.len() calls
@@ -4274,6 +4412,13 @@ impl CodeGenerator {
             ctx.add_string_iter_func(func_name.clone(), params.clone());
         }
 
+        // DECY-142: Detect Vec-return functions for correct return type handling
+        let effective_return_type = if let Some(element_type) = self.detect_vec_return(func) {
+            HirType::Vec(Box::new(element_type))
+        } else {
+            func.return_type().clone()
+        };
+
         // Generate body statements if present
         if func.body().is_empty() {
             // Generate stub body with return statement
@@ -4290,7 +4435,7 @@ impl CodeGenerator {
                     stmt,
                     Some(func.name()),
                     &mut ctx,
-                    Some(func.return_type()),
+                    Some(&effective_return_type),
                 ));
                 code.push('\n');
             }
