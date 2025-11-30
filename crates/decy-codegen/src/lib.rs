@@ -925,13 +925,14 @@ impl CodeGenerator {
                         if matches!(var_type, HirType::Box(_)) {
                             return format!("Box::into_raw({})", name);
                         }
-                        // DECY-118: Slice to raw pointer coercion
+                        // DECY-118/DECY-146: Reference/Slice to raw pointer coercion
                         // &[T] or &mut [T] assigned to *mut T needs .as_ptr() / .as_mut_ptr()
+                        // &T or &mut T assigned to *mut T needs coercion (pointer cast)
                         match var_type {
                             HirType::Reference { inner, mutable } => {
                                 // Check if inner is an array/slice
                                 if let HirType::Array { element_type, .. } = inner.as_ref() {
-                                    // Verify element types match
+                                    // Slice: verify element types match
                                     if element_type.as_ref() == ptr_inner.as_ref() {
                                         if *mutable {
                                             // Mutable slice: use .as_mut_ptr()
@@ -944,6 +945,14 @@ impl CodeGenerator {
                                             return format!("{}.as_ptr() as {}", name, ptr_type);
                                         }
                                     }
+                                } else if inner.as_ref() == ptr_inner.as_ref() {
+                                    // DECY-146: Single reference (&T or &mut T) to pointer
+                                    // Cast using addr_of!/addr_of_mut! or pointer cast
+                                    if *mutable {
+                                        return format!("{} as *mut _", name);
+                                    } else {
+                                        return format!("{} as *const _ as *mut _", name);
+                                    }
                                 }
                             }
                             // Also handle Vec<T> to *mut T
@@ -951,6 +960,14 @@ impl CodeGenerator {
                                 if elem_type.as_ref() == ptr_inner.as_ref() {
                                     return format!("{}.as_mut_ptr()", name);
                                 }
+                            }
+                            // DECY-146: Handle Pointer(T) → Pointer(T) when parameter
+                            // was transformed to slice but TypeContext has original type.
+                            // This happens when array+length pattern is detected.
+                            HirType::Pointer(_var_inner) => {
+                                // Original pointer type but likely a slice parameter
+                                // Use .as_mut_ptr() as slices are typically mutable
+                                return format!("{}.as_mut_ptr()", name);
                             }
                             _ => {}
                         }
@@ -2545,7 +2562,7 @@ impl CodeGenerator {
                             }
                         }
                     } else {
-                        // Pass var_type as target type hint for null pointer detection
+                        // Pass var_type as target type hint for slice/pointer coercion
                         code.push_str(&format!(
                             " = {};",
                             self.generate_expression_with_target_type(
@@ -4432,11 +4449,17 @@ impl CodeGenerator {
                     // Keep as pointer - codegen will generate unsafe blocks
                     ctx.add_variable(param.name().to_string(), param.param_type().clone());
                 } else {
-                    // Re-register the parameter as a mutable reference type
+                    // DECY-146: Re-register the parameter as a SLICE type (Reference to Array)
+                    // This enables proper .as_ptr()/.as_mut_ptr() generation when
+                    // slice parameters are assigned to raw pointers.
+                    // The signature generates &[T] or &mut [T], so context should match.
                     ctx.add_variable(
                         param.name().to_string(),
                         HirType::Reference {
-                            inner: inner.clone(),
+                            inner: Box::new(HirType::Array {
+                                element_type: inner.clone(),
+                                size: None, // Slice (unsized array)
+                            }),
                             mutable: true,
                         },
                     );
