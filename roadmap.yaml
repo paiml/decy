@@ -8385,7 +8385,7 @@ sprint_27:
       assignee: Claude
       status: in_progress
       github_issue: null
-      phase: RED
+      phase: GREEN
 
       description: |
         Use BufReader/BufWriter and Read/Write traits.
