@@ -31,6 +31,8 @@ pub enum TypeConstraint {
     Clone,
     /// Must implement PartialOrd (for compare operations)
     PartialOrd,
+    /// Must implement PartialEq (for equality comparisons)
+    PartialEq,
 }
 
 /// Analysis result for a void* parameter.
@@ -152,6 +154,12 @@ impl VoidPtrAnalyzer {
                 {
                     info.constraints.push(TypeConstraint::Mutable);
                 }
+                // DECY-097: If value is a dereference of a void* param, need Clone
+                if matches!(value, HirExpression::Dereference(_))
+                    && !info.constraints.contains(&TypeConstraint::Clone)
+                {
+                    info.constraints.push(TypeConstraint::Clone);
+                }
                 self.analyze_expression(target, param_name, info);
                 self.analyze_expression(value, param_name, info);
             }
@@ -201,7 +209,29 @@ impl VoidPtrAnalyzer {
                     }
                 }
             }
-            HirExpression::BinaryOp { left, right, .. } => {
+            HirExpression::BinaryOp { op, left, right } => {
+                // DECY-097: Detect comparison/equality operations for trait bounds
+                let uses_param = self.expr_uses_param(left, param_name)
+                    || self.expr_uses_param(right, param_name);
+                if uses_param {
+                    use decy_hir::BinaryOperator;
+                    match op {
+                        BinaryOperator::LessThan
+                        | BinaryOperator::GreaterThan
+                        | BinaryOperator::LessEqual
+                        | BinaryOperator::GreaterEqual => {
+                            if !info.constraints.contains(&TypeConstraint::PartialOrd) {
+                                info.constraints.push(TypeConstraint::PartialOrd);
+                            }
+                        }
+                        BinaryOperator::Equal | BinaryOperator::NotEqual => {
+                            if !info.constraints.contains(&TypeConstraint::PartialEq) {
+                                info.constraints.push(TypeConstraint::PartialEq);
+                            }
+                        }
+                        _ => {}
+                    }
+                }
                 self.analyze_expression(left, param_name, info);
                 self.analyze_expression(right, param_name, info);
             }
