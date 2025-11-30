@@ -7,6 +7,29 @@
 
 ---
 
+## QA VERIFICATION UPDATE (Gemini CLI Audit)
+
+> **IMPORTANT**: This document was independently verified by QA Agent (Gemini CLI)
+> acting as Chief Engineer / Shusa. The original assessment was overly optimistic.
+
+| Metric | Original Claim | Verified Result |
+|--------|----------------|-----------------|
+| Overall Grade | B+ (85/100) | **D+ (Pre-Alpha)** |
+| Simple Code Success | 90%+ | **100%** (3/3) |
+| Moderate Code Success | 70-80% | **100%** (1/1) |
+| Pointer Arithmetic | 70%+ | **33%** (1/3) |
+| Real World | 40-50% | **25%** (1/4) |
+| Data Structures | 40%+ | **0%** (0/4) |
+| CLI/Threading | 10-20% | **0%** (0/4) |
+| **TOTAL** | 70%+ | **33%** (6/18) |
+
+### Root Causes Identified
+
+1. **DECY-117**: System include path discovery broken (`<stdlib.h>` fails)
+2. **DECY-118**: Missing type coercion for `&[T]` → `*mut T` transitions
+
+---
+
 ## Executive Summary
 
 This document provides a candid assessment of Decy's capability to transpile C code to safe, idiomatic Rust. Following Toyota Way principles of **Genchi Genbutsu** (go and see for yourself) and **Jidoka** (stop and fix problems), we present an honest evaluation rather than marketing claims.
@@ -14,6 +37,7 @@ This document provides a candid assessment of Decy's capability to transpile C c
 ### Key Finding
 
 **Single-shot compile of arbitrary C projects is NOT currently achievable.**
+**Verified Success Rate: 33% (6/18 standard examples)**
 
 Decy successfully transpiles:
 - Simple functions and arithmetic

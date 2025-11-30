@@ -31,8 +31,9 @@ for C_FILE in $C_FILES; do
         echo "  ✅ Generated: $RUST_FILE"
 
         # Try to compile the generated Rust
-        if rustc --crate-type lib --edition 2021 "$RUST_FILE" -o /dev/null 2>/dev/null; then
+        if rustc --crate-type lib --edition 2021 "$RUST_FILE" -o "${RUST_FILE}.rlib" 2>/dev/null; then
             echo "  ✅ Compiles successfully!"
+            rm -f "${RUST_FILE}.rlib"
             SUCCESS=$((SUCCESS + 1))
         else
             echo "  ⚠️  Generated but doesn't compile"

@@ -1,41 +1,41 @@
-fn buffer_fill<'a>(buffer: &'a i32, size: i32, value: i32) {
-    let mut i: i32 = 0;
+fn buffer_fill<'a>(mut buffer: &mut [i32], mut value: i32) {
+    let mut i: i32 = 0i32;
     i = 0;
-while i < size {
-    buffer[i] = value;
+while i < buffer.len() as i32 {
+    buffer[i as usize] = value;
     i = i + 1;
 }
 }
-fn buffer_sum<'a>(buffer: &'a i32, size: i32) -> i32 {
-    let mut sum: i32 = 0;
-    let mut i: i32 = 0;
+fn buffer_sum<'a>(mut buffer: &[i32]) -> i32 {
+    let mut sum: i32 = 0i32;
+    let mut i: i32 = 0i32;
     sum = 0;
     i = 0;
-while i < size {
-    sum = sum + buffer[i];
+while i < buffer.len() as i32 {
+    sum = sum + buffer[i as usize];
     i = i + 1;
 }
     return sum;
 }
-fn buffer_find<'a>(buffer: &'a i32, size: i32, target: i32) -> i32 {
-    let mut i: i32 = 0;
+fn buffer_find<'a>(mut buffer: &[i32], mut target: i32) -> i32 {
+    let mut i: i32 = 0i32;
     i = 0;
-while i < size {
-    if buffer[i] == target {
+while i < buffer.len() as i32 {
+    if buffer[i as usize] == target {
     return i;
 }
     i = i + 1;
 }
     return -1;
 }
-fn buffer_reverse<'a>(buffer: &'a i32, size: i32) {
-    let mut i: i32 = 0;
-    let mut temp: i32 = 0;
+fn buffer_reverse<'a>(mut buffer: &mut [i32]) {
+    let mut i: i32 = 0i32;
+    let mut temp: i32 = 0i32;
     i = 0;
-while i < (size / 2) {
-    temp = buffer[i];
-    buffer[i] = buffer[(size - 1) - i];
-    buffer[(size - 1) - i] = temp;
+while i < (buffer.len() as i32 / 2) {
+    temp = buffer[i as usize];
+    buffer[i as usize] = buffer[(buffer.len() as i32 - 1) - i as usize];
+    buffer[(buffer.len() as i32 - 1) - i as usize] = temp;
     i = i + 1;
 }
 }
