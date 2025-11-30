@@ -79,6 +79,13 @@ impl ArrayParameterTransformer {
 
                 // Transform array parameters to slices
                 if array_param_map.contains_key(param.name()) {
+                    // DECY-161: Check if parameter uses pointer arithmetic
+                    // If so, it must stay as raw pointer (slices don't support arr++)
+                    if Self::uses_pointer_arithmetic(func, param.name()) {
+                        // Keep as raw pointer
+                        return Some(param.clone());
+                    }
+
                     // Get element type from pointer
                     if let HirType::Pointer(inner) = param.param_type() {
                         // Check if array is modified (need &mut) or read-only (need &)
@@ -266,6 +273,60 @@ impl ArrayParameterTransformer {
             )),
             // Literals and other expressions pass through unchanged
             _ => expr.clone(),
+        }
+    }
+}
+
+impl ArrayParameterTransformer {
+    /// DECY-161: Check if a parameter uses pointer arithmetic in the function body.
+    ///
+    /// Parameters that use pointer arithmetic (arr++, arr = arr + n) cannot be
+    /// transformed to slices because slices don't support these operations.
+    fn uses_pointer_arithmetic(func: &HirFunction, param_name: &str) -> bool {
+        for stmt in func.body() {
+            if Self::statement_uses_pointer_arithmetic(stmt, param_name) {
+                return true;
+            }
+        }
+        false
+    }
+
+    /// Recursively check if a statement uses pointer arithmetic on a variable.
+    fn statement_uses_pointer_arithmetic(stmt: &HirStatement, var_name: &str) -> bool {
+        use decy_hir::BinaryOperator;
+        match stmt {
+            HirStatement::Assignment { target, value } => {
+                // Check if this is var = var + n or var = var - n (pointer arithmetic)
+                if target == var_name {
+                    if let HirExpression::BinaryOp { op, left, .. } = value {
+                        if matches!(op, BinaryOperator::Add | BinaryOperator::Subtract) {
+                            if let HirExpression::Variable(name) = &**left {
+                                if name == var_name {
+                                    return true;
+                                }
+                            }
+                        }
+                    }
+                }
+                false
+            }
+            HirStatement::If {
+                then_block,
+                else_block,
+                ..
+            } => {
+                then_block
+                    .iter()
+                    .any(|s| Self::statement_uses_pointer_arithmetic(s, var_name))
+                    || else_block.as_ref().is_some_and(|blk| {
+                        blk.iter()
+                            .any(|s| Self::statement_uses_pointer_arithmetic(s, var_name))
+                    })
+            }
+            HirStatement::While { body, .. } | HirStatement::For { body, .. } => body
+                .iter()
+                .any(|s| Self::statement_uses_pointer_arithmetic(s, var_name)),
+            _ => false,
         }
     }
 }

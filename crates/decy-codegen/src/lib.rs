@@ -3245,8 +3245,12 @@ impl CodeGenerator {
                 // Check if this is an array parameter
                 let is_array = graph.is_array_parameter(&p.name).unwrap_or(false);
 
-                if is_array {
-                    // Transform to slice parameter
+                // DECY-161: Array params with pointer arithmetic must stay as raw pointers
+                // Slices don't support arr++ or arr + n, so check for pointer arithmetic first
+                let uses_ptr_arithmetic = self.uses_pointer_arithmetic(func, &p.name);
+
+                if is_array && !uses_ptr_arithmetic {
+                    // Transform to slice parameter (only if no pointer arithmetic)
                     // Find the original parameter to get the HirType
                     if let Some(orig_param) =
                         func.parameters().iter().find(|fp| fp.name() == p.name)
