@@ -10139,8 +10139,8 @@ sprint_31_single_shot:
       priority: high
       story_points: 2
       assignee: Claude
-      status: in_progress
-      phase: RED
+      status: done
+      phase: DONE
 
       description: |
         When a function returns a raw pointer parameter, codegen incorrectly
