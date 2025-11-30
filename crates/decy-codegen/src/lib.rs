@@ -50,6 +50,9 @@ struct TypeContext {
     // DECY-116: Track which argument indices to skip at call sites (removed length params)
     // func_name -> [(array_arg_index, len_arg_index_to_skip)]
     slice_func_args: HashMap<String, Vec<(usize, usize)>>,
+    // DECY-134: Track string iteration params that use index-based access
+    // Maps param_name -> index_var_name (e.g., "dest" -> "dest_idx")
+    string_iter_params: HashMap<String, String>,
 }
 
 impl TypeContext {
@@ -59,7 +62,23 @@ impl TypeContext {
             structs: HashMap::new(),
             functions: HashMap::new(),
             slice_func_args: HashMap::new(),
+            string_iter_params: HashMap::new(),
         }
+    }
+
+    /// DECY-134: Register a string iteration param with its index variable name
+    fn add_string_iter_param(&mut self, param_name: String, index_var: String) {
+        self.string_iter_params.insert(param_name, index_var);
+    }
+
+    /// DECY-134: Check if a variable is a string iteration param
+    fn is_string_iter_param(&self, name: &str) -> bool {
+        self.string_iter_params.contains_key(name)
+    }
+
+    /// DECY-134: Get the index variable name for a string iteration param
+    fn get_string_iter_index(&self, name: &str) -> Option<&String> {
+        self.string_iter_params.get(name)
     }
 
     /// DECY-117: Register a function signature for call site reference mutability
@@ -933,6 +952,14 @@ impl CodeGenerator {
                 format!("{} {} {}", left_str, op_str, right_str)
             }
             HirExpression::Dereference(inner) => {
+                // DECY-134: Check for string iteration param - use slice indexing
+                if let HirExpression::Variable(var_name) = &**inner {
+                    if let Some(idx_var) = ctx.get_string_iter_index(var_name) {
+                        // Transform *ptr to slice[idx] - no unsafe needed!
+                        return format!("{}[{}]", var_name, idx_var);
+                    }
+                }
+
                 let inner_code = self.generate_expression_with_context(inner, ctx);
 
                 // DECY-041: Check if dereferencing a raw pointer - if so, wrap in unsafe
@@ -1981,6 +2008,23 @@ impl CodeGenerator {
                         )
                     }
                 } else {
+                    // DECY-134: Check for string iteration param pointer arithmetic
+                    // ptr = ptr + 1 → ptr_idx += 1
+                    if let Some(idx_var) = ctx.get_string_iter_index(target) {
+                        // Check if this is ptr = ptr + N or ptr = ptr - N
+                        if let HirExpression::BinaryOp { op, left, right } = value {
+                            if let HirExpression::Variable(var_name) = &**left {
+                                if var_name == target {
+                                    let right_code = self.generate_expression_with_context(right, ctx);
+                                    return match op {
+                                        BinaryOperator::Add => format!("{} += {} as usize;", idx_var, right_code),
+                                        BinaryOperator::Subtract => format!("{} -= {} as usize;", idx_var, right_code),
+                                        _ => format!("{} = {};", target, self.generate_expression_with_context(value, ctx)),
+                                    };
+                                }
+                            }
+                        }
+                    }
                     // Regular assignment (not realloc)
                     let target_type = ctx.get_type(target);
                     format!(
@@ -2104,6 +2148,15 @@ impl CodeGenerator {
                 code
             }
             HirStatement::DerefAssignment { target, value } => {
+                // DECY-134: Check for string iteration param - use slice indexing
+                if let HirExpression::Variable(var_name) = target {
+                    if let Some(idx_var) = ctx.get_string_iter_index(var_name) {
+                        // Transform *ptr = value to slice[idx] = value - no unsafe needed!
+                        let value_code = self.generate_expression_with_context(value, ctx);
+                        return format!("{}[{}] = {};", var_name, idx_var, value_code);
+                    }
+                }
+
                 // Infer the type of *target for null pointer detection
                 let target_type = ctx
                     .infer_expression_type(&HirExpression::Dereference(Box::new(target.clone())));
@@ -2308,6 +2361,17 @@ impl CodeGenerator {
                         func.parameters().iter().find(|fp| fp.name() == p.name)
                     {
                         if let HirType::Pointer(inner) = orig_param.param_type() {
+                            // DECY-134: Check for string iteration pattern FIRST
+                            // char* with pointer arithmetic → slice instead of raw pointer
+                            if self.is_string_iteration_param(func, &p.name) {
+                                // Transform to slice for safe string iteration
+                                let is_mutable = self.is_parameter_deref_modified(func, &p.name);
+                                if is_mutable {
+                                    return Some(format!("{}: &mut [u8]", p.name));
+                                } else {
+                                    return Some(format!("{}: &[u8]", p.name));
+                                }
+                            }
                             // DECY-123: Don't transform to reference if pointer arithmetic is used
                             // (e.g., ptr = ptr + 1) - keep as raw pointer
                             if self.uses_pointer_arithmetic(func, &p.name) {
@@ -2483,6 +2547,25 @@ impl CodeGenerator {
                 .any(|s| self.statement_uses_pointer_arithmetic(s, var_name)),
             _ => false,
         }
+    }
+
+    /// DECY-134: Check if a char* parameter is used in a string iteration pattern.
+    ///
+    /// String iteration pattern: char* with pointer arithmetic in a loop (while (*s) { s++; })
+    /// These should be transformed to slice + index for safe Rust.
+    fn is_string_iteration_param(&self, func: &HirFunction, param_name: &str) -> bool {
+        // Must be a char pointer (Pointer(Char))
+        let is_char_ptr = func.parameters().iter().any(|p| {
+            p.name() == param_name
+                && matches!(p.param_type(), HirType::Pointer(inner) if matches!(&**inner, HirType::Char))
+        });
+
+        if !is_char_ptr {
+            return false;
+        }
+
+        // Must use pointer arithmetic
+        self.uses_pointer_arithmetic(func, param_name)
     }
 
     /// Recursively check if a statement modifies a variable (DECY-072 GREEN).
@@ -2708,6 +2791,18 @@ impl CodeGenerator {
                     // DECY-123: Skip transformation if pointer arithmetic is used
                     // Check if param type is a simple pointer (not already a reference)
                     if let AnnotatedType::Simple(HirType::Pointer(inner)) = &p.param_type {
+                        // DECY-134: Check for string iteration pattern FIRST
+                        if let Some(f) = func {
+                            if self.is_string_iteration_param(f, &p.name) {
+                                // Transform to slice for safe string iteration
+                                let is_mutable = self.is_parameter_deref_modified(f, &p.name);
+                                if is_mutable {
+                                    return format!("{}: &mut [u8]", p.name);
+                                } else {
+                                    return format!("{}: &[u8]", p.name);
+                                }
+                            }
+                        }
                         // DECY-123: If we have function body access, check for pointer arithmetic
                         if let Some(f) = func {
                             if self.uses_pointer_arithmetic(f, &p.name) {
@@ -3086,14 +3181,29 @@ impl CodeGenerator {
         // DECY-041: Initialize type context with function parameters for pointer arithmetic
         let mut ctx = TypeContext::from_function(func);
 
+        // DECY-134: Track string iteration params for index-based body generation
+        let mut string_iter_index_decls = Vec::new();
+
         // DECY-111: Transform pointer parameters to references in the context
         // DECY-123/124: Only transform if NOT using pointer arithmetic
         // This prevents unsafe blocks from being generated for reference dereferences
         for param in func.parameters() {
             if let HirType::Pointer(inner) = param.param_type() {
-                // DECY-124: Keep as pointer in context if pointer arithmetic is used
-                // This ensures proper unsafe wrapping_add/wrapping_sub codegen
-                if self.uses_pointer_arithmetic(func, param.name()) {
+                // DECY-134: Check for string iteration pattern FIRST
+                if self.is_string_iteration_param(func, param.name()) {
+                    // Register as Vec type in context (slice in generated code)
+                    ctx.add_variable(
+                        param.name().to_string(),
+                        HirType::Vec(inner.clone()),
+                    );
+                    // Register string iteration param with index variable
+                    let idx_var = format!("{}_idx", param.name());
+                    ctx.add_string_iter_param(param.name().to_string(), idx_var.clone());
+                    // Add index declaration to generate at function start
+                    string_iter_index_decls.push(format!("    let mut {}: usize = 0;", idx_var));
+                } else if self.uses_pointer_arithmetic(func, param.name()) {
+                    // DECY-124: Keep as pointer in context if pointer arithmetic is used
+                    // This ensures proper unsafe wrapping_add/wrapping_sub codegen
                     // Keep as pointer - codegen will generate unsafe blocks
                     ctx.add_variable(param.name().to_string(), param.param_type().clone());
                 } else {
@@ -3107,6 +3217,12 @@ impl CodeGenerator {
                     );
                 }
             }
+        }
+
+        // DECY-134: Generate index variable declarations for string iteration params
+        for decl in &string_iter_index_decls {
+            code.push_str(decl);
+            code.push('\n');
         }
 
         // Add struct definitions to context for field type lookup
