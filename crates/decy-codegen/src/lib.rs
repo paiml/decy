@@ -3264,10 +3264,8 @@ impl CodeGenerator {
                 Self::map_type(&output_param_types[0])
             } else {
                 // Multiple output params: return (T1, T2, ...)
-                let type_strs: Vec<String> = output_param_types
-                    .iter()
-                    .map(|t| Self::map_type(t))
-                    .collect();
+                let type_strs: Vec<String> =
+                    output_param_types.iter().map(Self::map_type).collect();
                 format!("({})", type_strs.join(", "))
             };
 

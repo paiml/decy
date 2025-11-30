@@ -8141,7 +8141,7 @@ sprint_25:
       assignee: Claude
       status: in_progress
       github_issue: null
-      phase: RED
+      phase: REFACTOR
 
       description: |
         When a function has multiple output parameters, return a tuple.
