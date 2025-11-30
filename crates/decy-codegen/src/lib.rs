@@ -751,6 +751,7 @@ impl CodeGenerator {
         match hir_type {
             HirType::Void => "()".to_string(),
             HirType::Int => "i32".to_string(),
+            HirType::UnsignedInt => "u32".to_string(), // DECY-158
             HirType::Float => "f32".to_string(),
             HirType::Double => "f64".to_string(),
             HirType::Char => "u8".to_string(),
@@ -1939,6 +1940,7 @@ impl CodeGenerator {
                 // Get default value with type suffix for clarity
                 let default_value = match element_type.as_ref() {
                     HirType::Int => "0i32",
+                    HirType::UnsignedInt => "0u32", // DECY-158
                     HirType::Float => "0.0f32",
                     HirType::Double => "0.0f64",
                     HirType::Char => "0u8",
@@ -2123,13 +2125,14 @@ impl CodeGenerator {
 
                 // DECY-138: Special handling for &str post-increment (string iteration)
                 // C pattern: *key++ where key is const char*
-                // Rust pattern: { let __tmp = key.as_bytes()[0] as i32; key = &key[1..]; __tmp }
-                // Note: Cast to i32 for compatibility with integer arithmetic
+                // Rust pattern: { let __tmp = key.as_bytes()[0] as u32; key = &key[1..]; __tmp }
+                // DECY-158: Cast to u32 for C-compatible unsigned promotion semantics
+                // In C, char is promoted to int/unsigned int in arithmetic - u32 works for both
                 if let HirExpression::Variable(var_name) = &**operand {
                     if let Some(var_type) = ctx.get_type(var_name) {
                         if matches!(var_type, HirType::StringReference | HirType::StringLiteral) {
                             return format!(
-                                "{{ let __tmp = {var}.as_bytes()[0] as i32; {var} = &{var}[1..]; __tmp }}",
+                                "{{ let __tmp = {var}.as_bytes()[0] as u32; {var} = &{var}[1..]; __tmp }}",
                                 var = operand_code
                             );
                         }
@@ -2276,6 +2279,7 @@ impl CodeGenerator {
         match hir_type {
             HirType::Void => "()".to_string(),
             HirType::Int => "0i32".to_string(),
+            HirType::UnsignedInt => "0u32".to_string(), // DECY-158
             HirType::Float => "0.0f32".to_string(),
             HirType::Double => "0.0f64".to_string(),
             HirType::Char => "0u8".to_string(),
@@ -2419,6 +2423,7 @@ impl CodeGenerator {
                         let size_code = self.generate_expression_with_context(size_expr, ctx);
                         let default_value = match element_type.as_ref() {
                             HirType::Int => "0i32",
+                            HirType::UnsignedInt => "0u32", // DECY-158
                             HirType::Float => "0.0f32",
                             HirType::Double => "0.0f64",
                             HirType::Char => "0u8",
@@ -4222,6 +4227,7 @@ impl CodeGenerator {
         match return_type {
             HirType::Void => String::new(),
             HirType::Int => "    return 0;".to_string(),
+            HirType::UnsignedInt => "    return 0;".to_string(), // DECY-158
             HirType::Float => "    return 0.0;".to_string(),
             HirType::Double => "    return 0.0;".to_string(),
             HirType::Char => "    return 0;".to_string(),

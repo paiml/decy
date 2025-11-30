@@ -29,6 +29,8 @@ pub enum HirType {
     Void,
     /// int type (maps to i32 in Rust)
     Int,
+    /// unsigned int type (maps to u32 in Rust) - DECY-158
+    UnsignedInt,
     /// float type (maps to f32 in Rust)
     Float,
     /// double type (maps to f64 in Rust)
@@ -95,6 +97,7 @@ impl HirType {
         match ast_type {
             Type::Void => HirType::Void,
             Type::Int => HirType::Int,
+            Type::UnsignedInt => HirType::UnsignedInt, // DECY-158
             Type::Float => HirType::Float,
             Type::Double => HirType::Double,
             Type::Char => HirType::Char,
