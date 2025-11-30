@@ -68,3 +68,133 @@ fn test_hir_expression_statement_with_return_value_discarded() {
 
     assert!(matches!(stmt, HirStatement::Expression(_)));
 }
+
+// =============================================================================
+// DECY-139: Post-increment/decrement in expression context tests
+// =============================================================================
+
+#[test]
+fn test_hir_post_increment_expression_preserved() {
+    // Test that post-increment in expression context is preserved
+    // C: return x++;
+    // HIR: should be PostIncrement { operand: Variable("x") }, NOT just Variable("x")
+    //
+    // Semantics: return old value, then increment
+    // Rust: { let tmp = x; x += 1; tmp }
+
+    use decy_parser::parser::Expression;
+
+    let ast_expr = Expression::PostIncrement {
+        operand: Box::new(Expression::Variable("x".to_string())),
+    };
+
+    let hir_expr = HirExpression::from_ast_expression(&ast_expr);
+
+    // This should NOT be just Variable("x") - the ++ should be preserved!
+    match &hir_expr {
+        HirExpression::PostIncrement { operand } => {
+            assert!(matches!(operand.as_ref(), HirExpression::Variable(name) if name == "x"));
+        }
+        HirExpression::Variable(name) => {
+            panic!(
+                "Bug DECY-139: PostIncrement was incorrectly simplified to just Variable({})",
+                name
+            );
+        }
+        other => {
+            panic!("Expected PostIncrement, got {:?}", other);
+        }
+    }
+}
+
+#[test]
+fn test_hir_pre_increment_expression_preserved() {
+    // Test that pre-increment in expression context is preserved
+    // C: return ++x;
+    // HIR: should be PreIncrement { operand: Variable("x") }
+    //
+    // Semantics: increment first, then return new value
+    // Rust: { x += 1; x }
+
+    use decy_parser::parser::Expression;
+
+    let ast_expr = Expression::PreIncrement {
+        operand: Box::new(Expression::Variable("x".to_string())),
+    };
+
+    let hir_expr = HirExpression::from_ast_expression(&ast_expr);
+
+    // This should NOT be just Variable("x") - the ++ should be preserved!
+    match &hir_expr {
+        HirExpression::PreIncrement { operand } => {
+            assert!(matches!(operand.as_ref(), HirExpression::Variable(name) if name == "x"));
+        }
+        HirExpression::Variable(name) => {
+            panic!(
+                "Bug DECY-139: PreIncrement was incorrectly simplified to just Variable({})",
+                name
+            );
+        }
+        other => {
+            panic!("Expected PreIncrement, got {:?}", other);
+        }
+    }
+}
+
+#[test]
+fn test_hir_post_decrement_expression_preserved() {
+    // Test that post-decrement in expression context is preserved
+    // C: return x--;
+
+    use decy_parser::parser::Expression;
+
+    let ast_expr = Expression::PostDecrement {
+        operand: Box::new(Expression::Variable("x".to_string())),
+    };
+
+    let hir_expr = HirExpression::from_ast_expression(&ast_expr);
+
+    match &hir_expr {
+        HirExpression::PostDecrement { operand } => {
+            assert!(matches!(operand.as_ref(), HirExpression::Variable(name) if name == "x"));
+        }
+        HirExpression::Variable(name) => {
+            panic!(
+                "Bug DECY-139: PostDecrement was incorrectly simplified to just Variable({})",
+                name
+            );
+        }
+        other => {
+            panic!("Expected PostDecrement, got {:?}", other);
+        }
+    }
+}
+
+#[test]
+fn test_hir_pre_decrement_expression_preserved() {
+    // Test that pre-decrement in expression context is preserved
+    // C: return --x;
+
+    use decy_parser::parser::Expression;
+
+    let ast_expr = Expression::PreDecrement {
+        operand: Box::new(Expression::Variable("x".to_string())),
+    };
+
+    let hir_expr = HirExpression::from_ast_expression(&ast_expr);
+
+    match &hir_expr {
+        HirExpression::PreDecrement { operand } => {
+            assert!(matches!(operand.as_ref(), HirExpression::Variable(name) if name == "x"));
+        }
+        HirExpression::Variable(name) => {
+            panic!(
+                "Bug DECY-139: PreDecrement was incorrectly simplified to just Variable({})",
+                name
+            );
+        }
+        other => {
+            panic!("Expected PreDecrement, got {:?}", other);
+        }
+    }
+}
