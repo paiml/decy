@@ -2615,14 +2615,35 @@ impl CodeGenerator {
         sig.push_str(&lifetime_syntax);
 
         // DECY-096: Detect void* parameters for generic transformation
-        use decy_analyzer::void_ptr_analysis::VoidPtrAnalyzer;
+        use decy_analyzer::void_ptr_analysis::{TypeConstraint, VoidPtrAnalyzer};
         let void_analyzer = VoidPtrAnalyzer::new();
         let void_patterns = void_analyzer.analyze(func);
         let has_void_ptr = !void_patterns.is_empty();
 
-        // Add generic type parameter if function has void* params
+        // DECY-097: Collect trait bounds from all void* patterns
+        let mut trait_bounds: Vec<&str> = Vec::new();
+        for pattern in &void_patterns {
+            for constraint in &pattern.constraints {
+                let bound = match constraint {
+                    TypeConstraint::PartialOrd => "PartialOrd",
+                    TypeConstraint::PartialEq => "PartialEq",
+                    TypeConstraint::Clone => "Clone",
+                    TypeConstraint::Copy => "Copy",
+                    _ => continue,
+                };
+                if !trait_bounds.contains(&bound) {
+                    trait_bounds.push(bound);
+                }
+            }
+        }
+
+        // Add generic type parameter with trait bounds if function has void* params
         if has_void_ptr {
-            sig.push_str("<T>");
+            if trait_bounds.is_empty() {
+                sig.push_str("<T>");
+            } else {
+                sig.push_str(&format!("<T: {}>", trait_bounds.join(" + ")));
+            }
         }
 
         // DECY-072 GREEN: Detect array parameters using ownership analysis
