@@ -173,12 +173,14 @@ fn test_complete_subprocess_pattern() {
                         HirExpression::NullLiteral,
                     ],
                 })],
-                else_block: Some(vec![HirStatement::Expression(HirExpression::FunctionCall {
-                    function: "wait".to_string(),
-                    arguments: vec![HirExpression::AddressOf(Box::new(
-                        HirExpression::Variable("status".to_string()),
-                    ))],
-                })]),
+                else_block: Some(vec![HirStatement::Expression(
+                    HirExpression::FunctionCall {
+                        function: "wait".to_string(),
+                        arguments: vec![HirExpression::AddressOf(Box::new(
+                            HirExpression::Variable("status".to_string()),
+                        ))],
+                    },
+                )]),
             },
         ],
     );
