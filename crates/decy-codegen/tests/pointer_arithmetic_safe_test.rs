@@ -425,32 +425,42 @@ fn test_pointer_arithmetic_transformation_unsafe_count() {
     );
 }
 
-/// Test that existing unsafe pointer arithmetic implementation is detected
+/// Test that pointer arithmetic now uses safe methods (wrapping_add)
 ///
-/// This test SHOULD FAIL initially, demonstrating the current unsafe implementation
+/// When a parameter uses pointer arithmetic (e.g., p = p + n), it stays as a raw pointer
+/// and pointer arithmetic should use wrapping_add (a safe method on raw pointers).
 #[test]
-#[should_panic(expected = "Current implementation uses unsafe")]
-fn test_current_implementation_uses_unsafe() {
+fn test_pointer_arithmetic_expression_is_safe() {
     let codegen = CodeGenerator::new();
 
+    // Create a function that uses pointer arithmetic (p = p + 1) to ensure p stays raw pointer
     let func = HirFunction::new_with_body(
-        "ptr_add".to_string(),
+        "ptr_advance".to_string(),
         HirType::Pointer(Box::new(HirType::Int)),
         vec![HirParameter::new(
             "p".to_string(),
             HirType::Pointer(Box::new(HirType::Int)),
         )],
-        vec![HirStatement::Return(Some(HirExpression::BinaryOp {
-            op: BinaryOperator::Add,
-            left: Box::new(HirExpression::Variable("p".to_string())),
-            right: Box::new(HirExpression::IntLiteral(1)),
-        }))],
+        vec![
+            // p = p + 1; (this forces p to stay as raw pointer)
+            HirStatement::Assignment {
+                target: "p".to_string(),
+                value: HirExpression::BinaryOp {
+                    op: BinaryOperator::Add,
+                    left: Box::new(HirExpression::Variable("p".to_string())),
+                    right: Box::new(HirExpression::IntLiteral(1)),
+                },
+            },
+            HirStatement::Return(Some(HirExpression::Variable("p".to_string()))),
+        ],
     );
 
     let result = codegen.generate_function(&func);
 
-    // This should panic because current implementation DOES use unsafe
-    if result.contains("unsafe") {
-        panic!("Current implementation uses unsafe - this proves we need the transformation!");
-    }
+    // Pointer arithmetic with wrapping_add is safe - no unsafe block needed for the arithmetic itself
+    assert!(
+        result.contains("wrapping_add"),
+        "Should use wrapping_add for pointer arithmetic: {}",
+        result
+    );
 }

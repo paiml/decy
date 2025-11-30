@@ -307,7 +307,8 @@ fn test_realloc_in_conditional() {
     let result = codegen.generate_function(&func);
 
     // Expected: if block with resize
-    assert!(result.contains("if need_more"));
+    // DECY-131: Non-boolean conditions are now wrapped with != 0
+    assert!(result.contains("if (need_more) != 0"));
     assert!(result.contains("arr.resize(20, 0i32)"));
 
     // Critical: NO realloc() should appear
