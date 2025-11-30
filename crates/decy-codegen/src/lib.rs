@@ -72,6 +72,7 @@ impl TypeContext {
     }
 
     /// DECY-134: Check if a variable is a string iteration param
+    #[allow(dead_code)] // Reserved for future use in call-site transformation
     fn is_string_iter_param(&self, name: &str) -> bool {
         self.string_iter_params.contains_key(name)
     }
