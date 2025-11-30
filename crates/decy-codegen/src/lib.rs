@@ -3615,10 +3615,22 @@ impl CodeGenerator {
 
         // Add fields
         for field in hir_struct.fields() {
+            // DECY-136: Flexible array members (Array with size: None) → Vec<T>
+            // C99 §6.7.2.1: struct { int size; char data[]; } → Vec<u8>
+            let field_type_str = match field.field_type() {
+                HirType::Array {
+                    element_type,
+                    size: None,
+                } => {
+                    // Flexible array member → Vec<T>
+                    format!("Vec<{}>", Self::map_type(element_type))
+                }
+                other => Self::map_type(other),
+            };
             code.push_str(&format!(
                 "    pub {}: {},\n",
                 field.name(),
-                Self::map_type(field.field_type())
+                field_type_str
             ));
         }
 
