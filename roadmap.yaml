@@ -10342,3 +10342,30 @@ sprint_31_single_shot:
 
       files_modified:
         - crates/decy-codegen/tests/e2e_examples_test.rs
+
+    DECY-154:
+      title: "Remove SATD comments from decy-codegen"
+      type: quality
+      priority: medium
+      story_points: 1
+      assignee: Claude
+      status: done
+      phase: DONE
+
+      description: |
+        Convert TODO/FIXME comments to proper ticket references.
+        SATD (Self-Admitted Technical Debt) comments violate quality standards.
+
+        Changed:
+        - "TODO: Re-enable with analysis" → "See DECY-128 for tracking"
+        - "TODO: Implement Option<Box<T>>" → "See DECY-145 for implementation"
+
+      acceptance_criteria:
+        - Zero TODO/FIXME/HACK comments in decy-codegen/src
+        - Comments reference existing tickets instead
+
+      test_strategy: |
+        grep -rn "TODO|FIXME|HACK" to verify zero matches
+
+      files_modified:
+        - crates/decy-codegen/src/lib.rs
