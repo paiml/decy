@@ -9902,8 +9902,8 @@ sprint_31_single_shot:
       priority: critical
       story_points: 5
       assignee: Claude
-      status: in_progress
-      phase: RED
+      status: done
+      phase: DONE
 
       description: |
         Functions that allocate with malloc and return the pointer should
