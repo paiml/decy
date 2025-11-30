@@ -2192,6 +2192,12 @@ fn extract_binary_operator(cursor: CXCursor) -> Option<BinaryOperator> {
                             ">=" => Some(BinaryOperator::GreaterEqual),
                             "&&" => Some(BinaryOperator::LogicalAnd),
                             "||" => Some(BinaryOperator::LogicalOr),
+                            // DECY-137: Bitwise and shift operators
+                            "<<" => Some(BinaryOperator::LeftShift),
+                            ">>" => Some(BinaryOperator::RightShift),
+                            "&" => Some(BinaryOperator::BitwiseAnd),
+                            "|" => Some(BinaryOperator::BitwiseOr),
+                            "^" => Some(BinaryOperator::BitwiseXor),
                             _ => None,
                         };
                         if let Some(op) = op {
@@ -2206,9 +2212,9 @@ fn extract_binary_operator(cursor: CXCursor) -> Option<BinaryOperator> {
 
     // Select the operator with lowest precedence (appears last in our search)
     // This handles cases like "a > 0 && b > 0" where && should be selected over >
+    // C precedence (low to high): || > && > | > ^ > & > == != > < > <= >= > << >> > + - > * / %
     if !candidates.is_empty() {
-        // Priority: || > && > comparisons > arithmetic
-        // Find the first || operator
+        // Find the first || operator (lowest precedence)
         for (_, op) in &candidates {
             if matches!(op, BinaryOperator::LogicalOr) {
                 operator = Some(*op);
@@ -2224,16 +2230,48 @@ fn extract_binary_operator(cursor: CXCursor) -> Option<BinaryOperator> {
                 }
             }
         }
-        // If no logical operators, find operator with lowest precedence
-        // Precedence (lowest to highest): comparisons (==, !=, <, >, <=, >=) > arithmetic (+, -) > multiplicative (*, /, %)
+        // DECY-137: Bitwise OR (|)
         if operator.is_none() {
-            // Find first comparison operator (==, !=, <, >, <=, >=)
+            for (_, op) in &candidates {
+                if matches!(op, BinaryOperator::BitwiseOr) {
+                    operator = Some(*op);
+                    break;
+                }
+            }
+        }
+        // DECY-137: Bitwise XOR (^)
+        if operator.is_none() {
+            for (_, op) in &candidates {
+                if matches!(op, BinaryOperator::BitwiseXor) {
+                    operator = Some(*op);
+                    break;
+                }
+            }
+        }
+        // DECY-137: Bitwise AND (&)
+        if operator.is_none() {
+            for (_, op) in &candidates {
+                if matches!(op, BinaryOperator::BitwiseAnd) {
+                    operator = Some(*op);
+                    break;
+                }
+            }
+        }
+        // Equality operators (==, !=)
+        if operator.is_none() {
+            for (_, op) in &candidates {
+                if matches!(op, BinaryOperator::Equal | BinaryOperator::NotEqual) {
+                    operator = Some(*op);
+                    break;
+                }
+            }
+        }
+        // Relational operators (<, >, <=, >=)
+        if operator.is_none() {
             for (_, op) in &candidates {
                 if matches!(
                     op,
-                    BinaryOperator::Equal
-                        | BinaryOperator::NotEqual
-                        | BinaryOperator::LessThan
+                    BinaryOperator::LessThan
                         | BinaryOperator::GreaterThan
                         | BinaryOperator::LessEqual
                         | BinaryOperator::GreaterEqual
@@ -2243,7 +2281,16 @@ fn extract_binary_operator(cursor: CXCursor) -> Option<BinaryOperator> {
                 }
             }
         }
-        // If no comparisons, find first additive operator (+, -)
+        // DECY-137: Shift operators (<<, >>)
+        if operator.is_none() {
+            for (_, op) in &candidates {
+                if matches!(op, BinaryOperator::LeftShift | BinaryOperator::RightShift) {
+                    operator = Some(*op);
+                    break;
+                }
+            }
+        }
+        // Additive operators (+, -)
         if operator.is_none() {
             for (_, op) in &candidates {
                 if matches!(op, BinaryOperator::Add | BinaryOperator::Subtract) {
@@ -3315,6 +3362,16 @@ pub enum BinaryOperator {
     LogicalAnd,
     /// Logical OR (||)
     LogicalOr,
+    /// Left shift (<<)
+    LeftShift,
+    /// Right shift (>>)
+    RightShift,
+    /// Bitwise AND (&)
+    BitwiseAnd,
+    /// Bitwise OR (|)
+    BitwiseOr,
+    /// Bitwise XOR (^)
+    BitwiseXor,
 }
 
 /// Represents a C expression.

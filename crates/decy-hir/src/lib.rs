@@ -696,6 +696,16 @@ pub enum BinaryOperator {
     LogicalAnd,
     /// Logical OR (||)
     LogicalOr,
+    /// Left shift (<<)
+    LeftShift,
+    /// Right shift (>>)
+    RightShift,
+    /// Bitwise AND (&)
+    BitwiseAnd,
+    /// Bitwise OR (|)
+    BitwiseOr,
+    /// Bitwise XOR (^)
+    BitwiseXor,
 }
 
 /// Represents an expression in HIR.
@@ -1204,6 +1214,12 @@ fn convert_binary_operator(op: decy_parser::parser::BinaryOperator) -> BinaryOpe
         ParserOp::GreaterEqual => BinaryOperator::GreaterEqual,
         ParserOp::LogicalAnd => BinaryOperator::LogicalAnd,
         ParserOp::LogicalOr => BinaryOperator::LogicalOr,
+        // DECY-137: Bitwise and shift operators
+        ParserOp::LeftShift => BinaryOperator::LeftShift,
+        ParserOp::RightShift => BinaryOperator::RightShift,
+        ParserOp::BitwiseAnd => BinaryOperator::BitwiseAnd,
+        ParserOp::BitwiseOr => BinaryOperator::BitwiseOr,
+        ParserOp::BitwiseXor => BinaryOperator::BitwiseXor,
     }
 }
 
