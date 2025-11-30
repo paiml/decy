@@ -3620,6 +3620,11 @@ impl CodeGenerator {
         for field in hir_struct.fields() {
             // DECY-136: Flexible array members (Array with size: None) → Vec<T>
             // C99 §6.7.2.1: struct { int size; char data[]; } → Vec<u8>
+            //
+            // Note: DECY-135 self-referential pointers (struct Node* next) are kept as
+            // raw pointers for now. Option<Box<T>> transformation requires detecting
+            // heap-allocation patterns to be safe, as stack-allocated linked lists
+            // cannot use Box.
             let field_type_str = match field.field_type() {
                 HirType::Array {
                     element_type,
