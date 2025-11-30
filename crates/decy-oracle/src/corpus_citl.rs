@@ -127,8 +127,8 @@ impl CorpusCITL {
     ///
     /// Returns error if entrenar CITL initialization fails.
     pub fn new() -> Result<Self, OracleError> {
-        let citl = DecisionCITL::new()
-            .map_err(|e| OracleError::PatternStoreError(e.to_string()))?;
+        let citl =
+            DecisionCITL::new().map_err(|e| OracleError::PatternStoreError(e.to_string()))?;
         Ok(Self {
             citl,
             stats: IngestionStats::default(),

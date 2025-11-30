@@ -475,7 +475,8 @@ impl HirParameter {
 
     /// DECY-135: Check if this is a const char* parameter (should become &str).
     pub fn is_const_char_pointer(&self) -> bool {
-        self.is_pointee_const && matches!(self.param_type, HirType::Pointer(ref inner) if **inner == HirType::Char)
+        self.is_pointee_const
+            && matches!(self.param_type, HirType::Pointer(ref inner) if **inner == HirType::Char)
     }
 
     /// Convert from parser AST parameter to HIR parameter.

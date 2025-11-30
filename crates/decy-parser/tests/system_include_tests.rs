@@ -32,7 +32,11 @@ int main() {
     let ast = result.unwrap();
     // stdlib.h brings in many function declarations, just verify main exists
     let has_main = ast.functions().iter().any(|f| f.name == "main");
-    assert!(has_main, "Should find main function among {} functions", ast.functions().len());
+    assert!(
+        has_main,
+        "Should find main function among {} functions",
+        ast.functions().len()
+    );
 }
 
 // ============================================================================
@@ -269,9 +273,15 @@ int main(void) {
     let ast = result.unwrap();
     // Verify expected functions exist
     let function_names: Vec<&str> = ast.functions().iter().map(|f| f.name.as_str()).collect();
-    assert!(function_names.contains(&"create_node"), "Should have create_node");
+    assert!(
+        function_names.contains(&"create_node"),
+        "Should have create_node"
+    );
     assert!(function_names.contains(&"insert"), "Should have insert");
     assert!(function_names.contains(&"search"), "Should have search");
-    assert!(function_names.contains(&"free_tree"), "Should have free_tree");
+    assert!(
+        function_names.contains(&"free_tree"),
+        "Should have free_tree"
+    );
     assert!(function_names.contains(&"main"), "Should have main");
 }
