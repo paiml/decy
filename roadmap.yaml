@@ -10288,3 +10288,31 @@ sprint_31_single_shot:
       files_modified:
         - crates/decy-codegen/src/lib.rs
         - crates/decy-codegen/tests/char_int_coercion_test.rs
+
+    DECY-152:
+      title: "Add missing C keywords to property test generator"
+      type: bug
+      priority: medium
+      story_points: 1
+      assignee: Claude
+      status: done
+      phase: DONE
+
+      description: |
+        Property tests were failing because the keyword list in
+        valid_identifier() was missing GCC extensions (asm, inline, restrict)
+        and C99/C11 keywords (_Bool, _Complex, etc.).
+
+        When proptest generated these as field names, C parsing failed
+        with syntax errors.
+
+      acceptance_criteria:
+        - Property tests pass consistently
+        - Keyword list includes GCC extensions
+        - Keyword list includes C99/C11 keywords
+
+      test_strategy: |
+        Run property tests multiple times to verify no keyword collisions
+
+      files_modified:
+        - crates/decy-parser/tests/pointer_field_access_property_tests.rs
