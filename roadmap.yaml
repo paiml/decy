@@ -8009,7 +8009,7 @@ sprint_25:
   duration: "1 week"
   start_date: "2025-12-03"
   story_points: 21
-  status: not_started
+  status: done
 
   goals:
     - "Detect C output parameters (pointer params written but not read)"
@@ -8206,7 +8206,7 @@ sprint_26:
   duration: "1 week"
   start_date: "2025-12-10"
   story_points: 21
-  status: not_started
+  status: done
 
   goals:
     - "Detect fixed-size array patterns → [T; N]"
@@ -8334,7 +8334,7 @@ sprint_27:
   duration: "1 week"
   start_date: "2025-12-17"
   story_points: 18
-  status: not_started
+  status: done
 
   goals:
     - "Transform FILE* to std::fs::File"
@@ -8444,7 +8444,7 @@ sprint_28:
   duration: "1 week"
   start_date: "2025-12-24"
   story_points: 15
-  status: not_started
+  status: done
 
   goals:
     - "Transform fork/exec to Command API"
@@ -8554,7 +8554,7 @@ sprint_29:
   duration: "1 week"
   start_date: "2025-12-31"
   story_points: 18
-  status: not_started
+  status: done
 
   goals:
     - "Analyze void* usage patterns"
@@ -8665,7 +8665,7 @@ sprint_30:
   duration: "2 weeks"
   start_date: "2026-01-07"
   story_points: 30
-  status: not_started
+  status: done
 
   goals:
     - "Create pipeline: static analysis → LLM context"
