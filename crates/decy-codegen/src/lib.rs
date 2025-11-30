@@ -1916,11 +1916,33 @@ impl CodeGenerator {
                         (var_type.clone(), Self::map_type(var_type))
                     }
                 } else {
-                    ctx.add_variable(name.clone(), var_type.clone());
-                    (var_type.clone(), Self::map_type(var_type))
+                    // DECY-088: Check for char* with string literal initializer → &str
+                    let is_string_literal_init = matches!(
+                        initializer,
+                        Some(HirExpression::StringLiteral(_))
+                    );
+                    let is_char_pointer = matches!(
+                        var_type,
+                        HirType::Pointer(inner) if matches!(&**inner, HirType::Char)
+                    );
+
+                    if is_char_pointer && is_string_literal_init {
+                        // char* s = "hello" → let s: &str = "hello"
+                        ctx.add_variable(name.clone(), HirType::StringReference);
+                        (HirType::StringReference, "&str".to_string())
+                    } else {
+                        ctx.add_variable(name.clone(), var_type.clone());
+                        (var_type.clone(), Self::map_type(var_type))
+                    }
                 };
 
-                let mut code = format!("let mut {}: {}", name, type_str);
+                // DECY-088: For string literals, use immutable binding
+                let mutability = if matches!(_actual_type, HirType::StringReference) {
+                    ""
+                } else {
+                    "mut "
+                };
+                let mut code = format!("let {}{}: {}", mutability, name, type_str);
                 if let Some(init_expr) = initializer {
                     // Special handling for Malloc expressions - use var_type to generate correct Box::new
                     if matches!(init_expr, HirExpression::Malloc { .. }) {
