@@ -8354,9 +8354,9 @@ sprint_27:
       priority: medium
       story_points: 6
       assignee: Claude
-      status: not_started
+      status: in_progress
       github_issue: null
-      phase: null
+      phase: GREEN
 
       description: |
         Replace fopen/fclose with File::open/RAII.
