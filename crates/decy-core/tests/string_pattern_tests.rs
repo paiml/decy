@@ -203,9 +203,5 @@ fn test_const_char_ptr_to_str_slice() {
     let code = codegen.generate_function(&func);
 
     // Should have &str type
-    assert!(
-        code.contains("&str"),
-        "Expected &str type in:\n{}",
-        code
-    );
+    assert!(code.contains("&str"), "Expected &str type in:\n{}", code);
 }
