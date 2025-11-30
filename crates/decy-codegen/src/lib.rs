@@ -1889,15 +1889,21 @@ impl CodeGenerator {
                 let index_code = self.generate_expression_with_context(index, ctx);
 
                 // DECY-041: Check if array is a raw pointer - if so, use unsafe pointer arithmetic
-                if let HirExpression::Variable(var_name) = &**array {
-                    if ctx.is_pointer(var_name) {
-                        // Raw pointer indexing: arr[i] becomes unsafe { *arr.add(i as usize) }
-                        // DECY-143: Add SAFETY comment
-                        return Self::unsafe_block(
-                            &format!("*{}.add({} as usize)", array_code, index_code),
-                            "index is within bounds of allocated array",
-                        );
-                    }
+                // DECY-165: Also check via infer_expression_type for struct field access
+                let is_raw_pointer = if let HirExpression::Variable(var_name) = &**array {
+                    ctx.is_pointer(var_name)
+                } else {
+                    // Use type inference for complex expressions like sb->data
+                    matches!(ctx.infer_expression_type(array), Some(HirType::Pointer(_)))
+                };
+
+                if is_raw_pointer {
+                    // Raw pointer indexing: arr[i] becomes unsafe { *arr.add(i as usize) }
+                    // DECY-143: Add SAFETY comment
+                    return Self::unsafe_block(
+                        &format!("*{}.add(({}) as usize)", array_code, index_code),
+                        "index is within bounds of allocated array",
+                    );
                 }
 
                 // Regular array/slice indexing
@@ -3057,14 +3063,38 @@ impl CodeGenerator {
                     index: index.clone(),
                 };
                 let target_type = ctx.infer_expression_type(&target_expr);
-                // DECY-072: Cast index to usize for slice indexing
-                // DECY-150: Wrap index in parens to handle operator precedence
-                format!(
-                    "{}[({}) as usize] = {};",
-                    self.generate_expression_with_context(array, ctx),
-                    self.generate_expression_with_context(index, ctx),
-                    self.generate_expression_with_target_type(value, ctx, target_type.as_ref())
-                )
+
+                // DECY-165: Check if array is a raw pointer - if so, use unsafe pointer arithmetic
+                let is_raw_pointer = if let HirExpression::Variable(var_name) = &**array {
+                    ctx.is_pointer(var_name)
+                } else {
+                    // Use type inference for complex expressions like sb->data
+                    matches!(ctx.infer_expression_type(array), Some(HirType::Pointer(_)))
+                };
+
+                let array_code = self.generate_expression_with_context(array, ctx);
+                let index_code = self.generate_expression_with_context(index, ctx);
+                let value_code =
+                    self.generate_expression_with_target_type(value, ctx, target_type.as_ref());
+
+                if is_raw_pointer {
+                    // Raw pointer indexing: arr[i] = v becomes unsafe { *arr.add(i as usize) = v }
+                    // DECY-143: Add SAFETY comment
+                    Self::unsafe_stmt(
+                        &format!(
+                            "*{}.add(({}) as usize) = {}",
+                            array_code, index_code, value_code
+                        ),
+                        "index is within bounds of allocated array",
+                    )
+                } else {
+                    // DECY-072: Cast index to usize for slice indexing
+                    // DECY-150: Wrap index in parens to handle operator precedence
+                    format!(
+                        "{}[({}) as usize] = {};",
+                        array_code, index_code, value_code
+                    )
+                }
             }
             HirStatement::FieldAssignment {
                 object,
@@ -4543,6 +4573,82 @@ impl CodeGenerator {
                 // DECY-072 GREEN: Replace length parameter references with arr.len() calls
                 let transformed = self.transform_length_refs(&stmt_code, &length_to_array);
                 code.push_str(&transformed);
+                code.push('\n');
+            }
+        }
+
+        code.push('}');
+        code
+    }
+
+    /// Generate a complete function from HIR with struct definitions for type inference.
+    ///
+    /// This is useful for testing when struct fields need proper type inference.
+    /// DECY-165: Enables proper raw pointer detection for struct field access.
+    pub fn generate_function_with_structs(
+        &self,
+        func: &HirFunction,
+        structs: &[decy_hir::HirStruct],
+    ) -> String {
+        let mut code = String::new();
+
+        // Generate signature
+        code.push_str(&self.generate_signature(func));
+        code.push_str(" {\n");
+
+        // Initialize type context with function parameters AND struct definitions
+        let mut ctx = TypeContext::from_function(func);
+
+        // DECY-165: Add struct definitions to context for field type lookup
+        for struct_def in structs {
+            ctx.add_struct(struct_def);
+        }
+
+        // DECY-129/DECY-148: Update context to reflect pointer-to-reference transformations
+        // When pointer params are transformed to &mut T in signature, context must match
+        use decy_ownership::dataflow::DataflowAnalyzer;
+        let analyzer = DataflowAnalyzer::new();
+        let graph = analyzer.analyze(func);
+
+        for param in func.parameters() {
+            if let HirType::Pointer(inner) = param.param_type() {
+                // Only transform if the pointer is not used for pointer arithmetic
+                if !self.uses_pointer_arithmetic(func, param.name()) {
+                    // Check if it's an array parameter → use &[T] or &mut [T]
+                    if graph.is_array_parameter(param.name()) == Some(true) {
+                        // Use slice reference type
+                        ctx.add_variable(
+                            param.name().to_string(),
+                            HirType::Reference {
+                                inner: Box::new(HirType::Vec(inner.clone())),
+                                mutable: self.is_parameter_deref_modified(func, param.name()),
+                            },
+                        );
+                    } else {
+                        // Single pointer → reference
+                        ctx.add_variable(
+                            param.name().to_string(),
+                            HirType::Reference {
+                                inner: inner.clone(),
+                                mutable: self.is_parameter_deref_modified(func, param.name()),
+                            },
+                        );
+                    }
+                }
+            }
+        }
+
+        // Generate body statements
+        if !func.body().is_empty() {
+            for stmt in func.body() {
+                code.push_str("    ");
+                let stmt_code = self.generate_statement_with_context(
+                    stmt,
+                    Some(func.name()),
+                    &mut ctx,
+                    Some(func.return_type()),
+                );
+                code.push_str(&stmt_code);
                 code.push('\n');
             }
         }

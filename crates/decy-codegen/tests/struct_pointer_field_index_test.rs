@@ -7,11 +7,49 @@
 //! NOT the invalid: `(*sb).data[(i) as usize]` (can't index raw pointers with [])
 
 use decy_codegen::CodeGenerator;
-use decy_hir::{HirExpression, HirFunction, HirParameter, HirStatement, HirType};
+use decy_hir::{
+    HirExpression, HirFunction, HirParameter, HirStatement, HirStruct, HirStructField, HirType,
+};
 
 /// Helper to create a code generator
 fn create_generator() -> CodeGenerator {
     CodeGenerator::new()
+}
+
+/// Create StringBuilder struct definition: struct StringBuilder { char* data; }
+fn create_string_builder_struct() -> HirStruct {
+    HirStruct::new(
+        "StringBuilder".to_string(),
+        vec![HirStructField::new(
+            "data".to_string(),
+            HirType::Pointer(Box::new(HirType::Char)),
+        )],
+    )
+}
+
+/// Create StringBuilder struct with length field
+fn create_string_builder_with_length_struct() -> HirStruct {
+    HirStruct::new(
+        "StringBuilder".to_string(),
+        vec![
+            HirStructField::new(
+                "data".to_string(),
+                HirType::Pointer(Box::new(HirType::Char)),
+            ),
+            HirStructField::new("length".to_string(), HirType::UnsignedInt),
+        ],
+    )
+}
+
+/// Create Matrix struct with int** matrix field
+fn create_matrix_struct() -> HirStruct {
+    HirStruct::new(
+        "Matrix".to_string(),
+        vec![HirStructField::new(
+            "matrix".to_string(),
+            HirType::Pointer(Box::new(HirType::Pointer(Box::new(HirType::Int)))),
+        )],
+    )
 }
 
 #[test]
@@ -22,6 +60,8 @@ fn test_struct_pointer_field_indexing_uses_unsafe_add() {
     //
     // Expected Rust:
     // unsafe { *(*sb).data.add(0) } = b'a';
+
+    let sb_struct = create_string_builder_struct();
 
     // Create function: void test(StringBuilder* sb) { sb->data[0] = 'a'; }
     let test_fn = HirFunction::new_with_body(
@@ -45,7 +85,7 @@ fn test_struct_pointer_field_indexing_uses_unsafe_add() {
     );
 
     let gen = create_generator();
-    let rust_code = gen.generate_function(&test_fn);
+    let rust_code = gen.generate_function_with_structs(&test_fn, &[sb_struct]);
 
     println!("Generated code:\n{}", rust_code);
 
@@ -80,6 +120,8 @@ fn test_struct_pointer_field_read_uses_unsafe_add() {
     //
     // Expected Rust: reads from pointer should also use unsafe .add()
 
+    let sb_struct = create_string_builder_with_length_struct();
+
     // Create function that reads from the pointer field with an index
     let test_fn = HirFunction::new_with_body(
         "test".to_string(),
@@ -108,7 +150,7 @@ fn test_struct_pointer_field_read_uses_unsafe_add() {
     );
 
     let gen = create_generator();
-    let rust_code = gen.generate_function(&test_fn);
+    let rust_code = gen.generate_function_with_structs(&test_fn, &[sb_struct]);
 
     println!("Generated code:\n{}", rust_code);
 
@@ -135,6 +177,8 @@ fn test_nested_pointer_indexing() {
     //
     // Both indexing levels should use unsafe pointer arithmetic
 
+    let matrix_struct = create_matrix_struct();
+
     // Create function that does double indexing
     let test_fn = HirFunction::new_with_body(
         "test".to_string(),
@@ -159,7 +203,7 @@ fn test_nested_pointer_indexing() {
     );
 
     let gen = create_generator();
-    let rust_code = gen.generate_function(&test_fn);
+    let rust_code = gen.generate_function_with_structs(&test_fn, &[matrix_struct]);
 
     println!("Generated code:\n{}", rust_code);
 
