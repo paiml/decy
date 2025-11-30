@@ -9424,8 +9424,8 @@ sprint_18:
       priority: high
       story_points: 13
       assignee: Claude
-      status: not_started
-      phase: DONE
+      status: in_progress
+      phase: GREEN
       github_issue: null
 
       description: |
