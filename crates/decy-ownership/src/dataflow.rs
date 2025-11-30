@@ -734,6 +734,13 @@ impl DataflowAnalyzer {
                 Self::track_expr_recursive(slice, _graph, _index);
                 Self::track_expr_recursive(index, _graph, _index);
             }
+            // DECY-139: Track increment/decrement expressions
+            HirExpression::PostIncrement { operand }
+            | HirExpression::PreIncrement { operand }
+            | HirExpression::PostDecrement { operand }
+            | HirExpression::PreDecrement { operand } => {
+                Self::track_expr_recursive(operand, _graph, _index);
+            }
         }
     }
 

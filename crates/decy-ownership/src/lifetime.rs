@@ -320,6 +320,13 @@ impl LifetimeAnalyzer {
                 self.expression_uses_variable(slice, var_name)
                     || self.expression_uses_variable(index, var_name)
             }
+            // DECY-139: Check if increment/decrement expressions use the variable
+            HirExpression::PostIncrement { operand }
+            | HirExpression::PreIncrement { operand }
+            | HirExpression::PostDecrement { operand }
+            | HirExpression::PreDecrement { operand } => {
+                self.expression_uses_variable(operand, var_name)
+            }
         }
     }
 
