@@ -9825,8 +9825,9 @@ sprint_31_single_shot:
       priority: high
       story_points: 8
       assignee: Claude
-      status: in_progress
-      phase: RED
+      status: done
+      phase: DONE
+      completed_date: "2025-11-30"
 
       description: |
         Fix remaining hash_table.c compilation errors:
