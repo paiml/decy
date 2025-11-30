@@ -12,6 +12,8 @@ keywords = ["transpiler", "citl", "machine-learning", "c-to-rust"]
 default = []
 # Full CITL with entrenar integration
 citl = ["entrenar"]
+# Dataset export to Parquet (requires alimentar)
+dataset = []
 
 [dependencies]
 # PAIML stack - CITL integration (optional, enabled with citl feature)
