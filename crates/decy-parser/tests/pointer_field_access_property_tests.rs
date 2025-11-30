@@ -15,7 +15,7 @@ prop_compose! {
     /// Generate a valid C identifier (struct/field/variable name)
     /// Excludes C keywords to avoid syntax errors
     fn valid_identifier()(s in "[a-z][a-z0-9_]{0,10}") -> String {
-        // C keywords that must be avoided
+        // C keywords that must be avoided (includes GCC extensions)
         const C_KEYWORDS: &[&str] = &[
             "if", "else", "for", "while", "do", "switch", "case", "default",
             "break", "continue", "return", "goto",
@@ -23,6 +23,11 @@ prop_compose! {
             "struct", "union", "enum", "typedef",
             "const", "volatile", "static", "extern", "auto", "register",
             "sizeof", "typeof",
+            // GCC extensions
+            "asm", "inline", "restrict", "typeof",
+            // C99/C11 keywords
+            "_Bool", "_Complex", "_Imaginary", "_Alignas", "_Alignof",
+            "_Atomic", "_Generic", "_Noreturn", "_Static_assert", "_Thread_local",
         ];
 
         // If generated string is a keyword, append "_var" to make it valid
