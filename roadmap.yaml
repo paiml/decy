@@ -10042,3 +10042,50 @@ sprint_31_single_shot:
 
       files_modified:
         - crates/decy-codegen/tests/e2e_examples_test.rs
+
+    DECY-146:
+      title: "Transform slice-to-pointer assignments for array parameters"
+      type: bug
+      priority: high
+      story_points: 5
+      assignee: Claude
+      status: in_progress
+      phase: RED
+
+      description: |
+        When array parameters are transformed to slices (&[T] or &mut [T]),
+        any subsequent assignment to a raw pointer fails:
+
+        C code:
+          void traverse_array(int* arr, int size) {
+              int* ptr = arr;  // arr becomes &[i32] but ptr is *mut i32
+          }
+
+        Current broken output:
+          fn traverse_array(arr: &[i32], size: i32) {
+              let mut ptr: *mut i32 = arr;  // ERROR: type mismatch
+          }
+
+        Expected output:
+          fn traverse_array(arr: &[i32], size: i32) {
+              let mut ptr: *const i32 = arr.as_ptr();  // or as_mut_ptr()
+          }
+
+        This fixes DECY-145 known issues:
+        - increment_decrement.c
+        - real_world_patterns.c
+
+      acceptance_criteria:
+        - Slice to pointer assignment uses .as_ptr() or .as_mut_ptr()
+        - increment_decrement.c compiles
+        - real_world_patterns.c compiles
+        - E2E tests pass with 0 unexpected failures
+
+      test_strategy: |
+        RED: Create tests expecting .as_ptr()/.as_mut_ptr() for slice-to-pointer
+        GREEN: Transform slice variable assignments to use accessor methods
+        REFACTOR: Update E2E tests, pass quality gates
+
+      files_modified:
+        - crates/decy-codegen/src/lib.rs
+        - crates/decy-codegen/tests/slice_to_ptr_test.rs
