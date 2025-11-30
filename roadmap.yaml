@@ -10251,3 +10251,40 @@ sprint_31_single_shot:
         - crates/decy-codegen/tests/array_index_type_test.rs
         - crates/decy-codegen/tests/calloc_to_vec_test.rs
         - crates/decy-codegen/tests/vla_to_vec_test.rs
+
+    DECY-151:
+      title: "Fix char-to-int return type coercion"
+      type: bug
+      priority: high
+      story_points: 2
+      assignee: Claude
+      status: done
+      phase: DONE
+
+      description: |
+        In C, char arithmetic like `*s1 - *s2` is auto-promoted to int.
+        When returning char subtraction from an int function, Rust needs
+        explicit cast to i32, but codegen was missing this promotion.
+
+        Root cause: Type inference didn't handle Vec<T> (slice representation)
+        in Dereference expressions, so operand types were unknown and char-to-int
+        promotion wasn't triggered.
+
+        Fix:
+        1. Add Vec<T> handling in infer_expression_type for Dereference
+        2. Add slice type handling in ArrayIndex type inference
+        3. Add char-to-int promotion when target type is i32 and operands are char
+
+      acceptance_criteria:
+        - Char subtraction with int return type compiles
+        - string_utils.c compiles (string_compare function)
+        - Type inference works for slice element access
+
+      test_strategy: |
+        RED: Create char_int_coercion_test.rs with failing tests
+        GREEN: Add Vec handling and char promotion logic
+        REFACTOR: Clean up debug statements
+
+      files_modified:
+        - crates/decy-codegen/src/lib.rs
+        - crates/decy-codegen/tests/char_int_coercion_test.rs
