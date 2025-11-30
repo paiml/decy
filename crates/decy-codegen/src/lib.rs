@@ -3730,9 +3730,27 @@ impl CodeGenerator {
                             .any(|s| self.statement_uses_pointer_arithmetic(s, var_name))
                     })
             }
+            // DECY-164: Check for post/pre increment/decrement on the variable
+            HirStatement::Expression(expr) => {
+                Self::expression_uses_pointer_arithmetic_static(expr, var_name)
+            }
             HirStatement::While { body, .. } | HirStatement::For { body, .. } => body
                 .iter()
                 .any(|s| self.statement_uses_pointer_arithmetic(s, var_name)),
+            _ => false,
+        }
+    }
+
+    /// DECY-164: Check if an expression uses pointer arithmetic on a variable.
+    /// Catches str++, ++str, str--, --str patterns.
+    fn expression_uses_pointer_arithmetic_static(expr: &HirExpression, var_name: &str) -> bool {
+        match expr {
+            HirExpression::PostIncrement { operand }
+            | HirExpression::PreIncrement { operand }
+            | HirExpression::PostDecrement { operand }
+            | HirExpression::PreDecrement { operand } => {
+                matches!(&**operand, HirExpression::Variable(name) if name == var_name)
+            }
             _ => false,
         }
     }
@@ -3760,6 +3778,7 @@ impl CodeGenerator {
     ///
     /// String iteration pattern: char* with pointer arithmetic in a loop (while (*s) { s++; })
     /// These should be transformed to slice + index for safe Rust.
+    /// DECY-164: Skip if function uses pointer subtraction (e.g., str - start for length calculation).
     fn is_string_iteration_param(&self, func: &HirFunction, param_name: &str) -> bool {
         // Must be a char pointer (Pointer(Char))
         let is_char_ptr = func.parameters().iter().any(|p| {
@@ -3771,8 +3790,97 @@ impl CodeGenerator {
             return false;
         }
 
+        // DECY-164: Don't apply string iteration transformation if there's pointer subtraction
+        // Pointer subtraction (str - start) requires raw pointers, can't use slices
+        if self.function_uses_pointer_subtraction(func, param_name) {
+            return false;
+        }
+
         // Must use pointer arithmetic
         self.uses_pointer_arithmetic(func, param_name)
+    }
+
+    /// DECY-164: Check if a function uses pointer subtraction involving a variable.
+    /// Pattern: var - other_ptr (e.g., str - start for calculating string length)
+    fn function_uses_pointer_subtraction(&self, func: &HirFunction, var_name: &str) -> bool {
+        for stmt in func.body() {
+            if self.statement_uses_pointer_subtraction(stmt, var_name) {
+                return true;
+            }
+        }
+        false
+    }
+
+    /// DECY-164: Check if a statement uses pointer subtraction involving a variable.
+    fn statement_uses_pointer_subtraction(&self, stmt: &HirStatement, var_name: &str) -> bool {
+        match stmt {
+            HirStatement::Return(Some(expr)) => {
+                self.expression_uses_pointer_subtraction(expr, var_name)
+            }
+            HirStatement::Assignment { value, .. } => {
+                self.expression_uses_pointer_subtraction(value, var_name)
+            }
+            HirStatement::VariableDeclaration { initializer, .. } => initializer
+                .as_ref()
+                .map(|e| self.expression_uses_pointer_subtraction(e, var_name))
+                .unwrap_or(false),
+            HirStatement::If {
+                condition,
+                then_block,
+                else_block,
+                ..
+            } => {
+                self.expression_uses_pointer_subtraction(condition, var_name)
+                    || then_block
+                        .iter()
+                        .any(|s| self.statement_uses_pointer_subtraction(s, var_name))
+                    || else_block.as_ref().is_some_and(|blk| {
+                        blk.iter()
+                            .any(|s| self.statement_uses_pointer_subtraction(s, var_name))
+                    })
+            }
+            HirStatement::While { condition, body } => {
+                self.expression_uses_pointer_subtraction(condition, var_name)
+                    || body
+                        .iter()
+                        .any(|s| self.statement_uses_pointer_subtraction(s, var_name))
+            }
+            HirStatement::For { body, .. } => body
+                .iter()
+                .any(|s| self.statement_uses_pointer_subtraction(s, var_name)),
+            _ => false,
+        }
+    }
+
+    /// DECY-164: Check if an expression uses pointer subtraction involving a variable.
+    fn expression_uses_pointer_subtraction(&self, expr: &HirExpression, var_name: &str) -> bool {
+        match expr {
+            HirExpression::BinaryOp { op, left, right } => {
+                // Check for var - other_ptr pattern
+                if matches!(op, BinaryOperator::Subtract) {
+                    if let HirExpression::Variable(name) = &**left {
+                        if name == var_name {
+                            return true;
+                        }
+                    }
+                    if let HirExpression::Variable(name) = &**right {
+                        if name == var_name {
+                            return true;
+                        }
+                    }
+                }
+                // Recursively check subexpressions
+                self.expression_uses_pointer_subtraction(left, var_name)
+                    || self.expression_uses_pointer_subtraction(right, var_name)
+            }
+            HirExpression::Dereference(inner) => {
+                self.expression_uses_pointer_subtraction(inner, var_name)
+            }
+            HirExpression::Cast { expr, .. } => {
+                self.expression_uses_pointer_subtraction(expr, var_name)
+            }
+            _ => false,
+        }
     }
 
     /// Recursively check if a statement modifies a variable (DECY-072 GREEN).
