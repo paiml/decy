@@ -25,8 +25,15 @@
 
 ### Root Causes Identified
 
-1. **DECY-117**: System include path discovery broken (`<stdlib.h>` fails)
-2. **DECY-118**: Missing type coercion for `&[T]` → `*mut T` transitions
+1. **DECY-117**: System include path discovery broken (`<stdlib.h>` fails) - **FIXED ✅**
+2. **DECY-118**: Missing type coercion for `&[T]` → `*mut T` transitions - **FIXED ✅**
+
+### Fix Summary (Nov 30, 2025 - Same Day)
+
+Following Toyota Way Jidoka principle (stop and fix), both P0 bugs were addressed immediately:
+
+- **DECY-117**: Verified system include paths work via libclang's built-in detection. Added 7 verification tests including binary_tree.c parsing.
+- **DECY-118**: Implemented slice-to-pointer coercion in codegen. Now generates `.as_ptr() as *mut T` or `.as_mut_ptr()` for safe type conversions.
 
 ---
 
