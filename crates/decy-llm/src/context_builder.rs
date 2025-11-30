@@ -52,65 +52,96 @@ pub struct LifetimeInfo {
 }
 
 /// Builder for LLM context from analysis results.
-pub struct ContextBuilder;
+#[derive(Debug, Default)]
+pub struct ContextBuilder {
+    /// Functions being built
+    functions: Vec<FunctionContext>,
+}
 
 impl ContextBuilder {
     /// Create a new context builder.
     pub fn new() -> Self {
-        todo!("DECY-098: Implement ContextBuilder::new")
+        Self {
+            functions: Vec::new(),
+        }
     }
 
     /// Build context from ownership and lifetime analysis results.
     pub fn build(&self) -> AnalysisContext {
-        todo!("DECY-098: Implement ContextBuilder::build")
+        AnalysisContext {
+            functions: self.functions.clone(),
+        }
     }
 
     /// Add a function with its analysis results.
-    pub fn add_function(&mut self, _name: &str, _c_signature: &str) -> &mut Self {
-        todo!("DECY-098: Implement ContextBuilder::add_function")
+    pub fn add_function(&mut self, name: &str, c_signature: &str) -> &mut Self {
+        self.functions.push(FunctionContext {
+            name: name.to_string(),
+            c_signature: c_signature.to_string(),
+            ownership: HashMap::new(),
+            lifetimes: Vec::new(),
+            lock_mappings: HashMap::new(),
+        });
+        self
     }
 
     /// Add ownership inference for a variable.
     pub fn add_ownership(
         &mut self,
-        _function: &str,
-        _variable: &str,
-        _kind: &str,
-        _confidence: f64,
-        _reason: &str,
+        function: &str,
+        variable: &str,
+        kind: &str,
+        confidence: f64,
+        reason: &str,
     ) -> &mut Self {
-        todo!("DECY-098: Implement ContextBuilder::add_ownership")
+        if let Some(func) = self.functions.iter_mut().find(|f| f.name == function) {
+            func.ownership.insert(
+                variable.to_string(),
+                OwnershipInfo {
+                    kind: kind.to_string(),
+                    confidence,
+                    reason: reason.to_string(),
+                },
+            );
+        }
+        self
     }
 
     /// Add lifetime information.
     pub fn add_lifetime(
         &mut self,
-        _function: &str,
-        _variable: &str,
-        _scope_depth: usize,
-        _escapes: bool,
+        function: &str,
+        variable: &str,
+        scope_depth: usize,
+        escapes: bool,
     ) -> &mut Self {
-        todo!("DECY-098: Implement ContextBuilder::add_lifetime")
+        if let Some(func) = self.functions.iter_mut().find(|f| f.name == function) {
+            func.lifetimes.push(LifetimeInfo {
+                variable: variable.to_string(),
+                scope_depth,
+                escapes,
+                depends_on: Vec::new(),
+            });
+        }
+        self
     }
 
     /// Add lock-to-data mapping.
     pub fn add_lock_mapping(
         &mut self,
-        _function: &str,
-        _lock: &str,
-        _protected_data: Vec<String>,
+        function: &str,
+        lock: &str,
+        protected_data: Vec<String>,
     ) -> &mut Self {
-        todo!("DECY-098: Implement ContextBuilder::add_lock_mapping")
+        if let Some(func) = self.functions.iter_mut().find(|f| f.name == function) {
+            func.lock_mappings.insert(lock.to_string(), protected_data);
+        }
+        self
     }
 
     /// Serialize context to JSON string.
     pub fn to_json(&self) -> Result<String, serde_json::Error> {
-        todo!("DECY-098: Implement ContextBuilder::to_json")
-    }
-}
-
-impl Default for ContextBuilder {
-    fn default() -> Self {
-        Self::new()
+        let context = self.build();
+        serde_json::to_string_pretty(&context)
     }
 }
