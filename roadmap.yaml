@@ -10369,3 +10369,28 @@ sprint_31_single_shot:
 
       files_modified:
         - crates/decy-codegen/src/lib.rs
+
+    DECY-155:
+      title: "Add missing dataset feature to decy-oracle"
+      type: bug
+      priority: low
+      story_points: 1
+      assignee: Claude
+      status: done
+      phase: DONE
+
+      description: |
+        The code referenced #[cfg(feature = "dataset")] but the feature
+        wasn't defined in Cargo.toml, causing unexpected_cfgs warnings.
+
+        Added the dataset feature flag for Parquet export via alimentar.
+
+      acceptance_criteria:
+        - No unexpected_cfgs warnings for dataset feature
+        - Tests pass
+
+      test_strategy: |
+        cargo doc -p decy-oracle --no-deps should have no cfg warnings
+
+      files_modified:
+        - crates/decy-oracle/Cargo.toml
