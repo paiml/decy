@@ -34,6 +34,11 @@ fn known_issue_files() -> HashSet<&'static str> {
     // Multiple issues: printf format, raw pointer indexing, type mismatches
     known.insert("string_builder.c");
 
+    // DECY-157: malloc for struct returns Vec<u8> instead of *mut Struct
+    // C: Node* node = malloc(sizeof(Node));
+    // Issue: Vec<u8> cannot be assigned to *mut Node
+    known.insert("linked_list.c");
+
     known
 }
 
@@ -365,6 +370,7 @@ fn test_example_corpus_summary() {
         "moderate",
         "pointer_arithmetic",
         "strings",
+        "real-world",
     ];
     let known_issues = known_issue_files();
 
