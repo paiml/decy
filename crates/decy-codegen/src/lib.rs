@@ -1078,6 +1078,30 @@ impl CodeGenerator {
                         // Transform *ptr to slice[idx] - no unsafe needed!
                         return format!("{}[{}]", var_name, idx_var);
                     }
+
+                    // DECY-138: Check for &str type - use as_bytes()[0] for dereference
+                    // C pattern: *str where str is const char*
+                    // Rust pattern: str.as_bytes()[0] as i32 (cast for integer compatibility)
+                    if let Some(var_type) = ctx.get_type(var_name) {
+                        if matches!(var_type, HirType::StringReference | HirType::StringLiteral) {
+                            return format!("{}.as_bytes()[0] as i32", var_name);
+                        }
+                    }
+                }
+
+                // DECY-138: Check for *str++ pattern - PostIncrement on &str already returns byte
+                // Don't add extra dereference when inner is PostIncrement on &str
+                if let HirExpression::PostIncrement { operand } = &**inner {
+                    if let HirExpression::Variable(var_name) = &**operand {
+                        if let Some(var_type) = ctx.get_type(var_name) {
+                            if matches!(var_type, HirType::StringReference | HirType::StringLiteral)
+                            {
+                                // PostIncrement on &str already generates the byte value
+                                // No extra dereference needed
+                                return self.generate_expression_with_context(inner, ctx);
+                            }
+                        }
+                    }
                 }
 
                 let inner_code = self.generate_expression_with_context(inner, ctx);
@@ -1885,6 +1909,22 @@ impl CodeGenerator {
             // Rust: { let __tmp = x; x += 1; __tmp }
             HirExpression::PostIncrement { operand } => {
                 let operand_code = self.generate_expression_with_context(operand, ctx);
+
+                // DECY-138: Special handling for &str post-increment (string iteration)
+                // C pattern: *key++ where key is const char*
+                // Rust pattern: { let __tmp = key.as_bytes()[0] as i32; key = &key[1..]; __tmp }
+                // Note: Cast to i32 for compatibility with integer arithmetic
+                if let HirExpression::Variable(var_name) = &**operand {
+                    if let Some(var_type) = ctx.get_type(var_name) {
+                        if matches!(var_type, HirType::StringReference | HirType::StringLiteral) {
+                            return format!(
+                                "{{ let __tmp = {var}.as_bytes()[0] as i32; {var} = &{var}[1..]; __tmp }}",
+                                var = operand_code
+                            );
+                        }
+                    }
+                }
+
                 format!(
                     "{{ let __tmp = {operand}; {operand} += 1; __tmp }}",
                     operand = operand_code
@@ -1959,6 +1999,39 @@ impl CodeGenerator {
             } => true,
             // Other expressions are assumed to be non-boolean (integers, etc.)
             _ => false,
+        }
+    }
+
+    /// DECY-138: Check if expression is a dereference of a string variable.
+    /// Returns the variable name if it's a string dereference, None otherwise.
+    /// Used for string iteration pattern: while (*str) → while !str.is_empty()
+    fn get_string_deref_var(expr: &HirExpression, ctx: &TypeContext) -> Option<String> {
+        match expr {
+            // Direct dereference: *str
+            HirExpression::Dereference(inner) => {
+                if let HirExpression::Variable(var_name) = &**inner {
+                    if let Some(var_type) = ctx.get_type(var_name) {
+                        if matches!(var_type, HirType::StringReference | HirType::StringLiteral) {
+                            return Some(var_name.clone());
+                        }
+                    }
+                }
+                None
+            }
+            // Comparison with 0: *str != 0 or *str == 0
+            HirExpression::BinaryOp { op, left, right } => {
+                if matches!(op, BinaryOperator::NotEqual | BinaryOperator::Equal) {
+                    // Check: *str != 0 or *str == 0
+                    if let HirExpression::IntLiteral(0) = &**right {
+                        return Self::get_string_deref_var(left, ctx);
+                    }
+                    if let HirExpression::IntLiteral(0) = &**left {
+                        return Self::get_string_deref_var(right, ctx);
+                    }
+                }
+                None
+            }
+            _ => None,
         }
     }
 
@@ -2421,12 +2494,19 @@ impl CodeGenerator {
                 let mut code = String::new();
 
                 // Generate while condition
-                // DECY-123: If condition is not already boolean, wrap with != 0
-                let cond_code = self.generate_expression_with_context(condition, ctx);
-                let cond_str = if Self::is_boolean_expression(condition) {
-                    cond_code
+                // DECY-138: Check for string iteration pattern: while (*str) → while !str.is_empty()
+                let cond_str = if let Some(str_var) =
+                    Self::get_string_deref_var(condition, ctx)
+                {
+                    format!("!{}.is_empty()", str_var)
                 } else {
-                    format!("({}) != 0", cond_code)
+                    // DECY-123: If condition is not already boolean, wrap with != 0
+                    let cond_code = self.generate_expression_with_context(condition, ctx);
+                    if Self::is_boolean_expression(condition) {
+                        cond_code
+                    } else {
+                        format!("({}) != 0", cond_code)
+                    }
                 };
                 code.push_str(&format!("while {} {{\n", cond_str));
 
@@ -2956,9 +3036,10 @@ impl CodeGenerator {
                         func.parameters().iter().find(|fp| fp.name() == p.name)
                     {
                         // DECY-135: const char* → &str transformation
+                        // DECY-138: Add mut for string iteration patterns (param reassignment)
                         // Must check BEFORE other pointer transformations
                         if orig_param.is_const_char_pointer() {
-                            return Some(format!("{}: &str", p.name));
+                            return Some(format!("mut {}: &str", p.name));
                         }
 
                         if let HirType::Pointer(inner) = orig_param.param_type() {
@@ -3629,11 +3710,12 @@ impl CodeGenerator {
                     // Check if param type is a simple pointer (not already a reference)
                     if let AnnotatedType::Simple(HirType::Pointer(inner)) = &p.param_type {
                         // DECY-135: const char* → &str transformation
+                        // DECY-138: Add mut for string iteration patterns (param reassignment)
                         // Must check BEFORE other pointer transformations
                         if let Some(f) = func {
                             if let Some(orig_param) = f.parameters().iter().find(|fp| fp.name() == p.name) {
                                 if orig_param.is_const_char_pointer() {
-                                    return format!("{}: &str", p.name);
+                                    return format!("mut {}: &str", p.name);
                                 }
                             }
                         }
@@ -4058,7 +4140,11 @@ impl CodeGenerator {
         // DECY-123/124: Only transform if NOT using pointer arithmetic
         // This prevents unsafe blocks from being generated for reference dereferences
         for param in func.parameters() {
-            if let HirType::Pointer(inner) = param.param_type() {
+            // DECY-138: Check for const char* → &str transformation FIRST
+            // This enables proper string iteration pattern codegen
+            if param.is_const_char_pointer() {
+                ctx.add_variable(param.name().to_string(), HirType::StringReference);
+            } else if let HirType::Pointer(inner) = param.param_type() {
                 // DECY-134: Check for string iteration pattern FIRST
                 if self.is_string_iteration_param(func, param.name()) {
                     // Register as Vec type in context (slice in generated code)
