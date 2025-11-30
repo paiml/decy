@@ -8228,9 +8228,9 @@ sprint_26:
       priority: high
       story_points: 7
       assignee: Claude
-      status: not_started
+      status: in_progress
       github_issue: null
-      phase: null
+      phase: RED
 
       description: |
         Transform C fixed-size arrays to Rust array types.
