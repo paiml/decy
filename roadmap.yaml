@@ -9473,7 +9473,7 @@ sprint_18:
       story_points: 5
       assignee: Claude
       status: in_progress
-      phase: RED
+      phase: REFACTOR
       github_issue: null
 
       description: |

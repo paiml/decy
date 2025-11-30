@@ -763,9 +763,13 @@ fn extract_var_decl(cursor: CXCursor) -> Option<Statement> {
     // Fix: If the variable is an array type and the initializer is an integer literal
     // that matches the array size, clear the initializer (it's the size, not an init).
     let initializer = match (&var_type, &initializer) {
-        (Type::Array { size: Some(array_size), .. }, Some(Expression::IntLiteral(init_val)))
-            if i64::from(*init_val) == *array_size =>
-        {
+        (
+            Type::Array {
+                size: Some(array_size),
+                ..
+            },
+            Some(Expression::IntLiteral(init_val)),
+        ) if i64::from(*init_val) == *array_size => {
             // The "initializer" is actually the array size expression, not a real initializer
             None
         }
@@ -1938,17 +1942,17 @@ fn parse_char_literal(s: &str) -> i8 {
     if first == '\\' {
         // Escape sequence
         match chars.next() {
-            Some('0') => 0,        // null character
+            Some('0') => 0, // null character
             Some('n') => b'\n' as i8,
             Some('t') => b'\t' as i8,
             Some('r') => b'\r' as i8,
             Some('\\') => b'\\' as i8,
             Some('\'') => b'\'' as i8,
             Some('"') => b'"' as i8,
-            Some('a') => 7,        // bell
-            Some('b') => 8,        // backspace
-            Some('f') => 12,       // form feed
-            Some('v') => 11,       // vertical tab
+            Some('a') => 7,  // bell
+            Some('b') => 8,  // backspace
+            Some('f') => 12, // form feed
+            Some('v') => 11, // vertical tab
             Some('x') => {
                 // Hex escape: \xNN
                 let hex: String = chars.take(2).collect();

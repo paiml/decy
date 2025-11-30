@@ -131,6 +131,9 @@ fn test_string_copy_pattern_safe_slice() {
     if has_slice_indexing {
         // Best case: zero unsafe blocks for char* iteration
         let unsafe_count = result.matches("unsafe").count();
-        println!("Unsafe blocks: {} (0 is best for char* iteration)", unsafe_count);
+        println!(
+            "Unsafe blocks: {} (0 is best for char* iteration)",
+            unsafe_count
+        );
     }
 }

@@ -64,9 +64,7 @@ fn test_arrow_operator_on_raw_ptr_needs_unsafe() {
 
     // The arrow operator should become (*ptr).field, potentially with unsafe
     assert!(
-        result.contains("(*node)")
-            || result.contains("unsafe")
-            || result.contains("&mut Item"),
+        result.contains("(*node)") || result.contains("unsafe") || result.contains("&mut Item"),
         "Should transform arrow operator\nGenerated:\n{}",
         result
     );

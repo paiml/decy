@@ -116,7 +116,7 @@ mod integration {
     fn load_golden_measurements(_path: &str) -> Vec<f64> {
         // Placeholder implementation
         // Real implementation would parse renacer summary output
-        vec![8.165, 7.850, 8.200]  // Example measurements in ms
+        vec![8.165, 7.850, 8.200] // Example measurements in ms
     }
 
     /// Example: Run decy and measure performance
@@ -128,7 +128,7 @@ mod integration {
     #[allow(dead_code)]
     fn run_decy_and_measure(_input: &str) -> Vec<f64> {
         // Placeholder implementation
-        vec![8.300, 8.150, 8.400]  // Example measurements
+        vec![8.300, 8.150, 8.400] // Example measurements
     }
 
     #[test]

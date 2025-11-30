@@ -67,8 +67,10 @@ fn test_string_literal_to_byte_slice() {
     // DECY-134: String iteration pattern → byte slice
     // Either byte string (b"...") or pointer conversion is acceptable
     assert!(
-        result.contains("b\"hello\"") || result.contains("&[u8]")
-            || result.contains(".as_ptr()") || result.contains("as *mut"),
+        result.contains("b\"hello\"")
+            || result.contains("&[u8]")
+            || result.contains(".as_ptr()")
+            || result.contains("as *mut"),
         "Should convert string literal to byte slice or pointer\nGenerated:\n{}",
         result
     );
