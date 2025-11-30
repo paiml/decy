@@ -1301,9 +1301,7 @@ impl CodeGenerator {
                         }
                     }
                     // DECY-093: fork() → Command usage (no direct equivalent, skip)
-                    "fork" => {
-                        "/* fork() transformed to Command API */ 0".to_string()
-                    }
+                    "fork" => "/* fork() transformed to Command API */ 0".to_string(),
                     // DECY-093: execl/execlp → Command::new().status()
                     "execl" | "execlp" | "execle" | "execv" | "execvp" | "execve" => {
                         if !arguments.is_empty() {
@@ -1321,10 +1319,8 @@ impl CodeGenerator {
                                     cmd
                                 )
                             } else {
-                                let arg_chain: String = args
-                                    .iter()
-                                    .map(|a| format!(".arg({})", a))
-                                    .collect();
+                                let arg_chain: String =
+                                    args.iter().map(|a| format!(".arg({})", a)).collect();
                                 format!(
                                     "{{ use std::process::Command; Command::new({}){}.status().expect(\"command failed\"); }}",
                                     cmd, arg_chain
