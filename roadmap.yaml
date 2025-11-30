@@ -8230,7 +8230,7 @@ sprint_26:
       assignee: Claude
       status: in_progress
       github_issue: null
-      phase: GREEN
+      phase: REFACTOR
 
       description: |
         Transform C fixed-size arrays to Rust array types.
