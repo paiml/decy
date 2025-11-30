@@ -2823,6 +2823,43 @@ extern "C" fn visit_init_list_children(
         return CXChildVisit_Continue;
     }
 
+    // DECY-133b: Handle designated array initializers [idx] = value
+    // Clang C API exposes these as UnexposedExpr with children: [index, value]
+    // We need to extract the VALUE (second child), not the index
+    if kind == CXCursor_UnexposedExpr {
+        // Collect all children to check if this is a designated initializer
+        let mut children: Vec<Expression> = Vec::new();
+        let children_ptr = &mut children as *mut Vec<Expression>;
+
+        extern "C" fn collect_children(
+            cursor: CXCursor,
+            _parent: CXCursor,
+            client_data: CXClientData,
+        ) -> CXChildVisitResult {
+            let children = unsafe { &mut *(client_data as *mut Vec<Expression>) };
+            if let Some(expr) = try_extract_expression(cursor) {
+                children.push(expr);
+            }
+            CXChildVisit_Continue
+        }
+
+        unsafe {
+            clang_visitChildren(cursor, collect_children, children_ptr as CXClientData);
+        }
+
+        // If exactly 2 children and first is IntLiteral (index), take second (value)
+        if children.len() == 2 {
+            if matches!(&children[0], Expression::IntLiteral(_)) {
+                // This is a designated initializer [idx] = value - take the value
+                initializers.push(children[1].clone());
+                return CXChildVisit_Continue;
+            }
+        }
+
+        // Not a designated initializer - fall through to recursion
+        return CXChildVisit_Recurse;
+    }
+
     // Try to extract any expression as an initializer
     if let Some(expr) = try_extract_expression(cursor) {
         initializers.push(expr);
@@ -2831,7 +2868,7 @@ extern "C" fn visit_init_list_children(
 
     // For some expression types, recurse
     match kind {
-        CXCursor_UnexposedExpr | CXCursor_ParenExpr => CXChildVisit_Recurse,
+        CXCursor_ParenExpr => CXChildVisit_Recurse,
         _ => CXChildVisit_Continue,
     }
 }
