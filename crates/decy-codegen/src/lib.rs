@@ -2614,6 +2614,17 @@ impl CodeGenerator {
         let lifetime_syntax = lifetime_annotator.generate_lifetime_syntax(&annotated_sig.lifetimes);
         sig.push_str(&lifetime_syntax);
 
+        // DECY-096: Detect void* parameters for generic transformation
+        use decy_analyzer::void_ptr_analysis::VoidPtrAnalyzer;
+        let void_analyzer = VoidPtrAnalyzer::new();
+        let void_patterns = void_analyzer.analyze(func);
+        let has_void_ptr = !void_patterns.is_empty();
+
+        // Add generic type parameter if function has void* params
+        if has_void_ptr {
+            sig.push_str("<T>");
+        }
+
         // DECY-072 GREEN: Detect array parameters using ownership analysis
         use decy_ownership::dataflow::DataflowAnalyzer;
         let analyzer = DataflowAnalyzer::new();
@@ -2718,6 +2729,22 @@ impl CodeGenerator {
                         func.parameters().iter().find(|fp| fp.name() == p.name)
                     {
                         if let HirType::Pointer(inner) = orig_param.param_type() {
+                            // DECY-096: void* param becomes generic &T or &mut T
+                            if matches!(**inner, HirType::Void) && has_void_ptr {
+                                let is_mutable = void_patterns
+                                    .iter()
+                                    .find(|vp| vp.param_name == p.name)
+                                    .map(|vp| {
+                                        vp.constraints
+                                            .contains(&decy_analyzer::void_ptr_analysis::TypeConstraint::Mutable)
+                                    })
+                                    .unwrap_or(false);
+                                if is_mutable {
+                                    return Some(format!("{}: &mut T", p.name));
+                                } else {
+                                    return Some(format!("{}: &T", p.name));
+                                }
+                            }
                             // DECY-134: Check for string iteration pattern FIRST
                             // char* with pointer arithmetic → slice instead of raw pointer
                             if self.is_string_iteration_param(func, &p.name) {
