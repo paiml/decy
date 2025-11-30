@@ -9648,3 +9648,107 @@ qa_audit_nov_2025:
 
         This fixes type mismatch errors in generated code where array parameters
         (transformed to slices) are assigned to local pointer variables.
+
+# =============================================================================
+# EPIC: SINGLE-SHOT COMPILE (Sprint 31)
+# Goal: binary_tree.c → Rust that compiles with rustc
+# =============================================================================
+
+sprint_31_single_shot:
+  epic: "Single-Shot Compile"
+  goal: "C file transpiles to Rust that compiles with rustc"
+  target_file: "examples/data_structures/binary_tree.c"
+  success_criterion: "rustc --edition 2021 output.rs succeeds"
+
+  tickets:
+    DECY-119:
+      title: "Fix sizeof expression parsing/codegen corruption"
+      type: bug
+      priority: critical
+      story_points: 8
+      assignee: Claude
+      status: not_started
+      phase: null
+
+      description: |
+        sizeof(TreeNode) followed by statements causes code corruption.
+        Generated: std::mem::size_of::<TreeNode if node NULL>()
+        Expected: std::mem::size_of::<TreeNode>()
+
+        Root cause: Parser or HIR capturing subsequent tokens into sizeof type param.
+
+      acceptance_criteria:
+        - sizeof(T) generates std::mem::size_of::<T>()
+        - Following statements not captured in type param
+        - binary_tree.c sizeof expressions correct
+
+      files_modified:
+        - crates/decy-parser/src/parser.rs
+        - crates/decy-codegen/src/lib.rs
+
+    DECY-120:
+      title: "Fix NULL pointer comparison codegen"
+      type: bug
+      priority: critical
+      story_points: 5
+      assignee: Claude
+      status: not_started
+      phase: null
+
+      description: |
+        NULL comparisons in if statements generate invalid code.
+        C: if (node != NULL)
+        Generated: corrupted sizeof expression
+        Expected: if node.is_some() OR if !node.is_null()
+
+      acceptance_criteria:
+        - ptr != NULL → !ptr.is_null() or ptr.is_some()
+        - ptr == NULL → ptr.is_null() or ptr.is_none()
+        - Works with Box, Option, raw pointers
+
+      files_modified:
+        - crates/decy-codegen/src/lib.rs
+
+    DECY-121:
+      title: "Remove info notes from transpiled output"
+      type: bug
+      priority: high
+      story_points: 2
+      assignee: Claude
+      status: not_started
+      phase: null
+
+      description: |
+        Informational notes like "ℹ Note: No main function found"
+        are being included in the Rust output, causing syntax errors.
+
+      acceptance_criteria:
+        - No info/warning text in generated .rs files
+        - Notes go to stderr only
+        - Clean Rust output
+
+      files_modified:
+        - crates/decy-core/src/lib.rs
+        - crates/decy/src/main.rs
+
+    DECY-122:
+      title: "End-to-end: binary_tree.c compiles with rustc"
+      type: feature
+      priority: critical
+      story_points: 3
+      assignee: Claude
+      status: not_started
+      phase: null
+
+      description: |
+        Final verification that binary_tree.c produces compilable Rust.
+        This is the acceptance test for the epic.
+
+      acceptance_criteria:
+        - cargo run -- transpile binary_tree.c > out.rs
+        - rustc --edition 2021 out.rs succeeds
+        - No compiler errors (warnings OK)
+
+      test_command: |
+        cargo run --quiet -- transpile examples/data_structures/binary_tree.c > /tmp/bt.rs
+        rustc --edition 2021 /tmp/bt.rs -o /tmp/bt
