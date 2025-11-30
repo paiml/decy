@@ -3217,3 +3217,29 @@ mod tests {
         }
     }
 }
+
+#[test]
+fn test_const_char_pointer_detection() {
+    let code = r#"
+void test_const(const char* str) {}
+void test_mutable(char* str) {}
+"#;
+
+    let parser = CParser::new().unwrap();
+    let ast = parser.parse(code).unwrap();
+
+    let functions = ast.functions();
+    assert_eq!(functions.len(), 2);
+
+    // First function should have const char*
+    let test_const = &functions[0];
+    assert_eq!(&test_const.name, "test_const");
+    assert_eq!(test_const.parameters.len(), 1);
+    assert!(test_const.parameters[0].is_pointee_const, "const char* should have is_pointee_const = true");
+
+    // Second function should NOT have const char*
+    let test_mutable = &functions[1];
+    assert_eq!(&test_mutable.name, "test_mutable");
+    assert_eq!(test_mutable.parameters.len(), 1);
+    assert!(!test_mutable.parameters[0].is_pointee_const, "char* should have is_pointee_const = false");
+}

@@ -435,6 +435,8 @@ impl HirMacroDefinition {
 pub struct HirParameter {
     name: String,
     param_type: HirType,
+    /// DECY-135: Whether the pointee type is const (for pointer params like `const char*`)
+    is_pointee_const: bool,
 }
 
 impl HirParameter {
@@ -449,7 +451,11 @@ impl HirParameter {
     /// assert_eq!(param.name(), "x");
     /// ```
     pub fn new(name: String, param_type: HirType) -> Self {
-        Self { name, param_type }
+        Self {
+            name,
+            param_type,
+            is_pointee_const: false,
+        }
     }
 
     /// Get the parameter name.
@@ -462,11 +468,33 @@ impl HirParameter {
         &self.param_type
     }
 
+    /// DECY-135: Check if this parameter has a const-qualified pointee.
+    pub fn is_pointee_const(&self) -> bool {
+        self.is_pointee_const
+    }
+
+    /// DECY-135: Check if this is a const char* parameter (should become &str).
+    pub fn is_const_char_pointer(&self) -> bool {
+        self.is_pointee_const && matches!(self.param_type, HirType::Pointer(ref inner) if **inner == HirType::Char)
+    }
+
     /// Convert from parser AST parameter to HIR parameter.
     pub fn from_ast_parameter(ast_param: &decy_parser::parser::Parameter) -> Self {
         Self {
             name: ast_param.name.clone(),
             param_type: HirType::from_ast_type(&ast_param.param_type),
+            is_pointee_const: ast_param.is_pointee_const,
+        }
+    }
+
+    /// DECY-135: Create a new parameter with a transformed type but preserving is_pointee_const.
+    /// Use this when transforming parameter types (e.g., pointer to reference) to maintain
+    /// const char* → &str transformation capability.
+    pub fn with_type(&self, new_type: HirType) -> Self {
+        Self {
+            name: self.name.clone(),
+            param_type: new_type,
+            is_pointee_const: self.is_pointee_const,
         }
     }
 }

@@ -95,7 +95,8 @@ impl ArrayParameterTransformer {
                             mutable: is_mutable,
                         };
 
-                        return Some(HirParameter::new(param.name().to_string(), slice_type));
+                        // DECY-135: Use with_type to preserve is_pointee_const
+                        return Some(param.with_type(slice_type));
                     }
                 }
 

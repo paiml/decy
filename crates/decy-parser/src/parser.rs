@@ -319,7 +319,16 @@ fn extract_function(cursor: CXCursor) -> Option<Function> {
         // Get parameter type
         let param_cx_type = unsafe { clang_getCursorType(arg_cursor) };
         if let Some(param_type) = convert_type(param_cx_type) {
-            parameters.push(Parameter::new(param_name, param_type));
+            // DECY-135: Check if this is a pointer with const-qualified pointee
+            let is_pointee_const = unsafe {
+                if param_cx_type.kind == clang_sys::CXType_Pointer {
+                    let pointee = clang_sys::clang_getPointeeType(param_cx_type);
+                    clang_isConstQualifiedType(pointee) != 0
+                } else {
+                    false
+                }
+            };
+            parameters.push(Parameter::new_with_const(param_name, param_type, is_pointee_const));
         }
     }
 
@@ -3985,12 +3994,29 @@ pub struct Parameter {
     pub name: String,
     /// Parameter type
     pub param_type: Type,
+    /// Whether the pointee type is const (for pointer params like `const char*`)
+    /// DECY-135: Track const qualifier to enable const char* → &str transformation
+    pub is_pointee_const: bool,
 }
 
 impl Parameter {
     /// Create a new parameter.
     pub fn new(name: String, param_type: Type) -> Self {
-        Self { name, param_type }
+        Self {
+            name,
+            param_type,
+            is_pointee_const: false,
+        }
+    }
+
+    /// Create a new parameter with const pointee information.
+    /// DECY-135: Used for const char* parameters
+    pub fn new_with_const(name: String, param_type: Type, is_pointee_const: bool) -> Self {
+        Self {
+            name,
+            param_type,
+            is_pointee_const,
+        }
     }
 
     /// Check if this parameter is a function pointer.
@@ -4000,12 +4026,15 @@ impl Parameter {
 
     /// Check if this parameter is a const char pointer (const char*).
     ///
-    /// # Implementation Status
-    ///
-    /// Partial implementation - detects `char*` pointers but doesn't check const qualifier.
-    /// Returns `true` for any `Pointer(Char)` type.
-    /// Full implementation requires adding const tracking to the `Type` enum.
+    /// DECY-135: Now properly checks if pointee is const-qualified.
+    /// Returns `true` only for `const char*` parameters, not `char*`.
     pub fn is_const_char_pointer(&self) -> bool {
+        self.is_pointee_const
+            && matches!(self.param_type, Type::Pointer(ref inner) if matches!(**inner, Type::Char))
+    }
+
+    /// Check if this parameter is any char pointer (char* or const char*).
+    pub fn is_char_pointer(&self) -> bool {
         matches!(self.param_type, Type::Pointer(ref inner) if matches!(**inner, Type::Char))
     }
 }
