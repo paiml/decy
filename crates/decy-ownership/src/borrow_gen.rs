@@ -867,6 +867,10 @@ impl BorrowGenerator {
                 }
                 false
             }
+            // DECY-164: Also check for post/pre increment/decrement on the variable
+            HirStatement::Expression(expr) => {
+                Self::expression_uses_pointer_arithmetic(expr, var_name)
+            }
             HirStatement::If {
                 then_block,
                 else_block,
@@ -883,6 +887,20 @@ impl BorrowGenerator {
             HirStatement::While { body, .. } | HirStatement::For { body, .. } => body
                 .iter()
                 .any(|s| Self::statement_uses_pointer_arithmetic(s, var_name)),
+            _ => false,
+        }
+    }
+
+    /// DECY-164: Check if an expression uses pointer arithmetic on a variable.
+    /// Catches str++, ++str, str--, --str patterns.
+    fn expression_uses_pointer_arithmetic(expr: &HirExpression, var_name: &str) -> bool {
+        match expr {
+            HirExpression::PostIncrement { operand }
+            | HirExpression::PreIncrement { operand }
+            | HirExpression::PostDecrement { operand }
+            | HirExpression::PreDecrement { operand } => {
+                matches!(&**operand, HirExpression::Variable(name) if name == var_name)
+            }
             _ => false,
         }
     }
