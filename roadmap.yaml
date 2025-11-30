@@ -10174,3 +10174,44 @@ sprint_31_single_shot:
       files_modified:
         - crates/decy-codegen/src/lib.rs
         - crates/decy-codegen/tests/raw_ptr_return_test.rs
+
+    DECY-149:
+      title: "Fix slice-to-pointer variable declaration conversion"
+      type: bug
+      priority: high
+      story_points: 2
+      assignee: Claude
+      status: done
+      phase: DONE
+
+      description: |
+        When a slice parameter is assigned to a raw pointer variable, codegen
+        should convert the slice to a raw pointer using .as_mut_ptr() or .as_ptr().
+
+        C code:
+          void traverse_array(int* arr, int size) {
+              int* ptr = arr;  // arr is slice, ptr is raw pointer
+          }
+
+        Current broken output:
+          let mut ptr: *mut i32 = arr;  // ERROR: expected *mut, found &[i32]
+
+        Expected output:
+          let mut ptr: *mut i32 = arr.as_ptr() as *mut i32;
+
+        Root cause: BorrowGenerator uses Vec as internal representation for slices,
+        but the slice-to-pointer conversion only checked for Array type, not Vec.
+
+      acceptance_criteria:
+        - Slice to pointer variable declaration uses .as_mut_ptr() or .as_ptr()
+        - increment_decrement.c compiles
+        - E2E tests pass
+
+      test_strategy: |
+        RED: Create test for slice-to-pointer variable declaration
+        GREEN: Fix codegen to handle Vec inner type for slices
+        REFACTOR: Pass quality gates
+
+      files_modified:
+        - crates/decy-codegen/src/lib.rs
+        - crates/decy-codegen/tests/slice_to_ptr_test.rs
