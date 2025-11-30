@@ -1847,7 +1847,10 @@ impl CodeGenerator {
 
                 // Regular array/slice indexing
                 // DECY-072: Cast index to usize for slice indexing
-                format!("{}[{} as usize]", array_code, index_code)
+                // DECY-150: Wrap index in parens to handle operator precedence
+                // e.g., buffer[size - 1 - i as usize] parses as buffer[size - 1 - (i as usize)]
+                // but buffer[(size - 1 - i) as usize] casts entire expression correctly
+                format!("{}[({}) as usize]", array_code, index_code)
             }
             HirExpression::SliceIndex { slice, index, .. } => {
                 // DECY-070 GREEN: Generate safe slice indexing (0 unsafe blocks!)
@@ -1856,7 +1859,8 @@ impl CodeGenerator {
                 let index_code = self.generate_expression_with_context(index, ctx);
                 // DECY-113: Generate: slice[index as usize] - cast i32 index to usize
                 // Slice indexing requires usize, but C typically uses int (i32)
-                format!("{}[{} as usize]", slice_code, index_code)
+                // DECY-150: Wrap index in parens to handle operator precedence
+                format!("{}[({}) as usize]", slice_code, index_code)
             }
             HirExpression::Sizeof { type_name } => {
                 // sizeof(int) → std::mem::size_of::<i32>() as i32
@@ -2995,8 +2999,9 @@ impl CodeGenerator {
                 };
                 let target_type = ctx.infer_expression_type(&target_expr);
                 // DECY-072: Cast index to usize for slice indexing
+                // DECY-150: Wrap index in parens to handle operator precedence
                 format!(
-                    "{}[{} as usize] = {};",
+                    "{}[({}) as usize] = {};",
                     self.generate_expression_with_context(array, ctx),
                     self.generate_expression_with_context(index, ctx),
                     self.generate_expression_with_target_type(value, ctx, target_type.as_ref())
