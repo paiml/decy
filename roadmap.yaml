@@ -8495,7 +8495,7 @@ sprint_28:
       assignee: Claude
       status: in_progress
       github_issue: null
-      phase: RED
+      phase: GREEN
 
       description: |
         Transform to Command::new().arg().spawn().
