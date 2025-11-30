@@ -171,6 +171,14 @@ impl TypeContext {
                     return None;
                 }
             }
+            // DECY-140: Handle Reference<Struct> for borrowed struct access
+            HirType::Reference { inner, .. } => {
+                if let HirType::Struct(name) = &**inner {
+                    name
+                } else {
+                    return None;
+                }
+            }
             _ => return None,
         };
 
@@ -1215,9 +1223,26 @@ impl CodeGenerator {
                         }
                     }
                     // DECY-130: malloc(size) → vec![0; count] or Vec::with_capacity()
+                    // DECY-140: When target is raw pointer (*mut u8), use Box::leak for allocation
                     // Reference: K&R §B5, ISO C99 §7.20.3.3
                     "malloc" => {
                         if arguments.len() == 1 {
+                            let size_code =
+                                self.generate_expression_with_context(&arguments[0], ctx);
+
+                            // DECY-140: Check if target is raw pointer - generate raw allocation
+                            if let Some(HirType::Pointer(inner)) = target_type {
+                                // malloc assigned to *mut T → Box::leak allocation
+                                // This keeps the memory alive (leaked) so the raw pointer remains valid
+                                if matches!(inner.as_ref(), HirType::Char) {
+                                    // For char* / *mut u8: allocate byte buffer
+                                    return format!(
+                                        "Box::leak(vec![0u8; {} as usize].into_boxed_slice()).as_mut_ptr()",
+                                        size_code
+                                    );
+                                }
+                            }
+
                             // Try to detect n * sizeof(T) pattern
                             if let HirExpression::BinaryOp {
                                 op: BinaryOperator::Multiply,
@@ -1230,8 +1255,6 @@ impl CodeGenerator {
                                 format!("vec![0i32; {} as usize]", count_code)
                             } else {
                                 // malloc(size) → Vec::with_capacity(size)
-                                let size_code =
-                                    self.generate_expression_with_context(&arguments[0], ctx);
                                 format!("Vec::<u8>::with_capacity({} as usize)", size_code)
                             }
                         } else {
@@ -1628,6 +1651,29 @@ impl CodeGenerator {
                                         }
                                     }
 
+                                    // DECY-140: Check if param expects &str but arg is a raw pointer field
+                                    // This happens when calling strcmp/strncmp with entry->key where key is char*
+                                    // For stdlib string functions, params are &str but we might pass *mut u8 field
+                                    let is_string_param = param_type
+                                        .map(|t| matches!(t, HirType::StringReference | HirType::StringLiteral))
+                                        .unwrap_or(false);
+                                    // Also check for known stdlib string functions that expect &str
+                                    let is_string_func = matches!(
+                                        function.as_str(),
+                                        "strcmp" | "strncmp" | "strchr" | "strrchr" | "strstr" | "strlen"
+                                    );
+                                    if is_string_param || is_string_func {
+                                        // Check if arg is PointerFieldAccess (entry->key pattern)
+                                        if let HirExpression::PointerFieldAccess { pointer, field } = arg {
+                                            // Generate CStr conversion for null-terminated C string
+                                            // unsafe { std::ffi::CStr::from_ptr((*entry).key as *const i8).to_str().unwrap_or("") }
+                                            let ptr_code = self.generate_expression_with_context(pointer, ctx);
+                                            return Some(format!(
+                                                "unsafe {{ std::ffi::CStr::from_ptr((*{}).{} as *const i8).to_str().unwrap_or(\"\") }}",
+                                                ptr_code, field
+                                            ));
+                                        }
+                                    }
 
                                     Some(self.generate_expression_with_context(arg, ctx))
                                 }
