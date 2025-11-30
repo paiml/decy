@@ -117,7 +117,10 @@ fn test_ownership_inference_complexity_target() {
 
     let target_complexity = "O(n)";
     println!("✅ Ownership inference complexity validated");
-    println!("   Target: {} (linear in number of pointers)", target_complexity);
+    println!(
+        "   Target: {} (linear in number of pointers)",
+        target_complexity
+    );
     println!("   Achieved: 4-phase pipeline, each O(n)");
 }
 
@@ -136,7 +139,10 @@ fn test_ownership_inference_unsafe_reduction_target() {
 
     let phase2_reduction = 30.0; // percentage points
     println!("✅ Unsafe reduction target validated");
-    println!("   Phase 2 (Ownership Inference) contributes: {}% reduction", phase2_reduction);
+    println!(
+        "   Phase 2 (Ownership Inference) contributes: {}% reduction",
+        phase2_reduction
+    );
     println!("   From 50% unsafe → 20% unsafe");
 }
 
@@ -180,7 +186,10 @@ mod integration {
             overhead * 100.0
         );
 
-        println!("✅ Ownership inference is 'free': {:.2}% overhead", overhead * 100.0);
+        println!(
+            "✅ Ownership inference is 'free': {:.2}% overhead",
+            overhead * 100.0
+        );
     }
 
     #[test]

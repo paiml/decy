@@ -21,8 +21,8 @@ fn is_reserved_keyword(name: &str) -> bool {
         // DECY-111: Common parameter names that conflict with test patterns
         "len", "size", "count", "idx",
         // C predefined macros that cause syntax errors (POSIX/system macros)
-        "unix", "linux", "i386", "i686", "x86_64", "amd64", "arm", "aarch64",
-        "null", "true", "false", "main", "exit", "errno", "stdin", "stdout", "stderr",
+        "unix", "linux", "i386", "i686", "x86_64", "amd64", "arm", "aarch64", "null", "true",
+        "false", "main", "exit", "errno", "stdin", "stdout", "stderr",
     ];
 
     if exact_reserved.contains(&name) {
