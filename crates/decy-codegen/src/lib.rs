@@ -2474,8 +2474,29 @@ impl CodeGenerator {
         let analyzer = DataflowAnalyzer::new();
         let graph = analyzer.analyze(func);
 
+        // DECY-084 GREEN: Detect output parameters for transformation
+        use decy_analyzer::output_params::{OutputParamDetector, ParameterKind};
+        let output_detector = OutputParamDetector::new();
+        let output_params = output_detector.detect(func);
+
         // Track which parameters are length parameters to skip them
         let mut skip_params = std::collections::HashSet::new();
+
+        // DECY-084: Track output parameters to skip and use for return type
+        let mut output_param_type: Option<HirType> = None;
+        let mut output_is_fallible = false;
+        for op in &output_params {
+            if op.kind == ParameterKind::Output {
+                skip_params.insert(op.name.clone());
+                output_is_fallible = op.is_fallible;
+                // Get the output parameter's inner type (pointer target)
+                if let Some(param) = func.parameters().iter().find(|p| p.name() == op.name) {
+                    if let HirType::Pointer(inner) = param.param_type() {
+                        output_param_type = Some((**inner).clone());
+                    }
+                }
+            }
+        }
 
         // First pass: identify array parameters and their associated length parameters
         // DECY-113: Only skip params with length-like names to avoid removing non-length params
@@ -2585,13 +2606,26 @@ impl CodeGenerator {
             return sig;
         }
 
-        // Generate return type with lifetime annotation (skip for void)
-        if !matches!(
-            &annotated_sig.return_type,
-            AnnotatedType::Simple(HirType::Void)
-        ) {
-            let return_type_str = self.annotated_type_to_string(&annotated_sig.return_type);
-            sig.push_str(&format!(" -> {}", return_type_str));
+        // DECY-084 GREEN: Generate return type considering output parameters
+        // Priority: output param type > original return type
+        if let Some(out_type) = output_param_type {
+            let out_type_str = Self::map_type(&out_type);
+            if output_is_fallible {
+                // Fallible function: int func(..., T* out) -> Result<T, i32>
+                sig.push_str(&format!(" -> Result<{}, i32>", out_type_str));
+            } else {
+                // Non-fallible void function: void func(..., T* out) -> T
+                sig.push_str(&format!(" -> {}", out_type_str));
+            }
+        } else {
+            // Generate return type with lifetime annotation (skip for void)
+            if !matches!(
+                &annotated_sig.return_type,
+                AnnotatedType::Simple(HirType::Void)
+            ) {
+                let return_type_str = self.annotated_type_to_string(&annotated_sig.return_type);
+                sig.push_str(&format!(" -> {}", return_type_str));
+            }
         }
 
         sig
@@ -3036,12 +3070,58 @@ impl CodeGenerator {
     /// Generate a function signature from an annotated signature with optional function body access.
     ///
     /// When `func` is provided, pointer arithmetic detection is enabled (DECY-123).
+    /// DECY-084: Also detects output parameters for transformation to return values.
     pub fn generate_annotated_signature_with_func(
         &self,
         sig: &AnnotatedSignature,
         func: Option<&HirFunction>,
     ) -> String {
         let mut result = format!("fn {}", sig.name);
+
+        // DECY-084: Detect output parameters for transformation
+        use decy_analyzer::output_params::{OutputParamDetector, ParameterKind};
+        let mut skip_output_params = std::collections::HashSet::new();
+        let mut output_param_type: Option<HirType> = None;
+        let mut output_is_fallible = false;
+
+        if let Some(f) = func {
+            let output_detector = OutputParamDetector::new();
+            let output_params = output_detector.detect(f);
+
+            // Count non-pointer parameters (inputs)
+            let input_param_count = f
+                .parameters()
+                .iter()
+                .filter(|p| !matches!(p.param_type(), HirType::Pointer(_)))
+                .count();
+
+            for op in &output_params {
+                if op.kind == ParameterKind::Output {
+                    // Heuristic: Only treat as output param if:
+                    // 1. There are other input parameters (output is derived from inputs)
+                    // 2. Or, the name suggests it's an output (result, out, output, ret, etc.)
+                    let is_output_name = {
+                        let name_lower = op.name.to_lowercase();
+                        name_lower.contains("result")
+                            || name_lower.contains("out")
+                            || name_lower.contains("ret")
+                            || name_lower == "len"
+                            || name_lower == "size"
+                    };
+
+                    if input_param_count > 0 || is_output_name {
+                        skip_output_params.insert(op.name.clone());
+                        output_is_fallible = op.is_fallible;
+                        // Get the output parameter's inner type
+                        if let Some(param) = f.parameters().iter().find(|p| p.name() == op.name) {
+                            if let HirType::Pointer(inner) = param.param_type() {
+                                output_param_type = Some((**inner).clone());
+                            }
+                        }
+                    }
+                }
+            }
+        }
 
         // DECY-072: Check if we have any non-slice reference parameters that need lifetimes
         // Slices have elided lifetimes and don't need explicit lifetime parameters
@@ -3065,11 +3145,12 @@ impl CodeGenerator {
             result.push_str(&format!("<{}>", lifetime_params.join(", ")));
         }
 
-        // Add function parameters
+        // Add function parameters (DECY-084: filter out output params)
         result.push('(');
         let params: Vec<String> = sig
             .parameters
             .iter()
+            .filter(|p| !skip_output_params.contains(&p.name))
             .map(|p| {
                 // Check if this is a slice parameter (Reference to Array with size=None)
                 let is_slice = match &p.param_type {
@@ -3154,9 +3235,21 @@ impl CodeGenerator {
             return result;
         }
 
-        // Add return type if not void
-        if return_type_str != "()" {
-            result.push_str(&format!(" -> {}", return_type_str));
+        // DECY-084: Generate return type considering output parameters
+        if let Some(out_type) = output_param_type {
+            let out_type_str = Self::map_type(&out_type);
+            if output_is_fallible {
+                // Fallible function: int func(..., T* out) -> Result<T, i32>
+                result.push_str(&format!(" -> Result<{}, i32>", out_type_str));
+            } else {
+                // Non-fallible void function: void func(..., T* out) -> T
+                result.push_str(&format!(" -> {}", out_type_str));
+            }
+        } else {
+            // Add return type if not void
+            if return_type_str != "()" {
+                result.push_str(&format!(" -> {}", return_type_str));
+            }
         }
 
         result
