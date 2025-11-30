@@ -141,6 +141,23 @@ impl TypeContext {
         self.structs.insert(struct_def.name().to_string(), fields);
     }
 
+    /// DECY-141: Check if a struct type implements Default (no large arrays)
+    /// Structs with arrays > 32 elements don't derive Default due to trait limitations
+    fn struct_has_default(&self, struct_name: &str) -> bool {
+        if let Some(fields) = self.structs.get(struct_name) {
+            // Check if any field has a large array (> 32 elements)
+            !fields.iter().any(|(_, field_type)| {
+                matches!(
+                    field_type,
+                    HirType::Array { size: Some(n), .. } if *n > 32
+                )
+            })
+        } else {
+            // Unknown struct - assume no Default for safety
+            false
+        }
+    }
+
     fn get_type(&self, name: &str) -> Option<&HirType> {
         self.variables.get(name)
     }
@@ -2413,13 +2430,26 @@ impl CodeGenerator {
                         // Generate Box::new or Vec based on the MODIFIED type (_actual_type)
                         match &_actual_type {
                             HirType::Box(inner) => {
-                                // DECY-123: Use zeroed() instead of default() for structs
-                                // to handle structs with large arrays
-                                let inner_type = Self::map_type(inner);
-                                code.push_str(&format!(
-                                    " = Box::new(unsafe {{ std::mem::zeroed::<{}>() }});",
-                                    inner_type
-                                ));
+                                // DECY-141: Use Box::default() for safe zero-initialization
+                                // if the inner type is a struct that derives Default
+                                let use_default = if let HirType::Struct(struct_name) = inner.as_ref()
+                                {
+                                    ctx.struct_has_default(struct_name)
+                                } else {
+                                    false
+                                };
+
+                                if use_default {
+                                    // Safe: struct derives Default
+                                    code.push_str(" = Box::default();");
+                                } else {
+                                    // Fallback: use zeroed for structs with large arrays or unknown types
+                                    let inner_type = Self::map_type(inner);
+                                    code.push_str(&format!(
+                                        " = Box::new(unsafe {{ std::mem::zeroed::<{}>() }});",
+                                        inner_type
+                                    ));
+                                }
                             }
                             HirType::Vec(_) => {
                                 // Use the expression generator for Vec allocation
