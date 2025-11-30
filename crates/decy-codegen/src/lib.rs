@@ -113,7 +113,9 @@ impl TypeContext {
 
     /// DECY-117: Get the expected parameter type for a function call
     fn get_function_param_type(&self, func_name: &str, param_index: usize) -> Option<&HirType> {
-        self.functions.get(func_name).and_then(|params| params.get(param_index))
+        self.functions
+            .get(func_name)
+            .and_then(|params| params.get(param_index))
     }
 
     fn from_function(func: &HirFunction) -> Self {
@@ -909,10 +911,7 @@ impl CodeGenerator {
                             // Only offset_from needs unsafe
                             return match op {
                                 BinaryOperator::Add => {
-                                    format!(
-                                        "{}.wrapping_add({} as usize)",
-                                        left_str, right_str
-                                    )
+                                    format!("{}.wrapping_add({} as usize)", left_str, right_str)
                                 }
                                 BinaryOperator::Subtract => {
                                     // Check if right is also a pointer (ptr - ptr) or integer (ptr - offset)
@@ -933,10 +932,7 @@ impl CodeGenerator {
                                         }
                                     } else {
                                         // ptr - integer offset (literal or expression, safe)
-                                        format!(
-                                            "{}.wrapping_sub({} as usize)",
-                                            left_str, right_str
-                                        )
+                                        format!("{}.wrapping_sub({} as usize)", left_str, right_str)
                                     }
                                 }
                                 _ => unreachable!(),
@@ -1143,15 +1139,9 @@ impl CodeGenerator {
                             let mode = self.generate_expression_with_context(&arguments[1], ctx);
                             // Check mode: "r" → open, "w" → create
                             if mode.contains('w') || mode.contains('a') {
-                                format!(
-                                    "std::fs::File::create({}).ok()",
-                                    filename
-                                )
+                                format!("std::fs::File::create({}).ok()", filename)
                             } else {
-                                format!(
-                                    "std::fs::File::open({}).ok()",
-                                    filename
-                                )
+                                format!("std::fs::File::open({}).ok()", filename)
                             }
                         } else {
                             "None /* fopen requires 2 args */".to_string()
@@ -1291,10 +1281,13 @@ impl CodeGenerator {
                                     // Check if the function expects &mut for this parameter
                                     let expects_mut = ctx
                                         .get_function_param_type(function, i)
-                                        .map(|t| matches!(t, HirType::Reference { mutable: true, .. }))
+                                        .map(|t| {
+                                            matches!(t, HirType::Reference { mutable: true, .. })
+                                        })
                                         .unwrap_or(true); // Default to &mut for safety
 
-                                    let inner_code = self.generate_expression_with_context(inner, ctx);
+                                    let inner_code =
+                                        self.generate_expression_with_context(inner, ctx);
                                     if expects_mut {
                                         Some(format!("&mut {}", inner_code))
                                     } else {
@@ -1302,9 +1295,13 @@ impl CodeGenerator {
                                     }
                                 } else {
                                     // DECY-134b: Check if this function has string iteration params
-                                    if let Some(string_iter_params) = ctx.get_string_iter_func(function) {
+                                    if let Some(string_iter_params) =
+                                        ctx.get_string_iter_func(function)
+                                    {
                                         // Check if this argument index is a string iteration param
-                                        if let Some((_, is_mutable)) = string_iter_params.iter().find(|(idx, _)| *idx == i) {
+                                        if let Some((_, is_mutable)) =
+                                            string_iter_params.iter().find(|(idx, _)| *idx == i)
+                                        {
                                             // Transform argument to slice reference
                                             // array → &mut array or &array
                                             // string literal → b"string" (byte slice)
@@ -1324,7 +1321,8 @@ impl CodeGenerator {
                                             }
                                             // AddressOf expressions (e.g., &buffer) - extract inner
                                             if let HirExpression::AddressOf(inner) = arg {
-                                                let inner_code = self.generate_expression_with_context(inner, ctx);
+                                                let inner_code = self
+                                                    .generate_expression_with_context(inner, ctx);
                                                 if *is_mutable {
                                                     return Some(format!("&mut {}", inner_code));
                                                 } else {
@@ -1336,8 +1334,9 @@ impl CodeGenerator {
 
                                     // DECY-125: Check if param is raw pointer and arg needs conversion
                                     let param_type = ctx.get_function_param_type(function, i);
-                                    let is_raw_pointer_param =
-                                        param_type.map(|t| matches!(t, HirType::Pointer(_))).unwrap_or(false);
+                                    let is_raw_pointer_param = param_type
+                                        .map(|t| matches!(t, HirType::Pointer(_)))
+                                        .unwrap_or(false);
 
                                     if is_raw_pointer_param {
                                         // Convert array/variable to .as_mut_ptr()
@@ -1587,7 +1586,9 @@ impl CodeGenerator {
                                     let field_name = struct_fields
                                         .and_then(|f| f.get(i))
                                         .map(|(name, _)| name.as_str())
-                                        .unwrap_or_else(|| Box::leak(format!("field{}", i).into_boxed_str()));
+                                        .unwrap_or_else(|| {
+                                            Box::leak(format!("field{}", i).into_boxed_str())
+                                        });
                                     format!("{}: {}", field_name, init_code)
                                 })
                                 .collect();
@@ -1595,7 +1596,11 @@ impl CodeGenerator {
                             // DECY-133: Add ..Default::default() if not all fields are initialized
                             // This handles designated initializers that skip fields
                             if initializers.len() < num_struct_fields {
-                                format!("{} {{ {}, ..Default::default() }}", name, fields.join(", "))
+                                format!(
+                                    "{} {{ {}, ..Default::default() }}",
+                                    name,
+                                    fields.join(", ")
+                                )
                             } else {
                                 format!("{} {{ {} }}", name, fields.join(", "))
                             }
@@ -2083,11 +2088,20 @@ impl CodeGenerator {
                         if let HirExpression::BinaryOp { op, left, right } = value {
                             if let HirExpression::Variable(var_name) = &**left {
                                 if var_name == target {
-                                    let right_code = self.generate_expression_with_context(right, ctx);
+                                    let right_code =
+                                        self.generate_expression_with_context(right, ctx);
                                     return match op {
-                                        BinaryOperator::Add => format!("{} += {} as usize;", idx_var, right_code),
-                                        BinaryOperator::Subtract => format!("{} -= {} as usize;", idx_var, right_code),
-                                        _ => format!("{} = {};", target, self.generate_expression_with_context(value, ctx)),
+                                        BinaryOperator::Add => {
+                                            format!("{} += {} as usize;", idx_var, right_code)
+                                        }
+                                        BinaryOperator::Subtract => {
+                                            format!("{} -= {} as usize;", idx_var, right_code)
+                                        }
+                                        _ => format!(
+                                            "{} = {};",
+                                            target,
+                                            self.generate_expression_with_context(value, ctx)
+                                        ),
                                     };
                                 }
                             }
@@ -2262,7 +2276,9 @@ impl CodeGenerator {
                         // This happens when var_type is Reference to Pointer or Pointer to Pointer
                         if let Some(var_type) = ctx.get_type(var_name) {
                             let yields_raw_ptr = match var_type {
-                                HirType::Reference { inner: ref_inner, .. } => {
+                                HirType::Reference {
+                                    inner: ref_inner, ..
+                                } => {
                                     matches!(&**ref_inner, HirType::Pointer(_))
                                 }
                                 HirType::Pointer(ptr_inner) => {
@@ -2561,7 +2577,7 @@ impl CodeGenerator {
         }
     }
 
-    /// Check if a parameter uses pointer arithmetic in the function body (DECY-123).
+    /// Check if a parameter uses pointer arithmetic, is reassigned, or compared to NULL (DECY-123, DECY-137).
     ///
     /// Used to determine whether a pointer parameter should remain a raw pointer
     /// instead of being transformed to a reference.
@@ -2569,22 +2585,109 @@ impl CodeGenerator {
     /// - `ptr = ptr + n;` (pointer arithmetic assignment)
     /// - `ptr = ptr - n;` (pointer arithmetic assignment)
     /// - `ptr += n;` or `ptr -= n;` (compound pointer arithmetic)
+    /// - `ptr = ptr->field;` (DECY-137: linked list traversal pattern)
+    /// - `ptr = other_ptr;` (any pointer reassignment)
+    /// - `ptr != 0` or `ptr == 0` (DECY-137: NULL comparison - Rust refs can't be null)
+    ///
+    /// References in Rust cannot be reassigned or null, so any pointer param that is
+    /// reassigned or NULL-checked must remain as a raw pointer.
     fn uses_pointer_arithmetic(&self, func: &HirFunction, param_name: &str) -> bool {
         for stmt in func.body() {
             if self.statement_uses_pointer_arithmetic(stmt, param_name) {
+                return true;
+            }
+            // DECY-137: Also check for NULL comparisons in conditions
+            if self.statement_uses_null_comparison(stmt, param_name) {
                 return true;
             }
         }
         false
     }
 
-    /// Recursively check if a statement uses pointer arithmetic on a variable (DECY-123).
+    /// Check if a statement contains NULL comparison for a variable (DECY-137).
+    ///
+    /// If a pointer is compared to NULL (0), it should stay as raw pointer
+    /// because Rust references can never be null.
+    #[allow(clippy::only_used_in_recursion)]
+    fn statement_uses_null_comparison(&self, stmt: &HirStatement, var_name: &str) -> bool {
+        match stmt {
+            HirStatement::If { condition, then_block, else_block, .. } => {
+                // Check condition for NULL comparison
+                if self.expression_compares_to_null(condition, var_name) {
+                    return true;
+                }
+                // Recursively check nested statements
+                then_block.iter().any(|s| self.statement_uses_null_comparison(s, var_name))
+                    || else_block.as_ref().is_some_and(|blk| {
+                        blk.iter().any(|s| self.statement_uses_null_comparison(s, var_name))
+                    })
+            }
+            HirStatement::While { condition, body, .. } => {
+                if self.expression_compares_to_null(condition, var_name) {
+                    return true;
+                }
+                body.iter().any(|s| self.statement_uses_null_comparison(s, var_name))
+            }
+            HirStatement::For { condition, body, .. } => {
+                if self.expression_compares_to_null(condition, var_name) {
+                    return true;
+                }
+                body.iter().any(|s| self.statement_uses_null_comparison(s, var_name))
+            }
+            _ => false,
+        }
+    }
+
+    /// Check if an expression compares a variable to NULL (0).
+    fn expression_compares_to_null(&self, expr: &HirExpression, var_name: &str) -> bool {
+        match expr {
+            HirExpression::BinaryOp { op, left, right } => {
+                if matches!(op, BinaryOperator::Equal | BinaryOperator::NotEqual) {
+                    // Check: var == 0 or var != 0
+                    if let HirExpression::Variable(name) = &**left {
+                        if name == var_name
+                            && matches!(
+                                **right,
+                                HirExpression::IntLiteral(0) | HirExpression::NullLiteral
+                            )
+                        {
+                            return true;
+                        }
+                    }
+                    // Check: 0 == var or 0 != var
+                    if let HirExpression::Variable(name) = &**right {
+                        if name == var_name
+                            && matches!(
+                                **left,
+                                HirExpression::IntLiteral(0) | HirExpression::NullLiteral
+                            )
+                        {
+                            return true;
+                        }
+                    }
+                }
+                // Recursively check nested expressions (e.g., in logical AND/OR)
+                self.expression_compares_to_null(left, var_name)
+                    || self.expression_compares_to_null(right, var_name)
+            }
+            _ => false,
+        }
+    }
+
+    /// Recursively check if a statement uses pointer arithmetic or reassigns a variable (DECY-123, DECY-137).
     #[allow(clippy::only_used_in_recursion)]
     fn statement_uses_pointer_arithmetic(&self, stmt: &HirStatement, var_name: &str) -> bool {
         match stmt {
             HirStatement::Assignment { target, value } => {
-                // Check if this is var = var + n or var = var - n (pointer arithmetic)
+                // DECY-137: Any assignment to the pointer parameter means it must stay as raw pointer
+                // This catches:
+                // - ptr = ptr + n (pointer arithmetic)
+                // - ptr = ptr->next (linked list traversal)
+                // - ptr = other_ptr (general reassignment)
+                //
+                // References cannot be reassigned, only raw pointers can.
                 if target == var_name {
+                    // Check if this is pointer arithmetic (ptr = ptr + n or ptr = ptr - n)
                     if let HirExpression::BinaryOp { op, left, .. } = value {
                         if matches!(op, BinaryOperator::Add | BinaryOperator::Subtract) {
                             if let HirExpression::Variable(name) = &**left {
@@ -2593,6 +2696,25 @@ impl CodeGenerator {
                                 }
                             }
                         }
+                    }
+
+                    // DECY-137: Check for field access reassignment (ptr = ptr->field)
+                    // This is the linked list traversal pattern: head = head->next
+                    if let HirExpression::PointerFieldAccess { pointer, .. } = value {
+                        if let HirExpression::Variable(name) = &**pointer {
+                            if name == var_name {
+                                return true;
+                            }
+                        }
+                    }
+
+                    // DECY-137: Check for any other pointer reassignment
+                    // If ptr is assigned from another variable or expression, it needs
+                    // to stay as raw pointer. However, we need to be careful not to
+                    // flag initialization (which happens at declaration, not assignment).
+                    // For now, flag field access from ANY pointer as reassignment.
+                    if matches!(value, HirExpression::PointerFieldAccess { .. }) {
+                        return true;
                     }
                 }
                 false
@@ -3281,10 +3403,7 @@ impl CodeGenerator {
                 // DECY-134: Check for string iteration pattern FIRST
                 if self.is_string_iteration_param(func, param.name()) {
                     // Register as Vec type in context (slice in generated code)
-                    ctx.add_variable(
-                        param.name().to_string(),
-                        HirType::Vec(inner.clone()),
-                    );
+                    ctx.add_variable(param.name().to_string(), HirType::Vec(inner.clone()));
                     // Register string iteration param with index variable
                     let idx_var = format!("{}_idx", param.name());
                     ctx.add_string_iter_param(param.name().to_string(), idx_var.clone());
@@ -3635,11 +3754,7 @@ impl CodeGenerator {
                 }
                 other => Self::map_type(other),
             };
-            code.push_str(&format!(
-                "    pub {}: {},\n",
-                field.name(),
-                field_type_str
-            ));
+            code.push_str(&format!("    pub {}: {},\n", field.name(), field_type_str));
         }
 
         code.push('}');
