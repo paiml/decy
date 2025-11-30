@@ -8,10 +8,7 @@ use decy_hir::{BinaryOperator, HirExpression, HirFunction, HirParameter, HirStat
 
 /// Helper: Create void* parameter
 fn void_ptr_param(name: &str) -> HirParameter {
-    HirParameter::new(
-        name.to_string(),
-        HirType::Pointer(Box::new(HirType::Void)),
-    )
+    HirParameter::new(name.to_string(), HirType::Pointer(Box::new(HirType::Void)))
 }
 
 /// Helper: Create function with void* params
@@ -104,9 +101,7 @@ fn test_copy_infers_clone() {
         HirType::Void,
         vec![HirStatement::DerefAssignment {
             target: HirExpression::Variable("dest".to_string()),
-            value: HirExpression::Dereference(Box::new(HirExpression::Variable(
-                "src".to_string(),
-            ))),
+            value: HirExpression::Dereference(Box::new(HirExpression::Variable("src".to_string()))),
         }],
     );
 
@@ -138,11 +133,7 @@ fn test_no_ops_no_bounds() {
     let code = generator.generate_function(&func);
 
     // Should have <T> but no trait bounds (no where clause or T: Something)
-    assert!(
-        code.contains("<T>"),
-        "Should have generic T:\n{}",
-        code
-    );
+    assert!(code.contains("<T>"), "Should have generic T:\n{}", code);
     // Should NOT have complex bounds for simple pass-through
     let has_bounds = code.contains("T:") || code.contains("where T");
     assert!(
