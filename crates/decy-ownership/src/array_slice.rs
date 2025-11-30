@@ -56,11 +56,18 @@ impl ArrayParameterTransformer {
         }
 
         // Build map of array params and length params to remove
+        // DECY-163: Don't remove length params when array uses pointer arithmetic
         let mut array_param_map: HashMap<String, Option<String>> = HashMap::new();
         let mut length_params_to_remove: std::collections::HashSet<String> =
             std::collections::HashSet::new();
 
         for (array_param, length_param) in &array_params {
+            // DECY-163: Skip arrays that use pointer arithmetic
+            // Raw pointers don't have .len(), so we keep the size param as-is
+            if Self::uses_pointer_arithmetic(func, array_param) {
+                continue;
+            }
+
             array_param_map.insert(array_param.clone(), length_param.clone());
             if let Some(len_param) = length_param {
                 length_params_to_remove.insert(len_param.clone());
