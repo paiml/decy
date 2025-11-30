@@ -8259,9 +8259,9 @@ sprint_26:
       priority: high
       story_points: 8
       assignee: Claude
-      status: not_started
+      status: in_progress
       github_issue: null
-      phase: null
+      phase: GREEN
 
       description: |
         Detect heap allocation patterns and generate Vec<T>.
