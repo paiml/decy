@@ -8,6 +8,9 @@
 //! - Error messages
 //! - Edge cases
 
+// Gate entire test module on oracle feature - tests expect oracle functionality
+#![cfg(feature = "oracle")]
+
 use assert_cmd::Command;
 use predicates::prelude::*;
 use tempfile::TempDir;

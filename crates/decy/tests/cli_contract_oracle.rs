@@ -5,6 +5,9 @@
 //! Note: These tests require the `oracle` feature to be enabled.
 //! Without the feature, commands should fail gracefully with a helpful message.
 
+// Gate entire test module on oracle feature - tests expect oracle functionality
+#![cfg(feature = "oracle")]
+
 use assert_cmd::Command;
 use predicates::prelude::*;
 use tempfile::TempDir;

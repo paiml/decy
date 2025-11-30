@@ -7,6 +7,9 @@
 //!
 //! CLI: decy oracle query --error E0308 --context "let x: &mut i32 = ptr"
 
+// Gate entire test module on oracle feature - tests expect oracle functionality
+#![cfg(feature = "oracle")]
+
 use assert_cmd::Command;
 use predicates::prelude::*;
 
