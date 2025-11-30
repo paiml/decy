@@ -10096,8 +10096,8 @@ sprint_31_single_shot:
       priority: high
       story_points: 3
       assignee: Claude
-      status: in_progress
-      phase: RED
+      status: done
+      phase: DONE
 
       description: |
         Anonymous typedef struct pattern is not being parsed correctly:
@@ -10130,6 +10130,5 @@ sprint_31_single_shot:
         REFACTOR: Pass quality gates
 
       files_modified:
-        - crates/decy-parser/src/lib.rs
-        - crates/decy-codegen/src/lib.rs
+        - crates/decy-parser/src/parser.rs
         - crates/decy-codegen/tests/typedef_struct_test.rs
