@@ -3,24 +3,17 @@
 //! Analyzes void* usage to infer generic type parameters for
 //! transformation to Rust generics.
 
-use decy_analyzer::void_ptr_analysis::{VoidPtrAnalyzer, VoidPtrPattern, TypeConstraint};
+use decy_analyzer::void_ptr_analysis::{TypeConstraint, VoidPtrAnalyzer, VoidPtrPattern};
 use decy_hir::{HirExpression, HirFunction, HirParameter, HirStatement, HirType};
 
 /// Helper: Create test function
-fn create_function(
-    name: &str,
-    params: Vec<HirParameter>,
-    body: Vec<HirStatement>,
-) -> HirFunction {
+fn create_function(name: &str, params: Vec<HirParameter>, body: Vec<HirStatement>) -> HirFunction {
     HirFunction::new_with_body(name.to_string(), HirType::Void, params, body)
 }
 
 /// Helper: Create void* parameter
 fn void_ptr_param(name: &str) -> HirParameter {
-    HirParameter::new(
-        name.to_string(),
-        HirType::Pointer(Box::new(HirType::Void)),
-    )
+    HirParameter::new(name.to_string(), HirType::Pointer(Box::new(HirType::Void)))
 }
 
 // ============================================================================
@@ -30,11 +23,7 @@ fn void_ptr_param(name: &str) -> HirParameter {
 #[test]
 fn test_detect_void_ptr_parameter() {
     // void process(void* data) { ... }
-    let func = create_function(
-        "process",
-        vec![void_ptr_param("data")],
-        vec![],
-    );
+    let func = create_function("process", vec![void_ptr_param("data")], vec![]);
 
     let analyzer = VoidPtrAnalyzer::new();
     let patterns = analyzer.analyze(&func);
@@ -121,7 +110,9 @@ fn test_detect_compare_pattern() {
     let patterns = analyzer.analyze(&func);
 
     assert!(
-        patterns.iter().any(|p| p.pattern == VoidPtrPattern::Compare),
+        patterns
+            .iter()
+            .any(|p| p.pattern == VoidPtrPattern::Compare),
         "Should detect compare pattern"
     );
 }
@@ -202,5 +193,8 @@ fn test_no_void_ptr_empty_result() {
     let analyzer = VoidPtrAnalyzer::new();
     let patterns = analyzer.analyze(&func);
 
-    assert!(patterns.is_empty(), "Should be empty for non-void* functions");
+    assert!(
+        patterns.is_empty(),
+        "Should be empty for non-void* functions"
+    );
 }
