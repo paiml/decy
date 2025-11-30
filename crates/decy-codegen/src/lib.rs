@@ -1252,6 +1252,54 @@ impl CodeGenerator {
                             "print!(\"\")".to_string()
                         }
                     }
+                    // DECY-090: fread(buf, size, count, file) → file.read(&mut buf)
+                    // Reference: K&R §7.5, ISO C99 §7.19.8.1
+                    "fread" => {
+                        if arguments.len() == 4 {
+                            let buf_code =
+                                self.generate_expression_with_context(&arguments[0], ctx);
+                            let file_code =
+                                self.generate_expression_with_context(&arguments[3], ctx);
+                            format!(
+                                "{{ use std::io::Read; {}.read(&mut {}).unwrap_or(0) }}",
+                                file_code, buf_code
+                            )
+                        } else {
+                            "0 /* fread requires 4 args */".to_string()
+                        }
+                    }
+                    // DECY-090: fwrite(data, size, count, file) → file.write(&data)
+                    // Reference: K&R §7.5, ISO C99 §7.19.8.2
+                    "fwrite" => {
+                        if arguments.len() == 4 {
+                            let data_code =
+                                self.generate_expression_with_context(&arguments[0], ctx);
+                            let file_code =
+                                self.generate_expression_with_context(&arguments[3], ctx);
+                            format!(
+                                "{{ use std::io::Write; {}.write(&{}).unwrap_or(0) }}",
+                                file_code, data_code
+                            )
+                        } else {
+                            "0 /* fwrite requires 4 args */".to_string()
+                        }
+                    }
+                    // DECY-090: fputs(str, file) → file.write_all(str.as_bytes())
+                    // Reference: K&R §7.5, ISO C99 §7.19.7.4
+                    "fputs" => {
+                        if arguments.len() == 2 {
+                            let str_code =
+                                self.generate_expression_with_context(&arguments[0], ctx);
+                            let file_code =
+                                self.generate_expression_with_context(&arguments[1], ctx);
+                            format!(
+                                "{{ use std::io::Write; {}.write_all({}.as_bytes()).map(|_| 0).unwrap_or(-1) }}",
+                                file_code, str_code
+                            )
+                        } else {
+                            "-1 /* fputs requires 2 args */".to_string()
+                        }
+                    }
                     // Default: pass through function call as-is
                     // DECY-116 + DECY-117: Transform call sites for slice functions and reference mutability
                     _ => {
