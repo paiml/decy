@@ -32,9 +32,11 @@ fn test_call_site_mut_ref_for_swap() {
 
     println!("Generated Rust code:\n{}", result);
 
-    // Function signature should have &mut params
+    // Function signature should have &mut params (possibly with lifetime)
     assert!(
-        result.contains("a: &mut i32") || result.contains("a: &mut"),
+        result.contains("a: &mut i32")
+            || result.contains("a: &mut")
+            || result.contains("a: &'a mut i32"),
         "Function should take &mut params\nGenerated:\n{}",
         result
     );

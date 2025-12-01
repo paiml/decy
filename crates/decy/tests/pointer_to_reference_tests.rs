@@ -47,9 +47,11 @@ int main() {
         rust_code
     );
 
-    // Should have mutable reference types
+    // Should have mutable reference types (possibly with lifetime)
     assert!(
-        rust_code.contains("&mut i32") || rust_code.contains("& mut i32"),
+        rust_code.contains("&mut i32")
+            || rust_code.contains("& mut i32")
+            || rust_code.contains("&'a mut i32"),
         "Should use mutable references for mutating params!\nGot:\n{}",
         rust_code
     );
