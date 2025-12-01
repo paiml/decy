@@ -3253,6 +3253,25 @@ fn convert_type(cx_type: CXType) -> Option<Type> {
             convert_type(canonical)
         }
         CXType_Typedef => {
+            // DECY-172: Get typedef name first to check for known type aliases
+            let typedef_decl = unsafe { clang_getTypeDeclaration(cx_type) };
+            let typedef_name_cxstring = unsafe { clang_getCursorSpelling(typedef_decl) };
+            let typedef_name = unsafe {
+                let c_str = CStr::from_ptr(clang_getCString(typedef_name_cxstring));
+                let tn = c_str.to_string_lossy().into_owned();
+                clang_disposeString(typedef_name_cxstring);
+                tn
+            };
+
+            // DECY-172: Preserve size_t, ssize_t, ptrdiff_t as TypeAlias
+            // These need to map to usize/isize in Rust for compatibility with .len() etc.
+            match typedef_name.as_str() {
+                "size_t" | "ssize_t" | "ptrdiff_t" => {
+                    return Some(Type::TypeAlias(typedef_name));
+                }
+                _ => {}
+            }
+
             // DECY-147: For typedefs to anonymous structs, use typedef name as struct name
             // Example: typedef struct { int x; } Point; → Type::Struct("Point")
             let canonical = unsafe { clang_getCanonicalType(cx_type) };
@@ -3270,15 +3289,6 @@ fn convert_type(cx_type: CXType) -> Option<Type> {
 
                 // If struct is anonymous, use the typedef name instead
                 if struct_name.is_empty() {
-                    // Get the typedef name from the declaration
-                    let typedef_decl = unsafe { clang_getTypeDeclaration(cx_type) };
-                    let typedef_name_cxstring = unsafe { clang_getCursorSpelling(typedef_decl) };
-                    let typedef_name = unsafe {
-                        let c_str = CStr::from_ptr(clang_getCString(typedef_name_cxstring));
-                        let tn = c_str.to_string_lossy().into_owned();
-                        clang_disposeString(typedef_name_cxstring);
-                        tn
-                    };
                     return Some(Type::Struct(typedef_name));
                 }
             }
@@ -3734,6 +3744,8 @@ impl Typedef {
             Type::Struct(name) => name,
             Type::FunctionPointer { .. } => "function pointer",
             Type::Array { .. } => "array",
+            // DECY-172: TypeAlias returns the alias name
+            Type::TypeAlias(name) => name,
         }
     }
 
@@ -4209,6 +4221,9 @@ pub enum Type {
         /// Array size (None for unknown/expression-based size)
         size: Option<i64>,
     },
+    /// Type alias (typedef) - preserves the alias name
+    /// DECY-172: Used for size_t, ssize_t, ptrdiff_t, etc.
+    TypeAlias(String),
 }
 
 /// Represents a function parameter.

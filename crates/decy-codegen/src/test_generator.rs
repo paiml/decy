@@ -442,6 +442,8 @@ expected_kill_rate = 0.90
                 // Unions will be transformed to enums, default to first variant
                 "todo!(\"Union default value\")".to_string()
             }
+            // DECY-172: Type aliases use 0 as default (for size_t/ssize_t/ptrdiff_t)
+            HirType::TypeAlias(_) => "0".to_string(),
         }
     }
 }
