@@ -147,3 +147,137 @@ fn context_serde() {
     let ctx2: IterationContext = serde_json::from_str(&json).unwrap();
     assert_eq!(ctx.max_iterations, ctx2.max_iterations);
 }
+
+// ============================================================================
+// DECY-ML-004: "COMPILES ON FIRST TRY" METRIC TESTS
+// ============================================================================
+
+#[test]
+fn compilation_metrics_new() {
+    let metrics = CompilationMetrics::new();
+    assert_eq!(metrics.total_attempts(), 0);
+    assert_eq!(metrics.first_try_successes(), 0);
+}
+
+#[test]
+fn compilation_metrics_record_first_try_success() {
+    let mut metrics = CompilationMetrics::new();
+    metrics.record_attempt(true, 1);
+    assert_eq!(metrics.total_attempts(), 1);
+    assert_eq!(metrics.first_try_successes(), 1);
+    assert!((metrics.first_try_rate() - 1.0).abs() < f64::EPSILON);
+}
+
+#[test]
+fn compilation_metrics_record_retry_success() {
+    let mut metrics = CompilationMetrics::new();
+    metrics.record_attempt(true, 2); // Success on second try
+    assert_eq!(metrics.total_attempts(), 1);
+    assert_eq!(metrics.first_try_successes(), 0);
+    assert!((metrics.first_try_rate() - 0.0).abs() < f64::EPSILON);
+}
+
+#[test]
+fn compilation_metrics_record_failure() {
+    let mut metrics = CompilationMetrics::new();
+    metrics.record_attempt(false, 3); // Failed after 3 attempts
+    assert_eq!(metrics.total_attempts(), 1);
+    assert_eq!(metrics.first_try_successes(), 0);
+}
+
+#[test]
+fn compilation_metrics_rate_calculation() {
+    let mut metrics = CompilationMetrics::new();
+    // 8 first-try successes, 2 retries = 80% rate
+    for _ in 0..8 {
+        metrics.record_attempt(true, 1);
+    }
+    for _ in 0..2 {
+        metrics.record_attempt(true, 2);
+    }
+    assert_eq!(metrics.total_attempts(), 10);
+    assert_eq!(metrics.first_try_successes(), 8);
+    assert!((metrics.first_try_rate() - 0.8).abs() < 0.001);
+}
+
+#[test]
+fn compilation_metrics_meets_target() {
+    let mut metrics = CompilationMetrics::new();
+    // 85% first-try success rate meets target
+    for _ in 0..85 {
+        metrics.record_attempt(true, 1);
+    }
+    for _ in 0..15 {
+        metrics.record_attempt(true, 2);
+    }
+    assert!(metrics.meets_target(0.85));
+    assert!(!metrics.meets_target(0.90));
+}
+
+#[test]
+fn compilation_metrics_average_iterations() {
+    let mut metrics = CompilationMetrics::new();
+    metrics.record_attempt(true, 1); // 1 iteration
+    metrics.record_attempt(true, 2); // 2 iterations
+    metrics.record_attempt(true, 3); // 3 iterations
+    // Average: (1 + 2 + 3) / 3 = 2.0
+    assert!((metrics.average_iterations() - 2.0).abs() < 0.001);
+}
+
+#[test]
+fn compilation_metrics_zero_attempts() {
+    let metrics = CompilationMetrics::new();
+    // Should handle divide-by-zero gracefully
+    assert!((metrics.first_try_rate() - 0.0).abs() < f64::EPSILON);
+    assert!((metrics.average_iterations() - 0.0).abs() < f64::EPSILON);
+}
+
+#[test]
+fn compilation_metrics_serialize() {
+    let mut metrics = CompilationMetrics::new();
+    metrics.record_attempt(true, 1);
+    let json = serde_json::to_string(&metrics).unwrap();
+    assert!(json.contains("total_attempts"));
+    assert!(json.contains("first_try_successes"));
+}
+
+#[test]
+fn compilation_metrics_deserialize() {
+    let mut metrics = CompilationMetrics::new();
+    metrics.record_attempt(true, 1);
+    metrics.record_attempt(true, 2);
+    let json = serde_json::to_string(&metrics).unwrap();
+    let parsed: CompilationMetrics = serde_json::from_str(&json).unwrap();
+    assert_eq!(parsed.total_attempts(), 2);
+    assert_eq!(parsed.first_try_successes(), 1);
+}
+
+#[test]
+fn compilation_metrics_target_constant() {
+    // Spec: 85% target rate
+    assert!((CompilationMetrics::TARGET_RATE - 0.85).abs() < 0.001);
+}
+
+#[test]
+fn compilation_metrics_iteration_histogram() {
+    let mut metrics = CompilationMetrics::new();
+    metrics.record_attempt(true, 1);
+    metrics.record_attempt(true, 1);
+    metrics.record_attempt(true, 2);
+    metrics.record_attempt(true, 3);
+
+    let histogram = metrics.iteration_histogram();
+    assert_eq!(histogram.get(&1), Some(&2)); // 2 first-try successes
+    assert_eq!(histogram.get(&2), Some(&1)); // 1 second-try success
+    assert_eq!(histogram.get(&3), Some(&1)); // 1 third-try success
+}
+
+#[test]
+fn compilation_metrics_reset() {
+    let mut metrics = CompilationMetrics::new();
+    metrics.record_attempt(true, 1);
+    metrics.record_attempt(true, 2);
+    metrics.reset();
+    assert_eq!(metrics.total_attempts(), 0);
+    assert_eq!(metrics.first_try_successes(), 0);
+}
