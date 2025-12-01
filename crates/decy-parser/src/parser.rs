@@ -1027,18 +1027,29 @@ fn extract_inc_dec_stmt(cursor: CXCursor) -> Option<Statement> {
         clang_disposeTokens(tu, tokens, num_tokens);
     }
 
-    // Extract the target variable name by visiting children
-    let mut target_name: Option<String> = None;
+    // DECY-166: First check if this is a member expression increment (e.g., sb->length++)
+    // We need to detect this case and create a FieldAssignment instead of PostIncrement
+    let mut member_expr: Option<Expression> = None;
+    let mut simple_var: Option<String> = None;
 
-    // Visit children to find the DeclRefExpr (variable reference)
-    extern "C" fn visit_for_target(
+    // Visit children to find either a MemberRefExpr or DeclRefExpr
+    extern "C" fn visit_for_inc_target(
         cursor: CXCursor,
         _parent: CXCursor,
         client_data: CXClientData,
     ) -> CXChildVisitResult {
-        let target = unsafe { &mut *(client_data as *mut Option<String>) };
+        let data = unsafe { &mut *(client_data as *mut (Option<Expression>, Option<String>)) };
         let kind = unsafe { clang_getCursorKind(cursor) };
 
+        // Check for member expression first (sb->length, obj.field)
+        if kind == CXCursor_MemberRefExpr {
+            if let Some(expr) = extract_field_access(cursor) {
+                data.0 = Some(expr);
+                return CXChildVisit_Break;
+            }
+        }
+
+        // Fall back to simple variable reference
         if kind == CXCursor_DeclRefExpr {
             let name_cxstring = unsafe { clang_getCursorSpelling(cursor) };
             let name = unsafe {
@@ -1047,21 +1058,100 @@ fn extract_inc_dec_stmt(cursor: CXCursor) -> Option<Statement> {
                 clang_disposeString(name_cxstring);
                 var_name
             };
-            *target = Some(name);
+            data.1 = Some(name);
             CXChildVisit_Break
         } else {
             CXChildVisit_Recurse
         }
     }
 
-    let target_ptr = &mut target_name as *mut Option<String>;
+    let mut target_data = (member_expr, simple_var);
+    let target_ptr = &mut target_data as *mut (Option<Expression>, Option<String>);
     unsafe {
-        clang_visitChildren(cursor, visit_for_target, target_ptr as CXClientData);
+        clang_visitChildren(cursor, visit_for_inc_target, target_ptr as CXClientData);
+    }
+    member_expr = target_data.0;
+    simple_var = target_data.1;
+
+    let operator = operator?;
+    let op_str = operator.as_str();
+
+    // DECY-166: If we found a member expression, create a FieldAssignment
+    // sb->length++ becomes FieldAssignment { object: sb, field: "length", value: sb->length + 1 }
+    if let Some(expr) = member_expr {
+        // Determine the delta (+1 or -1) based on operator
+        let delta = match op_str {
+            "++" => 1,
+            "--" => -1,
+            _ => return None,
+        };
+
+        // Extract object and field from the expression
+        match expr {
+            Expression::PointerFieldAccess { pointer, field } => {
+                // Create the increment/decrement value expression
+                let value = if delta > 0 {
+                    Expression::BinaryOp {
+                        left: Box::new(Expression::PointerFieldAccess {
+                            pointer: pointer.clone(),
+                            field: field.clone(),
+                        }),
+                        op: BinaryOperator::Add,
+                        right: Box::new(Expression::IntLiteral(1)),
+                    }
+                } else {
+                    Expression::BinaryOp {
+                        left: Box::new(Expression::PointerFieldAccess {
+                            pointer: pointer.clone(),
+                            field: field.clone(),
+                        }),
+                        op: BinaryOperator::Subtract,
+                        right: Box::new(Expression::IntLiteral(1)),
+                    }
+                };
+
+                return Some(Statement::FieldAssignment {
+                    object: *pointer,
+                    field,
+                    value,
+                });
+            }
+            Expression::FieldAccess { object, field } => {
+                // Create the increment/decrement value expression
+                let value = if delta > 0 {
+                    Expression::BinaryOp {
+                        left: Box::new(Expression::FieldAccess {
+                            object: object.clone(),
+                            field: field.clone(),
+                        }),
+                        op: BinaryOperator::Add,
+                        right: Box::new(Expression::IntLiteral(1)),
+                    }
+                } else {
+                    Expression::BinaryOp {
+                        left: Box::new(Expression::FieldAccess {
+                            object: object.clone(),
+                            field: field.clone(),
+                        }),
+                        op: BinaryOperator::Subtract,
+                        right: Box::new(Expression::IntLiteral(1)),
+                    }
+                };
+
+                return Some(Statement::FieldAssignment {
+                    object: *object,
+                    field,
+                    value,
+                });
+            }
+            _ => {} // Fall through to simple variable handling
+        }
     }
 
-    let target = target_name?;
+    // Simple variable increment/decrement
+    let target = simple_var?;
 
-    match operator?.as_str() {
+    match op_str {
         "++" => {
             if is_pre {
                 Some(Statement::PreIncrement { target })
