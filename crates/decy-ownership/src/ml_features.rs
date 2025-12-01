@@ -791,3 +791,305 @@ impl FeatureExtractor {
         }
     }
 }
+
+// ============================================================================
+// DECY-ML-009: ERROR PATTERN LIBRARY
+// ============================================================================
+
+/// Error kind for ownership inference failures.
+///
+/// Maps to OwnershipDefect for consistent categorization.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub enum OwnershipErrorKind {
+    /// Owning pointer classified as borrowing or vice versa
+    PointerMisclassification,
+    /// Missing or incorrect lifetime annotations
+    LifetimeInferenceGap,
+    /// Use-after-free pattern not caught
+    DanglingPointerRisk,
+    /// Multiple mutable aliases generated
+    AliasViolation,
+    /// Unnecessary unsafe blocks in output
+    UnsafeMinimizationFailure,
+    /// Array vs slice semantics error
+    ArraySliceMismatch,
+    /// Allocation without corresponding deallocation
+    ResourceLeakPattern,
+    /// Const pointer vs mutable reference error
+    MutabilityMismatch,
+}
+
+impl OwnershipErrorKind {
+    /// Convert to OwnershipDefect for taxonomy integration.
+    pub fn to_defect(self) -> OwnershipDefect {
+        match self {
+            Self::PointerMisclassification => OwnershipDefect::PointerMisclassification,
+            Self::LifetimeInferenceGap => OwnershipDefect::LifetimeInferenceGap,
+            Self::DanglingPointerRisk => OwnershipDefect::DanglingPointerRisk,
+            Self::AliasViolation => OwnershipDefect::AliasViolation,
+            Self::UnsafeMinimizationFailure => OwnershipDefect::UnsafeMinimizationFailure,
+            Self::ArraySliceMismatch => OwnershipDefect::ArraySliceMismatch,
+            Self::ResourceLeakPattern => OwnershipDefect::ResourceLeakPattern,
+            Self::MutabilityMismatch => OwnershipDefect::MutabilityMismatch,
+        }
+    }
+}
+
+/// Severity level for error patterns.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, Default)]
+pub enum ErrorSeverity {
+    /// Informational - optimization opportunity
+    #[default]
+    Info,
+    /// Warning - suboptimal but compiles
+    Warning,
+    /// Error - does not compile
+    Error,
+    /// Critical - memory safety issue
+    Critical,
+}
+
+/// Suggested fix for an error pattern.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SuggestedFix {
+    /// Human-readable description
+    description: String,
+    /// Code template for the fix
+    code_template: String,
+    /// Confidence in this fix (0.0 - 1.0)
+    confidence: f32,
+}
+
+impl SuggestedFix {
+    /// Create a new suggested fix.
+    pub fn new(description: impl Into<String>, code_template: impl Into<String>) -> Self {
+        Self {
+            description: description.into(),
+            code_template: code_template.into(),
+            confidence: 0.5,
+        }
+    }
+
+    /// Set confidence score.
+    pub fn with_confidence(mut self, confidence: f32) -> Self {
+        self.confidence = confidence;
+        self
+    }
+
+    /// Get description.
+    pub fn description(&self) -> &str {
+        &self.description
+    }
+
+    /// Get code template.
+    pub fn code_template(&self) -> &str {
+        &self.code_template
+    }
+
+    /// Get confidence score.
+    pub fn confidence(&self) -> f32 {
+        self.confidence
+    }
+}
+
+/// An ownership inference error pattern.
+///
+/// Represents a specific C pattern that causes ownership inference failures,
+/// along with metadata for curriculum learning and error recovery.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ErrorPattern {
+    /// Unique identifier for this pattern
+    id: String,
+    /// Error category
+    error_kind: OwnershipErrorKind,
+    /// Human-readable description
+    description: String,
+    /// Example C code that triggers this error
+    c_pattern: Option<String>,
+    /// Rust compiler error message (if applicable)
+    rust_error: Option<String>,
+    /// Suggested fix
+    suggested_fix: Option<SuggestedFix>,
+    /// Severity level
+    severity: ErrorSeverity,
+    /// Curriculum learning level (1 = easiest, higher = harder)
+    curriculum_level: u8,
+    /// Number of times this pattern has been encountered
+    occurrence_count: u64,
+}
+
+impl ErrorPattern {
+    /// Create a new error pattern.
+    pub fn new(
+        id: impl Into<String>,
+        error_kind: OwnershipErrorKind,
+        description: impl Into<String>,
+    ) -> Self {
+        Self {
+            id: id.into(),
+            error_kind,
+            description: description.into(),
+            c_pattern: None,
+            rust_error: None,
+            suggested_fix: None,
+            severity: ErrorSeverity::Error,
+            curriculum_level: 1,
+            occurrence_count: 0,
+        }
+    }
+
+    /// Set the C pattern example.
+    pub fn with_c_pattern(mut self, pattern: impl Into<String>) -> Self {
+        self.c_pattern = Some(pattern.into());
+        self
+    }
+
+    /// Set the Rust error message.
+    pub fn with_rust_error(mut self, error: impl Into<String>) -> Self {
+        self.rust_error = Some(error.into());
+        self
+    }
+
+    /// Set the suggested fix.
+    pub fn with_fix(mut self, fix: SuggestedFix) -> Self {
+        self.suggested_fix = Some(fix);
+        self
+    }
+
+    /// Set severity level.
+    pub fn with_severity(mut self, severity: ErrorSeverity) -> Self {
+        self.severity = severity;
+        self
+    }
+
+    /// Set curriculum level.
+    pub fn with_curriculum_level(mut self, level: u8) -> Self {
+        self.curriculum_level = level;
+        self
+    }
+
+    /// Get pattern ID.
+    pub fn id(&self) -> &str {
+        &self.id
+    }
+
+    /// Get error kind.
+    pub fn error_kind(&self) -> OwnershipErrorKind {
+        self.error_kind
+    }
+
+    /// Get description.
+    pub fn description(&self) -> &str {
+        &self.description
+    }
+
+    /// Get C pattern.
+    pub fn c_pattern(&self) -> Option<&str> {
+        self.c_pattern.as_deref()
+    }
+
+    /// Get Rust error.
+    pub fn rust_error(&self) -> Option<&str> {
+        self.rust_error.as_deref()
+    }
+
+    /// Get suggested fix.
+    pub fn suggested_fix(&self) -> Option<&SuggestedFix> {
+        self.suggested_fix.as_ref()
+    }
+
+    /// Get severity.
+    pub fn severity(&self) -> ErrorSeverity {
+        self.severity
+    }
+
+    /// Get curriculum level.
+    pub fn curriculum_level(&self) -> u8 {
+        self.curriculum_level
+    }
+
+    /// Increment occurrence count.
+    pub fn record_occurrence(&mut self) {
+        self.occurrence_count = self.occurrence_count.saturating_add(1);
+    }
+
+    /// Get occurrence count.
+    pub fn occurrence_count(&self) -> u64 {
+        self.occurrence_count
+    }
+}
+
+/// Library of error patterns for ownership inference.
+///
+/// Supports curriculum ordering and pattern matching for error recovery.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct PatternLibrary {
+    /// All patterns indexed by ID
+    patterns: std::collections::HashMap<String, ErrorPattern>,
+}
+
+impl PatternLibrary {
+    /// Create a new empty pattern library.
+    pub fn new() -> Self {
+        Self {
+            patterns: std::collections::HashMap::new(),
+        }
+    }
+
+    /// Add a pattern to the library.
+    pub fn add(&mut self, pattern: ErrorPattern) {
+        self.patterns.insert(pattern.id.clone(), pattern);
+    }
+
+    /// Get a pattern by ID.
+    pub fn get(&self, id: &str) -> Option<&ErrorPattern> {
+        self.patterns.get(id)
+    }
+
+    /// Get a mutable pattern by ID.
+    pub fn get_mut(&mut self, id: &str) -> Option<&mut ErrorPattern> {
+        self.patterns.get_mut(id)
+    }
+
+    /// Get all patterns matching an error kind.
+    pub fn get_by_error_kind(&self, kind: OwnershipErrorKind) -> Vec<&ErrorPattern> {
+        self.patterns
+            .values()
+            .filter(|p| p.error_kind == kind)
+            .collect()
+    }
+
+    /// Get patterns ordered by curriculum level (easiest first).
+    pub fn curriculum_ordered(&self) -> Vec<&ErrorPattern> {
+        let mut patterns: Vec<_> = self.patterns.values().collect();
+        patterns.sort_by_key(|p| p.curriculum_level);
+        patterns
+    }
+
+    /// Match patterns against a Rust error message.
+    pub fn match_rust_error(&self, error_msg: &str) -> Vec<&ErrorPattern> {
+        self.patterns
+            .values()
+            .filter(|p| {
+                p.rust_error
+                    .as_ref()
+                    .is_some_and(|e| error_msg.contains(e))
+            })
+            .collect()
+    }
+
+    /// Get number of patterns.
+    pub fn len(&self) -> usize {
+        self.patterns.len()
+    }
+
+    /// Check if library is empty.
+    pub fn is_empty(&self) -> bool {
+        self.patterns.is_empty()
+    }
+
+    /// Iterate over all patterns.
+    pub fn iter(&self) -> impl Iterator<Item = &ErrorPattern> {
+        self.patterns.values()
+    }
+}
