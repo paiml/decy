@@ -18,8 +18,9 @@
 pub mod ab_testing;
 pub mod active_learning;
 pub mod array_slice;
-pub mod classifier;
 pub mod borrow_gen;
+pub mod classifier;
+pub mod classifier_integration;
 pub mod dataflow;
 pub mod error_tracking;
 pub mod hybrid_classifier;
@@ -96,6 +97,11 @@ pub use classifier::{
 
 // Re-export inference types for hybrid classifier examples
 pub use inference::{OwnershipInference, OwnershipKind};
+
+// Re-export classifier integration types (DECY-182)
+pub use classifier_integration::{
+    classify_function_variables, classify_with_rules, extract_features_for_variable,
+};
 
 #[cfg(test)]
 mod ml_features_tests;
