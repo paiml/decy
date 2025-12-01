@@ -1351,7 +1351,9 @@ dependencies = [
 name = "decy-oracle"
 version = "1.0.2"
 dependencies = [
+ "alimentar",
  "anyhow",
+ "arrow",
  "chrono",
  "decy-codegen",
  "decy-hir",

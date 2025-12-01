@@ -1,6 +1,6 @@
 //! Tests for fork/exec subprocess pattern detection (DECY-092).
 
-use decy_analyzer::subprocess_analysis::{ForkExecPattern, SubprocessDetector};
+use decy_analyzer::subprocess_analysis::SubprocessDetector;
 use decy_hir::{BinaryOperator, HirExpression, HirFunction, HirStatement, HirType};
 
 /// Helper: Create test function

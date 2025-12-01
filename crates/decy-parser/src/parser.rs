@@ -4189,6 +4189,7 @@ impl Function {
 
 /// Represents a C type.
 #[derive(Debug, Clone, PartialEq)]
+#[allow(clippy::enum_variant_names)] // TypeAlias is a meaningful variant name
 pub enum Type {
     /// void
     Void,

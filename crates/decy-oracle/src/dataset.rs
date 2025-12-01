@@ -255,51 +255,76 @@ impl DatasetExporter {
     #[cfg(feature = "dataset")]
     pub fn export_parquet(&self, path: impl AsRef<Path>) -> Result<usize, OracleError> {
         use alimentar::{ArrowDataset, Dataset};
+        use arrow::array::{BooleanArray, StringArray, UInt32Array};
+        use arrow::datatypes::{DataType, Field, Schema};
+        use arrow::record_batch::RecordBatch;
+        use std::sync::Arc;
 
         let path = path.as_ref();
 
         // Build Arrow arrays from examples
-        let error_codes: Vec<&str> = self
+        let error_codes: StringArray = self
             .examples
             .iter()
-            .map(|e| e.error_code.as_str())
+            .map(|e| Some(e.error_code.as_str()))
             .collect();
-        let decisions: Vec<&str> = self.examples.iter().map(|e| e.decision.as_str()).collect();
-        let fix_diffs: Vec<&str> = self.examples.iter().map(|e| e.fix_diff.as_str()).collect();
-        let descriptions: Vec<&str> = self
+        let decisions: StringArray = self
             .examples
             .iter()
-            .map(|e| e.description.as_str())
+            .map(|e| Some(e.decision.as_str()))
             .collect();
-        let sources: Vec<&str> = self.examples.iter().map(|e| e.source.as_str()).collect();
-        let verified: Vec<bool> = self.examples.iter().map(|e| e.verified).collect();
-        let success_counts: Vec<u32> = self.examples.iter().map(|e| e.success_count).collect();
-        let failure_counts: Vec<u32> = self.examples.iter().map(|e| e.failure_count).collect();
+        let fix_diffs: StringArray = self
+            .examples
+            .iter()
+            .map(|e| Some(e.fix_diff.as_str()))
+            .collect();
+        let descriptions: StringArray = self
+            .examples
+            .iter()
+            .map(|e| Some(e.description.as_str()))
+            .collect();
+        let sources: StringArray = self
+            .examples
+            .iter()
+            .map(|e| Some(e.source.as_str()))
+            .collect();
+        let verified: BooleanArray = self.examples.iter().map(|e| Some(e.verified)).collect();
+        let success_counts: UInt32Array =
+            self.examples.iter().map(|e| Some(e.success_count)).collect();
+        let failure_counts: UInt32Array =
+            self.examples.iter().map(|e| Some(e.failure_count)).collect();
 
-        // Create dataset from arrays
-        let dataset = ArrowDataset::from_columns(vec![
-            (
-                "error_code",
-                Box::new(error_codes) as Box<dyn std::any::Any>,
-            ),
-            ("decision", Box::new(decisions) as Box<dyn std::any::Any>),
-            ("fix_diff", Box::new(fix_diffs) as Box<dyn std::any::Any>),
-            (
-                "description",
-                Box::new(descriptions) as Box<dyn std::any::Any>,
-            ),
-            ("source", Box::new(sources) as Box<dyn std::any::Any>),
-            ("verified", Box::new(verified) as Box<dyn std::any::Any>),
-            (
-                "success_count",
-                Box::new(success_counts) as Box<dyn std::any::Any>,
-            ),
-            (
-                "failure_count",
-                Box::new(failure_counts) as Box<dyn std::any::Any>,
-            ),
-        ])
-        .map_err(|e| OracleError::ExportError(format!("Failed to create Arrow dataset: {}", e)))?;
+        // Create schema
+        let schema = Arc::new(Schema::new(vec![
+            Field::new("error_code", DataType::Utf8, false),
+            Field::new("decision", DataType::Utf8, false),
+            Field::new("fix_diff", DataType::Utf8, false),
+            Field::new("description", DataType::Utf8, false),
+            Field::new("source", DataType::Utf8, false),
+            Field::new("verified", DataType::Boolean, false),
+            Field::new("success_count", DataType::UInt32, false),
+            Field::new("failure_count", DataType::UInt32, false),
+        ]));
+
+        // Create record batch
+        let batch = RecordBatch::try_new(
+            schema,
+            vec![
+                Arc::new(error_codes),
+                Arc::new(decisions),
+                Arc::new(fix_diffs),
+                Arc::new(descriptions),
+                Arc::new(sources),
+                Arc::new(verified),
+                Arc::new(success_counts),
+                Arc::new(failure_counts),
+            ],
+        )
+        .map_err(|e| OracleError::ExportError(format!("Failed to create RecordBatch: {}", e)))?;
+
+        // Create dataset from batch
+        let dataset = ArrowDataset::from_batch(batch)
+            .map_err(|e| OracleError::ExportError(format!("Failed to create Arrow dataset: {}", e)))?;
 
         dataset
             .to_parquet(path)
