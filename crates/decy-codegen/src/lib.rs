@@ -5266,18 +5266,31 @@ impl CodeGenerator {
             ));
         }
 
+        // DECY-167: Handle platform size types specially
+        // These need to map to usize/isize for compatibility with Rust methods like .len()
+        let name = typedef.name();
+        if name == "size_t" {
+            return Ok("pub type size_t = usize;".to_string());
+        }
+        if name == "ssize_t" {
+            return Ok("pub type ssize_t = isize;".to_string());
+        }
+        if name == "ptrdiff_t" {
+            return Ok("pub type ptrdiff_t = isize;".to_string());
+        }
+
         // Check for redundant typedef (struct/enum name matching typedef name)
         let result = match typedef.underlying_type() {
-            HirType::Struct(name) | HirType::Enum(name) if name == typedef.name() => {
+            HirType::Struct(struct_name) | HirType::Enum(struct_name) if struct_name == name => {
                 // In Rust, struct/enum names are already types, so this is redundant
                 // Generate as a comment for documentation purposes
-                format!("// type {} = {}; (redundant in Rust)", typedef.name(), name)
+                format!("// type {} = {}; (redundant in Rust)", name, struct_name)
             }
             _ => {
                 // Regular type alias with public visibility
                 format!(
                     "pub type {} = {};",
-                    typedef.name(),
+                    name,
                     Self::map_type(typedef.underlying_type())
                 )
             }
