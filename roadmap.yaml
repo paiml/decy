@@ -10588,3 +10588,61 @@ sprint_31_single_shot:
       files_modified:
         - crates/decy-ownership/src/borrow_gen.rs
         - crates/decy-ownership/src/borrow_gen_tests.rs
+
+    DECY-185:
+      title: "Support compound assignment to MemberAccess and Dereference targets"
+      type: bug
+      priority: critical
+      story_points: 3
+      assignee: Claude
+      status: in_progress
+      phase: RED
+      started_date: "2025-12-01"
+
+      description: |
+        Fix compound assignment parsing to support non-Variable targets.
+
+        Problem: In extract_compound_assignment_stmt, the target extraction only
+        handles Expression::Variable:
+
+        ```rust
+        let target = match &operands[0] {
+            Expression::Variable(name) => name.clone(),
+            _ => return None,  // BUG: Drops MemberAccess and Dereference!
+        };
+        ```
+
+        This causes compound assignments like:
+        - `sb->capacity *= 2;` (MemberAccess target)
+        - `*ptr *= 2;` (Dereference target)
+
+        To be silently dropped from the AST, resulting in empty while loop bodies.
+
+        Root cause: string_builder.c contains:
+        ```c
+        while (sb->capacity <= new_len) {
+            sb->capacity *= 2;  // Dropped! Body becomes empty
+        }
+        ```
+
+        Solution: Extend extract_compound_assignment_stmt to return a
+        DerefCompoundAssignment or similar statement type for complex targets,
+        or extend CompoundAssignment to support Expression targets.
+
+      acceptance_criteria:
+        - `*ptr *= 2;` is correctly parsed and generates valid Rust
+        - `sb->capacity *= 2;` is correctly parsed and generates valid Rust
+        - While loop bodies with compound assignments are preserved
+        - string_builder.c transpiles and compiles successfully
+
+      test_strategy: |
+        RED: Create tests in parser_tests verifying:
+        - Compound assignment to dereferenced pointer
+        - Compound assignment to struct field via arrow operator
+        - While loop with compound assignment in body
+        GREEN: Extend extract_compound_assignment_stmt
+        REFACTOR: Clean up, verify E2E pass rate
+
+      files_modified:
+        - crates/decy-parser/src/parser.rs
+        - crates/decy-parser/src/parser_tests.rs
