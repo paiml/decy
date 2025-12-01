@@ -27,6 +27,7 @@ pub mod lifetime;
 pub mod lifetime_gen;
 pub mod ml_features;
 pub mod model_versioning;
+pub mod retraining_pipeline;
 pub mod struct_lifetime;
 pub mod threshold_tuning;
 
@@ -70,6 +71,12 @@ pub use active_learning::{
 pub use error_tracking::{
     ErrorTracker, FeatureSuspiciousness, ImprovementSuggestion, InferenceError, PatternStats,
     SuggestionCategory, SuggestionPriority,
+};
+
+// Re-export retraining pipeline types (DECY-ML-018)
+pub use retraining_pipeline::{
+    DataSplit, ModelTrainer, NullTrainer, PipelineExecution, RetrainingConfig,
+    RetrainingPipeline, RetrainingResult, RetrainingSchedule, TrainingMetrics, TrainingSample,
 };
 
 #[cfg(test)]
