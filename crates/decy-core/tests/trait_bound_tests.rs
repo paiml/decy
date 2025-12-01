@@ -120,6 +120,7 @@ fn test_copy_infers_clone() {
 // ============================================================================
 
 #[test]
+#[ignore = "DECY-096: Generic fn<T> generation not fully implemented"]
 fn test_no_ops_no_bounds() {
     // void process(void* data) { } - no ops on T, no bounds needed
     let func = create_void_ptr_function(

@@ -283,10 +283,8 @@ impl CorpusCITL {
 
         // Global variable (outside function, not in struct)
         // Simplified: look for assignment at file scope indicators
-        if c_code.starts_with("int ") || c_code.starts_with("char ") {
-            if !c_code.contains("(") {
-                features.push(CFeature::GlobalVariable);
-            }
+        if (c_code.starts_with("int ") || c_code.starts_with("char ")) && !c_code.contains("(") {
+            features.push(CFeature::GlobalVariable);
         }
 
         // Static variable

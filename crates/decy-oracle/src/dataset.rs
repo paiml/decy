@@ -254,7 +254,7 @@ impl DatasetExporter {
     /// Export to Parquet format using alimentar
     #[cfg(feature = "dataset")]
     pub fn export_parquet(&self, path: impl AsRef<Path>) -> Result<usize, OracleError> {
-        use alimentar::{ArrowDataset, Dataset};
+        use alimentar::ArrowDataset;
         use arrow::array::{BooleanArray, StringArray, UInt32Array};
         use arrow::datatypes::{DataType, Field, Schema};
         use arrow::record_batch::RecordBatch;
