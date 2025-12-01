@@ -349,12 +349,20 @@ fn apply_fix(rust_code: &str, diff: &str) -> Result<String, String> {
 mod tests {
     use super::*;
 
+    // ============================================================================
+    // ORACLE OPTIONS CONSTRUCTION TESTS
+    // ============================================================================
+
     #[test]
     fn test_oracle_options_default() {
         let opts = OracleOptions::default();
         assert!(!opts.enabled);
         assert!(!opts.auto_fix);
         assert_eq!(opts.max_retries, 0);
+        assert!(opts.patterns_path.is_none());
+        assert!(!opts.capture_patterns);
+        assert!(opts.import_patterns_path.is_none());
+        assert!(opts.report_format.is_none());
     }
 
     #[test]
@@ -363,7 +371,39 @@ mod tests {
         assert!(opts.enabled);
         assert!(opts.auto_fix);
         assert!((opts.threshold - 0.8).abs() < f32::EPSILON);
+        assert_eq!(opts.max_retries, 3);
     }
+
+    #[test]
+    fn test_oracle_options_new_default_threshold() {
+        let opts = OracleOptions::new(true, None, false);
+        assert!((opts.threshold - 0.7).abs() < f32::EPSILON);
+    }
+
+    #[test]
+    fn test_oracle_options_debug() {
+        let opts = OracleOptions::new(true, Some(0.9), true);
+        let debug_str = format!("{:?}", opts);
+        assert!(debug_str.contains("OracleOptions"));
+        assert!(debug_str.contains("enabled: true"));
+    }
+
+    #[test]
+    fn test_oracle_options_clone() {
+        let opts = OracleOptions::new(true, Some(0.85), true)
+            .with_capture(true)
+            .with_report_format(Some("json".into()));
+        let cloned = opts.clone();
+        assert_eq!(cloned.enabled, opts.enabled);
+        assert!((cloned.threshold - opts.threshold).abs() < f32::EPSILON);
+        assert_eq!(cloned.auto_fix, opts.auto_fix);
+        assert_eq!(cloned.capture_patterns, opts.capture_patterns);
+        assert_eq!(cloned.report_format, opts.report_format);
+    }
+
+    // ============================================================================
+    // ORACLE OPTIONS BUILDER TESTS
+    // ============================================================================
 
     #[test]
     fn test_should_use_oracle() {
@@ -392,35 +432,56 @@ mod tests {
     }
 
     #[test]
-    #[cfg(feature = "citl")]
-    fn test_parse_rustc_errors() {
-        let stderr = r#"error[E0382]: borrow of moved value: `x`
-   --> test.rs:5:10
-    |
-5   |     let y = x;
-    |             - value moved here
-6   |     println!("{}", x);
-    |                    ^ value borrowed here after move
+    fn test_with_import() {
+        let path = std::path::PathBuf::from("/tmp/patterns.apr");
+        let opts = OracleOptions::new(true, None, false).with_import(Some(path.clone()));
+        assert_eq!(opts.import_patterns_path, Some(path));
 
-error[E0499]: cannot borrow `data` as mutable more than once
-   --> test.rs:10:5
-"#;
-
-        let errors = parse_rustc_errors(stderr);
-        assert_eq!(errors.len(), 2);
-        assert_eq!(errors[0].code, "E0382");
-        assert_eq!(errors[1].code, "E0499");
+        let opts = OracleOptions::new(true, None, false).with_import(None);
+        assert!(opts.import_patterns_path.is_none());
     }
 
     #[test]
-    #[cfg(feature = "citl")]
-    fn test_apply_fix() {
-        let rust_code = "let x = value.clone();";
-        let diff = "- value.clone()\n+ value.to_owned()";
+    fn test_with_report_format() {
+        let opts = OracleOptions::new(true, None, false).with_report_format(Some("json".into()));
+        assert_eq!(opts.report_format, Some("json".into()));
 
-        let result = apply_fix(rust_code, diff).unwrap();
-        assert_eq!(result, "let x = value.to_owned();");
+        let opts = OracleOptions::new(true, None, false).with_report_format(None);
+        assert!(opts.report_format.is_none());
     }
+
+    #[test]
+    fn test_with_report_format_markdown() {
+        let opts = OracleOptions::new(true, None, false).with_report_format(Some("markdown".into()));
+        assert_eq!(opts.report_format, Some("markdown".into()));
+    }
+
+    #[test]
+    fn test_with_report_format_prometheus() {
+        let opts =
+            OracleOptions::new(true, None, false).with_report_format(Some("prometheus".into()));
+        assert_eq!(opts.report_format, Some("prometheus".into()));
+    }
+
+    #[test]
+    fn test_builder_chaining() {
+        let path = std::path::PathBuf::from("/test/import.apr");
+        let opts = OracleOptions::new(true, Some(0.9), true)
+            .with_capture(true)
+            .with_import(Some(path.clone()))
+            .with_report_format(Some("json".into()));
+
+        assert!(opts.enabled);
+        assert!(opts.auto_fix);
+        assert!((opts.threshold - 0.9).abs() < f32::EPSILON);
+        assert!(opts.capture_patterns);
+        assert_eq!(opts.import_patterns_path, Some(path));
+        assert_eq!(opts.report_format, Some("json".into()));
+    }
+
+    // ============================================================================
+    // ORACLE TRANSPILE RESULT TESTS
+    // ============================================================================
 
     #[test]
     fn test_transpile_result_struct() {
@@ -443,22 +504,182 @@ error[E0499]: cannot borrow `data` as mutable more than once
     }
 
     #[test]
-    fn test_with_import() {
-        let path = std::path::PathBuf::from("/tmp/patterns.apr");
-        let opts = OracleOptions::new(true, None, false).with_import(Some(path.clone()));
-        assert_eq!(opts.import_patterns_path, Some(path));
+    fn test_transpile_result_with_errors() {
+        let result = OracleTranspileResult {
+            rust_code: "fn main() { let x = moved; }".into(),
+            oracle_queries: 10,
+            fixes_applied: 0,
+            retries_used: 3,
+            compilation_success: false,
+            remaining_errors: vec!["E0382: borrow of moved value".into()],
+            patterns_captured: 0,
+            patterns_imported: 0,
+        };
 
-        let opts = OracleOptions::new(true, None, false).with_import(None);
-        assert!(opts.import_patterns_path.is_none());
+        assert!(!result.compilation_success);
+        assert_eq!(result.remaining_errors.len(), 1);
+        assert!(result.remaining_errors[0].contains("E0382"));
     }
 
     #[test]
-    fn test_with_report_format() {
-        let opts = OracleOptions::new(true, None, false).with_report_format(Some("json".into()));
-        assert_eq!(opts.report_format, Some("json".into()));
+    fn test_transpile_result_debug() {
+        let result = OracleTranspileResult {
+            rust_code: "test".into(),
+            oracle_queries: 1,
+            fixes_applied: 0,
+            retries_used: 0,
+            compilation_success: false,
+            remaining_errors: vec![],
+            patterns_captured: 0,
+            patterns_imported: 0,
+        };
+        let debug_str = format!("{:?}", result);
+        assert!(debug_str.contains("OracleTranspileResult"));
+    }
 
-        let opts = OracleOptions::new(true, None, false).with_report_format(None);
-        assert!(opts.report_format.is_none());
+    // ============================================================================
+    // TRANSPILE WITH ORACLE (NON-CITL) TESTS
+    // ============================================================================
+
+    #[test]
+    #[cfg(not(feature = "citl"))]
+    fn test_transpile_with_oracle_non_citl() {
+        let c_code = "int main() { return 0; }";
+        let opts = OracleOptions::new(true, None, false);
+        let result = transpile_with_oracle(c_code, &opts);
+
+        assert!(result.is_ok());
+        let result = result.unwrap();
+        assert!(!result.compilation_success);
+        assert_eq!(result.oracle_queries, 0);
+        assert_eq!(result.fixes_applied, 0);
+        assert!(result.remaining_errors[0].contains("CITL feature not enabled"));
+    }
+
+    #[test]
+    #[cfg(not(feature = "citl"))]
+    fn test_transpile_with_oracle_non_citl_outputs_rust_code() {
+        let c_code = "void hello() {}";
+        let opts = OracleOptions::default();
+        let result = transpile_with_oracle(c_code, &opts);
+
+        assert!(result.is_ok());
+        let result = result.unwrap();
+        assert!(result.rust_code.contains("fn hello"));
+    }
+
+    #[test]
+    #[cfg(not(feature = "citl"))]
+    fn test_transpile_with_oracle_non_citl_invalid_code() {
+        let c_code = "invalid syntax {{{";
+        let opts = OracleOptions::default();
+        let result = transpile_with_oracle(c_code, &opts);
+
+        assert!(result.is_err());
+    }
+
+    // ============================================================================
+    // CITL FEATURE TESTS
+    // ============================================================================
+
+    #[test]
+    #[cfg(feature = "citl")]
+    fn test_parse_rustc_errors() {
+        let stderr = r#"error[E0382]: borrow of moved value: `x`
+   --> test.rs:5:10
+    |
+5   |     let y = x;
+    |             - value moved here
+6   |     println!("{}", x);
+    |                    ^ value borrowed here after move
+
+error[E0499]: cannot borrow `data` as mutable more than once
+   --> test.rs:10:5
+"#;
+
+        let errors = parse_rustc_errors(stderr);
+        assert_eq!(errors.len(), 2);
+        assert_eq!(errors[0].code, "E0382");
+        assert_eq!(errors[1].code, "E0499");
+    }
+
+    #[test]
+    #[cfg(feature = "citl")]
+    fn test_parse_rustc_errors_empty() {
+        let stderr = "";
+        let errors = parse_rustc_errors(stderr);
+        assert!(errors.is_empty());
+    }
+
+    #[test]
+    #[cfg(feature = "citl")]
+    fn test_parse_rustc_errors_no_errors() {
+        let stderr = "warning: unused variable `x`";
+        let errors = parse_rustc_errors(stderr);
+        assert!(errors.is_empty());
+    }
+
+    #[test]
+    #[cfg(feature = "citl")]
+    fn test_parse_rustc_errors_single() {
+        let stderr = "error[E0001]: test error message";
+        let errors = parse_rustc_errors(stderr);
+        assert_eq!(errors.len(), 1);
+        assert_eq!(errors[0].code, "E0001");
+    }
+
+    #[test]
+    #[cfg(feature = "citl")]
+    fn test_apply_fix() {
+        let rust_code = "let x = value.clone();";
+        let diff = "- value.clone()\n+ value.to_owned()";
+
+        let result = apply_fix(rust_code, diff).unwrap();
+        assert_eq!(result, "let x = value.to_owned();");
+    }
+
+    #[test]
+    #[cfg(feature = "citl")]
+    fn test_apply_fix_no_match() {
+        let rust_code = "let x = something_else();";
+        let diff = "- value.clone()\n+ value.to_owned()";
+
+        let result = apply_fix(rust_code, diff).unwrap();
+        // No change when diff doesn't match
+        assert_eq!(result, "let x = something_else();");
+    }
+
+    #[test]
+    #[cfg(feature = "citl")]
+    fn test_apply_fix_empty_diff() {
+        let rust_code = "let x = value;";
+        let diff = "";
+
+        let result = apply_fix(rust_code, diff).unwrap();
+        assert_eq!(result, "let x = value;");
+    }
+
+    #[test]
+    #[cfg(feature = "citl")]
+    fn test_apply_fix_multiple_replacements() {
+        let rust_code = "let a = x.clone(); let b = x.clone();";
+        let diff = "- x.clone()\n+ x.to_owned()";
+
+        let result = apply_fix(rust_code, diff).unwrap();
+        // Both occurrences should be replaced
+        assert_eq!(result, "let a = x.to_owned(); let b = x.to_owned();");
+    }
+
+    #[test]
+    #[cfg(feature = "citl")]
+    fn test_create_context_for_error() {
+        let error = RustcError::new("E0382", "borrow of moved value");
+        let c_code = "int* ptr;";
+        let rust_code = "let ptr: *mut i32;";
+
+        let context = create_context_for_error(&error, c_code, rust_code);
+        // Should create a default context
+        assert!(format!("{:?}", context).contains("CDecisionContext"));
     }
 
     #[test]

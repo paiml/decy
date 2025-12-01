@@ -214,13 +214,15 @@ test-all: test test-doc test-examples ## Run complete test suite
 
 ##@ Quality
 
-coverage: ## Generate comprehensive test coverage report
+coverage: ## Generate comprehensive test coverage report (bashrs pattern)
 	@echo "📊 Running comprehensive test coverage analysis..."
 	@echo "🔍 Checking for cargo-llvm-cov..."
 	@which cargo-llvm-cov > /dev/null 2>&1 || (echo "📦 Installing cargo-llvm-cov..." && cargo install cargo-llvm-cov --locked)
 	@echo "🧹 Cleaning old coverage data..."
 	@cargo llvm-cov clean --workspace
 	@mkdir -p target/coverage
+	@echo "⚙️  Temporarily disabling global cargo config (mold breaks coverage)..."
+	@test -f ~/.cargo/config.toml && mv ~/.cargo/config.toml ~/.cargo/config.toml.cov-backup || true
 	@echo "🧪 Phase 1: Running tests with instrumentation (no report)..."
 	@if [ -f /etc/debian_version ]; then \
 		export LLVM_CONFIG_PATH=/usr/bin/llvm-config-14; \
@@ -232,6 +234,8 @@ coverage: ## Generate comprehensive test coverage report
 	@echo "📊 Phase 2: Generating coverage reports..."
 	@cargo llvm-cov report --html --output-dir target/coverage/html
 	@cargo llvm-cov report --lcov --output-path target/coverage/lcov.info
+	@echo "⚙️  Restoring global cargo config..."
+	@test -f ~/.cargo/config.toml.cov-backup && mv ~/.cargo/config.toml.cov-backup ~/.cargo/config.toml || true
 	@echo ""
 	@echo "📊 Coverage Summary:"
 	@echo "=================="
