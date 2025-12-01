@@ -917,9 +917,10 @@ mod tests {
         let code = codegen.generate_statement(&var_decl);
 
         // DECY-130: malloc is now transformed to Vec
+        // DECY-169: Vec element type matches the pointer inner type (i32, not u8)
         assert_eq!(
             code,
-            "let mut ptr: Vec<i32> = Vec::<u8>::with_capacity(40 as usize);"
+            "let mut ptr: Vec<i32> = Vec::<i32>::with_capacity(40 as usize);"
         );
     }
 

@@ -2618,13 +2618,15 @@ impl CodeGenerator {
                                 }
                             }
                             HirType::Vec(_) => {
-                                // Use the expression generator for Vec allocation
+                                // DECY-169: Pass the TRANSFORMED type (_actual_type), not the original
+                                // pointer type (var_type). This ensures the expression generator
+                                // produces Vec code to match the Vec type annotation.
                                 code.push_str(&format!(
                                     " = {};",
                                     self.generate_expression_with_target_type(
                                         init_expr,
                                         ctx,
-                                        Some(var_type)
+                                        Some(&_actual_type)
                                     )
                                 ));
                             }
