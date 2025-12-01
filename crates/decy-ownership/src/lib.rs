@@ -18,6 +18,7 @@
 pub mod ab_testing;
 pub mod active_learning;
 pub mod array_slice;
+pub mod classifier;
 pub mod borrow_gen;
 pub mod dataflow;
 pub mod error_tracking;
@@ -84,6 +85,13 @@ pub use retraining_pipeline::{
 pub use training_data::{
     CollectionResult, DataSource, DatasetStats, LabeledSample, SyntheticConfig,
     SyntheticDataGenerator, TrainingDataCollector, TrainingDataset,
+};
+
+// Re-export classifier types (DECY-ML-011)
+pub use classifier::{
+    ClassifierEvaluator, ClassifierPrediction, ClassifierTrainer, EnsembleClassifier,
+    EvaluationMetrics, OwnershipClassifier, RuleBasedClassifier, RuleWeights, TrainingConfig,
+    TrainingResult,
 };
 
 #[cfg(test)]
