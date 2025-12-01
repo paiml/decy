@@ -437,7 +437,7 @@ mod tests {
     #[test]
     fn test_create_bootstrapped_store() {
         let store = create_bootstrapped_store().unwrap();
-        assert!(store.len() > 0, "Bootstrapped store should have patterns");
+        assert!(!store.is_empty(), "Bootstrapped store should have patterns");
     }
 
     #[cfg(feature = "citl")]
