@@ -12,6 +12,10 @@
 #![warn(clippy::all)]
 #![deny(unsafe_code)]
 
+pub mod metrics;
+
+pub use metrics::{CompileMetrics, TranspilationResult};
+
 use anyhow::{Context, Result};
 use decy_analyzer::patterns::PatternDetector;
 use decy_codegen::CodeGenerator;
@@ -717,6 +721,42 @@ fn preprocess_includes(
 /// - Code generation fails
 pub fn transpile(c_code: &str) -> Result<String> {
     transpile_with_includes(c_code, None)
+}
+
+/// Transpile C code and return verification result.
+///
+/// This function transpiles C code to Rust and includes metadata about
+/// the transpilation for metrics tracking.
+///
+/// # Arguments
+///
+/// * `c_code` - C source code to transpile
+///
+/// # Returns
+///
+/// Returns a `TranspilationResult` containing the generated Rust code
+/// and verification status.
+///
+/// # Examples
+///
+/// ```
+/// use decy_core::transpile_with_verification;
+///
+/// let c_code = "int add(int a, int b) { return a + b; }";
+/// let result = transpile_with_verification(c_code);
+/// assert!(result.is_ok());
+/// ```
+pub fn transpile_with_verification(c_code: &str) -> Result<TranspilationResult> {
+    match transpile(c_code) {
+        Ok(rust_code) => Ok(TranspilationResult::success(rust_code)),
+        Err(e) => {
+            // Return empty code with error
+            Ok(TranspilationResult::failure(
+                String::new(),
+                vec![e.to_string()],
+            ))
+        }
+    }
 }
 
 /// Transpile C code with include directive support and custom base directory.
