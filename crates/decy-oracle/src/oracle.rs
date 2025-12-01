@@ -438,4 +438,286 @@ mod tests {
         assert_eq!(metrics.by_error_code.get("E0382").unwrap().queries, 2);
         assert_eq!(metrics.by_error_code.get("E0499").unwrap().queries, 1);
     }
+
+    // ============================================================================
+    // NEEDS_BOOTSTRAP TESTS
+    // ============================================================================
+
+    #[test]
+    fn test_needs_bootstrap_when_empty() {
+        let config = OracleConfig {
+            patterns_path: std::path::PathBuf::from("/tmp/nonexistent.apr"),
+            ..Default::default()
+        };
+        let oracle = DecyOracle::new(config).unwrap();
+        assert!(oracle.needs_bootstrap()); // 0 patterns < 10
+    }
+
+    #[test]
+    fn test_needs_bootstrap_threshold() {
+        let config = OracleConfig {
+            patterns_path: std::path::PathBuf::from("/tmp/nonexistent.apr"),
+            ..Default::default()
+        };
+        let oracle = DecyOracle::new(config).unwrap();
+        // pattern_count() is 0, needs_bootstrap checks < 10
+        assert!(oracle.needs_bootstrap());
+    }
+
+    // ============================================================================
+    // RUSTC ERROR BUILDER TESTS
+    // ============================================================================
+
+    #[test]
+    fn test_rustc_error_new_with_empty_strings() {
+        let error = RustcError::new("", "");
+        assert_eq!(error.code, "");
+        assert_eq!(error.message, "");
+    }
+
+    #[test]
+    fn test_rustc_error_new_with_string_slices() {
+        let code: &str = "E0382";
+        let msg: &str = "use of moved value";
+        let error = RustcError::new(code, msg);
+        assert_eq!(error.code, "E0382");
+        assert_eq!(error.message, "use of moved value");
+    }
+
+    #[test]
+    fn test_rustc_error_new_with_string_type() {
+        let code = String::from("E0499");
+        let msg = String::from("cannot borrow");
+        let error = RustcError::new(code, msg);
+        assert_eq!(error.code, "E0499");
+    }
+
+    #[test]
+    fn test_rustc_error_with_location_zero_line() {
+        let error = RustcError::new("E0382", "test").with_location("test.rs", 0);
+        assert_eq!(error.line, Some(0));
+    }
+
+    #[test]
+    fn test_rustc_error_with_location_large_line() {
+        let error = RustcError::new("E0382", "test").with_location("test.rs", usize::MAX);
+        assert_eq!(error.line, Some(usize::MAX));
+    }
+
+    #[test]
+    fn test_rustc_error_with_location_empty_file() {
+        let error = RustcError::new("E0382", "test").with_location("", 10);
+        assert_eq!(error.file, Some("".into()));
+    }
+
+    #[test]
+    fn test_rustc_error_clone() {
+        let error = RustcError::new("E0382", "borrow of moved value").with_location("test.rs", 42);
+        let cloned = error.clone();
+        assert_eq!(cloned.code, error.code);
+        assert_eq!(cloned.message, error.message);
+        assert_eq!(cloned.file, error.file);
+        assert_eq!(cloned.line, error.line);
+    }
+
+    #[test]
+    fn test_rustc_error_debug() {
+        let error = RustcError::new("E0382", "test");
+        let debug_str = format!("{:?}", error);
+        assert!(debug_str.contains("RustcError"));
+        assert!(debug_str.contains("E0382"));
+    }
+
+    // ============================================================================
+    // ORACLE HAS_PATTERNS TESTS
+    // ============================================================================
+
+    #[test]
+    fn test_has_patterns_false_when_no_file() {
+        let config = OracleConfig {
+            patterns_path: std::path::PathBuf::from("/does/not/exist.apr"),
+            ..Default::default()
+        };
+        let oracle = DecyOracle::new(config).unwrap();
+        assert!(!oracle.has_patterns());
+    }
+
+    // ============================================================================
+    // ORACLE PATTERN_COUNT TESTS
+    // ============================================================================
+
+    #[test]
+    fn test_pattern_count_zero_when_no_file() {
+        let config = OracleConfig {
+            patterns_path: std::path::PathBuf::from("/does/not/exist.apr"),
+            ..Default::default()
+        };
+        let oracle = DecyOracle::new(config).unwrap();
+        assert_eq!(oracle.pattern_count(), 0);
+    }
+
+    // ============================================================================
+    // METRICS TRACKING TESTS
+    // ============================================================================
+
+    #[test]
+    fn test_metrics_initial_state() {
+        let config = OracleConfig::default();
+        let oracle = DecyOracle::new(config).unwrap();
+        let metrics = oracle.metrics();
+        assert_eq!(metrics.queries, 0);
+        assert_eq!(metrics.hits, 0);
+        assert_eq!(metrics.misses, 0);
+    }
+
+    #[test]
+    fn test_record_miss_increments_queries() {
+        let config = OracleConfig::default();
+        let mut oracle = DecyOracle::new(config).unwrap();
+
+        let error = RustcError::new("E0382", "test");
+        oracle.record_miss(&error);
+
+        assert_eq!(oracle.metrics().queries, 1);
+    }
+
+    #[test]
+    fn test_record_fix_applied_multiple() {
+        let config = OracleConfig::default();
+        let mut oracle = DecyOracle::new(config).unwrap();
+
+        let error1 = RustcError::new("E0382", "test1");
+        let error2 = RustcError::new("E0499", "test2");
+
+        oracle.record_fix_applied(&error1);
+        oracle.record_fix_applied(&error2);
+        oracle.record_fix_applied(&error1);
+
+        assert_eq!(oracle.metrics().fixes_applied, 3);
+    }
+
+    #[test]
+    fn test_record_fix_verified_multiple() {
+        let config = OracleConfig::default();
+        let mut oracle = DecyOracle::new(config).unwrap();
+
+        let error = RustcError::new("E0382", "test");
+
+        oracle.record_fix_verified(&error);
+        oracle.record_fix_verified(&error);
+
+        assert_eq!(oracle.metrics().fixes_verified, 2);
+    }
+
+    #[test]
+    fn test_metrics_by_error_code_new_code() {
+        let config = OracleConfig::default();
+        let mut oracle = DecyOracle::new(config).unwrap();
+
+        let error = RustcError::new("E9999", "custom error");
+        oracle.record_miss(&error);
+
+        let metrics = oracle.metrics();
+        assert!(metrics.by_error_code.contains_key("E9999"));
+    }
+
+    // ============================================================================
+    // CONFIG ACCESS TESTS
+    // ============================================================================
+
+    #[test]
+    fn test_config_returns_original_config() {
+        let config = OracleConfig {
+            confidence_threshold: 0.95,
+            max_suggestions: 20,
+            auto_fix: true,
+            max_retries: 10,
+            ..Default::default()
+        };
+        let oracle = DecyOracle::new(config).unwrap();
+
+        assert!((oracle.config().confidence_threshold - 0.95).abs() < f32::EPSILON);
+        assert_eq!(oracle.config().max_suggestions, 20);
+        assert!(oracle.config().auto_fix);
+        assert_eq!(oracle.config().max_retries, 10);
+    }
+
+    // ============================================================================
+    // SUGGEST_FIX TESTS (WITHOUT CITL FEATURE)
+    // ============================================================================
+
+    #[test]
+    fn test_suggest_fix_records_miss_when_no_patterns() {
+        let config = OracleConfig {
+            patterns_path: std::path::PathBuf::from("/nonexistent.apr"),
+            ..Default::default()
+        };
+        let mut oracle = DecyOracle::new(config).unwrap();
+
+        let error = RustcError::new("E0382", "borrow of moved value");
+        let context = CDecisionContext::new(
+            CConstruct::RawPointer {
+                is_const: false,
+                pointee: "int".into(),
+            },
+            CDecisionCategory::PointerOwnership,
+        );
+
+        let result = oracle.suggest_fix(&error, &context);
+        assert!(result.is_none());
+        assert_eq!(oracle.metrics().misses, 1);
+    }
+
+    #[test]
+    fn test_suggest_fix_increments_queries() {
+        let config = OracleConfig::default();
+        let mut oracle = DecyOracle::new(config).unwrap();
+
+        let error = RustcError::new("E0499", "cannot borrow");
+        let context = CDecisionContext::new(
+            CConstruct::RawPointer {
+                is_const: true,
+                pointee: "char".into(),
+            },
+            CDecisionCategory::PointerOwnership,
+        );
+
+        oracle.suggest_fix(&error, &context);
+        // Query count should be incremented via record_miss
+        assert!(oracle.metrics().queries >= 1);
+    }
+
+    // ============================================================================
+    // ORACLE CREATION WITH VARIOUS CONFIGS
+    // ============================================================================
+
+    #[test]
+    fn test_oracle_creation_with_custom_threshold() {
+        let config = OracleConfig {
+            confidence_threshold: 0.5,
+            ..Default::default()
+        };
+        let oracle = DecyOracle::new(config).unwrap();
+        assert!((oracle.config().confidence_threshold - 0.5).abs() < f32::EPSILON);
+    }
+
+    #[test]
+    fn test_oracle_creation_with_max_suggestions() {
+        let config = OracleConfig {
+            max_suggestions: 100,
+            ..Default::default()
+        };
+        let oracle = DecyOracle::new(config).unwrap();
+        assert_eq!(oracle.config().max_suggestions, 100);
+    }
+
+    #[test]
+    fn test_oracle_creation_with_auto_fix_enabled() {
+        let config = OracleConfig {
+            auto_fix: true,
+            ..Default::default()
+        };
+        let oracle = DecyOracle::new(config).unwrap();
+        assert!(oracle.config().auto_fix);
+    }
 }

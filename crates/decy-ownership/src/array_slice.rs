@@ -361,3 +361,508 @@ impl Default for ArrayParameterTransformer {
         Self::new()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use decy_hir::{BinaryOperator, HirExpression, HirFunction, HirParameter, HirStatement, HirType};
+
+    // ============================================================================
+    // ARRAY PARAMETER INFO TESTS
+    // ============================================================================
+
+    #[test]
+    fn test_array_parameter_info_creation() {
+        let info = ArrayParameterInfo {
+            array_param: "arr".to_string(),
+            length_param: Some("len".to_string()),
+            is_mutable: true,
+        };
+        assert_eq!(info.array_param, "arr");
+        assert_eq!(info.length_param, Some("len".to_string()));
+        assert!(info.is_mutable);
+    }
+
+    #[test]
+    fn test_array_parameter_info_no_length() {
+        let info = ArrayParameterInfo {
+            array_param: "data".to_string(),
+            length_param: None,
+            is_mutable: false,
+        };
+        assert_eq!(info.array_param, "data");
+        assert!(info.length_param.is_none());
+        assert!(!info.is_mutable);
+    }
+
+    #[test]
+    fn test_array_parameter_info_clone() {
+        let info = ArrayParameterInfo {
+            array_param: "arr".to_string(),
+            length_param: Some("size".to_string()),
+            is_mutable: true,
+        };
+        let cloned = info.clone();
+        assert_eq!(cloned.array_param, info.array_param);
+        assert_eq!(cloned.length_param, info.length_param);
+        assert_eq!(cloned.is_mutable, info.is_mutable);
+    }
+
+    #[test]
+    fn test_array_parameter_info_debug() {
+        let info = ArrayParameterInfo {
+            array_param: "arr".to_string(),
+            length_param: Some("len".to_string()),
+            is_mutable: false,
+        };
+        let debug_str = format!("{:?}", info);
+        assert!(debug_str.contains("ArrayParameterInfo"));
+        assert!(debug_str.contains("arr"));
+    }
+
+    // ============================================================================
+    // TRANSFORMER CONSTRUCTION TESTS
+    // ============================================================================
+
+    #[test]
+    fn test_transformer_new() {
+        let transformer = ArrayParameterTransformer::new();
+        assert!(std::mem::size_of_val(&transformer) == 0);
+    }
+
+    #[test]
+    fn test_transformer_default() {
+        let transformer: ArrayParameterTransformer = Default::default();
+        assert!(std::mem::size_of_val(&transformer) == 0);
+    }
+
+    // ============================================================================
+    // TRANSFORM EXPRESSION TESTS
+    // ============================================================================
+
+    #[test]
+    fn test_transform_expression_variable_not_length_param() {
+        let map: HashMap<String, Option<String>> = HashMap::new();
+        let expr = HirExpression::Variable("x".to_string());
+        let result = ArrayParameterTransformer::transform_expression(&expr, &map);
+        assert!(matches!(result, HirExpression::Variable(name) if name == "x"));
+    }
+
+    #[test]
+    fn test_transform_expression_variable_is_length_param() {
+        let mut map: HashMap<String, Option<String>> = HashMap::new();
+        map.insert("arr".to_string(), Some("len".to_string()));
+
+        let expr = HirExpression::Variable("len".to_string());
+        let result = ArrayParameterTransformer::transform_expression(&expr, &map);
+
+        // Should transform to arr.len()
+        match result {
+            HirExpression::StringMethodCall {
+                receiver,
+                method,
+                arguments,
+            } => {
+                assert_eq!(method, "len");
+                assert!(arguments.is_empty());
+                match *receiver {
+                    HirExpression::Variable(name) => assert_eq!(name, "arr"),
+                    _ => panic!("Expected Variable receiver"),
+                }
+            }
+            _ => panic!("Expected StringMethodCall"),
+        }
+    }
+
+    #[test]
+    fn test_transform_expression_binary_op() {
+        let map: HashMap<String, Option<String>> = HashMap::new();
+        let expr = HirExpression::BinaryOp {
+            op: BinaryOperator::Add,
+            left: Box::new(HirExpression::Variable("a".to_string())),
+            right: Box::new(HirExpression::Variable("b".to_string())),
+        };
+        let result = ArrayParameterTransformer::transform_expression(&expr, &map);
+        assert!(matches!(result, HirExpression::BinaryOp { .. }));
+    }
+
+    #[test]
+    fn test_transform_expression_function_call() {
+        let map: HashMap<String, Option<String>> = HashMap::new();
+        let expr = HirExpression::FunctionCall {
+            function: "test".to_string(),
+            arguments: vec![HirExpression::Variable("x".to_string())],
+        };
+        let result = ArrayParameterTransformer::transform_expression(&expr, &map);
+        match result {
+            HirExpression::FunctionCall { function, arguments } => {
+                assert_eq!(function, "test");
+                assert_eq!(arguments.len(), 1);
+            }
+            _ => panic!("Expected FunctionCall"),
+        }
+    }
+
+    #[test]
+    fn test_transform_expression_array_index() {
+        let map: HashMap<String, Option<String>> = HashMap::new();
+        let expr = HirExpression::ArrayIndex {
+            array: Box::new(HirExpression::Variable("arr".to_string())),
+            index: Box::new(HirExpression::IntLiteral(0)),
+        };
+        let result = ArrayParameterTransformer::transform_expression(&expr, &map);
+        assert!(matches!(result, HirExpression::ArrayIndex { .. }));
+    }
+
+    #[test]
+    fn test_transform_expression_cast() {
+        let map: HashMap<String, Option<String>> = HashMap::new();
+        let expr = HirExpression::Cast {
+            expr: Box::new(HirExpression::Variable("x".to_string())),
+            target_type: HirType::Int,
+        };
+        let result = ArrayParameterTransformer::transform_expression(&expr, &map);
+        assert!(matches!(result, HirExpression::Cast { .. }));
+    }
+
+    #[test]
+    fn test_transform_expression_dereference() {
+        let map: HashMap<String, Option<String>> = HashMap::new();
+        let expr = HirExpression::Dereference(Box::new(HirExpression::Variable("ptr".to_string())));
+        let result = ArrayParameterTransformer::transform_expression(&expr, &map);
+        assert!(matches!(result, HirExpression::Dereference(_)));
+    }
+
+    #[test]
+    fn test_transform_expression_address_of() {
+        let map: HashMap<String, Option<String>> = HashMap::new();
+        let expr = HirExpression::AddressOf(Box::new(HirExpression::Variable("x".to_string())));
+        let result = ArrayParameterTransformer::transform_expression(&expr, &map);
+        assert!(matches!(result, HirExpression::AddressOf(_)));
+    }
+
+    #[test]
+    fn test_transform_expression_int_literal_passthrough() {
+        let map: HashMap<String, Option<String>> = HashMap::new();
+        let expr = HirExpression::IntLiteral(42);
+        let result = ArrayParameterTransformer::transform_expression(&expr, &map);
+        assert!(matches!(result, HirExpression::IntLiteral(42)));
+    }
+
+    // ============================================================================
+    // TRANSFORM STATEMENT TESTS
+    // ============================================================================
+
+    #[test]
+    fn test_transform_statement_variable_declaration() {
+        let map: HashMap<String, Option<String>> = HashMap::new();
+        let stmt = HirStatement::VariableDeclaration {
+            name: "x".to_string(),
+            var_type: HirType::Int,
+            initializer: Some(HirExpression::IntLiteral(10)),
+        };
+        let result = ArrayParameterTransformer::transform_statement(&stmt, &map);
+        match result {
+            HirStatement::VariableDeclaration { name, initializer, .. } => {
+                assert_eq!(name, "x");
+                assert!(initializer.is_some());
+            }
+            _ => panic!("Expected VariableDeclaration"),
+        }
+    }
+
+    #[test]
+    fn test_transform_statement_assignment() {
+        let map: HashMap<String, Option<String>> = HashMap::new();
+        let stmt = HirStatement::Assignment {
+            target: "x".to_string(),
+            value: HirExpression::IntLiteral(5),
+        };
+        let result = ArrayParameterTransformer::transform_statement(&stmt, &map);
+        assert!(matches!(result, HirStatement::Assignment { .. }));
+    }
+
+    #[test]
+    fn test_transform_statement_if() {
+        let map: HashMap<String, Option<String>> = HashMap::new();
+        let stmt = HirStatement::If {
+            condition: HirExpression::Variable("cond".to_string()),
+            then_block: vec![HirStatement::Break],
+            else_block: None,
+        };
+        let result = ArrayParameterTransformer::transform_statement(&stmt, &map);
+        match result {
+            HirStatement::If { then_block, else_block, .. } => {
+                assert_eq!(then_block.len(), 1);
+                assert!(else_block.is_none());
+            }
+            _ => panic!("Expected If"),
+        }
+    }
+
+    #[test]
+    fn test_transform_statement_if_else() {
+        let map: HashMap<String, Option<String>> = HashMap::new();
+        let stmt = HirStatement::If {
+            condition: HirExpression::Variable("cond".to_string()),
+            then_block: vec![HirStatement::Break],
+            else_block: Some(vec![HirStatement::Continue]),
+        };
+        let result = ArrayParameterTransformer::transform_statement(&stmt, &map);
+        match result {
+            HirStatement::If { else_block, .. } => {
+                assert!(else_block.is_some());
+                assert_eq!(else_block.unwrap().len(), 1);
+            }
+            _ => panic!("Expected If"),
+        }
+    }
+
+    #[test]
+    fn test_transform_statement_while() {
+        let map: HashMap<String, Option<String>> = HashMap::new();
+        let stmt = HirStatement::While {
+            condition: HirExpression::Variable("running".to_string()),
+            body: vec![HirStatement::Break],
+        };
+        let result = ArrayParameterTransformer::transform_statement(&stmt, &map);
+        assert!(matches!(result, HirStatement::While { .. }));
+    }
+
+    #[test]
+    fn test_transform_statement_for() {
+        let map: HashMap<String, Option<String>> = HashMap::new();
+        let stmt = HirStatement::For {
+            init: Some(Box::new(HirStatement::VariableDeclaration {
+                name: "i".to_string(),
+                var_type: HirType::Int,
+                initializer: Some(HirExpression::IntLiteral(0)),
+            })),
+            condition: HirExpression::BinaryOp {
+                op: BinaryOperator::LessThan,
+                left: Box::new(HirExpression::Variable("i".to_string())),
+                right: Box::new(HirExpression::IntLiteral(10)),
+            },
+            increment: Some(Box::new(HirStatement::Assignment {
+                target: "i".to_string(),
+                value: HirExpression::BinaryOp {
+                    op: BinaryOperator::Add,
+                    left: Box::new(HirExpression::Variable("i".to_string())),
+                    right: Box::new(HirExpression::IntLiteral(1)),
+                },
+            })),
+            body: vec![HirStatement::Break],
+        };
+        let result = ArrayParameterTransformer::transform_statement(&stmt, &map);
+        assert!(matches!(result, HirStatement::For { .. }));
+    }
+
+    #[test]
+    fn test_transform_statement_return() {
+        let map: HashMap<String, Option<String>> = HashMap::new();
+        let stmt = HirStatement::Return(Some(HirExpression::Variable("result".to_string())));
+        let result = ArrayParameterTransformer::transform_statement(&stmt, &map);
+        assert!(matches!(result, HirStatement::Return(Some(_))));
+    }
+
+    #[test]
+    fn test_transform_statement_return_void() {
+        let map: HashMap<String, Option<String>> = HashMap::new();
+        let stmt = HirStatement::Return(None);
+        let result = ArrayParameterTransformer::transform_statement(&stmt, &map);
+        assert!(matches!(result, HirStatement::Return(None)));
+    }
+
+    #[test]
+    fn test_transform_statement_expression() {
+        let map: HashMap<String, Option<String>> = HashMap::new();
+        let stmt = HirStatement::Expression(HirExpression::FunctionCall {
+            function: "print".to_string(),
+            arguments: vec![],
+        });
+        let result = ArrayParameterTransformer::transform_statement(&stmt, &map);
+        assert!(matches!(result, HirStatement::Expression(_)));
+    }
+
+    #[test]
+    fn test_transform_statement_break_passthrough() {
+        let map: HashMap<String, Option<String>> = HashMap::new();
+        let stmt = HirStatement::Break;
+        let result = ArrayParameterTransformer::transform_statement(&stmt, &map);
+        assert!(matches!(result, HirStatement::Break));
+    }
+
+    #[test]
+    fn test_transform_statement_continue_passthrough() {
+        let map: HashMap<String, Option<String>> = HashMap::new();
+        let stmt = HirStatement::Continue;
+        let result = ArrayParameterTransformer::transform_statement(&stmt, &map);
+        assert!(matches!(result, HirStatement::Continue));
+    }
+
+    // ============================================================================
+    // POINTER ARITHMETIC DETECTION TESTS
+    // ============================================================================
+
+    #[test]
+    fn test_uses_pointer_arithmetic_empty_body() {
+        let func = HirFunction::new(
+            "test".to_string(),
+            HirType::Void,
+            vec![HirParameter::new("arr".to_string(), HirType::Pointer(Box::new(HirType::Int)))],
+        );
+        assert!(!ArrayParameterTransformer::uses_pointer_arithmetic(&func, "arr"));
+    }
+
+    #[test]
+    fn test_expression_uses_pointer_arithmetic_post_increment() {
+        let expr = HirExpression::PostIncrement {
+            operand: Box::new(HirExpression::Variable("ptr".to_string())),
+        };
+        assert!(ArrayParameterTransformer::expression_uses_pointer_arithmetic(
+            &expr, "ptr"
+        ));
+        assert!(!ArrayParameterTransformer::expression_uses_pointer_arithmetic(
+            &expr, "other"
+        ));
+    }
+
+    #[test]
+    fn test_expression_uses_pointer_arithmetic_pre_increment() {
+        let expr = HirExpression::PreIncrement {
+            operand: Box::new(HirExpression::Variable("ptr".to_string())),
+        };
+        assert!(ArrayParameterTransformer::expression_uses_pointer_arithmetic(
+            &expr, "ptr"
+        ));
+    }
+
+    #[test]
+    fn test_expression_uses_pointer_arithmetic_post_decrement() {
+        let expr = HirExpression::PostDecrement {
+            operand: Box::new(HirExpression::Variable("ptr".to_string())),
+        };
+        assert!(ArrayParameterTransformer::expression_uses_pointer_arithmetic(
+            &expr, "ptr"
+        ));
+    }
+
+    #[test]
+    fn test_expression_uses_pointer_arithmetic_pre_decrement() {
+        let expr = HirExpression::PreDecrement {
+            operand: Box::new(HirExpression::Variable("ptr".to_string())),
+        };
+        assert!(ArrayParameterTransformer::expression_uses_pointer_arithmetic(
+            &expr, "ptr"
+        ));
+    }
+
+    #[test]
+    fn test_expression_uses_pointer_arithmetic_other_expr() {
+        let expr = HirExpression::Variable("ptr".to_string());
+        assert!(!ArrayParameterTransformer::expression_uses_pointer_arithmetic(
+            &expr, "ptr"
+        ));
+    }
+
+    #[test]
+    fn test_statement_uses_pointer_arithmetic_assignment_add() {
+        let stmt = HirStatement::Assignment {
+            target: "arr".to_string(),
+            value: HirExpression::BinaryOp {
+                op: BinaryOperator::Add,
+                left: Box::new(HirExpression::Variable("arr".to_string())),
+                right: Box::new(HirExpression::IntLiteral(1)),
+            },
+        };
+        assert!(ArrayParameterTransformer::statement_uses_pointer_arithmetic(
+            &stmt, "arr"
+        ));
+    }
+
+    #[test]
+    fn test_statement_uses_pointer_arithmetic_assignment_subtract() {
+        let stmt = HirStatement::Assignment {
+            target: "arr".to_string(),
+            value: HirExpression::BinaryOp {
+                op: BinaryOperator::Subtract,
+                left: Box::new(HirExpression::Variable("arr".to_string())),
+                right: Box::new(HirExpression::IntLiteral(1)),
+            },
+        };
+        assert!(ArrayParameterTransformer::statement_uses_pointer_arithmetic(
+            &stmt, "arr"
+        ));
+    }
+
+    #[test]
+    fn test_statement_uses_pointer_arithmetic_different_variable() {
+        let stmt = HirStatement::Assignment {
+            target: "other".to_string(),
+            value: HirExpression::BinaryOp {
+                op: BinaryOperator::Add,
+                left: Box::new(HirExpression::Variable("other".to_string())),
+                right: Box::new(HirExpression::IntLiteral(1)),
+            },
+        };
+        assert!(!ArrayParameterTransformer::statement_uses_pointer_arithmetic(
+            &stmt, "arr"
+        ));
+    }
+
+    #[test]
+    fn test_statement_uses_pointer_arithmetic_in_if_then() {
+        let stmt = HirStatement::If {
+            condition: HirExpression::Variable("cond".to_string()),
+            then_block: vec![HirStatement::Expression(HirExpression::PostIncrement {
+                operand: Box::new(HirExpression::Variable("ptr".to_string())),
+            })],
+            else_block: None,
+        };
+        assert!(ArrayParameterTransformer::statement_uses_pointer_arithmetic(
+            &stmt, "ptr"
+        ));
+    }
+
+    #[test]
+    fn test_statement_uses_pointer_arithmetic_in_if_else() {
+        let stmt = HirStatement::If {
+            condition: HirExpression::Variable("cond".to_string()),
+            then_block: vec![],
+            else_block: Some(vec![HirStatement::Expression(HirExpression::PostIncrement {
+                operand: Box::new(HirExpression::Variable("ptr".to_string())),
+            })]),
+        };
+        assert!(ArrayParameterTransformer::statement_uses_pointer_arithmetic(
+            &stmt, "ptr"
+        ));
+    }
+
+    #[test]
+    fn test_statement_uses_pointer_arithmetic_in_while() {
+        let stmt = HirStatement::While {
+            condition: HirExpression::Variable("cond".to_string()),
+            body: vec![HirStatement::Expression(HirExpression::PostIncrement {
+                operand: Box::new(HirExpression::Variable("ptr".to_string())),
+            })],
+        };
+        assert!(ArrayParameterTransformer::statement_uses_pointer_arithmetic(
+            &stmt, "ptr"
+        ));
+    }
+
+    #[test]
+    fn test_statement_uses_pointer_arithmetic_in_for() {
+        let stmt = HirStatement::For {
+            init: None,
+            condition: HirExpression::Variable("cond".to_string()),
+            increment: None,
+            body: vec![HirStatement::Expression(HirExpression::PostIncrement {
+                operand: Box::new(HirExpression::Variable("ptr".to_string())),
+            })],
+        };
+        assert!(ArrayParameterTransformer::statement_uses_pointer_arithmetic(
+            &stmt, "ptr"
+        ));
+    }
+}

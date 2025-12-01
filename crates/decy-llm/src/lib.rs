@@ -15,3 +15,6 @@ pub mod verifier;
 pub use context_builder::{AnalysisContext, ContextBuilder, FunctionContext};
 pub use llm_codegen::{CodegenPrompt, GeneratedCode, LlmCodegen, LlmError};
 pub use verifier::{CodeVerifier, IterationContext, VerificationLoop, VerificationResult};
+
+#[cfg(test)]
+mod verifier_tests;
