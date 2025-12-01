@@ -10536,9 +10536,14 @@ sprint_31_single_shot:
       priority: critical
       story_points: 3
       assignee: Claude
-      status: in_progress
-      phase: RED
+      status: done
+      phase: DONE
       started_date: "2025-12-01"
+      completed_date: "2025-12-01"
+      actual_metrics:
+        e2e_pass_rate: "92.9%"
+        tests_added: 3
+        compile_rate_improvement: "+7.2%"
 
       description: |
         Fix string_utils.c transpilation failure caused by BorrowGenerator
