@@ -12,13 +12,17 @@ keywords = ["transpiler", "citl", "machine-learning", "c-to-rust"]
 default = []
 # Full CITL with entrenar integration
 citl = ["entrenar"]
-# Dataset export to Parquet (requires alimentar)
-dataset = []
+# Dataset export to Parquet (requires alimentar and arrow)
+dataset = ["alimentar", "arrow"]
 
 [dependencies]
 # PAIML stack - CITL integration (optional, enabled with citl feature)
 # Use local path to avoid version conflicts
 entrenar = { path = "../../../entrenar", features = ["citl"], optional = true }
+# Alimentar for dataset export to Parquet (optional, enabled with dataset feature)
+alimentar = { path = "../../../alimentar", optional = true }
+# Arrow for building record batches (optional, enabled with dataset feature)
+arrow = { version = "54", optional = true, default-features = false, features = ["ipc"] }
 
 # Core decy crates
 decy-parser = { path = "../decy-parser" }
