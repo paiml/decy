@@ -645,6 +645,12 @@ impl HirFunction {
     pub fn body(&self) -> &[HirStatement] {
         self.body.as_deref().unwrap_or(&[])
     }
+
+    /// DECY-190: Check if this function has a body (is a definition, not just a declaration).
+    /// Returns true for definitions, false for forward declarations/prototypes.
+    pub fn has_body(&self) -> bool {
+        self.body.is_some()
+    }
 }
 
 /// Unary operators for expressions.
@@ -880,6 +886,24 @@ pub enum HirExpression {
         literal_type: HirType,
         /// Initializer expressions (values for struct fields or array elements)
         initializers: Vec<HirExpression>,
+    },
+    /// Ternary/Conditional expression (C: cond ? then_val : else_val)
+    ///
+    /// The C ternary operator evaluates the condition and returns either
+    /// the then_val or else_val based on whether condition is truthy.
+    ///
+    /// Maps to Rust's `if cond { then_val } else { else_val }` expression.
+    ///
+    /// # DECY-192
+    ///
+    /// Added to support K&R Chapter 2.11 Conditional Expressions.
+    Ternary {
+        /// Condition expression (evaluated as boolean)
+        condition: Box<HirExpression>,
+        /// Value if condition is true
+        then_expr: Box<HirExpression>,
+        /// Value if condition is false
+        else_expr: Box<HirExpression>,
     },
 }
 
@@ -1233,6 +1257,16 @@ impl HirExpression {
                     .iter()
                     .map(HirExpression::from_ast_expression)
                     .collect(),
+            },
+            // DECY-192: Ternary/conditional expression
+            Expression::Ternary {
+                condition,
+                then_expr,
+                else_expr,
+            } => HirExpression::Ternary {
+                condition: Box::new(HirExpression::from_ast_expression(condition)),
+                then_expr: Box::new(HirExpression::from_ast_expression(then_expr)),
+                else_expr: Box::new(HirExpression::from_ast_expression(else_expr)),
             },
         }
     }

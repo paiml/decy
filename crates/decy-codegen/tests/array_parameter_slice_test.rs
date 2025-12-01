@@ -176,9 +176,11 @@ fn test_pointer_without_length_not_transformed_to_slice() {
         rust_code
     );
 
-    // Should use &mut i32 or *mut i32 instead
+    // Should use &mut i32 or *mut i32 instead (possibly with lifetime annotation)
     assert!(
-        rust_code.contains("&mut i32") || rust_code.contains("*mut i32"),
+        rust_code.contains("&mut i32")
+            || rust_code.contains("*mut i32")
+            || rust_code.contains("&'a mut i32"),
         "Should use reference or raw pointer for single pointer:\n{}",
         rust_code
     );
