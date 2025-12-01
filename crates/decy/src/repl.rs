@@ -141,6 +141,10 @@ fn transpile_snippet(c_code: &str) -> Result<String> {
 mod tests {
     use super::*;
 
+    // ============================================================================
+    // REPL COMMAND PARSING TESTS
+    // ============================================================================
+
     #[test]
     fn test_parse_quit_command() {
         assert_eq!(parse_command(":quit"), ReplCommand::Quit);
@@ -175,9 +179,71 @@ mod tests {
     }
 
     #[test]
+    fn test_parse_empty_input() {
+        assert_eq!(parse_command(""), ReplCommand::Code("".to_string()));
+        assert_eq!(parse_command("  "), ReplCommand::Code("  ".to_string()));
+    }
+
+    #[test]
+    fn test_parse_colon_prefix_not_command() {
+        // Colon-prefixed strings that aren't valid commands should be Code
+        assert_eq!(
+            parse_command(":unknown"),
+            ReplCommand::Code(":unknown".to_string())
+        );
+        assert_eq!(
+            parse_command(":foo"),
+            ReplCommand::Code(":foo".to_string())
+        );
+    }
+
+    #[test]
+    fn test_parse_whitespace_handling() {
+        // Whitespace should be trimmed for command detection
+        assert_eq!(parse_command("  :help  "), ReplCommand::Help);
+        assert_eq!(parse_command("\t:quit\t"), ReplCommand::Quit);
+        assert_eq!(parse_command("\n:clear\n"), ReplCommand::Clear);
+    }
+
+    // ============================================================================
+    // REPL COMMAND ENUM TESTS
+    // ============================================================================
+
+    #[test]
+    fn test_repl_command_debug() {
+        let cmd = ReplCommand::Quit;
+        let debug_str = format!("{:?}", cmd);
+        assert!(debug_str.contains("Quit"));
+
+        let cmd = ReplCommand::Code("test".into());
+        let debug_str = format!("{:?}", cmd);
+        assert!(debug_str.contains("Code"));
+        assert!(debug_str.contains("test"));
+    }
+
+    #[test]
+    fn test_repl_command_eq() {
+        assert_eq!(ReplCommand::Quit, ReplCommand::Quit);
+        assert_eq!(ReplCommand::Help, ReplCommand::Help);
+        assert_eq!(ReplCommand::Clear, ReplCommand::Clear);
+        assert_eq!(
+            ReplCommand::Code("test".into()),
+            ReplCommand::Code("test".into())
+        );
+
+        assert_ne!(ReplCommand::Quit, ReplCommand::Help);
+        assert_ne!(
+            ReplCommand::Code("a".into()),
+            ReplCommand::Code("b".into())
+        );
+    }
+
+    // ============================================================================
+    // TRANSPILE SNIPPET TESTS
+    // ============================================================================
+
+    #[test]
     fn test_transpile_simple_function() {
-        // RED PHASE: This test will FAIL
-        // Test that we can transpile a simple C function through the REPL
         let c_code = "int main() { return 0; }";
         let result = transpile_snippet(c_code);
 
@@ -188,8 +254,6 @@ mod tests {
 
     #[test]
     fn test_transpile_with_error() {
-        // RED PHASE: This test will FAIL
-        // Test that we handle syntax errors gracefully
         let c_code = "int incomplete(";
         let result = transpile_snippet(c_code);
 
@@ -198,16 +262,58 @@ mod tests {
 
     #[test]
     fn test_transpile_expression_only() {
-        // RED PHASE: This test will FAIL
-        // Test that we can handle expressions (not just complete functions)
         let c_code = "x + y";
         let result = transpile_snippet(c_code);
 
-        // For now, we expect this to fail gracefully
-        // In the future, we might support expression-only transpilation
         assert!(
             result.is_err(),
             "Expression-only code should fail (not yet supported)"
         );
+    }
+
+    #[test]
+    fn test_transpile_void_function() {
+        let c_code = "void hello() { }";
+        let result = transpile_snippet(c_code);
+        assert!(result.is_ok());
+        let rust_code = result.unwrap();
+        assert!(rust_code.contains("fn hello()"));
+    }
+
+    #[test]
+    fn test_transpile_function_with_params() {
+        let c_code = "int add(int a, int b) { return a + b; }";
+        let result = transpile_snippet(c_code);
+        assert!(result.is_ok());
+        let rust_code = result.unwrap();
+        assert!(rust_code.contains("fn add"));
+        assert!(rust_code.contains("i32"));
+    }
+
+    #[test]
+    fn test_transpile_empty_input() {
+        let c_code = "";
+        let result = transpile_snippet(c_code);
+        // Empty input may succeed with empty output or fail
+        // Either behavior is acceptable
+        let _ = result;
+    }
+
+    #[test]
+    fn test_transpile_whitespace_only() {
+        let c_code = "   \n\t  ";
+        let result = transpile_snippet(c_code);
+        // Whitespace-only input may succeed with empty output or fail
+        let _ = result;
+    }
+
+    // ============================================================================
+    // PRINT_HELP TESTS
+    // ============================================================================
+
+    #[test]
+    fn test_print_help_does_not_panic() {
+        // print_help just prints to stdout, verify it doesn't panic
+        print_help();
     }
 }
