@@ -503,8 +503,23 @@ fn try_extract_expression(cursor: CXCursor) -> Option<Expression> {
         CXCursor_UnaryOperator => extract_unary_op(cursor),
         CXCursor_ArraySubscriptExpr => extract_array_index(cursor),
         CXCursor_MemberRefExpr => extract_field_access(cursor),
+        116 => extract_conditional_op(cursor), // CXCursor_ConditionalOperator (ternary)
         117 => extract_cast(cursor), // CXCursor_CStyleCastExpr
         118 => extract_compound_literal(cursor), // CXCursor_CompoundLiteralExpr
+        111 => {
+            // CXCursor_ParenExpr - parenthesized expression like (a > b)
+            // Recurse into children to extract the inner expression
+            let mut result: Option<Expression> = None;
+            let result_ptr = &mut result as *mut Option<Expression>;
+            unsafe {
+                clang_visitChildren(
+                    cursor,
+                    visit_variable_initializer,
+                    result_ptr as CXClientData,
+                );
+            }
+            result
+        }
         CXCursor_UnexposedExpr => {
             // UnexposedExpr is a wrapper - recurse into children
             let mut result: Option<Expression> = None;
@@ -1942,6 +1957,14 @@ extern "C" fn visit_expression(
             }
             CXChildVisit_Continue
         }
+        116 => {
+            // CXCursor_ConditionalOperator (ternary)
+            // DECY-192: Ternary expressions like (a > b) ? a : b
+            if let Some(expr) = extract_conditional_op(cursor) {
+                *expr_opt = Some(expr);
+            }
+            CXChildVisit_Continue
+        }
         CXCursor_UnexposedExpr => {
             // Unexposed expressions might wrap other expressions (like ImplicitCastExpr wrapping CallExpr)
             // Recurse first to check if there's a more specific expression inside
@@ -2288,6 +2311,13 @@ extern "C" fn visit_binary_operand(
             }
             CXChildVisit_Continue
         }
+        116 => {
+            // CXCursor_ConditionalOperator (ternary) - DECY-192
+            if let Some(expr) = extract_conditional_op(cursor) {
+                operands.push(expr);
+            }
+            CXChildVisit_Continue
+        }
         _ => CXChildVisit_Recurse,
     }
 }
@@ -2604,6 +2634,13 @@ extern "C" fn visit_call_argument(
         CXCursor_MemberRefExpr => {
             // Field access in argument (e.g., ptr->field or obj.field)
             if let Some(expr) = extract_field_access(cursor) {
+                arg_data.arguments.push(expr);
+            }
+            CXChildVisit_Continue
+        }
+        116 => {
+            // CXCursor_ConditionalOperator (ternary) - DECY-192
+            if let Some(expr) = extract_conditional_op(cursor) {
                 arg_data.arguments.push(expr);
             }
             CXChildVisit_Continue
@@ -3040,6 +3077,58 @@ fn extract_compound_literal(cursor: CXCursor) -> Option<Expression> {
         literal_type,
         initializers,
     })
+}
+
+/// DECY-192: Extract a ternary/conditional expression.
+///
+/// Parses C conditional expressions like `cond ? then_val : else_val`.
+/// The ternary operator has 3 children: condition, then expression, else expression.
+fn extract_conditional_op(cursor: CXCursor) -> Option<Expression> {
+    // Extract all three operands by visiting children
+    let mut operands: Vec<Expression> = Vec::new();
+    let operands_ptr = &mut operands as *mut Vec<Expression>;
+
+    unsafe {
+        clang_visitChildren(cursor, visit_conditional_operand, operands_ptr as CXClientData);
+    }
+
+    // Ternary operators should have exactly 3 operands: condition, then, else
+    // However, sometimes clang may emit extra implicit expressions
+    if operands.len() >= 3 {
+        Some(Expression::Ternary {
+            condition: Box::new(operands[0].clone()),
+            then_expr: Box::new(operands[1].clone()),
+            else_expr: Box::new(operands[2].clone()),
+        })
+    } else if operands.len() == 2 {
+        // GNU extension: `x ?: y` is equivalent to `x ? x : y`
+        // Clang may represent this with only 2 children
+        Some(Expression::Ternary {
+            condition: Box::new(operands[0].clone()),
+            then_expr: Box::new(operands[0].clone()),
+            else_expr: Box::new(operands[1].clone()),
+        })
+    } else {
+        None
+    }
+}
+
+/// Visitor callback for conditional operator (ternary) operands.
+/// DECY-192: Collects condition, then_expr, and else_expr.
+#[allow(non_upper_case_globals)]
+extern "C" fn visit_conditional_operand(
+    cursor: CXCursor,
+    _parent: CXCursor,
+    client_data: CXClientData,
+) -> CXChildVisitResult {
+    let operands = unsafe { &mut *(client_data as *mut Vec<Expression>) };
+
+    // Try to extract expression using the general expression extractor
+    if let Some(expr) = try_extract_expression(cursor) {
+        operands.push(expr);
+    }
+
+    CXChildVisit_Continue
 }
 
 /// DECY-133: Extract an initializer list expression for struct/array initialization.
@@ -3713,6 +3802,29 @@ pub enum Expression {
         literal_type: Type,
         /// Initializer expressions (values for struct fields or array elements)
         initializers: Vec<Expression>,
+    },
+    /// Ternary/Conditional expression: `cond ? then_val : else_val`
+    ///
+    /// The C ternary operator evaluates the condition and returns either
+    /// the then_val or else_val based on whether condition is truthy.
+    ///
+    /// # DECY-192
+    ///
+    /// Added to support K&R Chapter 2.11 Conditional Expressions.
+    ///
+    /// # Examples
+    ///
+    /// ```c
+    /// int max = (a > b) ? a : b;
+    /// char* msg = (x == 0) ? "zero" : "nonzero";
+    /// ```
+    Ternary {
+        /// Condition expression (evaluated as boolean)
+        condition: Box<Expression>,
+        /// Value if condition is true
+        then_expr: Box<Expression>,
+        /// Value if condition is false
+        else_expr: Box<Expression>,
     },
 }
 

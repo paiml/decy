@@ -741,6 +741,16 @@ impl DataflowAnalyzer {
             | HirExpression::PreDecrement { operand } => {
                 Self::track_expr_recursive(operand, _graph, _index);
             }
+            // DECY-192: Track ternary expressions
+            HirExpression::Ternary {
+                condition,
+                then_expr,
+                else_expr,
+            } => {
+                Self::track_expr_recursive(condition, _graph, _index);
+                Self::track_expr_recursive(then_expr, _graph, _index);
+                Self::track_expr_recursive(else_expr, _graph, _index);
+            }
         }
     }
 
