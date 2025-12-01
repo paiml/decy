@@ -1372,13 +1372,17 @@ impl CodeGenerator {
                                 {
                                     let count_code =
                                         self.generate_expression_with_context(left, ctx);
+                                    // DECY-170: Wrap count expression in parens for correct precedence
                                     return format!(
-                                        "vec![{}; {} as usize]",
+                                        "vec![{}; ({}) as usize]",
                                         default_val, count_code
                                     );
                                 } else {
+                                    // DECY-170: Wrap size expression in parens for correct 'as' precedence
+                                    // x + 1 as usize → x + (1 as usize) WRONG
+                                    // (x + 1) as usize → correct
                                     return format!(
-                                        "Vec::<{}>::with_capacity({} as usize)",
+                                        "Vec::<{}>::with_capacity(({}) as usize)",
                                         elem_type_str, size_code
                                     );
                                 }
@@ -1390,8 +1394,9 @@ impl CodeGenerator {
                                 // This keeps the memory alive (leaked) so the raw pointer remains valid
                                 if matches!(inner.as_ref(), HirType::Char) {
                                     // For char* / *mut u8: allocate byte buffer
+                                    // DECY-170: Wrap size in parens for correct precedence
                                     return format!(
-                                        "Box::leak(vec![0u8; {} as usize].into_boxed_slice()).as_mut_ptr()",
+                                        "Box::leak(vec![0u8; ({}) as usize].into_boxed_slice()).as_mut_ptr()",
                                         size_code
                                     );
                                 }
@@ -1414,10 +1419,12 @@ impl CodeGenerator {
                             {
                                 // malloc(n * sizeof(T)) → vec![0i32; n]
                                 let count_code = self.generate_expression_with_context(left, ctx);
-                                format!("vec![0i32; {} as usize]", count_code)
+                                // DECY-170: Wrap in parens for correct precedence
+                                format!("vec![0i32; ({}) as usize]", count_code)
                             } else {
                                 // malloc(size) → Vec::with_capacity(size)
-                                format!("Vec::<u8>::with_capacity({} as usize)", size_code)
+                                // DECY-170: Wrap in parens for correct precedence
+                                format!("Vec::<u8>::with_capacity(({}) as usize)", size_code)
                             }
                         } else {
                             "Vec::new()".to_string()

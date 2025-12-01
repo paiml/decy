@@ -857,7 +857,8 @@ mod tests {
         let code = codegen.generate_expression(&expr);
 
         // DECY-130: malloc is now transformed to Vec
-        assert_eq!(code, "Vec::<u8>::with_capacity(10 as usize)");
+        // DECY-170: Size wrapped in parens for correct 'as' precedence
+        assert_eq!(code, "Vec::<u8>::with_capacity((10) as usize)");
     }
 
     #[test]
@@ -918,9 +919,10 @@ mod tests {
 
         // DECY-130: malloc is now transformed to Vec
         // DECY-169: Vec element type matches the pointer inner type (i32, not u8)
+        // DECY-170: Size wrapped in parens for correct 'as' precedence
         assert_eq!(
             code,
-            "let mut ptr: Vec<i32> = Vec::<i32>::with_capacity(40 as usize);"
+            "let mut ptr: Vec<i32> = Vec::<i32>::with_capacity((40) as usize);"
         );
     }
 
@@ -976,7 +978,8 @@ mod tests {
         let code = codegen.generate_statement(&assign_stmt);
 
         // DECY-130: malloc is now transformed to Vec
-        assert_eq!(code, "ptr = Vec::<u8>::with_capacity(100 as usize);");
+        // DECY-170: Size wrapped in parens for correct 'as' precedence
+        assert_eq!(code, "ptr = Vec::<u8>::with_capacity((100) as usize);");
     }
 
     #[test]
