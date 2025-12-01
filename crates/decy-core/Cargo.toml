@@ -12,13 +12,13 @@ categories.workspace = true
 description = "Core transpilation pipeline for C-to-Rust conversion"
 
 [dependencies]
-decy-parser = { version = "1.0.0", path = "../decy-parser" }
-decy-hir = { version = "1.0.0", path = "../decy-hir" }
-decy-analyzer = { version = "1.0.0", path = "../decy-analyzer" }
-decy-ownership = { version = "1.0.0", path = "../decy-ownership" }
-decy-verify = { version = "1.0.0", path = "../decy-verify" }
-decy-codegen = { version = "1.0.0", path = "../decy-codegen" }
-decy-stdlib = { version = "1.0.0", path = "../decy-stdlib" }
+decy-parser = { version = "1.0.2", path = "../decy-parser" }
+decy-hir = { version = "1.0.2", path = "../decy-hir" }
+decy-analyzer = { version = "1.0.2", path = "../decy-analyzer" }
+decy-ownership = { version = "1.0.2", path = "../decy-ownership" }
+decy-verify = { version = "1.0.2", path = "../decy-verify" }
+decy-codegen = { version = "1.0.2", path = "../decy-codegen" }
+decy-stdlib = { version = "1.0.2", path = "../decy-stdlib" }
 anyhow.workspace = true
 thiserror.workspace = true
 tracing.workspace = true

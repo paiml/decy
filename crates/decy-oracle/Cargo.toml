@@ -17,17 +17,16 @@ dataset = ["alimentar", "arrow"]
 
 [dependencies]
 # PAIML stack - CITL integration (optional, enabled with citl feature)
-# Use local path to avoid version conflicts
-entrenar = { path = "../../../entrenar", features = ["citl"], optional = true }
+entrenar = { version = "0.2.2", features = ["citl"], optional = true }
 # Alimentar for dataset export to Parquet (optional, enabled with dataset feature)
-alimentar = { path = "../../../alimentar", optional = true }
+alimentar = { version = "0.2.2", optional = true }
 # Arrow for building record batches (optional, enabled with dataset feature)
 arrow = { version = "54", optional = true, default-features = false, features = ["ipc"] }
 
 # Core decy crates
-decy-parser = { path = "../decy-parser" }
-decy-hir = { path = "../decy-hir" }
-decy-codegen = { path = "../decy-codegen" }
+decy-parser = { version = "1.0.2", path = "../decy-parser" }
+decy-hir = { version = "1.0.2", path = "../decy-hir" }
+decy-codegen = { version = "1.0.2", path = "../decy-codegen" }
 
 # Serialization
 serde = { version = "1.0", features = ["derive"] }
