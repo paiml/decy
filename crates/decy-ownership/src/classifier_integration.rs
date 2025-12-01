@@ -68,11 +68,30 @@ pub fn classify_function_variables(
     // Also check local variables in body that are pointers
     for var_name in graph.variables() {
         if !result.contains_key(var_name) {
-            let features = extract_features_for_variable(var_name, graph, func);
-            let prediction = classifier.classify(&features);
+            // DECY-183: Check if this variable is derived from an array
+            // If so, use ArrayPointer kind for safe slice indexing
+            if let Some(array_base) = graph.array_base_for(var_name) {
+                let inference = OwnershipInference {
+                    variable: var_name.clone(),
+                    kind: OwnershipKind::ArrayPointer {
+                        base_array: array_base.to_string(),
+                        element_type: HirType::Int, // Default, could be improved
+                        base_index: Some(0),
+                    },
+                    confidence: 0.95,
+                    reason: format!(
+                        "Classifier: array-derived pointer from {} (enables safe slice indexing)",
+                        array_base
+                    ),
+                };
+                result.insert(var_name.clone(), inference);
+            } else {
+                let features = extract_features_for_variable(var_name, graph, func);
+                let prediction = classifier.classify(&features);
 
-            let inference = prediction_to_inference(var_name, &prediction, classifier.name());
-            result.insert(var_name.clone(), inference);
+                let inference = prediction_to_inference(var_name, &prediction, classifier.name());
+                result.insert(var_name.clone(), inference);
+            }
         }
     }
 
@@ -101,6 +120,14 @@ pub fn extract_features_for_variable(
     let is_modified = graph.is_modified(var_name);
     if is_modified {
         builder = builder.write_count(1);
+    }
+
+    // DECY-183: Check if pointer is derived from array (CRITICAL for safe slice indexing)
+    // This detects patterns like: int arr[10]; int* p = arr;
+    if graph.array_base_for(var_name).is_some() {
+        builder = builder.array_decay(true);
+        // Mark as array allocation since it's derived from array
+        builder = builder.allocation_site(AllocationKind::Stack);
     }
 
     // Check for array parameter pattern
