@@ -10452,3 +10452,80 @@ sprint_31_single_shot:
 
       files_modified:
         - crates/decy-codegen/tests/e2e_examples_test.rs
+
+    DECY-171:
+      title: "Add void* casting for realloc calls"
+      type: bug
+      priority: high
+      story_points: 2
+      assignee: Claude
+      status: done
+      phase: DONE
+      completed_date: "2025-12-01"
+
+      description: |
+        Fixed realloc calls to properly cast arguments and return values.
+
+        Problem: realloc(ptr, size) was generating invalid Rust because:
+        - First argument (ptr) needs cast to *mut ()
+        - Return value needs cast to target pointer type
+
+        Solution: Special handling in generate_builtin_call for "realloc":
+        - Cast argument: ptr as *mut ()
+        - Cast return: realloc(...) as *mut T
+
+      acceptance_criteria:
+        - realloc(sb->data, sb->capacity) generates valid Rust
+        - Return type matches assignment target
+        - Tests pass
+
+      test_strategy: |
+        Unit tests in realloc_void_cast_test.rs verifying:
+        - Argument casting to *mut ()
+        - Return value casting to target type
+
+      files_modified:
+        - crates/decy-codegen/src/lib.rs
+        - crates/decy-codegen/tests/realloc_void_cast_test.rs
+
+    DECY-172:
+      title: "Preserve size_t/ssize_t/ptrdiff_t as TypeAlias"
+      type: bug
+      priority: high
+      story_points: 3
+      assignee: Claude
+      status: done
+      phase: DONE
+      completed_date: "2025-12-01"
+
+      description: |
+        Fixed type resolution to preserve size_t, ssize_t, ptrdiff_t as
+        type aliases instead of resolving them to underlying types.
+
+        Problem: Parser was resolving size_t → u32, causing type mismatches
+        when the codebase defines size_t = usize.
+
+        Solution: Added HirType::TypeAlias variant to preserve typedef names.
+        Parser detects size_t/ssize_t/ptrdiff_t in CXType_Typedef handling
+        and creates Type::TypeAlias instead of resolving to canonical type.
+
+      acceptance_criteria:
+        - size_t preserved in variable declarations
+        - ssize_t and ptrdiff_t also preserved
+        - Generated code uses type aliases, not resolved types
+
+      test_strategy: |
+        Unit tests in size_t_typedef_test.rs verifying:
+        - size_t variable declarations
+        - ssize_t variable declarations
+        - ptrdiff_t variable declarations
+        - Struct fields with size_t
+
+      files_modified:
+        - crates/decy-parser/src/parser.rs
+        - crates/decy-hir/src/lib.rs
+        - crates/decy-codegen/src/lib.rs
+        - crates/decy-codegen/src/box_transform.rs
+        - crates/decy-codegen/src/enum_gen.rs
+        - crates/decy-codegen/src/test_generator.rs
+        - crates/decy-codegen/tests/size_t_typedef_test.rs
