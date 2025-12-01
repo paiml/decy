@@ -831,6 +831,28 @@ impl BorrowGenerator {
                     length_params_to_remove,
                 )),
             },
+            // DECY-192: Ternary expressions - transform all sub-expressions
+            HirExpression::Ternary {
+                condition,
+                then_expr,
+                else_expr,
+            } => HirExpression::Ternary {
+                condition: Box::new(self.transform_expression_with_length_replacement(
+                    condition,
+                    inferences,
+                    length_params_to_remove,
+                )),
+                then_expr: Box::new(self.transform_expression_with_length_replacement(
+                    then_expr,
+                    inferences,
+                    length_params_to_remove,
+                )),
+                else_expr: Box::new(self.transform_expression_with_length_replacement(
+                    else_expr,
+                    inferences,
+                    length_params_to_remove,
+                )),
+            },
             // Leaf expressions - no transformation needed
             HirExpression::IntLiteral(_)
             | HirExpression::StringLiteral(_)

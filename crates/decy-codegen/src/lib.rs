@@ -911,6 +911,38 @@ impl CodeGenerator {
                 let inner_code = self.generate_expression_with_context(operand, ctx);
                 format!("&{}", inner_code)
             }
+            // DECY-191: Handle LogicalNot with target type for bool-to-int coercion
+            // In C, ! returns int (0 or 1). When !(bool_expr) is assigned to int, cast to i32.
+            HirExpression::UnaryOp {
+                op: decy_hir::UnaryOperator::LogicalNot,
+                operand,
+            } => {
+                let inner_code = self.generate_expression_with_context(operand, ctx);
+                // Wrap inner expression in parens if it's a binary op to preserve precedence
+                let inner_parens = if matches!(**operand, HirExpression::BinaryOp { .. }) {
+                    format!("({})", inner_code)
+                } else {
+                    inner_code.clone()
+                };
+                // If target is int, we need to cast the bool result to i32
+                if let Some(HirType::Int) = target_type {
+                    if Self::is_boolean_expression(operand) {
+                        // !bool_expr returns bool, needs cast to i32
+                        return format!("(!{}) as i32", inner_parens);
+                    } else {
+                        // !int_expr becomes (int == 0) which is bool, then cast to i32
+                        return format!("({} == 0) as i32", inner_code);
+                    }
+                }
+                // No target type or non-int target - use boolean result (no cast)
+                // The as i32 cast is only needed when assigning to int variable
+                if Self::is_boolean_expression(operand) {
+                    format!("!{}", inner_parens)
+                } else {
+                    // !int_expr becomes (int == 0) which is bool - no cast needed
+                    format!("({} == 0)", inner_code)
+                }
+            }
             HirExpression::StringLiteral(s) => format!("\"{}\"", s),
             HirExpression::CharLiteral(c) => {
                 // For char literals, convert to u8 equivalent
@@ -1163,6 +1195,12 @@ impl CodeGenerator {
                         right_str.clone()
                     };
 
+                    // DECY-191: If target type is Int, cast the bool result to i32
+                    // In C, logical operators return int (0 or 1), not bool
+                    if let Some(HirType::Int) = target_type {
+                        return format!("({} {} {}) as i32", left_bool, op_str, right_bool);
+                    }
+
                     return format!("{} {} {}", left_bool, op_str, right_bool);
                 }
 
@@ -1200,6 +1238,27 @@ impl CodeGenerator {
                             };
                             return format!("{} {} {}", left_cast, op_str, right_cast);
                         }
+                    }
+                }
+
+                // DECY-191: Comparison and logical operators return bool in Rust but int in C
+                // When assigning to an integer type, cast the result to i32
+                let returns_bool = matches!(
+                    op,
+                    BinaryOperator::GreaterThan
+                        | BinaryOperator::LessThan
+                        | BinaryOperator::GreaterEqual
+                        | BinaryOperator::LessEqual
+                        | BinaryOperator::Equal
+                        | BinaryOperator::NotEqual
+                        | BinaryOperator::LogicalAnd
+                        | BinaryOperator::LogicalOr
+                );
+
+                if returns_bool {
+                    if let Some(HirType::Int) = target_type {
+                        // Wrap in parentheses and cast to i32
+                        return format!("({} {} {}) as i32", left_str, op_str, right_str);
                     }
                 }
 
@@ -1287,15 +1346,18 @@ impl CodeGenerator {
                         let operand_code = self.generate_expression_with_context(operand, ctx);
                         format!("{{ {} -= 1; {} }}", operand_code, operand_code)
                     }
-                    // DECY-131: Logical NOT on integer → x == 0
+                    // DECY-131, DECY-191: Logical NOT on integer → (x == 0) as i32
+                    // In C, ! returns int (0 or 1), not bool. This matters when !x is used
+                    // in expressions like !a == b where we compare the result with an int.
                     UnaryOperator::LogicalNot => {
                         let operand_code = self.generate_expression_with_context(operand, ctx);
                         // If operand is already boolean, just negate it
                         if Self::is_boolean_expression(operand) {
                             format!("!{}", operand_code)
                         } else {
-                            // For integers: !x → x == 0
-                            format!("{} == 0", operand_code)
+                            // For integers: !x → (x == 0) as i32 to match C semantics
+                            // where ! returns int, enabling expressions like !a == b
+                            format!("({} == 0) as i32", operand_code)
                         }
                     }
                     // Simple prefix operators
@@ -1329,20 +1391,28 @@ impl CodeGenerator {
                             format!("{}({})", function, args.join(", "))
                         }
                     }
-                    // strcpy(dest, src) → src.to_string()
+                    // strcpy(dest, src) → CStr-based copy or .to_string()
                     // Reference: K&R §B3, ISO C99 §7.21.3.1
                     // strcpy copies src to dest and returns dest pointer.
-                    // In Rust, we transform to String operation: src.to_string()
-                    // This prevents buffer overflow (the primary safety benefit)
+                    // DECY-188: Use CStr for raw pointer sources, .to_string() for &str
                     "strcpy" => {
                         if arguments.len() == 2 {
-                            // strcpy(dest, src) → src.to_string()
-                            // We generate the source string operation
-                            // The destination assignment is handled by the statement context
-                            format!(
-                                "{}.to_string()",
-                                self.generate_expression_with_context(&arguments[1], ctx)
-                            )
+                            let src_code = self.generate_expression_with_context(&arguments[1], ctx);
+                            // DECY-188: Detect if source looks like a raw pointer dereference
+                            // Patterns like (*foo).bar or (*foo) indicate raw pointer access
+                            // Simple variable names that aren't dereferenced are likely &str
+                            let is_raw_pointer = src_code.contains("(*") ||
+                                                 src_code.contains(").") ||
+                                                 src_code.contains("as *");
+                            if is_raw_pointer {
+                                format!(
+                                    "unsafe {{ std::ffi::CStr::from_ptr({} as *const i8).to_str().unwrap_or(\"\").to_string() }}",
+                                    src_code
+                                )
+                            } else {
+                                // &str source - use direct .to_string()
+                                format!("{}.to_string()", src_code)
+                            }
                         } else {
                             // Invalid strcpy call - shouldn't happen, but handle gracefully
                             let args: Vec<String> = arguments
@@ -1569,6 +1639,7 @@ impl CodeGenerator {
                     // DECY-132: printf(fmt, ...) → print! macro
                     // Reference: K&R §7.2, ISO C99 §7.19.6.3
                     // DECY-119: Convert C format specifiers to Rust
+                    // DECY-187: Wrap char* arguments with CStr for %s
                     "printf" => {
                         if !arguments.is_empty() {
                             let fmt = self.generate_expression_with_context(&arguments[0], ctx);
@@ -1577,9 +1648,21 @@ impl CodeGenerator {
                             if arguments.len() == 1 {
                                 format!("print!({})", rust_fmt)
                             } else {
+                                // DECY-187: Find %s positions and wrap corresponding args with CStr
+                                let s_positions = Self::find_string_format_positions(&fmt);
                                 let args: Vec<String> = arguments[1..]
                                     .iter()
-                                    .map(|a| self.generate_expression_with_context(a, ctx))
+                                    .enumerate()
+                                    .map(|(i, a)| {
+                                        let arg_code = self.generate_expression_with_context(a, ctx);
+                                        // If this arg corresponds to a %s, wrap with CStr
+                                        // DECY-192: Skip wrapping for ternary expressions with string literals
+                                        if s_positions.contains(&i) && !Self::is_string_ternary(a) {
+                                            Self::wrap_with_cstr(&arg_code)
+                                        } else {
+                                            arg_code
+                                        }
+                                    })
                                     .collect();
                                 format!("print!({}, {})", rust_fmt, args.join(", "))
                             }
@@ -1963,8 +2046,35 @@ impl CodeGenerator {
                 // sizeof(int) → std::mem::size_of::<i32>() as i32
                 // sizeof(struct Data) → std::mem::size_of::<Data>() as i32
                 // Note: size_of returns usize, but C's sizeof returns int (typically i32)
-                let rust_type = self.map_sizeof_type(type_name);
-                format!("std::mem::size_of::<{}>() as i32", rust_type)
+
+                // DECY-189: Detect sizeof(expr) that was mis-parsed as sizeof(type)
+                // Pattern: "record name" came from sizeof(record->name) where
+                // the parser tokenized record and name as separate identifiers
+                let trimmed = type_name.trim();
+                let is_member_access = trimmed.contains(' ')
+                    && !trimmed.starts_with("struct ")
+                    && !trimmed.starts_with("unsigned ")
+                    && !trimmed.starts_with("signed ")
+                    && !trimmed.starts_with("long ")
+                    && !trimmed.starts_with("short ");
+
+                if is_member_access {
+                    // DECY-189: sizeof(record->field) → std::mem::size_of_val(&(*record).field)
+                    // Split "record field" into parts and reconstruct member access
+                    let parts: Vec<&str> = trimmed.split_whitespace().collect();
+                    if parts.len() >= 2 {
+                        let var = parts[0];
+                        let field = parts[1..].join(".");
+                        format!("std::mem::size_of_val(&(*{}).{}) as i32", var, field)
+                    } else {
+                        // Fallback: shouldn't happen, but be safe
+                        let rust_type = self.map_sizeof_type(type_name);
+                        format!("std::mem::size_of::<{}>() as i32", rust_type)
+                    }
+                } else {
+                    let rust_type = self.map_sizeof_type(type_name);
+                    format!("std::mem::size_of::<{}>() as i32", rust_type)
+                }
             }
             HirExpression::NullLiteral => {
                 // NULL → None
@@ -2216,6 +2326,26 @@ impl CodeGenerator {
                 let operand_code = self.generate_expression_with_context(operand, ctx);
                 format!("{{ {operand} -= 1; {operand} }}", operand = operand_code)
             }
+            // DECY-192: Ternary/Conditional expression (cond ? then : else)
+            // C: (a > b) ? a : b → Rust: if a > b { a } else { b }
+            HirExpression::Ternary {
+                condition,
+                then_expr,
+                else_expr,
+            } => {
+                let cond_code = self.generate_expression_with_context(condition, ctx);
+                let then_code = self.generate_expression_with_context(then_expr, ctx);
+                let else_code = self.generate_expression_with_context(else_expr, ctx);
+
+                // Convert condition to boolean if it's not already
+                let cond_bool = if Self::is_boolean_expression(condition) {
+                    cond_code
+                } else {
+                    format!("{} != 0", cond_code)
+                };
+
+                format!("if {} {{ {} }} else {{ {} }}", cond_bool, then_code, else_code)
+            }
         }
     }
 
@@ -2225,7 +2355,8 @@ impl CodeGenerator {
         match op {
             UnaryOperator::Minus => "-",
             UnaryOperator::LogicalNot => "!",
-            UnaryOperator::BitwiseNot => "~",
+            // DECY-193: In Rust, bitwise NOT is ! (same as logical NOT for bool)
+            UnaryOperator::BitwiseNot => "!",
             UnaryOperator::AddressOf => "&",
             // Post/Pre-increment/decrement are handled as block expressions
             // in generate_expression_with_context, so should never reach here
@@ -2408,30 +2539,226 @@ impl CodeGenerator {
         let trimmed = c_fmt.trim();
         if trimmed.starts_with('"') && trimmed.ends_with('"') && trimmed.len() >= 2 {
             let inner = &trimmed[1..trimmed.len() - 1];
-            let converted = inner
-                .replace("%d", "{}")
-                .replace("%i", "{}")
-                .replace("%u", "{}")
-                .replace("%ld", "{}")
-                .replace("%lu", "{}")
-                .replace("%lld", "{}")
-                .replace("%llu", "{}")
-                .replace("%f", "{}")
-                .replace("%lf", "{}")
-                .replace("%e", "{:e}")
-                .replace("%E", "{:E}")
-                .replace("%g", "{}")
-                .replace("%s", "{}")
-                .replace("%c", "{}")
-                .replace("%p", "{:p}")
-                .replace("%x", "{:x}")
-                .replace("%X", "{:X}")
-                .replace("%o", "{:o}")
-                .replace("%%", "%");
+            let converted = Self::convert_format_specifiers(inner);
             format!("\"{}\"", converted)
         } else {
             // Not a string literal, return as-is
             c_fmt.to_string()
+        }
+    }
+
+    /// DECY-193: Convert C format specifiers to Rust format specifiers.
+    /// Handles width, precision, and flags like %02X, %10.3f, etc.
+    fn convert_format_specifiers(input: &str) -> String {
+        let mut result = String::new();
+        let chars: Vec<char> = input.chars().collect();
+        let mut i = 0;
+
+        while i < chars.len() {
+            if chars[i] == '%' {
+                if i + 1 < chars.len() && chars[i + 1] == '%' {
+                    // %% -> %
+                    result.push('%');
+                    i += 2;
+                    continue;
+                }
+
+                // Parse format specifier: %[flags][width][.precision][length]specifier
+                let start = i;
+                i += 1; // skip %
+
+                let mut flags = String::new();
+                let mut width = String::new();
+                let mut precision = String::new();
+
+                // Parse flags: -, +, space, #, 0
+                while i < chars.len() && "-+ #0".contains(chars[i]) {
+                    if chars[i] == '0' {
+                        flags.push('0'); // zero-padding
+                    }
+                    // Skip other flags for now (- is left-align, + is sign, etc.)
+                    i += 1;
+                }
+
+                // Parse width
+                while i < chars.len() && chars[i].is_ascii_digit() {
+                    width.push(chars[i]);
+                    i += 1;
+                }
+
+                // Parse precision
+                if i < chars.len() && chars[i] == '.' {
+                    i += 1;
+                    while i < chars.len() && chars[i].is_ascii_digit() {
+                        precision.push(chars[i]);
+                        i += 1;
+                    }
+                }
+
+                // Skip length modifiers: h, hh, l, ll, L, z, j, t
+                while i < chars.len() && "hlLzjt".contains(chars[i]) {
+                    i += 1;
+                }
+
+                // Parse specifier
+                if i < chars.len() {
+                    let spec = chars[i];
+                    i += 1;
+
+                    // Build Rust format specifier
+                    let rust_spec = match spec {
+                        'd' | 'i' | 'u' => {
+                            if !width.is_empty() || !flags.is_empty() {
+                                format!("{{:{}{}}}", flags, width)
+                            } else {
+                                "{}".to_string()
+                            }
+                        }
+                        'x' => {
+                            if !width.is_empty() || !flags.is_empty() {
+                                format!("{{:{}{}x}}", flags, width)
+                            } else {
+                                "{:x}".to_string()
+                            }
+                        }
+                        'X' => {
+                            if !width.is_empty() || !flags.is_empty() {
+                                format!("{{:{}{}X}}", flags, width)
+                            } else {
+                                "{:X}".to_string()
+                            }
+                        }
+                        'o' => {
+                            if !width.is_empty() || !flags.is_empty() {
+                                format!("{{:{}{}o}}", flags, width)
+                            } else {
+                                "{:o}".to_string()
+                            }
+                        }
+                        'f' | 'F' => {
+                            if !precision.is_empty() {
+                                if !width.is_empty() {
+                                    format!("{{:{}{}.{}}}", flags, width, precision)
+                                } else {
+                                    format!("{{:.{}}}", precision)
+                                }
+                            } else if !width.is_empty() {
+                                format!("{{:{}{}}}", flags, width)
+                            } else {
+                                "{}".to_string()
+                            }
+                        }
+                        'e' => "{:e}".to_string(),
+                        'E' => "{:E}".to_string(),
+                        'g' | 'G' => "{}".to_string(),
+                        's' => {
+                            if !width.is_empty() {
+                                format!("{{:{}}}", width)
+                            } else {
+                                "{}".to_string()
+                            }
+                        }
+                        'c' => "{}".to_string(),
+                        'p' => "{:p}".to_string(),
+                        _ => {
+                            // Unknown specifier, keep original
+                            input[start..i].to_string()
+                        }
+                    };
+                    result.push_str(&rust_spec);
+                } else {
+                    // Incomplete format specifier at end of string
+                    result.push_str(&input[start..]);
+                }
+            } else {
+                result.push(chars[i]);
+                i += 1;
+            }
+        }
+
+        result
+    }
+
+    /// DECY-187: Find positions of %s format specifiers in a format string.
+    /// Returns 0-indexed positions corresponding to printf arguments.
+    fn find_string_format_positions(fmt: &str) -> Vec<usize> {
+        let mut positions = Vec::new();
+        let mut arg_index = 0;
+        let trimmed = fmt.trim();
+
+        // Extract inner content if quoted
+        let inner = if trimmed.starts_with('"') && trimmed.ends_with('"') && trimmed.len() >= 2 {
+            &trimmed[1..trimmed.len() - 1]
+        } else {
+            trimmed
+        };
+
+        let chars: Vec<char> = inner.chars().collect();
+        let mut i = 0;
+        while i < chars.len() {
+            if chars[i] == '%' && i + 1 < chars.len() {
+                let next = chars[i + 1];
+                // Skip %% (literal percent)
+                if next == '%' {
+                    i += 2;
+                    continue;
+                }
+                // Check for format specifiers
+                // Skip width/precision modifiers and length specifiers
+                let mut j = i + 1;
+                while j < chars.len() && (chars[j].is_ascii_digit() || chars[j] == '.' || chars[j] == '-' || chars[j] == '+' || chars[j] == ' ' || chars[j] == '#' || chars[j] == '*') {
+                    j += 1;
+                }
+                // Skip length modifiers (l, ll, h, hh, z, etc.)
+                while j < chars.len() && (chars[j] == 'l' || chars[j] == 'h' || chars[j] == 'z' || chars[j] == 'j' || chars[j] == 't' || chars[j] == 'L') {
+                    j += 1;
+                }
+                // Now we should be at the conversion specifier
+                if j < chars.len() {
+                    let specifier = chars[j];
+                    if specifier == 's' {
+                        positions.push(arg_index);
+                    }
+                    // Count this as an argument position (for d, i, u, f, s, c, p, x, X, o, e, E, g, G, n)
+                    if specifier == 'd' || specifier == 'i' || specifier == 'u' || specifier == 'f' ||
+                       specifier == 's' || specifier == 'c' || specifier == 'p' || specifier == 'x' ||
+                       specifier == 'X' || specifier == 'o' || specifier == 'e' || specifier == 'E' ||
+                       specifier == 'g' || specifier == 'G' || specifier == 'n' || specifier == 'a' ||
+                       specifier == 'A' {
+                        arg_index += 1;
+                    }
+                    i = j + 1;
+                } else {
+                    i += 1;
+                }
+            } else {
+                i += 1;
+            }
+        }
+        positions
+    }
+
+    /// DECY-187: Wrap a char* argument with CStr conversion for safe printing.
+    fn wrap_with_cstr(arg: &str) -> String {
+        format!(
+            "unsafe {{ std::ffi::CStr::from_ptr({} as *const i8).to_str().unwrap_or(\"\") }}",
+            arg
+        )
+    }
+
+    /// DECY-192: Check if expression is a ternary that returns string literals.
+    /// Such expressions should not be wrapped with CStr since they return &str directly in Rust.
+    fn is_string_ternary(expr: &HirExpression) -> bool {
+        if let HirExpression::Ternary {
+            then_expr,
+            else_expr,
+            ..
+        } = expr
+        {
+            matches!(**then_expr, HirExpression::StringLiteral(_))
+                && matches!(**else_expr, HirExpression::StringLiteral(_))
+        } else {
+            false
         }
     }
 

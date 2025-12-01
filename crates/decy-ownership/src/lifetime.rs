@@ -327,6 +327,16 @@ impl LifetimeAnalyzer {
             | HirExpression::PreDecrement { operand } => {
                 self.expression_uses_variable(operand, var_name)
             }
+            // DECY-192: Check if ternary expressions use the variable
+            HirExpression::Ternary {
+                condition,
+                then_expr,
+                else_expr,
+            } => {
+                self.expression_uses_variable(condition, var_name)
+                    || self.expression_uses_variable(then_expr, var_name)
+                    || self.expression_uses_variable(else_expr, var_name)
+            }
         }
     }
 
