@@ -16,6 +16,7 @@
 #![deny(unsafe_code)]
 
 pub mod ab_testing;
+pub mod active_learning;
 pub mod array_slice;
 pub mod borrow_gen;
 pub mod dataflow;
@@ -56,6 +57,12 @@ pub use threshold_tuning::{
 pub use model_versioning::{
     ModelEntry, ModelQualityMetrics, ModelVersion, ModelVersionManager, QualityThresholds,
     RollbackResult,
+};
+
+// Re-export active learning types (DECY-ML-016)
+pub use active_learning::{
+    ActiveLearner, QueueStats, SampleQueue, SelectionStrategy, UncertainSample,
+    UncertaintyCalculator,
 };
 
 #[cfg(test)]
