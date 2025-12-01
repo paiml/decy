@@ -15,6 +15,7 @@
 #![warn(clippy::all)]
 #![deny(unsafe_code)]
 
+pub mod ab_testing;
 pub mod array_slice;
 pub mod borrow_gen;
 pub mod dataflow;
@@ -36,6 +37,11 @@ pub use ml_features::{
 pub use hybrid_classifier::{
     ClassificationMethod, HybridClassifier, HybridMetrics, HybridResult, NullModel, OwnershipModel,
     DEFAULT_CONFIDENCE_THRESHOLD,
+};
+
+// Re-export A/B testing types (DECY-ML-013)
+pub use ab_testing::{
+    ABExperiment, ABTestRunner, AssignmentStrategy, TestObservation, TestVariant, VariantMetrics,
 };
 
 #[cfg(test)]
