@@ -78,6 +78,9 @@ pub enum HirType {
     OwnedString,
     /// String reference type (maps to &str in Rust)
     StringReference,
+    /// Type alias (typedef) - preserves the alias name for codegen
+    /// DECY-172: Used for size_t, ssize_t, ptrdiff_t, etc.
+    TypeAlias(String),
 }
 
 impl HirType {
@@ -114,6 +117,8 @@ impl HirType {
                 element_type: Box::new(HirType::from_ast_type(element_type)),
                 size: size.map(|s| s as usize),
             },
+            // DECY-172: Preserve type aliases like size_t, ssize_t, ptrdiff_t
+            Type::TypeAlias(name) => HirType::TypeAlias(name.clone()),
         }
     }
 }

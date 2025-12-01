@@ -219,6 +219,8 @@ impl EnumGenerator {
             HirType::StringLiteral | HirType::OwnedString | HirType::StringReference => {
                 "String".to_string()
             }
+            // DECY-172: Type aliases use the alias name as variant name
+            HirType::TypeAlias(name) => name.clone(),
         }
     }
 
@@ -281,6 +283,8 @@ impl EnumGenerator {
             HirType::StringLiteral => "&str".to_string(),
             HirType::OwnedString => "String".to_string(),
             HirType::StringReference => "&str".to_string(),
+            // DECY-172: Preserve typedef names
+            HirType::TypeAlias(name) => name.clone(),
         }
     }
 }

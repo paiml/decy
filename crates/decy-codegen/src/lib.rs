@@ -815,6 +815,8 @@ impl CodeGenerator {
                 // For now, return a placeholder
                 "/* Union type */".to_string()
             }
+            // DECY-172: Preserve typedef names like size_t, ssize_t, ptrdiff_t
+            HirType::TypeAlias(name) => name.clone(),
         }
     }
 
@@ -2386,6 +2388,15 @@ impl CodeGenerator {
                 // Unions will be transformed to enums
                 // Default to the first variant's default value
                 panic!("Union types must be initialized and cannot have default values")
+            }
+            // DECY-172: Type aliases use 0 as default (for size_t/ssize_t/ptrdiff_t)
+            HirType::TypeAlias(name) => {
+                // size_t/ssize_t/ptrdiff_t default to 0
+                match name.as_str() {
+                    "size_t" => "0usize".to_string(),
+                    "ssize_t" | "ptrdiff_t" => "0isize".to_string(),
+                    _ => "0".to_string(),
+                }
             }
         }
     }
@@ -4492,6 +4503,14 @@ impl CodeGenerator {
                 // Unions will be transformed to enums
                 // Return statement depends on the specific enum variant
                 String::new()
+            }
+            // DECY-172: Type aliases return 0
+            HirType::TypeAlias(name) => {
+                match name.as_str() {
+                    "size_t" => "    return 0usize;".to_string(),
+                    "ssize_t" | "ptrdiff_t" => "    return 0isize;".to_string(),
+                    _ => "    return 0;".to_string(),
+                }
             }
         }
     }
