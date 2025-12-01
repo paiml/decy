@@ -63,7 +63,8 @@ impl BoxTransformer {
             | HirType::FunctionPointer { .. }
             | HirType::StringLiteral
             | HirType::OwnedString
-            | HirType::StringReference => {
+            | HirType::StringReference
+            | HirType::TypeAlias(_) => {
                 // Fallback for types that don't have simple defaults
                 HirExpression::IntLiteral(0)
             }
