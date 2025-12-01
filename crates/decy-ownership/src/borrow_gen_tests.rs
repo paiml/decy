@@ -846,3 +846,208 @@ mod property_tests {
         }
     }
 }
+
+// ============================================================================
+// DECY-184: Skip borrow transformation for char* with pointer arithmetic
+// String iteration pattern (char* with ptr++ or ptr = ptr + 1) must stay as
+// Pointer so codegen can detect it and generate &mut [u8] / &[u8].
+// ============================================================================
+
+#[test]
+fn test_decy184_char_ptr_with_pointer_arithmetic_not_transformed() {
+    // DECY-184: char* params with pointer arithmetic should NOT be transformed
+    // to Reference - they should stay as Pointer for codegen's string iteration
+    // detection to handle.
+    //
+    // C: void string_copy(char* dest, char* src) { *dest = *src; dest = dest + 1; }
+    // Expected: dest stays as Pointer(Char), NOT Reference { inner: Char, mutable: true }
+    use decy_hir::BinaryOperator;
+
+    let generator = BorrowGenerator::new();
+
+    // Create function with char* param that uses pointer arithmetic
+    let func = HirFunction::new_with_body(
+        "string_copy".to_string(),
+        HirType::Void,
+        vec![
+            HirParameter::new("dest".to_string(), HirType::Pointer(Box::new(HirType::Char))),
+            HirParameter::new("src".to_string(), HirType::Pointer(Box::new(HirType::Char))),
+        ],
+        vec![
+            // *dest = *src (deref assignment - shows it's mutable)
+            HirStatement::DerefAssignment {
+                target: HirExpression::Variable("dest".to_string()),
+                value: HirExpression::Dereference(Box::new(HirExpression::Variable(
+                    "src".to_string(),
+                ))),
+            },
+            // dest = dest + 1 (pointer arithmetic)
+            HirStatement::Assignment {
+                target: "dest".to_string(),
+                value: HirExpression::BinaryOp {
+                    op: BinaryOperator::Add,
+                    left: Box::new(HirExpression::Variable("dest".to_string())),
+                    right: Box::new(HirExpression::IntLiteral(1)),
+                },
+            },
+            // src = src + 1 (pointer arithmetic)
+            HirStatement::Assignment {
+                target: "src".to_string(),
+                value: HirExpression::BinaryOp {
+                    op: BinaryOperator::Add,
+                    left: Box::new(HirExpression::Variable("src".to_string())),
+                    right: Box::new(HirExpression::IntLiteral(1)),
+                },
+            },
+        ],
+    );
+
+    // Create inferences that would normally cause transformation
+    let mut inferences = HashMap::new();
+    inferences.insert(
+        "dest".to_string(),
+        OwnershipInference {
+            variable: "dest".to_string(),
+            kind: OwnershipKind::MutableBorrow,
+            confidence: 0.85,
+            reason: "parameter with writes".to_string(),
+        },
+    );
+    inferences.insert(
+        "src".to_string(),
+        OwnershipInference {
+            variable: "src".to_string(),
+            kind: OwnershipKind::ImmutableBorrow,
+            confidence: 0.8,
+            reason: "read-only parameter".to_string(),
+        },
+    );
+
+    // Transform the function
+    let transformed = generator.transform_function(&func, &inferences);
+
+    // DECY-184: char* params with pointer arithmetic should NOT become References
+    // They should stay as Pointer(Char) for codegen to handle
+    let dest_param = transformed.parameters().iter().find(|p| p.name() == "dest").unwrap();
+    let src_param = transformed.parameters().iter().find(|p| p.name() == "src").unwrap();
+
+    // dest should stay as Pointer(Char), NOT Reference
+    assert!(
+        matches!(dest_param.param_type(), HirType::Pointer(_)),
+        "DECY-184: char* dest with pointer arithmetic should stay as Pointer, got {:?}",
+        dest_param.param_type()
+    );
+
+    // src should stay as Pointer(Char), NOT Reference
+    assert!(
+        matches!(src_param.param_type(), HirType::Pointer(_)),
+        "DECY-184: char* src with pointer arithmetic should stay as Pointer, got {:?}",
+        src_param.param_type()
+    );
+}
+
+#[test]
+fn test_decy184_char_ptr_without_pointer_arithmetic_is_transformed() {
+    // DECY-184: char* params WITHOUT pointer arithmetic SHOULD be transformed
+    // to Reference based on ownership inference.
+    //
+    // C: void set_char(char* ptr) { *ptr = 'x'; }
+    // Expected: ptr becomes Reference { inner: Char, mutable: true }
+
+    let generator = BorrowGenerator::new();
+
+    // Create function with char* param that does NOT use pointer arithmetic
+    let func = HirFunction::new_with_body(
+        "set_char".to_string(),
+        HirType::Void,
+        vec![HirParameter::new(
+            "ptr".to_string(),
+            HirType::Pointer(Box::new(HirType::Char)),
+        )],
+        vec![
+            // *ptr = 'x' (deref assignment - no pointer arithmetic)
+            HirStatement::DerefAssignment {
+                target: HirExpression::Variable("ptr".to_string()),
+                value: HirExpression::CharLiteral(b'x' as i8),
+            },
+        ],
+    );
+
+    // MutableBorrow inference should trigger transformation
+    let mut inferences = HashMap::new();
+    inferences.insert(
+        "ptr".to_string(),
+        OwnershipInference {
+            variable: "ptr".to_string(),
+            kind: OwnershipKind::MutableBorrow,
+            confidence: 0.85,
+            reason: "parameter with writes".to_string(),
+        },
+    );
+
+    // Transform the function
+    let transformed = generator.transform_function(&func, &inferences);
+
+    // char* without pointer arithmetic SHOULD become &mut u8
+    let ptr_param = transformed.parameters().iter().find(|p| p.name() == "ptr").unwrap();
+
+    assert_eq!(
+        ptr_param.param_type(),
+        &HirType::Reference {
+            inner: Box::new(HirType::Char),
+            mutable: true,
+        },
+        "DECY-184: char* without pointer arithmetic should transform to &mut u8"
+    );
+}
+
+#[test]
+fn test_decy184_int_ptr_with_pointer_arithmetic_stays_as_pointer() {
+    // DECY-184: int* params with pointer arithmetic should also stay as Pointer
+    // (This is the existing behavior that should continue to work)
+    use decy_hir::BinaryOperator;
+
+    let generator = BorrowGenerator::new();
+
+    // Create function with int* param that uses pointer arithmetic
+    let func = HirFunction::new_with_body(
+        "traverse_array".to_string(),
+        HirType::Void,
+        vec![HirParameter::new(
+            "arr".to_string(),
+            HirType::Pointer(Box::new(HirType::Int)),
+        )],
+        vec![
+            // arr = arr + 1 (pointer arithmetic)
+            HirStatement::Assignment {
+                target: "arr".to_string(),
+                value: HirExpression::BinaryOp {
+                    op: BinaryOperator::Add,
+                    left: Box::new(HirExpression::Variable("arr".to_string())),
+                    right: Box::new(HirExpression::IntLiteral(1)),
+                },
+            },
+        ],
+    );
+
+    let mut inferences = HashMap::new();
+    inferences.insert(
+        "arr".to_string(),
+        OwnershipInference {
+            variable: "arr".to_string(),
+            kind: OwnershipKind::MutableBorrow,
+            confidence: 0.85,
+            reason: "array parameter".to_string(),
+        },
+    );
+
+    let transformed = generator.transform_function(&func, &inferences);
+    let arr_param = transformed.parameters().iter().find(|p| p.name() == "arr").unwrap();
+
+    // int* with pointer arithmetic should stay as Pointer
+    assert!(
+        matches!(arr_param.param_type(), HirType::Pointer(_)),
+        "DECY-184: int* with pointer arithmetic should stay as Pointer, got {:?}",
+        arr_param.param_type()
+    );
+}
