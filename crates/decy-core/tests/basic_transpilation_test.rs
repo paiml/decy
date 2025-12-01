@@ -271,3 +271,40 @@ fn test_integration_summary() {
         foundation_tests, target_tests, coverage_percent
     );
 }
+
+#[test]
+fn test_decy190_function_declaration_and_definition_no_duplicate() {
+    // DECY-190: When a C file has both a function declaration (prototype)
+    // and a function definition, only emit the definition in Rust.
+    // Without this fix, power() would be defined twice causing E0428.
+    let c_code = r#"
+int power(int m, int n);
+
+int main() {
+    return power(2, 3);
+}
+
+int power(int base, int n) {
+    int result = 1;
+    int i;
+    for (i = 0; i < n; i++)
+        result = result * base;
+    return result;
+}
+"#;
+
+    let result = transpile(c_code);
+    assert!(result.is_ok(), "Transpilation failed: {:?}", result.err());
+
+    let rust_code = result.unwrap();
+
+    // Count how many times "fn power" appears - should be exactly 1
+    let power_count = rust_code.matches("fn power").count();
+    assert_eq!(
+        power_count, 1,
+        "DECY-190: Expected exactly 1 'fn power' definition, found {}. \
+         Function declaration should not generate a separate stub.\n\
+         Generated code:\n{}",
+        power_count, rust_code
+    );
+}

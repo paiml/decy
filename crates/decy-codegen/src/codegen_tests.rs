@@ -1550,3 +1550,284 @@ fn test_const_char_becomes_str() {
         signature
     );
 }
+
+#[test]
+fn test_decy186_printf_zu_format_specifier_converted() {
+    // DECY-186: %zu (size_t format) should be converted to {}
+    // This is used for size_t in C: printf("%zu", sizeof(x))
+    use decy_parser::parser::CParser;
+
+    let code = r#"
+        #include <stdio.h>
+        void test_printf_zu(unsigned long len) {
+            printf("Length: %zu\n", len);
+        }
+    "#;
+
+    let parser = CParser::new().unwrap();
+    let ast = parser.parse(code).unwrap();
+
+    // Find the test_printf_zu function (not a system function)
+    let func = ast
+        .functions()
+        .iter()
+        .find(|f| f.name == "test_printf_zu")
+        .expect("test_printf_zu function not found");
+    let hir_func = decy_hir::HirFunction::from_ast_function(func);
+
+    let codegen = CodeGenerator::new();
+    let rust_code = codegen.generate_function(&hir_func);
+
+    // %zu should be converted to {} in Rust
+    assert!(
+        !rust_code.contains("%zu"),
+        "DECY-186: %zu should be converted to {{}}, got: {}",
+        rust_code
+    );
+    assert!(
+        rust_code.contains("\"Length: {}\\n\""),
+        "DECY-186: format string should have {{}} instead of %zu, got: {}",
+        rust_code
+    );
+}
+
+#[test]
+fn test_decy186_printf_zd_format_specifier_converted() {
+    // DECY-186: %zd (ssize_t format) should be converted to {}
+    use decy_parser::parser::CParser;
+
+    let code = r#"
+        #include <stdio.h>
+        void test_printf_zd(long diff) {
+            printf("Diff: %zd\n", diff);
+        }
+    "#;
+
+    let parser = CParser::new().unwrap();
+    let ast = parser.parse(code).unwrap();
+
+    // Find the test_printf_zd function (not a system function)
+    let func = ast
+        .functions()
+        .iter()
+        .find(|f| f.name == "test_printf_zd")
+        .expect("test_printf_zd function not found");
+    let hir_func = decy_hir::HirFunction::from_ast_function(func);
+
+    let codegen = CodeGenerator::new();
+    let rust_code = codegen.generate_function(&hir_func);
+
+    // %zd should be converted to {} in Rust
+    assert!(
+        !rust_code.contains("%zd"),
+        "DECY-186: %zd should be converted to {{}}, got: {}",
+        rust_code
+    );
+    assert!(
+        rust_code.contains("\"Diff: {}\\n\""),
+        "DECY-186: format string should have {{}} instead of %zd, got: {}",
+        rust_code
+    );
+}
+
+#[test]
+fn test_decy187_printf_s_with_char_ptr_uses_cstr() {
+    // DECY-187: printf("%s", char_ptr) should use CStr for safe printing
+    // char* doesn't implement Display, so we need CStr conversion
+    use decy_parser::parser::CParser;
+
+    let code = r#"
+        #include <stdio.h>
+        void test_print_string(char* str) {
+            printf("%s\n", str);
+        }
+    "#;
+
+    let parser = CParser::new().unwrap();
+    let ast = parser.parse(code).unwrap();
+
+    let func = ast
+        .functions()
+        .iter()
+        .find(|f| f.name == "test_print_string")
+        .expect("test_print_string function not found");
+    let hir_func = decy_hir::HirFunction::from_ast_function(func);
+
+    let codegen = CodeGenerator::new();
+    let rust_code = codegen.generate_function(&hir_func);
+
+    // Should use CStr::from_ptr for char* with %s
+    assert!(
+        rust_code.contains("CStr::from_ptr") || rust_code.contains("from_ptr"),
+        "DECY-187: char* with %s should use CStr::from_ptr, got: {}",
+        rust_code
+    );
+}
+
+#[test]
+fn test_decy187_printf_s_with_struct_field_char_ptr_uses_cstr() {
+    // DECY-187: printf("%s", sb->data) where data is char* should use CStr
+    use decy_parser::parser::CParser;
+
+    let code = r#"
+        #include <stdio.h>
+        typedef struct { char* data; } StringBuilder;
+        void test_print_field(StringBuilder* sb) {
+            printf("%s\n", sb->data);
+        }
+    "#;
+
+    let parser = CParser::new().unwrap();
+    let ast = parser.parse(code).unwrap();
+
+    let func = ast
+        .functions()
+        .iter()
+        .find(|f| f.name == "test_print_field")
+        .expect("test_print_field function not found");
+    let hir_func = decy_hir::HirFunction::from_ast_function(func);
+
+    let codegen = CodeGenerator::new();
+    let rust_code = codegen.generate_function(&hir_func);
+
+    // Should use CStr::from_ptr for struct field char* with %s
+    assert!(
+        rust_code.contains("CStr::from_ptr") || rust_code.contains("from_ptr"),
+        "DECY-187: struct char* field with %s should use CStr::from_ptr, got: {}",
+        rust_code
+    );
+}
+
+#[test]
+fn test_decy188_strcpy_with_char_ptr_source_compiles() {
+    // DECY-188: strcpy(dest, src) where src is char* should generate valid code
+    // Current: src.to_string() fails because *mut u8 doesn't implement Display
+    use decy_parser::parser::CParser;
+
+    let code = r#"
+        #include <string.h>
+        typedef struct { char* data; int len; } Buffer;
+        char* copy_string(Buffer* buf) {
+            char* result = (char*)malloc(buf->len + 1);
+            strcpy(result, buf->data);
+            return result;
+        }
+    "#;
+
+    let parser = CParser::new().unwrap();
+    let ast = parser.parse(code).unwrap();
+
+    let func = ast
+        .functions()
+        .iter()
+        .find(|f| f.name == "copy_string")
+        .expect("copy_string function not found");
+    let hir_func = decy_hir::HirFunction::from_ast_function(func);
+
+    let codegen = CodeGenerator::new();
+    let rust_code = codegen.generate_function(&hir_func);
+
+    // Should NOT generate .to_string() on raw pointer
+    // Instead should use CStr conversion or ptr::copy
+    assert!(
+        !rust_code.contains(").data.to_string()"),
+        "DECY-188: strcpy with char* source should not use .to_string() on pointer, got: {}",
+        rust_code
+    );
+}
+
+#[test]
+fn test_decy189_sizeof_struct_field_compiles() {
+    // DECY-189: sizeof(record->name) should generate valid Rust code
+    // C: sizeof(record->name) where name is a char array field
+    // Issue: Was generating std::mem::size_of::<record name>() which is invalid
+    // Should generate: std::mem::size_of_val(&(*record).name) or similar
+    use decy_parser::parser::CParser;
+
+    let code = r#"
+        #include <string.h>
+        typedef struct { char name[64]; int id; } Record;
+        void copy_name(Record* record, const char* src) {
+            strncpy(record->name, src, sizeof(record->name) - 1);
+        }
+    "#;
+
+    let parser = CParser::new().expect("Failed to create parser");
+    let ast = parser.parse(code).expect("Failed to parse C code");
+
+    let func = ast
+        .functions()
+        .iter()
+        .find(|f| f.name == "copy_name")
+        .expect("copy_name function not found");
+    let hir_func = decy_hir::HirFunction::from_ast_function(func);
+
+    let codegen = CodeGenerator::new();
+    let rust_code = codegen.generate_function(&hir_func);
+
+    // Should NOT generate invalid type syntax like "size_of::<record name>"
+    // The space in "record name" makes it invalid Rust
+    assert!(
+        !rust_code.contains("size_of::<record name>"),
+        "DECY-189: sizeof(record->name) should not generate 'size_of::<record name>', got: {}",
+        rust_code
+    );
+
+    // Should generate something that compiles (size_of_val, array len, or actual size)
+    // At minimum, the generated code should not have two consecutive identifiers in type position
+    let has_invalid_sizeof = rust_code.contains("size_of::<")
+        && rust_code.split("size_of::<")
+            .skip(1)
+            .any(|s| {
+                // Check if there's a space before the closing >
+                if let Some(end) = s.find('>') {
+                    let type_part = &s[..end];
+                    type_part.contains(' ') && !type_part.starts_with("struct ")
+                } else {
+                    false
+                }
+            });
+
+    assert!(
+        !has_invalid_sizeof,
+        "DECY-189: sizeof should not generate invalid type names with spaces, got: {}",
+        rust_code
+    );
+}
+
+#[test]
+fn test_decy191_comparison_to_int_has_cast() {
+    // DECY-191: result = (a > b) should generate result = (a > b) as i32
+    // In C, comparisons return int (0 or 1). In Rust, they return bool.
+    // When assigning to an int, we need to cast.
+    use decy_parser::parser::CParser;
+
+    let code = r#"
+        int compare(int a, int b) {
+            int result;
+            result = (a > b);
+            return result;
+        }
+    "#;
+
+    let parser = CParser::new().expect("Failed to create parser");
+    let ast = parser.parse(code).expect("Failed to parse C code");
+
+    let func = ast
+        .functions()
+        .iter()
+        .find(|f| f.name == "compare")
+        .expect("compare function not found");
+    let hir_func = decy_hir::HirFunction::from_ast_function(func);
+
+    let codegen = CodeGenerator::new();
+    let rust_code = codegen.generate_function(&hir_func);
+
+    // The comparison (a > b) should be cast to i32 when assigned to result
+    // Should contain "as i32" after the comparison
+    assert!(
+        rust_code.contains("as i32") || rust_code.contains("as i32;"),
+        "DECY-191: Comparison assigned to int should have 'as i32' cast. Got:\n{}",
+        rust_code
+    );
+}
