@@ -13,8 +13,7 @@
 //! - Dataset statistics
 
 use decy_oracle::golden_trace::{
-    DatasetMetadata, DatasetStats, GoldenTrace, GoldenTraceDataset, SafetyTransformation,
-    TraceTier, TransformationKind,
+    GoldenTrace, GoldenTraceDataset, SafetyTransformation, TraceTier, TransformationKind,
 };
 
 // ============================================================================

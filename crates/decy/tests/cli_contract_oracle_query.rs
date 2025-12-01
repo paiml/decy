@@ -14,6 +14,7 @@ use assert_cmd::Command;
 use predicates::prelude::*;
 
 /// Helper: Create decy command
+#[allow(deprecated)]
 fn decy_cmd() -> Command {
     Command::cargo_bin("decy").expect("Failed to find decy binary")
 }

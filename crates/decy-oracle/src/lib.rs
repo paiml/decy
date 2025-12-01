@@ -28,7 +28,8 @@
 //!
 //! - `citl`: Enable entrenar CITL integration for pattern mining
 
-#![warn(missing_docs)]
+// TODO: Re-enable missing_docs when crate stabilizes
+#![allow(missing_docs)]
 #![deny(unsafe_code)]
 
 // Core modules
@@ -57,11 +58,14 @@ pub mod corpus_citl;
 
 // Re-exports
 pub use config::OracleConfig;
-pub use context::CDecisionContext;
+pub use context::{CConstruct, CDecisionContext};
+pub use decisions::CDecisionCategory;
 pub use error::OracleError;
 pub use golden_trace::{GoldenTrace, TraceTier};
-pub use metrics::OracleMetrics;
-pub use oracle::DecyOracle;
+pub use import::SmartImportConfig;
+pub use metrics::{CIReport, CIThresholds, OracleMetrics};
+pub use oracle::{DecyOracle, RustcError};
+pub use retirement::PatternRetirementPolicy;
 pub use trace_verifier::{TraceVerifier, VerificationLevel, VerifierConfig};
 
 #[cfg(feature = "citl")]

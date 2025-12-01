@@ -211,10 +211,8 @@ impl DecyOracle {
 
                 stats.record(strategy, &decision);
 
-                if decision.allows_import() {
-                    if store.index_fix(pattern.clone()).is_ok() {
-                        count += 1;
-                    }
+                if decision.allows_import() && store.index_fix(pattern.clone()).is_ok() {
+                    count += 1;
                 }
             }
         }
@@ -261,10 +259,8 @@ impl DecyOracle {
 
                 stats.record(strategy, &decision);
 
-                if decision.allows_import() {
-                    if store.index_fix(pattern.clone()).is_ok() {
-                        count += 1;
-                    }
+                if decision.allows_import() && store.index_fix(pattern.clone()).is_ok() {
+                    count += 1;
                 }
             }
         }

@@ -28,7 +28,7 @@ fn test_deref_assign_deref_no_nested_unsafe() {
     println!("Generated Rust code:\n{}", result);
 
     // Count unsafe blocks - should not have nested unsafe
-    let nested_count = result.matches("unsafe { *").count();
+    let _nested_count = result.matches("unsafe { *").count();
     let inside_unsafe = result.contains("= unsafe {");
 
     assert!(

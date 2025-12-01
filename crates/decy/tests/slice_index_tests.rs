@@ -190,6 +190,7 @@ fn test_multiple_index_accesses() {
 /// 1. Detecting when calling a function that takes slice params
 /// 2. Transforming array args to slice references
 /// 3. Removing length args
+///
 /// TODO: DECY-116 - Implement call site transformation for array-to-slice
 #[test]
 #[ignore = "DECY-116: Call site transformation not yet implemented"]

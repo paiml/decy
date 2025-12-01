@@ -16,6 +16,7 @@ use predicates::prelude::*;
 use tempfile::TempDir;
 
 /// Helper: Create decy command with oracle feature
+#[allow(deprecated)]
 fn decy_cmd() -> Command {
     Command::cargo_bin("decy").expect("Failed to find decy binary")
 }
