@@ -20,6 +20,7 @@ pub mod active_learning;
 pub mod array_slice;
 pub mod borrow_gen;
 pub mod dataflow;
+pub mod error_tracking;
 pub mod hybrid_classifier;
 pub mod inference;
 pub mod lifetime;
@@ -63,6 +64,12 @@ pub use model_versioning::{
 pub use active_learning::{
     ActiveLearner, QueueStats, SampleQueue, SelectionStrategy, UncertainSample,
     UncertaintyCalculator,
+};
+
+// Re-export error tracking types (DECY-ML-015)
+pub use error_tracking::{
+    ErrorTracker, FeatureSuspiciousness, ImprovementSuggestion, InferenceError, PatternStats,
+    SuggestionCategory, SuggestionPriority,
 };
 
 #[cfg(test)]
