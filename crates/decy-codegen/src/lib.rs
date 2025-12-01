@@ -1441,6 +1441,33 @@ impl CodeGenerator {
                             "Vec::new()".to_string()
                         }
                     }
+                    // DECY-171: realloc(ptr, size) → realloc(ptr as *mut (), size) as *mut T
+                    // Reference: K&R §B5, ISO C99 §7.20.3.4
+                    // realloc takes void* and returns void*, so we need to:
+                    // 1. Cast the typed pointer argument to *mut ()
+                    // 2. Cast the return value to the target pointer type
+                    "realloc" => {
+                        if arguments.len() == 2 {
+                            let ptr_code =
+                                self.generate_expression_with_context(&arguments[0], ctx);
+                            let size_code =
+                                self.generate_expression_with_context(&arguments[1], ctx);
+                            // Cast argument to *mut () for realloc
+                            let realloc_call =
+                                format!("realloc({} as *mut (), {})", ptr_code, size_code);
+
+                            // Cast return value to target type if known
+                            if let Some(HirType::Pointer(inner)) = target_type {
+                                let target_ptr_type =
+                                    Self::map_type(&HirType::Pointer(inner.clone()));
+                                format!("{} as {}", realloc_call, target_ptr_type)
+                            } else {
+                                realloc_call
+                            }
+                        } else {
+                            "std::ptr::null_mut()".to_string()
+                        }
+                    }
                     // DECY-130: free(ptr) → drop(ptr) or comment (RAII handles it)
                     // Reference: K&R §B5, ISO C99 §7.20.3.2
                     "free" => {
