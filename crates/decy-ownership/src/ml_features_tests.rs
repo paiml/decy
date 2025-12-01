@@ -532,3 +532,244 @@ fn feature_extractor_extract_all_pointers() {
     let all_features = extractor.extract_all(&func);
     assert_eq!(all_features.len(), 2); // Only pointer parameters
 }
+
+// ============================================================================
+// DECY-ML-009: ERROR PATTERN LIBRARY TESTS
+// ============================================================================
+
+use crate::ml_features::{
+    ErrorPattern, ErrorSeverity, OwnershipErrorKind, PatternLibrary, SuggestedFix,
+};
+
+#[test]
+fn error_pattern_new() {
+    let pattern = ErrorPattern::new(
+        "malloc_without_box",
+        OwnershipErrorKind::PointerMisclassification,
+        "malloc result used as &T",
+    );
+    assert_eq!(pattern.id(), "malloc_without_box");
+    assert_eq!(
+        pattern.error_kind(),
+        OwnershipErrorKind::PointerMisclassification
+    );
+}
+
+#[test]
+fn error_pattern_with_c_pattern() {
+    let pattern = ErrorPattern::new(
+        "test",
+        OwnershipErrorKind::PointerMisclassification,
+        "test pattern",
+    )
+    .with_c_pattern("int* p = malloc(sizeof(int));");
+
+    assert_eq!(pattern.c_pattern(), Some("int* p = malloc(sizeof(int));"));
+}
+
+#[test]
+fn error_pattern_with_rust_error() {
+    let pattern = ErrorPattern::new(
+        "test",
+        OwnershipErrorKind::LifetimeInferenceGap,
+        "missing lifetime",
+    )
+    .with_rust_error("E0106: missing lifetime specifier");
+
+    assert_eq!(
+        pattern.rust_error(),
+        Some("E0106: missing lifetime specifier")
+    );
+}
+
+#[test]
+fn error_pattern_with_fix() {
+    let fix = SuggestedFix::new("Use Box<T>", "Box::new(value)");
+    let pattern = ErrorPattern::new(
+        "test",
+        OwnershipErrorKind::PointerMisclassification,
+        "test",
+    )
+    .with_fix(fix);
+
+    assert!(pattern.suggested_fix().is_some());
+    assert_eq!(pattern.suggested_fix().unwrap().description(), "Use Box<T>");
+}
+
+#[test]
+fn error_pattern_severity() {
+    let pattern = ErrorPattern::new(
+        "test",
+        OwnershipErrorKind::DanglingPointerRisk,
+        "use after free",
+    )
+    .with_severity(ErrorSeverity::Critical);
+
+    assert_eq!(pattern.severity(), ErrorSeverity::Critical);
+}
+
+#[test]
+fn error_pattern_curriculum_level() {
+    let pattern = ErrorPattern::new(
+        "test",
+        OwnershipErrorKind::ArraySliceMismatch,
+        "array vs slice",
+    )
+    .with_curriculum_level(2);
+
+    assert_eq!(pattern.curriculum_level(), 2);
+}
+
+#[test]
+fn suggested_fix_new() {
+    let fix = SuggestedFix::new("Use reference", "&value");
+    assert_eq!(fix.description(), "Use reference");
+    assert_eq!(fix.code_template(), "&value");
+}
+
+#[test]
+fn suggested_fix_with_confidence() {
+    let fix = SuggestedFix::new("Use Box", "Box::new(x)").with_confidence(0.95);
+    assert!((fix.confidence() - 0.95).abs() < f32::EPSILON);
+}
+
+#[test]
+fn pattern_library_new() {
+    let library = PatternLibrary::new();
+    assert_eq!(library.len(), 0);
+    assert!(library.is_empty());
+}
+
+#[test]
+fn pattern_library_add_pattern() {
+    let mut library = PatternLibrary::new();
+    let pattern = ErrorPattern::new(
+        "test_pattern",
+        OwnershipErrorKind::MutabilityMismatch,
+        "const vs mutable",
+    );
+
+    library.add(pattern);
+    assert_eq!(library.len(), 1);
+    assert!(!library.is_empty());
+}
+
+#[test]
+fn pattern_library_get_by_id() {
+    let mut library = PatternLibrary::new();
+    library.add(ErrorPattern::new(
+        "pattern_1",
+        OwnershipErrorKind::ResourceLeakPattern,
+        "memory leak",
+    ));
+
+    let found = library.get("pattern_1");
+    assert!(found.is_some());
+    assert_eq!(found.unwrap().id(), "pattern_1");
+}
+
+#[test]
+fn pattern_library_get_by_error_kind() {
+    let mut library = PatternLibrary::new();
+    library.add(ErrorPattern::new(
+        "p1",
+        OwnershipErrorKind::AliasViolation,
+        "alias 1",
+    ));
+    library.add(ErrorPattern::new(
+        "p2",
+        OwnershipErrorKind::AliasViolation,
+        "alias 2",
+    ));
+    library.add(ErrorPattern::new(
+        "p3",
+        OwnershipErrorKind::LifetimeInferenceGap,
+        "lifetime",
+    ));
+
+    let alias_patterns = library.get_by_error_kind(OwnershipErrorKind::AliasViolation);
+    assert_eq!(alias_patterns.len(), 2);
+}
+
+#[test]
+fn pattern_library_curriculum_ordered() {
+    let mut library = PatternLibrary::new();
+    library.add(
+        ErrorPattern::new("hard", OwnershipErrorKind::AliasViolation, "hard pattern")
+            .with_curriculum_level(3),
+    );
+    library.add(
+        ErrorPattern::new("easy", OwnershipErrorKind::PointerMisclassification, "easy")
+            .with_curriculum_level(1),
+    );
+    library.add(
+        ErrorPattern::new("medium", OwnershipErrorKind::LifetimeInferenceGap, "medium")
+            .with_curriculum_level(2),
+    );
+
+    let ordered = library.curriculum_ordered();
+    assert_eq!(ordered.len(), 3);
+    assert_eq!(ordered[0].id(), "easy");
+    assert_eq!(ordered[1].id(), "medium");
+    assert_eq!(ordered[2].id(), "hard");
+}
+
+#[test]
+fn pattern_library_match_rust_error() {
+    let mut library = PatternLibrary::new();
+    library.add(
+        ErrorPattern::new("lifetime_err", OwnershipErrorKind::LifetimeInferenceGap, "lifetime")
+            .with_rust_error("E0106"),
+    );
+    library.add(
+        ErrorPattern::new("borrow_err", OwnershipErrorKind::AliasViolation, "borrow")
+            .with_rust_error("E0502"),
+    );
+
+    let matches = library.match_rust_error("E0106: missing lifetime specifier");
+    assert_eq!(matches.len(), 1);
+    assert_eq!(matches[0].id(), "lifetime_err");
+}
+
+#[test]
+fn pattern_library_serialize() {
+    let mut library = PatternLibrary::new();
+    library.add(ErrorPattern::new(
+        "test",
+        OwnershipErrorKind::UnsafeMinimizationFailure,
+        "unnecessary unsafe",
+    ));
+
+    let json = serde_json::to_string(&library).unwrap();
+    assert!(json.contains("test"));
+    assert!(json.contains("UnsafeMinimizationFailure"));
+}
+
+#[test]
+fn pattern_library_deserialize() {
+    let mut library = PatternLibrary::new();
+    library.add(ErrorPattern::new(
+        "deser_test",
+        OwnershipErrorKind::DanglingPointerRisk,
+        "dangling",
+    ));
+
+    let json = serde_json::to_string(&library).unwrap();
+    let parsed: PatternLibrary = serde_json::from_str(&json).unwrap();
+
+    assert_eq!(parsed.len(), 1);
+    assert!(parsed.get("deser_test").is_some());
+}
+
+#[test]
+fn ownership_error_kind_from_defect() {
+    // OwnershipErrorKind should map to OwnershipDefect
+    assert_eq!(
+        OwnershipErrorKind::PointerMisclassification.to_defect(),
+        OwnershipDefect::PointerMisclassification
+    );
+    assert_eq!(
+        OwnershipErrorKind::DanglingPointerRisk.to_defect(),
+        OwnershipDefect::DanglingPointerRisk
+    );
+}
