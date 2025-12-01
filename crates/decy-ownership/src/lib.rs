@@ -24,6 +24,7 @@ pub mod inference;
 pub mod lifetime;
 pub mod lifetime_gen;
 pub mod ml_features;
+pub mod model_versioning;
 pub mod struct_lifetime;
 pub mod threshold_tuning;
 
@@ -49,6 +50,12 @@ pub use ab_testing::{
 pub use threshold_tuning::{
     find_optimal_threshold, SelectionCriteria, ThresholdMetrics, ThresholdTuner, TuningResult,
     ValidationSample,
+};
+
+// Re-export model versioning types (DECY-ML-017)
+pub use model_versioning::{
+    ModelEntry, ModelQualityMetrics, ModelVersion, ModelVersionManager, QualityThresholds,
+    RollbackResult,
 };
 
 #[cfg(test)]
