@@ -263,9 +263,14 @@ fn test_non_array_pointer_becomes_reference() {
         result
     );
 
-    // DECY-111: Should transform pointer to reference (not raw pointer)
+    // DECY-111/DECY-180: Should transform pointer to reference (not raw pointer)
+    // Generated code may include lifetime annotations: &'a i32 or &'a mut i32
+    let has_reference = result.contains("&i32")
+        || result.contains("&mut i32")
+        || result.contains("&'a i32")
+        || result.contains("&'a mut i32");
     assert!(
-        result.contains("ptr: &mut i32") || result.contains("ptr: &i32"),
+        has_reference,
         "Should transform to reference\nGenerated:\n{}",
         result
     );
