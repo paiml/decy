@@ -202,11 +202,19 @@ impl BorrowGenerator {
                     }
                 }
             } else {
-                // Not an array parameter - keep as is (with normal transformation)
-                // DECY-135: Use with_type to preserve is_pointee_const for const char* → &str
-                let transformed_type =
-                    self.transform_type(param.param_type(), param.name(), inferences);
-                transformed_params.push(param.with_type(transformed_type));
+                // DECY-184: Check if parameter uses pointer arithmetic
+                // If so, keep as raw pointer (borrow transformation doesn't work with ptr = ptr + 1)
+                // This allows codegen's string iteration detection to generate &mut [u8] / &[u8]
+                if Self::uses_pointer_arithmetic(func, param.name()) {
+                    // Keep as raw pointer - codegen will handle string iteration pattern
+                    transformed_params.push(param.clone());
+                } else {
+                    // Not an array parameter - keep as is (with normal transformation)
+                    // DECY-135: Use with_type to preserve is_pointee_const for const char* → &str
+                    let transformed_type =
+                        self.transform_type(param.param_type(), param.name(), inferences);
+                    transformed_params.push(param.with_type(transformed_type));
+                }
             }
         }
 
