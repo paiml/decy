@@ -13,10 +13,10 @@ description = "Interactive debugger for Decy C-to-Rust transpiler with spydecy i
 
 [dependencies]
 # Core decy dependencies
-decy-parser = { version = "1.0.0", path = "../decy-parser" }
-decy-hir = { version = "1.0.0", path = "../decy-hir" }
-decy-ownership = { version = "1.0.0", path = "../decy-ownership" }
-decy-codegen = { version = "1.0.0", path = "../decy-codegen" }
+decy-parser = { version = "1.0.2", path = "../decy-parser" }
+decy-hir = { version = "1.0.2", path = "../decy-hir" }
+decy-ownership = { version = "1.0.2", path = "../decy-ownership" }
+decy-codegen = { version = "1.0.2", path = "../decy-codegen" }
 
 # Spydecy debugger integration
 spydecy-debugger = "0.2.0"
