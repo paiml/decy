@@ -403,4 +403,140 @@ mod tests {
             _ => panic!("Expected return statement"),
         }
     }
+
+    // ============================================================================
+    // DECY-185: Compound assignment to MemberAccess and Dereference targets
+    // These tests verify that compound assignments like `sb->capacity *= 2;`
+    // and `*ptr *= 2;` are correctly parsed and not dropped.
+    // ============================================================================
+
+    #[test]
+    fn test_decy185_compound_assignment_to_deref() {
+        // DECY-185: `*ptr *= 2;` should be parsed as DerefCompoundAssignment
+        // Currently fails because extract_compound_assignment_stmt only handles
+        // Variable targets, returning None for Dereference targets.
+        let parser = CParser::new().expect("Parser creation failed");
+        let source = r#"
+            void double_value(int* ptr) {
+                *ptr *= 2;
+            }
+        "#;
+
+        let ast = parser.parse(source).expect("Parsing should succeed");
+        let func = &ast.functions()[0];
+
+        // The body should NOT be empty - it should contain the compound assignment
+        assert!(
+            !func.body.is_empty(),
+            "DECY-185: Function body should not be empty, *ptr *= 2 was dropped!"
+        );
+
+        // Should parse as DerefCompoundAssignment
+        match &func.body[0] {
+            Statement::DerefCompoundAssignment { target, op, value } => {
+                // Target should be the variable 'ptr' (the thing being dereferenced)
+                match target {
+                    Expression::Variable(name) => assert_eq!(name, "ptr"),
+                    _ => panic!("Expected Variable target 'ptr', got {:?}", target),
+                }
+                assert_eq!(*op, BinaryOperator::Multiply, "Should use * operator");
+                match value {
+                    Expression::IntLiteral(2) => {}
+                    _ => panic!("Expected int literal 2 as value, got {:?}", value),
+                }
+            }
+            other => panic!(
+                "DECY-185: Expected DerefCompoundAssignment for *ptr *= 2, got {:?}",
+                other
+            ),
+        }
+    }
+
+    #[test]
+    fn test_decy185_compound_assignment_to_struct_field() {
+        // DECY-185: `sb->capacity *= 2;` should be parsed as DerefCompoundAssignment
+        // Currently fails because extract_compound_assignment_stmt only handles
+        // Variable targets, returning None for PointerFieldAccess targets.
+        let parser = CParser::new().expect("Parser creation failed");
+        let source = r#"
+            typedef struct { int capacity; } Struct;
+            void double_capacity(Struct* sb) {
+                sb->capacity *= 2;
+            }
+        "#;
+
+        let ast = parser.parse(source).expect("Parsing should succeed");
+        let func = &ast.functions()[0];
+
+        // The body should NOT be empty - it should contain the compound assignment
+        assert!(
+            !func.body.is_empty(),
+            "DECY-185: Function body should not be empty, sb->capacity *= 2 was dropped!"
+        );
+
+        // Should parse as DerefCompoundAssignment with PointerFieldAccess target
+        match &func.body[0] {
+            Statement::DerefCompoundAssignment { target, op, value } => {
+                // Target should be PointerFieldAccess (sb->capacity)
+                match target {
+                    Expression::PointerFieldAccess { pointer, field } => {
+                        assert_eq!(field, "capacity", "Field should be 'capacity'");
+                        // Pointer should be 'sb'
+                        match &**pointer {
+                            Expression::Variable(name) => assert_eq!(name, "sb"),
+                            _ => panic!("Expected Variable 'sb' as pointer, got {:?}", pointer),
+                        }
+                    }
+                    _ => panic!(
+                        "Expected PointerFieldAccess target for sb->capacity, got {:?}",
+                        target
+                    ),
+                }
+                assert_eq!(*op, BinaryOperator::Multiply, "Should use * operator");
+                match value {
+                    Expression::IntLiteral(2) => {}
+                    _ => panic!("Expected int literal 2 as value, got {:?}", value),
+                }
+            }
+            other => panic!(
+                "DECY-185: Expected DerefCompoundAssignment for sb->capacity *= 2, got {:?}",
+                other
+            ),
+        }
+    }
+
+    #[test]
+    fn test_decy185_while_loop_body_with_compound_assignment() {
+        // DECY-185: While loop body should NOT be empty when containing
+        // compound assignment to struct field
+        let parser = CParser::new().expect("Parser creation failed");
+        let source = r#"
+            typedef struct { int capacity; } Struct;
+            void grow_capacity(Struct* sb, int target) {
+                while (sb->capacity < target) {
+                    sb->capacity *= 2;
+                }
+            }
+        "#;
+
+        let ast = parser.parse(source).expect("Parsing should succeed");
+        let func = &ast.functions()[0];
+
+        // Should have one while loop statement
+        assert_eq!(func.body.len(), 1, "Should have one while loop");
+
+        match &func.body[0] {
+            Statement::While { condition: _, body } => {
+                // The while body should NOT be empty!
+                assert!(
+                    !body.is_empty(),
+                    "DECY-185: While loop body should not be empty! sb->capacity *= 2 was dropped!"
+                );
+
+                // Should contain the compound assignment
+                assert_eq!(body.len(), 1, "While body should have one statement");
+            }
+            other => panic!("Expected While statement, got {:?}", other),
+        }
+    }
 }

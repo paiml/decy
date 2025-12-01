@@ -3455,6 +3455,16 @@ pub enum Statement {
         /// Value expression
         value: Expression,
     },
+    /// DECY-185: Compound assignment to expression target: `*ptr *= 2;`, `sb->capacity *= 2;`
+    /// Used when target is not a simple variable (Dereference, PointerFieldAccess, etc.)
+    DerefCompoundAssignment {
+        /// Target expression (e.g., the dereferenced pointer or field access)
+        target: Expression,
+        /// Binary operator to apply
+        op: BinaryOperator,
+        /// Value expression
+        value: Expression,
+    },
     /// Function call statement: `strlen(s);`, `strcpy(dst, src);`
     FunctionCall {
         /// Function name
