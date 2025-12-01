@@ -94,5 +94,8 @@ pub use classifier::{
     TrainingResult,
 };
 
+// Re-export inference types for hybrid classifier examples
+pub use inference::{OwnershipInference, OwnershipKind};
+
 #[cfg(test)]
 mod ml_features_tests;

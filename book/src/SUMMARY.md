@@ -46,6 +46,7 @@
 - [Incremental Migration](./advanced/migration.md)
 - [FFI Boundaries](./advanced/ffi.md)
 - [Cache System](./advanced/cache.md)
+- [ML-Enhanced Ownership](./advanced/ml-features.md)
 - [Oracle Integration (CITL)](./advanced/oracle.md)
 - [Debugging](./advanced/debugging.md)
 
