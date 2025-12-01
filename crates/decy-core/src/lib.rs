@@ -800,11 +800,35 @@ pub fn transpile_with_includes(c_code: &str, base_dir: Option<&Path>) -> Result<
         .context("Failed to parse C code")?;
 
     // Step 2: Convert to HIR
-    let hir_functions: Vec<HirFunction> = ast
+    let all_hir_functions: Vec<HirFunction> = ast
         .functions()
         .iter()
         .map(HirFunction::from_ast_function)
         .collect();
+
+    // DECY-190: Deduplicate functions - when a C file has both a declaration
+    // (prototype) and a definition, only keep the definition.
+    // This prevents "the name X is defined multiple times" errors in Rust.
+    let hir_functions: Vec<HirFunction> = {
+        use std::collections::HashMap;
+        let mut func_map: HashMap<String, HirFunction> = HashMap::new();
+
+        for func in all_hir_functions {
+            let name = func.name().to_string();
+            if let Some(existing) = func_map.get(&name) {
+                // Keep the one with a body (definition) over the one without (declaration)
+                if func.has_body() && !existing.has_body() {
+                    func_map.insert(name, func);
+                }
+                // Otherwise keep existing (either both have bodies, both don't, or existing has body)
+            } else {
+                func_map.insert(name, func);
+            }
+        }
+
+        // Collect in insertion order isn't guaranteed, but order shouldn't matter for codegen
+        func_map.into_values().collect()
+    };
 
     // Convert structs to HIR
     let hir_structs: Vec<decy_hir::HirStruct> = ast
