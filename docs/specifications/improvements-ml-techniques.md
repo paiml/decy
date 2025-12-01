@@ -434,4 +434,78 @@ DECY-O-008:
 
 ---
 
+## 8. Toyota Way Review & Modernization (Added Dec 2025)
+
+### 8.1 Kaizen Analysis (Improvement Opportunities)
+
+In the spirit of **Kaizen** (Continuous Improvement) and **Muda** (Waste Elimination), this proposal has been reviewed against the state-of-the-art in late 2025.
+
+1.  **Critique of "RandomForest" (Muda)**: Phase 3 proposes a `RandomForest` classifier on 142 manually engineered features. This represents *Muda* (waste) of engineering effort.
+    *   **Correction**: Shift to **Transformer-based embeddings** (CodeBERT/GraphCodeBERT) or LLM fine-tuning. These models capture semantic nuance (e.g., variable naming conventions implying ownership) that manual features miss.
+    
+2.  **Jidoka (Automation with Human Touch)**: The "Fallback Logic" is sound, but the "Stop the Line" criteria need to be more aggressive.
+    *   **Correction**: Any transpile that results in `unsafe` blocks where the ML predicted "safe" must trigger a **Poka-Yoke** (mistake-proofing) alert, halting the pipeline for that module until reviewed.
+
+3.  **Genchi Genbutsu (Go and See)**: The reliance on "C projects with Rust ports" for training data is a bottleneck.
+    *   **Correction**: Implement **LLM-based Synthetic Data Generation**. Use a high-parameter model (e.g., GPT-4-Turbo or Claude 3.5 Sonnet) to generate C-to-Rust pairs, verifying the Rust output with `cargo check` and Miri.
+
+### 8.2 Implementation Adjustments
+
+*   **Replace** `DECY-ML-011` ("Train RandomForest") with "Fine-tune CodeBERT on Ownership Tasks".
+*   **Add** `DECY-ML-019` "Synthetic Data Generation Pipeline" to Phase 3.
+
+---
+
+## Appendix B: Additional Recommended Literature (2020-2025)
+
+To support the shift towards modern Neural Architectures and LLMs, the following peer-reviewed works are added to the review corpus:
+
+### B.1 LLM & Agentic Approaches (2023-2025)
+
+**[11] Zhang et al., "Ownership Guided C to Rust Translation" (CAV 2023)**
+> "Introduces a static analysis method to infer ownership, a critical precursor to hybrid neuro-symbolic approaches."
+- **Citation**: *Proc. Intl. Conf. on Computer Aided Verification*, pp. 459-482. [DOI:10.1007/978-3-031-37709-9_22](https://doi.org/10.1007/978-3-031-37709-9_22)
+
+**[12] Sim et al., "Large Language Model-Powered Agent for C to Rust Code Translation" (ICSE 2025)**
+> "Proposes an agentic framework where LLMs iteratively refine translations, aligning perfectly with the 'Kaizen' feedback loop proposed in Phase 4."
+- **Citation**: *Proceedings of ICSE 2025* / arXiv:2505.15858.
+
+**[13] Pan et al., "Lost in Translation: A Study of Bugs Introduced by Large Language Models while Translating Code" (ICSE 2024)**
+> "Crucial for 'Jidoka': identifies common failure modes of LLM translation to build better verification gates."
+- **Citation**: *Proceedings of ICSE 2024*.
+
+**[14] Rozière et al., "Code Llama: Open Foundation Models for Code" (2023)**
+> "State-of-the-art open weights model that should replace the generic 'ML Classifier' in Phase 3."
+- **Citation**: *arXiv preprint arXiv:2308.12950*.
+
+### B.2 Embeddings & Neural Representations
+
+**[15] Feng et al., "CodeBERT: A Pre-Trained Model for Programming and Natural Languages" (EMNLP 2020)**
+> "The foundational transformer model for code embeddings. Replacing manual features with CodeBERT embeddings is the primary Kaizen recommendation."
+- **Citation**: *Findings of EMNLP 2020*. [arXiv:2002.08155](https://arxiv.org/abs/2002.08155)
+
+**[16] Guo et al., "GraphCodeBERT: Pre-training Code Representations with Data Flow" (ICLR 2021)**
+> "Explicitly encodes data flow, which is the theoretical basis of ownership. Superior to standard CodeBERT for this specific task."
+- **Citation**: *Proceedings of ICLR 2021*. [arXiv:2009.08366](https://arxiv.org/abs/2009.08366)
+
+**[17] Li et al., "StarCoder: May the Source Be With You" (2023)**
+> "Demonstrates the effectiveness of training on permissive licenses (The Stack), ensuring legal safety for the training pipeline."
+- **Citation**: *arXiv preprint arXiv:2305.06161*.
+
+### B.3 Safety & Verification
+
+**[18] Emre et al., "Translating C to Safer Rust" (OOPSLA 2021)**
+> "A non-ML baseline that establishes the 'Gold Standard' for safe translation against which the ML model must be measured."
+- **Citation**: *Proc. ACM Program. Lang. 5, OOPSLA, Article 121*. [doi:10.1145/3485498](https://doi.org/10.1145/3485498)
+
+**[19] Evans et al., "Is Rust Used Safely?" (ICSE 2020)**
+> "Analyzes real-world `unsafe` usage, providing the ground truth for the 'Defect Taxonomy' (DECY-O-005)."
+- **Citation**: *Proceedings of ICSE 2020*. [doi:10.1145/3377811.3380362](https://doi.org/10.1145/3377811.3380362)
+
+**[20] Cummins et al., "Large Language Models for Compiler Optimization" (2023)**
+> "While focused on optimization, the methodology of using LLMs to make compiler decisions parallels the ownership inference decision process."
+- **Citation**: *arXiv preprint arXiv:2309.05323*.
+
+---
+
 *Document generated following Toyota Way principles of continuous improvement (Kaizen) and building quality in (Jidoka).*

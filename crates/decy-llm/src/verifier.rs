@@ -306,3 +306,119 @@ impl Default for VerificationLoop {
         Self::new(3)
     }
 }
+
+// ============================================================================
+// DECY-ML-004: "COMPILES ON FIRST TRY" METRIC
+// ============================================================================
+
+/// Metrics for tracking "compiles on first try" rate.
+///
+/// DECY-ML-004: Key quality metric from Oracle Acceleration Pipeline.
+/// Target: 85%+ code compiles successfully on first attempt.
+///
+/// # Example
+///
+/// ```
+/// use decy_llm::CompilationMetrics;
+///
+/// let mut metrics = CompilationMetrics::new();
+///
+/// // Record successful first-try compilation
+/// metrics.record_attempt(true, 1);
+///
+/// // Record success after retry
+/// metrics.record_attempt(true, 2);
+///
+/// // Check if meeting target
+/// if metrics.meets_target(0.85) {
+///     println!("Meeting 85% first-try target!");
+/// }
+/// ```
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct CompilationMetrics {
+    /// Total number of compilation attempts
+    total_attempts: u64,
+    /// Number of first-try successes
+    first_try_successes: u64,
+    /// Total iterations summed (for average calculation)
+    total_iterations: u64,
+    /// Histogram of iterations needed per attempt
+    iteration_counts: std::collections::HashMap<usize, u64>,
+}
+
+impl CompilationMetrics {
+    /// Target "compiles on first try" rate (85%).
+    pub const TARGET_RATE: f64 = 0.85;
+
+    /// Create a new metrics tracker.
+    pub fn new() -> Self {
+        Self {
+            total_attempts: 0,
+            first_try_successes: 0,
+            total_iterations: 0,
+            iteration_counts: std::collections::HashMap::new(),
+        }
+    }
+
+    /// Record a compilation attempt.
+    ///
+    /// # Arguments
+    /// * `success` - Whether compilation ultimately succeeded
+    /// * `iterations` - Number of iterations needed (1 = first try)
+    pub fn record_attempt(&mut self, success: bool, iterations: usize) {
+        self.total_attempts += 1;
+        self.total_iterations += iterations as u64;
+
+        // Track first-try successes
+        if success && iterations == 1 {
+            self.first_try_successes += 1;
+        }
+
+        // Update histogram
+        *self.iteration_counts.entry(iterations).or_insert(0) += 1;
+    }
+
+    /// Get total number of compilation attempts.
+    pub fn total_attempts(&self) -> u64 {
+        self.total_attempts
+    }
+
+    /// Get number of first-try successes.
+    pub fn first_try_successes(&self) -> u64 {
+        self.first_try_successes
+    }
+
+    /// Calculate "compiles on first try" rate (0.0 - 1.0).
+    pub fn first_try_rate(&self) -> f64 {
+        if self.total_attempts == 0 {
+            return 0.0;
+        }
+        self.first_try_successes as f64 / self.total_attempts as f64
+    }
+
+    /// Check if current rate meets or exceeds target.
+    pub fn meets_target(&self, target: f64) -> bool {
+        self.first_try_rate() >= target
+    }
+
+    /// Calculate average iterations needed per attempt.
+    pub fn average_iterations(&self) -> f64 {
+        if self.total_attempts == 0 {
+            return 0.0;
+        }
+        self.total_iterations as f64 / self.total_attempts as f64
+    }
+
+    /// Get iteration histogram (iterations → count).
+    pub fn iteration_histogram(&self) -> &std::collections::HashMap<usize, u64> {
+        &self.iteration_counts
+    }
+
+    /// Reset all metrics to zero.
+    pub fn reset(&mut self) {
+        self.total_attempts = 0;
+        self.first_try_successes = 0;
+        self.total_iterations = 0;
+        self.iteration_counts.clear();
+    }
+}
