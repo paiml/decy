@@ -26,9 +26,9 @@ pub mod struct_lifetime;
 
 // Re-export ML feature types at crate root for convenience
 pub use ml_features::{
-    AllocationKind, ErrorPattern, ErrorSeverity, FeatureExtractor, InferredOwnership,
-    OwnershipDefect, OwnershipErrorKind, OwnershipFeatures, OwnershipFeaturesBuilder,
-    OwnershipPrediction, PatternLibrary, Severity, SuggestedFix,
+    default_pattern_library, AllocationKind, ErrorPattern, ErrorSeverity, FeatureExtractor,
+    InferredOwnership, OwnershipDefect, OwnershipErrorKind, OwnershipFeatures,
+    OwnershipFeaturesBuilder, OwnershipPrediction, PatternLibrary, Severity, SuggestedFix,
 };
 
 #[cfg(test)]
