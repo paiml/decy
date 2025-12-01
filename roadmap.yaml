@@ -10651,3 +10651,224 @@ sprint_31_single_shot:
       files_modified:
         - crates/decy-parser/src/parser.rs
         - crates/decy-parser/src/parser_tests.rs
+
+    DECY-186:
+      title: "Add %zu and %zd format specifiers to printf conversion"
+      type: bug
+      priority: high
+      story_points: 2
+      assignee: Claude
+      status: done
+      phase: DONE
+      started_date: "2025-12-01"
+      completed_date: "2025-12-01"
+      actual_metrics:
+        tests_added: 2
+        e2e_pass_rate: "92.9%"
+        format_specifiers_fixed: "%zu, %zd"
+
+      description: |
+        Fix printf format specifier conversion to handle size_t formats.
+
+        Problem: The convert_c_format_to_rust function in codegen doesn't
+        handle %zu (unsigned size_t) or %zd (signed ssize_t) format specifiers.
+
+        C code:
+        ```c
+        printf("Length: %zu, Capacity: %zu\n", sb->length, sb->capacity);
+        ```
+
+        Currently generates:
+        ```rust
+        print!("Length: %zu, Capacity: %zu\n", (*sb).length, (*sb).capacity);
+        ```
+
+        But %zu is not a valid Rust format specifier. Should generate:
+        ```rust
+        print!("Length: {}, Capacity: {}\n", (*sb).length, (*sb).capacity);
+        ```
+
+        Note: string_builder.c still has other issues (*mut u8 Display trait)
+        that are separate from format specifiers.
+
+      acceptance_criteria:
+        - %zu format specifier converts to {} ✓
+        - %zd format specifier converts to {} ✓
+        - string_builder.c format specifiers fixed (other issues remain)
+        - E2E pass rate maintained at 92.9%
+
+      test_strategy: |
+        RED: Create test in codegen_tests verifying format conversion
+        GREEN: Add .replace("%zu", "{}") and .replace("%zd", "{}") to convert_c_format_to_rust
+        REFACTOR: Verify E2E pass rate, ensure no regressions
+
+      files_modified:
+        - crates/decy-codegen/src/lib.rs
+        - crates/decy-codegen/src/codegen_tests.rs
+
+    DECY-187:
+      title: "Convert %s with char* to CStr for safe printing"
+      type: bug
+      priority: high
+      story_points: 3
+      assignee: Claude
+      status: done
+      phase: DONE
+      started_date: "2025-12-01"
+      completed_date: "2025-12-01"
+      actual_metrics:
+        tests_added: 2
+        helper_functions_added: 2
+        printf_cstr_wrapping: true
+
+      description: |
+        Fix printf %s with char* (raw pointer) to use CStr for safe printing.
+
+        Problem: When C code uses printf("%s", ptr) where ptr is char*,
+        the transpiled Rust generates print!("{}", ptr) where ptr is *mut u8.
+        But *mut u8 doesn't implement Display trait.
+
+        Solution: Added find_string_format_positions() and wrap_with_cstr()
+        helper functions to detect %s format specifiers and wrap corresponding
+        arguments with CStr::from_ptr conversion.
+
+        Note: string_builder.c still fails due to strcpy issue (DECY-188).
+
+      acceptance_criteria:
+        - printf %s with char* generates CStr conversion ✓
+        - printf %s wrapping tested with unit tests ✓
+        - string_builder.c printf statements work correctly ✓
+
+      test_strategy: |
+        RED: Create test verifying char* with %s generates CStr code
+        GREEN: Modify printf handling to wrap pointer args with CStr
+        REFACTOR: Verify E2E pass rate, clean up
+
+      files_modified:
+        - crates/decy-codegen/src/lib.rs
+        - crates/decy-codegen/src/codegen_tests.rs
+
+    DECY-188:
+      title: "Fix strcpy with raw pointer source to use proper copy"
+      type: bug
+      priority: high
+      story_points: 3
+      assignee: Claude
+      status: done
+      phase: DONE
+      started_date: "2025-12-01"
+      completed_date: "2025-12-01"
+      actual_metrics:
+        tests_added: 1
+        e2e_pass_rate: "100%"
+        string_builder_compiles: true
+
+      description: |
+        Fix strcpy when source is a raw pointer (*mut u8 / char*).
+
+        Problem: strcpy(dest, src) is converted to src.to_string() which
+        works when src is &str but fails when src is *mut u8.
+
+        Solution: Detect if source looks like raw pointer dereference
+        (contains `(*` or `).` patterns) and use CStr conversion,
+        otherwise use .to_string() for &str sources.
+
+      acceptance_criteria:
+        - strcpy with char* source compiles successfully ✓
+        - string_builder.c compiles and runs correctly ✓
+        - E2E pass rate increased to 100% ✓
+
+      test_strategy: |
+        RED: Create test verifying strcpy with pointer generates valid code
+        GREEN: Modify strcpy handling for raw pointer sources
+        REFACTOR: Verify E2E pass rate, clean up
+
+      files_modified:
+        - crates/decy-codegen/src/lib.rs
+        - crates/decy-codegen/src/codegen_tests.rs
+
+    DECY-190:
+      title: "Deduplicate functions when both declaration and definition exist"
+      type: bug
+      priority: high
+      story_points: 3
+      assignee: Claude
+      status: done
+      phase: DONE
+      started_date: "2025-12-01"
+      completed_date: "2025-12-01"
+      actual_metrics:
+        tests_added: 1
+        kr_chapter1_pass_rate: "100% (15/15)"
+        e2e_pass_rate: "100% (14/14)"
+
+      description: |
+        Fix duplicate function definitions when C has both declaration and definition.
+
+        Problem: C files with function prototypes like:
+          int power(int m, int n);  // declaration
+          int power(int base, int n) { ... }  // definition
+
+        Would generate two fn power() functions in Rust, causing E0428 error.
+
+        Solution: Deduplicate functions by name in decy-core, keeping the
+        definition (has_body=true) over the declaration (has_body=false).
+
+      acceptance_criteria:
+        - 09_function_power.c compiles successfully ✓
+        - Function declarations don't generate stub functions ✓
+        - K&R Chapter 1 at 100% pass rate ✓
+        - E2E corpus still at 100% ✓
+
+      test_strategy: |
+        RED: Create test_decy190_function_declaration_and_definition_no_duplicate
+        GREEN: Add has_body() to HirFunction, deduplicate in decy-core
+        REFACTOR: Verify E2E and K&R pass rates
+
+      files_modified:
+        - crates/decy-hir/src/lib.rs
+        - crates/decy-core/src/lib.rs
+        - crates/decy-core/tests/basic_transpilation_test.rs
+
+    DECY-189:
+      title: "Fix sizeof(struct->field) transpilation to use size_of_val"
+      type: bug
+      priority: high
+      story_points: 3
+      assignee: Claude
+      status: done
+      phase: DONE
+      started_date: "2025-12-01"
+      completed_date: "2025-12-01"
+      actual_metrics:
+        tests_added: 1
+        tests_passing: 258
+        e2e_pass_rate: "100%"
+
+      description: |
+        Fix sizeof(struct->field) which was generating invalid Rust code.
+
+        Problem: sizeof(record->name) was parsed as Sizeof { type_name: "record name" }
+        which generated std::mem::size_of::<record name>() - invalid due to space.
+
+        Solution: Detect when type_name looks like a member access expression
+        (has space but isn't "struct X" etc.) and generate size_of_val(&expr).
+
+        Example:
+        - Input: sizeof(record->name)
+        - Before: std::mem::size_of::<record name>() (compile error)
+        - After: std::mem::size_of_val(&(*record).name) (valid Rust)
+
+      acceptance_criteria:
+        - sizeof(record->name) generates valid Rust code ✓
+        - Test verifies no space in size_of type parameter ✓
+        - E2E corpus still passes at 100% ✓
+
+      test_strategy: |
+        RED: Create test_decy189_sizeof_struct_field_compiles
+        GREEN: Detect member access pattern in sizeof, use size_of_val
+        REFACTOR: Verify E2E pass rate, ensure no regressions
+
+      files_modified:
+        - crates/decy-codegen/src/lib.rs
+        - crates/decy-codegen/src/codegen_tests.rs
