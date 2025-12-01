@@ -18,6 +18,7 @@
 pub mod array_slice;
 pub mod borrow_gen;
 pub mod dataflow;
+pub mod hybrid_classifier;
 pub mod inference;
 pub mod lifetime;
 pub mod lifetime_gen;
@@ -29,6 +30,12 @@ pub use ml_features::{
     default_pattern_library, AllocationKind, ErrorPattern, ErrorSeverity, FeatureExtractor,
     InferredOwnership, OwnershipDefect, OwnershipErrorKind, OwnershipFeatures,
     OwnershipFeaturesBuilder, OwnershipPrediction, PatternLibrary, Severity, SuggestedFix,
+};
+
+// Re-export hybrid classifier types
+pub use hybrid_classifier::{
+    ClassificationMethod, HybridClassifier, HybridMetrics, HybridResult, NullModel, OwnershipModel,
+    DEFAULT_CONFIDENCE_THRESHOLD,
 };
 
 #[cfg(test)]
