@@ -3178,7 +3178,12 @@ impl CodeGenerator {
         use decy_analyzer::void_ptr_analysis::{TypeConstraint, VoidPtrAnalyzer};
         let void_analyzer = VoidPtrAnalyzer::new();
         let void_patterns = void_analyzer.analyze(func);
-        let has_void_ptr = !void_patterns.is_empty();
+
+        // DECY-168: Only consider patterns with actual constraints/types as "real" void* usage
+        // Empty body functions (stubs) will have patterns but no constraints
+        let has_real_void_usage = void_patterns.iter().any(|vp| {
+            !vp.constraints.is_empty() || !vp.inferred_types.is_empty()
+        });
 
         // DECY-097: Collect trait bounds from all void* patterns
         let mut trait_bounds: Vec<&str> = Vec::new();
@@ -3197,8 +3202,9 @@ impl CodeGenerator {
             }
         }
 
-        // Add generic type parameter with trait bounds if function has void* params
-        if has_void_ptr {
+        // Add generic type parameter with trait bounds if function has void* params with real usage
+        // DECY-168: Don't add <T> for stub functions without body analysis
+        if has_real_void_usage {
             if trait_bounds.is_empty() {
                 sig.push_str("<T>");
             } else {
@@ -3329,19 +3335,32 @@ impl CodeGenerator {
 
                         if let HirType::Pointer(inner) = orig_param.param_type() {
                             // DECY-096: void* param becomes generic &T or &mut T
-                            if matches!(**inner, HirType::Void) && has_void_ptr {
-                                let is_mutable = void_patterns
-                                    .iter()
-                                    .find(|vp| vp.param_name == p.name)
-                                    .map(|vp| {
-                                        vp.constraints
-                                            .contains(&decy_analyzer::void_ptr_analysis::TypeConstraint::Mutable)
-                                    })
-                                    .unwrap_or(false);
-                                if is_mutable {
-                                    return Some(format!("{}: &mut T", p.name));
+                            // DECY-168: Only apply generic transformation if we found an actual pattern
+                            // for this specific parameter WITH real constraints (from body analysis).
+                            // Otherwise keep as raw pointer *mut ().
+                            if matches!(**inner, HirType::Void) {
+                                // Look for a void pattern specifically for this parameter
+                                // that has actual constraints (indicating real usage in body)
+                                let void_pattern = void_patterns.iter().find(|vp| {
+                                    vp.param_name == p.name
+                                        && (!vp.constraints.is_empty()
+                                            || !vp.inferred_types.is_empty())
+                                });
+
+                                if let Some(pattern) = void_pattern {
+                                    // Found actual usage pattern - apply generic transformation
+                                    let is_mutable = pattern.constraints.contains(
+                                        &decy_analyzer::void_ptr_analysis::TypeConstraint::Mutable,
+                                    );
+                                    if is_mutable {
+                                        return Some(format!("{}: &mut T", p.name));
+                                    } else {
+                                        return Some(format!("{}: &T", p.name));
+                                    }
                                 } else {
-                                    return Some(format!("{}: &T", p.name));
+                                    // DECY-168: No pattern with real constraints found - keep as raw pointer
+                                    // This is important for stdlib stubs (realloc, memcpy, etc.)
+                                    return Some(format!("{}: *mut ()", p.name));
                                 }
                             }
                             // DECY-134: Check for string iteration pattern FIRST
@@ -4236,6 +4255,12 @@ impl CodeGenerator {
                                 let inner_type = Self::map_type(inner);
                                 return format!("mut {}: *mut {}", p.name, inner_type);
                             }
+                        }
+                        // DECY-168: void* parameters should stay as raw pointers
+                        // unless they have actual usage patterns (constraints/types)
+                        if matches!(**inner, HirType::Void) {
+                            // Keep void* as raw pointer for stdlib stubs
+                            return format!("{}: *mut ()", p.name);
                         }
                         // Transform *mut T → &mut T for safety
                         // All pointer params become &mut since C allows writing through them
