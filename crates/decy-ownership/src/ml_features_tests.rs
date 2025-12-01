@@ -773,3 +773,121 @@ fn ownership_error_kind_from_defect() {
         OwnershipDefect::DanglingPointerRisk
     );
 }
+
+// ============================================================================
+// DECY-ML-007: CURRICULUM-ORDERED DEFAULT PATTERNS TESTS
+// ============================================================================
+
+use crate::ml_features::default_pattern_library;
+
+#[test]
+fn default_library_not_empty() {
+    let library = default_pattern_library();
+    assert!(!library.is_empty());
+}
+
+#[test]
+fn default_library_has_all_error_kinds() {
+    let library = default_pattern_library();
+
+    // Should have at least one pattern for each error kind
+    assert!(!library.get_by_error_kind(OwnershipErrorKind::PointerMisclassification).is_empty());
+    assert!(!library.get_by_error_kind(OwnershipErrorKind::LifetimeInferenceGap).is_empty());
+    assert!(!library.get_by_error_kind(OwnershipErrorKind::DanglingPointerRisk).is_empty());
+    assert!(!library.get_by_error_kind(OwnershipErrorKind::AliasViolation).is_empty());
+    assert!(!library.get_by_error_kind(OwnershipErrorKind::UnsafeMinimizationFailure).is_empty());
+    assert!(!library.get_by_error_kind(OwnershipErrorKind::ArraySliceMismatch).is_empty());
+    assert!(!library.get_by_error_kind(OwnershipErrorKind::ResourceLeakPattern).is_empty());
+    assert!(!library.get_by_error_kind(OwnershipErrorKind::MutabilityMismatch).is_empty());
+}
+
+#[test]
+fn default_library_curriculum_levels_ascending() {
+    let library = default_pattern_library();
+    let ordered = library.curriculum_ordered();
+
+    // Verify levels are in ascending order
+    let mut prev_level = 0u8;
+    for pattern in ordered {
+        assert!(
+            pattern.curriculum_level() >= prev_level,
+            "Curriculum levels should be ascending"
+        );
+        prev_level = pattern.curriculum_level();
+    }
+}
+
+#[test]
+fn default_library_has_c_patterns() {
+    let library = default_pattern_library();
+
+    // Most patterns should have C code examples
+    let with_c_pattern = library.iter().filter(|p| p.c_pattern().is_some()).count();
+    assert!(with_c_pattern > library.len() / 2);
+}
+
+#[test]
+fn default_library_has_rust_errors() {
+    let library = default_pattern_library();
+
+    // Most patterns should have rustc error codes
+    let with_rust_error = library.iter().filter(|p| p.rust_error().is_some()).count();
+    assert!(with_rust_error > library.len() / 2);
+}
+
+#[test]
+fn default_library_has_suggested_fixes() {
+    let library = default_pattern_library();
+
+    // Most patterns should have suggested fixes
+    let with_fix = library.iter().filter(|p| p.suggested_fix().is_some()).count();
+    assert!(with_fix > library.len() / 2);
+}
+
+#[test]
+fn default_library_malloc_pattern() {
+    let library = default_pattern_library();
+
+    // Should have the basic malloc → Box pattern
+    let malloc_patterns = library.get_by_error_kind(OwnershipErrorKind::PointerMisclassification);
+    let has_malloc = malloc_patterns.iter().any(|p| {
+        p.c_pattern()
+            .is_some_and(|c| c.contains("malloc"))
+    });
+    assert!(has_malloc, "Should have malloc misclassification pattern");
+}
+
+#[test]
+fn default_library_lifetime_pattern() {
+    let library = default_pattern_library();
+
+    // Should have lifetime error patterns with E0106
+    let matches = library.match_rust_error("E0106");
+    assert!(!matches.is_empty(), "Should have E0106 lifetime pattern");
+}
+
+#[test]
+fn default_library_use_after_free_pattern() {
+    let library = default_pattern_library();
+
+    // Should have use-after-free pattern
+    let uaf_patterns = library.get_by_error_kind(OwnershipErrorKind::DanglingPointerRisk);
+    let has_uaf = uaf_patterns.iter().any(|p| {
+        p.description().to_lowercase().contains("free")
+            || p.c_pattern().is_some_and(|c: &str| c.contains("free"))
+    });
+    assert!(has_uaf, "Should have use-after-free pattern");
+}
+
+#[test]
+fn default_library_borrow_checker_pattern() {
+    let library = default_pattern_library();
+
+    // Should have borrow checker violation patterns with E0502 or E0499
+    let e0502_matches = library.match_rust_error("E0502");
+    let e0499_matches = library.match_rust_error("E0499");
+    assert!(
+        !e0502_matches.is_empty() || !e0499_matches.is_empty(),
+        "Should have borrow checker error patterns"
+    );
+}

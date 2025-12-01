@@ -1093,3 +1093,337 @@ impl PatternLibrary {
         self.patterns.values()
     }
 }
+
+// ============================================================================
+// DECY-ML-007: DEFAULT PATTERN LIBRARY
+// ============================================================================
+
+/// Create a default pattern library with common ownership inference patterns.
+///
+/// Returns a `PatternLibrary` pre-populated with patterns for all 8 error kinds,
+/// organized by curriculum level (simpler patterns first).
+///
+/// # Example
+///
+/// ```
+/// use decy_ownership::ml_features::default_pattern_library;
+///
+/// let library = default_pattern_library();
+/// assert!(!library.is_empty());
+///
+/// // Get patterns ordered by curriculum level
+/// let ordered = library.curriculum_ordered();
+/// for pattern in ordered {
+///     println!("{}: {}", pattern.id(), pattern.description());
+/// }
+/// ```
+pub fn default_pattern_library() -> PatternLibrary {
+    let mut library = PatternLibrary::new();
+
+    // ========================================================================
+    // Level 1: Basic Ownership Patterns (Easiest)
+    // ========================================================================
+
+    // DECY-O-001: Pointer Misclassification - malloc → Box
+    library.add(
+        ErrorPattern::new(
+            "malloc-to-box",
+            OwnershipErrorKind::PointerMisclassification,
+            "Single allocation with malloc should use Box<T>",
+        )
+        .with_severity(ErrorSeverity::Warning)
+        .with_curriculum_level(1)
+        .with_c_pattern("void *ptr = malloc(sizeof(T))")
+        .with_rust_error("E0308")
+        .with_fix(SuggestedFix::new(
+            "Replace raw pointer with Box",
+            "let ptr: Box<T> = Box::new(T::default());",
+        )),
+    );
+
+    // DECY-O-001: Pointer Misclassification - array → Vec
+    library.add(
+        ErrorPattern::new(
+            "array-to-vec",
+            OwnershipErrorKind::PointerMisclassification,
+            "Dynamic array allocation should use Vec<T>",
+        )
+        .with_severity(ErrorSeverity::Warning)
+        .with_curriculum_level(1)
+        .with_c_pattern("T *arr = malloc(n * sizeof(T))")
+        .with_rust_error("E0308")
+        .with_fix(SuggestedFix::new(
+            "Replace pointer array with Vec",
+            "let arr: Vec<T> = Vec::with_capacity(n);",
+        )),
+    );
+
+    // DECY-O-008: Mutability Mismatch - const pointer
+    library.add(
+        ErrorPattern::new(
+            "const-to-immut-ref",
+            OwnershipErrorKind::MutabilityMismatch,
+            "Const pointer should be immutable reference",
+        )
+        .with_severity(ErrorSeverity::Warning)
+        .with_curriculum_level(1)
+        .with_c_pattern("const T *ptr")
+        .with_rust_error("E0596")
+        .with_fix(SuggestedFix::new(
+            "Use immutable reference",
+            "fn foo(ptr: &T)",
+        )),
+    );
+
+    // ========================================================================
+    // Level 2: Lifetime Patterns (Medium)
+    // ========================================================================
+
+    // DECY-O-002: Lifetime Inference Gap - missing lifetime
+    library.add(
+        ErrorPattern::new(
+            "missing-lifetime",
+            OwnershipErrorKind::LifetimeInferenceGap,
+            "Function returning reference needs lifetime annotation",
+        )
+        .with_severity(ErrorSeverity::Error)
+        .with_curriculum_level(2)
+        .with_c_pattern("T* get_field(Struct *s) { return &s->field; }")
+        .with_rust_error("E0106")
+        .with_fix(SuggestedFix::new(
+            "Add lifetime parameter",
+            "fn get_field<'a>(s: &'a Struct) -> &'a T",
+        )),
+    );
+
+    // DECY-O-002: Lifetime Inference Gap - struct lifetime
+    library.add(
+        ErrorPattern::new(
+            "struct-lifetime",
+            OwnershipErrorKind::LifetimeInferenceGap,
+            "Struct containing reference needs lifetime parameter",
+        )
+        .with_severity(ErrorSeverity::Error)
+        .with_curriculum_level(2)
+        .with_c_pattern("struct View { T *data; }")
+        .with_rust_error("E0106")
+        .with_fix(SuggestedFix::new(
+            "Add lifetime to struct",
+            "struct View<'a> { data: &'a T }",
+        )),
+    );
+
+    // DECY-O-006: Array/Slice Mismatch - parameter
+    library.add(
+        ErrorPattern::new(
+            "array-param-to-slice",
+            OwnershipErrorKind::ArraySliceMismatch,
+            "Array parameter should be slice reference",
+        )
+        .with_severity(ErrorSeverity::Warning)
+        .with_curriculum_level(2)
+        .with_c_pattern("void process(int arr[], size_t len)")
+        .with_rust_error("E0308")
+        .with_fix(SuggestedFix::new(
+            "Use slice parameter",
+            "fn process(arr: &[i32])",
+        )),
+    );
+
+    // ========================================================================
+    // Level 3: Borrow Checker Patterns (Harder)
+    // ========================================================================
+
+    // DECY-O-004: Alias Violation - mutable aliasing
+    library.add(
+        ErrorPattern::new(
+            "mutable-aliasing",
+            OwnershipErrorKind::AliasViolation,
+            "Cannot have multiple mutable references",
+        )
+        .with_severity(ErrorSeverity::Error)
+        .with_curriculum_level(3)
+        .with_c_pattern("T *a = ptr; T *b = ptr; *a = x; *b = y;")
+        .with_rust_error("E0499")
+        .with_fix(SuggestedFix::new(
+            "Use single mutable reference or split borrows",
+            "// Ensure only one &mut exists at a time",
+        )),
+    );
+
+    // DECY-O-004: Alias Violation - immut + mut
+    library.add(
+        ErrorPattern::new(
+            "immut-mut-aliasing",
+            OwnershipErrorKind::AliasViolation,
+            "Cannot have mutable reference while immutable exists",
+        )
+        .with_severity(ErrorSeverity::Error)
+        .with_curriculum_level(3)
+        .with_c_pattern("const T *r = ptr; *ptr = x; use(r);")
+        .with_rust_error("E0502")
+        .with_fix(SuggestedFix::new(
+            "End immutable borrow before mutating",
+            "let r = &*ptr; use(r); *ptr = x;",
+        )),
+    );
+
+    // DECY-O-003: Dangling Pointer Risk - use after free
+    library.add(
+        ErrorPattern::new(
+            "use-after-free",
+            OwnershipErrorKind::DanglingPointerRisk,
+            "Use of pointer after free causes undefined behavior",
+        )
+        .with_severity(ErrorSeverity::Critical)
+        .with_curriculum_level(3)
+        .with_c_pattern("free(ptr); use(ptr);")
+        .with_rust_error("E0382")
+        .with_fix(SuggestedFix::new(
+            "Use Option<Box<T>> and take() to consume",
+            "let val = box_opt.take(); // Consumes ownership",
+        )),
+    );
+
+    // DECY-O-003: Dangling Pointer Risk - return local
+    library.add(
+        ErrorPattern::new(
+            "return-local-ref",
+            OwnershipErrorKind::DanglingPointerRisk,
+            "Returning pointer to local variable is undefined behavior",
+        )
+        .with_severity(ErrorSeverity::Critical)
+        .with_curriculum_level(3)
+        .with_c_pattern("int* foo() { int x = 1; return &x; }")
+        .with_rust_error("E0515")
+        .with_fix(SuggestedFix::new(
+            "Return owned value or use parameter lifetime",
+            "fn foo() -> i32 { 1 } // Return by value",
+        )),
+    );
+
+    // ========================================================================
+    // Level 4: Resource Management (Advanced)
+    // ========================================================================
+
+    // DECY-O-007: Resource Leak - missing free
+    library.add(
+        ErrorPattern::new(
+            "missing-free",
+            OwnershipErrorKind::ResourceLeakPattern,
+            "Allocated memory not freed causes leak",
+        )
+        .with_severity(ErrorSeverity::Warning)
+        .with_curriculum_level(4)
+        .with_c_pattern("void* p = malloc(...); return; // leak!")
+        .with_fix(SuggestedFix::new(
+            "Use RAII with Box/Vec for automatic cleanup",
+            "let p = Box::new(...); // Automatically freed",
+        )),
+    );
+
+    // DECY-O-007: Resource Leak - file handle
+    library.add(
+        ErrorPattern::new(
+            "file-handle-leak",
+            OwnershipErrorKind::ResourceLeakPattern,
+            "File handle not closed causes resource leak",
+        )
+        .with_severity(ErrorSeverity::Warning)
+        .with_curriculum_level(4)
+        .with_c_pattern("FILE *f = fopen(...); return; // leak!")
+        .with_fix(SuggestedFix::new(
+            "Use File type with automatic Drop",
+            "let f = File::open(...)?; // Closed on drop",
+        )),
+    );
+
+    // DECY-O-005: Unsafe Minimization Failure
+    library.add(
+        ErrorPattern::new(
+            "unnecessary-unsafe",
+            OwnershipErrorKind::UnsafeMinimizationFailure,
+            "Safe alternative exists for this unsafe operation",
+        )
+        .with_severity(ErrorSeverity::Warning)
+        .with_curriculum_level(4)
+        .with_c_pattern("*(ptr + i) = value; // pointer arithmetic")
+        .with_fix(SuggestedFix::new(
+            "Use safe slice indexing",
+            "slice[i] = value;",
+        )),
+    );
+
+    // DECY-O-005: Unsafe Minimization - null check
+    library.add(
+        ErrorPattern::new(
+            "null-check-to-option",
+            OwnershipErrorKind::UnsafeMinimizationFailure,
+            "Null pointer check should use Option<T>",
+        )
+        .with_severity(ErrorSeverity::Warning)
+        .with_curriculum_level(4)
+        .with_c_pattern("if (ptr != NULL) { use(ptr); }")
+        .with_fix(SuggestedFix::new(
+            "Use Option<T> with if let or match",
+            "if let Some(val) = opt { use(val); }",
+        )),
+    );
+
+    // ========================================================================
+    // Level 5: Complex Patterns (Expert)
+    // ========================================================================
+
+    // DECY-O-004: Alias Violation - self-referential
+    library.add(
+        ErrorPattern::new(
+            "self-referential-struct",
+            OwnershipErrorKind::AliasViolation,
+            "Self-referential struct needs Pin or unsafe",
+        )
+        .with_severity(ErrorSeverity::Error)
+        .with_curriculum_level(5)
+        .with_c_pattern("struct Node { struct Node *next; int data; }")
+        .with_rust_error("E0597")
+        .with_fix(SuggestedFix::new(
+            "Use Box for indirection or Pin for self-reference",
+            "struct Node { next: Option<Box<Node>>, data: i32 }",
+        )),
+    );
+
+    // DECY-O-002: Lifetime Inference - multiple lifetimes
+    library.add(
+        ErrorPattern::new(
+            "multiple-lifetimes",
+            OwnershipErrorKind::LifetimeInferenceGap,
+            "Function with multiple reference params needs explicit lifetimes",
+        )
+        .with_severity(ErrorSeverity::Error)
+        .with_curriculum_level(5)
+        .with_c_pattern("T* pick(T *a, T *b, int cond)")
+        .with_rust_error("E0106")
+        .with_fix(SuggestedFix::new(
+            "Add explicit lifetime bounds",
+            "fn pick<'a>(a: &'a T, b: &'a T, cond: bool) -> &'a T",
+        )),
+    );
+
+    // DECY-O-008: Mutability - interior mutability
+    library.add(
+        ErrorPattern::new(
+            "interior-mutability",
+            OwnershipErrorKind::MutabilityMismatch,
+            "Mutation through shared reference needs Cell/RefCell",
+        )
+        .with_severity(ErrorSeverity::Warning)
+        .with_curriculum_level(5)
+        .with_c_pattern("void inc(Counter *c) { c->count++; } // called via const ptr")
+        .with_rust_error("E0596")
+        .with_fix(SuggestedFix::new(
+            "Use Cell<T> or RefCell<T> for interior mutability",
+            "struct Counter { count: Cell<i32> }",
+        )),
+    );
+
+    library
+}
