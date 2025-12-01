@@ -33,6 +33,7 @@
 #![deny(unsafe_code)]
 
 // Core modules
+pub mod baseline;
 pub mod config;
 pub mod context;
 pub mod decisions;
@@ -57,6 +58,7 @@ pub mod verification;
 pub mod corpus_citl;
 
 // Re-exports
+pub use baseline::{aggregate_measurements, BaselineMetrics, FileMeasurement};
 pub use config::OracleConfig;
 pub use context::{CConstruct, CDecisionContext};
 pub use decisions::CDecisionCategory;
