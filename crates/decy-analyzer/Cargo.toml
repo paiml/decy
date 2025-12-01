@@ -12,7 +12,7 @@ categories.workspace = true
 description = "Static analysis and type inference for C code"
 
 [dependencies]
-decy-hir = { version = "1.0.0", path = "../decy-hir" }
+decy-hir = { version = "1.0.2", path = "../decy-hir" }
 petgraph.workspace = true
 anyhow.workspace = true
 thiserror.workspace = true
