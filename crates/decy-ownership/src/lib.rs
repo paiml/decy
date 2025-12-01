@@ -25,6 +25,7 @@ pub mod lifetime;
 pub mod lifetime_gen;
 pub mod ml_features;
 pub mod struct_lifetime;
+pub mod threshold_tuning;
 
 // Re-export ML feature types at crate root for convenience
 pub use ml_features::{
@@ -42,6 +43,12 @@ pub use hybrid_classifier::{
 // Re-export A/B testing types (DECY-ML-013)
 pub use ab_testing::{
     ABExperiment, ABTestRunner, AssignmentStrategy, TestObservation, TestVariant, VariantMetrics,
+};
+
+// Re-export threshold tuning types (DECY-ML-014)
+pub use threshold_tuning::{
+    find_optimal_threshold, SelectionCriteria, ThresholdMetrics, ThresholdTuner, TuningResult,
+    ValidationSample,
 };
 
 #[cfg(test)]
