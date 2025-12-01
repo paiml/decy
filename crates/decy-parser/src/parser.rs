@@ -1238,10 +1238,49 @@ fn extract_compound_assignment_stmt(cursor: CXCursor) -> Option<Statement> {
         return None;
     }
 
-    // Left side must be a variable reference
+    // DECY-185: Check for complex targets first (Dereference, PointerFieldAccess, FieldAccess)
+    // These need DerefCompoundAssignment since target is an Expression, not just a String
+
+    // Check if left side is a dereference (e.g., *ptr *= 2)
+    if let Expression::Dereference(inner) = &operands[0] {
+        return Some(Statement::DerefCompoundAssignment {
+            target: (**inner).clone(), // The thing being dereferenced (e.g., 'ptr')
+            op,
+            value: operands[1].clone(),
+        });
+    }
+
+    // Check if left side is a pointer field access (e.g., sb->capacity *= 2)
+    if let Expression::PointerFieldAccess { .. } = &operands[0] {
+        return Some(Statement::DerefCompoundAssignment {
+            target: operands[0].clone(), // The full PointerFieldAccess expression
+            op,
+            value: operands[1].clone(),
+        });
+    }
+
+    // Check if left side is a struct field access (e.g., obj.field *= 2)
+    if let Expression::FieldAccess { .. } = &operands[0] {
+        return Some(Statement::DerefCompoundAssignment {
+            target: operands[0].clone(), // The full FieldAccess expression
+            op,
+            value: operands[1].clone(),
+        });
+    }
+
+    // Check if left side is an array index (e.g., arr[i] *= 2)
+    if let Expression::ArrayIndex { .. } = &operands[0] {
+        return Some(Statement::DerefCompoundAssignment {
+            target: operands[0].clone(), // The full ArrayIndex expression
+            op,
+            value: operands[1].clone(),
+        });
+    }
+
+    // Simple variable target (existing behavior)
     let target = match &operands[0] {
         Expression::Variable(name) => name.clone(),
-        _ => return None,
+        _ => return None, // Unknown target type
     };
 
     Some(Statement::CompoundAssignment {

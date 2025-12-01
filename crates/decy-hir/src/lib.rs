@@ -1107,6 +1107,19 @@ impl HirStatement {
                     right: Box::new(HirExpression::from_ast_expression(value)),
                 },
             },
+            // DECY-185: Compound assignments to complex targets like *ptr *= 2, sb->capacity *= 2
+            // These become DerefAssignment with a BinaryOp value
+            Statement::DerefCompoundAssignment { target, op, value } => {
+                let hir_target = HirExpression::from_ast_expression(target);
+                HirStatement::DerefAssignment {
+                    target: hir_target.clone(),
+                    value: HirExpression::BinaryOp {
+                        op: convert_binary_operator(*op),
+                        left: Box::new(hir_target),
+                        right: Box::new(HirExpression::from_ast_expression(value)),
+                    },
+                }
+            }
             // Switch statement - convert cases and default
             Statement::Switch {
                 condition,

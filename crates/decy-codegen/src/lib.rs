@@ -3025,6 +3025,17 @@ impl CodeGenerator {
                 code
             }
             HirStatement::DerefAssignment { target, value } => {
+                // DECY-185: Handle struct field access targets directly (no dereference needed)
+                // sb->capacity = value should generate (*sb).capacity = value, not *(*sb).capacity = value
+                if matches!(
+                    target,
+                    HirExpression::PointerFieldAccess { .. } | HirExpression::FieldAccess { .. }
+                ) {
+                    let target_code = self.generate_expression_with_context(target, ctx);
+                    let value_code = self.generate_expression_with_context(value, ctx);
+                    return format!("{} = {};", target_code, value_code);
+                }
+
                 // DECY-134: Check for string iteration param - use slice indexing
                 if let HirExpression::Variable(var_name) = target {
                     if let Some(idx_var) = ctx.get_string_iter_index(var_name) {
