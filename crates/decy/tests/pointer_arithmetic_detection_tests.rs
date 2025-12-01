@@ -105,9 +105,9 @@ fn test_no_arithmetic_becomes_reference() {
 
     println!("Generated Rust code:\n{}", result);
 
-    // Should convert to reference (no pointer arithmetic)
+    // Should convert to reference (no pointer arithmetic), possibly with lifetime
     assert!(
-        result.contains("&mut u8"),
+        result.contains("&mut u8") || result.contains("&'a mut u8"),
         "Should convert to reference when no pointer arithmetic\nGenerated:\n{}",
         result
     );
