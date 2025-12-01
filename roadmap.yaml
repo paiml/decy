@@ -10529,3 +10529,57 @@ sprint_31_single_shot:
         - crates/decy-codegen/src/enum_gen.rs
         - crates/decy-codegen/src/test_generator.rs
         - crates/decy-codegen/tests/size_t_typedef_test.rs
+
+    DECY-184:
+      title: "Skip borrow transformation for char* with pointer arithmetic"
+      type: bug
+      priority: critical
+      story_points: 3
+      assignee: Claude
+      status: in_progress
+      phase: RED
+      started_date: "2025-12-01"
+
+      description: |
+        Fix string_utils.c transpilation failure caused by BorrowGenerator
+        incorrectly transforming char* params with pointer arithmetic.
+
+        Problem: In string_copy(char* dest, char* src), the dest parameter:
+        1. Uses pointer arithmetic: dest = dest + 1
+        2. Is written to: *dest = *src
+        3. Gets classified as MutableBorrow by ownership classifier
+        4. BorrowGenerator transforms Pointer(Char) to Reference { inner: Char, mutable: true }
+        5. Codegen's string iteration detection checks HirType::Pointer, misses Reference
+        6. Falls through to annotated type: &'a mut u8 (single reference, not slice)
+        7. Generated code has dest = dest + 1 which fails: cannot add integer to &mut u8
+
+        Root cause: BorrowGenerator transforms char* params with MutableBorrow
+        inference without checking if they use pointer arithmetic (string iteration pattern).
+
+        Solution: In BorrowGenerator.transform_parameters_with_array_detection,
+        before calling transform_type for non-array params, check if:
+        1. Parameter is Pointer(Char)
+        2. Parameter uses pointer arithmetic
+        If both true, skip transformation (leave as Pointer for codegen to handle).
+
+        This ensures string iteration params like char* dest are NOT converted to
+        Reference { inner: Char, mutable: true }, allowing codegen's existing
+        is_string_iteration_param detection to generate &mut [u8] correctly.
+
+      acceptance_criteria:
+        - string_utils.c transpiles and compiles successfully
+        - char* params with pointer arithmetic stay as Pointer type through borrow stage
+        - Codegen generates &mut [u8] for mutable string iteration params
+        - Codegen generates &[u8] for immutable string iteration params
+        - E2E pass rate ≥85.7% (no regression)
+
+      test_strategy: |
+        RED: Create tests in borrow_gen_tests.rs verifying:
+        - char* with pointer arithmetic NOT transformed by BorrowGenerator
+        - char* without pointer arithmetic IS transformed normally
+        GREEN: Add check in transform_parameters_with_array_detection
+        REFACTOR: Clean up, verify E2E pass rate
+
+      files_modified:
+        - crates/decy-ownership/src/borrow_gen.rs
+        - crates/decy-ownership/src/borrow_gen_tests.rs
