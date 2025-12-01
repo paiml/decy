@@ -30,6 +30,7 @@ pub mod model_versioning;
 pub mod retraining_pipeline;
 pub mod struct_lifetime;
 pub mod threshold_tuning;
+pub mod training_data;
 
 // Re-export ML feature types at crate root for convenience
 pub use ml_features::{
@@ -77,6 +78,12 @@ pub use error_tracking::{
 pub use retraining_pipeline::{
     DataSplit, ModelTrainer, NullTrainer, PipelineExecution, RetrainingConfig,
     RetrainingPipeline, RetrainingResult, RetrainingSchedule, TrainingMetrics, TrainingSample,
+};
+
+// Re-export training data types (DECY-ML-010)
+pub use training_data::{
+    CollectionResult, DataSource, DatasetStats, LabeledSample, SyntheticConfig,
+    SyntheticDataGenerator, TrainingDataCollector, TrainingDataset,
 };
 
 #[cfg(test)]
