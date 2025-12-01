@@ -22,8 +22,8 @@ use decy_codegen::CodeGenerator;
 use decy_hir::{HirExpression, HirFunction, HirStatement};
 use decy_ownership::{
     array_slice::ArrayParameterTransformer, borrow_gen::BorrowGenerator,
-    dataflow::DataflowAnalyzer, inference::OwnershipInferencer, lifetime::LifetimeAnalyzer,
-    lifetime_gen::LifetimeAnnotator,
+    classifier_integration::classify_with_rules, dataflow::DataflowAnalyzer,
+    lifetime::LifetimeAnalyzer, lifetime_gen::LifetimeAnnotator,
 };
 use decy_parser::parser::CParser;
 use decy_stdlib::StdlibPrototypes;
@@ -894,9 +894,9 @@ pub fn transpile_with_includes(c_code: &str, base_dir: Option<&Path>) -> Result<
         let dataflow_analyzer = DataflowAnalyzer::new();
         let dataflow_graph = dataflow_analyzer.analyze(&func);
 
-        // Infer ownership patterns
-        let ownership_inferencer = OwnershipInferencer::new();
-        let ownership_inferences = ownership_inferencer.infer(&dataflow_graph);
+        // DECY-183: Infer ownership patterns using RuleBasedClassifier
+        // This replaces OwnershipInferencer with the new classifier system
+        let ownership_inferences = classify_with_rules(&dataflow_graph, &func);
 
         // Generate borrow code (&T, &mut T)
         let borrow_generator = BorrowGenerator::new();
