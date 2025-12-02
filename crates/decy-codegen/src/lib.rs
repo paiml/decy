@@ -1022,7 +1022,25 @@ impl CodeGenerator {
                     format!("({} == 0)", inner_code)
                 }
             }
-            HirExpression::StringLiteral(s) => format!("\"{}\"", s),
+            HirExpression::StringLiteral(s) => {
+                // DECY-212: Handle string literal to pointer conversion
+                // When returning/assigning string literal to *mut u8 or *const u8, convert properly
+                if let Some(HirType::Pointer(inner)) = target_type {
+                    if matches!(inner.as_ref(), HirType::Char) {
+                        // Return as byte string pointer: b"...\0".as_ptr() as *mut u8
+                        let escaped: String = s
+                            .chars()
+                            .map(|c| match c {
+                                '"' => "\\\"".to_string(),
+                                '\\' => "\\\\".to_string(),
+                                c => c.to_string(),
+                            })
+                            .collect();
+                        return format!("b\"{}\\0\".as_ptr() as *mut u8", escaped);
+                    }
+                }
+                format!("\"{}\"", s)
+            }
             HirExpression::CharLiteral(c) => {
                 // For char literals, convert to u8 equivalent
                 // '\0' = 0, 'a' = 97, etc.
@@ -1092,6 +1110,14 @@ impl CodeGenerator {
                             // Also handle Vec<T> to *mut T
                             HirType::Vec(elem_type) => {
                                 if elem_type.as_ref() == ptr_inner.as_ref() {
+                                    return format!("{}.as_mut_ptr()", name);
+                                }
+                            }
+                            // DECY-211: Handle Array[T; N] to *mut T
+                            // In C, arrays decay to pointers when assigned to pointer variables
+                            // In Rust: arr.as_mut_ptr()
+                            HirType::Array { element_type, .. } => {
+                                if element_type.as_ref() == ptr_inner.as_ref() {
                                     return format!("{}.as_mut_ptr()", name);
                                 }
                             }
@@ -2723,14 +2749,17 @@ impl CodeGenerator {
             }
             // DECY-192: Ternary/Conditional expression (cond ? then : else)
             // C: (a > b) ? a : b → Rust: if a > b { a } else { b }
+            // DECY-213: Propagate target_type to branches for proper string literal conversion
             HirExpression::Ternary {
                 condition,
                 then_expr,
                 else_expr,
             } => {
                 let cond_code = self.generate_expression_with_context(condition, ctx);
-                let then_code = self.generate_expression_with_context(then_expr, ctx);
-                let else_code = self.generate_expression_with_context(else_expr, ctx);
+                // Propagate target type to both branches for proper type coercion
+                // This allows string literals in ternary to become *mut u8 when needed
+                let then_code = self.generate_expression_with_target_type(then_expr, ctx, target_type);
+                let else_code = self.generate_expression_with_target_type(else_expr, ctx, target_type);
 
                 // Convert condition to boolean if it's not already
                 let cond_bool = if Self::is_boolean_expression(condition) {
@@ -3446,13 +3475,15 @@ impl CodeGenerator {
                                 ));
                             }
                         } else {
-                            // Pass var_type as target type hint for slice/pointer coercion
+                            // DECY-214: Pass _actual_type (not var_type) for proper target typing
+                            // When char* + string literal was detected, _actual_type is StringReference
+                            // and we should NOT convert the string literal to *mut u8
                             code.push_str(&format!(
                                 " = {};",
                                 self.generate_expression_with_target_type(
                                     init_expr,
                                     ctx,
-                                    Some(var_type)
+                                    Some(&_actual_type)
                                 )
                             ));
                         }
