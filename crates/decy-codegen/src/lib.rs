@@ -6042,11 +6042,21 @@ impl CodeGenerator {
             )
         });
 
+        // DECY-218: Check if struct has float/double fields (f32/f64 don't implement Eq)
+        let has_float_fields = hir_struct.fields().iter().any(|f| {
+            matches!(f.field_type(), HirType::Float | HirType::Double)
+        });
+
         // Add derive attribute
         // DECY-114: Add Default derive for struct initialization with ::default()
         // DECY-123: Skip Default for large arrays
-        if has_large_array {
+        // DECY-218: Skip Eq for floats (f32/f64 only implement PartialEq)
+        if has_large_array && has_float_fields {
+            code.push_str("#[derive(Debug, Clone, PartialEq)]\n");
+        } else if has_large_array {
             code.push_str("#[derive(Debug, Clone, PartialEq, Eq)]\n");
+        } else if has_float_fields {
+            code.push_str("#[derive(Debug, Clone, Default, PartialEq)]\n");
         } else {
             code.push_str("#[derive(Debug, Clone, Default, PartialEq, Eq)]\n");
         }
