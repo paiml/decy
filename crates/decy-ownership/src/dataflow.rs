@@ -44,7 +44,7 @@ pub enum NodeKind {
 }
 
 /// Dataflow graph tracking pointer dependencies.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct DataflowGraph {
     /// Map from variable name to its nodes
     nodes: HashMap<String, Vec<PointerNode>>,
@@ -696,6 +696,7 @@ impl DataflowAnalyzer {
                 }
             }
             HirExpression::IntLiteral(_)
+            | HirExpression::FloatLiteral(_)
             | HirExpression::StringLiteral(_)
             | HirExpression::CharLiteral(_)
             | HirExpression::Sizeof { .. }
