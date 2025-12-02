@@ -1445,6 +1445,35 @@ impl CodeGenerator {
                         | BinaryOperator::LogicalOr
                 );
 
+                // DECY-206: Handle chained comparisons - (x < y) < z
+                // In C, comparisons return int (0 or 1), so this is valid
+                // In Rust, comparisons return bool, can't compare with int
+                // Fix: Cast comparison operands to i32 when used in further comparisons
+                if is_comparison {
+                    // Check if left operand is a comparison (produces bool in Rust)
+                    let left_is_comparison = Self::is_boolean_expression(left);
+                    let right_is_comparison = Self::is_boolean_expression(right);
+
+                    if left_is_comparison || right_is_comparison {
+                        // Wrap casts in parens to avoid Rust parsing `i32 < z` as generics
+                        let left_code = if left_is_comparison {
+                            format!("(({}) as i32)", left_str)
+                        } else {
+                            left_str.clone()
+                        };
+                        let right_code = if right_is_comparison {
+                            format!("(({}) as i32)", right_str)
+                        } else {
+                            right_str.clone()
+                        };
+                        // Result is still a comparison, but operands are now both int
+                        if let Some(HirType::Int) = target_type {
+                            return format!("({} {} {}) as i32", left_code, op_str, right_code);
+                        }
+                        return format!("{} {} {}", left_code, op_str, right_code);
+                    }
+                }
+
                 if returns_bool {
                     if let Some(HirType::Int) = target_type {
                         // Wrap in parentheses and cast to i32
