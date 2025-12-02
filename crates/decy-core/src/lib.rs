@@ -1031,6 +1031,22 @@ pub fn transpile_with_includes(c_code: &str, base_dir: Option<&Path>) -> Result<
                     decy_hir::HirType::Float => "0.0".to_string(),
                     decy_hir::HirType::Double => "0.0".to_string(),
                     decy_hir::HirType::Pointer(_) => "std::ptr::null_mut()".to_string(),
+                    // DECY-217: Arrays need explicit zero initialization (Default only works for size <= 32)
+                    decy_hir::HirType::Array { element_type, size } => {
+                        let elem_default = match element_type.as_ref() {
+                            decy_hir::HirType::Char => "0u8",
+                            decy_hir::HirType::Int => "0i32",
+                            decy_hir::HirType::UnsignedInt => "0u32",
+                            decy_hir::HirType::Float => "0.0f32",
+                            decy_hir::HirType::Double => "0.0f64",
+                            _ => "0",
+                        };
+                        if let Some(n) = size {
+                            format!("[{}; {}]", elem_default, n)
+                        } else {
+                            format!("[{}; 0]", elem_default)
+                        }
+                    }
                     decy_hir::HirType::FunctionPointer { .. } => {
                         // Function pointers need Option wrapping
                         rust_code.push_str(&format!(
