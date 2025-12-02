@@ -833,10 +833,23 @@ impl CodeGenerator {
         // Handle basic C types
         match trimmed {
             "int" => "i32".to_string(),
+            "short" | "short int" => "i16".to_string(),
+            "long" | "long int" => "i64".to_string(),
+            "long long" | "long long int" => "i64".to_string(),
+            "unsigned int" | "unsigned" => "u32".to_string(),
+            "unsigned short" | "unsigned short int" => "u16".to_string(),
+            "unsigned long" | "unsigned long int" => "u64".to_string(),
+            "unsigned long long" | "unsigned long long int" => "u64".to_string(),
+            "unsigned char" => "u8".to_string(),
+            "signed char" => "i8".to_string(),
             "float" => "f32".to_string(),
             "double" => "f64".to_string(),
             "char" => "u8".to_string(),
             "void" => "()".to_string(),
+            // Pointer types
+            "char*" | "char *" => "*mut u8".to_string(),
+            "int*" | "int *" => "*mut i32".to_string(),
+            "void*" | "void *" => "*mut ()".to_string(),
             _ => {
                 // Handle "struct TypeName" → "TypeName"
                 if let Some(struct_name) = trimmed.strip_prefix("struct ") {
@@ -2307,8 +2320,15 @@ impl CodeGenerator {
                         format!("std::mem::size_of::<{}>() as i32", rust_type)
                     }
                 } else {
-                    let rust_type = self.map_sizeof_type(type_name);
-                    format!("std::mem::size_of::<{}>() as i32", rust_type)
+                    // DECY-205: Check if this is sizeof(variable) not sizeof(type)
+                    // If the type_name is a known variable, use size_of_val instead
+                    if ctx.get_type(trimmed).is_some() {
+                        // It's a variable - use size_of_val
+                        format!("std::mem::size_of_val(&{}) as i32", trimmed)
+                    } else {
+                        let rust_type = self.map_sizeof_type(type_name);
+                        format!("std::mem::size_of::<{}>() as i32", rust_type)
+                    }
                 }
             }
             HirExpression::NullLiteral => {
