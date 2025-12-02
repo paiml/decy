@@ -1404,10 +1404,16 @@ extern "C" fn visit_if_children(
         }
         1 => {
             // Second child: then block
+            // DECY-216: Handle both compound statements (with braces) and single statements
             if kind == CXCursor_CompoundStmt {
                 let body_ptr = &mut if_data.then_block as *mut Vec<Statement>;
                 unsafe {
                     clang_visitChildren(cursor, visit_statement, body_ptr as CXClientData);
+                }
+            } else {
+                // Single statement without braces: if (cond) return 1;
+                if let Some(stmt) = extract_single_statement(cursor) {
+                    if_data.then_block.push(stmt);
                 }
             }
             if_data.child_index += 1;
@@ -1415,13 +1421,27 @@ extern "C" fn visit_if_children(
         }
         2 => {
             // Third child (optional): else block
-            if kind == CXCursor_CompoundStmt || kind == CXCursor_IfStmt {
+            // DECY-216: Handle compound, if-else chain, and single statement
+            if kind == CXCursor_CompoundStmt {
                 let mut else_stmts = Vec::new();
                 let body_ptr = &mut else_stmts as *mut Vec<Statement>;
                 unsafe {
                     clang_visitChildren(cursor, visit_statement, body_ptr as CXClientData);
                 }
                 if_data.else_block = Some(else_stmts);
+            } else if kind == CXCursor_IfStmt {
+                // else if chain
+                let mut else_stmts = Vec::new();
+                let body_ptr = &mut else_stmts as *mut Vec<Statement>;
+                unsafe {
+                    clang_visitChildren(cursor, visit_statement, body_ptr as CXClientData);
+                }
+                if_data.else_block = Some(else_stmts);
+            } else {
+                // Single statement in else: else return 0;
+                if let Some(stmt) = extract_single_statement(cursor) {
+                    if_data.else_block = Some(vec![stmt]);
+                }
             }
             if_data.child_index += 1;
             CXChildVisit_Continue
