@@ -721,6 +721,8 @@ pub enum BinaryOperator {
     BitwiseOr,
     /// Bitwise XOR (^)
     BitwiseXor,
+    /// Assignment (=) - for embedded assignments like (c=getchar())
+    Assign,
 }
 
 /// Represents an expression in HIR.
@@ -1306,6 +1308,8 @@ fn convert_binary_operator(op: decy_parser::parser::BinaryOperator) -> BinaryOpe
         ParserOp::BitwiseAnd => BinaryOperator::BitwiseAnd,
         ParserOp::BitwiseOr => BinaryOperator::BitwiseOr,
         ParserOp::BitwiseXor => BinaryOperator::BitwiseXor,
+        // DECY-195: Assignment operator for embedded assignments
+        ParserOp::Assign => BinaryOperator::Assign,
     }
 }
 

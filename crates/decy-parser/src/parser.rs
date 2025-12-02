@@ -95,10 +95,28 @@ impl CParser {
         // Prepare command line arguments for C++ mode if needed
         let cpp_flag = CString::new("-x").unwrap();
         let cpp_lang = CString::new("c++").unwrap();
+
+        // DECY-194: Add standard C macro definitions that might not be available
+        // EOF is defined as -1 in stdio.h, NULL as 0
+        let define_eof = CString::new("-DEOF=-1").unwrap();
+        let define_null = CString::new("-DNULL=0").unwrap();
+        // BUFSIZ from stdio.h (typical value)
+        let define_bufsiz = CString::new("-DBUFSIZ=8192").unwrap();
+
         let args_vec: Vec<*const std::os::raw::c_char> = if needs_cpp_mode {
-            vec![cpp_flag.as_ptr(), cpp_lang.as_ptr()]
+            vec![
+                cpp_flag.as_ptr(),
+                cpp_lang.as_ptr(),
+                define_eof.as_ptr(),
+                define_null.as_ptr(),
+                define_bufsiz.as_ptr(),
+            ]
         } else {
-            vec![]
+            vec![
+                define_eof.as_ptr(),
+                define_null.as_ptr(),
+                define_bufsiz.as_ptr(),
+            ]
         };
 
         // SAFETY: Parsing with clang_parseTranslationUnit2
@@ -1412,136 +1430,280 @@ extern "C" fn visit_if_children(
 
 /// Extract a for loop statement.
 fn extract_for_stmt(cursor: CXCursor) -> Option<Statement> {
-    // A for loop has up to 4 children:
-    // 1. Init statement (optional - could be DeclStmt or expression)
-    // 2. Condition expression (optional)
-    // 3. Increment expression (optional)
-    // 4. Body (compound statement)
+    // DECY-200: Two-pass approach to handle for loops with empty parts
+    // Clang skips empty parts entirely, so we can't rely on fixed indices
+    //
+    // Pass 1: Collect all children with their cursor kinds
+    // Pass 2: Identify what each child represents based on type and position
 
     #[repr(C)]
-    struct ForData {
-        init: Option<Box<Statement>>,
-        condition: Option<Expression>,
-        increment: Option<Box<Statement>>,
-        body: Vec<Statement>,
-        child_index: u32,
+    struct ForChildInfo {
+        cursor: CXCursor,
+        kind: i32,
     }
 
-    let mut for_data = ForData {
-        init: None,
-        condition: None,
-        increment: None,
-        body: Vec::new(),
-        child_index: 0,
+    #[repr(C)]
+    struct ForCollector {
+        children: Vec<ForChildInfo>,
+    }
+
+    // First pass: collect all children
+    extern "C" fn collect_for_children(
+        cursor: CXCursor,
+        _parent: CXCursor,
+        client_data: CXClientData,
+    ) -> CXChildVisitResult {
+        let collector = unsafe { &mut *(client_data as *mut ForCollector) };
+        let kind = unsafe { clang_getCursorKind(cursor) };
+        collector.children.push(ForChildInfo { cursor, kind });
+        CXChildVisit_Continue
+    }
+
+    let mut collector = ForCollector {
+        children: Vec::new(),
     };
 
-    let data_ptr = &mut for_data as *mut ForData;
-
     unsafe {
-        clang_visitChildren(cursor, visit_for_children, data_ptr as CXClientData);
+        clang_visitChildren(cursor, collect_for_children, &mut collector as *mut _ as CXClientData);
     }
 
-    Some(Statement::For {
-        init: for_data.init,
-        condition: for_data.condition,
-        increment: for_data.increment,
-        body: for_data.body,
-    })
-}
+    // Second pass: identify what each child is
+    let mut init: Option<Box<Statement>> = None;
+    let mut condition: Option<Expression> = None;
+    let mut increment: Option<Box<Statement>> = None;
+    let mut body: Vec<Statement> = Vec::new();
 
-/// Visitor for for loop children.
-#[allow(non_upper_case_globals)]
-extern "C" fn visit_for_children(
-    cursor: CXCursor,
-    _parent: CXCursor,
-    client_data: CXClientData,
-) -> CXChildVisitResult {
-    #[repr(C)]
-    struct ForData {
-        init: Option<Box<Statement>>,
-        condition: Option<Expression>,
-        increment: Option<Box<Statement>>,
-        body: Vec<Statement>,
-        child_index: u32,
+    let num_children = collector.children.len();
+
+    // Body is always the LAST child
+    // The children before body are init/condition/increment in that order,
+    // but clang omits empty ones
+
+    // Helper to check if a BinaryOperator is an assignment
+    fn is_assignment_op(cursor: CXCursor) -> bool {
+        if let Some(op) = extract_binary_operator(cursor) {
+            matches!(op, BinaryOperator::Assign)
+        } else {
+            false
+        }
     }
 
-    let for_data = unsafe { &mut *(client_data as *mut ForData) };
-    let kind = unsafe { clang_getCursorKind(cursor) };
+    // Helper to check if a BinaryOperator is a comparison/logical (condition)
+    fn is_condition_op(cursor: CXCursor) -> bool {
+        if let Some(op) = extract_binary_operator(cursor) {
+            matches!(
+                op,
+                BinaryOperator::Equal |
+                BinaryOperator::NotEqual |
+                BinaryOperator::LessThan |
+                BinaryOperator::GreaterThan |
+                BinaryOperator::LessEqual |
+                BinaryOperator::GreaterEqual |
+                BinaryOperator::LogicalAnd |
+                BinaryOperator::LogicalOr
+            )
+        } else {
+            false
+        }
+    }
 
-    match for_data.child_index {
+    if num_children == 0 {
+        return Some(Statement::For { init, condition, increment, body });
+    }
+
+    // Process children based on count and types
+    // The LAST child is always the body
+    let body_idx = num_children - 1;
+    let body_child = &collector.children[body_idx];
+
+    // Extract body
+    if body_child.kind == CXCursor_CompoundStmt {
+        let body_ptr = &mut body as *mut Vec<Statement>;
+        unsafe {
+            clang_visitChildren(body_child.cursor, visit_statement, body_ptr as CXClientData);
+        }
+    } else {
+        // Single statement body - extract it
+        if let Some(stmt) = extract_single_statement(body_child.cursor) {
+            body.push(stmt);
+        }
+    }
+
+    // Process children before body
+    let pre_body = &collector.children[..body_idx];
+
+    match pre_body.len() {
         0 => {
-            // First child: init statement (could be DeclStmt or NULL)
-            if kind == CXCursor_DeclStmt {
-                // Visit to get the variable declaration
+            // for (;;) - infinite loop with no init/condition/increment
+        }
+        1 => {
+            // One child before body - could be init, condition, or increment
+            // Use heuristics to determine which
+            let child = &pre_body[0];
+            if child.kind == CXCursor_DeclStmt { // DeclStmt - always init
                 let mut init_stmts = Vec::new();
                 let ptr = &mut init_stmts as *mut Vec<Statement>;
                 unsafe {
-                    clang_visitChildren(cursor, visit_statement, ptr as CXClientData);
+                    clang_visitChildren(child.cursor, visit_statement, ptr as CXClientData);
                 }
                 if let Some(stmt) = init_stmts.into_iter().next() {
-                    for_data.init = Some(Box::new(stmt));
+                    init = Some(Box::new(stmt));
                 }
-            } else if kind == CXCursor_BinaryOperator {
-                // Assignment in init
-                if let Some(stmt) = extract_assignment_stmt(cursor) {
-                    for_data.init = Some(Box::new(stmt));
-                }
-            }
-            for_data.child_index += 1;
-            CXChildVisit_Continue
-        }
-        1 => {
-            // Second child: condition expression
-            // The cursor itself IS the condition, extract it directly
-            for_data.condition = match kind {
-                CXCursor_BinaryOperator => extract_binary_op(cursor),
-                CXCursor_IntegerLiteral => extract_int_literal(cursor),
-                110 => extract_char_literal(cursor), // CXCursor_CharacterLiteral
-                CXCursor_DeclRefExpr => extract_variable_ref(cursor),
-                CXCursor_CallExpr => extract_function_call(cursor),
-                CXCursor_UnaryOperator => extract_unary_op(cursor),
-                _ => {
-                    let mut cond_expr: Option<Expression> = None;
-                    let expr_ptr = &mut cond_expr as *mut Option<Expression>;
-                    unsafe {
-                        clang_visitChildren(cursor, visit_expression, expr_ptr as CXClientData);
+            } else if child.kind == CXCursor_BinaryOperator {
+                if is_assignment_op(child.cursor) {
+                    // Assignment - treat as init
+                    if let Some(stmt) = extract_assignment_stmt(child.cursor) {
+                        init = Some(Box::new(stmt));
                     }
-                    cond_expr
+                } else if is_condition_op(child.cursor) {
+                    // Comparison - treat as condition
+                    condition = extract_binary_op(child.cursor);
+                } else {
+                    // Ambiguous - default to condition
+                    condition = extract_binary_op(child.cursor);
                 }
-            };
-            for_data.child_index += 1;
-            CXChildVisit_Continue
+            } else if child.kind == CXCursor_UnaryOperator {
+                if let Some(stmt) = extract_inc_dec_stmt(child.cursor) {
+                    increment = Some(Box::new(stmt));
+                }
+            } else {
+                // Treat as condition by default
+                condition = extract_expression_from_cursor(child.cursor);
+            }
         }
         2 => {
-            // Third child: increment statement
-            if kind == CXCursor_BinaryOperator {
-                if let Some(stmt) = extract_assignment_stmt(cursor) {
-                    for_data.increment = Some(Box::new(stmt));
+            // Two children before body
+            // Most common case: condition and increment (init is empty)
+            let child0 = &pre_body[0];
+            let child1 = &pre_body[1];
+
+            // Check if first child is init (DeclStmt or assignment)
+            let first_is_init = child0.kind == CXCursor_DeclStmt ||
+                (child0.kind == CXCursor_BinaryOperator && is_assignment_op(child0.cursor));
+
+            if first_is_init {
+                // child0 = init, child1 = condition (skip increment)
+                if child0.kind == CXCursor_DeclStmt {
+                    let mut init_stmts = Vec::new();
+                    let ptr = &mut init_stmts as *mut Vec<Statement>;
+                    unsafe {
+                        clang_visitChildren(child0.cursor, visit_statement, ptr as CXClientData);
+                    }
+                    if let Some(stmt) = init_stmts.into_iter().next() {
+                        init = Some(Box::new(stmt));
+                    }
+                } else if let Some(stmt) = extract_assignment_stmt(child0.cursor) {
+                    init = Some(Box::new(stmt));
                 }
-            } else if kind == CXCursor_UnaryOperator {
-                // Handle ++/-- in increment position
-                if let Some(stmt) = extract_inc_dec_stmt(cursor) {
-                    for_data.increment = Some(Box::new(stmt));
+                condition = extract_expression_from_cursor(child1.cursor);
+            } else {
+                // child0 = condition, child1 = increment (no init)
+                condition = extract_expression_from_cursor(child0.cursor);
+                if child1.kind == CXCursor_BinaryOperator {
+                    if let Some(stmt) = extract_assignment_stmt(child1.cursor) {
+                        increment = Some(Box::new(stmt));
+                    }
+                } else if child1.kind == CXCursor_UnaryOperator {
+                    if let Some(stmt) = extract_inc_dec_stmt(child1.cursor) {
+                        increment = Some(Box::new(stmt));
+                    }
                 }
             }
-            for_data.child_index += 1;
-            CXChildVisit_Continue
         }
         3 => {
-            // Fourth child: body
-            if kind == CXCursor_CompoundStmt {
-                let body_ptr = &mut for_data.body as *mut Vec<Statement>;
+            // Three children before body - init, condition, increment all present
+            let child0 = &pre_body[0];
+            let child1 = &pre_body[1];
+            let child2 = &pre_body[2];
+
+            // Init
+            if child0.kind == CXCursor_DeclStmt {
+                let mut init_stmts = Vec::new();
+                let ptr = &mut init_stmts as *mut Vec<Statement>;
                 unsafe {
-                    clang_visitChildren(cursor, visit_statement, body_ptr as CXClientData);
+                    clang_visitChildren(child0.cursor, visit_statement, ptr as CXClientData);
+                }
+                if let Some(stmt) = init_stmts.into_iter().next() {
+                    init = Some(Box::new(stmt));
+                }
+            } else if child0.kind == CXCursor_BinaryOperator {
+                if let Some(stmt) = extract_assignment_stmt(child0.cursor) {
+                    init = Some(Box::new(stmt));
                 }
             }
-            for_data.child_index += 1;
-            CXChildVisit_Continue
+
+            // Condition
+            condition = extract_expression_from_cursor(child1.cursor);
+
+            // Increment
+            if child2.kind == CXCursor_BinaryOperator {
+                if let Some(stmt) = extract_assignment_stmt(child2.cursor) {
+                    increment = Some(Box::new(stmt));
+                }
+            } else if child2.kind == CXCursor_UnaryOperator {
+                if let Some(stmt) = extract_inc_dec_stmt(child2.cursor) {
+                    increment = Some(Box::new(stmt));
+                }
+            }
         }
-        _ => CXChildVisit_Continue,
+        _ => {
+            // More than 3 children before body - unexpected, handle gracefully
+        }
+    }
+
+    Some(Statement::For {
+        init,
+        condition,
+        increment,
+        body,
+    })
+}
+
+/// Extract expression from cursor for for-loop condition
+fn extract_expression_from_cursor(cursor: CXCursor) -> Option<Expression> {
+    let kind = unsafe { clang_getCursorKind(cursor) };
+    match kind {
+        CXCursor_BinaryOperator => extract_binary_op(cursor),
+        CXCursor_IntegerLiteral => extract_int_literal(cursor),
+        110 => extract_char_literal(cursor), // CXCursor_CharacterLiteral
+        CXCursor_DeclRefExpr => extract_variable_ref(cursor),
+        CXCursor_CallExpr => extract_function_call(cursor),
+        CXCursor_UnaryOperator => extract_unary_op(cursor),
+        _ => {
+            let mut expr: Option<Expression> = None;
+            let expr_ptr = &mut expr as *mut Option<Expression>;
+            unsafe {
+                clang_visitChildren(cursor, visit_expression, expr_ptr as CXClientData);
+            }
+            expr
+        }
     }
 }
 
+/// Extract a single statement from a cursor (for non-compound for bodies)
+fn extract_single_statement(cursor: CXCursor) -> Option<Statement> {
+    let kind = unsafe { clang_getCursorKind(cursor) };
+    match kind {
+        CXCursor_IfStmt => extract_if_stmt(cursor),
+        CXCursor_ForStmt => extract_for_stmt(cursor),
+        CXCursor_WhileStmt => extract_while_stmt(cursor),
+        CXCursor_ReturnStmt => extract_return_stmt(cursor),
+        CXCursor_SwitchStmt => extract_switch_stmt(cursor),
+        CXCursor_UnaryOperator => extract_inc_dec_stmt(cursor),
+        CXCursor_BinaryOperator => extract_assignment_stmt(cursor),
+        CXCursor_CallExpr => {
+            if let Some(Expression::FunctionCall { function, arguments }) = extract_function_call(cursor) {
+                Some(Statement::FunctionCall { function, arguments })
+            } else {
+                None
+            }
+        }
+        CXCursor_BreakStmt => Some(Statement::Break),
+        CXCursor_ContinueStmt => Some(Statement::Continue),
+        CXCursor_DoStmt | CXCursor_NullStmt => None, // Not supported yet
+        _ => None,
+    }
+}
 /// Extract a while loop statement.
 fn extract_while_stmt(cursor: CXCursor) -> Option<Statement> {
     // A while loop has 2 children:
@@ -2042,6 +2204,16 @@ fn extract_int_literal(cursor: CXCursor) -> Option<Expression> {
             // SAFETY: Dispose tokens
             clang_disposeTokens(tu, tokens, num_tokens);
         }
+    } else {
+        // DECY-195: Fallback for system headers where tokenization fails
+        // Use clang_Cursor_Evaluate to get the constant value
+        unsafe {
+            let eval_result = clang_Cursor_Evaluate(cursor);
+            if !eval_result.is_null() {
+                value = clang_EvalResult_getAsInt(eval_result);
+                clang_EvalResult_dispose(eval_result);
+            }
+        }
     }
 
     Some(Expression::IntLiteral(value))
@@ -2398,6 +2570,8 @@ fn extract_binary_operator(cursor: CXCursor) -> Option<BinaryOperator> {
                             "&" => Some(BinaryOperator::BitwiseAnd),
                             "|" => Some(BinaryOperator::BitwiseOr),
                             "^" => Some(BinaryOperator::BitwiseXor),
+                            // DECY-195: Assignment operator for embedded assignments like (c=getchar())
+                            "=" => Some(BinaryOperator::Assign),
                             _ => None,
                         };
                         if let Some(op) = op {
@@ -2412,13 +2586,22 @@ fn extract_binary_operator(cursor: CXCursor) -> Option<BinaryOperator> {
 
     // Select the operator with lowest precedence (appears last in our search)
     // This handles cases like "a > 0 && b > 0" where && should be selected over >
-    // C precedence (low to high): || > && > | > ^ > & > == != > < > <= >= > << >> > + - > * / %
+    // C precedence (low to high): = > || > && > | > ^ > & > == != > < > <= >= > << >> > + - > * / %
     if !candidates.is_empty() {
-        // Find the first || operator (lowest precedence)
+        // DECY-195: Assignment has lowest precedence
         for (_, op) in &candidates {
-            if matches!(op, BinaryOperator::LogicalOr) {
+            if matches!(op, BinaryOperator::Assign) {
                 operator = Some(*op);
                 break;
+            }
+        }
+        // Find the first || operator (next lowest precedence)
+        if operator.is_none() {
+            for (_, op) in &candidates {
+                if matches!(op, BinaryOperator::LogicalOr) {
+                    operator = Some(*op);
+                    break;
+                }
             }
         }
         // If no ||, find first &&
@@ -2800,6 +2983,21 @@ fn extract_unary_op(cursor: CXCursor) -> Option<Expression> {
     if let Some(op) = operator {
         return Some(Expression::UnaryOp {
             op,
+            operand: Box::new(operand_expr),
+        });
+    }
+
+    // DECY-195: Fallback for system headers where tokenization fails
+    // If we have a UnaryOperator cursor with an operand but couldn't identify the operator,
+    // try to infer it from context. For macro expansions like EOF=(-1),
+    // the unary minus might not be tokenizable.
+    // Check if the operand is an integer literal - if so, it might be a negation
+    // For now, return the operand wrapped as unary minus if it's an integer
+    // This handles the common case of EOF = (-1) from stdio.h
+    if let Expression::IntLiteral(_) = &operand_expr {
+        // If we found an integer inside a UnaryOperator, assume it's negation
+        return Some(Expression::UnaryOp {
+            op: UnaryOperator::Minus,
             operand: Box::new(operand_expr),
         });
     }
@@ -3683,6 +3881,8 @@ pub enum BinaryOperator {
     BitwiseOr,
     /// Bitwise XOR (^)
     BitwiseXor,
+    /// Assignment (=) - used for embedded assignments like (c=getchar())
+    Assign,
 }
 
 /// Represents a C expression.
