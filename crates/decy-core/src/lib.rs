@@ -1022,10 +1022,28 @@ pub fn transpile_with_includes(c_code: &str, base_dir: Option<&Path>) -> Result<
                     name, type_str, init_code
                 ));
             } else {
-                // For function pointers and other types, use Option for uninitialized globals
+                // DECY-215: Use appropriate default values for uninitialized globals
+                // Only use Option for function pointers and complex types
+                let default_value = match var_type {
+                    decy_hir::HirType::Int => "0".to_string(),
+                    decy_hir::HirType::UnsignedInt => "0".to_string(),
+                    decy_hir::HirType::Char => "0".to_string(),
+                    decy_hir::HirType::Float => "0.0".to_string(),
+                    decy_hir::HirType::Double => "0.0".to_string(),
+                    decy_hir::HirType::Pointer(_) => "std::ptr::null_mut()".to_string(),
+                    decy_hir::HirType::FunctionPointer { .. } => {
+                        // Function pointers need Option wrapping
+                        rust_code.push_str(&format!(
+                            "static mut {}: Option<{}> = None;\n",
+                            name, type_str
+                        ));
+                        continue;
+                    }
+                    _ => "Default::default()".to_string(),
+                };
                 rust_code.push_str(&format!(
-                    "static mut {}: Option<{}> = None;\n",
-                    name, type_str
+                    "static mut {}: {} = {};\n",
+                    name, type_str, default_value
                 ));
             }
         }
