@@ -16,7 +16,7 @@ pub struct BoxCandidate {
 }
 
 /// Represents a detected `Vec<T>` pattern candidate.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct VecCandidate {
     /// Variable name that holds the allocated array pointer
     pub variable: String,
