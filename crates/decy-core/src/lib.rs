@@ -990,7 +990,33 @@ pub fn transpile_with_includes(c_code: &str, base_dir: Option<&Path>) -> Result<
             let type_str = CodeGenerator::map_type(var_type);
 
             if let Some(init_expr) = initializer {
-                let init_code = code_generator.generate_expression(init_expr);
+                // DECY-201: Special handling for array initialization
+                let init_code = if let decy_hir::HirType::Array {
+                    element_type,
+                    size: Some(size_val),
+                } = var_type
+                {
+                    // Check if init_expr is just the size value (uninitialized array)
+                    if let decy_hir::HirExpression::IntLiteral(n) = init_expr {
+                        if *n as usize == *size_val {
+                            // Use type-appropriate zero value
+                            let element_init = match element_type.as_ref() {
+                                decy_hir::HirType::Char => "0u8".to_string(),
+                                decy_hir::HirType::Int => "0i32".to_string(),
+                                decy_hir::HirType::Float => "0.0f32".to_string(),
+                                decy_hir::HirType::Double => "0.0f64".to_string(),
+                                _ => "0".to_string(),
+                            };
+                            format!("[{}; {}]", element_init, size_val)
+                        } else {
+                            code_generator.generate_expression(init_expr)
+                        }
+                    } else {
+                        code_generator.generate_expression(init_expr)
+                    }
+                } else {
+                    code_generator.generate_expression(init_expr)
+                };
                 rust_code.push_str(&format!(
                     "static mut {}: {} = {};\n",
                     name, type_str, init_code

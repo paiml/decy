@@ -1027,9 +1027,60 @@ impl CodeGenerator {
                         }
                     }
                 }
+
+                // DECY-198: Handle int to char coercion
+                // In C, assigning int to char array element truncates: s[i] = c (c is int)
+                // In Rust, need explicit cast: s[i] = c as u8
+                if let Some(HirType::Char) = target_type {
+                    if let Some(var_type) = ctx.get_type(name) {
+                        if matches!(var_type, HirType::Int) {
+                            return format!("{} as u8", name);
+                        }
+                    }
+                }
+
+                // DECY-203: Handle numeric type coercions (int/float/double)
+                // C allows implicit conversions between numeric types
+                if let Some(target) = target_type {
+                    if let Some(var_type) = ctx.get_type(name) {
+                        // Int to Float/Double
+                        if matches!(var_type, HirType::Int | HirType::UnsignedInt) {
+                            if matches!(target, HirType::Float) {
+                                return format!("{} as f32", name);
+                            } else if matches!(target, HirType::Double) {
+                                return format!("{} as f64", name);
+                            }
+                        }
+                        // Float/Double to Int (truncation)
+                        if matches!(var_type, HirType::Float | HirType::Double) {
+                            if matches!(target, HirType::Int) {
+                                return format!("{} as i32", name);
+                            } else if matches!(target, HirType::UnsignedInt) {
+                                return format!("{} as u32", name);
+                            }
+                        }
+                        // Char to Int
+                        if matches!(var_type, HirType::Char) && matches!(target, HirType::Int) {
+                            return format!("{} as i32", name);
+                        }
+                    }
+                }
+
                 name.clone()
             }
             HirExpression::BinaryOp { op, left, right } => {
+                // DECY-195: Handle embedded assignment expressions
+                // In C, (c = getchar()) evaluates to the assigned value
+                // In Rust, assignment returns (), so we need a block: { let tmp = rhs; lhs = tmp; tmp }
+                if matches!(op, BinaryOperator::Assign) {
+                    let left_code = self.generate_expression_with_context(left, ctx);
+                    let right_code = self.generate_expression_with_context(right, ctx);
+                    return format!(
+                        "{{ let __assign_tmp = {}; {} = __assign_tmp; __assign_tmp }}",
+                        right_code, left_code
+                    );
+                }
+
                 // Check for Option comparison with NULL → is_none() / is_some()
                 // p == NULL → p.is_none(), p != NULL → p.is_some()
                 if matches!(op, BinaryOperator::Equal | BinaryOperator::NotEqual) {
@@ -1111,6 +1162,72 @@ impl CodeGenerator {
                                     }
                                     _ => unreachable!(),
                                 };
+                            }
+                        }
+                    }
+
+                    // DECY-199: strlen(s) == 0 → s.is_empty() or s.len() == 0
+                    // This is more idiomatic Rust than s.len() as i32 == 0
+                    if let HirExpression::FunctionCall { function, arguments } = &**left {
+                        if function == "strlen" && arguments.len() == 1 {
+                            if let HirExpression::IntLiteral(0) = **right {
+                                let arg_code = self.generate_expression_with_context(&arguments[0], ctx);
+                                return match op {
+                                    BinaryOperator::Equal => format!("{}.is_empty()", arg_code),
+                                    BinaryOperator::NotEqual => format!("!{}.is_empty()", arg_code),
+                                    _ => unreachable!(),
+                                };
+                            }
+                        }
+                    }
+                    // Also handle 0 == strlen(s)
+                    if let HirExpression::FunctionCall { function, arguments } = &**right {
+                        if function == "strlen" && arguments.len() == 1 {
+                            if let HirExpression::IntLiteral(0) = **left {
+                                let arg_code = self.generate_expression_with_context(&arguments[0], ctx);
+                                return match op {
+                                    BinaryOperator::Equal => format!("{}.is_empty()", arg_code),
+                                    BinaryOperator::NotEqual => format!("!{}.is_empty()", arg_code),
+                                    _ => unreachable!(),
+                                };
+                            }
+                        }
+                    }
+                }
+
+                // DECY-198: Handle char literal to int coercion in comparisons
+                // In C, char literals are promoted to int when compared with int variables
+                // e.g., c != '\n' where c is int should compare against 10 (not 10u8)
+                let is_comparison = matches!(
+                    op,
+                    BinaryOperator::Equal
+                        | BinaryOperator::NotEqual
+                        | BinaryOperator::LessThan
+                        | BinaryOperator::GreaterThan
+                        | BinaryOperator::LessEqual
+                        | BinaryOperator::GreaterEqual
+                );
+
+                if is_comparison {
+                    // Check if left is int variable and right is char literal
+                    if let HirExpression::Variable(var_name) = &**left {
+                        if let Some(HirType::Int) = ctx.get_type(var_name) {
+                            if let HirExpression::CharLiteral(c) = &**right {
+                                let left_code = self.generate_expression_with_context(left, ctx);
+                                let op_str = Self::binary_operator_to_string(op);
+                                // Generate char as i32 literal
+                                return format!("({} {} {}i32)", left_code, op_str, *c as i32);
+                            }
+                        }
+                    }
+                    // Check if right is int variable and left is char literal
+                    if let HirExpression::Variable(var_name) = &**right {
+                        if let Some(HirType::Int) = ctx.get_type(var_name) {
+                            if let HirExpression::CharLiteral(c) = &**left {
+                                let right_code = self.generate_expression_with_context(right, ctx);
+                                let op_str = Self::binary_operator_to_string(op);
+                                // Generate char as i32 literal
+                                return format!("({}i32 {} {})", *c as i32, op_str, right_code);
                             }
                         }
                     }
@@ -1374,12 +1491,13 @@ impl CodeGenerator {
             } => {
                 // Special handling for standard library functions
                 match function.as_str() {
-                    // strlen(s) → s.len()
+                    // strlen(s) → s.len() as i32
                     // Reference: K&R §B3, ISO C99 §7.21.6.3
+                    // DECY-199: Cast to i32 since strlen result is often used in int arithmetic
                     "strlen" => {
                         if arguments.len() == 1 {
                             format!(
-                                "{}.len()",
+                                "{}.len() as i32",
                                 self.generate_expression_with_context(&arguments[0], ctx)
                             )
                         } else {
@@ -1933,6 +2051,34 @@ impl CodeGenerator {
                                         }
                                     }
 
+                                    // DECY-197: Check if param is unsized array (slice param) and arg is sized array
+                                    // C's `void func(char arr[])` becomes `fn func(arr: &mut [u8])` in Rust
+                                    // When calling with fixed-size array, add `&mut` prefix
+                                    let is_slice_param = param_type
+                                        .map(|t| matches!(t, HirType::Array { size: None, .. }))
+                                        .unwrap_or(false);
+                                    if is_slice_param {
+                                        if let HirExpression::Variable(var_name) = arg {
+                                            let var_type = ctx.get_type(var_name);
+                                            // Fixed-size array to slice: add &mut prefix
+                                            if matches!(var_type, Some(HirType::Array { size: Some(_), .. })) {
+                                                return Some(format!("&mut {}", var_name));
+                                            }
+                                        }
+                                    }
+
+                                    // DECY-199: Check if param expects Int but arg is CharLiteral
+                                    // putchar(' ') needs ' ' as i32, not b' '
+                                    let is_int_param = param_type
+                                        .map(|t| matches!(t, HirType::Int))
+                                        .unwrap_or(false);
+                                    if is_int_param {
+                                        if let HirExpression::CharLiteral(c) = arg {
+                                            // Cast char to i32
+                                            return Some(format!("{}i32", *c as i32));
+                                        }
+                                    }
+
                                     // DECY-140: Check if param expects &str but arg is a raw pointer field
                                     // This happens when calling strcmp/strncmp with entry->key where key is char*
                                     // For stdlib string functions, params are &str but we might pass *mut u8 field
@@ -2254,15 +2400,16 @@ impl CodeGenerator {
                         }
                     }
                     HirType::Array { .. } => {
-                        // Generate array literal: vec![1, 2, 3] or [1, 2, 3]
+                        // DECY-199: Generate array literal [1, 2, 3] instead of vec![...]
+                        // Fixed-size arrays should use array literals, not Vec
                         if initializers.is_empty() {
-                            "vec![]".to_string()
+                            "[]".to_string()
                         } else {
                             let elements: Vec<String> = initializers
                                 .iter()
                                 .map(|init| self.generate_expression_with_context(init, ctx))
                                 .collect();
-                            format!("vec![{}]", elements.join(", "))
+                            format!("[{}]", elements.join(", "))
                         }
                     }
                     _ => {
@@ -2450,6 +2597,8 @@ impl CodeGenerator {
             BinaryOperator::BitwiseAnd => "&",
             BinaryOperator::BitwiseOr => "|",
             BinaryOperator::BitwiseXor => "^",
+            // DECY-195: Assignment operator (for embedded assignments)
+            BinaryOperator::Assign => "=",
         }
     }
 
@@ -2499,9 +2648,9 @@ impl CodeGenerator {
                 }
             }
             HirType::FunctionPointer { .. } => {
-                // Function pointers cannot have meaningful default values
-                // They must be initialized with an actual function
-                panic!("Function pointers must be initialized and cannot have default values")
+                // DECY-202: Function pointers default to None when wrapped in Option
+                // For local variables, return None which will be unwrapped if needed
+                "None".to_string()
             }
             HirType::StringLiteral => {
                 // String literals default to empty string slice
@@ -2739,9 +2888,10 @@ impl CodeGenerator {
     }
 
     /// DECY-187: Wrap a char* argument with CStr conversion for safe printing.
+    /// DECY-199: Use .as_ptr() for arrays which can't be cast directly to pointers.
     fn wrap_with_cstr(arg: &str) -> String {
         format!(
-            "unsafe {{ std::ffi::CStr::from_ptr({} as *const i8).to_str().unwrap_or(\"\") }}",
+            "unsafe {{ std::ffi::CStr::from_ptr({}.as_ptr() as *const i8).to_str().unwrap_or(\"\") }}",
             arg
         )
     }
@@ -3015,15 +3165,49 @@ impl CodeGenerator {
                             }
                         }
                     } else {
-                        // Pass var_type as target type hint for slice/pointer coercion
-                        code.push_str(&format!(
-                            " = {};",
-                            self.generate_expression_with_target_type(
-                                init_expr,
-                                ctx,
-                                Some(var_type)
-                            )
-                        ));
+                        // DECY-199: Handle char array initialization from string literal
+                        // char str[N] = "hello" → let mut str: [u8; N] = *b"hello\0"
+                        let is_char_array = matches!(
+                            var_type,
+                            HirType::Array { element_type, .. }
+                            if matches!(&**element_type, HirType::Char)
+                        );
+
+                        if is_char_array {
+                            if let HirExpression::StringLiteral(s) = init_expr {
+                                // Generate byte string with null terminator, dereferenced to value
+                                // The string from clang already has escape sequences like \n as literal
+                                // characters (\, n). We just need to escape internal quotes.
+                                // Escape sequences from C source are preserved as-is.
+                                let escaped: String = s.chars().map(|c| {
+                                    match c {
+                                        '"' => "\\\"".to_string(),
+                                        c => c.to_string(),
+                                    }
+                                }).collect();
+                                code.push_str(&format!(" = *b\"{}\\0\";", escaped));
+                            } else {
+                                // Non-string initializer for char array
+                                code.push_str(&format!(
+                                    " = {};",
+                                    self.generate_expression_with_target_type(
+                                        init_expr,
+                                        ctx,
+                                        Some(var_type)
+                                    )
+                                ));
+                            }
+                        } else {
+                            // Pass var_type as target type hint for slice/pointer coercion
+                            code.push_str(&format!(
+                                " = {};",
+                                self.generate_expression_with_target_type(
+                                    init_expr,
+                                    ctx,
+                                    Some(var_type)
+                                )
+                            ));
+                        }
                     }
                 } else {
                     // Provide default value for uninitialized variables
@@ -4652,6 +4836,20 @@ impl CodeGenerator {
                         let inner_type = Self::map_type(inner);
                         return format!("{}: &mut {}", p.name, inner_type);
                     }
+                    // DECY-196: Handle unsized array parameters → slice references
+                    // C's `void func(char arr[])` should become `fn func(arr: &mut [u8])`
+                    // Unsized arrays in parameters are always passed by reference in C
+                    // Default to &mut since C arrays are generally mutable and detecting
+                    // modifications in embedded assignments (while conditions) is complex
+                    if let AnnotatedType::Simple(HirType::Array {
+                        element_type,
+                        size: None,
+                    }) = &p.param_type
+                    {
+                        let element_str = Self::map_type(element_type);
+                        return format!("{}: &mut [{}]", p.name, element_str);
+                    }
+
                     // DECY-041: Add mut for all non-slice parameters to match C semantics
                     // In C, parameters are mutable by default (can be reassigned)
                     // DECY-FUTURE: More sophisticated analysis to only add mut when needed
@@ -5852,16 +6050,28 @@ impl CodeGenerator {
             // int x = 0; → static mut x: i32 = 0; (default)
             // Special handling for arrays: [0; 10] for array initialization
             let init_expr = if let HirType::Array {
-                element_type: _,
+                element_type,
                 size,
             } = variable.const_type()
             {
                 if let Some(size_val) = size {
-                    format!(
-                        "[{}; {}]",
-                        self.generate_expression(variable.value()),
-                        size_val
-                    )
+                    // DECY-201: Fix array initialization for uninitialized arrays
+                    // When value is just an integer (likely the size), use default zero value
+                    let element_init = match variable.value() {
+                        HirExpression::IntLiteral(n) if *n as usize == *size_val => {
+                            // Value equals size - this is likely an uninitialized array
+                            // Use type-appropriate zero value
+                            match element_type.as_ref() {
+                                HirType::Char => "0u8".to_string(),
+                                HirType::Int => "0i32".to_string(),
+                                HirType::Float => "0.0f32".to_string(),
+                                HirType::Double => "0.0f64".to_string(),
+                                _ => "0".to_string(),
+                            }
+                        }
+                        _ => self.generate_expression(variable.value()),
+                    };
+                    format!("[{}; {}]", element_init, size_val)
                 } else {
                     value_expr
                 }
