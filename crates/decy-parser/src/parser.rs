@@ -513,6 +513,7 @@ fn try_extract_expression(cursor: CXCursor) -> Option<Expression> {
 
     match kind {
         CXCursor_IntegerLiteral => extract_int_literal(cursor),
+        107 => extract_float_literal(cursor), // CXCursor_FloatingLiteral
         CXCursor_StringLiteral => extract_string_literal(cursor),
         110 => extract_char_literal(cursor), // CXCursor_CharacterLiteral
         CXCursor_DeclRefExpr => extract_variable_ref(cursor),
@@ -1383,6 +1384,7 @@ extern "C" fn visit_if_children(
             if_data.condition = match kind {
                 CXCursor_BinaryOperator => extract_binary_op(cursor),
                 CXCursor_IntegerLiteral => extract_int_literal(cursor),
+                107 => extract_float_literal(cursor), // CXCursor_FloatingLiteral
                 110 => extract_char_literal(cursor), // CXCursor_CharacterLiteral
                 CXCursor_DeclRefExpr => extract_variable_ref(cursor),
                 CXCursor_CallExpr => extract_function_call(cursor),
@@ -1665,6 +1667,7 @@ fn extract_expression_from_cursor(cursor: CXCursor) -> Option<Expression> {
     match kind {
         CXCursor_BinaryOperator => extract_binary_op(cursor),
         CXCursor_IntegerLiteral => extract_int_literal(cursor),
+        107 => extract_float_literal(cursor), // CXCursor_FloatingLiteral
         110 => extract_char_literal(cursor), // CXCursor_CharacterLiteral
         CXCursor_DeclRefExpr => extract_variable_ref(cursor),
         CXCursor_CallExpr => extract_function_call(cursor),
@@ -1759,6 +1762,7 @@ extern "C" fn visit_while_children(
             while_data.condition = match kind {
                 CXCursor_BinaryOperator => extract_binary_op(cursor),
                 CXCursor_IntegerLiteral => extract_int_literal(cursor),
+                107 => extract_float_literal(cursor), // CXCursor_FloatingLiteral
                 110 => extract_char_literal(cursor), // CXCursor_CharacterLiteral
                 CXCursor_DeclRefExpr => extract_variable_ref(cursor),
                 CXCursor_CallExpr => extract_function_call(cursor),
@@ -2063,6 +2067,13 @@ extern "C" fn visit_expression(
             }
             CXChildVisit_Continue
         }
+        107 => {
+            // Floating-point literal (CXCursor_FloatingLiteral)
+            if let Some(expr) = extract_float_literal(cursor) {
+                *expr_opt = Some(expr);
+            }
+            CXChildVisit_Continue
+        }
         CXCursor_StringLiteral => {
             // String literal
             if let Some(expr) = extract_string_literal(cursor) {
@@ -2123,6 +2134,14 @@ extern "C" fn visit_expression(
             // CXCursor_ConditionalOperator (ternary)
             // DECY-192: Ternary expressions like (a > b) ? a : b
             if let Some(expr) = extract_conditional_op(cursor) {
+                *expr_opt = Some(expr);
+            }
+            CXChildVisit_Continue
+        }
+        117 => {
+            // CXCursor_CStyleCastExpr - cast expression like (int)x or (long)&ptr
+            // DECY-208: Extract cast expressions to preserve type conversions
+            if let Some(expr) = extract_cast(cursor) {
                 *expr_opt = Some(expr);
             }
             CXChildVisit_Continue
@@ -2217,6 +2236,57 @@ fn extract_int_literal(cursor: CXCursor) -> Option<Expression> {
     }
 
     Some(Expression::IntLiteral(value))
+}
+
+/// DECY-207: Extract a floating-point literal expression.
+fn extract_float_literal(cursor: CXCursor) -> Option<Expression> {
+    // SAFETY: Get the extent (source range) of the cursor
+    let extent = unsafe { clang_getCursorExtent(cursor) };
+
+    // SAFETY: Get the translation unit from the cursor
+    let tu = unsafe { clang_Cursor_getTranslationUnit(cursor) };
+
+    if tu.is_null() {
+        return Some(Expression::FloatLiteral("0.0".to_string()));
+    }
+
+    // SAFETY: Tokenize the extent
+    let mut tokens = ptr::null_mut();
+    let mut num_tokens = 0;
+
+    unsafe {
+        clang_tokenize(tu, extent, &mut tokens, &mut num_tokens);
+    }
+
+    let mut value = "0.0".to_string();
+
+    if num_tokens > 0 {
+        // SAFETY: Get the spelling of the first token
+        unsafe {
+            let token_cxstring = clang_getTokenSpelling(tu, *tokens);
+            let c_str = CStr::from_ptr(clang_getCString(token_cxstring));
+            if let Ok(token_str) = c_str.to_str() {
+                // Keep the string as-is (preserves precision)
+                value = token_str.to_string();
+            }
+            clang_disposeString(token_cxstring);
+
+            // SAFETY: Dispose tokens
+            clang_disposeTokens(tu, tokens, num_tokens);
+        }
+    } else {
+        // Fallback using evaluate
+        unsafe {
+            let eval_result = clang_Cursor_Evaluate(cursor);
+            if !eval_result.is_null() {
+                let float_val = clang_EvalResult_getAsDouble(eval_result);
+                value = format!("{}", float_val);
+                clang_EvalResult_dispose(eval_result);
+            }
+        }
+    }
+
+    Some(Expression::FloatLiteral(value))
 }
 
 /// Extract a string literal expression.
@@ -2407,6 +2477,13 @@ extern "C" fn visit_binary_operand(
     match kind {
         CXCursor_IntegerLiteral => {
             if let Some(expr) = extract_int_literal(cursor) {
+                operands.push(expr);
+            }
+            CXChildVisit_Continue
+        }
+        107 => {
+            // Floating-point literal (CXCursor_FloatingLiteral)
+            if let Some(expr) = extract_float_literal(cursor) {
                 operands.push(expr);
             }
             CXChildVisit_Continue
@@ -2756,6 +2833,13 @@ extern "C" fn visit_call_argument(
     match kind {
         CXCursor_IntegerLiteral => {
             if let Some(expr) = extract_int_literal(cursor) {
+                arg_data.arguments.push(expr);
+            }
+            CXChildVisit_Continue
+        }
+        107 => {
+            // Floating-point literal (CXCursor_FloatingLiteral)
+            if let Some(expr) = extract_float_literal(cursor) {
                 arg_data.arguments.push(expr);
             }
             CXChildVisit_Continue
@@ -3890,6 +3974,8 @@ pub enum BinaryOperator {
 pub enum Expression {
     /// Integer literal: `42`
     IntLiteral(i32),
+    /// Float literal: `3.14` (stored as string to preserve precision)
+    FloatLiteral(String),
     /// String literal: `"hello"`
     StringLiteral(String),
     /// Character literal: `'a'`, `'\0'`, `'\n'`

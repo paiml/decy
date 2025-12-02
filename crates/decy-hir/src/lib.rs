@@ -271,7 +271,7 @@ impl HirTypedef {
 /// assert_eq!(constant.name(), "MAX");
 /// assert_eq!(constant.const_type(), &HirType::Int);
 /// ```
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct HirConstant {
     name: String,
     const_type: HirType,
@@ -509,7 +509,7 @@ impl HirParameter {
 }
 
 /// Represents a function in HIR.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct HirFunction {
     name: String,
     return_type: HirType,
@@ -726,10 +726,12 @@ pub enum BinaryOperator {
 }
 
 /// Represents an expression in HIR.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum HirExpression {
     /// Integer literal
     IntLiteral(i32),
+    /// Float literal (stored as string to preserve precision)
+    FloatLiteral(String),
     /// String literal (C: "hello" → Rust: "hello")
     StringLiteral(String),
     /// Character literal (C: 'a', '\0', '\n' → Rust: b'a', 0, b'\n')
@@ -910,7 +912,7 @@ pub enum HirExpression {
 }
 
 /// Represents a single case in a switch statement.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct SwitchCase {
     /// Case value expression (None for default case)
     pub value: Option<HirExpression>,
@@ -919,7 +921,7 @@ pub struct SwitchCase {
 }
 
 /// Represents a statement in HIR.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum HirStatement {
     /// Variable declaration with optional initializer
     VariableDeclaration {
@@ -1190,6 +1192,7 @@ impl HirExpression {
         use decy_parser::parser::Expression;
         match ast_expr {
             Expression::IntLiteral(value) => HirExpression::IntLiteral(*value),
+            Expression::FloatLiteral(value) => HirExpression::FloatLiteral(value.clone()),
             Expression::StringLiteral(value) => HirExpression::StringLiteral(value.clone()),
             Expression::CharLiteral(value) => HirExpression::CharLiteral(*value),
             Expression::Variable(name) => HirExpression::Variable(name.clone()),

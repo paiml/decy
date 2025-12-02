@@ -226,6 +226,7 @@ impl TypeContext {
             HirExpression::Variable(name) => self.get_type(name).cloned(),
             // DECY-204: Handle literal types for mixed-type arithmetic
             HirExpression::IntLiteral(_) => Some(HirType::Int),
+            HirExpression::FloatLiteral(_) => Some(HirType::Double), // C float literals default to double
             HirExpression::CharLiteral(_) => Some(HirType::Char),
             HirExpression::Dereference(inner) => {
                 // If inner is *mut T, then *inner is T
@@ -287,6 +288,52 @@ impl TypeContext {
                     }
                 } else {
                     None
+                }
+            }
+            // DECY-210: Infer type for binary operations
+            HirExpression::BinaryOp { left, right, op } => {
+                use decy_hir::BinaryOperator;
+                let left_type = self.infer_expression_type(left);
+                let right_type = self.infer_expression_type(right);
+
+                // For arithmetic operations, follow C promotion rules
+                match op {
+                    BinaryOperator::Add
+                    | BinaryOperator::Subtract
+                    | BinaryOperator::Multiply
+                    | BinaryOperator::Divide
+                    | BinaryOperator::Modulo => {
+                        // If either operand is double, result is double
+                        if matches!(left_type, Some(HirType::Double))
+                            || matches!(right_type, Some(HirType::Double))
+                        {
+                            return Some(HirType::Double);
+                        }
+                        // If either operand is float, result is float
+                        if matches!(left_type, Some(HirType::Float))
+                            || matches!(right_type, Some(HirType::Float))
+                        {
+                            return Some(HirType::Float);
+                        }
+                        // Otherwise, result is int (char promotes to int in C)
+                        Some(HirType::Int)
+                    }
+                    // Comparison operations return bool (which we map to int for C compatibility)
+                    BinaryOperator::Equal
+                    | BinaryOperator::NotEqual
+                    | BinaryOperator::LessThan
+                    | BinaryOperator::GreaterThan
+                    | BinaryOperator::LessEqual
+                    | BinaryOperator::GreaterEqual
+                    | BinaryOperator::LogicalAnd
+                    | BinaryOperator::LogicalOr => Some(HirType::Int),
+                    // Bitwise operations return int
+                    BinaryOperator::BitwiseAnd
+                    | BinaryOperator::BitwiseOr
+                    | BinaryOperator::BitwiseXor
+                    | BinaryOperator::LeftShift
+                    | BinaryOperator::RightShift => Some(HirType::Int),
+                    _ => None,
                 }
             }
             _ => None,
@@ -897,6 +944,22 @@ impl CodeGenerator {
                 }
                 val.to_string()
             }
+            // DECY-207: Handle float literals
+            HirExpression::FloatLiteral(val) => {
+                // Determine suffix based on target type
+                match target_type {
+                    Some(HirType::Float) => format!("{}f32", val),
+                    Some(HirType::Double) => format!("{}f64", val),
+                    _ => {
+                        // Default to f64 for double precision
+                        if val.contains('.') || val.contains('e') || val.contains('E') {
+                            format!("{}f64", val)
+                        } else {
+                            format!("{}.0f64", val)
+                        }
+                    }
+                }
+            }
             // DECY-119: Handle AddressOf when target is raw pointer (struct field assignment)
             // C: node.next = &x;  →  Rust: node.next = &mut x as *mut T;
             HirExpression::AddressOf(inner) => {
@@ -1245,6 +1308,30 @@ impl CodeGenerator {
                                 // Generate char as i32 literal
                                 return format!("({}i32 {} {})", *c as i32, op_str, right_code);
                             }
+                        }
+                    }
+                }
+
+                // DECY-210: Handle integer + char literal arithmetic
+                // In C, 'c' has type int, so (n % 10) + '0' is int + int = int
+                // In Rust, b'0' is u8, so we need to cast it to i32
+                if matches!(op, BinaryOperator::Add | BinaryOperator::Subtract) {
+                    // Check if right is char literal
+                    if let HirExpression::CharLiteral(c) = &**right {
+                        let left_type = ctx.infer_expression_type(left);
+                        if matches!(left_type, Some(HirType::Int)) {
+                            let left_code = self.generate_expression_with_context(left, ctx);
+                            let op_str = Self::binary_operator_to_string(op);
+                            return format!("({} {} {}i32)", left_code, op_str, *c as i32);
+                        }
+                    }
+                    // Check if left is char literal
+                    if let HirExpression::CharLiteral(c) = &**left {
+                        let right_type = ctx.infer_expression_type(right);
+                        if matches!(right_type, Some(HirType::Int)) {
+                            let right_code = self.generate_expression_with_context(right, ctx);
+                            let op_str = Self::binary_operator_to_string(op);
+                            return format!("({}i32 {} {})", *c as i32, op_str, right_code);
                         }
                     }
                 }
@@ -2483,10 +2570,33 @@ impl CodeGenerator {
                 let expr_str = if matches!(**expr, HirExpression::BinaryOp { .. }) {
                     format!("({})", expr_code)
                 } else {
-                    expr_code
+                    expr_code.clone()
                 };
 
-                format!("{} as {}", expr_str, rust_type)
+                // DECY-208: Handle pointer-to-integer casts
+                // C: (long)&x → Rust: &x as *const i32 as isize
+                // References can't be cast directly to integers in Rust
+                let is_address_of = matches!(**expr, HirExpression::AddressOf(_))
+                    || matches!(
+                        &**expr,
+                        HirExpression::UnaryOp {
+                            op: decy_hir::UnaryOperator::AddressOf,
+                            ..
+                        }
+                    );
+
+                let is_integer_target = matches!(
+                    target_type,
+                    HirType::Int | HirType::UnsignedInt | HirType::Char
+                );
+
+                if is_address_of && is_integer_target {
+                    // Cast reference to raw pointer first, then to isize, then to target type
+                    // References can't be cast directly to integers in Rust
+                    format!("{} as *const _ as isize as {}", expr_str, rust_type)
+                } else {
+                    format!("{} as {}", expr_str, rust_type)
+                }
             }
             HirExpression::CompoundLiteral {
                 literal_type,
@@ -3625,14 +3735,26 @@ impl CodeGenerator {
                     self.generate_expression_with_context(condition, ctx)
                 ));
 
+                // DECY-209: Infer switch condition type for case pattern matching
+                let condition_type = ctx.infer_expression_type(condition);
+                let condition_is_int = matches!(condition_type, Some(HirType::Int));
+
                 // Generate each case
                 for case in cases {
                     if let Some(value_expr) = &case.value {
                         // Generate case pattern
-                        code.push_str(&format!(
-                            "    {} => {{\n",
+                        // DECY-209: If condition is Int and case is CharLiteral, cast to i32
+                        let case_pattern = if condition_is_int
+                            && matches!(value_expr, HirExpression::CharLiteral(_))
+                        {
+                            format!(
+                                "{} as i32",
+                                self.generate_expression_with_context(value_expr, ctx)
+                            )
+                        } else {
                             self.generate_expression_with_context(value_expr, ctx)
-                        ));
+                        };
+                        code.push_str(&format!("    {} => {{\n", case_pattern));
 
                         // Generate case body (filter out Break statements)
                         for stmt in &case.body {
@@ -3781,8 +3903,18 @@ impl CodeGenerator {
 
                 let array_code = self.generate_expression_with_context(array, ctx);
                 let index_code = self.generate_expression_with_context(index, ctx);
-                let value_code =
+                let mut value_code =
                     self.generate_expression_with_target_type(value, ctx, target_type.as_ref());
+
+                // DECY-210: Handle int-to-char coercion for array element assignment
+                // In C, s[i] = (n % 10) + '0' works because char is widened to int then truncated back
+                // In Rust, we need explicit cast when assigning int to u8 element
+                if matches!(target_type, Some(HirType::Char)) {
+                    let value_type = ctx.infer_expression_type(value);
+                    if matches!(value_type, Some(HirType::Int)) {
+                        value_code = format!("({}) as u8", value_code);
+                    }
+                }
 
                 if is_raw_pointer {
                     // Raw pointer indexing: arr[i] = v becomes unsafe { *arr.add(i as usize) = v }

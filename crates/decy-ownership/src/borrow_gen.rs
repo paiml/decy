@@ -855,6 +855,7 @@ impl BorrowGenerator {
             },
             // Leaf expressions - no transformation needed
             HirExpression::IntLiteral(_)
+            | HirExpression::FloatLiteral(_)
             | HirExpression::StringLiteral(_)
             | HirExpression::CharLiteral(_)
             | HirExpression::Variable(_)
