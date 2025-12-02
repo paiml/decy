@@ -224,6 +224,9 @@ impl TypeContext {
     fn infer_expression_type(&self, expr: &HirExpression) -> Option<HirType> {
         match expr {
             HirExpression::Variable(name) => self.get_type(name).cloned(),
+            // DECY-204: Handle literal types for mixed-type arithmetic
+            HirExpression::IntLiteral(_) => Some(HirType::Int),
+            HirExpression::CharLiteral(_) => Some(HirType::Char),
             HirExpression::Dereference(inner) => {
                 // If inner is *mut T, then *inner is T
                 // DECY-123: Also handle Box<T> and &T/&mut T deref → T
@@ -1356,6 +1359,63 @@ impl CodeGenerator {
                             return format!("{} {} {}", left_cast, op_str, right_cast);
                         }
                     }
+
+                    // DECY-204: Handle mixed int/float/double arithmetic
+                    // In C, int + float promotes int to float, int + double promotes int to double
+                    let left_type = ctx.infer_expression_type(left);
+                    let right_type = ctx.infer_expression_type(right);
+
+                    let left_is_int = matches!(left_type, Some(HirType::Int) | Some(HirType::UnsignedInt));
+                    let right_is_int = matches!(right_type, Some(HirType::Int) | Some(HirType::UnsignedInt));
+                    let left_is_float = matches!(left_type, Some(HirType::Float));
+                    let right_is_float = matches!(right_type, Some(HirType::Float));
+                    let left_is_double = matches!(left_type, Some(HirType::Double));
+                    let right_is_double = matches!(right_type, Some(HirType::Double));
+
+                    // int + float or float + int → cast int to f32
+                    if (left_is_int && right_is_float) || (left_is_float && right_is_int) {
+                        let left_cast = if left_is_int {
+                            format!("({} as f32)", left_str)
+                        } else {
+                            left_str.clone()
+                        };
+                        let right_cast = if right_is_int {
+                            format!("({} as f32)", right_str)
+                        } else {
+                            right_str.clone()
+                        };
+                        return format!("{} {} {}", left_cast, op_str, right_cast);
+                    }
+
+                    // int + double or double + int → cast int to f64
+                    if (left_is_int && right_is_double) || (left_is_double && right_is_int) {
+                        let left_cast = if left_is_int {
+                            format!("({} as f64)", left_str)
+                        } else {
+                            left_str.clone()
+                        };
+                        let right_cast = if right_is_int {
+                            format!("({} as f64)", right_str)
+                        } else {
+                            right_str.clone()
+                        };
+                        return format!("{} {} {}", left_cast, op_str, right_cast);
+                    }
+
+                    // float + double or double + float → cast float to f64
+                    if (left_is_float && right_is_double) || (left_is_double && right_is_float) {
+                        let left_cast = if left_is_float {
+                            format!("({} as f64)", left_str)
+                        } else {
+                            left_str.clone()
+                        };
+                        let right_cast = if right_is_float {
+                            format!("({} as f64)", right_str)
+                        } else {
+                            right_str.clone()
+                        };
+                        return format!("{} {} {}", left_cast, op_str, right_cast);
+                    }
                 }
 
                 // DECY-191: Comparison and logical operators return bool in Rust but int in C
@@ -1376,6 +1436,35 @@ impl CodeGenerator {
                     if let Some(HirType::Int) = target_type {
                         // Wrap in parentheses and cast to i32
                         return format!("({} {} {}) as i32", left_str, op_str, right_str);
+                    }
+                }
+
+                // DECY-204: Cast arithmetic result to target type if needed
+                // e.g., int / int = int, but if target is float, cast to float
+                if matches!(
+                    op,
+                    BinaryOperator::Add
+                        | BinaryOperator::Subtract
+                        | BinaryOperator::Multiply
+                        | BinaryOperator::Divide
+                        | BinaryOperator::Modulo
+                ) {
+                    // Infer result type of the operation
+                    let left_type = ctx.infer_expression_type(left);
+                    let right_type = ctx.infer_expression_type(right);
+
+                    // If both operands are int, result is int
+                    let result_is_int = matches!(left_type, Some(HirType::Int) | Some(HirType::UnsignedInt))
+                        && matches!(right_type, Some(HirType::Int) | Some(HirType::UnsignedInt));
+
+                    // If target is float/double but result is int, cast the result
+                    if result_is_int {
+                        if let Some(HirType::Float) = target_type {
+                            return format!("({} {} {}) as f32", left_str, op_str, right_str);
+                        }
+                        if let Some(HirType::Double) = target_type {
+                            return format!("({} {} {}) as f64", left_str, op_str, right_str);
+                        }
                     }
                 }
 
