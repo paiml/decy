@@ -1,8 +1,34 @@
-# Decy: C-to-Rust Transpiler with EXTREME Quality Standards
+<div align="center">
 
-[![License: MIT OR Apache-2.0](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue.svg)](https://opensource.org/licenses/MIT)
+<p align="center">
+  <img src=".github/decy-hero.svg" alt="decy" width="800">
+</p>
 
-Decy is a production-grade C-to-Rust transpiler that generates idiomatic, safe Rust code with minimal `unsafe` blocks (<5 per 1000 LOC). Built using EXTREME TDD methodology, Toyota Way principles, and PMAT qualification.
+<h1 align="center">decy</h1>
+
+<p align="center">
+  <b>C-to-Rust Transpiler with EXTREME Quality Standards</b>
+</p>
+
+<p align="center">
+  <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue.svg" alt="License"></a>
+</p>
+
+<p align="center">
+  <i>Production-grade transpiler generating idiomatic, safe Rust code with minimal unsafe blocks</i>
+</p>
+
+</div>
+
+---
+
+## Table of Contents
+
+- [Project Goals](#-project-goals)
+- [Installation](#installation)
+- [Usage](#usage)
+- [Architecture](#architecture)
+- [License](#license)
 
 ## 🎯 Project Goals
 
