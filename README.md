@@ -11,7 +11,17 @@ Decy is a production-grade C-to-Rust transpiler that generates idiomatic, safe R
 - **Maintain EXTREME quality standards**: 80%+ coverage, 90%+ mutation score, 0 warnings
 - **Verify correctness** using book-based testing (mdBook compilation + lint checks)
 
-## 🚀 Quick Start
+## Installation
+
+```bash
+# From source (recommended for development)
+git clone https://github.com/your-org/decy.git
+cd decy
+make install   # Installs Rust, LLVM/Clang, and all dependencies
+cargo install --path .
+```
+
+## Usage
 
 ### One-Command Installation
 
