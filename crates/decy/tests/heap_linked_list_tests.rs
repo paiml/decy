@@ -17,6 +17,8 @@ use decy_core::transpile;
 #[test]
 fn test_heap_linked_list_malloc_to_box() {
     let c_code = r#"
+        #include <stdlib.h>
+
         struct Node {
             int value;
             struct Node *next;
@@ -81,6 +83,8 @@ fn test_stack_linked_list_remains_raw_pointer() {
 #[test]
 fn test_heap_linked_list_compiles() {
     let c_code = r#"
+        #include <stdlib.h>
+
         struct Node {
             int value;
             struct Node *next;
