@@ -16,8 +16,18 @@
 
 use std::collections::HashSet;
 use std::fs;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::process::Command;
+
+/// Get the workspace root directory dynamically
+fn workspace_root() -> PathBuf {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .unwrap()
+        .parent()
+        .unwrap()
+        .to_path_buf()
+}
 
 /// Known issues that are documented but don't fail the test suite.
 /// These represent limitations in the current transpiler that are being tracked.
@@ -46,7 +56,7 @@ fn transpile_and_compile(c_file: &Path) -> Result<(), String> {
     let transpile_output = Command::new("cargo")
         .args(["run", "-p", "decy", "--quiet", "--", "transpile"])
         .arg(c_file)
-        .current_dir("/home/noah/src/decy")
+        .current_dir(workspace_root())
         .output()
         .map_err(|e| format!("Failed to run decy: {}", e))?;
 
@@ -107,7 +117,7 @@ fn transpile_and_compile(c_file: &Path) -> Result<(), String> {
 /// Test all simple examples compile
 #[test]
 fn test_simple_examples_compile() {
-    let simple_dir = Path::new("/home/noah/src/decy/examples/simple");
+    let simple_dir = workspace_root().join("examples/simple");
 
     let mut passed = 0;
     let mut failed = Vec::new();
@@ -150,7 +160,7 @@ fn test_simple_examples_compile() {
 /// Test data structure examples compile
 #[test]
 fn test_data_structure_examples_compile() {
-    let ds_dir = Path::new("/home/noah/src/decy/examples/data_structures");
+    let ds_dir = workspace_root().join("examples/data_structures");
 
     let mut passed = 0;
     let mut failed = Vec::new();
@@ -193,7 +203,7 @@ fn test_data_structure_examples_compile() {
 /// Test moderate examples compile (these may have known issues)
 #[test]
 fn test_moderate_examples_compile() {
-    let moderate_dir = Path::new("/home/noah/src/decy/examples/moderate");
+    let moderate_dir = workspace_root().join("examples/moderate");
 
     let mut passed = 0;
     let mut failed = Vec::new();
@@ -238,7 +248,7 @@ fn test_moderate_examples_compile() {
 /// Test pointer arithmetic examples compile
 #[test]
 fn test_pointer_arithmetic_examples_compile() {
-    let pa_dir = Path::new("/home/noah/src/decy/examples/pointer_arithmetic");
+    let pa_dir = workspace_root().join("examples/pointer_arithmetic");
     let known_issues = known_issue_files();
 
     let mut passed = 0;
@@ -300,7 +310,7 @@ fn test_pointer_arithmetic_examples_compile() {
 /// Test string examples compile
 #[test]
 fn test_string_examples_compile() {
-    let strings_dir = Path::new("/home/noah/src/decy/examples/strings");
+    let strings_dir = workspace_root().join("examples/strings");
     let known_issues = known_issue_files();
 
     let mut passed = 0;
@@ -379,7 +389,7 @@ fn test_example_corpus_summary() {
     let mut unexpected_failures = Vec::new();
 
     for dir_name in &dirs {
-        let dir = Path::new("/home/noah/src/decy/examples").join(dir_name);
+        let dir = workspace_root().join("examples").join(dir_name);
         if !dir.exists() {
             continue;
         }

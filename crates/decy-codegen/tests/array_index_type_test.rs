@@ -114,6 +114,15 @@ void buffer_access(int* buffer, int size) {
 /// Test: buffer_ops.c should compile
 #[test]
 fn test_buffer_ops_compiles() {
+    // Get workspace root from CARGO_MANIFEST_DIR
+    let manifest_dir = std::env::var("CARGO_MANIFEST_DIR")
+        .expect("CARGO_MANIFEST_DIR not set");
+    let workspace_root = std::path::Path::new(&manifest_dir)
+        .parent()
+        .expect("Failed to get parent")
+        .parent()
+        .expect("Failed to get workspace root");
+
     let output = Command::new("cargo")
         .args([
             "run",
@@ -124,7 +133,7 @@ fn test_buffer_ops_compiles() {
             "transpile",
             "examples/real-world/buffer_ops.c",
         ])
-        .current_dir("/home/noah/src/decy")
+        .current_dir(workspace_root)
         .output()
         .expect("Failed to run decy transpile");
 
