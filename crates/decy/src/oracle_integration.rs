@@ -452,7 +452,8 @@ mod tests {
 
     #[test]
     fn test_with_report_format_markdown() {
-        let opts = OracleOptions::new(true, None, false).with_report_format(Some("markdown".into()));
+        let opts =
+            OracleOptions::new(true, None, false).with_report_format(Some("markdown".into()));
         assert_eq!(opts.report_format, Some("markdown".into()));
     }
 

@@ -430,7 +430,11 @@ impl FeatureExtractor {
     }
 
     /// Extract features for a specific parameter by name.
-    pub fn extract_for_parameter(&self, func: &HirFunction, param_name: &str) -> Option<OwnershipFeatures> {
+    pub fn extract_for_parameter(
+        &self,
+        func: &HirFunction,
+        param_name: &str,
+    ) -> Option<OwnershipFeatures> {
         // Find the parameter
         let param = func.parameters().iter().find(|p| p.name() == param_name)?;
         let param_type = param.param_type();
@@ -440,16 +444,28 @@ impl FeatureExtractor {
             return None;
         }
 
-        let param_index = func.parameters().iter().position(|p| p.name() == param_name)?;
+        let param_index = func
+            .parameters()
+            .iter()
+            .position(|p| p.name() == param_name)?;
 
         Some(self.extract_features(func, param_name, param_type, param_index, true))
     }
 
     /// Extract features for a local variable by name.
-    pub fn extract_for_variable(&self, func: &HirFunction, var_name: &str) -> Option<OwnershipFeatures> {
+    pub fn extract_for_variable(
+        &self,
+        func: &HirFunction,
+        var_name: &str,
+    ) -> Option<OwnershipFeatures> {
         // Find variable declaration in body
         for stmt in func.body() {
-            if let HirStatement::VariableDeclaration { name, var_type, initializer } = stmt {
+            if let HirStatement::VariableDeclaration {
+                name,
+                var_type,
+                initializer,
+            } = stmt
+            {
                 if name == var_name && self.is_pointer_like(var_type) {
                     let allocation = self.classify_allocation(initializer.as_ref());
                     let mut features = self.extract_features(func, var_name, var_type, 0, false);
@@ -467,7 +483,8 @@ impl FeatureExtractor {
 
         for (idx, param) in func.parameters().iter().enumerate() {
             if self.is_pointer_like(param.param_type()) {
-                let features = self.extract_features(func, param.name(), param.param_type(), idx, true);
+                let features =
+                    self.extract_features(func, param.name(), param.param_type(), idx, true);
                 result.push((param.name().to_string(), features));
             }
         }
@@ -479,10 +496,7 @@ impl FeatureExtractor {
     fn is_pointer_like(&self, ty: &HirType) -> bool {
         matches!(
             ty,
-            HirType::Pointer(_)
-                | HirType::Box(_)
-                | HirType::Reference { .. }
-                | HirType::Vec(_)
+            HirType::Pointer(_) | HirType::Box(_) | HirType::Reference { .. } | HirType::Vec(_)
         )
     }
 
@@ -670,7 +684,11 @@ impl FeatureExtractor {
     fn count_stmt_accesses(&self, stmt: &HirStatement, var_name: &str) -> (u32, u32) {
         match stmt {
             HirStatement::Assignment { target, value } => {
-                let mut reads: u32 = if self.expr_uses_var(value, var_name) { 1 } else { 0 };
+                let mut reads: u32 = if self.expr_uses_var(value, var_name) {
+                    1
+                } else {
+                    0
+                };
                 let writes: u32 = if target == var_name { 1 } else { 0 };
                 // Target might also be a dereference read
                 if target != var_name && self.expr_uses_var(value, var_name) {
@@ -679,12 +697,18 @@ impl FeatureExtractor {
                 (reads, writes)
             }
             HirStatement::DerefAssignment { target, value } => {
-                let reads: u32 = if self.expr_uses_var(value, var_name) || self.expr_uses_var(target, var_name) {
+                let reads: u32 = if self.expr_uses_var(value, var_name)
+                    || self.expr_uses_var(target, var_name)
+                {
                     1
                 } else {
                     0
                 };
-                let writes: u32 = if self.expr_uses_var(target, var_name) { 1 } else { 0 };
+                let writes: u32 = if self.expr_uses_var(target, var_name) {
+                    1
+                } else {
+                    0
+                };
                 (reads, writes)
             }
             HirStatement::If {
@@ -692,7 +716,11 @@ impl FeatureExtractor {
                 then_block,
                 else_block,
             } => {
-                let mut reads: u32 = if self.expr_uses_var(condition, var_name) { 1 } else { 0 };
+                let mut reads: u32 = if self.expr_uses_var(condition, var_name) {
+                    1
+                } else {
+                    0
+                };
                 let mut writes: u32 = 0;
                 for s in then_block {
                     let (r, w) = self.count_stmt_accesses(s, var_name);
@@ -734,7 +762,11 @@ impl FeatureExtractor {
                 then_block,
                 else_block,
             } => {
-                let mut count: u8 = if self.is_null_check(condition, var_name) { 1 } else { 0 };
+                let mut count: u8 = if self.is_null_check(condition, var_name) {
+                    1
+                } else {
+                    0
+                };
                 for s in then_block {
                     count = count.saturating_add(self.count_null_checks_in_stmt(s, var_name));
                 }
@@ -746,7 +778,11 @@ impl FeatureExtractor {
                 count
             }
             HirStatement::While { condition, body } => {
-                let mut count: u8 = if self.is_null_check(condition, var_name) { 1 } else { 0 };
+                let mut count: u8 = if self.is_null_check(condition, var_name) {
+                    1
+                } else {
+                    0
+                };
                 for s in body {
                     count = count.saturating_add(self.count_null_checks_in_stmt(s, var_name));
                 }
@@ -762,7 +798,8 @@ impl FeatureExtractor {
             HirExpression::IsNotNull(inner) => self.expr_uses_var(inner, var_name),
             HirExpression::BinaryOp { left, right, .. } => {
                 // Check for ptr != NULL or ptr == NULL patterns
-                (self.expr_uses_var(left, var_name) && matches!(**right, HirExpression::NullLiteral))
+                (self.expr_uses_var(left, var_name)
+                    && matches!(**right, HirExpression::NullLiteral))
                     || (self.expr_uses_var(right, var_name)
                         && matches!(**left, HirExpression::NullLiteral))
             }
@@ -783,9 +820,9 @@ impl FeatureExtractor {
             HirExpression::ArrayIndex { array, index } => {
                 self.expr_uses_var(array, var_name) || self.expr_uses_var(index, var_name)
             }
-            HirExpression::FunctionCall { arguments, .. } => {
-                arguments.iter().any(|arg| self.expr_uses_var(arg, var_name))
-            }
+            HirExpression::FunctionCall { arguments, .. } => arguments
+                .iter()
+                .any(|arg| self.expr_uses_var(arg, var_name)),
             HirExpression::IsNotNull(inner) => self.expr_uses_var(inner, var_name),
             _ => false,
         }
@@ -1070,11 +1107,7 @@ impl PatternLibrary {
     pub fn match_rust_error(&self, error_msg: &str) -> Vec<&ErrorPattern> {
         self.patterns
             .values()
-            .filter(|p| {
-                p.rust_error
-                    .as_ref()
-                    .is_some_and(|e| error_msg.contains(e))
-            })
+            .filter(|p| p.rust_error.as_ref().is_some_and(|e| error_msg.contains(e)))
             .collect()
     }
 

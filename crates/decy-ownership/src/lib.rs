@@ -78,8 +78,8 @@ pub use error_tracking::{
 
 // Re-export retraining pipeline types (DECY-ML-018)
 pub use retraining_pipeline::{
-    DataSplit, ModelTrainer, NullTrainer, PipelineExecution, RetrainingConfig,
-    RetrainingPipeline, RetrainingResult, RetrainingSchedule, TrainingMetrics, TrainingSample,
+    DataSplit, ModelTrainer, NullTrainer, PipelineExecution, RetrainingConfig, RetrainingPipeline,
+    RetrainingResult, RetrainingSchedule, TrainingMetrics, TrainingSample,
 };
 
 // Re-export training data types (DECY-ML-010)

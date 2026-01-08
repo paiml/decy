@@ -596,8 +596,14 @@ fn test_decy180_parameter_transformation() {
     let generator = BorrowGenerator::new();
 
     let params = vec![
-        HirParameter::new("immut".to_string(), HirType::Pointer(Box::new(HirType::Int))),
-        HirParameter::new("mut_p".to_string(), HirType::Pointer(Box::new(HirType::Int))),
+        HirParameter::new(
+            "immut".to_string(),
+            HirType::Pointer(Box::new(HirType::Int)),
+        ),
+        HirParameter::new(
+            "mut_p".to_string(),
+            HirType::Pointer(Box::new(HirType::Int)),
+        ),
     ];
 
     let mut inferences = HashMap::new();
@@ -870,7 +876,10 @@ fn test_decy184_char_ptr_with_pointer_arithmetic_not_transformed() {
         "string_copy".to_string(),
         HirType::Void,
         vec![
-            HirParameter::new("dest".to_string(), HirType::Pointer(Box::new(HirType::Char))),
+            HirParameter::new(
+                "dest".to_string(),
+                HirType::Pointer(Box::new(HirType::Char)),
+            ),
             HirParameter::new("src".to_string(), HirType::Pointer(Box::new(HirType::Char))),
         ],
         vec![
@@ -928,8 +937,16 @@ fn test_decy184_char_ptr_with_pointer_arithmetic_not_transformed() {
 
     // DECY-184: char* params with pointer arithmetic should NOT become References
     // They should stay as Pointer(Char) for codegen to handle
-    let dest_param = transformed.parameters().iter().find(|p| p.name() == "dest").unwrap();
-    let src_param = transformed.parameters().iter().find(|p| p.name() == "src").unwrap();
+    let dest_param = transformed
+        .parameters()
+        .iter()
+        .find(|p| p.name() == "dest")
+        .unwrap();
+    let src_param = transformed
+        .parameters()
+        .iter()
+        .find(|p| p.name() == "src")
+        .unwrap();
 
     // dest should stay as Pointer(Char), NOT Reference
     assert!(
@@ -989,7 +1006,11 @@ fn test_decy184_char_ptr_without_pointer_arithmetic_is_transformed() {
     let transformed = generator.transform_function(&func, &inferences);
 
     // char* without pointer arithmetic SHOULD become &mut u8
-    let ptr_param = transformed.parameters().iter().find(|p| p.name() == "ptr").unwrap();
+    let ptr_param = transformed
+        .parameters()
+        .iter()
+        .find(|p| p.name() == "ptr")
+        .unwrap();
 
     assert_eq!(
         ptr_param.param_type(),
@@ -1042,7 +1063,11 @@ fn test_decy184_int_ptr_with_pointer_arithmetic_stays_as_pointer() {
     );
 
     let transformed = generator.transform_function(&func, &inferences);
-    let arr_param = transformed.parameters().iter().find(|p| p.name() == "arr").unwrap();
+    let arr_param = transformed
+        .parameters()
+        .iter()
+        .find(|p| p.name() == "arr")
+        .unwrap();
 
     // int* with pointer arithmetic should stay as Pointer
     assert!(

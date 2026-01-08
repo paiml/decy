@@ -130,16 +130,20 @@ impl RuleBasedClassifier {
 impl OwnershipClassifier for RuleBasedClassifier {
     fn classify(&self, features: &OwnershipFeatures) -> ClassifierPrediction {
         // Rule 1: malloc + free → Owned (Box)
-        if matches!(features.allocation_site, AllocationKind::Malloc | AllocationKind::Calloc)
-            && features.deallocation_count > 0
+        if matches!(
+            features.allocation_site,
+            AllocationKind::Malloc | AllocationKind::Calloc
+        ) && features.deallocation_count > 0
             && !features.has_size_param
         {
             return ClassifierPrediction::new(InferredOwnership::Owned, self.weights.malloc_free);
         }
 
         // Rule 2: malloc + size + array_decay → Vec
-        if matches!(features.allocation_site, AllocationKind::Malloc | AllocationKind::Calloc)
-            && (features.has_size_param || features.is_array_decay)
+        if matches!(
+            features.allocation_site,
+            AllocationKind::Malloc | AllocationKind::Calloc
+        ) && (features.has_size_param || features.is_array_decay)
             && features.deallocation_count > 0
         {
             return ClassifierPrediction::new(InferredOwnership::Vec, self.weights.array_alloc);
@@ -149,7 +153,10 @@ impl OwnershipClassifier for RuleBasedClassifier {
         if features.is_const && features.deallocation_count == 0 {
             // Check for slice pattern
             if features.is_array_decay && features.has_size_param {
-                return ClassifierPrediction::new(InferredOwnership::Slice, self.weights.size_param);
+                return ClassifierPrediction::new(
+                    InferredOwnership::Slice,
+                    self.weights.size_param,
+                );
             }
             return ClassifierPrediction::new(InferredOwnership::Borrowed, self.weights.const_qual);
         }
@@ -158,13 +165,22 @@ impl OwnershipClassifier for RuleBasedClassifier {
         if !features.is_const
             && features.write_count > 0
             && features.deallocation_count == 0
-            && !matches!(features.allocation_site, AllocationKind::Malloc | AllocationKind::Calloc)
+            && !matches!(
+                features.allocation_site,
+                AllocationKind::Malloc | AllocationKind::Calloc
+            )
         {
             // Check for mutable slice pattern
             if features.is_array_decay && features.has_size_param {
-                return ClassifierPrediction::new(InferredOwnership::SliceMut, self.weights.size_param);
+                return ClassifierPrediction::new(
+                    InferredOwnership::SliceMut,
+                    self.weights.size_param,
+                );
             }
-            return ClassifierPrediction::new(InferredOwnership::BorrowedMut, self.weights.write_ops);
+            return ClassifierPrediction::new(
+                InferredOwnership::BorrowedMut,
+                self.weights.write_ops,
+            );
         }
 
         // Rule 5: array decay with size → Slice
@@ -294,7 +310,10 @@ impl ClassifierEvaluator {
                 metrics.correct += 1;
                 *metrics.true_positives.entry(actual_class).or_insert(0) += 1;
             } else {
-                *metrics.false_positives.entry(predicted_class.clone()).or_insert(0) += 1;
+                *metrics
+                    .false_positives
+                    .entry(predicted_class.clone())
+                    .or_insert(0) += 1;
                 *metrics.false_negatives.entry(actual_class).or_insert(0) += 1;
             }
         }
@@ -398,7 +417,10 @@ impl ClassifierTrainer {
     /// Train a rule-based classifier (returns pre-built classifier).
     ///
     /// Note: Rule-based classifier doesn't require training.
-    pub fn train_rule_based(&self, _dataset: &TrainingDataset) -> (RuleBasedClassifier, TrainingResult) {
+    pub fn train_rule_based(
+        &self,
+        _dataset: &TrainingDataset,
+    ) -> (RuleBasedClassifier, TrainingResult) {
         let start = std::time::Instant::now();
         let classifier = RuleBasedClassifier::new();
         let duration = start.elapsed().as_secs_f64();
@@ -613,9 +635,7 @@ mod tests {
     #[test]
     fn rule_based_unknown() {
         let classifier = RuleBasedClassifier::new();
-        let features = OwnershipFeaturesBuilder::default()
-            .pointer_depth(1)
-            .build();
+        let features = OwnershipFeaturesBuilder::default().pointer_depth(1).build();
 
         let pred = classifier.classify(&features);
 
@@ -652,8 +672,14 @@ mod tests {
         let predictions = classifier.classify_batch(&features);
 
         assert_eq!(predictions.len(), 2);
-        assert!(matches!(predictions[0].prediction, InferredOwnership::Owned));
-        assert!(matches!(predictions[1].prediction, InferredOwnership::Borrowed));
+        assert!(matches!(
+            predictions[0].prediction,
+            InferredOwnership::Owned
+        ));
+        assert!(matches!(
+            predictions[1].prediction,
+            InferredOwnership::Borrowed
+        ));
     }
 
     // ========================================================================

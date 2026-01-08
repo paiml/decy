@@ -1273,10 +1273,15 @@ impl CodeGenerator {
 
                     // DECY-199: strlen(s) == 0 → s.is_empty() or s.len() == 0
                     // This is more idiomatic Rust than s.len() as i32 == 0
-                    if let HirExpression::FunctionCall { function, arguments } = &**left {
+                    if let HirExpression::FunctionCall {
+                        function,
+                        arguments,
+                    } = &**left
+                    {
                         if function == "strlen" && arguments.len() == 1 {
                             if let HirExpression::IntLiteral(0) = **right {
-                                let arg_code = self.generate_expression_with_context(&arguments[0], ctx);
+                                let arg_code =
+                                    self.generate_expression_with_context(&arguments[0], ctx);
                                 return match op {
                                     BinaryOperator::Equal => format!("{}.is_empty()", arg_code),
                                     BinaryOperator::NotEqual => format!("!{}.is_empty()", arg_code),
@@ -1286,10 +1291,15 @@ impl CodeGenerator {
                         }
                     }
                     // Also handle 0 == strlen(s)
-                    if let HirExpression::FunctionCall { function, arguments } = &**right {
+                    if let HirExpression::FunctionCall {
+                        function,
+                        arguments,
+                    } = &**right
+                    {
                         if function == "strlen" && arguments.len() == 1 {
                             if let HirExpression::IntLiteral(0) = **left {
-                                let arg_code = self.generate_expression_with_context(&arguments[0], ctx);
+                                let arg_code =
+                                    self.generate_expression_with_context(&arguments[0], ctx);
                                 return match op {
                                     BinaryOperator::Equal => format!("{}.is_empty()", arg_code),
                                     BinaryOperator::NotEqual => format!("!{}.is_empty()", arg_code),
@@ -1491,8 +1501,10 @@ impl CodeGenerator {
                     let left_type = ctx.infer_expression_type(left);
                     let right_type = ctx.infer_expression_type(right);
 
-                    let left_is_int = matches!(left_type, Some(HirType::Int) | Some(HirType::UnsignedInt));
-                    let right_is_int = matches!(right_type, Some(HirType::Int) | Some(HirType::UnsignedInt));
+                    let left_is_int =
+                        matches!(left_type, Some(HirType::Int) | Some(HirType::UnsignedInt));
+                    let right_is_int =
+                        matches!(right_type, Some(HirType::Int) | Some(HirType::UnsignedInt));
                     let left_is_float = matches!(left_type, Some(HirType::Float));
                     let right_is_float = matches!(right_type, Some(HirType::Float));
                     let left_is_double = matches!(left_type, Some(HirType::Double));
@@ -1609,8 +1621,12 @@ impl CodeGenerator {
                     let right_type = ctx.infer_expression_type(right);
 
                     // If both operands are int, result is int
-                    let result_is_int = matches!(left_type, Some(HirType::Int) | Some(HirType::UnsignedInt))
-                        && matches!(right_type, Some(HirType::Int) | Some(HirType::UnsignedInt));
+                    let result_is_int =
+                        matches!(left_type, Some(HirType::Int) | Some(HirType::UnsignedInt))
+                            && matches!(
+                                right_type,
+                                Some(HirType::Int) | Some(HirType::UnsignedInt)
+                            );
 
                     // If target is float/double but result is int, cast the result
                     if result_is_int {
@@ -1759,13 +1775,14 @@ impl CodeGenerator {
                     // DECY-188: Use CStr for raw pointer sources, .to_string() for &str
                     "strcpy" => {
                         if arguments.len() == 2 {
-                            let src_code = self.generate_expression_with_context(&arguments[1], ctx);
+                            let src_code =
+                                self.generate_expression_with_context(&arguments[1], ctx);
                             // DECY-188: Detect if source looks like a raw pointer dereference
                             // Patterns like (*foo).bar or (*foo) indicate raw pointer access
                             // Simple variable names that aren't dereferenced are likely &str
-                            let is_raw_pointer = src_code.contains("(*") ||
-                                                 src_code.contains(").") ||
-                                                 src_code.contains("as *");
+                            let is_raw_pointer = src_code.contains("(*")
+                                || src_code.contains(").")
+                                || src_code.contains("as *");
                             if is_raw_pointer {
                                 format!(
                                     "unsafe {{ std::ffi::CStr::from_ptr({} as *const i8).to_str().unwrap_or(\"\").to_string() }}",
@@ -2016,7 +2033,8 @@ impl CodeGenerator {
                                     .iter()
                                     .enumerate()
                                     .map(|(i, a)| {
-                                        let arg_code = self.generate_expression_with_context(a, ctx);
+                                        let arg_code =
+                                            self.generate_expression_with_context(a, ctx);
                                         // If this arg corresponds to a %s, wrap with CStr
                                         // DECY-192: Skip wrapping for ternary expressions with string literals
                                         if s_positions.contains(&i) && !Self::is_string_ternary(a) {
@@ -2586,14 +2604,21 @@ impl CodeGenerator {
                     format!("{}.{}({})", receiver_code, method, args.join(", "))
                 }
             }
-            HirExpression::Cast { target_type: cast_target, expr } => {
+            HirExpression::Cast {
+                target_type: cast_target,
+                expr,
+            } => {
                 // DECY-220: When outer target is Vec<T> and inner is malloc/calloc,
                 // unwrap the cast and generate malloc with Vec target type directly.
                 // This handles: int* arr = (int*)malloc(n * sizeof(int)) → let arr: Vec<i32> = vec![...];
                 if let Some(vec_type @ HirType::Vec(_)) = target_type {
                     if Self::is_any_malloc_or_calloc(expr) {
                         // Skip the cast, generate the inner malloc with Vec target type
-                        return self.generate_expression_with_target_type(expr, ctx, Some(vec_type));
+                        return self.generate_expression_with_target_type(
+                            expr,
+                            ctx,
+                            Some(vec_type),
+                        );
                     }
                 }
 
@@ -2768,8 +2793,10 @@ impl CodeGenerator {
                 let cond_code = self.generate_expression_with_context(condition, ctx);
                 // Propagate target type to both branches for proper type coercion
                 // This allows string literals in ternary to become *mut u8 when needed
-                let then_code = self.generate_expression_with_target_type(then_expr, ctx, target_type);
-                let else_code = self.generate_expression_with_target_type(else_expr, ctx, target_type);
+                let then_code =
+                    self.generate_expression_with_target_type(then_expr, ctx, target_type);
+                let else_code =
+                    self.generate_expression_with_target_type(else_expr, ctx, target_type);
 
                 // Convert condition to boolean if it's not already
                 let cond_bool = if Self::is_boolean_expression(condition) {
@@ -2778,7 +2805,10 @@ impl CodeGenerator {
                     format!("{} != 0", cond_code)
                 };
 
-                format!("if {} {{ {} }} else {{ {} }}", cond_bool, then_code, else_code)
+                format!(
+                    "if {} {{ {} }} else {{ {} }}",
+                    cond_bool, then_code, else_code
+                )
             }
         }
     }
@@ -3142,11 +3172,26 @@ impl CodeGenerator {
                 // Check for format specifiers
                 // Skip width/precision modifiers and length specifiers
                 let mut j = i + 1;
-                while j < chars.len() && (chars[j].is_ascii_digit() || chars[j] == '.' || chars[j] == '-' || chars[j] == '+' || chars[j] == ' ' || chars[j] == '#' || chars[j] == '*') {
+                while j < chars.len()
+                    && (chars[j].is_ascii_digit()
+                        || chars[j] == '.'
+                        || chars[j] == '-'
+                        || chars[j] == '+'
+                        || chars[j] == ' '
+                        || chars[j] == '#'
+                        || chars[j] == '*')
+                {
                     j += 1;
                 }
                 // Skip length modifiers (l, ll, h, hh, z, etc.)
-                while j < chars.len() && (chars[j] == 'l' || chars[j] == 'h' || chars[j] == 'z' || chars[j] == 'j' || chars[j] == 't' || chars[j] == 'L') {
+                while j < chars.len()
+                    && (chars[j] == 'l'
+                        || chars[j] == 'h'
+                        || chars[j] == 'z'
+                        || chars[j] == 'j'
+                        || chars[j] == 't'
+                        || chars[j] == 'L')
+                {
                     j += 1;
                 }
                 // Now we should be at the conversion specifier
@@ -3156,11 +3201,24 @@ impl CodeGenerator {
                         positions.push(arg_index);
                     }
                     // Count this as an argument position (for d, i, u, f, s, c, p, x, X, o, e, E, g, G, n)
-                    if specifier == 'd' || specifier == 'i' || specifier == 'u' || specifier == 'f' ||
-                       specifier == 's' || specifier == 'c' || specifier == 'p' || specifier == 'x' ||
-                       specifier == 'X' || specifier == 'o' || specifier == 'e' || specifier == 'E' ||
-                       specifier == 'g' || specifier == 'G' || specifier == 'n' || specifier == 'a' ||
-                       specifier == 'A' {
+                    if specifier == 'd'
+                        || specifier == 'i'
+                        || specifier == 'u'
+                        || specifier == 'f'
+                        || specifier == 's'
+                        || specifier == 'c'
+                        || specifier == 'p'
+                        || specifier == 'x'
+                        || specifier == 'X'
+                        || specifier == 'o'
+                        || specifier == 'e'
+                        || specifier == 'E'
+                        || specifier == 'g'
+                        || specifier == 'G'
+                        || specifier == 'n'
+                        || specifier == 'a'
+                        || specifier == 'A'
+                    {
                         arg_index += 1;
                     }
                     i = j + 1;
@@ -3461,12 +3519,13 @@ impl CodeGenerator {
                                 // The string from clang already has escape sequences like \n as literal
                                 // characters (\, n). We just need to escape internal quotes.
                                 // Escape sequences from C source are preserved as-is.
-                                let escaped: String = s.chars().map(|c| {
-                                    match c {
+                                let escaped: String = s
+                                    .chars()
+                                    .map(|c| match c {
                                         '"' => "\\\"".to_string(),
                                         c => c.to_string(),
-                                    }
-                                }).collect();
+                                    })
+                                    .collect();
                                 code.push_str(&format!(" = *b\"{}\\0\";", escaped));
                             } else {
                                 // Non-string initializer for char array
@@ -4056,9 +4115,9 @@ impl CodeGenerator {
 
         // DECY-168: Only consider patterns with actual constraints/types as "real" void* usage
         // Empty body functions (stubs) will have patterns but no constraints
-        let has_real_void_usage = void_patterns.iter().any(|vp| {
-            !vp.constraints.is_empty() || !vp.inferred_types.is_empty()
-        });
+        let has_real_void_usage = void_patterns
+            .iter()
+            .any(|vp| !vp.constraints.is_empty() || !vp.inferred_types.is_empty());
 
         // DECY-097: Collect trait bounds from all void* patterns
         let mut trait_bounds: Vec<&str> = Vec::new();
@@ -5365,13 +5424,11 @@ impl CodeGenerator {
                 String::new()
             }
             // DECY-172: Type aliases return 0
-            HirType::TypeAlias(name) => {
-                match name.as_str() {
-                    "size_t" => "    return 0usize;".to_string(),
-                    "ssize_t" | "ptrdiff_t" => "    return 0isize;".to_string(),
-                    _ => "    return 0;".to_string(),
-                }
-            }
+            HirType::TypeAlias(name) => match name.as_str() {
+                "size_t" => "    return 0usize;".to_string(),
+                "ssize_t" | "ptrdiff_t" => "    return 0isize;".to_string(),
+                _ => "    return 0;".to_string(),
+            },
         }
     }
 
@@ -6066,9 +6123,10 @@ impl CodeGenerator {
         });
 
         // DECY-218: Check if struct has float/double fields (f32/f64 don't implement Eq)
-        let has_float_fields = hir_struct.fields().iter().any(|f| {
-            matches!(f.field_type(), HirType::Float | HirType::Double)
-        });
+        let has_float_fields = hir_struct
+            .fields()
+            .iter()
+            .any(|f| matches!(f.field_type(), HirType::Float | HirType::Double));
 
         // Add derive attribute
         // DECY-114: Add Default derive for struct initialization with ::default()
@@ -6383,11 +6441,7 @@ impl CodeGenerator {
             // static int x = 0; → static mut x: i32 = 0;
             // int x = 0; → static mut x: i32 = 0; (default)
             // Special handling for arrays: [0; 10] for array initialization
-            let init_expr = if let HirType::Array {
-                element_type,
-                size,
-            } = variable.const_type()
-            {
+            let init_expr = if let HirType::Array { element_type, size } = variable.const_type() {
                 if let Some(size_val) = size {
                     // DECY-201: Fix array initialization for uninitialized arrays
                     // When value is just an integer (likely the size), use default zero value

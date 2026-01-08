@@ -36,7 +36,10 @@ fn demo_feature_extraction() {
     println!("Malloc pointer features:");
     println!("  - Pointer depth: {}", malloc_features.pointer_depth);
     println!("  - Allocation: {:?}", malloc_features.allocation_site);
-    println!("  - Deallocation count: {}", malloc_features.deallocation_count);
+    println!(
+        "  - Deallocation count: {}",
+        malloc_features.deallocation_count
+    );
 
     // Convert to ML-ready vector
     let vector = malloc_features.to_vector();
@@ -128,6 +131,9 @@ fn demo_ownership_patterns() {
             InferredOwnership::Shared => "Rc<T>",
             InferredOwnership::RawPointer => "*T",
         };
-        println!("| {:<25} | {:<9} | {:.2} |", name, ownership_str, result.confidence);
+        println!(
+            "| {:<25} | {:<9} | {:.2} |",
+            name, ownership_str, result.confidence
+        );
     }
 }

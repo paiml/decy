@@ -391,7 +391,11 @@ impl<T: ModelTrainer> RetrainingPipeline<T> {
         }
 
         // Split data
-        let data = DataSplit::new(samples.clone(), self.config.train_ratio, self.config.validation_ratio);
+        let data = DataSplit::new(
+            samples.clone(),
+            self.config.train_ratio,
+            self.config.validation_ratio,
+        );
 
         if !data.meets_minimum_sizes(
             self.config.min_train_samples,
@@ -420,12 +424,12 @@ impl<T: ModelTrainer> RetrainingPipeline<T> {
         if !metrics.meets_thresholds(&self.config) {
             let reason = format!(
                 "Precision {:.2} < {:.2} or Recall {:.2} < {:.2}",
-                metrics.precision, self.config.min_precision, metrics.recall, self.config.min_recall
+                metrics.precision,
+                self.config.min_precision,
+                metrics.recall,
+                self.config.min_recall
             );
-            let result = RetrainingResult::QualityGateFailed {
-                reason,
-                metrics,
-            };
+            let result = RetrainingResult::QualityGateFailed { reason, metrics };
             self.record_execution(timestamp, &result, samples.len());
             return result;
         }
@@ -478,9 +482,11 @@ impl<T: ModelTrainer> RetrainingPipeline<T> {
             RetrainingResult::Promoted { version, .. } => ExecutionSummary::Promoted {
                 version: version.to_string(),
             },
-            RetrainingResult::QualityGateFailed { reason, .. } => ExecutionSummary::QualityGateFailed {
-                reason: reason.clone(),
-            },
+            RetrainingResult::QualityGateFailed { reason, .. } => {
+                ExecutionSummary::QualityGateFailed {
+                    reason: reason.clone(),
+                }
+            }
             RetrainingResult::Degraded { degradation, .. } => ExecutionSummary::Degraded {
                 amount: *degradation,
             },
@@ -519,7 +525,8 @@ impl<T: ModelTrainer> RetrainingPipeline<T> {
 
     /// Rollback to a previous version.
     pub fn rollback(&mut self, version: &ModelVersion) -> Result<RollbackResult, String> {
-        self.version_manager.rollback_to(version, "Manual rollback via pipeline")
+        self.version_manager
+            .rollback_to(version, "Manual rollback via pipeline")
     }
 
     /// Get current model version.
@@ -846,13 +853,13 @@ mod tests {
 
         // Register a strong model first
         let strong_metrics = ModelQualityMetrics::new(
-            0.90,  // accuracy
-            0.92,  // precision
-            0.88,  // recall
-            0.90,  // f1_score
-            0.95,  // avg_confidence
-            0.05,  // fallback_rate
-            1000,  // sample_count
+            0.90, // accuracy
+            0.92, // precision
+            0.88, // recall
+            0.90, // f1_score
+            0.95, // avg_confidence
+            0.05, // fallback_rate
+            1000, // sample_count
         );
         let strong_entry = ModelEntry::new(
             ModelVersion::new(1, 0, 0),
@@ -934,8 +941,8 @@ mod tests {
 
         // Should clamp to valid values
         assert_eq!(schedule.day_of_week, 6); // max 6
-        assert_eq!(schedule.hour, 23);       // max 23
-        assert_eq!(schedule.minute, 59);     // max 59
+        assert_eq!(schedule.hour, 23); // max 23
+        assert_eq!(schedule.minute, 59); // max 59
     }
 
     #[test]

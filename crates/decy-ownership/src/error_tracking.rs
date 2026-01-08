@@ -301,7 +301,11 @@ impl ErrorTracker {
         }
 
         // Sort by suspiciousness (highest first)
-        results.sort_by(|a, b| b.score.partial_cmp(&a.score).unwrap_or(std::cmp::Ordering::Equal));
+        results.sort_by(|a, b| {
+            b.score
+                .partial_cmp(&a.score)
+                .unwrap_or(std::cmp::Ordering::Equal)
+        });
 
         results
     }
@@ -425,7 +429,9 @@ impl ErrorTracker {
             self.error_count(),
             self.success_count(),
             if self.error_count() + self.success_count() as usize > 0 {
-                (self.error_count() as f64 / (self.error_count() + self.success_count() as usize) as f64) * 100.0
+                (self.error_count() as f64
+                    / (self.error_count() + self.success_count() as usize) as f64)
+                    * 100.0
             } else {
                 0.0
             }
@@ -448,8 +454,12 @@ impl ErrorTracker {
         let mut defects: Vec<_> = defect_dist.into_iter().collect();
         defects.sort_by(|a, b| b.1.cmp(&a.1));
         for (defect, count) in defects.iter().take(5) {
-            report.push_str(&format!("- {}: {} ({:.1}%)\n", defect, count,
-                (*count as f64 / self.error_count().max(1) as f64) * 100.0));
+            report.push_str(&format!(
+                "- {}: {} ({:.1}%)\n",
+                defect,
+                count,
+                (*count as f64 / self.error_count().max(1) as f64) * 100.0
+            ));
         }
         report.push('\n');
 
@@ -547,7 +557,10 @@ mod tests {
             0.6,
             OwnershipDefect::PointerMisclassification,
         )
-        .with_features(vec!["malloc_free".to_string(), "pointer_arithmetic".to_string()]);
+        .with_features(vec![
+            "malloc_free".to_string(),
+            "pointer_arithmetic".to_string(),
+        ]);
 
         assert_eq!(error.c_features.len(), 2);
     }
@@ -582,9 +595,9 @@ mod tests {
     #[test]
     fn pattern_stats_record() {
         let mut stats = PatternStats::default();
-        stats.record(true);  // failure
+        stats.record(true); // failure
         stats.record(false); // success
-        stats.record(true);  // failure
+        stats.record(true); // failure
 
         assert_eq!(stats.count, 3);
         assert_eq!(stats.failure_count, 2);
@@ -714,8 +727,14 @@ mod tests {
         let suspicious = tracker.calculate_suspiciousness();
 
         // Feature A should be more suspicious than Feature B
-        let feature_a = suspicious.iter().find(|s| s.feature == "feature_a").unwrap();
-        let feature_b = suspicious.iter().find(|s| s.feature == "feature_b").unwrap();
+        let feature_a = suspicious
+            .iter()
+            .find(|s| s.feature == "feature_a")
+            .unwrap();
+        let feature_b = suspicious
+            .iter()
+            .find(|s| s.feature == "feature_b")
+            .unwrap();
 
         assert!(feature_a.score > feature_b.score);
     }

@@ -116,9 +116,7 @@ fn demo_evaluation() {
         ),
         // This might be incorrect (depends on classifier)
         TrainingSample::new(
-            OwnershipFeaturesBuilder::default()
-                .pointer_depth(2)
-                .build(),
+            OwnershipFeaturesBuilder::default().pointer_depth(2).build(),
             InferredOwnership::Owned, // Might be RawPointer
             "test4.c",
             4,

@@ -365,7 +365,9 @@ impl Default for ArrayParameterTransformer {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use decy_hir::{BinaryOperator, HirExpression, HirFunction, HirParameter, HirStatement, HirType};
+    use decy_hir::{
+        BinaryOperator, HirExpression, HirFunction, HirParameter, HirStatement, HirType,
+    };
 
     // ============================================================================
     // ARRAY PARAMETER INFO TESTS
@@ -495,7 +497,10 @@ mod tests {
         };
         let result = ArrayParameterTransformer::transform_expression(&expr, &map);
         match result {
-            HirExpression::FunctionCall { function, arguments } => {
+            HirExpression::FunctionCall {
+                function,
+                arguments,
+            } => {
                 assert_eq!(function, "test");
                 assert_eq!(arguments.len(), 1);
             }
@@ -563,7 +568,9 @@ mod tests {
         };
         let result = ArrayParameterTransformer::transform_statement(&stmt, &map);
         match result {
-            HirStatement::VariableDeclaration { name, initializer, .. } => {
+            HirStatement::VariableDeclaration {
+                name, initializer, ..
+            } => {
                 assert_eq!(name, "x");
                 assert!(initializer.is_some());
             }
@@ -592,7 +599,11 @@ mod tests {
         };
         let result = ArrayParameterTransformer::transform_statement(&stmt, &map);
         match result {
-            HirStatement::If { then_block, else_block, .. } => {
+            HirStatement::If {
+                then_block,
+                else_block,
+                ..
+            } => {
                 assert_eq!(then_block.len(), 1);
                 assert!(else_block.is_none());
             }
@@ -709,9 +720,14 @@ mod tests {
         let func = HirFunction::new(
             "test".to_string(),
             HirType::Void,
-            vec![HirParameter::new("arr".to_string(), HirType::Pointer(Box::new(HirType::Int)))],
+            vec![HirParameter::new(
+                "arr".to_string(),
+                HirType::Pointer(Box::new(HirType::Int)),
+            )],
         );
-        assert!(!ArrayParameterTransformer::uses_pointer_arithmetic(&func, "arr"));
+        assert!(!ArrayParameterTransformer::uses_pointer_arithmetic(
+            &func, "arr"
+        ));
     }
 
     #[test]
@@ -719,12 +735,8 @@ mod tests {
         let expr = HirExpression::PostIncrement {
             operand: Box::new(HirExpression::Variable("ptr".to_string())),
         };
-        assert!(ArrayParameterTransformer::expression_uses_pointer_arithmetic(
-            &expr, "ptr"
-        ));
-        assert!(!ArrayParameterTransformer::expression_uses_pointer_arithmetic(
-            &expr, "other"
-        ));
+        assert!(ArrayParameterTransformer::expression_uses_pointer_arithmetic(&expr, "ptr"));
+        assert!(!ArrayParameterTransformer::expression_uses_pointer_arithmetic(&expr, "other"));
     }
 
     #[test]
@@ -732,9 +744,7 @@ mod tests {
         let expr = HirExpression::PreIncrement {
             operand: Box::new(HirExpression::Variable("ptr".to_string())),
         };
-        assert!(ArrayParameterTransformer::expression_uses_pointer_arithmetic(
-            &expr, "ptr"
-        ));
+        assert!(ArrayParameterTransformer::expression_uses_pointer_arithmetic(&expr, "ptr"));
     }
 
     #[test]
@@ -742,9 +752,7 @@ mod tests {
         let expr = HirExpression::PostDecrement {
             operand: Box::new(HirExpression::Variable("ptr".to_string())),
         };
-        assert!(ArrayParameterTransformer::expression_uses_pointer_arithmetic(
-            &expr, "ptr"
-        ));
+        assert!(ArrayParameterTransformer::expression_uses_pointer_arithmetic(&expr, "ptr"));
     }
 
     #[test]
@@ -752,17 +760,13 @@ mod tests {
         let expr = HirExpression::PreDecrement {
             operand: Box::new(HirExpression::Variable("ptr".to_string())),
         };
-        assert!(ArrayParameterTransformer::expression_uses_pointer_arithmetic(
-            &expr, "ptr"
-        ));
+        assert!(ArrayParameterTransformer::expression_uses_pointer_arithmetic(&expr, "ptr"));
     }
 
     #[test]
     fn test_expression_uses_pointer_arithmetic_other_expr() {
         let expr = HirExpression::Variable("ptr".to_string());
-        assert!(!ArrayParameterTransformer::expression_uses_pointer_arithmetic(
-            &expr, "ptr"
-        ));
+        assert!(!ArrayParameterTransformer::expression_uses_pointer_arithmetic(&expr, "ptr"));
     }
 
     #[test]
@@ -775,9 +779,7 @@ mod tests {
                 right: Box::new(HirExpression::IntLiteral(1)),
             },
         };
-        assert!(ArrayParameterTransformer::statement_uses_pointer_arithmetic(
-            &stmt, "arr"
-        ));
+        assert!(ArrayParameterTransformer::statement_uses_pointer_arithmetic(&stmt, "arr"));
     }
 
     #[test]
@@ -790,9 +792,7 @@ mod tests {
                 right: Box::new(HirExpression::IntLiteral(1)),
             },
         };
-        assert!(ArrayParameterTransformer::statement_uses_pointer_arithmetic(
-            &stmt, "arr"
-        ));
+        assert!(ArrayParameterTransformer::statement_uses_pointer_arithmetic(&stmt, "arr"));
     }
 
     #[test]
@@ -805,9 +805,7 @@ mod tests {
                 right: Box::new(HirExpression::IntLiteral(1)),
             },
         };
-        assert!(!ArrayParameterTransformer::statement_uses_pointer_arithmetic(
-            &stmt, "arr"
-        ));
+        assert!(!ArrayParameterTransformer::statement_uses_pointer_arithmetic(&stmt, "arr"));
     }
 
     #[test]
@@ -819,9 +817,7 @@ mod tests {
             })],
             else_block: None,
         };
-        assert!(ArrayParameterTransformer::statement_uses_pointer_arithmetic(
-            &stmt, "ptr"
-        ));
+        assert!(ArrayParameterTransformer::statement_uses_pointer_arithmetic(&stmt, "ptr"));
     }
 
     #[test]
@@ -829,13 +825,13 @@ mod tests {
         let stmt = HirStatement::If {
             condition: HirExpression::Variable("cond".to_string()),
             then_block: vec![],
-            else_block: Some(vec![HirStatement::Expression(HirExpression::PostIncrement {
-                operand: Box::new(HirExpression::Variable("ptr".to_string())),
-            })]),
+            else_block: Some(vec![HirStatement::Expression(
+                HirExpression::PostIncrement {
+                    operand: Box::new(HirExpression::Variable("ptr".to_string())),
+                },
+            )]),
         };
-        assert!(ArrayParameterTransformer::statement_uses_pointer_arithmetic(
-            &stmt, "ptr"
-        ));
+        assert!(ArrayParameterTransformer::statement_uses_pointer_arithmetic(&stmt, "ptr"));
     }
 
     #[test]
@@ -846,9 +842,7 @@ mod tests {
                 operand: Box::new(HirExpression::Variable("ptr".to_string())),
             })],
         };
-        assert!(ArrayParameterTransformer::statement_uses_pointer_arithmetic(
-            &stmt, "ptr"
-        ));
+        assert!(ArrayParameterTransformer::statement_uses_pointer_arithmetic(&stmt, "ptr"));
     }
 
     #[test]
@@ -861,8 +855,6 @@ mod tests {
                 operand: Box::new(HirExpression::Variable("ptr".to_string())),
             })],
         };
-        assert!(ArrayParameterTransformer::statement_uses_pointer_arithmetic(
-            &stmt, "ptr"
-        ));
+        assert!(ArrayParameterTransformer::statement_uses_pointer_arithmetic(&stmt, "ptr"));
     }
 }

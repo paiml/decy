@@ -69,12 +69,7 @@ pub struct LabeledSample {
 
 impl LabeledSample {
     /// Create a new labeled sample.
-    pub fn new(
-        sample: TrainingSample,
-        source: DataSource,
-        c_code: &str,
-        rust_code: &str,
-    ) -> Self {
+    pub fn new(sample: TrainingSample, source: DataSource, c_code: &str, rust_code: &str) -> Self {
         Self {
             sample,
             source,
@@ -239,7 +234,11 @@ impl TrainingDataset {
             label_distribution: label_dist,
             source_distribution: source_dist,
             avg_confidence,
-            min_confidence: if self.samples.is_empty() { 0.0 } else { min_conf },
+            min_confidence: if self.samples.is_empty() {
+                0.0
+            } else {
+                min_conf
+            },
             max_confidence: max_conf,
         }
     }
@@ -414,7 +413,10 @@ impl SyntheticDataGenerator {
                 i as u32,
             );
 
-            let c_code = format!("void process{}(const int* ptr) {{ printf(\"%d\", *ptr); }}", i);
+            let c_code = format!(
+                "void process{}(const int* ptr) {{ printf(\"%d\", *ptr); }}",
+                i
+            );
             let rust_code = format!("fn process{}(ptr: &i32) {{ println!(\"{{}}\", ptr); }}", i);
 
             samples.push(LabeledSample::new(
@@ -487,10 +489,7 @@ impl SyntheticDataGenerator {
                 "int sum{}(const int* arr, size_t len) {{ int s = 0; for(size_t j = 0; j < len; j++) s += arr[j]; return s; }}",
                 i
             );
-            let rust_code = format!(
-                "fn sum{}(arr: &[i32]) -> i32 {{ arr.iter().sum() }}",
-                i
-            );
+            let rust_code = format!("fn sum{}(arr: &[i32]) -> i32 {{ arr.iter().sum() }}", i);
 
             samples.push(LabeledSample::new(
                 sample,
@@ -935,7 +934,10 @@ mod tests {
 
         assert_eq!(samples.len(), 10);
         for sample in &samples {
-            assert!(matches!(sample.sample.label, InferredOwnership::BorrowedMut));
+            assert!(matches!(
+                sample.sample.label,
+                InferredOwnership::BorrowedMut
+            ));
             assert!(sample.rust_code.contains("&mut"));
         }
     }

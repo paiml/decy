@@ -191,10 +191,7 @@ mod tests {
             parse_command(":unknown"),
             ReplCommand::Code(":unknown".to_string())
         );
-        assert_eq!(
-            parse_command(":foo"),
-            ReplCommand::Code(":foo".to_string())
-        );
+        assert_eq!(parse_command(":foo"), ReplCommand::Code(":foo".to_string()));
     }
 
     #[test]
@@ -232,10 +229,7 @@ mod tests {
         );
 
         assert_ne!(ReplCommand::Quit, ReplCommand::Help);
-        assert_ne!(
-            ReplCommand::Code("a".into()),
-            ReplCommand::Code("b".into())
-        );
+        assert_ne!(ReplCommand::Code("a".into()), ReplCommand::Code("b".into()));
     }
 
     // ============================================================================

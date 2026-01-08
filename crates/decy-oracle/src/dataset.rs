@@ -289,10 +289,16 @@ impl DatasetExporter {
             .map(|e| Some(e.source.as_str()))
             .collect();
         let verified: BooleanArray = self.examples.iter().map(|e| Some(e.verified)).collect();
-        let success_counts: UInt32Array =
-            self.examples.iter().map(|e| Some(e.success_count)).collect();
-        let failure_counts: UInt32Array =
-            self.examples.iter().map(|e| Some(e.failure_count)).collect();
+        let success_counts: UInt32Array = self
+            .examples
+            .iter()
+            .map(|e| Some(e.success_count))
+            .collect();
+        let failure_counts: UInt32Array = self
+            .examples
+            .iter()
+            .map(|e| Some(e.failure_count))
+            .collect();
 
         // Create schema
         let schema = Arc::new(Schema::new(vec![
@@ -323,8 +329,9 @@ impl DatasetExporter {
         .map_err(|e| OracleError::ExportError(format!("Failed to create RecordBatch: {}", e)))?;
 
         // Create dataset from batch
-        let dataset = ArrowDataset::from_batch(batch)
-            .map_err(|e| OracleError::ExportError(format!("Failed to create Arrow dataset: {}", e)))?;
+        let dataset = ArrowDataset::from_batch(batch).map_err(|e| {
+            OracleError::ExportError(format!("Failed to create Arrow dataset: {}", e))
+        })?;
 
         dataset
             .to_parquet(path)

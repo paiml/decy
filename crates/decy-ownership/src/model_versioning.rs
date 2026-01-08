@@ -847,7 +847,15 @@ mod tests {
 
         // Register 3 versions
         for i in 0..3 {
-            let m = ModelQualityMetrics::new(0.85 + (i as f64 * 0.02), 0.85, 0.85, 0.85, 0.8, 0.2, 1000);
+            let m = ModelQualityMetrics::new(
+                0.85 + (i as f64 * 0.02),
+                0.85,
+                0.85,
+                0.85,
+                0.8,
+                0.2,
+                1000,
+            );
             let e = ModelEntry::new(
                 ModelVersion::new(1, i, 0),
                 m,
@@ -928,7 +936,15 @@ mod tests {
 
         // Register 5 versions
         for i in 0..5 {
-            let m = ModelQualityMetrics::new(0.85 + (i as f64 * 0.01), 0.85, 0.85, 0.85, 0.8, 0.2, 1000);
+            let m = ModelQualityMetrics::new(
+                0.85 + (i as f64 * 0.01),
+                0.85,
+                0.85,
+                0.85,
+                0.8,
+                0.2,
+                1000,
+            );
             let e = ModelEntry::new(
                 ModelVersion::new(1, i, 0),
                 m,

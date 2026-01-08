@@ -188,10 +188,7 @@ confidence_threshold = 0.9
     fn test_from_env_patterns_path() {
         std::env::set_var("DECY_ORACLE_PATTERNS", "/custom/test/path.apr");
         let config = OracleConfig::from_env();
-        assert_eq!(
-            config.patterns_path,
-            PathBuf::from("/custom/test/path.apr")
-        );
+        assert_eq!(config.patterns_path, PathBuf::from("/custom/test/path.apr"));
         std::env::remove_var("DECY_ORACLE_PATTERNS");
     }
 

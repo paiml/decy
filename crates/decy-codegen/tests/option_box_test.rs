@@ -142,7 +142,13 @@ fn test_binary_tree_reduced_unsafe() {
             "transpile",
             "examples/data_structures/binary_tree.c",
         ])
-        .current_dir(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).parent().unwrap().parent().unwrap())
+        .current_dir(
+            std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+                .parent()
+                .unwrap()
+                .parent()
+                .unwrap(),
+        )
         .output()
         .expect("Failed to run decy transpile");
 
@@ -188,7 +194,13 @@ fn test_hash_table_entry_struct() {
             "transpile",
             "examples/data_structures/hash_table.c",
         ])
-        .current_dir(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).parent().unwrap().parent().unwrap())
+        .current_dir(
+            std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+                .parent()
+                .unwrap()
+                .parent()
+                .unwrap(),
+        )
         .output()
         .expect("Failed to run decy transpile");
 

@@ -60,7 +60,8 @@ fn test_malloc_simple_size_generates_vec_expression() {
     // 1. Vec<u8> = Vec::with_capacity(...) - type matches
     // 2. *mut u8 = Box::leak(...) - type matches
     // Both are valid, but type must match expression
-    let has_vec_with_vec = code.contains("Vec<u8>") && code.contains("Vec::") && !code.contains("as_mut_ptr");
+    let has_vec_with_vec =
+        code.contains("Vec<u8>") && code.contains("Vec::") && !code.contains("as_mut_ptr");
     let has_ptr_with_ptr = code.contains("*mut u8") && code.contains("as_mut_ptr");
 
     assert!(

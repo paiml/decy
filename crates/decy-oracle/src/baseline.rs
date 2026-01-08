@@ -258,10 +258,7 @@ impl FileMeasurement {
 pub fn aggregate_measurements(measurements: &[FileMeasurement]) -> BaselineMetrics {
     let corpus_size = measurements.len() as u64;
 
-    let first_try_successes = measurements
-        .iter()
-        .filter(|m| m.first_try_success)
-        .count() as u64;
+    let first_try_successes = measurements.iter().filter(|m| m.first_try_success).count() as u64;
 
     let eventual_successes = measurements.iter().filter(|m| m.eventual_success).count() as u64;
 
@@ -432,7 +429,8 @@ mod tests {
 
     #[test]
     fn file_measurement_failure() {
-        let m = FileMeasurement::failure("test.c", 5, vec!["E0382".to_string(), "E0499".to_string()]);
+        let m =
+            FileMeasurement::failure("test.c", 5, vec!["E0382".to_string(), "E0499".to_string()]);
         assert!(!m.first_try_success);
         assert!(!m.eventual_success);
         assert_eq!(m.iterations, 5);

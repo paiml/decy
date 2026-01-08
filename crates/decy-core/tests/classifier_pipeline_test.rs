@@ -23,9 +23,8 @@ int read_value(const int *ptr) {
     let result = transpile(c_code).expect("Transpilation should succeed");
 
     // Should generate immutable reference parameter
-    let has_immut_ref = result.contains("&i32")
-        || result.contains("&'a i32")
-        || result.contains(": &");
+    let has_immut_ref =
+        result.contains("&i32") || result.contains("&'a i32") || result.contains(": &");
 
     assert!(
         has_immut_ref,
@@ -46,9 +45,8 @@ void set_value(int *ptr, int value) {
     let result = transpile(c_code).expect("Transpilation should succeed");
 
     // Should generate mutable reference parameter
-    let has_mut_ref = result.contains("&mut i32")
-        || result.contains("&'a mut i32")
-        || result.contains(": &mut");
+    let has_mut_ref =
+        result.contains("&mut i32") || result.contains("&'a mut i32") || result.contains(": &mut");
 
     assert!(
         has_mut_ref,
@@ -73,9 +71,8 @@ int sum(int *arr, int len) {
     let result = transpile(c_code).expect("Transpilation should succeed");
 
     // Should generate slice parameter
-    let has_slice = result.contains("&[i32]")
-        || result.contains("&'a [i32]")
-        || result.contains(": &[");
+    let has_slice =
+        result.contains("&[i32]") || result.contains("&'a [i32]") || result.contains(": &[");
 
     assert!(
         has_slice,
