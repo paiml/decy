@@ -7,7 +7,64 @@ use anyhow::{Context, Result};
 use clang_sys::*;
 use std::ffi::{CStr, CString};
 use std::path::Path;
+use std::process::Command;
 use std::ptr;
+
+/// Discover system include paths from the clang compiler.
+///
+/// This function runs `clang -E -x c - -v` to extract the system include
+/// search paths, enabling parsing of code that uses standard headers.
+fn discover_system_includes() -> Vec<String> {
+    let mut includes = Vec::new();
+
+    // Try to get include paths from clang
+    let output = Command::new("clang")
+        .args(["-E", "-x", "c", "-", "-v"])
+        .stdin(std::process::Stdio::null())
+        .output();
+
+    if let Ok(output) = output {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        let mut in_include_section = false;
+
+        for line in stderr.lines() {
+            if line.contains("#include <...> search starts here:") {
+                in_include_section = true;
+                continue;
+            }
+            if line.contains("End of search list.") {
+                break;
+            }
+            if in_include_section {
+                let path = line.trim();
+                // Skip framework directories (macOS-specific)
+                if !path.is_empty() && !path.contains("(framework directory)") {
+                    includes.push(path.to_string());
+                }
+            }
+        }
+    }
+
+    // Fallback paths if clang detection fails
+    if includes.is_empty() {
+        // macOS paths
+        if cfg!(target_os = "macos") {
+            includes.extend([
+                "/usr/local/include".to_string(),
+                "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include".to_string(),
+            ]);
+        }
+        // Linux paths
+        if cfg!(target_os = "linux") {
+            includes.extend([
+                "/usr/include".to_string(),
+                "/usr/local/include".to_string(),
+            ]);
+        }
+    }
+
+    includes
+}
 
 /// C parser using clang-sys.
 ///
@@ -24,10 +81,14 @@ use std::ptr;
 #[derive(Debug)]
 pub struct CParser {
     index: CXIndex,
+    /// System include paths discovered from the compiler
+    system_includes: Vec<String>,
 }
 
 impl CParser {
     /// Create a new C parser.
+    ///
+    /// This automatically discovers system include paths from the clang compiler.
     ///
     /// # Examples
     ///
@@ -43,7 +104,14 @@ impl CParser {
         if index.is_null() {
             anyhow::bail!("Failed to create clang index");
         }
-        Ok(Self { index })
+
+        // Discover system include paths for standard header support
+        let system_includes = discover_system_includes();
+
+        Ok(Self {
+            index,
+            system_includes,
+        })
     }
 
     /// Parse C source code into an AST.
@@ -92,6 +160,15 @@ impl CParser {
             source.contains("#ifdef __cplusplus") || source.contains("#if defined(__cplusplus)");
         let needs_cpp_mode = has_extern_c && !has_ifdef_guard;
 
+        // Build system include path arguments
+        // We need to keep CStrings alive for the duration of parsing
+        let isystem_flag = CString::new("-isystem").unwrap();
+        let include_cstrings: Vec<CString> = self
+            .system_includes
+            .iter()
+            .map(|p| CString::new(p.as_str()).unwrap())
+            .collect();
+
         // Prepare command line arguments for C++ mode if needed
         let cpp_flag = CString::new("-x").unwrap();
         let cpp_lang = CString::new("c++").unwrap();
@@ -103,21 +180,25 @@ impl CParser {
         // BUFSIZ from stdio.h (typical value)
         let define_bufsiz = CString::new("-DBUFSIZ=8192").unwrap();
 
-        let args_vec: Vec<*const std::os::raw::c_char> = if needs_cpp_mode {
-            vec![
-                cpp_flag.as_ptr(),
-                cpp_lang.as_ptr(),
-                define_eof.as_ptr(),
-                define_null.as_ptr(),
-                define_bufsiz.as_ptr(),
-            ]
-        } else {
-            vec![
-                define_eof.as_ptr(),
-                define_null.as_ptr(),
-                define_bufsiz.as_ptr(),
-            ]
-        };
+        // Build the complete args vector
+        let mut args_vec: Vec<*const std::os::raw::c_char> = Vec::new();
+
+        // Add C++ mode flags if needed
+        if needs_cpp_mode {
+            args_vec.push(cpp_flag.as_ptr());
+            args_vec.push(cpp_lang.as_ptr());
+        }
+
+        // Add macro definitions
+        args_vec.push(define_eof.as_ptr());
+        args_vec.push(define_null.as_ptr());
+        args_vec.push(define_bufsiz.as_ptr());
+
+        // Add system include paths
+        for include_path in &include_cstrings {
+            args_vec.push(isystem_flag.as_ptr());
+            args_vec.push(include_path.as_ptr());
+        }
 
         // SAFETY: Parsing with clang_parseTranslationUnit2
         // Enable DetailedPreprocessingRecord to capture macro definitions
