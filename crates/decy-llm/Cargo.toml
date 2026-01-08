@@ -12,9 +12,9 @@ categories = ["development-tools"]
 description = "LLM context builder for Decy C-to-Rust transpiler"
 
 [dependencies]
-decy-hir = { version = "1.0.2", path = "../decy-hir" }
-decy-analyzer = { version = "1.0.2", path = "../decy-analyzer" }
-decy-ownership = { version = "1.0.2", path = "../decy-ownership" }
+decy-hir = { version = "2.0.0", path = "../decy-hir" }
+decy-analyzer = { version = "2.0.0", path = "../decy-analyzer" }
+decy-ownership = { version = "2.0.0", path = "../decy-ownership" }
 serde.workspace = true
 serde_json.workspace = true
 thiserror.workspace = true
