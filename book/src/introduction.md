@@ -4,35 +4,36 @@
 
 ## Key Features
 
-✅ **Safety First**: Target <5 `unsafe` blocks per 1000 lines of code  
-✅ **Ownership Inference**: Automatically converts C pointers to Rust references  
-✅ **TDD Verified**: 90%+ test coverage, 100K+ property tests  
-✅ **Production Validated**: Tested against real-world C projects  
-✅ **Incremental Migration**: Work with mixed C/Rust codebases  
+✅ **Safety First**: Target <5 `unsafe` blocks per 1000 lines of code
+✅ **Ownership Inference**: Automatically converts C pointers to Rust references
+✅ **TDD Verified**: 95%+ test coverage, 100K+ property tests
+✅ **Production Validated**: Tested against real-world C projects
+✅ **Incremental Migration**: Work with mixed C/Rust codebases
+✅ **System Include Support**: Automatic stdlib.h, string.h discovery
 
 ## Current Status
 
-**Version**: 0.2.0  
-**Real-World Readiness**: 40% (Sprint 17)  
-**Test Coverage**: 89.83%  
-**Passing Tests**: 613  
+**Version**: 2.0.0
+**Test Pass Rate**: 99.9%
+**Test Coverage**: 95.1%
+**Passing Tests**: 1,391
 
 ## What Works Well
 
-- ✅ Single-file C programs
+- ✅ Single-file C programs with system includes
 - ✅ Basic C constructs (functions, variables, control flow)
 - ✅ Pointer-to-reference inference
-- ✅ malloc/free → Box pattern detection
+- ✅ malloc/free → Vec/Box pattern detection (DECY-220)
 - ✅ Fast incremental transpilation (10-20x with cache)
+- ✅ System include discovery (stdlib.h, string.h, etc.)
 
 ## Current Limitations
 
-- ⚠️ `#include` directives (P0 blocker - Sprint 18)
-- ⚠️ `extern "C"` guards (P1 - Sprint 18)
-- ⚠️ Multi-file projects require workarounds
 - ⚠️ Some complex macros not supported
+- ⚠️ Multi-file projects require explicit handling
+- ⚠️ C++ not supported (use c2rust for C++)
 
-**Honest Assessment**: Decy excels at transpiling simple-to-moderate C code. Complex production codebases may require preprocessing. We're actively working on closing these gaps.
+**Honest Assessment**: Decy 2.0 handles most single-file C programs including those with system includes. Complex production codebases with heavy macro usage may require preprocessing.
 
 ## Who Should Use Decy
 

@@ -12,9 +12,9 @@ categories.workspace = true
 description = "Rust code generation from HIR with minimal unsafe blocks"
 
 [dependencies]
-decy-hir = { version = "1.0.2", path = "../decy-hir" }
-decy-analyzer = { version = "1.0.2", path = "../decy-analyzer" }
-decy-ownership = { version = "1.0.2", path = "../decy-ownership" }
+decy-hir = { version = "2.0.0", path = "../decy-hir" }
+decy-analyzer = { version = "2.0.0", path = "../decy-analyzer" }
+decy-ownership = { version = "2.0.0", path = "../decy-ownership" }
 syn.workspace = true
 quote.workspace = true
 proc-macro2.workspace = true
@@ -24,8 +24,8 @@ tracing.workspace = true
 
 [dev-dependencies]
 proptest.workspace = true
-decy-parser = { version = "1.0.2", path = "../decy-parser" }
-decy-core = { version = "1.0.2", path = "../decy-core" }
+decy-parser = { version = "2.0.0", path = "../decy-parser" }
+decy-core = { version = "2.0.0", path = "../decy-core" }
 criterion.workspace = true
 tempfile.workspace = true
 
