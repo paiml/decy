@@ -133,10 +133,7 @@ impl VariantMetrics {
             .or_insert(0) += 1;
 
         // Track method distribution
-        *self
-            .by_method
-            .entry(obs.method.to_string())
-            .or_insert(0) += 1;
+        *self.by_method.entry(obs.method.to_string()).or_insert(0) += 1;
 
         // Track accuracy (if ground truth available)
         if let Some(correct) = obs.correct {
@@ -742,8 +739,10 @@ mod tests {
 
     #[test]
     fn ab_runner_random_deterministic() {
-        let mut runner1 = ABTestRunner::new("test", "desc", AssignmentStrategy::Random).with_seed(42);
-        let mut runner2 = ABTestRunner::new("test", "desc", AssignmentStrategy::Random).with_seed(42);
+        let mut runner1 =
+            ABTestRunner::new("test", "desc", AssignmentStrategy::Random).with_seed(42);
+        let mut runner2 =
+            ABTestRunner::new("test", "desc", AssignmentStrategy::Random).with_seed(42);
 
         // Same seed should produce same sequence
         for _ in 0..10 {

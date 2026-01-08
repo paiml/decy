@@ -102,7 +102,10 @@ fn demo_training(dataset: &decy_ownership::TrainingDataset) {
     };
 
     println!("Training configuration:");
-    println!("  - Validation split: {:.0}%", config.validation_split * 100.0);
+    println!(
+        "  - Validation split: {:.0}%",
+        config.validation_split * 100.0
+    );
     println!("  - Random seed: {}", config.random_seed);
     println!("  - Max iterations: {}", config.max_iterations);
 

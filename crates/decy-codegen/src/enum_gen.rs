@@ -472,12 +472,27 @@ mod tests {
 
     #[test]
     fn test_type_based_variant_name_primitives() {
-        assert_eq!(EnumGenerator::type_based_variant_name(&HirType::Void), "None");
+        assert_eq!(
+            EnumGenerator::type_based_variant_name(&HirType::Void),
+            "None"
+        );
         assert_eq!(EnumGenerator::type_based_variant_name(&HirType::Int), "Int");
-        assert_eq!(EnumGenerator::type_based_variant_name(&HirType::UnsignedInt), "UInt");
-        assert_eq!(EnumGenerator::type_based_variant_name(&HirType::Float), "Float");
-        assert_eq!(EnumGenerator::type_based_variant_name(&HirType::Double), "Double");
-        assert_eq!(EnumGenerator::type_based_variant_name(&HirType::Char), "Char");
+        assert_eq!(
+            EnumGenerator::type_based_variant_name(&HirType::UnsignedInt),
+            "UInt"
+        );
+        assert_eq!(
+            EnumGenerator::type_based_variant_name(&HirType::Float),
+            "Float"
+        );
+        assert_eq!(
+            EnumGenerator::type_based_variant_name(&HirType::Double),
+            "Double"
+        );
+        assert_eq!(
+            EnumGenerator::type_based_variant_name(&HirType::Char),
+            "Char"
+        );
     }
 
     #[test]
@@ -528,7 +543,10 @@ mod tests {
     #[test]
     fn test_type_based_variant_name_struct() {
         let struct_type = HirType::Struct("MyStruct".to_string());
-        assert_eq!(EnumGenerator::type_based_variant_name(&struct_type), "MyStruct");
+        assert_eq!(
+            EnumGenerator::type_based_variant_name(&struct_type),
+            "MyStruct"
+        );
     }
 
     #[test]
@@ -591,7 +609,10 @@ mod tests {
     fn test_map_hir_type_primitives() {
         assert_eq!(EnumGenerator::map_hir_type_to_rust(&HirType::Void), "()");
         assert_eq!(EnumGenerator::map_hir_type_to_rust(&HirType::Int), "i32");
-        assert_eq!(EnumGenerator::map_hir_type_to_rust(&HirType::UnsignedInt), "u32");
+        assert_eq!(
+            EnumGenerator::map_hir_type_to_rust(&HirType::UnsignedInt),
+            "u32"
+        );
         assert_eq!(EnumGenerator::map_hir_type_to_rust(&HirType::Float), "f32");
         assert_eq!(EnumGenerator::map_hir_type_to_rust(&HirType::Double), "f64");
         assert_eq!(EnumGenerator::map_hir_type_to_rust(&HirType::Char), "u8");
@@ -666,7 +687,10 @@ mod tests {
     #[test]
     fn test_map_hir_type_union() {
         let union_type = HirType::Union(vec![]);
-        assert_eq!(EnumGenerator::map_hir_type_to_rust(&union_type), "/* Union */");
+        assert_eq!(
+            EnumGenerator::map_hir_type_to_rust(&union_type),
+            "/* Union */"
+        );
     }
 
     #[test]
@@ -702,7 +726,10 @@ mod tests {
             param_types: vec![HirType::Int],
             return_type: Box::new(HirType::Int),
         };
-        assert_eq!(EnumGenerator::map_hir_type_to_rust(&fn_ptr), "fn(i32) -> i32");
+        assert_eq!(
+            EnumGenerator::map_hir_type_to_rust(&fn_ptr),
+            "fn(i32) -> i32"
+        );
     }
 
     #[test]
@@ -716,9 +743,18 @@ mod tests {
 
     #[test]
     fn test_map_hir_type_string_types() {
-        assert_eq!(EnumGenerator::map_hir_type_to_rust(&HirType::StringLiteral), "&str");
-        assert_eq!(EnumGenerator::map_hir_type_to_rust(&HirType::OwnedString), "String");
-        assert_eq!(EnumGenerator::map_hir_type_to_rust(&HirType::StringReference), "&str");
+        assert_eq!(
+            EnumGenerator::map_hir_type_to_rust(&HirType::StringLiteral),
+            "&str"
+        );
+        assert_eq!(
+            EnumGenerator::map_hir_type_to_rust(&HirType::OwnedString),
+            "String"
+        );
+        assert_eq!(
+            EnumGenerator::map_hir_type_to_rust(&HirType::StringReference),
+            "&str"
+        );
     }
 
     #[test]

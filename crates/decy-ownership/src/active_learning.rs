@@ -399,7 +399,10 @@ impl SampleQueue {
             avg_uncertainty: if self.pending.is_empty() {
                 0.0
             } else {
-                self.pending.iter().map(|s| s.uncertainty_score).sum::<f64>()
+                self.pending
+                    .iter()
+                    .map(|s| s.uncertainty_score)
+                    .sum::<f64>()
                     / self.pending.len() as f64
             },
             prediction_accuracy: if labeled_total > 0 {
@@ -588,7 +591,10 @@ mod tests {
 
     #[test]
     fn selection_strategy_display() {
-        assert_eq!(SelectionStrategy::UncertaintySampling.to_string(), "uncertainty");
+        assert_eq!(
+            SelectionStrategy::UncertaintySampling.to_string(),
+            "uncertainty"
+        );
         assert_eq!(SelectionStrategy::MarginSampling.to_string(), "margin");
         assert_eq!(SelectionStrategy::EntropySampling.to_string(), "entropy");
         assert_eq!(SelectionStrategy::Random.to_string(), "random");
@@ -794,7 +800,8 @@ mod tests {
 
     #[test]
     fn sample_queue_max_pending() {
-        let mut queue = SampleQueue::new(SelectionStrategy::UncertaintySampling).with_max_pending(3);
+        let mut queue =
+            SampleQueue::new(SelectionStrategy::UncertaintySampling).with_max_pending(3);
 
         // Enqueue 5 samples
         for i in 0..5 {

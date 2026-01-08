@@ -1,0 +1,34 @@
+# Pre-commit hooks for Decy
+# Install: pip install pre-commit && pre-commit install
+# Or use: cp scripts/pre-commit.sh .git/hooks/pre-commit
+
+repos:
+  - repo: local
+    hooks:
+      - id: cargo-fmt
+        name: cargo fmt
+        entry: cargo fmt --check
+        language: system
+        types: [rust]
+        pass_filenames: false
+
+      - id: cargo-clippy
+        name: cargo clippy
+        entry: cargo clippy --workspace -- -D warnings
+        language: system
+        types: [rust]
+        pass_filenames: false
+
+      - id: cargo-test
+        name: cargo test
+        entry: cargo test --workspace --lib
+        language: system
+        types: [rust]
+        pass_filenames: false
+
+      - id: satd-check
+        name: SATD check
+        entry: bash -c 'if grep -rqE "(TODO|FIXME|HACK|XXX)" crates/*/src/*.rs 2>/dev/null; then echo "SATD found"; exit 1; fi'
+        language: system
+        types: [rust]
+        pass_filenames: false

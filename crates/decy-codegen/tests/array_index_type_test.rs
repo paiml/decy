@@ -115,8 +115,7 @@ void buffer_access(int* buffer, int size) {
 #[test]
 fn test_buffer_ops_compiles() {
     // Get workspace root from CARGO_MANIFEST_DIR
-    let manifest_dir = std::env::var("CARGO_MANIFEST_DIR")
-        .expect("CARGO_MANIFEST_DIR not set");
+    let manifest_dir = std::env::var("CARGO_MANIFEST_DIR").expect("CARGO_MANIFEST_DIR not set");
     let workspace_root = std::path::Path::new(&manifest_dir)
         .parent()
         .expect("Failed to get parent")

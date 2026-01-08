@@ -1777,17 +1777,15 @@ fn test_decy189_sizeof_struct_field_compiles() {
     // Should generate something that compiles (size_of_val, array len, or actual size)
     // At minimum, the generated code should not have two consecutive identifiers in type position
     let has_invalid_sizeof = rust_code.contains("size_of::<")
-        && rust_code.split("size_of::<")
-            .skip(1)
-            .any(|s| {
-                // Check if there's a space before the closing >
-                if let Some(end) = s.find('>') {
-                    let type_part = &s[..end];
-                    type_part.contains(' ') && !type_part.starts_with("struct ")
-                } else {
-                    false
-                }
-            });
+        && rust_code.split("size_of::<").skip(1).any(|s| {
+            // Check if there's a space before the closing >
+            if let Some(end) = s.find('>') {
+                let type_part = &s[..end];
+                type_part.contains(' ') && !type_part.starts_with("struct ")
+            } else {
+                false
+            }
+        });
 
     assert!(
         !has_invalid_sizeof,

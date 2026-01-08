@@ -8,7 +8,9 @@
 use crate::classifier::{ClassifierPrediction, OwnershipClassifier, RuleBasedClassifier};
 use crate::dataflow::DataflowGraph;
 use crate::inference::{OwnershipInference, OwnershipKind};
-use crate::ml_features::{AllocationKind, InferredOwnership, OwnershipFeatures, OwnershipFeaturesBuilder};
+use crate::ml_features::{
+    AllocationKind, InferredOwnership, OwnershipFeatures, OwnershipFeaturesBuilder,
+};
 use decy_hir::{HirFunction, HirType};
 use std::collections::HashMap;
 

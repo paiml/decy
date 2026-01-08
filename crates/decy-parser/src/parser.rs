@@ -3,6 +3,9 @@
 //! This module provides the core parsing functionality to convert C source code
 //! into an AST representation using LLVM/Clang bindings.
 
+// Allow non-upper-case globals from clang-sys FFI bindings (CXCursor_* constants)
+#![allow(non_upper_case_globals)]
+
 use anyhow::{Context, Result};
 use clang_sys::*;
 use std::ffi::{CStr, CString};
@@ -56,10 +59,7 @@ fn discover_system_includes() -> Vec<String> {
         }
         // Linux paths
         if cfg!(target_os = "linux") {
-            includes.extend([
-                "/usr/include".to_string(),
-                "/usr/local/include".to_string(),
-            ]);
+            includes.extend(["/usr/include".to_string(), "/usr/local/include".to_string()]);
         }
     }
 
@@ -604,7 +604,7 @@ fn try_extract_expression(cursor: CXCursor) -> Option<Expression> {
         CXCursor_ArraySubscriptExpr => extract_array_index(cursor),
         CXCursor_MemberRefExpr => extract_field_access(cursor),
         116 => extract_conditional_op(cursor), // CXCursor_ConditionalOperator (ternary)
-        117 => extract_cast(cursor), // CXCursor_CStyleCastExpr
+        117 => extract_cast(cursor),           // CXCursor_CStyleCastExpr
         118 => extract_compound_literal(cursor), // CXCursor_CompoundLiteralExpr
         111 => {
             // CXCursor_ParenExpr - parenthesized expression like (a > b)
@@ -1466,7 +1466,7 @@ extern "C" fn visit_if_children(
                 CXCursor_BinaryOperator => extract_binary_op(cursor),
                 CXCursor_IntegerLiteral => extract_int_literal(cursor),
                 107 => extract_float_literal(cursor), // CXCursor_FloatingLiteral
-                110 => extract_char_literal(cursor), // CXCursor_CharacterLiteral
+                110 => extract_char_literal(cursor),  // CXCursor_CharacterLiteral
                 CXCursor_DeclRefExpr => extract_variable_ref(cursor),
                 CXCursor_CallExpr => extract_function_call(cursor),
                 CXCursor_UnaryOperator => extract_unary_op(cursor),
@@ -1567,7 +1567,11 @@ fn extract_for_stmt(cursor: CXCursor) -> Option<Statement> {
     };
 
     unsafe {
-        clang_visitChildren(cursor, collect_for_children, &mut collector as *mut _ as CXClientData);
+        clang_visitChildren(
+            cursor,
+            collect_for_children,
+            &mut collector as *mut _ as CXClientData,
+        );
     }
 
     // Second pass: identify what each child is
@@ -1596,14 +1600,14 @@ fn extract_for_stmt(cursor: CXCursor) -> Option<Statement> {
         if let Some(op) = extract_binary_operator(cursor) {
             matches!(
                 op,
-                BinaryOperator::Equal |
-                BinaryOperator::NotEqual |
-                BinaryOperator::LessThan |
-                BinaryOperator::GreaterThan |
-                BinaryOperator::LessEqual |
-                BinaryOperator::GreaterEqual |
-                BinaryOperator::LogicalAnd |
-                BinaryOperator::LogicalOr
+                BinaryOperator::Equal
+                    | BinaryOperator::NotEqual
+                    | BinaryOperator::LessThan
+                    | BinaryOperator::GreaterThan
+                    | BinaryOperator::LessEqual
+                    | BinaryOperator::GreaterEqual
+                    | BinaryOperator::LogicalAnd
+                    | BinaryOperator::LogicalOr
             )
         } else {
             false
@@ -1611,7 +1615,12 @@ fn extract_for_stmt(cursor: CXCursor) -> Option<Statement> {
     }
 
     if num_children == 0 {
-        return Some(Statement::For { init, condition, increment, body });
+        return Some(Statement::For {
+            init,
+            condition,
+            increment,
+            body,
+        });
     }
 
     // Process children based on count and types
@@ -1643,7 +1652,8 @@ fn extract_for_stmt(cursor: CXCursor) -> Option<Statement> {
             // One child before body - could be init, condition, or increment
             // Use heuristics to determine which
             let child = &pre_body[0];
-            if child.kind == CXCursor_DeclStmt { // DeclStmt - always init
+            if child.kind == CXCursor_DeclStmt {
+                // DeclStmt - always init
                 let mut init_stmts = Vec::new();
                 let ptr = &mut init_stmts as *mut Vec<Statement>;
                 unsafe {
@@ -1681,8 +1691,8 @@ fn extract_for_stmt(cursor: CXCursor) -> Option<Statement> {
             let child1 = &pre_body[1];
 
             // Check if first child is init (DeclStmt or assignment)
-            let first_is_init = child0.kind == CXCursor_DeclStmt ||
-                (child0.kind == CXCursor_BinaryOperator && is_assignment_op(child0.cursor));
+            let first_is_init = child0.kind == CXCursor_DeclStmt
+                || (child0.kind == CXCursor_BinaryOperator && is_assignment_op(child0.cursor));
 
             if first_is_init {
                 // child0 = init, child1 = condition (skip increment)
@@ -1769,7 +1779,7 @@ fn extract_expression_from_cursor(cursor: CXCursor) -> Option<Expression> {
         CXCursor_BinaryOperator => extract_binary_op(cursor),
         CXCursor_IntegerLiteral => extract_int_literal(cursor),
         107 => extract_float_literal(cursor), // CXCursor_FloatingLiteral
-        110 => extract_char_literal(cursor), // CXCursor_CharacterLiteral
+        110 => extract_char_literal(cursor),  // CXCursor_CharacterLiteral
         CXCursor_DeclRefExpr => extract_variable_ref(cursor),
         CXCursor_CallExpr => extract_function_call(cursor),
         CXCursor_UnaryOperator => extract_unary_op(cursor),
@@ -1796,8 +1806,15 @@ fn extract_single_statement(cursor: CXCursor) -> Option<Statement> {
         CXCursor_UnaryOperator => extract_inc_dec_stmt(cursor),
         CXCursor_BinaryOperator => extract_assignment_stmt(cursor),
         CXCursor_CallExpr => {
-            if let Some(Expression::FunctionCall { function, arguments }) = extract_function_call(cursor) {
-                Some(Statement::FunctionCall { function, arguments })
+            if let Some(Expression::FunctionCall {
+                function,
+                arguments,
+            }) = extract_function_call(cursor)
+            {
+                Some(Statement::FunctionCall {
+                    function,
+                    arguments,
+                })
             } else {
                 None
             }
@@ -1864,7 +1881,7 @@ extern "C" fn visit_while_children(
                 CXCursor_BinaryOperator => extract_binary_op(cursor),
                 CXCursor_IntegerLiteral => extract_int_literal(cursor),
                 107 => extract_float_literal(cursor), // CXCursor_FloatingLiteral
-                110 => extract_char_literal(cursor), // CXCursor_CharacterLiteral
+                110 => extract_char_literal(cursor),  // CXCursor_CharacterLiteral
                 CXCursor_DeclRefExpr => extract_variable_ref(cursor),
                 CXCursor_CallExpr => extract_function_call(cursor),
                 CXCursor_UnaryOperator => extract_unary_op(cursor),
@@ -3472,7 +3489,11 @@ fn extract_conditional_op(cursor: CXCursor) -> Option<Expression> {
     let operands_ptr = &mut operands as *mut Vec<Expression>;
 
     unsafe {
-        clang_visitChildren(cursor, visit_conditional_operand, operands_ptr as CXClientData);
+        clang_visitChildren(
+            cursor,
+            visit_conditional_operand,
+            operands_ptr as CXClientData,
+        );
     }
 
     // Ternary operators should have exactly 3 operands: condition, then, else
