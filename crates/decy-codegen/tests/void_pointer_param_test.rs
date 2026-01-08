@@ -72,10 +72,7 @@ fn test_memcpy_void_pointers() {
                 "dest".to_string(),
                 HirType::Pointer(Box::new(HirType::Void)),
             ),
-            HirParameter::new(
-                "src".to_string(),
-                HirType::Pointer(Box::new(HirType::Void)),
-            ),
+            HirParameter::new("src".to_string(), HirType::Pointer(Box::new(HirType::Void))),
             HirParameter::new("n".to_string(), HirType::UnsignedInt),
         ],
         vec![],

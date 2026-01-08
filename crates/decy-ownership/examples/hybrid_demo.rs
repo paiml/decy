@@ -32,7 +32,10 @@ fn main() {
 fn demo_basic_classification() {
     let classifier = HybridClassifier::default();
 
-    println!("Default confidence threshold: {}", DEFAULT_CONFIDENCE_THRESHOLD);
+    println!(
+        "Default confidence threshold: {}",
+        DEFAULT_CONFIDENCE_THRESHOLD
+    );
     println!("ML enabled: {}\n", classifier.ml_enabled());
 
     // Create an OwnershipInference (simulating what the rule engine would produce)
@@ -157,10 +160,7 @@ fn demo_metrics() {
     println!("  - Rule-based used: {}", metrics.rule_based);
     println!("  - ML used: {}", metrics.ml_used);
     println!("  - Fallbacks: {}", metrics.fallback);
-    println!(
-        "  - Fallback rate: {:.1}%",
-        metrics.fallback_rate() * 100.0
-    );
+    println!("  - Fallback rate: {:.1}%", metrics.fallback_rate() * 100.0);
     println!(
         "  - Agreement rate: {:.1}%",
         metrics.agreement_rate() * 100.0
@@ -203,8 +203,5 @@ fn demo_ml_toggle() {
     );
 
     // Both should produce same ownership for clear-cut cases
-    println!(
-        "\nSame result: {}",
-        result1.ownership == result2.ownership
-    );
+    println!("\nSame result: {}", result1.ownership == result2.ownership);
 }

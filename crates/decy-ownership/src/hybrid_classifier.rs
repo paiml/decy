@@ -240,11 +240,7 @@ impl HybridClassifier {
                 method: ClassificationMethod::MachineLearning,
                 rule_result: Some(rule_ownership),
                 ml_result: Some(ml_prediction),
-                reasoning: format!(
-                    "ML prediction (confidence {:.2}): {:?}",
-                    ml_conf,
-                    ml_kind
-                ),
+                reasoning: format!("ML prediction (confidence {:.2}): {:?}", ml_conf, ml_kind),
             }
         } else {
             // ML confidence too low - fall back to rules
@@ -257,9 +253,7 @@ impl HybridClassifier {
                 ml_result: Some(ml_prediction),
                 reasoning: format!(
                     "Fallback to rules (ML confidence {:.2} < threshold {:.2}): {}",
-                    ml_conf,
-                    self.confidence_threshold,
-                    inference.reason
+                    ml_conf, self.confidence_threshold, inference.reason
                 ),
             }
         }
@@ -312,9 +306,7 @@ impl HybridClassifier {
                     ml_result: Some(ml_prediction),
                     reasoning: format!(
                         "ML wins (conf {:.2} > rules {:.2}): {:?}",
-                        ml_conf,
-                        inference.confidence,
-                        ml_kind
+                        ml_conf, inference.confidence, ml_kind
                     ),
                 }
             } else {
@@ -327,9 +319,7 @@ impl HybridClassifier {
                     ml_result: Some(ml_prediction),
                     reasoning: format!(
                         "Rules win (conf {:.2} > ML {:.2}): {}",
-                        inference.confidence,
-                        ml_conf,
-                        inference.reason
+                        inference.confidence, ml_conf, inference.reason
                     ),
                 }
             }
@@ -521,7 +511,10 @@ mod tests {
 
     impl MockModel {
         fn with_confidence(ownership: InferredOwnership, confidence: f64) -> Self {
-            Self { ownership, confidence }
+            Self {
+                ownership,
+                confidence,
+            }
         }
     }
 

@@ -220,7 +220,7 @@ fn compilation_metrics_average_iterations() {
     metrics.record_attempt(true, 1); // 1 iteration
     metrics.record_attempt(true, 2); // 2 iterations
     metrics.record_attempt(true, 3); // 3 iterations
-    // Average: (1 + 2 + 3) / 3 = 2.0
+                                     // Average: (1 + 2 + 3) / 3 = 2.0
     assert!((metrics.average_iterations() - 2.0).abs() < 0.001);
 }
 
