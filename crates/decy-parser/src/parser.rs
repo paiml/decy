@@ -4664,8 +4664,12 @@ impl Ast {
     }
 
     /// Add a struct to the AST.
+    /// Deduplicates by name to avoid duplicate definitions from system includes.
     pub fn add_struct(&mut self, struct_def: Struct) {
-        self.structs.push(struct_def);
+        // Deduplicate: don't add if a struct with the same name already exists
+        if !self.structs.iter().any(|s| s.name() == struct_def.name()) {
+            self.structs.push(struct_def);
+        }
     }
 
     /// Get the macro definitions in the AST.
