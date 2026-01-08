@@ -1705,6 +1705,7 @@ fn test_decy188_strcpy_with_char_ptr_source_compiles() {
     use decy_parser::parser::CParser;
 
     let code = r#"
+        #include <stdlib.h>
         #include <string.h>
         typedef struct { char* data; int len; } Buffer;
         char* copy_string(Buffer* buf) {

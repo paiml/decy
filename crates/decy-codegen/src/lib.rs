@@ -2586,11 +2586,21 @@ impl CodeGenerator {
                     format!("{}.{}({})", receiver_code, method, args.join(", "))
                 }
             }
-            HirExpression::Cast { target_type, expr } => {
+            HirExpression::Cast { target_type: cast_target, expr } => {
+                // DECY-220: When outer target is Vec<T> and inner is malloc/calloc,
+                // unwrap the cast and generate malloc with Vec target type directly.
+                // This handles: int* arr = (int*)malloc(n * sizeof(int)) → let arr: Vec<i32> = vec![...];
+                if let Some(vec_type @ HirType::Vec(_)) = target_type {
+                    if Self::is_any_malloc_or_calloc(expr) {
+                        // Skip the cast, generate the inner malloc with Vec target type
+                        return self.generate_expression_with_target_type(expr, ctx, Some(vec_type));
+                    }
+                }
+
                 // C: (int)x → Rust: x as i32
                 // Sprint 19 Feature (DECY-059)
                 let expr_code = self.generate_expression_with_context(expr, ctx);
-                let rust_type = Self::map_type(target_type);
+                let rust_type = Self::map_type(cast_target);
 
                 // Wrap in parentheses if the expression is a binary operation
                 let expr_str = if matches!(**expr, HirExpression::BinaryOp { .. }) {
@@ -2612,7 +2622,7 @@ impl CodeGenerator {
                     );
 
                 let is_integer_target = matches!(
-                    target_type,
+                    cast_target,
                     HirType::Int | HirType::UnsignedInt | HirType::Char
                 );
 
@@ -3264,14 +3274,9 @@ impl CodeGenerator {
 
                 // DECY-130: Check if this is a malloc/calloc initialization
                 // If so, change the type from *mut T to Vec<T>
+                // DECY-220: Use helper that checks through Cast expressions
                 let is_malloc_init = if let Some(init_expr) = initializer {
-                    matches!(init_expr, HirExpression::Malloc { .. })
-                        || matches!(
-                            init_expr,
-                            HirExpression::FunctionCall { function, .. }
-                            if function == "malloc" || function == "calloc"
-                        )
-                        || matches!(init_expr, HirExpression::Calloc { .. })
+                    Self::is_any_malloc_or_calloc(init_expr)
                 } else {
                     false
                 };
@@ -4357,6 +4362,24 @@ impl CodeGenerator {
         }
 
         None
+    }
+
+    /// Helper to check if an expression is ANY malloc or calloc call (including through casts).
+    /// DECY-220: This is used for type annotation transformation (*mut T → Vec<T>).
+    /// Unlike `is_malloc_call`, this returns true for ANY malloc/calloc, not just array patterns.
+    fn is_any_malloc_or_calloc(expr: &HirExpression) -> bool {
+        match expr {
+            HirExpression::Malloc { .. } => true,
+            HirExpression::Calloc { .. } => true,
+            HirExpression::FunctionCall { function, .. }
+                if function == "malloc" || function == "calloc" =>
+            {
+                true
+            }
+            // DECY-220: Check through cast expressions (e.g., (int*)malloc(...))
+            HirExpression::Cast { expr: inner, .. } => Self::is_any_malloc_or_calloc(inner),
+            _ => false,
+        }
     }
 
     /// Helper to check if an expression is a malloc call for ARRAY allocation.
