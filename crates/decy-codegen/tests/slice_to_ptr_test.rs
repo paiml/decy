@@ -120,7 +120,7 @@ fn test_increment_decrement_compiles() {
             "transpile",
             "examples/pointer_arithmetic/increment_decrement.c",
         ])
-        .current_dir("/home/noah/src/decy")
+        .current_dir(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).parent().unwrap().parent().unwrap())
         .output()
         .expect("Failed to run decy transpile");
 
