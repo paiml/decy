@@ -1,0 +1,44 @@
+# Nextest configuration for decy
+# Optimized for fast coverage runs (bashrs pattern)
+
+[store]
+# Store test binaries separately for faster incremental builds
+dir = "target/nextest"
+
+[profile.default]
+# Default profile for regular test runs
+retries = 0
+slow-timeout = { period = "60s", terminate-after = 2 }
+fail-fast = false
+test-threads = "num-cpus"
+
+[profile.coverage]
+# Optimized for coverage runs with instrumentation
+retries = 0
+slow-timeout = { period = "60s", terminate-after = 2 }
+fail-fast = false
+# Use all CPUs for maximum parallelism
+test-threads = "num-cpus"
+# Skip slow property tests during coverage
+status-level = "pass"
+
+[[profile.coverage.overrides]]
+# Property tests need more time under instrumentation
+filter = 'test(/property/)'
+slow-timeout = { period = "90s", terminate-after = 2 }
+
+[[profile.coverage.overrides]]
+# Parser tests may need more time for clang processing
+filter = 'test(/decy_parser/)'
+slow-timeout = { period = "120s", terminate-after = 2 }
+
+[[profile.coverage.overrides]]
+# Ownership analysis can be slow
+filter = 'test(/decy_ownership/)'
+slow-timeout = { period = "90s", terminate-after = 2 }
+
+[profile.ci]
+# CI profile - balanced speed and thoroughness
+retries = 1
+slow-timeout = { period = "120s", terminate-after = 2 }
+fail-fast = false
