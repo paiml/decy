@@ -342,24 +342,24 @@ fn test_strcpy_in_loop() {
             HirParameter::new("n".to_string(), HirType::Int),
         ],
         vec![HirStatement::For {
-            init: Some(Box::new(HirStatement::VariableDeclaration {
+            init: vec![HirStatement::VariableDeclaration {
                 name: "i".to_string(),
                 var_type: HirType::Int,
                 initializer: Some(HirExpression::IntLiteral(0)),
-            })),
+            }],
             condition: HirExpression::BinaryOp {
                 op: decy_hir::BinaryOperator::LessThan,
                 left: Box::new(HirExpression::Variable("i".to_string())),
                 right: Box::new(HirExpression::Variable("n".to_string())),
             },
-            increment: Some(Box::new(HirStatement::Assignment {
+            increment: vec![HirStatement::Assignment {
                 target: "i".to_string(),
                 value: HirExpression::BinaryOp {
                     op: decy_hir::BinaryOperator::Add,
                     left: Box::new(HirExpression::Variable("i".to_string())),
                     right: Box::new(HirExpression::IntLiteral(1)),
                 },
-            })),
+            }],
             body: vec![HirStatement::ArrayIndexAssignment {
                 array: Box::new(HirExpression::Variable("dests".to_string())),
                 index: Box::new(HirExpression::Variable("i".to_string())),

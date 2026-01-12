@@ -826,8 +826,10 @@ pub fn transpile_with_includes(c_code: &str, base_dir: Option<&Path>) -> Result<
             }
         }
 
-        // Collect in insertion order isn't guaranteed, but order shouldn't matter for codegen
-        func_map.into_values().collect()
+        // DECY-260: Sort by name for deterministic output
+        let mut funcs: Vec<_> = func_map.into_values().collect();
+        funcs.sort_by(|a, b| a.name().cmp(b.name()));
+        funcs
     };
 
     // Convert structs to HIR
@@ -849,10 +851,44 @@ pub fn transpile_with_includes(c_code: &str, base_dir: Option<&Path>) -> Result<
         })
         .collect();
 
+    // DECY-240: Convert enums to HIR
+    let hir_enums: Vec<decy_hir::HirEnum> = ast
+        .enums()
+        .iter()
+        .map(|e| {
+            let variants = e
+                .variants
+                .iter()
+                .map(|v| {
+                    decy_hir::HirEnumVariant::new(v.name.clone(), v.value.map(|val| val as i32))
+                })
+                .collect();
+            decy_hir::HirEnum::new(e.name.clone(), variants)
+        })
+        .collect();
+
     // Convert global variables to HIR (DECY-054)
+    // DECY-223: Filter out extern references (they refer to existing globals, not new definitions)
+    // Also deduplicate by name (first definition wins)
+    let mut seen_globals: std::collections::HashSet<String> = std::collections::HashSet::new();
     let hir_variables: Vec<decy_hir::HirStatement> = ast
         .variables()
         .iter()
+        .filter(|v| {
+            // Skip extern declarations without initializers (they're references, not definitions)
+            // extern int max; → skip (reference)
+            // int max = 0; → keep (definition)
+            // extern int max = 0; → keep (definition with extern linkage)
+            if v.is_extern() && v.initializer().is_none() {
+                return false;
+            }
+            // Deduplicate by name
+            if seen_globals.contains(v.name()) {
+                return false;
+            }
+            seen_globals.insert(v.name().to_string());
+            true
+        })
         .map(|v| decy_hir::HirStatement::VariableDeclaration {
             name: v.name().to_string(),
             var_type: decy_hir::HirType::from_ast_type(v.var_type()),
@@ -964,6 +1000,16 @@ pub fn transpile_with_includes(c_code: &str, base_dir: Option<&Path>) -> Result<
         rust_code.push('\n');
     }
 
+    // DECY-240: Generate enum definitions (as const i32 values)
+    for hir_enum in &hir_enums {
+        let enum_code = code_generator.generate_enum(hir_enum);
+        rust_code.push_str(&enum_code);
+        rust_code.push('\n');
+    }
+
+    // DECY-241: Add errno global variable (C compatibility)
+    rust_code.push_str("static mut ERRNO: i32 = 0;\n");
+
     // Generate typedefs (DECY-054, DECY-057) - deduplicated
     for typedef in &hir_typedefs {
         let typedef_name = typedef.name();
@@ -978,7 +1024,51 @@ pub fn transpile_with_includes(c_code: &str, base_dir: Option<&Path>) -> Result<
         }
     }
 
+    // DECY-246: Helper to generate const struct literal for static initialization
+    // Creates "StructName { field1: default1, field2: default2, ... }" for const contexts
+    let const_struct_literal = |struct_name: &str| -> String {
+        // Find the struct definition
+        if let Some(hir_struct) = hir_structs.iter().find(|s| s.name() == struct_name) {
+            let field_inits: Vec<String> = hir_struct
+                .fields()
+                .iter()
+                .map(|f| {
+                    let default_val = match f.field_type() {
+                        decy_hir::HirType::Int => "0".to_string(),
+                        decy_hir::HirType::UnsignedInt => "0".to_string(),
+                        decy_hir::HirType::Char => "0".to_string(),
+                        decy_hir::HirType::SignedChar => "0".to_string(), // DECY-250
+                        decy_hir::HirType::Float => "0.0".to_string(),
+                        decy_hir::HirType::Double => "0.0".to_string(),
+                        decy_hir::HirType::Pointer(_) => "std::ptr::null_mut()".to_string(),
+                        decy_hir::HirType::Array {
+                            size: Some(n),
+                            element_type,
+                        } => {
+                            let elem = match element_type.as_ref() {
+                                decy_hir::HirType::Char => "0u8",
+                                decy_hir::HirType::SignedChar => "0i8", // DECY-250
+                                decy_hir::HirType::Int => "0i32",
+                                _ => "0",
+                            };
+                            format!("[{}; {}]", elem, n)
+                        }
+                        _ => "Default::default()".to_string(),
+                    };
+                    format!("{}: {}", f.name(), default_val)
+                })
+                .collect();
+            format!("{} {{ {} }}", struct_name, field_inits.join(", "))
+        } else {
+            // Fallback if struct not found
+            format!("{}::default()", struct_name)
+        }
+    };
+
     // Generate global variables (DECY-054)
+    // DECY-220: Collect global variable names for unsafe access tracking
+    // DECY-233: Also collect types for proper type inference in function bodies
+    let mut global_vars: Vec<(String, decy_hir::HirType)> = Vec::new();
     for var_stmt in &hir_variables {
         if let decy_hir::HirStatement::VariableDeclaration {
             name,
@@ -986,31 +1076,35 @@ pub fn transpile_with_includes(c_code: &str, base_dir: Option<&Path>) -> Result<
             initializer,
         } = var_stmt
         {
+            // DECY-220/233: Track global name and type for unsafe access and type inference
+            global_vars.push((name.clone(), var_type.clone()));
             // Generate as static mut for C global variable equivalence
             let type_str = CodeGenerator::map_type(var_type);
 
             if let Some(init_expr) = initializer {
                 // DECY-201: Special handling for array initialization
+                // DECY-246: Handle struct arrays using StructName::default()
                 let init_code = if let decy_hir::HirType::Array {
                     element_type,
                     size: Some(size_val),
                 } = var_type
                 {
-                    // Check if init_expr is just the size value (uninitialized array)
-                    if let decy_hir::HirExpression::IntLiteral(n) = init_expr {
-                        if *n as usize == *size_val {
-                            // Use type-appropriate zero value
-                            let element_init = match element_type.as_ref() {
-                                decy_hir::HirType::Char => "0u8".to_string(),
-                                decy_hir::HirType::Int => "0i32".to_string(),
-                                decy_hir::HirType::Float => "0.0f32".to_string(),
-                                decy_hir::HirType::Double => "0.0f64".to_string(),
-                                _ => "0".to_string(),
-                            };
-                            format!("[{}; {}]", element_init, size_val)
-                        } else {
-                            code_generator.generate_expression(init_expr)
-                        }
+                    // Check if init_expr is just an integer (uninitialized or zero-initialized array)
+                    if matches!(init_expr, decy_hir::HirExpression::IntLiteral(_)) {
+                        // Use type-appropriate const default value (for static context)
+                        let element_init = match element_type.as_ref() {
+                            decy_hir::HirType::Char => "0u8".to_string(),
+                            decy_hir::HirType::SignedChar => "0i8".to_string(), // DECY-250
+                            decy_hir::HirType::Int => "0i32".to_string(),
+                            decy_hir::HirType::UnsignedInt => "0u32".to_string(),
+                            decy_hir::HirType::Float => "0.0f32".to_string(),
+                            decy_hir::HirType::Double => "0.0f64".to_string(),
+                            decy_hir::HirType::Pointer(_) => "std::ptr::null_mut()".to_string(),
+                            // DECY-246: Use const struct literal for statics
+                            decy_hir::HirType::Struct(name) => const_struct_literal(name),
+                            _ => "0".to_string(),
+                        };
+                        format!("[{}; {}]", element_init, size_val)
                     } else {
                         code_generator.generate_expression(init_expr)
                     }
@@ -1028,18 +1122,24 @@ pub fn transpile_with_includes(c_code: &str, base_dir: Option<&Path>) -> Result<
                     decy_hir::HirType::Int => "0".to_string(),
                     decy_hir::HirType::UnsignedInt => "0".to_string(),
                     decy_hir::HirType::Char => "0".to_string(),
+                    decy_hir::HirType::SignedChar => "0".to_string(), // DECY-250
                     decy_hir::HirType::Float => "0.0".to_string(),
                     decy_hir::HirType::Double => "0.0".to_string(),
                     decy_hir::HirType::Pointer(_) => "std::ptr::null_mut()".to_string(),
                     // DECY-217: Arrays need explicit zero initialization (Default only works for size <= 32)
+                    // DECY-246: Handle struct arrays using const struct literal for statics
                     decy_hir::HirType::Array { element_type, size } => {
                         let elem_default = match element_type.as_ref() {
-                            decy_hir::HirType::Char => "0u8",
-                            decy_hir::HirType::Int => "0i32",
-                            decy_hir::HirType::UnsignedInt => "0u32",
-                            decy_hir::HirType::Float => "0.0f32",
-                            decy_hir::HirType::Double => "0.0f64",
-                            _ => "0",
+                            decy_hir::HirType::Char => "0u8".to_string(),
+                            decy_hir::HirType::SignedChar => "0i8".to_string(), // DECY-250
+                            decy_hir::HirType::Int => "0i32".to_string(),
+                            decy_hir::HirType::UnsignedInt => "0u32".to_string(),
+                            decy_hir::HirType::Float => "0.0f32".to_string(),
+                            decy_hir::HirType::Double => "0.0f64".to_string(),
+                            decy_hir::HirType::Pointer(_) => "std::ptr::null_mut()".to_string(),
+                            // DECY-246: Use const struct literal for statics
+                            decy_hir::HirType::Struct(name) => const_struct_literal(name),
+                            _ => "0".to_string(),
                         };
                         if let Some(n) = size {
                             format!("[{}; {}]", elem_default, n)
@@ -1118,6 +1218,7 @@ pub fn transpile_with_includes(c_code: &str, base_dir: Option<&Path>) -> Result<
 
     // Generate functions with struct definitions for field type awareness
     // Note: slice_func_args was built at line 814 BEFORE transformation to capture original params
+    // DECY-220/233: Pass global_vars for unsafe access tracking and type inference
     for (func, annotated_sig) in &transformed_functions {
         let generated = code_generator.generate_function_with_lifetimes_and_structs(
             func,
@@ -1126,8 +1227,254 @@ pub fn transpile_with_includes(c_code: &str, base_dir: Option<&Path>) -> Result<
             &all_function_sigs,
             &slice_func_args,
             &string_iter_funcs,
+            &global_vars,
         );
         rust_code.push_str(&generated);
+        rust_code.push('\n');
+    }
+
+    Ok(rust_code)
+}
+
+/// DECY-237: Transpile directly from a C file path.
+/// This uses clang's native file parsing which properly resolves system headers.
+///
+/// # Arguments
+///
+/// * `file_path` - Path to the C source file
+///
+/// # Returns
+///
+/// Generated Rust code as a string.
+pub fn transpile_from_file_path(file_path: &Path) -> Result<String> {
+    // Read the source code
+    let c_code = std::fs::read_to_string(file_path)
+        .with_context(|| format!("Failed to read file: {}", file_path.display()))?;
+
+    // Use transpile_with_file which uses file-based parsing
+    transpile_with_file(&c_code, file_path)
+}
+
+/// Transpile C code with file-based parsing for proper header resolution.
+/// DECY-237: Uses clang's native file parsing instead of in-memory parsing.
+fn transpile_with_file(c_code: &str, file_path: &Path) -> Result<String> {
+    let base_dir = file_path.parent();
+
+    // Step 0: Preprocess #include directives (DECY-056) + Inject stdlib prototypes
+    let stdlib_prototypes = StdlibPrototypes::new();
+    let mut processed_files = std::collections::HashSet::new();
+    let mut injected_headers = std::collections::HashSet::new();
+    let _preprocessed = preprocess_includes(
+        c_code,
+        base_dir,
+        &mut processed_files,
+        &stdlib_prototypes,
+        &mut injected_headers,
+    )?;
+
+    // Step 1: Parse C code using file-based parsing for proper header resolution
+    let parser = CParser::new().context("Failed to create C parser")?;
+    let ast = parser
+        .parse_file(file_path)
+        .context("Failed to parse C code")?;
+
+    // The rest is the same as transpile_with_includes
+    process_ast_to_rust(ast, base_dir)
+}
+
+/// Process an AST into Rust code (shared implementation)
+fn process_ast_to_rust(ast: decy_parser::Ast, _base_dir: Option<&Path>) -> Result<String> {
+    // Step 2: Convert to HIR
+    let all_hir_functions: Vec<HirFunction> = ast
+        .functions()
+        .iter()
+        .map(HirFunction::from_ast_function)
+        .collect();
+
+    // DECY-190: Deduplicate functions
+    let hir_functions: Vec<HirFunction> = {
+        use std::collections::HashMap;
+        let mut func_map: HashMap<String, HirFunction> = HashMap::new();
+
+        for func in all_hir_functions {
+            let name = func.name().to_string();
+            if let Some(existing) = func_map.get(&name) {
+                if func.has_body() && !existing.has_body() {
+                    func_map.insert(name, func);
+                }
+            } else {
+                func_map.insert(name, func);
+            }
+        }
+
+        func_map.into_values().collect()
+    };
+
+    // Convert structs to HIR
+    let hir_structs: Vec<decy_hir::HirStruct> = ast
+        .structs()
+        .iter()
+        .map(|s| {
+            let fields = s
+                .fields()
+                .iter()
+                .map(|f| {
+                    decy_hir::HirStructField::new(
+                        f.name.clone(),
+                        decy_hir::HirType::from_ast_type(&f.field_type),
+                    )
+                })
+                .collect();
+            decy_hir::HirStruct::new(s.name().to_string(), fields)
+        })
+        .collect();
+
+    // DECY-240: Convert enums to HIR
+    let hir_enums: Vec<decy_hir::HirEnum> = ast
+        .enums()
+        .iter()
+        .map(|e| {
+            let variants = e
+                .variants
+                .iter()
+                .map(|v| {
+                    decy_hir::HirEnumVariant::new(v.name.clone(), v.value.map(|val| val as i32))
+                })
+                .collect();
+            decy_hir::HirEnum::new(e.name.clone(), variants)
+        })
+        .collect();
+
+    // Convert global variables with deduplication
+    let mut seen_globals = std::collections::HashSet::new();
+    let hir_variables: Vec<decy_hir::HirStatement> = ast
+        .variables()
+        .iter()
+        .filter(|v| {
+            if seen_globals.contains(v.name()) {
+                return false;
+            }
+            seen_globals.insert(v.name().to_string());
+            true
+        })
+        .map(|v| decy_hir::HirStatement::VariableDeclaration {
+            name: v.name().to_string(),
+            var_type: decy_hir::HirType::from_ast_type(v.var_type()),
+            initializer: v
+                .initializer()
+                .map(decy_hir::HirExpression::from_ast_expression),
+        })
+        .collect();
+
+    // Convert typedefs
+    let hir_typedefs: Vec<decy_hir::HirTypedef> = ast
+        .typedefs()
+        .iter()
+        .map(|t| {
+            decy_hir::HirTypedef::new(
+                t.name().to_string(),
+                decy_hir::HirType::from_ast_type(&t.underlying_type),
+            )
+        })
+        .collect();
+
+    // Create code generator
+    let code_generator = CodeGenerator::new();
+    let mut rust_code = String::new();
+
+    // Track emitted items to avoid duplicates
+    let mut emitted_structs = std::collections::HashSet::new();
+    let mut emitted_typedefs = std::collections::HashSet::new();
+
+    // Generate struct definitions
+    for hir_struct in &hir_structs {
+        let struct_name = hir_struct.name();
+        if emitted_structs.contains(struct_name) {
+            continue;
+        }
+        emitted_structs.insert(struct_name.to_string());
+        let struct_code = code_generator.generate_struct(hir_struct);
+        rust_code.push_str(&struct_code);
+        rust_code.push('\n');
+    }
+
+    // DECY-240: Generate enum definitions (as const i32 values)
+    for hir_enum in &hir_enums {
+        let enum_code = code_generator.generate_enum(hir_enum);
+        rust_code.push_str(&enum_code);
+        rust_code.push('\n');
+    }
+
+    // DECY-241: Add errno global variable (C compatibility)
+    rust_code.push_str("static mut ERRNO: i32 = 0;\n");
+
+    // Generate typedefs
+    for typedef in &hir_typedefs {
+        let typedef_name = typedef.name();
+        if emitted_typedefs.contains(typedef_name) {
+            continue;
+        }
+        emitted_typedefs.insert(typedef_name.to_string());
+        if let Ok(typedef_code) = code_generator.generate_typedef(typedef) {
+            rust_code.push_str(&typedef_code);
+            rust_code.push('\n');
+        }
+    }
+
+    // Generate global variables
+    for var_stmt in &hir_variables {
+        if let decy_hir::HirStatement::VariableDeclaration {
+            name,
+            var_type,
+            initializer,
+        } = var_stmt
+        {
+            let type_str = CodeGenerator::map_type(var_type);
+            if let Some(init_expr) = initializer {
+                let init_code = code_generator.generate_expression(init_expr);
+                rust_code.push_str(&format!(
+                    "static mut {}: {} = {};\n",
+                    name, type_str, init_code
+                ));
+            } else {
+                let default_value = match var_type {
+                    decy_hir::HirType::Int => "0".to_string(),
+                    decy_hir::HirType::UnsignedInt => "0".to_string(),
+                    decy_hir::HirType::Char => "0".to_string(),
+                    decy_hir::HirType::SignedChar => "0".to_string(), // DECY-250
+                    decy_hir::HirType::Float => "0.0".to_string(),
+                    decy_hir::HirType::Double => "0.0".to_string(),
+                    decy_hir::HirType::Pointer(_) => "std::ptr::null_mut()".to_string(),
+                    decy_hir::HirType::Array { element_type, size } => {
+                        let elem_default = match element_type.as_ref() {
+                            decy_hir::HirType::Char => "0u8",
+                            decy_hir::HirType::SignedChar => "0i8", // DECY-250
+                            decy_hir::HirType::Int => "0i32",
+                            decy_hir::HirType::UnsignedInt => "0u32",
+                            decy_hir::HirType::Float => "0.0f32",
+                            decy_hir::HirType::Double => "0.0f64",
+                            _ => "0",
+                        };
+                        if let Some(n) = size {
+                            format!("[{}; {}]", elem_default, n)
+                        } else {
+                            format!("[{}; 0]", elem_default)
+                        }
+                    }
+                    _ => "Default::default()".to_string(),
+                };
+                rust_code.push_str(&format!(
+                    "static mut {}: {} = {};\n",
+                    name, type_str, default_value
+                ));
+            }
+        }
+    }
+
+    // Generate functions
+    // DECY-248: Pass structs to enable sizeof(struct_field) type lookup
+    for func in &hir_functions {
+        rust_code.push_str(&code_generator.generate_function_with_structs(func, &hir_structs));
         rust_code.push('\n');
     }
 
@@ -1469,6 +1816,8 @@ fn statement_uses_pointer_arithmetic(stmt: &HirStatement, var_name: &str) -> boo
 mod tests {
     use super::*;
 
+    use tempfile::TempDir;
+
     #[test]
     fn test_transpile_simple_function() {
         let c_code = "int add(int a, int b) { return a + b; }";
@@ -1557,5 +1906,1458 @@ mod tests {
 
         // When references are present, lifetime annotations would appear
         // Future: Add a test with actual C pointer parameters to verify '<'a> syntax
+    }
+
+    // =========================================================================
+    // TranspiledFile tests
+    // =========================================================================
+
+    #[test]
+    fn test_transpiled_file_new() {
+        let file = TranspiledFile::new(
+            PathBuf::from("/path/to/source.c"),
+            "fn main() {}".to_string(),
+            vec![PathBuf::from("/path/to/header.h")],
+            vec!["main".to_string(), "helper".to_string()],
+            "extern \"C\" {}".to_string(),
+        );
+
+        assert_eq!(file.source_path, PathBuf::from("/path/to/source.c"));
+        assert_eq!(file.rust_code, "fn main() {}");
+        assert_eq!(file.dependencies.len(), 1);
+        assert_eq!(file.functions_exported.len(), 2);
+        assert_eq!(file.ffi_declarations, "extern \"C\" {}");
+    }
+
+    #[test]
+    fn test_transpiled_file_empty_fields() {
+        let file = TranspiledFile::new(
+            PathBuf::from("test.c"),
+            String::new(),
+            Vec::new(),
+            Vec::new(),
+            String::new(),
+        );
+
+        assert!(file.rust_code.is_empty());
+        assert!(file.dependencies.is_empty());
+        assert!(file.functions_exported.is_empty());
+        assert!(file.ffi_declarations.is_empty());
+    }
+
+    // =========================================================================
+    // ProjectContext tests
+    // =========================================================================
+
+    #[test]
+    fn test_project_context_new() {
+        let ctx = ProjectContext::new();
+        assert!(!ctx.has_type("SomeType"));
+        assert!(!ctx.has_function("some_func"));
+    }
+
+    #[test]
+    fn test_project_context_default() {
+        let ctx = ProjectContext::default();
+        assert!(!ctx.has_type("SomeType"));
+        assert!(!ctx.has_function("some_func"));
+    }
+
+    #[test]
+    fn test_project_context_add_transpiled_file_with_struct() {
+        let mut ctx = ProjectContext::new();
+        let file = TranspiledFile::new(
+            PathBuf::from("test.c"),
+            "pub struct Point { x: i32 }".to_string(),
+            Vec::new(),
+            vec!["create_point".to_string()],
+            String::new(),
+        );
+
+        ctx.add_transpiled_file(&file);
+
+        assert!(ctx.has_type("Point"));
+        assert!(ctx.has_function("create_point"));
+        assert_eq!(ctx.get_function_source("create_point"), Some("test.c"));
+    }
+
+    #[test]
+    fn test_project_context_add_transpiled_file_enums_not_tracked() {
+        // Note: add_transpiled_file only tracks structs, not enums (current implementation)
+        let mut ctx = ProjectContext::new();
+        let file = TranspiledFile::new(
+            PathBuf::from("enums.c"),
+            "pub enum Color {\n    Red,\n}".to_string(),
+            Vec::new(),
+            Vec::new(),
+            String::new(),
+        );
+
+        ctx.add_transpiled_file(&file);
+        // Enums are NOT tracked by current implementation
+        assert!(!ctx.has_type("Color"));
+    }
+
+    #[test]
+    fn test_project_context_has_type_not_found() {
+        let ctx = ProjectContext::new();
+        assert!(!ctx.has_type("NonExistentType"));
+    }
+
+    #[test]
+    fn test_project_context_has_function_not_found() {
+        let ctx = ProjectContext::new();
+        assert!(!ctx.has_function("nonexistent_func"));
+    }
+
+    #[test]
+    fn test_project_context_get_function_source_not_found() {
+        let ctx = ProjectContext::new();
+        assert!(ctx.get_function_source("nonexistent").is_none());
+    }
+
+    #[test]
+    fn test_project_context_extract_type_name_struct() {
+        let ctx = ProjectContext::new();
+        assert_eq!(
+            ctx.extract_type_name("pub struct Point {"),
+            Some("Point".to_string())
+        );
+    }
+
+    #[test]
+    fn test_project_context_extract_type_name_enum() {
+        let ctx = ProjectContext::new();
+        assert_eq!(
+            ctx.extract_type_name("pub enum Color {"),
+            Some("Color".to_string())
+        );
+    }
+
+    #[test]
+    fn test_project_context_extract_type_name_generic() {
+        let ctx = ProjectContext::new();
+        // Note: The current implementation preserves generic parameters
+        assert_eq!(
+            ctx.extract_type_name("pub struct Container<T> {"),
+            Some("Container<T>".to_string())
+        );
+    }
+
+    #[test]
+    fn test_project_context_extract_type_name_no_match() {
+        let ctx = ProjectContext::new();
+        assert_eq!(ctx.extract_type_name("fn main() {"), None);
+    }
+
+    #[test]
+    fn test_project_context_multiple_files() {
+        let mut ctx = ProjectContext::new();
+
+        let file1 = TranspiledFile::new(
+            PathBuf::from("types.c"),
+            "pub struct TypeA { }".to_string(),
+            Vec::new(),
+            vec!["func_a".to_string()],
+            String::new(),
+        );
+
+        let file2 = TranspiledFile::new(
+            PathBuf::from("utils.c"),
+            "pub struct TypeB { }".to_string(),
+            Vec::new(),
+            vec!["func_b".to_string()],
+            String::new(),
+        );
+
+        ctx.add_transpiled_file(&file1);
+        ctx.add_transpiled_file(&file2);
+
+        assert!(ctx.has_type("TypeA"));
+        assert!(ctx.has_type("TypeB"));
+        assert!(ctx.has_function("func_a"));
+        assert!(ctx.has_function("func_b"));
+        assert_eq!(ctx.get_function_source("func_a"), Some("types.c"));
+        assert_eq!(ctx.get_function_source("func_b"), Some("utils.c"));
+    }
+
+    // =========================================================================
+    // DependencyGraph tests
+    // =========================================================================
+
+    #[test]
+    fn test_dependency_graph_new() {
+        let graph = DependencyGraph::new();
+        assert!(graph.is_empty());
+        assert_eq!(graph.file_count(), 0);
+    }
+
+    #[test]
+    fn test_dependency_graph_default() {
+        let graph = DependencyGraph::default();
+        assert!(graph.is_empty());
+    }
+
+    #[test]
+    fn test_dependency_graph_add_file() {
+        let mut graph = DependencyGraph::new();
+        let path = Path::new("test.c");
+
+        graph.add_file(path);
+
+        assert!(!graph.is_empty());
+        assert_eq!(graph.file_count(), 1);
+        assert!(graph.contains_file(path));
+    }
+
+    #[test]
+    fn test_dependency_graph_add_file_duplicate() {
+        let mut graph = DependencyGraph::new();
+        let path = Path::new("test.c");
+
+        graph.add_file(path);
+        graph.add_file(path); // Should be a no-op
+
+        assert_eq!(graph.file_count(), 1);
+    }
+
+    #[test]
+    fn test_dependency_graph_contains_file_not_found() {
+        let graph = DependencyGraph::new();
+        assert!(!graph.contains_file(Path::new("nonexistent.c")));
+    }
+
+    #[test]
+    fn test_dependency_graph_add_dependency() {
+        let mut graph = DependencyGraph::new();
+        let main_path = Path::new("main.c");
+        let header_path = Path::new("header.h");
+
+        graph.add_file(main_path);
+        graph.add_file(header_path);
+        graph.add_dependency(main_path, header_path);
+
+        assert!(graph.has_dependency(main_path, header_path));
+        assert!(!graph.has_dependency(header_path, main_path));
+    }
+
+    #[test]
+    fn test_dependency_graph_has_dependency_missing_files() {
+        let graph = DependencyGraph::new();
+        assert!(!graph.has_dependency(Path::new("a.c"), Path::new("b.c")));
+    }
+
+    #[test]
+    fn test_dependency_graph_topological_sort_simple() {
+        let mut graph = DependencyGraph::new();
+        let main_path = PathBuf::from("main.c");
+        let utils_path = PathBuf::from("utils.c");
+        let header_path = PathBuf::from("header.h");
+
+        graph.add_file(&main_path);
+        graph.add_file(&utils_path);
+        graph.add_file(&header_path);
+
+        // main depends on utils, utils depends on header
+        graph.add_dependency(&main_path, &utils_path);
+        graph.add_dependency(&utils_path, &header_path);
+
+        let order = graph.topological_sort().unwrap();
+
+        // header should come before utils, utils before main
+        let header_idx = order.iter().position(|p| p == &header_path).unwrap();
+        let utils_idx = order.iter().position(|p| p == &utils_path).unwrap();
+        let main_idx = order.iter().position(|p| p == &main_path).unwrap();
+
+        assert!(header_idx < utils_idx);
+        assert!(utils_idx < main_idx);
+    }
+
+    #[test]
+    fn test_dependency_graph_topological_sort_circular() {
+        let mut graph = DependencyGraph::new();
+        let a_path = PathBuf::from("a.c");
+        let b_path = PathBuf::from("b.c");
+
+        graph.add_file(&a_path);
+        graph.add_file(&b_path);
+
+        // Create a cycle: a -> b -> a
+        graph.add_dependency(&a_path, &b_path);
+        graph.add_dependency(&b_path, &a_path);
+
+        let result = graph.topological_sort();
+        assert!(result.is_err());
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("Circular dependency"));
+    }
+
+    #[test]
+    fn test_dependency_graph_topological_sort_empty() {
+        let graph = DependencyGraph::new();
+        let order = graph.topological_sort().unwrap();
+        assert!(order.is_empty());
+    }
+
+    #[test]
+    fn test_dependency_graph_parse_include_directives() {
+        let code = r#"
+            #include <stdio.h>
+            #include "myheader.h"
+            #include <stdlib.h>
+            int main() { return 0; }
+        "#;
+
+        let includes = DependencyGraph::parse_include_directives(code);
+
+        assert_eq!(includes.len(), 3);
+        assert!(includes.contains(&"stdio.h".to_string()));
+        assert!(includes.contains(&"myheader.h".to_string()));
+        assert!(includes.contains(&"stdlib.h".to_string()));
+    }
+
+    #[test]
+    fn test_dependency_graph_parse_include_directives_empty() {
+        let code = "int main() { return 0; }";
+        let includes = DependencyGraph::parse_include_directives(code);
+        assert!(includes.is_empty());
+    }
+
+    #[test]
+    fn test_dependency_graph_parse_include_directives_malformed() {
+        let code = r#"
+            #include
+            #include "
+            #include <
+            int main() { return 0; }
+        "#;
+
+        let includes = DependencyGraph::parse_include_directives(code);
+        assert!(includes.is_empty());
+    }
+
+    #[test]
+    fn test_dependency_graph_has_header_guard() {
+        let temp_dir = TempDir::new().unwrap();
+        let header_path = temp_dir.path().join("guarded.h");
+
+        let header_content = r#"
+            #ifndef GUARDED_H
+            #define GUARDED_H
+            int foo();
+            #endif
+        "#;
+
+        std::fs::write(&header_path, header_content).unwrap();
+
+        assert!(DependencyGraph::has_header_guard(&header_path).unwrap());
+    }
+
+    #[test]
+    fn test_dependency_graph_has_header_guard_if_not_defined() {
+        let temp_dir = TempDir::new().unwrap();
+        let header_path = temp_dir.path().join("guarded2.h");
+
+        let header_content = r#"
+            #if !defined(GUARDED2_H)
+            #define GUARDED2_H
+            int bar();
+            #endif
+        "#;
+
+        std::fs::write(&header_path, header_content).unwrap();
+
+        assert!(DependencyGraph::has_header_guard(&header_path).unwrap());
+    }
+
+    #[test]
+    fn test_dependency_graph_has_header_guard_missing_guard() {
+        let temp_dir = TempDir::new().unwrap();
+        let header_path = temp_dir.path().join("unguarded.h");
+
+        let header_content = r#"
+            int baz();
+        "#;
+
+        std::fs::write(&header_path, header_content).unwrap();
+
+        assert!(!DependencyGraph::has_header_guard(&header_path).unwrap());
+    }
+
+    #[test]
+    fn test_dependency_graph_has_header_guard_file_not_found() {
+        let result = DependencyGraph::has_header_guard(Path::new("/nonexistent/file.h"));
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_dependency_graph_from_files() {
+        let temp_dir = TempDir::new().unwrap();
+
+        let header_path = temp_dir.path().join("header.h");
+        std::fs::write(&header_path, "int helper();").unwrap();
+
+        let main_path = temp_dir.path().join("main.c");
+        std::fs::write(
+            &main_path,
+            r#"#include "header.h"
+            int main() { return helper(); }"#,
+        )
+        .unwrap();
+
+        let graph = DependencyGraph::from_files(&[main_path.clone(), header_path.clone()]).unwrap();
+
+        assert_eq!(graph.file_count(), 2);
+        assert!(graph.has_dependency(&main_path, &header_path));
+    }
+
+    #[test]
+    fn test_dependency_graph_from_files_nonexistent() {
+        let result = DependencyGraph::from_files(&[PathBuf::from("/nonexistent/file.c")]);
+        assert!(result.is_err());
+    }
+
+    // =========================================================================
+    // TranspilationCache tests
+    // =========================================================================
+
+    #[test]
+    fn test_transpilation_cache_new() {
+        let cache = TranspilationCache::new();
+        let stats = cache.statistics();
+        assert_eq!(stats.hits, 0);
+        assert_eq!(stats.misses, 0);
+        assert_eq!(stats.total_files, 0);
+    }
+
+    #[test]
+    fn test_transpilation_cache_default() {
+        let cache = TranspilationCache::default();
+        assert_eq!(cache.statistics().total_files, 0);
+    }
+
+    #[test]
+    fn test_transpilation_cache_with_directory() {
+        let temp_dir = TempDir::new().unwrap();
+        let cache = TranspilationCache::with_directory(temp_dir.path());
+        assert_eq!(cache.statistics().total_files, 0);
+    }
+
+    #[test]
+    fn test_transpilation_cache_compute_hash() {
+        let temp_dir = TempDir::new().unwrap();
+        let file_path = temp_dir.path().join("test.c");
+        std::fs::write(&file_path, "int main() { return 0; }").unwrap();
+
+        let cache = TranspilationCache::new();
+        let hash = cache.compute_hash(&file_path).unwrap();
+
+        // SHA-256 hash is 64 hex characters
+        assert_eq!(hash.len(), 64);
+        assert!(hash.chars().all(|c| c.is_ascii_hexdigit()));
+    }
+
+    #[test]
+    fn test_transpilation_cache_compute_hash_file_not_found() {
+        let cache = TranspilationCache::new();
+        let result = cache.compute_hash(Path::new("/nonexistent/file.c"));
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_transpilation_cache_insert_and_get() {
+        let temp_dir = TempDir::new().unwrap();
+        let file_path = temp_dir.path().join("test.c");
+        std::fs::write(&file_path, "int main() { return 0; }").unwrap();
+
+        let mut cache = TranspilationCache::new();
+        let transpiled = TranspiledFile::new(
+            file_path.clone(),
+            "fn main() -> i32 { 0 }".to_string(),
+            Vec::new(),
+            vec!["main".to_string()],
+            String::new(),
+        );
+
+        cache.insert(&file_path, &transpiled);
+
+        let cached = cache.get(&file_path);
+        assert!(cached.is_some());
+        assert_eq!(cached.unwrap().rust_code, "fn main() -> i32 { 0 }");
+    }
+
+    #[test]
+    fn test_transpilation_cache_get_miss_on_file_change() {
+        let temp_dir = TempDir::new().unwrap();
+        let file_path = temp_dir.path().join("test.c");
+        std::fs::write(&file_path, "int main() { return 0; }").unwrap();
+
+        let mut cache = TranspilationCache::new();
+        let transpiled = TranspiledFile::new(
+            file_path.clone(),
+            "fn main() -> i32 { 0 }".to_string(),
+            Vec::new(),
+            Vec::new(),
+            String::new(),
+        );
+
+        cache.insert(&file_path, &transpiled);
+
+        // Modify the file
+        std::fs::write(&file_path, "int main() { return 42; }").unwrap();
+
+        let cached = cache.get(&file_path);
+        assert!(cached.is_none()); // Cache miss due to file change
+    }
+
+    #[test]
+    fn test_transpilation_cache_get_miss_on_dependency_change() {
+        let temp_dir = TempDir::new().unwrap();
+        let main_path = temp_dir.path().join("main.c");
+        let dep_path = temp_dir.path().join("dep.h");
+
+        std::fs::write(
+            &main_path,
+            "#include \"dep.h\"\nint main() { return foo(); }",
+        )
+        .unwrap();
+        std::fs::write(&dep_path, "int foo();").unwrap();
+
+        let mut cache = TranspilationCache::new();
+        let transpiled = TranspiledFile::new(
+            main_path.clone(),
+            "fn main() -> i32 { foo() }".to_string(),
+            vec![dep_path.clone()],
+            vec!["main".to_string()],
+            String::new(),
+        );
+
+        cache.insert(&main_path, &transpiled);
+
+        // Modify the dependency
+        std::fs::write(&dep_path, "int foo() { return 42; }").unwrap();
+
+        let cached = cache.get(&main_path);
+        assert!(cached.is_none()); // Cache miss due to dependency change
+    }
+
+    #[test]
+    fn test_transpilation_cache_clear() {
+        let temp_dir = TempDir::new().unwrap();
+        let file_path = temp_dir.path().join("test.c");
+        std::fs::write(&file_path, "int main() { return 0; }").unwrap();
+
+        let mut cache = TranspilationCache::new();
+        let transpiled = TranspiledFile::new(
+            file_path.clone(),
+            "fn main() -> i32 { 0 }".to_string(),
+            Vec::new(),
+            Vec::new(),
+            String::new(),
+        );
+
+        cache.insert(&file_path, &transpiled);
+        assert_eq!(cache.statistics().total_files, 1);
+
+        cache.clear();
+        assert_eq!(cache.statistics().total_files, 0);
+        assert_eq!(cache.statistics().hits, 0);
+        assert_eq!(cache.statistics().misses, 0);
+    }
+
+    #[test]
+    fn test_transpilation_cache_statistics() {
+        let temp_dir = TempDir::new().unwrap();
+        let file_path = temp_dir.path().join("test.c");
+        std::fs::write(&file_path, "int main() { return 0; }").unwrap();
+
+        let mut cache = TranspilationCache::new();
+        let transpiled = TranspiledFile::new(
+            file_path.clone(),
+            "fn main() -> i32 { 0 }".to_string(),
+            Vec::new(),
+            Vec::new(),
+            String::new(),
+        );
+
+        cache.insert(&file_path, &transpiled);
+
+        // Cache hit
+        let _ = cache.get(&file_path);
+        let stats = cache.statistics();
+        assert_eq!(stats.hits, 1);
+        assert_eq!(stats.misses, 0);
+        assert_eq!(stats.total_files, 1);
+    }
+
+    #[test]
+    fn test_transpilation_cache_save_and_load() {
+        let temp_dir = TempDir::new().unwrap();
+        let cache_dir = temp_dir.path().join("cache");
+        let file_path = temp_dir.path().join("test.c");
+        std::fs::write(&file_path, "int main() { return 0; }").unwrap();
+
+        // Create and populate cache
+        let mut cache = TranspilationCache::with_directory(&cache_dir);
+        let transpiled = TranspiledFile::new(
+            file_path.clone(),
+            "fn main() -> i32 { 0 }".to_string(),
+            Vec::new(),
+            vec!["main".to_string()],
+            String::new(),
+        );
+        cache.insert(&file_path, &transpiled);
+
+        // Save
+        cache.save().unwrap();
+        assert!(cache_dir.join("cache.json").exists());
+
+        // Load into new cache
+        let loaded_cache = TranspilationCache::load(&cache_dir).unwrap();
+        assert_eq!(loaded_cache.statistics().total_files, 1);
+    }
+
+    #[test]
+    fn test_transpilation_cache_save_no_directory() {
+        let cache = TranspilationCache::new();
+        let result = cache.save();
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("not set"));
+    }
+
+    #[test]
+    fn test_transpilation_cache_load_no_file() {
+        let temp_dir = TempDir::new().unwrap();
+        let cache = TranspilationCache::load(temp_dir.path()).unwrap();
+        assert_eq!(cache.statistics().total_files, 0);
+    }
+
+    // =========================================================================
+    // Helper function tests
+    // =========================================================================
+
+    #[test]
+    fn test_extract_function_names() {
+        let rust_code = r#"
+            fn add(a: i32, b: i32) -> i32 { a + b }
+            pub fn multiply(x: i32, y: i32) -> i32 { x * y }
+            fn foo<'a>(s: &'a str) -> &'a str { s }
+            struct Point { x: i32, y: i32 }
+        "#;
+
+        let names = extract_function_names(rust_code);
+
+        assert_eq!(names.len(), 3);
+        assert!(names.contains(&"add".to_string()));
+        assert!(names.contains(&"multiply".to_string()));
+        assert!(names.contains(&"foo".to_string()));
+    }
+
+    #[test]
+    fn test_extract_function_names_empty() {
+        let rust_code = "struct Point { x: i32 }";
+        let names = extract_function_names(rust_code);
+        assert!(names.is_empty());
+    }
+
+    #[test]
+    fn test_generate_ffi_declarations() {
+        let functions = vec!["add".to_string(), "multiply".to_string()];
+        let ffi = generate_ffi_declarations(&functions);
+
+        assert!(ffi.contains("extern \"C\""));
+        assert!(ffi.contains("// add"));
+        assert!(ffi.contains("// multiply"));
+    }
+
+    #[test]
+    fn test_generate_ffi_declarations_empty() {
+        let functions: Vec<String> = Vec::new();
+        let ffi = generate_ffi_declarations(&functions);
+        assert!(ffi.is_empty());
+    }
+
+    #[test]
+    fn test_extract_dependencies() {
+        let temp_dir = TempDir::new().unwrap();
+        let header_path = temp_dir.path().join("myheader.h");
+        std::fs::write(&header_path, "int helper();").unwrap();
+
+        let source_path = temp_dir.path().join("main.c");
+        std::fs::write(
+            &source_path,
+            r#"#include "myheader.h"
+            #include <stdio.h>
+            int main() { return 0; }"#,
+        )
+        .unwrap();
+
+        let c_code = std::fs::read_to_string(&source_path).unwrap();
+        let deps = extract_dependencies(&source_path, &c_code).unwrap();
+
+        // Only local includes that exist should be in deps
+        assert_eq!(deps.len(), 1);
+        assert_eq!(deps[0], header_path);
+    }
+
+    #[test]
+    fn test_extract_dependencies_no_parent() {
+        // This shouldn't happen in practice but we test the error case
+        // The function expects a file with a parent directory
+        let c_code = "#include \"header.h\"";
+        let result = extract_dependencies(Path::new(""), c_code);
+        assert!(result.is_err());
+    }
+
+    // =========================================================================
+    // Pointer arithmetic and NULL comparison tests
+    // =========================================================================
+
+    #[test]
+    fn test_uses_pointer_arithmetic_true() {
+        use decy_hir::{BinaryOperator, HirParameter, HirType};
+
+        let params = vec![HirParameter::new(
+            "ptr".to_string(),
+            HirType::Pointer(Box::new(HirType::Int)),
+        )];
+
+        // Add statement: ptr = ptr + 1
+        let body = vec![HirStatement::Assignment {
+            target: "ptr".to_string(),
+            value: HirExpression::BinaryOp {
+                op: BinaryOperator::Add,
+                left: Box::new(HirExpression::Variable("ptr".to_string())),
+                right: Box::new(HirExpression::IntLiteral(1)),
+            },
+        }];
+
+        let func = HirFunction::new_with_body("test".to_string(), HirType::Void, params, body);
+
+        assert!(uses_pointer_arithmetic(&func, "ptr"));
+        assert!(!uses_pointer_arithmetic(&func, "other"));
+    }
+
+    #[test]
+    fn test_uses_pointer_arithmetic_subtract() {
+        use decy_hir::{BinaryOperator, HirParameter, HirType};
+
+        let params = vec![HirParameter::new(
+            "ptr".to_string(),
+            HirType::Pointer(Box::new(HirType::Int)),
+        )];
+
+        // Add statement: ptr = ptr - 1
+        let body = vec![HirStatement::Assignment {
+            target: "ptr".to_string(),
+            value: HirExpression::BinaryOp {
+                op: BinaryOperator::Subtract,
+                left: Box::new(HirExpression::Variable("ptr".to_string())),
+                right: Box::new(HirExpression::IntLiteral(1)),
+            },
+        }];
+
+        let func = HirFunction::new_with_body("test".to_string(), HirType::Void, params, body);
+
+        assert!(uses_pointer_arithmetic(&func, "ptr"));
+    }
+
+    #[test]
+    fn test_uses_pointer_arithmetic_in_if() {
+        use decy_hir::{BinaryOperator, HirParameter, HirType};
+
+        let params = vec![HirParameter::new(
+            "ptr".to_string(),
+            HirType::Pointer(Box::new(HirType::Int)),
+        )];
+
+        // Add statement inside if block
+        let body = vec![HirStatement::If {
+            condition: HirExpression::IntLiteral(1), // true condition
+            then_block: vec![HirStatement::Assignment {
+                target: "ptr".to_string(),
+                value: HirExpression::BinaryOp {
+                    op: BinaryOperator::Add,
+                    left: Box::new(HirExpression::Variable("ptr".to_string())),
+                    right: Box::new(HirExpression::IntLiteral(1)),
+                },
+            }],
+            else_block: None,
+        }];
+
+        let func = HirFunction::new_with_body("test".to_string(), HirType::Void, params, body);
+
+        assert!(uses_pointer_arithmetic(&func, "ptr"));
+    }
+
+    #[test]
+    fn test_uses_pointer_arithmetic_in_else() {
+        use decy_hir::{BinaryOperator, HirParameter, HirType};
+
+        let params = vec![HirParameter::new(
+            "ptr".to_string(),
+            HirType::Pointer(Box::new(HirType::Int)),
+        )];
+
+        let body = vec![HirStatement::If {
+            condition: HirExpression::IntLiteral(1), // true condition
+            then_block: vec![],
+            else_block: Some(vec![HirStatement::Assignment {
+                target: "ptr".to_string(),
+                value: HirExpression::BinaryOp {
+                    op: BinaryOperator::Add,
+                    left: Box::new(HirExpression::Variable("ptr".to_string())),
+                    right: Box::new(HirExpression::IntLiteral(1)),
+                },
+            }]),
+        }];
+
+        let func = HirFunction::new_with_body("test".to_string(), HirType::Void, params, body);
+
+        assert!(uses_pointer_arithmetic(&func, "ptr"));
+    }
+
+    #[test]
+    fn test_uses_pointer_arithmetic_in_while() {
+        use decy_hir::{BinaryOperator, HirParameter, HirType};
+
+        let params = vec![HirParameter::new(
+            "ptr".to_string(),
+            HirType::Pointer(Box::new(HirType::Int)),
+        )];
+
+        let body = vec![HirStatement::While {
+            condition: HirExpression::IntLiteral(1), // true condition
+            body: vec![HirStatement::Assignment {
+                target: "ptr".to_string(),
+                value: HirExpression::BinaryOp {
+                    op: BinaryOperator::Add,
+                    left: Box::new(HirExpression::Variable("ptr".to_string())),
+                    right: Box::new(HirExpression::IntLiteral(1)),
+                },
+            }],
+        }];
+
+        let func = HirFunction::new_with_body("test".to_string(), HirType::Void, params, body);
+
+        assert!(uses_pointer_arithmetic(&func, "ptr"));
+    }
+
+    #[test]
+    fn test_uses_pointer_arithmetic_in_for() {
+        use decy_hir::{BinaryOperator, HirParameter, HirType};
+
+        let params = vec![HirParameter::new(
+            "ptr".to_string(),
+            HirType::Pointer(Box::new(HirType::Int)),
+        )];
+
+        let body = vec![HirStatement::For {
+            init: vec![],
+            condition: HirExpression::IntLiteral(1), // true condition
+            increment: vec![],
+            body: vec![HirStatement::Assignment {
+                target: "ptr".to_string(),
+                value: HirExpression::BinaryOp {
+                    op: BinaryOperator::Add,
+                    left: Box::new(HirExpression::Variable("ptr".to_string())),
+                    right: Box::new(HirExpression::IntLiteral(1)),
+                },
+            }],
+        }];
+
+        let func = HirFunction::new_with_body("test".to_string(), HirType::Void, params, body);
+
+        assert!(uses_pointer_arithmetic(&func, "ptr"));
+    }
+
+    #[test]
+    fn test_uses_pointer_arithmetic_false() {
+        use decy_hir::{HirParameter, HirType};
+
+        let params = vec![HirParameter::new(
+            "ptr".to_string(),
+            HirType::Pointer(Box::new(HirType::Int)),
+        )];
+
+        // Simple assignment without pointer arithmetic
+        let body = vec![HirStatement::Assignment {
+            target: "x".to_string(),
+            value: HirExpression::IntLiteral(42),
+        }];
+
+        let func = HirFunction::new_with_body("test".to_string(), HirType::Void, params, body);
+
+        assert!(!uses_pointer_arithmetic(&func, "ptr"));
+    }
+
+    #[test]
+    fn test_pointer_compared_to_null_equal() {
+        use decy_hir::{BinaryOperator, HirType};
+
+        let body = vec![HirStatement::If {
+            condition: HirExpression::BinaryOp {
+                op: BinaryOperator::Equal,
+                left: Box::new(HirExpression::Variable("ptr".to_string())),
+                right: Box::new(HirExpression::NullLiteral),
+            },
+            then_block: vec![],
+            else_block: None,
+        }];
+
+        let func = HirFunction::new_with_body(
+            "test".to_string(),
+            HirType::Void,
+            vec![decy_hir::HirParameter::new(
+                "ptr".to_string(),
+                HirType::Pointer(Box::new(HirType::Int)),
+            )],
+            body,
+        );
+
+        assert!(pointer_compared_to_null(&func, "ptr"));
+        assert!(!pointer_compared_to_null(&func, "other"));
+    }
+
+    #[test]
+    fn test_pointer_compared_to_null_not_equal() {
+        use decy_hir::{BinaryOperator, HirType};
+
+        let body = vec![HirStatement::If {
+            condition: HirExpression::BinaryOp {
+                op: BinaryOperator::NotEqual,
+                left: Box::new(HirExpression::Variable("ptr".to_string())),
+                right: Box::new(HirExpression::NullLiteral),
+            },
+            then_block: vec![],
+            else_block: None,
+        }];
+
+        let func = HirFunction::new_with_body(
+            "test".to_string(),
+            HirType::Void,
+            vec![decy_hir::HirParameter::new(
+                "ptr".to_string(),
+                HirType::Pointer(Box::new(HirType::Int)),
+            )],
+            body,
+        );
+
+        assert!(pointer_compared_to_null(&func, "ptr"));
+    }
+
+    #[test]
+    fn test_pointer_compared_to_null_zero_literal() {
+        use decy_hir::{BinaryOperator, HirType};
+
+        // NULL can be represented as IntLiteral(0)
+        let body = vec![HirStatement::If {
+            condition: HirExpression::BinaryOp {
+                op: BinaryOperator::Equal,
+                left: Box::new(HirExpression::Variable("ptr".to_string())),
+                right: Box::new(HirExpression::IntLiteral(0)),
+            },
+            then_block: vec![],
+            else_block: None,
+        }];
+
+        let func = HirFunction::new_with_body(
+            "test".to_string(),
+            HirType::Void,
+            vec![decy_hir::HirParameter::new(
+                "ptr".to_string(),
+                HirType::Pointer(Box::new(HirType::Int)),
+            )],
+            body,
+        );
+
+        assert!(pointer_compared_to_null(&func, "ptr"));
+    }
+
+    #[test]
+    fn test_pointer_compared_to_null_in_while() {
+        use decy_hir::{BinaryOperator, HirType};
+
+        let body = vec![HirStatement::While {
+            condition: HirExpression::BinaryOp {
+                op: BinaryOperator::NotEqual,
+                left: Box::new(HirExpression::Variable("ptr".to_string())),
+                right: Box::new(HirExpression::NullLiteral),
+            },
+            body: vec![],
+        }];
+
+        let func = HirFunction::new_with_body(
+            "test".to_string(),
+            HirType::Void,
+            vec![decy_hir::HirParameter::new(
+                "ptr".to_string(),
+                HirType::Pointer(Box::new(HirType::Int)),
+            )],
+            body,
+        );
+
+        assert!(pointer_compared_to_null(&func, "ptr"));
+    }
+
+    #[test]
+    fn test_pointer_compared_to_null_in_for() {
+        use decy_hir::{BinaryOperator, HirType};
+
+        let body = vec![HirStatement::For {
+            init: vec![],
+            condition: HirExpression::BinaryOp {
+                op: BinaryOperator::NotEqual,
+                left: Box::new(HirExpression::Variable("ptr".to_string())),
+                right: Box::new(HirExpression::NullLiteral),
+            },
+            increment: vec![],
+            body: vec![],
+        }];
+
+        let func = HirFunction::new_with_body(
+            "test".to_string(),
+            HirType::Void,
+            vec![decy_hir::HirParameter::new(
+                "ptr".to_string(),
+                HirType::Pointer(Box::new(HirType::Int)),
+            )],
+            body,
+        );
+
+        assert!(pointer_compared_to_null(&func, "ptr"));
+    }
+
+    #[test]
+    fn test_pointer_compared_to_null_in_switch() {
+        use decy_hir::{BinaryOperator, HirType, SwitchCase};
+
+        let body = vec![HirStatement::Switch {
+            condition: HirExpression::Variable("x".to_string()),
+            cases: vec![SwitchCase {
+                value: Some(HirExpression::IntLiteral(1)),
+                body: vec![HirStatement::If {
+                    condition: HirExpression::BinaryOp {
+                        op: BinaryOperator::Equal,
+                        left: Box::new(HirExpression::Variable("ptr".to_string())),
+                        right: Box::new(HirExpression::NullLiteral),
+                    },
+                    then_block: vec![],
+                    else_block: None,
+                }],
+            }],
+            default_case: None,
+        }];
+
+        let func = HirFunction::new_with_body(
+            "test".to_string(),
+            HirType::Void,
+            vec![decy_hir::HirParameter::new(
+                "ptr".to_string(),
+                HirType::Pointer(Box::new(HirType::Int)),
+            )],
+            body,
+        );
+
+        assert!(pointer_compared_to_null(&func, "ptr"));
+    }
+
+    #[test]
+    fn test_pointer_compared_to_null_reversed() {
+        use decy_hir::{BinaryOperator, HirType};
+
+        // NULL on left side: NULL == ptr
+        let body = vec![HirStatement::If {
+            condition: HirExpression::BinaryOp {
+                op: BinaryOperator::Equal,
+                left: Box::new(HirExpression::NullLiteral),
+                right: Box::new(HirExpression::Variable("ptr".to_string())),
+            },
+            then_block: vec![],
+            else_block: None,
+        }];
+
+        let func = HirFunction::new_with_body(
+            "test".to_string(),
+            HirType::Void,
+            vec![decy_hir::HirParameter::new(
+                "ptr".to_string(),
+                HirType::Pointer(Box::new(HirType::Int)),
+            )],
+            body,
+        );
+
+        assert!(pointer_compared_to_null(&func, "ptr"));
+    }
+
+    #[test]
+    fn test_pointer_compared_to_null_nested_binary_op() {
+        use decy_hir::{BinaryOperator, HirType};
+
+        // (ptr == NULL) && (other == NULL)
+        let body = vec![HirStatement::If {
+            condition: HirExpression::BinaryOp {
+                op: BinaryOperator::LogicalAnd,
+                left: Box::new(HirExpression::BinaryOp {
+                    op: BinaryOperator::Equal,
+                    left: Box::new(HirExpression::Variable("ptr".to_string())),
+                    right: Box::new(HirExpression::NullLiteral),
+                }),
+                right: Box::new(HirExpression::BinaryOp {
+                    op: BinaryOperator::Equal,
+                    left: Box::new(HirExpression::Variable("other".to_string())),
+                    right: Box::new(HirExpression::NullLiteral),
+                }),
+            },
+            then_block: vec![],
+            else_block: None,
+        }];
+
+        let func = HirFunction::new_with_body(
+            "test".to_string(),
+            HirType::Void,
+            vec![
+                decy_hir::HirParameter::new(
+                    "ptr".to_string(),
+                    HirType::Pointer(Box::new(HirType::Int)),
+                ),
+                decy_hir::HirParameter::new(
+                    "other".to_string(),
+                    HirType::Pointer(Box::new(HirType::Int)),
+                ),
+            ],
+            body,
+        );
+
+        assert!(pointer_compared_to_null(&func, "ptr"));
+        assert!(pointer_compared_to_null(&func, "other"));
+    }
+
+    #[test]
+    fn test_pointer_not_compared_to_null() {
+        use decy_hir::HirType;
+
+        let body = vec![HirStatement::Expression(HirExpression::Variable(
+            "ptr".to_string(),
+        ))];
+
+        let func = HirFunction::new_with_body(
+            "test".to_string(),
+            HirType::Void,
+            vec![decy_hir::HirParameter::new(
+                "ptr".to_string(),
+                HirType::Pointer(Box::new(HirType::Int)),
+            )],
+            body,
+        );
+
+        assert!(!pointer_compared_to_null(&func, "ptr"));
+    }
+
+    // =========================================================================
+    // transpile_with_verification tests
+    // =========================================================================
+
+    #[test]
+    fn test_transpile_with_verification_success() {
+        let c_code = "int add(int a, int b) { return a + b; }";
+        let result = transpile_with_verification(c_code).unwrap();
+
+        assert!(!result.rust_code.is_empty());
+        assert!(result.rust_code.contains("fn add"));
+    }
+
+    #[test]
+    fn test_transpile_with_verification_failure() {
+        // Invalid C code
+        let c_code = "int add( { }"; // Malformed
+        let result = transpile_with_verification(c_code).unwrap();
+
+        // Should return a result with empty code and errors
+        assert!(result.rust_code.is_empty() || !result.errors.is_empty());
+    }
+
+    // =========================================================================
+    // transpile_file tests
+    // =========================================================================
+
+    #[test]
+    fn test_transpile_file() {
+        let temp_dir = TempDir::new().unwrap();
+        let file_path = temp_dir.path().join("test.c");
+        std::fs::write(&file_path, "int add(int a, int b) { return a + b; }").unwrap();
+
+        let ctx = ProjectContext::new();
+        let result = transpile_file(&file_path, &ctx).unwrap();
+
+        assert_eq!(result.source_path, file_path);
+        assert!(result.rust_code.contains("fn add"));
+        assert!(result.functions_exported.contains(&"add".to_string()));
+    }
+
+    #[test]
+    fn test_transpile_file_not_found() {
+        let ctx = ProjectContext::new();
+        let result = transpile_file(Path::new("/nonexistent/file.c"), &ctx);
+        assert!(result.is_err());
+    }
+
+    // =========================================================================
+    // transpile_from_file_path tests
+    // =========================================================================
+
+    #[test]
+    fn test_transpile_from_file_path() {
+        let temp_dir = TempDir::new().unwrap();
+        let file_path = temp_dir.path().join("test.c");
+        std::fs::write(&file_path, "int multiply(int x, int y) { return x * y; }").unwrap();
+
+        let result = transpile_from_file_path(&file_path).unwrap();
+        assert!(result.contains("fn multiply"));
+    }
+
+    #[test]
+    fn test_transpile_from_file_path_not_found() {
+        let result = transpile_from_file_path(Path::new("/nonexistent/file.c"));
+        assert!(result.is_err());
+    }
+
+    // =========================================================================
+    // transpile_with_includes tests
+    // =========================================================================
+
+    #[test]
+    fn test_transpile_with_includes_system_header() {
+        // System headers get commented out and replaced with stdlib prototypes
+        let c_code = r#"
+            #include <stdio.h>
+            int main() { return 0; }
+        "#;
+
+        let result = transpile_with_includes(c_code, None);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_transpile_with_includes_local_header() {
+        let temp_dir = TempDir::new().unwrap();
+        let header_path = temp_dir.path().join("myheader.h");
+        std::fs::write(&header_path, "int helper(int x);").unwrap();
+
+        let c_code = r#"
+            #include "myheader.h"
+            int main() { return helper(42); }
+        "#;
+
+        let result = transpile_with_includes(c_code, Some(temp_dir.path()));
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_transpile_with_includes_missing_local_header() {
+        let c_code = r#"
+            #include "nonexistent.h"
+            int main() { return 0; }
+        "#;
+
+        let result = transpile_with_includes(c_code, None);
+        assert!(result.is_err());
+    }
+
+    // =========================================================================
+    // struct and enum transpilation tests
+    // =========================================================================
+
+    #[test]
+    fn test_transpile_struct() {
+        let c_code = r#"
+            struct Point {
+                int x;
+                int y;
+            };
+            int get_x(struct Point* p) { return p->x; }
+        "#;
+
+        let result = transpile(c_code).unwrap();
+        assert!(result.contains("struct Point"));
+        assert!(result.contains("x: i32"));
+    }
+
+    #[test]
+    fn test_transpile_enum() {
+        let c_code = r#"
+            enum Color { RED, GREEN, BLUE };
+            int main() { return RED; }
+        "#;
+
+        let result = transpile(c_code).unwrap();
+        // Enums are transpiled as const i32 values
+        assert!(result.contains("RED") || result.contains("Color"));
+    }
+
+    #[test]
+    fn test_transpile_global_variable() {
+        let c_code = r#"
+            int global_counter = 0;
+            void increment() { global_counter = global_counter + 1; }
+        "#;
+
+        let result = transpile(c_code).unwrap();
+        assert!(result.contains("static mut global_counter"));
+    }
+
+    #[test]
+    fn test_transpile_typedef() {
+        let c_code = r#"
+            typedef int MyInt;
+            MyInt add(MyInt a, MyInt b) { return a + b; }
+        "#;
+
+        let result = transpile(c_code).unwrap();
+        // Should contain typedef or the underlying type
+        assert!(result.contains("fn add"));
+    }
+
+    // =========================================================================
+    // expression_compares_to_null tests (internal function coverage)
+    // =========================================================================
+
+    #[test]
+    fn test_expression_compares_to_null_unary_op() {
+        use decy_hir::{BinaryOperator, UnaryOperator};
+
+        // !((ptr == NULL))
+        let expr = HirExpression::UnaryOp {
+            op: UnaryOperator::LogicalNot,
+            operand: Box::new(HirExpression::BinaryOp {
+                op: BinaryOperator::Equal,
+                left: Box::new(HirExpression::Variable("ptr".to_string())),
+                right: Box::new(HirExpression::NullLiteral),
+            }),
+        };
+
+        assert!(expression_compares_to_null(&expr, "ptr"));
+    }
+
+    #[test]
+    fn test_expression_compares_to_null_other_expression() {
+        // Variable expression (not a comparison)
+        let expr = HirExpression::Variable("ptr".to_string());
+        assert!(!expression_compares_to_null(&expr, "ptr"));
+
+        // Int literal
+        let expr = HirExpression::IntLiteral(42);
+        assert!(!expression_compares_to_null(&expr, "ptr"));
+
+        // Function call
+        let expr = HirExpression::FunctionCall {
+            function: "foo".to_string(),
+            arguments: vec![],
+        };
+        assert!(!expression_compares_to_null(&expr, "ptr"));
+    }
+
+    // =========================================================================
+    // statement_compares_to_null additional branch tests
+    // =========================================================================
+
+    #[test]
+    fn test_statement_compares_to_null_nested_in_then_block() {
+        use decy_hir::BinaryOperator;
+
+        let stmt = HirStatement::If {
+            condition: HirExpression::IntLiteral(1), // true condition
+            then_block: vec![HirStatement::If {
+                condition: HirExpression::BinaryOp {
+                    op: BinaryOperator::Equal,
+                    left: Box::new(HirExpression::Variable("ptr".to_string())),
+                    right: Box::new(HirExpression::NullLiteral),
+                },
+                then_block: vec![],
+                else_block: None,
+            }],
+            else_block: None,
+        };
+
+        assert!(statement_compares_to_null(&stmt, "ptr"));
+    }
+
+    #[test]
+    fn test_statement_compares_to_null_nested_in_else_block() {
+        use decy_hir::BinaryOperator;
+
+        let stmt = HirStatement::If {
+            condition: HirExpression::IntLiteral(1), // true condition
+            then_block: vec![],
+            else_block: Some(vec![HirStatement::If {
+                condition: HirExpression::BinaryOp {
+                    op: BinaryOperator::Equal,
+                    left: Box::new(HirExpression::Variable("ptr".to_string())),
+                    right: Box::new(HirExpression::NullLiteral),
+                },
+                then_block: vec![],
+                else_block: None,
+            }]),
+        };
+
+        assert!(statement_compares_to_null(&stmt, "ptr"));
+    }
+
+    #[test]
+    fn test_statement_compares_to_null_in_while_body() {
+        use decy_hir::BinaryOperator;
+
+        let stmt = HirStatement::While {
+            condition: HirExpression::IntLiteral(1), // true condition
+            body: vec![HirStatement::If {
+                condition: HirExpression::BinaryOp {
+                    op: BinaryOperator::Equal,
+                    left: Box::new(HirExpression::Variable("ptr".to_string())),
+                    right: Box::new(HirExpression::NullLiteral),
+                },
+                then_block: vec![],
+                else_block: None,
+            }],
+        };
+
+        assert!(statement_compares_to_null(&stmt, "ptr"));
+    }
+
+    #[test]
+    fn test_statement_compares_to_null_in_for_body() {
+        use decy_hir::BinaryOperator;
+
+        let stmt = HirStatement::For {
+            init: vec![],
+            condition: HirExpression::IntLiteral(1), // true condition
+            increment: vec![],
+            body: vec![HirStatement::If {
+                condition: HirExpression::BinaryOp {
+                    op: BinaryOperator::Equal,
+                    left: Box::new(HirExpression::Variable("ptr".to_string())),
+                    right: Box::new(HirExpression::NullLiteral),
+                },
+                then_block: vec![],
+                else_block: None,
+            }],
+        };
+
+        assert!(statement_compares_to_null(&stmt, "ptr"));
+    }
+
+    #[test]
+    fn test_statement_compares_to_null_return_statement() {
+        // Return statement doesn't contain comparisons
+        let stmt = HirStatement::Return(Some(HirExpression::IntLiteral(0)));
+        assert!(!statement_compares_to_null(&stmt, "ptr"));
+    }
+
+    #[test]
+    fn test_statement_compares_to_null_expression_statement() {
+        // Expression statement
+        let stmt = HirStatement::Expression(HirExpression::Variable("x".to_string()));
+        assert!(!statement_compares_to_null(&stmt, "ptr"));
     }
 }

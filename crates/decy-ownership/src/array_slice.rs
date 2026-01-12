@@ -186,13 +186,17 @@ impl ArrayParameterTransformer {
                 increment,
                 body,
             } => HirStatement::For {
+                // DECY-224: Transform all init statements
                 init: init
-                    .as_ref()
-                    .map(|s| Box::new(Self::transform_statement(s, array_param_map))),
+                    .iter()
+                    .map(|s| Self::transform_statement(s, array_param_map))
+                    .collect(),
                 condition: Self::transform_expression(condition, array_param_map),
+                // DECY-224: Transform all increment statements
                 increment: increment
-                    .as_ref()
-                    .map(|s| Box::new(Self::transform_statement(s, array_param_map))),
+                    .iter()
+                    .map(|s| Self::transform_statement(s, array_param_map))
+                    .collect(),
                 body: body
                     .iter()
                     .map(|s| Self::transform_statement(s, array_param_map))
@@ -644,24 +648,24 @@ mod tests {
     fn test_transform_statement_for() {
         let map: HashMap<String, Option<String>> = HashMap::new();
         let stmt = HirStatement::For {
-            init: Some(Box::new(HirStatement::VariableDeclaration {
+            init: vec![HirStatement::VariableDeclaration {
                 name: "i".to_string(),
                 var_type: HirType::Int,
                 initializer: Some(HirExpression::IntLiteral(0)),
-            })),
+            }],
             condition: HirExpression::BinaryOp {
                 op: BinaryOperator::LessThan,
                 left: Box::new(HirExpression::Variable("i".to_string())),
                 right: Box::new(HirExpression::IntLiteral(10)),
             },
-            increment: Some(Box::new(HirStatement::Assignment {
+            increment: vec![HirStatement::Assignment {
                 target: "i".to_string(),
                 value: HirExpression::BinaryOp {
                     op: BinaryOperator::Add,
                     left: Box::new(HirExpression::Variable("i".to_string())),
                     right: Box::new(HirExpression::IntLiteral(1)),
                 },
-            })),
+            }],
             body: vec![HirStatement::Break],
         };
         let result = ArrayParameterTransformer::transform_statement(&stmt, &map);
@@ -848,9 +852,9 @@ mod tests {
     #[test]
     fn test_statement_uses_pointer_arithmetic_in_for() {
         let stmt = HirStatement::For {
-            init: None,
+            init: vec![],
             condition: HirExpression::Variable("cond".to_string()),
-            increment: None,
+            increment: vec![],
             body: vec![HirStatement::Expression(HirExpression::PostIncrement {
                 operand: Box::new(HirExpression::Variable("ptr".to_string())),
             })],

@@ -219,7 +219,8 @@ fn test_codegen_global_array_variable() {
 
     assert!(rust_code.contains("static mut buffer"));
     assert!(rust_code.contains("[i32; 10]"));
-    assert!(rust_code.contains("[0; 10]"));
+    // Array initialization with typed zero value (0i32)
+    assert!(rust_code.contains("[0i32; 10]"));
 }
 
 /// RED: Test code generation for const string literal global

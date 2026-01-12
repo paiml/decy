@@ -543,8 +543,8 @@ impl DataflowAnalyzer {
                 increment,
                 body,
             } => {
-                // Track init statement
-                if let Some(init_stmt) = init {
+                // DECY-224: Track all init statements
+                for init_stmt in init {
                     self.track_statement(init_stmt, graph, index);
                 }
                 // Track condition expression
@@ -553,8 +553,8 @@ impl DataflowAnalyzer {
                 for s in body {
                     self.track_statement(s, graph, index);
                 }
-                // Track increment statement
-                if let Some(inc_stmt) = increment {
+                // DECY-224: Track all increment statements
+                for inc_stmt in increment {
                     self.track_statement(inc_stmt, graph, index);
                 }
             }
@@ -620,6 +620,7 @@ impl DataflowAnalyzer {
                             let element_type = match type_name.as_str() {
                                 "int" => HirType::Int,
                                 "char" => HirType::Char,
+                                "signed char" => HirType::SignedChar, // DECY-250
                                 "float" => HirType::Float,
                                 "double" => HirType::Double,
                                 _ => HirType::Int, // Default fallback

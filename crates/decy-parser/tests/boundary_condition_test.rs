@@ -39,15 +39,14 @@ fn test_loop_counter_increment() {
         .expect("Should have for statement");
 
     if let Statement::For { increment, .. } = for_stmt {
-        assert!(increment.is_some(), "For loop should have increment");
+        assert!(!increment.is_empty(), "For loop should have increment");
 
         // Increment should be an assignment statement: i = i + 1
-        if let Some(stmt) = increment {
-            assert!(
-                matches!(**stmt, Statement::Assignment { .. }),
-                "Expected increment to be assignment statement"
-            );
-        }
+        let stmt = &increment[0];
+        assert!(
+            matches!(stmt, Statement::Assignment { .. }),
+            "Expected increment to be assignment statement"
+        );
     }
 }
 
@@ -187,16 +186,15 @@ fn test_array_index_boundary_zero() {
         .expect("Should have for statement");
 
     if let Statement::For { init, .. } = for_stmt {
-        assert!(init.is_some(), "For loop should have init");
+        assert!(!init.is_empty(), "For loop should have init");
 
         // Init should be assignment: i = 0 (starting at boundary 0)
-        if let Some(stmt) = init {
-            if let Statement::Assignment { value, .. } = &**stmt {
-                assert!(
-                    matches!(value, Expression::IntLiteral(0)),
-                    "Array indexing should start at 0"
-                );
-            }
+        let stmt = &init[0];
+        if let Statement::Assignment { value, .. } = stmt {
+            assert!(
+                matches!(value, Expression::IntLiteral(0)),
+                "Array indexing should start at 0"
+            );
         }
     }
 }

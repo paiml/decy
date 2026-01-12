@@ -688,9 +688,11 @@ mod tests {
 
     #[test]
     fn metrics_accuracy() {
-        let mut metrics = EvaluationMetrics::default();
-        metrics.total_samples = 100;
-        metrics.correct = 80;
+        let metrics = EvaluationMetrics {
+            total_samples: 100,
+            correct: 80,
+            ..Default::default()
+        };
 
         assert!((metrics.accuracy() - 0.8).abs() < 0.001);
     }

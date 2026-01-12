@@ -204,6 +204,7 @@ impl EnumGenerator {
             HirType::Float => "Float".to_string(),
             HirType::Double => "Double".to_string(),
             HirType::Char => "Char".to_string(),
+            HirType::SignedChar => "SignedChar".to_string(), // DECY-250
             HirType::Pointer(inner) if matches!(**inner, HirType::Char) => "String".to_string(),
             HirType::Pointer(inner) if matches!(**inner, HirType::Void) => "Pointer".to_string(),
             HirType::Pointer(_) => "Pointer".to_string(),
@@ -233,6 +234,7 @@ impl EnumGenerator {
             HirType::Float => "f32".to_string(),
             HirType::Double => "f64".to_string(),
             HirType::Char => "u8".to_string(),
+            HirType::SignedChar => "i8".to_string(), // DECY-250
             HirType::Pointer(inner) => {
                 // Check if it's char* which should be String
                 if matches!(**inner, HirType::Char) {

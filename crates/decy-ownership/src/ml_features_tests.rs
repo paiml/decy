@@ -4,6 +4,7 @@
 //! DECY-ML-003: Ownership defect taxonomy
 
 use crate::ml_features::*;
+use decy_hir::HirExpression;
 
 // ============================================================================
 // DECY-ML-003: OWNERSHIP DEFECT TAXONOMY TESTS
@@ -60,7 +61,7 @@ fn defect_category_debug() {
 #[test]
 fn defect_category_clone_eq() {
     let d1 = OwnershipDefect::ResourceLeakPattern;
-    let d2 = d1.clone();
+    let d2 = d1;
     assert_eq!(d1, d2);
 }
 
@@ -127,9 +128,9 @@ fn ownership_features_default() {
 #[test]
 fn ownership_features_dimension_constant() {
     // Spec: 142 dimensions for batch processing
-    assert!(OwnershipFeatures::DIMENSION > 0);
+    const _: () = assert!(OwnershipFeatures::DIMENSION > 0);
     // At minimum: syntactic(4) + semantic(4) + usage(4) = 12
-    assert!(OwnershipFeatures::DIMENSION >= 12);
+    const _: () = assert!(OwnershipFeatures::DIMENSION >= 12);
 }
 
 #[test]
@@ -917,4 +918,215 @@ fn default_library_borrow_checker_pattern() {
         !e0502_matches.is_empty() || !e0499_matches.is_empty(),
         "Should have borrow checker error patterns"
     );
+}
+
+// ============================================================================
+// ADDITIONAL COVERAGE TESTS
+// ============================================================================
+
+#[test]
+fn inferred_ownership_to_rust_type_all_variants() {
+    assert_eq!(InferredOwnership::Owned.to_rust_type("i32"), "Box<i32>");
+    assert_eq!(InferredOwnership::Borrowed.to_rust_type("i32"), "&i32");
+    assert_eq!(
+        InferredOwnership::BorrowedMut.to_rust_type("i32"),
+        "&mut i32"
+    );
+    assert_eq!(InferredOwnership::Shared.to_rust_type("i32"), "Rc<i32>");
+    assert_eq!(
+        InferredOwnership::RawPointer.to_rust_type("i32"),
+        "*const i32"
+    );
+    assert_eq!(InferredOwnership::Vec.to_rust_type("i32"), "Vec<i32>");
+    assert_eq!(InferredOwnership::Slice.to_rust_type("i32"), "&[i32]");
+    assert_eq!(
+        InferredOwnership::SliceMut.to_rust_type("i32"),
+        "&mut [i32]"
+    );
+}
+
+#[test]
+fn ownership_prediction_is_confident() {
+    let confident = OwnershipPrediction {
+        kind: InferredOwnership::Owned,
+        confidence: 0.8,
+        fallback: None,
+    };
+    assert!(confident.is_confident());
+
+    let not_confident = OwnershipPrediction {
+        kind: InferredOwnership::Owned,
+        confidence: 0.5,
+        fallback: None,
+    };
+    assert!(!not_confident.is_confident());
+}
+
+#[test]
+fn ownership_prediction_effective_ownership() {
+    // Confident prediction uses kind
+    let confident = OwnershipPrediction {
+        kind: InferredOwnership::Owned,
+        confidence: 0.8,
+        fallback: Some(InferredOwnership::Borrowed),
+    };
+    assert_eq!(confident.effective_ownership(), InferredOwnership::Owned);
+
+    // Not confident uses fallback
+    let not_confident = OwnershipPrediction {
+        kind: InferredOwnership::Owned,
+        confidence: 0.5,
+        fallback: Some(InferredOwnership::Borrowed),
+    };
+    assert_eq!(
+        not_confident.effective_ownership(),
+        InferredOwnership::Borrowed
+    );
+
+    // Not confident without fallback uses RawPointer
+    let no_fallback = OwnershipPrediction {
+        kind: InferredOwnership::Owned,
+        confidence: 0.5,
+        fallback: None,
+    };
+    assert_eq!(
+        no_fallback.effective_ownership(),
+        InferredOwnership::RawPointer
+    );
+}
+
+#[test]
+fn ownership_prediction_partial_eq() {
+    let p1 = OwnershipPrediction {
+        kind: InferredOwnership::Owned,
+        confidence: 0.8,
+        fallback: None,
+    };
+    let p2 = OwnershipPrediction {
+        kind: InferredOwnership::Owned,
+        confidence: 0.8,
+        fallback: None,
+    };
+    assert_eq!(p1, p2);
+}
+
+#[test]
+fn allocation_kind_default() {
+    let kind: AllocationKind = Default::default();
+    assert_eq!(kind, AllocationKind::Unknown);
+}
+
+#[test]
+fn allocation_kind_copy_debug() {
+    let kind = AllocationKind::Malloc;
+    let copied = kind; // Copy trait
+    assert_eq!(kind, copied);
+    let debug = format!("{:?}", kind);
+    assert!(debug.contains("Malloc"));
+}
+
+#[test]
+fn severity_comparison() {
+    assert!(Severity::Critical > Severity::High);
+    assert!(Severity::High > Severity::Medium);
+    assert!(Severity::Medium > Severity::Info);
+}
+
+#[test]
+fn ownership_defect_hash() {
+    use std::collections::HashSet;
+    let mut set = HashSet::new();
+    set.insert(OwnershipDefect::PointerMisclassification);
+    set.insert(OwnershipDefect::LifetimeInferenceGap);
+    assert!(set.contains(&OwnershipDefect::PointerMisclassification));
+}
+
+#[test]
+fn feature_extractor_extracted_count() {
+    let extractor = FeatureExtractor::new();
+    assert_eq!(extractor.extracted_count(), 0);
+}
+
+#[test]
+fn feature_extractor_extract_for_variable_pointer() {
+    let extractor = FeatureExtractor::new();
+    let func = make_function(
+        "test",
+        vec![],
+        vec![HirStatement::VariableDeclaration {
+            name: "p".to_string(),
+            var_type: HirType::Pointer(Box::new(HirType::Int)),
+            initializer: Some(HirExpression::FunctionCall {
+                function: "malloc".to_string(),
+                arguments: vec![HirExpression::IntLiteral(4)],
+            }),
+        }],
+        HirType::Void,
+    );
+
+    let features = extractor.extract_for_variable(&func, "p");
+    assert!(features.is_some());
+    let f = features.unwrap();
+    assert_eq!(f.allocation_site, AllocationKind::Malloc);
+}
+
+#[test]
+fn feature_extractor_extract_for_variable_calloc() {
+    let extractor = FeatureExtractor::new();
+    let func = make_function(
+        "test",
+        vec![],
+        vec![HirStatement::VariableDeclaration {
+            name: "p".to_string(),
+            var_type: HirType::Pointer(Box::new(HirType::Int)),
+            initializer: Some(HirExpression::FunctionCall {
+                function: "calloc".to_string(),
+                arguments: vec![HirExpression::IntLiteral(10), HirExpression::IntLiteral(4)],
+            }),
+        }],
+        HirType::Void,
+    );
+
+    let features = extractor.extract_for_variable(&func, "p");
+    assert!(features.is_some());
+    let f = features.unwrap();
+    assert_eq!(f.allocation_site, AllocationKind::Calloc);
+}
+
+#[test]
+fn feature_extractor_extract_for_variable_realloc() {
+    let extractor = FeatureExtractor::new();
+    let func = make_function(
+        "test",
+        vec![],
+        vec![HirStatement::VariableDeclaration {
+            name: "p".to_string(),
+            var_type: HirType::Pointer(Box::new(HirType::Int)),
+            initializer: Some(HirExpression::FunctionCall {
+                function: "realloc".to_string(),
+                arguments: vec![HirExpression::NullLiteral, HirExpression::IntLiteral(4)],
+            }),
+        }],
+        HirType::Void,
+    );
+
+    let features = extractor.extract_for_variable(&func, "p");
+    assert!(features.is_some());
+    let f = features.unwrap();
+    assert_eq!(f.allocation_site, AllocationKind::Realloc);
+}
+
+#[test]
+fn error_severity_default() {
+    let sev: ErrorSeverity = Default::default();
+    assert_eq!(sev, ErrorSeverity::Info);
+}
+
+#[test]
+fn inferred_ownership_hash() {
+    use std::collections::HashSet;
+    let mut set = HashSet::new();
+    set.insert(InferredOwnership::Owned);
+    set.insert(InferredOwnership::Borrowed);
+    assert!(set.contains(&InferredOwnership::Owned));
 }

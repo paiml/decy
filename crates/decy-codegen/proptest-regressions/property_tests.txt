@@ -5,3 +5,5 @@
 # It is recommended to check this file in to source control so that
 # everyone who runs the test benefits from these saved cases.
 cc 31d317f331a3182328b81908a36250ba6bac20266130794adf6c196900eefb86 # shrinks to val = 0
+cc 63c7a6df5aa0477ef9c03677a7b23c5511af6f252bd8111c18f708f12f47be21 # shrinks to name = "as"
+cc c293accbfdc29f843ce69363216544bc4b3115d7fc86b447adc8cbcda6f7d62b # shrinks to name = "in"

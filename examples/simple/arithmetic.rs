@@ -1,3 +1,4 @@
+static mut ERRNO: i32 = 0;
 fn add(mut a: i32, mut b: i32) -> i32 {
     return a + b;
 }

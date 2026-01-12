@@ -552,3 +552,7 @@ fn example() {
         assert!(!report.unsafe_blocks.is_empty() || report.unsafe_lines > 0);
     }
 }
+
+#[cfg(test)]
+#[path = "lock_verify_tests.rs"]
+mod lock_verify_tests;

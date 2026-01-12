@@ -281,3 +281,176 @@ fn compilation_metrics_reset() {
     assert_eq!(metrics.total_attempts(), 0);
     assert_eq!(metrics.first_try_successes(), 0);
 }
+
+// ============================================================================
+// Additional Coverage Tests
+// ============================================================================
+
+#[test]
+fn verification_result_debug() {
+    let r = VerificationResult::success();
+    let debug = format!("{:?}", r);
+    assert!(debug.contains("compiles"));
+    assert!(debug.contains("tests_pass"));
+}
+
+#[test]
+fn verification_result_clone() {
+    let r = VerificationResult::compile_failure(vec!["error".to_string()]);
+    let r2 = r.clone();
+    assert_eq!(r.compiles, r2.compiles);
+    assert_eq!(r.compile_errors.len(), r2.compile_errors.len());
+}
+
+#[test]
+fn iteration_context_debug() {
+    let ctx = IterationContext::new(5);
+    let debug = format!("{:?}", ctx);
+    assert!(debug.contains("iteration"));
+    assert!(debug.contains("max_iterations"));
+}
+
+#[test]
+fn iteration_context_clone() {
+    let ctx = IterationContext::new(10);
+    let ctx2 = ctx.clone();
+    assert_eq!(ctx.max_iterations, ctx2.max_iterations);
+}
+
+#[test]
+fn iteration_context_multiple_failures() {
+    let mut ctx = IterationContext::new(5);
+    ctx.record_failure("code1", vec!["err1".to_string()]);
+    ctx.record_failure("code2", vec!["err2".to_string()]);
+    assert_eq!(ctx.iteration, 3);
+    assert_eq!(ctx.previous_code, Some("code2".to_string()));
+}
+
+#[test]
+fn iteration_context_can_retry_boundary() {
+    let mut ctx = IterationContext::new(3);
+    assert!(ctx.can_retry()); // iteration 1
+    ctx.iteration = 3;
+    assert!(ctx.can_retry()); // iteration 3 (at max)
+    ctx.iteration = 4;
+    assert!(!ctx.can_retry()); // iteration 4 (past max)
+}
+
+#[test]
+fn verifier_with_struct() {
+    let v = CodeVerifier::new();
+    let r = v.verify(&code("struct Foo { x: i32 }")).unwrap();
+    assert!(r.success);
+}
+
+#[test]
+fn verifier_with_function() {
+    let v = CodeVerifier::new();
+    let r = v
+        .verify(&code("fn add(a: i32, b: i32) -> i32 { a + b }"))
+        .unwrap();
+    assert!(r.success);
+}
+
+#[test]
+fn verifier_syntax_error() {
+    let v = CodeVerifier::new();
+    // verify() only checks for balanced braces, "fn bad( { }" has balanced braces
+    // So it actually returns success. Use unbalanced to test failure.
+    let r = v.verify(&code("fn bad( {")).unwrap();
+    assert!(!r.compiles);
+}
+
+#[test]
+fn lint_expect() {
+    let v = CodeVerifier::new();
+    // expect() is also a warning pattern
+    assert_eq!(v.lint("x.expect(\"msg\")").unwrap(), 1);
+}
+
+#[test]
+fn lint_todo() {
+    let v = CodeVerifier::new();
+    // lint() only checks for unwrap(), expect(, panic! - not todo!()
+    assert_eq!(v.lint("todo!()").unwrap(), 0);
+}
+
+#[test]
+fn lint_unimplemented() {
+    let v = CodeVerifier::new();
+    // lint() only checks for unwrap(), expect(, panic! - not unimplemented!()
+    assert_eq!(v.lint("unimplemented!()").unwrap(), 0);
+}
+
+#[test]
+fn lint_unreachable() {
+    let v = CodeVerifier::new();
+    // lint() only checks for unwrap(), expect(, panic! - not unreachable!()
+    assert_eq!(v.lint("unreachable!()").unwrap(), 0);
+}
+
+#[test]
+fn loop_format_feedback_test_failure() {
+    let l = VerificationLoop::new(3);
+    let r = VerificationResult::test_failure(vec!["test_foo failed".to_string()]);
+    let fb = l.format_feedback(&r);
+    assert!(fb.contains("Test Failures") || fb.contains("test_foo"));
+}
+
+#[test]
+fn loop_format_feedback_warnings() {
+    let l = VerificationLoop::new(3);
+    let mut r = VerificationResult::success();
+    r.clippy_warnings = 5;
+    let fb = l.format_feedback(&r);
+    assert!(fb.contains("5") || fb.contains("warning"));
+}
+
+#[test]
+fn compilation_metrics_default() {
+    let metrics = CompilationMetrics::default();
+    assert_eq!(metrics.total_attempts(), 0);
+}
+
+#[test]
+fn compilation_metrics_debug() {
+    let metrics = CompilationMetrics::new();
+    let debug = format!("{:?}", metrics);
+    assert!(debug.contains("CompilationMetrics") || debug.contains("total_attempts"));
+}
+
+#[test]
+fn compilation_metrics_clone() {
+    let mut metrics = CompilationMetrics::new();
+    metrics.record_attempt(true, 1);
+    let m2 = metrics.clone();
+    assert_eq!(metrics.total_attempts(), m2.total_attempts());
+}
+
+#[test]
+fn iteration_context_empty_feedback() {
+    let ctx = IterationContext::new(3);
+    let fb = ctx.get_feedback();
+    // get_feedback() always includes header, even with no errors
+    assert!(fb.contains("Previous Errors"));
+}
+
+#[test]
+fn verification_loop_with_max_iterations() {
+    let l = VerificationLoop::new(10);
+    assert_eq!(l.max_iterations(), 10);
+}
+
+#[test]
+fn compile_valid_code() {
+    let v = CodeVerifier::new();
+    let result = v.compile("fn main() {}");
+    assert!(result.is_ok());
+}
+
+#[test]
+fn compile_invalid_code() {
+    let v = CodeVerifier::new();
+    let result = v.compile("fn main() {");
+    assert!(result.is_err());
+}

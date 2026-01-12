@@ -56,6 +56,10 @@ struct TypeContext {
     // DECY-134b: Track which functions have string iteration params (for call site transformation)
     // Maps func_name -> list of (param_index, is_mutable) for string iter params
     string_iter_funcs: HashMap<String, Vec<(usize, bool)>>,
+    // DECY-220: Track global variables (static mut) that need unsafe access
+    globals: std::collections::HashSet<String>,
+    // DECY-245: Track locals renamed to avoid shadowing statics (original_name -> renamed_name)
+    renamed_locals: HashMap<String, String>,
 }
 
 impl TypeContext {
@@ -67,7 +71,29 @@ impl TypeContext {
             slice_func_args: HashMap::new(),
             string_iter_params: HashMap::new(),
             string_iter_funcs: HashMap::new(),
+            globals: std::collections::HashSet::new(),
+            renamed_locals: HashMap::new(),
         }
+    }
+
+    /// DECY-245: Register a renamed local variable (for shadowing statics)
+    fn add_renamed_local(&mut self, original: String, renamed: String) {
+        self.renamed_locals.insert(original, renamed);
+    }
+
+    /// DECY-245: Get the renamed name for a local variable (if renamed)
+    fn get_renamed_local(&self, name: &str) -> Option<&String> {
+        self.renamed_locals.get(name)
+    }
+
+    /// DECY-220: Register a global variable (static mut) for unsafe tracking
+    fn add_global(&mut self, name: String) {
+        self.globals.insert(name);
+    }
+
+    /// DECY-220: Check if a variable is a global (static mut) requiring unsafe
+    fn is_global(&self, name: &str) -> bool {
+        self.globals.contains(name)
     }
 
     /// DECY-134b: Register a function's string iteration params for call site transformation
@@ -351,6 +377,27 @@ impl TypeContext {
             .iter()
             .find(|(name, _)| name == field_name)
             .map(|(_, field_type)| field_type.clone())
+    }
+}
+
+/// DECY-227: Escape Rust reserved keywords using raw identifiers (r#keyword).
+/// C code may use identifiers like `type`, `fn`, `match` that are reserved in Rust.
+fn escape_rust_keyword(name: &str) -> String {
+    // Rust strict keywords that cannot be used as identifiers without raw syntax
+    const RUST_KEYWORDS: &[&str] = &[
+        "as", "async", "await", "break", "const", "continue", "crate", "dyn", "else", "enum",
+        "extern", "false", "fn", "for", "if", "impl", "in", "let", "loop", "match", "mod", "move",
+        "mut", "pub", "ref", "return", "self", "Self", "static", "struct", "super", "trait",
+        "true", "type", "unsafe", "use", "where", "while",
+        // Reserved keywords for future use
+        "abstract", "become", "box", "do", "final", "macro", "override", "priv", "try", "typeof",
+        "unsized", "virtual", "yield",
+    ];
+
+    if RUST_KEYWORDS.contains(&name) {
+        format!("r#{}", name)
+    } else {
+        name.to_string()
     }
 }
 
@@ -805,6 +852,7 @@ impl CodeGenerator {
             HirType::Float => "f32".to_string(),
             HirType::Double => "f64".to_string(),
             HirType::Char => "u8".to_string(),
+            HirType::SignedChar => "i8".to_string(), // DECY-250
             HirType::Pointer(inner) => {
                 format!("*mut {}", Self::map_type(inner))
             }
@@ -946,16 +994,22 @@ impl CodeGenerator {
             }
             // DECY-207: Handle float literals
             HirExpression::FloatLiteral(val) => {
+                // DECY-222: Strip C float suffix before adding Rust suffix
+                // C uses 'f'/'F' for float, Rust uses 'f32'/'f64'
+                let val_stripped = val.trim_end_matches(['f', 'F', 'l', 'L']);
                 // Determine suffix based on target type
                 match target_type {
-                    Some(HirType::Float) => format!("{}f32", val),
-                    Some(HirType::Double) => format!("{}f64", val),
+                    Some(HirType::Float) => format!("{}f32", val_stripped),
+                    Some(HirType::Double) => format!("{}f64", val_stripped),
                     _ => {
                         // Default to f64 for double precision
-                        if val.contains('.') || val.contains('e') || val.contains('E') {
-                            format!("{}f64", val)
+                        if val_stripped.contains('.')
+                            || val_stripped.contains('e')
+                            || val_stripped.contains('E')
+                        {
+                            format!("{}f64", val_stripped)
                         } else {
-                            format!("{}.0f64", val)
+                            format!("{}.0f64", val_stripped)
                         }
                     }
                 }
@@ -1055,18 +1109,40 @@ impl CodeGenerator {
                 }
             }
             HirExpression::Variable(name) => {
+                // DECY-239: Map C standard streams to Rust equivalents
+                // C: stderr, stdin, stdout (extern FILE*)
+                // Rust: std::io::stderr(), std::io::stdin(), std::io::stdout()
+                // DECY-241: Map errno to thread-local or unsafe static
+                match name.as_str() {
+                    "stderr" => return "std::io::stderr()".to_string(),
+                    "stdin" => return "std::io::stdin()".to_string(),
+                    "stdout" => return "std::io::stdout()".to_string(),
+                    "errno" => return "unsafe { ERRNO }".to_string(),
+                    "ERANGE" => return "34i32".to_string(), // errno.h constant
+                    "EINVAL" => return "22i32".to_string(), // errno.h constant
+                    "ENOENT" => return "2i32".to_string(),  // errno.h constant
+                    "EACCES" => return "13i32".to_string(), // errno.h constant
+                    _ => {}
+                }
+                // DECY-227: Escape reserved keywords in variable names
+                let escaped_name = escape_rust_keyword(name);
+                // DECY-245: Check if this variable was renamed due to shadowing a global
+                let escaped_name = ctx
+                    .get_renamed_local(&escaped_name)
+                    .cloned()
+                    .unwrap_or(escaped_name);
                 // DECY-142: Vec to Vec - return directly (no conversion needed)
                 // When target type is Vec<T> and variable is Vec<T>, return as-is
                 if let Some(HirType::Vec(_)) = target_type {
                     // Variable being returned in Vec-return context - return directly
-                    return name.clone();
+                    return escaped_name;
                 }
                 // DECY-115: Box to raw pointer conversion for return statements
                 // When returning a Box<T> but function returns *mut T, use Box::into_raw
                 if let Some(HirType::Pointer(ptr_inner)) = target_type {
                     if let Some(var_type) = ctx.get_type(name) {
                         if matches!(var_type, HirType::Box(_)) {
-                            return format!("Box::into_raw({})", name);
+                            return format!("Box::into_raw({})", escaped_name);
                         }
                         // DECY-118/DECY-146: Reference/Slice to raw pointer coercion
                         // &[T] or &mut [T] assigned to *mut T needs .as_ptr() / .as_mut_ptr()
@@ -1088,29 +1164,32 @@ impl CodeGenerator {
                                     if elem_type == ptr_inner.as_ref() {
                                         if is_mutable {
                                             // Mutable slice: use .as_mut_ptr()
-                                            return format!("{}.as_mut_ptr()", name);
+                                            return format!("{}.as_mut_ptr()", escaped_name);
                                         } else {
                                             // Immutable slice: use .as_ptr() with cast
                                             let ptr_type = Self::map_type(&HirType::Pointer(
                                                 ptr_inner.clone(),
                                             ));
-                                            return format!("{}.as_ptr() as {}", name, ptr_type);
+                                            return format!(
+                                                "{}.as_ptr() as {}",
+                                                escaped_name, ptr_type
+                                            );
                                         }
                                     }
                                 } else if inner.as_ref() == ptr_inner.as_ref() {
                                     // DECY-146: Single reference (&T or &mut T) to pointer
                                     // Cast using addr_of!/addr_of_mut! or pointer cast
                                     if *mutable {
-                                        return format!("{} as *mut _", name);
+                                        return format!("{} as *mut _", escaped_name);
                                     } else {
-                                        return format!("{} as *const _ as *mut _", name);
+                                        return format!("{} as *const _ as *mut _", escaped_name);
                                     }
                                 }
                             }
                             // Also handle Vec<T> to *mut T
                             HirType::Vec(elem_type) => {
                                 if elem_type.as_ref() == ptr_inner.as_ref() {
-                                    return format!("{}.as_mut_ptr()", name);
+                                    return format!("{}.as_mut_ptr()", escaped_name);
                                 }
                             }
                             // DECY-211: Handle Array[T; N] to *mut T
@@ -1118,7 +1197,12 @@ impl CodeGenerator {
                             // In Rust: arr.as_mut_ptr()
                             HirType::Array { element_type, .. } => {
                                 if element_type.as_ref() == ptr_inner.as_ref() {
-                                    return format!("{}.as_mut_ptr()", name);
+                                    return format!("{}.as_mut_ptr()", escaped_name);
+                                }
+                                // DECY-244: Handle Array[T; N] to *mut () (void pointer)
+                                // C allows any array to be assigned to void*
+                                if matches!(ptr_inner.as_ref(), HirType::Void) {
+                                    return format!("{}.as_mut_ptr() as *mut ()", escaped_name);
                                 }
                             }
                             // DECY-148: Handle Pointer(T) → Pointer(T)
@@ -1126,7 +1210,7 @@ impl CodeGenerator {
                             // No conversion needed - it's already a raw pointer!
                             HirType::Pointer(_var_inner) => {
                                 // Raw pointer stays as raw pointer - just return it
-                                return name.clone();
+                                return escaped_name;
                             }
                             _ => {}
                         }
@@ -1139,7 +1223,7 @@ impl CodeGenerator {
                 if let Some(HirType::Char) = target_type {
                     if let Some(var_type) = ctx.get_type(name) {
                         if matches!(var_type, HirType::Int) {
-                            return format!("{} as u8", name);
+                            return format!("{} as u8", escaped_name);
                         }
                     }
                 }
@@ -1151,35 +1235,81 @@ impl CodeGenerator {
                         // Int to Float/Double
                         if matches!(var_type, HirType::Int | HirType::UnsignedInt) {
                             if matches!(target, HirType::Float) {
-                                return format!("{} as f32", name);
+                                let code = format!("{} as f32", escaped_name);
+                                // DECY-220: Wrap global access in unsafe
+                                return if ctx.is_global(name) {
+                                    format!("unsafe {{ {} }}", code)
+                                } else {
+                                    code
+                                };
                             } else if matches!(target, HirType::Double) {
-                                return format!("{} as f64", name);
+                                let code = format!("{} as f64", escaped_name);
+                                return if ctx.is_global(name) {
+                                    format!("unsafe {{ {} }}", code)
+                                } else {
+                                    code
+                                };
                             }
                         }
                         // Float/Double to Int (truncation)
                         if matches!(var_type, HirType::Float | HirType::Double) {
                             if matches!(target, HirType::Int) {
-                                return format!("{} as i32", name);
+                                let code = format!("{} as i32", escaped_name);
+                                return if ctx.is_global(name) {
+                                    format!("unsafe {{ {} }}", code)
+                                } else {
+                                    code
+                                };
                             } else if matches!(target, HirType::UnsignedInt) {
-                                return format!("{} as u32", name);
+                                let code = format!("{} as u32", escaped_name);
+                                return if ctx.is_global(name) {
+                                    format!("unsafe {{ {} }}", code)
+                                } else {
+                                    code
+                                };
                             }
                         }
                         // Char to Int
                         if matches!(var_type, HirType::Char) && matches!(target, HirType::Int) {
-                            return format!("{} as i32", name);
+                            let code = format!("{} as i32", escaped_name);
+                            return if ctx.is_global(name) {
+                                format!("unsafe {{ {} }}", code)
+                            } else {
+                                code
+                            };
                         }
                     }
                 }
 
-                name.clone()
+                // DECY-220: Wrap global variable access in unsafe block
+                if ctx.is_global(name) {
+                    format!("unsafe {{ {} }}", escaped_name)
+                } else {
+                    escaped_name
+                }
             }
             HirExpression::BinaryOp { op, left, right } => {
                 // DECY-195: Handle embedded assignment expressions
                 // In C, (c = getchar()) evaluates to the assigned value
                 // In Rust, assignment returns (), so we need a block: { let tmp = rhs; lhs = tmp; tmp }
                 if matches!(op, BinaryOperator::Assign) {
-                    let left_code = self.generate_expression_with_context(left, ctx);
                     let right_code = self.generate_expression_with_context(right, ctx);
+
+                    // DECY-223: Special handling for global array index assignment
+                    // If left side is a global array index, put assignment inside unsafe block
+                    if let HirExpression::ArrayIndex { array, index } = &**left {
+                        if let HirExpression::Variable(var_name) = &**array {
+                            if ctx.is_global(var_name) {
+                                let index_code = self.generate_expression_with_context(index, ctx);
+                                return format!(
+                                    "{{ let __assign_tmp = {}; unsafe {{ {}[({}) as usize] = __assign_tmp }}; __assign_tmp }}",
+                                    right_code, var_name, index_code
+                                );
+                            }
+                        }
+                    }
+
+                    let left_code = self.generate_expression_with_context(left, ctx);
                     return format!(
                         "{{ let __assign_tmp = {}; {} = __assign_tmp; __assign_tmp }}",
                         right_code, left_code
@@ -1228,6 +1358,29 @@ impl CodeGenerator {
                             if let HirExpression::IntLiteral(0) = **left {
                                 let op_str = Self::binary_operator_to_string(op);
                                 return format!("std::ptr::null_mut() {} {}", op_str, var_name);
+                            }
+                        }
+                    }
+
+                    // DECY-235: Handle pointer field access comparisons with 0/NULL
+                    // e.g., (*ptr).field == 0 or ptr->field == NULL where field is a pointer
+                    if let HirExpression::IntLiteral(0) = **right {
+                        // Check if left expression results in a pointer type
+                        if let Some(left_type) = ctx.infer_expression_type(left) {
+                            if matches!(left_type, HirType::Pointer(_)) {
+                                let left_code = self.generate_expression_with_context(left, ctx);
+                                let op_str = Self::binary_operator_to_string(op);
+                                return format!("{} {} std::ptr::null_mut()", left_code, op_str);
+                            }
+                        }
+                    }
+                    if let HirExpression::IntLiteral(0) = **left {
+                        // Check if right expression results in a pointer type
+                        if let Some(right_type) = ctx.infer_expression_type(right) {
+                            if matches!(right_type, HirType::Pointer(_)) {
+                                let right_code = self.generate_expression_with_context(right, ctx);
+                                let op_str = Self::binary_operator_to_string(op);
+                                return format!("std::ptr::null_mut() {} {}", op_str, right_code);
                             }
                         }
                     }
@@ -1370,6 +1523,14 @@ impl CodeGenerator {
                             return format!("({}i32 {} {})", *c as i32, op_str, right_code);
                         }
                     }
+                }
+
+                // DECY-249: Handle comma operator - convert (a, b) to { a; b }
+                // In C, comma evaluates left-to-right and returns the rightmost value
+                if matches!(op, BinaryOperator::Comma) {
+                    let left_code = self.generate_expression_with_context(left, ctx);
+                    let right_code = self.generate_expression_with_context(right, ctx);
+                    return format!("{{ {}; {} }}", left_code, right_code);
                 }
 
                 let left_code = self.generate_expression_with_context(left, ctx);
@@ -1599,6 +1760,32 @@ impl CodeGenerator {
                     }
                 }
 
+                // DECY-251: Handle signed/unsigned comparison mismatch
+                // In C, comparing signed and unsigned follows "usual arithmetic conversions"
+                // In Rust, we need explicit type coercion
+                if is_comparison {
+                    let left_type = ctx.infer_expression_type(left);
+                    let right_type = ctx.infer_expression_type(right);
+
+                    // Check for signed vs unsigned mismatch
+                    let left_is_signed = matches!(left_type, Some(HirType::Int));
+                    let left_is_unsigned = matches!(left_type, Some(HirType::UnsignedInt));
+                    let right_is_signed = matches!(right_type, Some(HirType::Int));
+                    let right_is_unsigned = matches!(right_type, Some(HirType::UnsignedInt));
+
+                    if (left_is_signed && right_is_unsigned)
+                        || (left_is_unsigned && right_is_signed)
+                    {
+                        // Cast both to i64 for safe comparison (avoids overflow issues)
+                        let left_code = format!("({} as i64)", left_str);
+                        let right_code = format!("({} as i64)", right_str);
+                        if let Some(HirType::Int) = target_type {
+                            return format!("({} {} {}) as i32", left_code, op_str, right_code);
+                        }
+                        return format!("{} {} {}", left_code, op_str, right_code);
+                    }
+                }
+
                 if returns_bool {
                     if let Some(HirType::Int) = target_type {
                         // Wrap in parentheses and cast to i32
@@ -1639,6 +1826,48 @@ impl CodeGenerator {
                     }
                 }
 
+                // DECY-252: Handle bitwise operations with boolean operands
+                // In C, x & (y == 1) works because y == 1 returns int (0 or 1)
+                // In Rust, comparisons return bool, so we need to cast to int
+                // Also handle unsigned types to avoid u32 & i32 mismatch
+                if matches!(
+                    op,
+                    BinaryOperator::BitwiseAnd
+                        | BinaryOperator::BitwiseOr
+                        | BinaryOperator::BitwiseXor
+                ) {
+                    let left_is_bool = Self::is_boolean_expression(left);
+                    let right_is_bool = Self::is_boolean_expression(right);
+                    let left_type = ctx.infer_expression_type(left);
+                    let right_type = ctx.infer_expression_type(right);
+                    let left_is_unsigned = matches!(left_type, Some(HirType::UnsignedInt));
+                    let right_is_unsigned = matches!(right_type, Some(HirType::UnsignedInt));
+
+                    if left_is_bool || right_is_bool {
+                        // Cast both sides to i32 to ensure type compatibility
+                        let left_code = if left_is_bool {
+                            format!("({}) as i32", left_str)
+                        } else if left_is_unsigned {
+                            format!("({} as i32)", left_str)
+                        } else {
+                            left_str.clone()
+                        };
+                        let right_code = if right_is_bool {
+                            format!("({}) as i32", right_str)
+                        } else if right_is_unsigned {
+                            format!("({} as i32)", right_str)
+                        } else {
+                            right_str.clone()
+                        };
+                        // Cast result back to original type if it was unsigned
+                        let result = format!("{} {} {}", left_code, op_str, right_code);
+                        if left_is_unsigned || right_is_unsigned {
+                            return format!("({}) as u32", result);
+                        }
+                        return result;
+                    }
+                }
+
                 format!("{} {} {}", left_str, op_str, right_str)
             }
             HirExpression::Dereference(inner) => {
@@ -1676,15 +1905,27 @@ impl CodeGenerator {
 
                 let inner_code = self.generate_expression_with_context(inner, ctx);
 
-                // DECY-041: Check if dereferencing a raw pointer - if so, wrap in unsafe
-                if let HirExpression::Variable(var_name) = &**inner {
-                    if ctx.is_pointer(var_name) {
-                        // DECY-143: Add SAFETY comment
-                        return Self::unsafe_block(
-                            &format!("*{}", inner_code),
-                            "pointer is valid and properly aligned from caller contract",
-                        );
+                // DECY-041, DECY-226: Check if dereferencing a raw pointer - if so, wrap in unsafe
+                // This includes simple variable dereferences AND pointer arithmetic results
+                let needs_unsafe = match &**inner {
+                    HirExpression::Variable(var_name) => ctx.is_pointer(var_name),
+                    // DECY-226: Pointer arithmetic (ptr + n, ptr - n) also needs unsafe for deref
+                    HirExpression::BinaryOp { left, .. } => {
+                        if let HirExpression::Variable(var_name) = &**left {
+                            ctx.is_pointer(var_name)
+                        } else {
+                            false
+                        }
                     }
+                    _ => false,
+                };
+
+                if needs_unsafe {
+                    // DECY-143: Add SAFETY comment
+                    return Self::unsafe_block(
+                        &format!("*{}", inner_code),
+                        "pointer is valid and properly aligned from caller contract",
+                    );
                 }
 
                 format!("*{}", inner_code)
@@ -1695,33 +1936,69 @@ impl CodeGenerator {
                 match op {
                     // Post-increment: x++ → { let tmp = x; x += 1; tmp }
                     // Returns old value before incrementing
+                    // DECY-253: For pointers, use wrapping_add instead of +=
                     UnaryOperator::PostIncrement => {
                         let operand_code = self.generate_expression_with_context(operand, ctx);
-                        format!(
-                            "{{ let tmp = {}; {} += 1; tmp }}",
-                            operand_code, operand_code
-                        )
+                        let operand_type = ctx.infer_expression_type(operand);
+                        if matches!(operand_type, Some(HirType::Pointer(_))) {
+                            format!(
+                                "{{ let __tmp = {}; {} = {}.wrapping_add(1); __tmp }}",
+                                operand_code, operand_code, operand_code
+                            )
+                        } else {
+                            format!(
+                                "{{ let __tmp = {}; {} += 1; __tmp }}",
+                                operand_code, operand_code
+                            )
+                        }
                     }
                     // Post-decrement: x-- → { let tmp = x; x -= 1; tmp }
                     // Returns old value before decrementing
+                    // DECY-253: For pointers, use wrapping_sub instead of -=
                     UnaryOperator::PostDecrement => {
                         let operand_code = self.generate_expression_with_context(operand, ctx);
-                        format!(
-                            "{{ let tmp = {}; {} -= 1; tmp }}",
-                            operand_code, operand_code
-                        )
+                        let operand_type = ctx.infer_expression_type(operand);
+                        if matches!(operand_type, Some(HirType::Pointer(_))) {
+                            format!(
+                                "{{ let __tmp = {}; {} = {}.wrapping_sub(1); __tmp }}",
+                                operand_code, operand_code, operand_code
+                            )
+                        } else {
+                            format!(
+                                "{{ let __tmp = {}; {} -= 1; __tmp }}",
+                                operand_code, operand_code
+                            )
+                        }
                     }
                     // Pre-increment: ++x → { x += 1; x }
                     // Increments first, then returns new value
+                    // DECY-253: For pointers, use wrapping_add instead of +=
                     UnaryOperator::PreIncrement => {
                         let operand_code = self.generate_expression_with_context(operand, ctx);
-                        format!("{{ {} += 1; {} }}", operand_code, operand_code)
+                        let operand_type = ctx.infer_expression_type(operand);
+                        if matches!(operand_type, Some(HirType::Pointer(_))) {
+                            format!(
+                                "{{ {} = {}.wrapping_add(1); {} }}",
+                                operand_code, operand_code, operand_code
+                            )
+                        } else {
+                            format!("{{ {} += 1; {} }}", operand_code, operand_code)
+                        }
                     }
                     // Pre-decrement: --x → { x -= 1; x }
                     // Decrements first, then returns new value
+                    // DECY-253: For pointers, use wrapping_sub instead of -=
                     UnaryOperator::PreDecrement => {
                         let operand_code = self.generate_expression_with_context(operand, ctx);
-                        format!("{{ {} -= 1; {} }}", operand_code, operand_code)
+                        let operand_type = ctx.infer_expression_type(operand);
+                        if matches!(operand_type, Some(HirType::Pointer(_))) {
+                            format!(
+                                "{{ {} = {}.wrapping_sub(1); {} }}",
+                                operand_code, operand_code, operand_code
+                            )
+                        } else {
+                            format!("{{ {} -= 1; {} }}", operand_code, operand_code)
+                        }
                     }
                     // DECY-131, DECY-191: Logical NOT on integer → (x == 0) as i32
                     // In C, ! returns int (0 or 1), not bool. This matters when !x is used
@@ -1859,6 +2136,30 @@ impl CodeGenerator {
                                         struct_name
                                     );
                                 }
+                                // DECY-230: For other pointer types (e.g., *mut i32), use Box::leak with vec
+                                // This handles: int *ptr = NULL; ptr = malloc(n * sizeof(int));
+                                // Generate: Box::leak(vec![default; n].into_boxed_slice()).as_mut_ptr()
+                                let elem_type_str = Self::map_type(inner);
+                                let default_val = Self::default_value_for_type(inner);
+                                if let HirExpression::BinaryOp {
+                                    op: BinaryOperator::Multiply,
+                                    left,
+                                    ..
+                                } = &arguments[0]
+                                {
+                                    let count_code =
+                                        self.generate_expression_with_context(left, ctx);
+                                    return format!(
+                                        "Box::leak(vec![{}; ({}) as usize].into_boxed_slice()).as_mut_ptr() as *mut {}",
+                                        default_val, count_code, elem_type_str
+                                    );
+                                } else {
+                                    // Single element allocation
+                                    return format!(
+                                        "Box::leak(vec![{}; ({}) as usize].into_boxed_slice()).as_mut_ptr() as *mut {}",
+                                        default_val, size_code, elem_type_str
+                                    );
+                                }
                             }
 
                             // Try to detect n * sizeof(T) pattern
@@ -1887,6 +2188,23 @@ impl CodeGenerator {
                         if arguments.len() == 2 {
                             let count_code =
                                 self.generate_expression_with_context(&arguments[0], ctx);
+
+                            // DECY-230: Check if target is Vec<T> - generate vec with correct element type
+                            if let Some(HirType::Vec(elem_type)) = target_type {
+                                let default_val = Self::default_value_for_type(elem_type);
+                                return format!("vec![{}; {} as usize]", default_val, count_code);
+                            }
+
+                            // DECY-230: Check if target is raw pointer - use Box::leak
+                            if let Some(HirType::Pointer(inner)) = target_type {
+                                let elem_type_str = Self::map_type(inner);
+                                let default_val = Self::default_value_for_type(inner);
+                                return format!(
+                                    "Box::leak(vec![{}; {} as usize].into_boxed_slice()).as_mut_ptr() as *mut {}",
+                                    default_val, count_code, elem_type_str
+                                );
+                            }
+
                             format!("vec![0i32; {} as usize]", count_code)
                         } else {
                             "Vec::new()".to_string()
@@ -1990,25 +2308,38 @@ impl CodeGenerator {
                     }
                     // DECY-132: fprintf(f, fmt, ...) → write!(f, fmt, ...)
                     // Reference: K&R §7.2, ISO C99 §7.19.6.1
+                    // DECY-242: Convert C format specifiers to Rust like printf
                     "fprintf" => {
                         if arguments.len() >= 2 {
                             let file_code =
                                 self.generate_expression_with_context(&arguments[0], ctx);
                             let fmt = self.generate_expression_with_context(&arguments[1], ctx);
+                            // DECY-242: Convert C format specifiers to Rust
+                            let rust_fmt = Self::convert_c_format_to_rust(&fmt);
                             if arguments.len() == 2 {
                                 format!(
                                     "{{ use std::io::Write; write!({}, {}).map(|_| 0).unwrap_or(-1) }}",
-                                    file_code, fmt
+                                    file_code, rust_fmt
                                 )
                             } else {
-                                // Has format args - simplified version
+                                // DECY-242: Wrap %s args with CStr like printf
+                                let s_positions = Self::find_string_format_positions(&fmt);
                                 let args: Vec<String> = arguments[2..]
                                     .iter()
-                                    .map(|a| self.generate_expression_with_context(a, ctx))
+                                    .enumerate()
+                                    .map(|(i, a)| {
+                                        let arg_code = self.generate_expression_with_context(a, ctx);
+                                        if s_positions.contains(&i) {
+                                            // Wrap char* with CStr conversion
+                                            format!("unsafe {{ std::ffi::CStr::from_ptr({} as *const i8).to_str().unwrap_or(\"\") }}", arg_code)
+                                        } else {
+                                            arg_code
+                                        }
+                                    })
                                     .collect();
                                 format!(
                                     "{{ use std::io::Write; write!({}, {}, {}).map(|_| 0).unwrap_or(-1) }}",
-                                    file_code, fmt, args.join(", ")
+                                    file_code, rust_fmt, args.join(", ")
                                 )
                             }
                         } else {
@@ -2038,7 +2369,20 @@ impl CodeGenerator {
                                         // If this arg corresponds to a %s, wrap with CStr
                                         // DECY-192: Skip wrapping for ternary expressions with string literals
                                         if s_positions.contains(&i) && !Self::is_string_ternary(a) {
-                                            Self::wrap_with_cstr(&arg_code)
+                                            // DECY-221: Check if arg is a raw pointer type or function call
+                                            // Raw pointers (*mut u8) don't have .as_ptr() method
+                                            // Function calls returning char* also need this treatment
+                                            let arg_type = ctx.infer_expression_type(a);
+                                            let is_raw_pointer =
+                                                matches!(arg_type, Some(HirType::Pointer(_)));
+                                            // DECY-221: Function calls likely return *mut u8 for %s args
+                                            let is_function_call =
+                                                matches!(a, HirExpression::FunctionCall { .. });
+                                            if is_raw_pointer || is_function_call {
+                                                Self::wrap_raw_ptr_with_cstr(&arg_code)
+                                            } else {
+                                                Self::wrap_with_cstr(&arg_code)
+                                            }
                                         } else {
                                             arg_code
                                         }
@@ -2369,21 +2713,34 @@ impl CodeGenerator {
                                 }
                             })
                             .collect();
-                        format!("{}({})", function, args.join(", "))
+                        // DECY-241: Rename functions that conflict with Rust macros/keywords
+                        let safe_function = match function.as_str() {
+                            "write" => "c_write", // Conflicts with Rust's write! macro
+                            "read" => "c_read",   // Conflicts with Rust's read
+                            "type" => "c_type",   // Rust keyword
+                            "match" => "c_match", // Rust keyword
+                            "self" => "c_self",   // Rust keyword
+                            "in" => "c_in",       // Rust keyword
+                            _ => function.as_str(),
+                        };
+                        format!("{}({})", safe_function, args.join(", "))
                     }
                 }
             }
             HirExpression::FieldAccess { object, field } => {
+                // DECY-227: Escape reserved keywords in field names
                 format!(
                     "{}.{}",
                     self.generate_expression_with_context(object, ctx),
-                    field
+                    escape_rust_keyword(field)
                 )
             }
             HirExpression::PointerFieldAccess { pointer, field } => {
                 // In Rust, ptr->field becomes (*ptr).field
                 // However, if the pointer is already a field access (ptr->field1->field2),
                 // we should generate (*ptr).field1.field2 not (*(*ptr).field1).field2
+                // DECY-227: Escape reserved keywords in field names
+                let escaped_field = escape_rust_keyword(field);
                 match &**pointer {
                     // If the pointer is itself a field access expression, we can chain with .
                     HirExpression::PointerFieldAccess { .. }
@@ -2391,7 +2748,7 @@ impl CodeGenerator {
                         format!(
                             "{}.{}",
                             self.generate_expression_with_context(pointer, ctx),
-                            field
+                            escaped_field
                         )
                     }
                     // For other expressions (variables, array index, etc), we need explicit deref
@@ -2402,18 +2759,23 @@ impl CodeGenerator {
                             if ctx.is_pointer(var_name) {
                                 // DECY-143: Add SAFETY comment
                                 return Self::unsafe_block(
-                                    &format!("(*{}).{}", ptr_code, field),
+                                    &format!("(*{}).{}", ptr_code, escaped_field),
                                     "pointer is non-null and points to valid struct",
                                 );
                             }
                         }
-                        format!("(*{}).{}", ptr_code, field)
+                        format!("(*{}).{}", ptr_code, escaped_field)
                     }
                 }
             }
             HirExpression::ArrayIndex { array, index } => {
-                let array_code = self.generate_expression_with_context(array, ctx);
-                let index_code = self.generate_expression_with_context(index, ctx);
+                // DECY-223: Check if array is a global BEFORE generating its code
+                // If so, we need to wrap the entire array[index] in unsafe, not just the array
+                let is_global_array = if let HirExpression::Variable(var_name) = &**array {
+                    ctx.is_global(var_name)
+                } else {
+                    false
+                };
 
                 // DECY-041: Check if array is a raw pointer - if so, use unsafe pointer arithmetic
                 // DECY-165: Also check via infer_expression_type for struct field access
@@ -2423,6 +2785,20 @@ impl CodeGenerator {
                     // Use type inference for complex expressions like sb->data
                     matches!(ctx.infer_expression_type(array), Some(HirType::Pointer(_)))
                 };
+
+                // Generate array code without unsafe wrapping for globals
+                // (we'll wrap the whole expression instead)
+                let array_code = if is_global_array {
+                    // Get raw variable name without unsafe wrapper
+                    if let HirExpression::Variable(var_name) = &**array {
+                        var_name.clone()
+                    } else {
+                        self.generate_expression_with_context(array, ctx)
+                    }
+                } else {
+                    self.generate_expression_with_context(array, ctx)
+                };
+                let index_code = self.generate_expression_with_context(index, ctx);
 
                 if is_raw_pointer {
                     // Raw pointer indexing: arr[i] becomes unsafe { *arr.add(i as usize) }
@@ -2436,9 +2812,13 @@ impl CodeGenerator {
                 // Regular array/slice indexing
                 // DECY-072: Cast index to usize for slice indexing
                 // DECY-150: Wrap index in parens to handle operator precedence
-                // e.g., buffer[size - 1 - i as usize] parses as buffer[size - 1 - (i as usize)]
-                // but buffer[(size - 1 - i) as usize] casts entire expression correctly
-                format!("{}[({}) as usize]", array_code, index_code)
+                // DECY-223: If global array, wrap entire indexing in unsafe
+                let index_expr = format!("{}[({}) as usize]", array_code, index_code);
+                if is_global_array {
+                    format!("unsafe {{ {} }}", index_expr)
+                } else {
+                    index_expr
+                }
             }
             HirExpression::SliceIndex { slice, index, .. } => {
                 // DECY-070 GREEN: Generate safe slice indexing (0 unsafe blocks!)
@@ -2455,10 +2835,20 @@ impl CodeGenerator {
                 // sizeof(struct Data) → std::mem::size_of::<Data>() as i32
                 // Note: size_of returns usize, but C's sizeof returns int (typically i32)
 
-                // DECY-189: Detect sizeof(expr) that was mis-parsed as sizeof(type)
-                // Pattern: "record name" came from sizeof(record->name) where
-                // the parser tokenized record and name as separate identifiers
+                // DECY-189, DECY-248: Detect sizeof(expr) that was mis-parsed as sizeof(type)
+                // Pattern: "record name" or "struct record name" came from sizeof(record->name)
+                // where the parser tokenized record and name as separate identifiers
                 let trimmed = type_name.trim();
+
+                // DECY-248: Handle "struct example c" pattern (sizeof(((struct T*)0)->field))
+                // Strip "struct " prefix if present to normalize the pattern
+                let normalized = trimmed.strip_prefix("struct ").unwrap_or(trimmed);
+                let parts: Vec<&str> = normalized.split_whitespace().collect();
+
+                // Check if this is a struct field access pattern (e.g., "example c" from "struct example c")
+                let is_struct_field_sizeof = parts.len() == 2 && ctx.structs.contains_key(parts[0]);
+
+                // Check for simple member access (e.g., "record name")
                 let is_member_access = trimmed.contains(' ')
                     && !trimmed.starts_with("struct ")
                     && !trimmed.starts_with("unsigned ")
@@ -2466,14 +2856,52 @@ impl CodeGenerator {
                     && !trimmed.starts_with("long ")
                     && !trimmed.starts_with("short ");
 
-                if is_member_access {
-                    // DECY-189: sizeof(record->field) → std::mem::size_of_val(&(*record).field)
-                    // Split "record field" into parts and reconstruct member access
+                if is_struct_field_sizeof {
+                    // DECY-248: sizeof(((struct T*)0)->field) pattern
+                    let struct_name = parts[0];
+                    let field_name = parts[1];
+                    // Look up the field type in the struct definition
+                    let field_type = ctx.structs.get(struct_name).and_then(|fields| {
+                        fields
+                            .iter()
+                            .find(|(name, _)| name == field_name)
+                            .map(|(_, ty)| ty.clone())
+                    });
+                    if let Some(field_type) = field_type {
+                        let rust_type = Self::map_type(&field_type);
+                        format!("std::mem::size_of::<{}>() as i32", rust_type)
+                    } else {
+                        // Fallback: use the field type directly if not found
+                        format!("std::mem::size_of::<{}>() as i32", field_name)
+                    }
+                } else if is_member_access {
+                    // DECY-189: sizeof(record->field) - variable access pattern
                     let parts: Vec<&str> = trimmed.split_whitespace().collect();
                     if parts.len() >= 2 {
-                        let var = parts[0];
-                        let field = parts[1..].join(".");
-                        format!("std::mem::size_of_val(&(*{}).{}) as i32", var, field)
+                        let struct_name = parts[0];
+                        let field_name = parts[1];
+                        // DECY-248: Look up the field type in the struct definition from ctx
+                        let field_type = ctx.structs.get(struct_name).and_then(|fields| {
+                            fields
+                                .iter()
+                                .find(|(name, _)| name == field_name)
+                                .map(|(_, ty)| ty.clone())
+                        });
+                        if let Some(field_type) = field_type {
+                            let rust_type = Self::map_type(&field_type);
+                            format!("std::mem::size_of::<{}>() as i32", rust_type)
+                        } else if ctx.get_type(struct_name).is_some() {
+                            // It's a variable access: sizeof(var->field)
+                            let field = parts[1..].join(".");
+                            format!(
+                                "std::mem::size_of_val(&(*{}).{}) as i32",
+                                struct_name, field
+                            )
+                        } else {
+                            // Fallback: use size_of with struct field type lookup
+                            let rust_type = self.map_sizeof_type(type_name);
+                            format!("std::mem::size_of::<{}>() as i32", rust_type)
+                        }
                     } else {
                         // Fallback: shouldn't happen, but be safe
                         let rust_type = self.map_sizeof_type(type_name);
@@ -2517,6 +2945,7 @@ impl CodeGenerator {
                     HirType::Float => "0.0f32",
                     HirType::Double => "0.0f64",
                     HirType::Char => "0u8",
+                    HirType::SignedChar => "0i8", // DECY-250
                     _ => &Self::default_value_for_type(element_type),
                 };
 
@@ -2708,17 +3137,44 @@ impl CodeGenerator {
                             }
                         }
                     }
-                    HirType::Array { .. } => {
+                    HirType::Array { element_type, size } => {
                         // DECY-199: Generate array literal [1, 2, 3] instead of vec![...]
                         // Fixed-size arrays should use array literals, not Vec
                         if initializers.is_empty() {
-                            "[]".to_string()
+                            // DECY-236: Generate proper default for nested arrays
+                            // e.g., [[0i32; 4]; 3] instead of []
+                            if let Some(n) = size {
+                                format!("[{}; {}]", Self::default_value_for_type(element_type), n)
+                            } else {
+                                "[]".to_string()
+                            }
                         } else {
                             let elements: Vec<String> = initializers
                                 .iter()
                                 .map(|init| self.generate_expression_with_context(init, ctx))
                                 .collect();
-                            format!("[{}]", elements.join(", "))
+
+                            // DECY-257: In C, {0} or {x} initializes first element(s) and
+                            // defaults the rest. If we have fewer initializers than array size,
+                            // use repeat syntax for a single value, otherwise list them all.
+                            if let Some(n) = size {
+                                if elements.len() == 1 {
+                                    // Single initializer like {0} - repeat for entire array
+                                    format!("[{}; {}]", elements[0], *n)
+                                } else if elements.len() < *n {
+                                    // Partial initialization - pad with defaults
+                                    let mut padded = elements.clone();
+                                    let default = Self::default_value_for_type(element_type);
+                                    while padded.len() < *n {
+                                        padded.push(default.clone());
+                                    }
+                                    format!("[{}]", padded.join(", "))
+                                } else {
+                                    format!("[{}]", elements.join(", "))
+                                }
+                            } else {
+                                format!("[{}]", elements.join(", "))
+                            }
                         }
                     }
                     _ => {
@@ -2734,9 +3190,9 @@ impl CodeGenerator {
             // DECY-139: Post-increment expression (x++)
             // C semantics: returns old value, then increments
             // Rust: { let __tmp = x; x += 1; __tmp }
+            // DECY-253: For pointers, use wrapping_add instead of +=
+            // DECY-255: For dereferenced pointers (*p)++, put += inside unsafe block
             HirExpression::PostIncrement { operand } => {
-                let operand_code = self.generate_expression_with_context(operand, ctx);
-
                 // DECY-138: Special handling for &str post-increment (string iteration)
                 // C pattern: *key++ where key is const char*
                 // Rust pattern: { let __tmp = key.as_bytes()[0] as u32; key = &key[1..]; __tmp }
@@ -2745,6 +3201,7 @@ impl CodeGenerator {
                 if let HirExpression::Variable(var_name) = &**operand {
                     if let Some(var_type) = ctx.get_type(var_name) {
                         if matches!(var_type, HirType::StringReference | HirType::StringLiteral) {
+                            let operand_code = self.generate_expression_with_context(operand, ctx);
                             return format!(
                                 "{{ let __tmp = {var}.as_bytes()[0] as u32; {var} = &{var}[1..]; __tmp }}",
                                 var = operand_code
@@ -2753,34 +3210,125 @@ impl CodeGenerator {
                     }
                 }
 
-                format!(
-                    "{{ let __tmp = {operand}; {operand} += 1; __tmp }}",
-                    operand = operand_code
-                )
+                // DECY-255: Special handling for (*p)++ where operand is Dereference
+                // We need to put the += inside the unsafe block, not after it
+                if let HirExpression::Dereference(inner) = &**operand {
+                    if let HirExpression::Variable(var_name) = &**inner {
+                        if ctx.is_pointer(var_name) {
+                            // Generate: { let __tmp = unsafe { *p }; unsafe { *p += 1 }; __tmp }
+                            return format!(
+                                "{{ let __tmp = unsafe {{ *{} }}; unsafe {{ *{} += 1 }}; __tmp }}",
+                                var_name, var_name
+                            );
+                        }
+                    }
+                }
+
+                let operand_code = self.generate_expression_with_context(operand, ctx);
+
+                // DECY-253: For pointers, use wrapping_add instead of +=
+                let operand_type = ctx.infer_expression_type(operand);
+                if matches!(operand_type, Some(HirType::Pointer(_))) {
+                    format!(
+                        "{{ let __tmp = {operand}; {operand} = {operand}.wrapping_add(1); __tmp }}",
+                        operand = operand_code
+                    )
+                } else {
+                    format!(
+                        "{{ let __tmp = {operand}; {operand} += 1; __tmp }}",
+                        operand = operand_code
+                    )
+                }
             }
             // DECY-139: Pre-increment expression (++x)
             // C semantics: increments first, then returns new value
             // Rust: { x += 1; x }
+            // DECY-253: For pointers, use wrapping_add instead of +=
+            // DECY-255: For dereferenced pointers ++(*p), put += inside unsafe block
             HirExpression::PreIncrement { operand } => {
+                // DECY-255: Special handling for ++(*p) where operand is Dereference
+                if let HirExpression::Dereference(inner) = &**operand {
+                    if let HirExpression::Variable(var_name) = &**inner {
+                        if ctx.is_pointer(var_name) {
+                            return format!(
+                                "{{ unsafe {{ *{} += 1 }}; unsafe {{ *{} }} }}",
+                                var_name, var_name
+                            );
+                        }
+                    }
+                }
+
                 let operand_code = self.generate_expression_with_context(operand, ctx);
-                format!("{{ {operand} += 1; {operand} }}", operand = operand_code)
+                let operand_type = ctx.infer_expression_type(operand);
+                if matches!(operand_type, Some(HirType::Pointer(_))) {
+                    format!(
+                        "{{ {operand} = {operand}.wrapping_add(1); {operand} }}",
+                        operand = operand_code
+                    )
+                } else {
+                    format!("{{ {operand} += 1; {operand} }}", operand = operand_code)
+                }
             }
             // DECY-139: Post-decrement expression (x--)
             // C semantics: returns old value, then decrements
             // Rust: { let __tmp = x; x -= 1; __tmp }
+            // DECY-253: For pointers, use wrapping_sub instead of -=
+            // DECY-255: For dereferenced pointers (*p)--, put -= inside unsafe block
             HirExpression::PostDecrement { operand } => {
+                // DECY-255: Special handling for (*p)-- where operand is Dereference
+                if let HirExpression::Dereference(inner) = &**operand {
+                    if let HirExpression::Variable(var_name) = &**inner {
+                        if ctx.is_pointer(var_name) {
+                            return format!(
+                                "{{ let __tmp = unsafe {{ *{} }}; unsafe {{ *{} -= 1 }}; __tmp }}",
+                                var_name, var_name
+                            );
+                        }
+                    }
+                }
+
                 let operand_code = self.generate_expression_with_context(operand, ctx);
-                format!(
-                    "{{ let __tmp = {operand}; {operand} -= 1; __tmp }}",
-                    operand = operand_code
-                )
+                let operand_type = ctx.infer_expression_type(operand);
+                if matches!(operand_type, Some(HirType::Pointer(_))) {
+                    format!(
+                        "{{ let __tmp = {operand}; {operand} = {operand}.wrapping_sub(1); __tmp }}",
+                        operand = operand_code
+                    )
+                } else {
+                    format!(
+                        "{{ let __tmp = {operand}; {operand} -= 1; __tmp }}",
+                        operand = operand_code
+                    )
+                }
             }
             // DECY-139: Pre-decrement expression (--x)
             // C semantics: decrements first, then returns new value
             // Rust: { x -= 1; x }
+            // DECY-253: For pointers, use wrapping_sub instead of -=
+            // DECY-255: For dereferenced pointers --(*p), put -= inside unsafe block
             HirExpression::PreDecrement { operand } => {
+                // DECY-255: Special handling for --(*p) where operand is Dereference
+                if let HirExpression::Dereference(inner) = &**operand {
+                    if let HirExpression::Variable(var_name) = &**inner {
+                        if ctx.is_pointer(var_name) {
+                            return format!(
+                                "{{ unsafe {{ *{} -= 1 }}; unsafe {{ *{} }} }}",
+                                var_name, var_name
+                            );
+                        }
+                    }
+                }
+
                 let operand_code = self.generate_expression_with_context(operand, ctx);
-                format!("{{ {operand} -= 1; {operand} }}", operand = operand_code)
+                let operand_type = ctx.infer_expression_type(operand);
+                if matches!(operand_type, Some(HirType::Pointer(_))) {
+                    format!(
+                        "{{ {operand} = {operand}.wrapping_sub(1); {operand} }}",
+                        operand = operand_code
+                    )
+                } else {
+                    format!("{{ {operand} -= 1; {operand} }}", operand = operand_code)
+                }
             }
             // DECY-192: Ternary/Conditional expression (cond ? then : else)
             // C: (a > b) ? a : b → Rust: if a > b { a } else { b }
@@ -2916,6 +3464,60 @@ impl CodeGenerator {
             BinaryOperator::BitwiseXor => "^",
             // DECY-195: Assignment operator (for embedded assignments)
             BinaryOperator::Assign => "=",
+            // DECY-224: Comma operator (rarely used in expressions in Rust)
+            BinaryOperator::Comma => ",",
+        }
+    }
+
+    /// DECY-231: Check if an expression is a malloc/calloc call, including when wrapped in casts.
+    /// Handles patterns like:
+    /// - malloc(size)
+    /// - calloc(count, size)
+    /// - (node *)malloc(sizeof(struct node))
+    fn is_malloc_expression(expr: &HirExpression) -> bool {
+        match expr {
+            HirExpression::Malloc { .. } => true,
+            HirExpression::Calloc { .. } => true,
+            HirExpression::FunctionCall { function, .. } => {
+                function == "malloc" || function == "calloc"
+            }
+            // DECY-231: Check for casts wrapping malloc
+            HirExpression::Cast { expr, .. } => Self::is_malloc_expression(expr),
+            _ => false,
+        }
+    }
+
+    /// DECY-231: Check if a malloc expression has an array pattern argument (n * sizeof(T)).
+    /// This distinguishes single-element allocations (use Box) from array allocations (use Vec).
+    fn is_malloc_array_pattern(expr: &HirExpression) -> bool {
+        match expr {
+            HirExpression::FunctionCall {
+                function,
+                arguments,
+            } if function == "malloc" || function == "calloc" => arguments
+                .first()
+                .map(|arg| {
+                    matches!(
+                        arg,
+                        HirExpression::BinaryOp {
+                            op: decy_hir::BinaryOperator::Multiply,
+                            ..
+                        }
+                    )
+                })
+                .unwrap_or(false),
+            HirExpression::Malloc { size } => {
+                matches!(
+                    size.as_ref(),
+                    HirExpression::BinaryOp {
+                        op: decy_hir::BinaryOperator::Multiply,
+                        ..
+                    }
+                )
+            }
+            // DECY-231: Unwrap Cast expressions to check the inner malloc
+            HirExpression::Cast { expr, .. } => Self::is_malloc_array_pattern(expr),
+            _ => false,
         }
     }
 
@@ -2928,6 +3530,7 @@ impl CodeGenerator {
             HirType::Float => "0.0f32".to_string(),
             HirType::Double => "0.0f64".to_string(),
             HirType::Char => "0u8".to_string(),
+            HirType::SignedChar => "0i8".to_string(), // DECY-250
             HirType::Pointer(_) => "std::ptr::null_mut()".to_string(),
             HirType::Box(inner) => {
                 // Box types should not use default values, they should be initialized with Box::new
@@ -3101,6 +3704,14 @@ impl CodeGenerator {
                                 "{:o}".to_string()
                             }
                         }
+                        // DECY-247: Binary format specifier (non-standard but common extension)
+                        'b' => {
+                            if !width.is_empty() || !flags.is_empty() {
+                                format!("{{:{}{}b}}", flags, width)
+                            } else {
+                                "{:b}".to_string()
+                            }
+                        }
                         'f' | 'F' => {
                             if !precision.is_empty() {
                                 if !width.is_empty() {
@@ -3241,6 +3852,15 @@ impl CodeGenerator {
         )
     }
 
+    /// DECY-221: Wrap a raw pointer (*mut u8) with CStr conversion for safe printing.
+    /// Unlike wrap_with_cstr, this doesn't call .as_ptr() since the arg is already a pointer.
+    fn wrap_raw_ptr_with_cstr(arg: &str) -> String {
+        format!(
+            "unsafe {{ std::ffi::CStr::from_ptr({} as *const i8).to_str().unwrap_or(\"\") }}",
+            arg
+        )
+    }
+
     /// DECY-192: Check if expression is a ternary that returns string literals.
     /// Such expressions should not be wrapped with CStr since they return &str directly in Rust.
     fn is_string_ternary(expr: &HirExpression) -> bool {
@@ -3288,6 +3908,17 @@ impl CodeGenerator {
                 var_type,
                 initializer,
             } => {
+                // DECY-227: Escape reserved keywords in variable names
+                let escaped_name = escape_rust_keyword(name);
+                // DECY-245: In Rust, let bindings cannot shadow static variables.
+                // If this local variable has the same name as a global, rename it.
+                let escaped_name = if ctx.is_global(&escaped_name) {
+                    let renamed = format!("{}_local", escaped_name);
+                    ctx.add_renamed_local(escaped_name.clone(), renamed.clone());
+                    renamed
+                } else {
+                    escaped_name
+                };
                 // Check for VLA pattern: Array with size: None and an initializer
                 // C99 VLA: int arr[n]; where n is runtime-determined
                 // Rust: let arr = vec![0i32; n];
@@ -3306,6 +3937,7 @@ impl CodeGenerator {
                             HirType::Float => "0.0f32",
                             HirType::Double => "0.0f64",
                             HirType::Char => "0u8",
+                            HirType::SignedChar => "0i8", // DECY-250
                             _ => &Self::default_value_for_type(element_type),
                         };
 
@@ -3317,7 +3949,7 @@ impl CodeGenerator {
 
                         return format!(
                             "let mut {} = vec![{}; {}];",
-                            name, default_value, size_code
+                            escaped_name, default_value, size_code
                         );
                     }
                 }
@@ -3350,25 +3982,9 @@ impl CodeGenerator {
                         let is_struct_alloc = matches!(&**inner, HirType::Struct(_));
 
                         // Also check if the malloc argument is NOT an array pattern (n * sizeof)
+                        // DECY-231: Handle Cast-wrapped malloc expressions
                         let is_array_pattern = if let Some(init_expr) = initializer {
-                            match init_expr {
-                                HirExpression::FunctionCall {
-                                    function,
-                                    arguments,
-                                } if function == "malloc" || function == "calloc" => arguments
-                                    .first()
-                                    .map(|arg| {
-                                        matches!(
-                                            arg,
-                                            HirExpression::BinaryOp {
-                                                op: decy_hir::BinaryOperator::Multiply,
-                                                ..
-                                            }
-                                        )
-                                    })
-                                    .unwrap_or(false),
-                                _ => false,
-                            }
+                            Self::is_malloc_array_pattern(init_expr)
                         } else {
                             false
                         };
@@ -3397,23 +4013,52 @@ impl CodeGenerator {
                         HirType::Pointer(inner) if matches!(&**inner, HirType::Char)
                     );
 
+                    // DECY-229: Check for array of char pointers initialized with string literals
+                    // char *arr[] = {"a", "b"} → let arr: [&str; N] = ["a", "b"]
+                    let is_char_pointer_array = matches!(
+                        var_type,
+                        HirType::Array { element_type, .. }
+                        if matches!(&**element_type, HirType::Pointer(inner) if matches!(&**inner, HirType::Char))
+                    );
+                    let is_array_of_string_literals = matches!(
+                        initializer,
+                        Some(HirExpression::CompoundLiteral { initializers, .. })
+                        if initializers.iter().all(|e| matches!(e, HirExpression::StringLiteral(_)))
+                    );
+
                     if is_char_pointer && is_string_literal_init {
                         // char* s = "hello" → let s: &str = "hello"
                         ctx.add_variable(name.clone(), HirType::StringReference);
                         (HirType::StringReference, "&str".to_string())
+                    } else if is_char_pointer_array && is_array_of_string_literals {
+                        // char *arr[] = {"a", "b"} → let arr: [&str; N] = ["a", "b"]
+                        let size = if let HirType::Array { size, .. } = var_type {
+                            *size
+                        } else {
+                            None
+                        };
+                        let array_type = HirType::Array {
+                            element_type: Box::new(HirType::StringReference),
+                            size,
+                        };
+                        ctx.add_variable(name.clone(), array_type.clone());
+                        let type_str = if let Some(n) = size {
+                            format!("[&str; {}]", n)
+                        } else {
+                            "[&str]".to_string()
+                        };
+                        (array_type, type_str)
                     } else {
                         ctx.add_variable(name.clone(), var_type.clone());
                         (var_type.clone(), Self::map_type(var_type))
                     }
                 };
 
-                // DECY-088: For string literals, use immutable binding
-                let mutability = if matches!(_actual_type, HirType::StringReference) {
-                    ""
-                } else {
-                    "mut "
-                };
-                let mut code = format!("let {}{}: {}", mutability, name, type_str);
+                // DECY-228: String references should be mutable since C allows pointer reassignment
+                // In C, `const char *ptr` means the pointed data is const, but the pointer itself
+                // can be reassigned. So `let mut ptr: &str` correctly models this.
+                let mutability = "mut ";
+                let mut code = format!("let {}{}: {}", mutability, escaped_name, type_str);
                 if let Some(init_expr) = initializer {
                     // Special handling for Malloc expressions - use var_type to generate correct Box::new
                     if matches!(init_expr, HirExpression::Malloc { .. }) {
@@ -3594,12 +4239,21 @@ impl CodeGenerator {
                 let mut code = String::new();
 
                 // Generate if condition
-                // DECY-131: If condition is not already boolean, wrap with != 0
+                // DECY-131: If condition is not already boolean, wrap appropriately
                 let cond_code = self.generate_expression_with_context(condition, ctx);
                 let cond_str = if Self::is_boolean_expression(condition) {
                     cond_code
                 } else {
-                    format!("({}) != 0", cond_code)
+                    // DECY-238: Check if condition is a pointer type - use !ptr.is_null()
+                    if let Some(cond_type) = ctx.infer_expression_type(condition) {
+                        if matches!(cond_type, HirType::Pointer(_)) {
+                            format!("!{}.is_null()", cond_code)
+                        } else {
+                            format!("({}) != 0", cond_code)
+                        }
+                    } else {
+                        format!("({}) != 0", cond_code)
+                    }
                 };
                 code.push_str(&format!("if {} {{\n", cond_str));
 
@@ -3641,12 +4295,21 @@ impl CodeGenerator {
                 let cond_str = if let Some(str_var) = Self::get_string_deref_var(condition, ctx) {
                     format!("!{}.is_empty()", str_var)
                 } else {
-                    // DECY-123: If condition is not already boolean, wrap with != 0
+                    // DECY-123: If condition is not already boolean, wrap appropriately
                     let cond_code = self.generate_expression_with_context(condition, ctx);
                     if Self::is_boolean_expression(condition) {
                         cond_code
                     } else {
-                        format!("({}) != 0", cond_code)
+                        // DECY-238: Check if condition is a pointer type - use !ptr.is_null()
+                        if let Some(cond_type) = ctx.infer_expression_type(condition) {
+                            if matches!(cond_type, HirType::Pointer(_)) {
+                                format!("!{}.is_null()", cond_code)
+                            } else {
+                                format!("({}) != 0", cond_code)
+                            }
+                        } else {
+                            format!("({}) != 0", cond_code)
+                        }
                     }
                 };
                 code.push_str(&format!("while {} {{\n", cond_str));
@@ -3758,11 +4421,40 @@ impl CodeGenerator {
                     }
                     // Regular assignment (not realloc)
                     let target_type = ctx.get_type(target);
-                    format!(
-                        "{} = {};",
-                        target,
-                        self.generate_expression_with_target_type(value, ctx, target_type)
-                    )
+                    let value_code =
+                        self.generate_expression_with_target_type(value, ctx, target_type);
+
+                    // DECY-261: Helper to strip nested unsafe blocks to avoid redundancy
+                    fn strip_nested_unsafe(code: &str) -> String {
+                        // Iteratively strip all unsafe { } wrappers from the code
+                        let mut result = code.to_string();
+                        while result.contains("unsafe { ") {
+                            result = result.replace("unsafe { ", "").replace(" }", "");
+                            // Handle case where there might be multiple closings
+                            // Simple approach: strip pattern "unsafe { X }" → "X"
+                        }
+                        // More precise: use regex-like matching for simple cases
+                        result = code.replace("unsafe { ", "").replacen(
+                            " }",
+                            "",
+                            code.matches("unsafe { ").count(),
+                        );
+                        result
+                    }
+
+                    // DECY-241: Handle errno assignment specially
+                    if target == "errno" {
+                        let clean_value = strip_nested_unsafe(&value_code);
+                        return format!("unsafe {{ ERRNO = {}; }}", clean_value);
+                    }
+                    // DECY-220: Wrap global variable assignment in unsafe block
+                    // DECY-261: Strip nested unsafe from value_code to avoid redundancy
+                    if ctx.is_global(target) {
+                        let clean_value = strip_nested_unsafe(&value_code);
+                        format!("unsafe {{ {} = {}; }}", target, clean_value)
+                    } else {
+                        format!("{} = {};", target, value_code)
+                    }
                 }
             }
             HirStatement::For {
@@ -3773,8 +4465,8 @@ impl CodeGenerator {
             } => {
                 let mut code = String::new();
 
-                // Generate init statement before loop (if present)
-                if let Some(init_stmt) = init {
+                // DECY-224: Generate ALL init statements before loop
+                for init_stmt in init {
                     code.push_str(&self.generate_statement_with_context(
                         init_stmt,
                         function_name,
@@ -3802,8 +4494,8 @@ impl CodeGenerator {
                     code.push('\n');
                 }
 
-                // Generate increment at end of body (if present)
-                if let Some(inc_stmt) = increment {
+                // DECY-224: Generate ALL increment statements at end of body
+                for inc_stmt in increment {
                     code.push_str("    ");
                     code.push_str(&self.generate_statement_with_context(
                         inc_stmt,
@@ -3838,14 +4530,17 @@ impl CodeGenerator {
                 for case in cases {
                     if let Some(value_expr) = &case.value {
                         // Generate case pattern
-                        // DECY-209: If condition is Int and case is CharLiteral, cast to i32
-                        let case_pattern = if condition_is_int
-                            && matches!(value_expr, HirExpression::CharLiteral(_))
-                        {
-                            format!(
-                                "{} as i32",
+                        // DECY-209/DECY-219: If condition is Int and case is CharLiteral,
+                        // generate the numeric byte value directly as the pattern.
+                        // Rust match patterns don't allow casts like `b'0' as i32`,
+                        // so we must use the numeric value (e.g., 48 for '0')
+                        let case_pattern = if condition_is_int {
+                            if let HirExpression::CharLiteral(ch) = value_expr {
+                                // Direct numeric value for the character
+                                format!("{}", *ch as i32)
+                            } else {
                                 self.generate_expression_with_context(value_expr, ctx)
-                            )
+                            }
                         } else {
                             self.generate_expression_with_context(value_expr, ctx)
                         };
@@ -3893,9 +4588,13 @@ impl CodeGenerator {
             HirStatement::DerefAssignment { target, value } => {
                 // DECY-185: Handle struct field access targets directly (no dereference needed)
                 // sb->capacity = value should generate (*sb).capacity = value, not *(*sb).capacity = value
+                // DECY-254: ArrayIndex also doesn't need extra dereference
+                // arr[i] *= 2 should generate arr[(i) as usize] = arr[(i) as usize] * 2
                 if matches!(
                     target,
-                    HirExpression::PointerFieldAccess { .. } | HirExpression::FieldAccess { .. }
+                    HirExpression::PointerFieldAccess { .. }
+                        | HirExpression::FieldAccess { .. }
+                        | HirExpression::ArrayIndex { .. }
                 ) {
                     let target_code = self.generate_expression_with_context(target, ctx);
                     let value_code = self.generate_expression_with_context(value, ctx);
@@ -3996,7 +4695,23 @@ impl CodeGenerator {
                     matches!(ctx.infer_expression_type(array), Some(HirType::Pointer(_)))
                 };
 
-                let array_code = self.generate_expression_with_context(array, ctx);
+                // DECY-223: Check for global array BEFORE generating code
+                let is_global_array = if let HirExpression::Variable(var_name) = &**array {
+                    ctx.is_global(var_name)
+                } else {
+                    false
+                };
+
+                // Generate array code - get raw name for globals to avoid double unsafe
+                let array_code = if is_global_array {
+                    if let HirExpression::Variable(var_name) = &**array {
+                        var_name.clone()
+                    } else {
+                        self.generate_expression_with_context(array, ctx)
+                    }
+                } else {
+                    self.generate_expression_with_context(array, ctx)
+                };
                 let index_code = self.generate_expression_with_context(index, ctx);
                 let mut value_code =
                     self.generate_expression_with_target_type(value, ctx, target_type.as_ref());
@@ -4024,10 +4739,18 @@ impl CodeGenerator {
                 } else {
                     // DECY-072: Cast index to usize for slice indexing
                     // DECY-150: Wrap index in parens to handle operator precedence
-                    format!(
-                        "{}[({}) as usize] = {};",
-                        array_code, index_code, value_code
-                    )
+                    // DECY-223: Wrap global array assignment in unsafe block
+                    if is_global_array {
+                        format!(
+                            "unsafe {{ {}[({}) as usize] = {}; }}",
+                            array_code, index_code, value_code
+                        )
+                    } else {
+                        format!(
+                            "{}[({}) as usize] = {};",
+                            array_code, index_code, value_code
+                        )
+                    }
                 }
             }
             HirStatement::FieldAssignment {
@@ -4035,6 +4758,8 @@ impl CodeGenerator {
                 field,
                 value,
             } => {
+                // DECY-227: Escape reserved keywords in field names
+                let escaped_field = escape_rust_keyword(field);
                 // Look up field type for null pointer detection
                 let field_type = ctx.get_field_type(object, field);
                 let obj_code = self.generate_expression_with_context(object, ctx);
@@ -4052,12 +4777,30 @@ impl CodeGenerator {
                     // Raw pointer field assignment needs unsafe block
                     // DECY-143: Add SAFETY comment
                     Self::unsafe_stmt(
-                        &format!("(*{}).{} = {}", obj_code, field, value_code),
+                        &format!("(*{}).{} = {}", obj_code, escaped_field, value_code),
                         "pointer is non-null and points to valid struct with exclusive access",
                     )
                 } else {
+                    // DECY-261: Check if object is a global struct - use single unsafe block
+                    if let HirExpression::Variable(name) = object {
+                        if ctx.is_global(name) {
+                            // Strip nested unsafe from value_code
+                            fn strip_nested_unsafe(code: &str) -> String {
+                                code.replace("unsafe { ", "").replacen(
+                                    " }",
+                                    "",
+                                    code.matches("unsafe { ").count(),
+                                )
+                            }
+                            let clean_value = strip_nested_unsafe(&value_code);
+                            return format!(
+                                "unsafe {{ {}.{} = {}; }}",
+                                name, escaped_field, clean_value
+                            );
+                        }
+                    }
                     // Regular struct field assignment
-                    format!("{}.{} = {};", obj_code, field, value_code)
+                    format!("{}.{} = {};", obj_code, escaped_field, value_code)
                 }
             }
             HirStatement::Free { pointer } => {
@@ -4102,7 +4845,17 @@ impl CodeGenerator {
         let lifetime_annotator = LifetimeAnnotator::new();
         let annotated_sig = lifetime_annotator.annotate_function(func);
 
-        let mut sig = format!("fn {}", func.name());
+        // DECY-241: Rename functions that conflict with Rust macros/keywords
+        let safe_name = match func.name() {
+            "write" => "c_write", // Conflicts with Rust's write! macro
+            "read" => "c_read",   // Conflicts with Rust's read
+            "type" => "c_type",   // Rust keyword
+            "match" => "c_match", // Rust keyword
+            "self" => "c_self",   // Rust keyword
+            "in" => "c_in",       // Rust keyword
+            name => name,
+        };
+        let mut sig = format!("fn {}", safe_name);
 
         // Add lifetime parameters if needed
         let lifetime_syntax = lifetime_annotator.generate_lifetime_syntax(&annotated_sig.lifetimes);
@@ -5044,7 +5797,17 @@ impl CodeGenerator {
         sig: &AnnotatedSignature,
         func: Option<&HirFunction>,
     ) -> String {
-        let mut result = format!("fn {}", sig.name);
+        // DECY-241: Rename functions that conflict with Rust macros/keywords
+        let safe_name = match sig.name.as_str() {
+            "write" => "c_write",
+            "read" => "c_read",
+            "type" => "c_type",
+            "match" => "c_match",
+            "self" => "c_self",
+            "in" => "c_in",
+            name => name,
+        };
+        let mut result = format!("fn {}", safe_name);
 
         // DECY-084/085: Detect output parameters for transformation
         // DECY-085: Support multiple output params as tuple
@@ -5377,6 +6140,7 @@ impl CodeGenerator {
             HirType::Float => "    return 0.0;".to_string(),
             HirType::Double => "    return 0.0;".to_string(),
             HirType::Char => "    return 0;".to_string(),
+            HirType::SignedChar => "    return 0;".to_string(), // DECY-250
             HirType::Pointer(_) => "    return std::ptr::null_mut();".to_string(),
             HirType::Box(inner) => {
                 format!(
@@ -5711,7 +6475,7 @@ impl CodeGenerator {
         func: &HirFunction,
         sig: &AnnotatedSignature,
     ) -> String {
-        self.generate_function_with_lifetimes_and_structs(func, sig, &[], &[], &[], &[])
+        self.generate_function_with_lifetimes_and_structs(func, sig, &[], &[], &[], &[], &[])
     }
 
     /// Generate a complete function from HIR with lifetime annotations and struct definitions.
@@ -5726,6 +6490,8 @@ impl CodeGenerator {
     /// * `all_functions` - All function signatures for DECY-117 call site mutability
     /// * `slice_func_args` - DECY-116: func_name -> [(array_idx, len_idx)] for call site transformation
     /// * `string_iter_funcs` - DECY-134b: func_name -> [(param_idx, is_mutable)] for string iteration
+    /// * `globals` - DECY-220/233: Global variable names and types for unsafe access and type inference
+    #[allow(clippy::too_many_arguments)]
     pub fn generate_function_with_lifetimes_and_structs(
         &self,
         func: &HirFunction,
@@ -5734,6 +6500,7 @@ impl CodeGenerator {
         all_functions: &[(String, Vec<HirType>)],
         slice_func_args: &[(String, Vec<(usize, usize)>)],
         string_iter_funcs: &[(String, Vec<(usize, bool)>)],
+        globals: &[(String, HirType)],
     ) -> String {
         let mut code = String::new();
 
@@ -5744,6 +6511,12 @@ impl CodeGenerator {
 
         // DECY-041: Initialize type context with function parameters for pointer arithmetic
         let mut ctx = TypeContext::from_function(func);
+
+        // DECY-220/233: Register global variables for unsafe access tracking and type inference
+        for (name, var_type) in globals {
+            ctx.add_global(name.clone());
+            ctx.add_variable(name.clone(), var_type.clone());
+        }
 
         // DECY-134: Track string iteration params for index-based body generation
         let mut string_iter_index_decls = Vec::new();
@@ -6128,19 +6901,60 @@ impl CodeGenerator {
             .iter()
             .any(|f| matches!(f.field_type(), HirType::Float | HirType::Double));
 
+        // DECY-225: Check if struct can derive Copy (only primitive types, no pointers/Box/Vec/String)
+        // Helper to check if a type is Copy-able
+        fn is_copy_type(ty: &HirType) -> bool {
+            match ty {
+                HirType::Int
+                | HirType::UnsignedInt
+                | HirType::Float
+                | HirType::Double
+                | HirType::Char
+                | HirType::SignedChar // DECY-250
+                | HirType::Void => true,
+                HirType::Array { element_type, .. } => is_copy_type(element_type),
+                // DECY-246: Raw pointers (*mut T, *const T) ARE Copy in Rust!
+                HirType::Pointer(_) => true,
+                // Box, Vec, String, References are not Copy
+                HirType::Box(_)
+                | HirType::Vec(_)
+                | HirType::OwnedString
+                | HirType::StringReference
+                | HirType::StringLiteral
+                | HirType::Reference { .. } => false,
+                // Struct fields need the inner struct to be Copy, which we can't check here
+                // Be conservative and don't derive Copy
+                HirType::Struct(_) | HirType::Enum(_) | HirType::Union(_) => false,
+                // Function pointers are not Copy (they could be wrapped in Option)
+                HirType::FunctionPointer { .. } => false,
+                // Type aliases (like size_t) are Copy
+                HirType::TypeAlias(_) => true,
+                HirType::Option(_) => false,
+            }
+        }
+
+        let can_derive_copy = !needs_lifetimes
+            && hir_struct
+                .fields()
+                .iter()
+                .all(|f| is_copy_type(f.field_type()));
+
         // Add derive attribute
         // DECY-114: Add Default derive for struct initialization with ::default()
         // DECY-123: Skip Default for large arrays
         // DECY-218: Skip Eq for floats (f32/f64 only implement PartialEq)
-        if has_large_array && has_float_fields {
-            code.push_str("#[derive(Debug, Clone, PartialEq)]\n");
-        } else if has_large_array {
-            code.push_str("#[derive(Debug, Clone, PartialEq, Eq)]\n");
-        } else if has_float_fields {
-            code.push_str("#[derive(Debug, Clone, Default, PartialEq)]\n");
-        } else {
-            code.push_str("#[derive(Debug, Clone, Default, PartialEq, Eq)]\n");
-        }
+        // DECY-225: Add Copy for simple structs to avoid move errors
+        let derives = match (has_large_array, has_float_fields, can_derive_copy) {
+            (true, true, true) => "#[derive(Debug, Clone, Copy, PartialEq)]\n",
+            (true, true, false) => "#[derive(Debug, Clone, PartialEq)]\n",
+            (true, false, true) => "#[derive(Debug, Clone, Copy, PartialEq, Eq)]\n",
+            (true, false, false) => "#[derive(Debug, Clone, PartialEq, Eq)]\n",
+            (false, true, true) => "#[derive(Debug, Clone, Copy, Default, PartialEq)]\n",
+            (false, true, false) => "#[derive(Debug, Clone, Default, PartialEq)]\n",
+            (false, false, true) => "#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]\n",
+            (false, false, false) => "#[derive(Debug, Clone, Default, PartialEq, Eq)]\n",
+        };
+        code.push_str(derives);
 
         // Add struct declaration with or without lifetime
         if needs_lifetimes {
@@ -6190,36 +7004,56 @@ impl CodeGenerator {
                 }
                 other => Self::map_type(other),
             };
-            code.push_str(&format!("    pub {}: {},\n", field.name(), field_type_str));
+            // DECY-227: Escape reserved keywords in field names
+            code.push_str(&format!(
+                "    pub {}: {},\n",
+                escape_rust_keyword(field.name()),
+                field_type_str
+            ));
         }
 
         code.push('}');
         code
     }
 
-    /// Generate an enum definition from HIR.
+    /// DECY-240: Generate an enum definition from HIR.
     ///
-    /// Generates Rust enum code with automatic derives for Debug, Clone, Copy, PartialEq, Eq.
-    /// Supports both simple enums and enums with explicit integer values.
+    /// Generates Rust const declarations for C enum values.
+    /// C enums create integer constants that can be used directly (without prefix),
+    /// so we generate const i32 values rather than Rust enums.
+    ///
+    /// # Example
+    ///
+    /// C: `enum day { MONDAY = 1, TUESDAY, WEDNESDAY };`
+    /// Rust:
+    /// ```ignore
+    /// pub const MONDAY: i32 = 1;
+    /// pub const TUESDAY: i32 = 2;
+    /// pub const WEDNESDAY: i32 = 3;
+    /// ```
     pub fn generate_enum(&self, hir_enum: &decy_hir::HirEnum) -> String {
         let mut code = String::new();
 
-        // Add derive attribute (includes Copy since C enums are copyable)
-        code.push_str("#[derive(Debug, Clone, Copy, PartialEq, Eq)]\n");
-
-        // Add enum declaration
-        code.push_str(&format!("pub enum {} {{\n", hir_enum.name()));
-
-        // Add variants
-        for variant in hir_enum.variants() {
-            if let Some(value) = variant.value() {
-                code.push_str(&format!("    {} = {},\n", variant.name(), value));
-            } else {
-                code.push_str(&format!("    {},\n", variant.name()));
-            }
+        // Add a type alias for the enum name (C: enum day → Rust: type day = i32)
+        let enum_name = hir_enum.name();
+        if !enum_name.is_empty() {
+            code.push_str(&format!("pub type {} = i32;\n", enum_name));
         }
 
-        code.push('}');
+        // Generate const declarations for each variant
+        let mut next_value: i32 = 0;
+        for variant in hir_enum.variants() {
+            let value = if let Some(v) = variant.value() {
+                next_value = v + 1; // Next auto value
+                v
+            } else {
+                let v = next_value;
+                next_value += 1;
+                v
+            };
+            code.push_str(&format!("pub const {}: i32 = {};\n", variant.name(), value));
+        }
+
         code
     }
 
@@ -6444,18 +7278,12 @@ impl CodeGenerator {
             let init_expr = if let HirType::Array { element_type, size } = variable.const_type() {
                 if let Some(size_val) = size {
                     // DECY-201: Fix array initialization for uninitialized arrays
-                    // When value is just an integer (likely the size), use default zero value
+                    // DECY-246: Use default_value_for_type to handle all types including structs
+                    // Check if value is an integer (likely uninitialized or zero-initialized)
                     let element_init = match variable.value() {
-                        HirExpression::IntLiteral(n) if *n as usize == *size_val => {
-                            // Value equals size - this is likely an uninitialized array
-                            // Use type-appropriate zero value
-                            match element_type.as_ref() {
-                                HirType::Char => "0u8".to_string(),
-                                HirType::Int => "0i32".to_string(),
-                                HirType::Float => "0.0f32".to_string(),
-                                HirType::Double => "0.0f64".to_string(),
-                                _ => "0".to_string(),
-                            }
+                        HirExpression::IntLiteral(_) => {
+                            // Any integer value for struct/complex array → use default
+                            Self::default_value_for_type(element_type)
                         }
                         _ => self.generate_expression(variable.value()),
                     };
@@ -6524,3 +7352,11 @@ mod switch_property_tests;
 #[cfg(test)]
 #[path = "global_variable_codegen_tests.rs"]
 mod global_variable_codegen_tests;
+
+#[cfg(test)]
+#[path = "coverage_tests.rs"]
+mod coverage_tests;
+
+#[cfg(test)]
+#[path = "pattern_gen_tests.rs"]
+mod pattern_gen_tests;

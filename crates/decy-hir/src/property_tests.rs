@@ -138,46 +138,46 @@ proptest! {
         limit in 1i32..100
     ) {
         let for_stmt = HirStatement::For {
-            init: Some(Box::new(HirStatement::VariableDeclaration {
+            init: vec![HirStatement::VariableDeclaration {
                 name: var_name.clone(),
                 var_type: HirType::Int,
                 initializer: Some(HirExpression::IntLiteral(0)),
-            })),
+            }],
             condition: HirExpression::BinaryOp {
                 op: BinaryOperator::LessThan,
                 left: Box::new(HirExpression::Variable(var_name)),
                 right: Box::new(HirExpression::IntLiteral(limit)),
             },
-            increment: None,
+            increment: vec![],
             body: vec![],
         };
 
         if let HirStatement::For { init, .. } = for_stmt {
-            prop_assert!(init.is_some());
+            prop_assert!(!init.is_empty());
         } else {
             prop_assert!(false, "Expected For statement");
         }
     }
 
-    /// Property: For loop without init has None init
+    /// Property: For loop without init has empty init vec
     #[test]
     fn property_for_loop_without_init_has_none(
         var_name in "[a-z]{1,5}",
         limit in 1i32..100
     ) {
         let for_stmt = HirStatement::For {
-            init: None,
+            init: vec![],
             condition: HirExpression::BinaryOp {
                 op: BinaryOperator::LessThan,
                 left: Box::new(HirExpression::Variable(var_name)),
                 right: Box::new(HirExpression::IntLiteral(limit)),
             },
-            increment: None,
+            increment: vec![],
             body: vec![],
         };
 
         if let HirStatement::For { init, .. } = for_stmt {
-            prop_assert!(init.is_none());
+            prop_assert!(init.is_empty());
         } else {
             prop_assert!(false, "Expected For statement");
         }
@@ -191,9 +191,9 @@ proptest! {
             .collect();
 
         let for_stmt = HirStatement::For {
-            init: None,
+            init: vec![],
             condition: HirExpression::IntLiteral(1),
-            increment: None,
+            increment: vec![],
             body: body.clone(),
         };
 
@@ -211,17 +211,17 @@ proptest! {
         limit in 1i32..100
     ) {
         let for_stmt = HirStatement::For {
-            init: Some(Box::new(HirStatement::VariableDeclaration {
+            init: vec![HirStatement::VariableDeclaration {
                 name: var_name.clone(),
                 var_type: HirType::Int,
                 initializer: Some(HirExpression::IntLiteral(0)),
-            })),
+            }],
             condition: HirExpression::BinaryOp {
                 op: BinaryOperator::LessThan,
                 left: Box::new(HirExpression::Variable(var_name)),
                 right: Box::new(HirExpression::IntLiteral(limit)),
             },
-            increment: None,
+            increment: vec![],
             body: vec![],
         };
 

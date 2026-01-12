@@ -37,6 +37,8 @@ pub enum HirType {
     Double,
     /// char type (maps to u8 in Rust)
     Char,
+    /// signed char type (maps to i8 in Rust) - DECY-250
+    SignedChar,
     /// Pointer to another type
     Pointer(Box<HirType>),
     /// Boxed type (Rust `Box<T>`)
@@ -104,6 +106,7 @@ impl HirType {
             Type::Float => HirType::Float,
             Type::Double => HirType::Double,
             Type::Char => HirType::Char,
+            Type::SignedChar => HirType::SignedChar, // DECY-250
             Type::Pointer(inner) => HirType::Pointer(Box::new(HirType::from_ast_type(inner))),
             Type::Struct(name) => HirType::Struct(name.clone()),
             Type::FunctionPointer {
@@ -723,6 +726,8 @@ pub enum BinaryOperator {
     BitwiseXor,
     /// Assignment (=) - for embedded assignments like (c=getchar())
     Assign,
+    /// Comma operator (,) - DECY-224: for multi-expression statements
+    Comma,
 }
 
 /// Represents an expression in HIR.
@@ -963,12 +968,12 @@ pub enum HirStatement {
     },
     /// For loop with optional init, condition, optional increment, and body
     For {
-        /// Optional initialization statement (e.g., int i = 0)
-        init: Option<Box<HirStatement>>,
+        /// Initialization statements (e.g., int i = 0, j = 10) - DECY-224
+        init: Vec<HirStatement>,
         /// Loop condition expression
         condition: HirExpression,
-        /// Optional increment statement (e.g., i++)
-        increment: Option<Box<HirStatement>>,
+        /// Increment statements (e.g., i++, j--) - DECY-224
+        increment: Vec<HirStatement>,
         /// Loop body (statements to execute while condition is true)
         body: Vec<HirStatement>,
     },
@@ -1064,15 +1069,16 @@ impl HirStatement {
                 increment,
                 body,
             } => HirStatement::For {
-                init: init
-                    .as_ref()
-                    .map(|stmt| Box::new(HirStatement::from_ast_statement(stmt))),
+                // DECY-224: Support multiple init statements
+                init: init.iter().map(HirStatement::from_ast_statement).collect(),
                 condition: HirExpression::from_ast_expression(
                     condition.as_ref().expect("For loop must have condition"),
                 ),
+                // DECY-224: Support multiple increment statements
                 increment: increment
-                    .as_ref()
-                    .map(|stmt| Box::new(HirStatement::from_ast_statement(stmt))),
+                    .iter()
+                    .map(HirStatement::from_ast_statement)
+                    .collect(),
                 body: body.iter().map(HirStatement::from_ast_statement).collect(),
             },
             Statement::While { condition, body } => HirStatement::While {
@@ -1313,6 +1319,8 @@ fn convert_binary_operator(op: decy_parser::parser::BinaryOperator) -> BinaryOpe
         ParserOp::BitwiseXor => BinaryOperator::BitwiseXor,
         // DECY-195: Assignment operator for embedded assignments
         ParserOp::Assign => BinaryOperator::Assign,
+        // DECY-224: Comma operator for multi-expression statements
+        ParserOp::Comma => BinaryOperator::Comma,
     }
 }
 
@@ -1371,3 +1379,7 @@ mod switch_tests;
 #[cfg(test)]
 #[path = "macro_definition_tests.rs"]
 mod macro_definition_tests;
+
+#[cfg(test)]
+#[path = "coverage_tests.rs"]
+mod coverage_tests;

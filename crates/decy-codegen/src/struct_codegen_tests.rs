@@ -30,7 +30,8 @@ fn test_generate_struct_with_derive() {
     let code = codegen.generate_struct(&simple_struct);
 
     // DECY-114: Struct now derives Default
-    assert!(code.contains("#[derive(Debug, Clone, Default, PartialEq"));
+    // DECY-225: Struct with only Copy types gets Copy derive
+    assert!(code.contains("#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]"));
     assert!(code.contains("pub struct Simple"));
 }
 
@@ -47,10 +48,11 @@ fn test_generate_simple_enum() {
     let color_enum = HirEnum::new("Color".to_string(), variants);
     let code = codegen.generate_enum(&color_enum);
 
-    assert!(code.contains("enum Color"));
-    assert!(code.contains("Red"));
-    assert!(code.contains("Green"));
-    assert!(code.contains("Blue"));
+    // C enums are represented as type alias + constants for FFI compatibility
+    assert!(code.contains("pub type Color = i32"));
+    assert!(code.contains("pub const Red: i32"));
+    assert!(code.contains("pub const Green: i32"));
+    assert!(code.contains("pub const Blue: i32"));
 }
 
 #[test]
@@ -65,8 +67,9 @@ fn test_generate_enum_with_values() {
     let priority_enum = HirEnum::new("Priority".to_string(), variants);
     let code = codegen.generate_enum(&priority_enum);
 
-    assert!(code.contains("Low = 0"));
-    assert!(code.contains("High = 10"));
+    // C enums with explicit values
+    assert!(code.contains("pub const Low: i32 = 0"));
+    assert!(code.contains("pub const High: i32 = 10"));
 }
 
 #[test]

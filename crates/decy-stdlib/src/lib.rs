@@ -25,24 +25,34 @@
 
 use std::collections::HashMap;
 
-/// ISO C99 §7 Standard Library Headers
+/// ISO C99 §7 Standard Library Headers + POSIX extensions
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum StdHeader {
-    Assert, // <assert.h>
-    Ctype,  // <ctype.h>
-    Errno,  // <errno.h>
-    Float,  // <float.h>
-    Limits, // <limits.h>
-    Locale, // <locale.h>
-    Math,   // <math.h>
-    Setjmp, // <setjmp.h>
-    Signal, // <signal.h>
-    Stdarg, // <stdarg.h>
-    Stddef, // <stddef.h>
-    Stdio,  // <stdio.h>
-    Stdlib, // <stdlib.h>
-    String, // <string.h>
-    Time,   // <time.h>
+    Assert,  // <assert.h>
+    Ctype,   // <ctype.h>
+    Errno,   // <errno.h>
+    Float,   // <float.h>
+    Limits,  // <limits.h>
+    Locale,  // <locale.h>
+    Math,    // <math.h>
+    Setjmp,  // <setjmp.h>
+    Signal,  // <signal.h>
+    Stdarg,  // <stdarg.h>
+    Stdbool, // <stdbool.h>
+    Stddef,  // <stddef.h>
+    Stdint,  // <stdint.h>
+    Stdio,   // <stdio.h>
+    Stdlib,  // <stdlib.h>
+    String,  // <string.h>
+    Time,    // <time.h>
+    // POSIX headers
+    Unistd,   // <unistd.h>
+    Fcntl,    // <fcntl.h>
+    Dirent,   // <dirent.h>
+    SysTypes, // <sys/types.h>
+    SysStat,  // <sys/stat.h>
+    SysMman,  // <sys/mman.h>
+    Wchar,    // <wchar.h>
 }
 
 impl StdHeader {
@@ -67,11 +77,21 @@ impl StdHeader {
             "setjmp.h" => Some(Self::Setjmp),
             "signal.h" => Some(Self::Signal),
             "stdarg.h" => Some(Self::Stdarg),
+            "stdbool.h" => Some(Self::Stdbool),
             "stddef.h" => Some(Self::Stddef),
+            "stdint.h" => Some(Self::Stdint),
             "stdio.h" => Some(Self::Stdio),
             "stdlib.h" => Some(Self::Stdlib),
             "string.h" => Some(Self::String),
             "time.h" => Some(Self::Time),
+            // POSIX headers
+            "unistd.h" => Some(Self::Unistd),
+            "fcntl.h" => Some(Self::Fcntl),
+            "dirent.h" => Some(Self::Dirent),
+            "sys/types.h" => Some(Self::SysTypes),
+            "sys/stat.h" => Some(Self::SysStat),
+            "sys/mman.h" => Some(Self::SysMman),
+            "wchar.h" => Some(Self::Wchar),
             _ => None,
         }
     }
@@ -959,6 +979,548 @@ impl StdlibPrototypes {
             },
         );
 
+        functions.insert(
+            "strdup".to_string(),
+            FunctionProto {
+                name: "strdup".to_string(),
+                return_type: "char*".to_string(),
+                parameters: vec![Parameter::new("s", "const char*")],
+                is_variadic: false,
+                header: StdHeader::String,
+                c99_section: "POSIX".to_string(),
+            },
+        );
+
+        // ====================================================================
+        // ISO C99 §7.4 - Character handling <ctype.h>
+        // ====================================================================
+
+        functions.insert(
+            "isspace".to_string(),
+            FunctionProto {
+                name: "isspace".to_string(),
+                return_type: "int".to_string(),
+                parameters: vec![Parameter::new("c", "int")],
+                is_variadic: false,
+                header: StdHeader::Ctype,
+                c99_section: "§7.4.1.10".to_string(),
+            },
+        );
+
+        functions.insert(
+            "isdigit".to_string(),
+            FunctionProto {
+                name: "isdigit".to_string(),
+                return_type: "int".to_string(),
+                parameters: vec![Parameter::new("c", "int")],
+                is_variadic: false,
+                header: StdHeader::Ctype,
+                c99_section: "§7.4.1.5".to_string(),
+            },
+        );
+
+        functions.insert(
+            "isalpha".to_string(),
+            FunctionProto {
+                name: "isalpha".to_string(),
+                return_type: "int".to_string(),
+                parameters: vec![Parameter::new("c", "int")],
+                is_variadic: false,
+                header: StdHeader::Ctype,
+                c99_section: "§7.4.1.2".to_string(),
+            },
+        );
+
+        functions.insert(
+            "isalnum".to_string(),
+            FunctionProto {
+                name: "isalnum".to_string(),
+                return_type: "int".to_string(),
+                parameters: vec![Parameter::new("c", "int")],
+                is_variadic: false,
+                header: StdHeader::Ctype,
+                c99_section: "§7.4.1.1".to_string(),
+            },
+        );
+
+        functions.insert(
+            "isupper".to_string(),
+            FunctionProto {
+                name: "isupper".to_string(),
+                return_type: "int".to_string(),
+                parameters: vec![Parameter::new("c", "int")],
+                is_variadic: false,
+                header: StdHeader::Ctype,
+                c99_section: "§7.4.1.11".to_string(),
+            },
+        );
+
+        functions.insert(
+            "islower".to_string(),
+            FunctionProto {
+                name: "islower".to_string(),
+                return_type: "int".to_string(),
+                parameters: vec![Parameter::new("c", "int")],
+                is_variadic: false,
+                header: StdHeader::Ctype,
+                c99_section: "§7.4.1.7".to_string(),
+            },
+        );
+
+        functions.insert(
+            "tolower".to_string(),
+            FunctionProto {
+                name: "tolower".to_string(),
+                return_type: "int".to_string(),
+                parameters: vec![Parameter::new("c", "int")],
+                is_variadic: false,
+                header: StdHeader::Ctype,
+                c99_section: "§7.4.2.1".to_string(),
+            },
+        );
+
+        functions.insert(
+            "toupper".to_string(),
+            FunctionProto {
+                name: "toupper".to_string(),
+                return_type: "int".to_string(),
+                parameters: vec![Parameter::new("c", "int")],
+                is_variadic: false,
+                header: StdHeader::Ctype,
+                c99_section: "§7.4.2.2".to_string(),
+            },
+        );
+
+        // ====================================================================
+        // ISO C99 §7.23 - Date and time <time.h>
+        // ====================================================================
+
+        functions.insert(
+            "clock".to_string(),
+            FunctionProto {
+                name: "clock".to_string(),
+                return_type: "clock_t".to_string(),
+                parameters: vec![],
+                is_variadic: false,
+                header: StdHeader::Time,
+                c99_section: "§7.23.2.1".to_string(),
+            },
+        );
+
+        functions.insert(
+            "time".to_string(),
+            FunctionProto {
+                name: "time".to_string(),
+                return_type: "time_t".to_string(),
+                parameters: vec![Parameter::new("timer", "time_t*")],
+                is_variadic: false,
+                header: StdHeader::Time,
+                c99_section: "§7.23.2.4".to_string(),
+            },
+        );
+
+        // ====================================================================
+        // ISO C99 §7.12 - Mathematics <math.h>
+        // ====================================================================
+
+        functions.insert(
+            "sqrt".to_string(),
+            FunctionProto {
+                name: "sqrt".to_string(),
+                return_type: "double".to_string(),
+                parameters: vec![Parameter::new("x", "double")],
+                is_variadic: false,
+                header: StdHeader::Math,
+                c99_section: "§7.12.7.5".to_string(),
+            },
+        );
+
+        functions.insert(
+            "sin".to_string(),
+            FunctionProto {
+                name: "sin".to_string(),
+                return_type: "double".to_string(),
+                parameters: vec![Parameter::new("x", "double")],
+                is_variadic: false,
+                header: StdHeader::Math,
+                c99_section: "§7.12.4.6".to_string(),
+            },
+        );
+
+        functions.insert(
+            "cos".to_string(),
+            FunctionProto {
+                name: "cos".to_string(),
+                return_type: "double".to_string(),
+                parameters: vec![Parameter::new("x", "double")],
+                is_variadic: false,
+                header: StdHeader::Math,
+                c99_section: "§7.12.4.5".to_string(),
+            },
+        );
+
+        functions.insert(
+            "pow".to_string(),
+            FunctionProto {
+                name: "pow".to_string(),
+                return_type: "double".to_string(),
+                parameters: vec![Parameter::new("x", "double"), Parameter::new("y", "double")],
+                is_variadic: false,
+                header: StdHeader::Math,
+                c99_section: "§7.12.7.4".to_string(),
+            },
+        );
+
+        functions.insert(
+            "fabs".to_string(),
+            FunctionProto {
+                name: "fabs".to_string(),
+                return_type: "double".to_string(),
+                parameters: vec![Parameter::new("x", "double")],
+                is_variadic: false,
+                header: StdHeader::Math,
+                c99_section: "§7.12.7.2".to_string(),
+            },
+        );
+
+        functions.insert(
+            "ceil".to_string(),
+            FunctionProto {
+                name: "ceil".to_string(),
+                return_type: "double".to_string(),
+                parameters: vec![Parameter::new("x", "double")],
+                is_variadic: false,
+                header: StdHeader::Math,
+                c99_section: "§7.12.9.1".to_string(),
+            },
+        );
+
+        functions.insert(
+            "floor".to_string(),
+            FunctionProto {
+                name: "floor".to_string(),
+                return_type: "double".to_string(),
+                parameters: vec![Parameter::new("x", "double")],
+                is_variadic: false,
+                header: StdHeader::Math,
+                c99_section: "§7.12.9.2".to_string(),
+            },
+        );
+
+        functions.insert(
+            "round".to_string(),
+            FunctionProto {
+                name: "round".to_string(),
+                return_type: "double".to_string(),
+                parameters: vec![Parameter::new("x", "double")],
+                is_variadic: false,
+                header: StdHeader::Math,
+                c99_section: "§7.12.9.6".to_string(),
+            },
+        );
+
+        functions.insert(
+            "trunc".to_string(),
+            FunctionProto {
+                name: "trunc".to_string(),
+                return_type: "double".to_string(),
+                parameters: vec![Parameter::new("x", "double")],
+                is_variadic: false,
+                header: StdHeader::Math,
+                c99_section: "§7.12.9.8".to_string(),
+            },
+        );
+
+        functions.insert(
+            "exp".to_string(),
+            FunctionProto {
+                name: "exp".to_string(),
+                return_type: "double".to_string(),
+                parameters: vec![Parameter::new("x", "double")],
+                is_variadic: false,
+                header: StdHeader::Math,
+                c99_section: "§7.12.6.1".to_string(),
+            },
+        );
+
+        functions.insert(
+            "log".to_string(),
+            FunctionProto {
+                name: "log".to_string(),
+                return_type: "double".to_string(),
+                parameters: vec![Parameter::new("x", "double")],
+                is_variadic: false,
+                header: StdHeader::Math,
+                c99_section: "§7.12.6.7".to_string(),
+            },
+        );
+
+        functions.insert(
+            "log10".to_string(),
+            FunctionProto {
+                name: "log10".to_string(),
+                return_type: "double".to_string(),
+                parameters: vec![Parameter::new("x", "double")],
+                is_variadic: false,
+                header: StdHeader::Math,
+                c99_section: "§7.12.6.8".to_string(),
+            },
+        );
+
+        functions.insert(
+            "tan".to_string(),
+            FunctionProto {
+                name: "tan".to_string(),
+                return_type: "double".to_string(),
+                parameters: vec![Parameter::new("x", "double")],
+                is_variadic: false,
+                header: StdHeader::Math,
+                c99_section: "§7.12.4.7".to_string(),
+            },
+        );
+
+        functions.insert(
+            "asin".to_string(),
+            FunctionProto {
+                name: "asin".to_string(),
+                return_type: "double".to_string(),
+                parameters: vec![Parameter::new("x", "double")],
+                is_variadic: false,
+                header: StdHeader::Math,
+                c99_section: "§7.12.4.2".to_string(),
+            },
+        );
+
+        functions.insert(
+            "acos".to_string(),
+            FunctionProto {
+                name: "acos".to_string(),
+                return_type: "double".to_string(),
+                parameters: vec![Parameter::new("x", "double")],
+                is_variadic: false,
+                header: StdHeader::Math,
+                c99_section: "§7.12.4.1".to_string(),
+            },
+        );
+
+        functions.insert(
+            "atan".to_string(),
+            FunctionProto {
+                name: "atan".to_string(),
+                return_type: "double".to_string(),
+                parameters: vec![Parameter::new("x", "double")],
+                is_variadic: false,
+                header: StdHeader::Math,
+                c99_section: "§7.12.4.3".to_string(),
+            },
+        );
+
+        functions.insert(
+            "atan2".to_string(),
+            FunctionProto {
+                name: "atan2".to_string(),
+                return_type: "double".to_string(),
+                parameters: vec![Parameter::new("y", "double"), Parameter::new("x", "double")],
+                is_variadic: false,
+                header: StdHeader::Math,
+                c99_section: "§7.12.4.4".to_string(),
+            },
+        );
+
+        functions.insert(
+            "fmod".to_string(),
+            FunctionProto {
+                name: "fmod".to_string(),
+                return_type: "double".to_string(),
+                parameters: vec![Parameter::new("x", "double"), Parameter::new("y", "double")],
+                is_variadic: false,
+                header: StdHeader::Math,
+                c99_section: "§7.12.10.1".to_string(),
+            },
+        );
+
+        // ====================================================================
+        // POSIX - unistd.h additional functions
+        // ====================================================================
+
+        functions.insert(
+            "pipe".to_string(),
+            FunctionProto {
+                name: "pipe".to_string(),
+                return_type: "int".to_string(),
+                parameters: vec![Parameter::new("pipefd", "int*")],
+                is_variadic: false,
+                header: StdHeader::Unistd,
+                c99_section: "POSIX".to_string(),
+            },
+        );
+
+        functions.insert(
+            "fork".to_string(),
+            FunctionProto {
+                name: "fork".to_string(),
+                return_type: "pid_t".to_string(),
+                parameters: vec![],
+                is_variadic: false,
+                header: StdHeader::Unistd,
+                c99_section: "POSIX".to_string(),
+            },
+        );
+
+        functions.insert(
+            "read".to_string(),
+            FunctionProto {
+                name: "read".to_string(),
+                return_type: "ssize_t".to_string(),
+                parameters: vec![
+                    Parameter::new("fd", "int"),
+                    Parameter::new("buf", "void*"),
+                    Parameter::new("count", "size_t"),
+                ],
+                is_variadic: false,
+                header: StdHeader::Unistd,
+                c99_section: "POSIX".to_string(),
+            },
+        );
+
+        functions.insert(
+            "write".to_string(),
+            FunctionProto {
+                name: "write".to_string(),
+                return_type: "ssize_t".to_string(),
+                parameters: vec![
+                    Parameter::new("fd", "int"),
+                    Parameter::new("buf", "const void*"),
+                    Parameter::new("count", "size_t"),
+                ],
+                is_variadic: false,
+                header: StdHeader::Unistd,
+                c99_section: "POSIX".to_string(),
+            },
+        );
+
+        functions.insert(
+            "close".to_string(),
+            FunctionProto {
+                name: "close".to_string(),
+                return_type: "int".to_string(),
+                parameters: vec![Parameter::new("fd", "int")],
+                is_variadic: false,
+                header: StdHeader::Unistd,
+                c99_section: "POSIX".to_string(),
+            },
+        );
+
+        functions.insert(
+            "lseek".to_string(),
+            FunctionProto {
+                name: "lseek".to_string(),
+                return_type: "off_t".to_string(),
+                parameters: vec![
+                    Parameter::new("fd", "int"),
+                    Parameter::new("offset", "off_t"),
+                    Parameter::new("whence", "int"),
+                ],
+                is_variadic: false,
+                header: StdHeader::Unistd,
+                c99_section: "POSIX".to_string(),
+            },
+        );
+
+        functions.insert(
+            "open".to_string(),
+            FunctionProto {
+                name: "open".to_string(),
+                return_type: "int".to_string(),
+                parameters: vec![
+                    Parameter::new("pathname", "const char*"),
+                    Parameter::new("flags", "int"),
+                ],
+                is_variadic: true, // Optional mode parameter
+                header: StdHeader::Fcntl,
+                c99_section: "POSIX".to_string(),
+            },
+        );
+
+        functions.insert(
+            "dup".to_string(),
+            FunctionProto {
+                name: "dup".to_string(),
+                return_type: "int".to_string(),
+                parameters: vec![Parameter::new("oldfd", "int")],
+                is_variadic: false,
+                header: StdHeader::Unistd,
+                c99_section: "POSIX".to_string(),
+            },
+        );
+
+        functions.insert(
+            "dup2".to_string(),
+            FunctionProto {
+                name: "dup2".to_string(),
+                return_type: "int".to_string(),
+                parameters: vec![
+                    Parameter::new("oldfd", "int"),
+                    Parameter::new("newfd", "int"),
+                ],
+                is_variadic: false,
+                header: StdHeader::Unistd,
+                c99_section: "POSIX".to_string(),
+            },
+        );
+
+        functions.insert(
+            "getenv".to_string(),
+            FunctionProto {
+                name: "getenv".to_string(),
+                return_type: "char*".to_string(),
+                parameters: vec![Parameter::new("name", "const char*")],
+                is_variadic: false,
+                header: StdHeader::Stdlib,
+                c99_section: "§7.22.4.6".to_string(),
+            },
+        );
+
+        // ====================================================================
+        // POSIX - dirent.h functions
+        // ====================================================================
+
+        functions.insert(
+            "opendir".to_string(),
+            FunctionProto {
+                name: "opendir".to_string(),
+                return_type: "DIR*".to_string(),
+                parameters: vec![Parameter::new("name", "const char*")],
+                is_variadic: false,
+                header: StdHeader::Dirent,
+                c99_section: "POSIX".to_string(),
+            },
+        );
+
+        functions.insert(
+            "readdir".to_string(),
+            FunctionProto {
+                name: "readdir".to_string(),
+                return_type: "struct dirent*".to_string(),
+                parameters: vec![Parameter::new("dirp", "DIR*")],
+                is_variadic: false,
+                header: StdHeader::Dirent,
+                c99_section: "POSIX".to_string(),
+            },
+        );
+
+        functions.insert(
+            "closedir".to_string(),
+            FunctionProto {
+                name: "closedir".to_string(),
+                return_type: "int".to_string(),
+                parameters: vec![Parameter::new("dirp", "DIR*")],
+                is_variadic: false,
+                header: StdHeader::Dirent,
+                c99_section: "POSIX".to_string(),
+            },
+        );
+
         Self { functions }
     }
 
@@ -994,10 +1556,158 @@ impl StdlibPrototypes {
         // NULL macro (ISO C99 §7.17) - use simple 0 to avoid parser issues
         result.push_str("#define NULL 0\n");
 
-        // Add FILE typedef for stdio.h
-        if header == StdHeader::Stdio {
-            result.push_str("struct _IO_FILE;\n");
-            result.push_str("typedef struct _IO_FILE FILE;\n");
+        // Add header-specific type definitions
+        match header {
+            StdHeader::Stdio => {
+                result.push_str("struct _IO_FILE;\n");
+                result.push_str("typedef struct _IO_FILE FILE;\n");
+                // DECY-239: Add standard streams as extern declarations
+                result.push_str("extern FILE* stdin;\n");
+                result.push_str("extern FILE* stdout;\n");
+                result.push_str("extern FILE* stderr;\n");
+                // Common stdio macros
+                result.push_str("#define EOF (-1)\n");
+                result.push_str("#define SEEK_SET 0\n");
+                result.push_str("#define SEEK_CUR 1\n");
+                result.push_str("#define SEEK_END 2\n");
+                result.push_str("#define BUFSIZ 8192\n");
+                result.push_str("#define L_tmpnam 20\n");
+                result.push_str("#define _IONBF 2\n");
+                result.push_str("#define _IOLBF 1\n");
+                result.push_str("#define _IOFBF 0\n");
+            }
+            StdHeader::Errno => {
+                result.push_str("extern int errno;\n");
+                result.push_str("#define EACCES 13\n");
+                result.push_str("#define ENOENT 2\n");
+                result.push_str("#define EINVAL 22\n");
+                result.push_str("#define ENOMEM 12\n");
+                result.push_str("#define ERANGE 34\n");
+            }
+            StdHeader::Time => {
+                result.push_str("typedef long time_t;\n");
+                result.push_str("typedef long clock_t;\n");
+                result.push_str("struct tm;\n");
+                result.push_str("#define CLOCKS_PER_SEC 1000000\n");
+            }
+            StdHeader::Stdarg => {
+                // va_list is typically a pointer or array type
+                result.push_str("typedef void* va_list;\n");
+                result.push_str("#define va_start(ap, last) ((void)0)\n");
+                result.push_str("#define va_end(ap) ((void)0)\n");
+                result.push_str("#define va_arg(ap, type) (*(type*)0)\n");
+            }
+            StdHeader::Stdbool => {
+                result.push_str("typedef _Bool bool;\n");
+                result.push_str("#define true 1\n");
+                result.push_str("#define false 0\n");
+            }
+            StdHeader::Stdint => {
+                result.push_str("typedef signed char int8_t;\n");
+                result.push_str("typedef short int16_t;\n");
+                result.push_str("typedef int int32_t;\n");
+                result.push_str("typedef long long int64_t;\n");
+                result.push_str("typedef unsigned char uint8_t;\n");
+                result.push_str("typedef unsigned short uint16_t;\n");
+                result.push_str("typedef unsigned int uint32_t;\n");
+                result.push_str("typedef unsigned long long uint64_t;\n");
+                result.push_str("typedef long intptr_t;\n");
+                result.push_str("typedef unsigned long uintptr_t;\n");
+            }
+            StdHeader::Unistd => {
+                // POSIX types and file descriptor macros
+                result.push_str("typedef int pid_t;\n");
+                result.push_str("typedef long off_t;\n");
+                result.push_str("typedef unsigned int uid_t;\n");
+                result.push_str("typedef unsigned int gid_t;\n");
+                result.push_str("#define STDIN_FILENO 0\n");
+                result.push_str("#define STDOUT_FILENO 1\n");
+                result.push_str("#define STDERR_FILENO 2\n");
+                // Access mode flags
+                result.push_str("#define F_OK 0\n");
+                result.push_str("#define R_OK 4\n");
+                result.push_str("#define W_OK 2\n");
+                result.push_str("#define X_OK 1\n");
+                // sysconf names
+                result.push_str("#define _SC_OPEN_MAX 4\n");
+                result.push_str("#define _SC_PAGESIZE 30\n");
+            }
+            StdHeader::Fcntl => {
+                // File access mode flags
+                result.push_str("#define O_RDONLY 0\n");
+                result.push_str("#define O_WRONLY 1\n");
+                result.push_str("#define O_RDWR 2\n");
+                result.push_str("#define O_CREAT 0100\n");
+                result.push_str("#define O_TRUNC 01000\n");
+                result.push_str("#define O_APPEND 02000\n");
+                result.push_str("#define O_NONBLOCK 04000\n");
+                // File lock types (from flock)
+                result.push_str("#define LOCK_SH 1\n");
+                result.push_str("#define LOCK_EX 2\n");
+                result.push_str("#define LOCK_UN 8\n");
+            }
+            StdHeader::Dirent => {
+                result.push_str("struct dirent { char d_name[256]; };\n");
+                result.push_str("typedef struct __dirstream DIR;\n");
+            }
+            StdHeader::SysTypes => {
+                result.push_str("typedef int pid_t;\n");
+                result.push_str("typedef long off_t;\n");
+                result.push_str("typedef unsigned int mode_t;\n");
+                result.push_str("typedef long ssize_t;\n");
+            }
+            StdHeader::SysStat => {
+                result.push_str("struct stat { long st_size; int st_mode; };\n");
+                result.push_str("#define S_ISREG(m) (((m) & 0170000) == 0100000)\n");
+                result.push_str("#define S_ISDIR(m) (((m) & 0170000) == 0040000)\n");
+            }
+            StdHeader::SysMman => {
+                // Memory protection flags
+                result.push_str("#define PROT_NONE 0\n");
+                result.push_str("#define PROT_READ 1\n");
+                result.push_str("#define PROT_WRITE 2\n");
+                result.push_str("#define PROT_EXEC 4\n");
+                // Map flags
+                result.push_str("#define MAP_SHARED 1\n");
+                result.push_str("#define MAP_PRIVATE 2\n");
+                result.push_str("#define MAP_ANONYMOUS 0x20\n");
+                result.push_str("#define MAP_FAILED ((void*)-1)\n");
+            }
+            StdHeader::Wchar => {
+                result.push_str("typedef int wchar_t;\n");
+                result.push_str("typedef int wint_t;\n");
+                result.push_str("#define WEOF (-1)\n");
+            }
+            StdHeader::Signal => {
+                result.push_str("typedef void (*sighandler_t)(int);\n");
+                result.push_str("#define SIGINT 2\n");
+                result.push_str("#define SIGTERM 15\n");
+            }
+            StdHeader::Limits => {
+                result.push_str("#define CHAR_BIT 8\n");
+                result.push_str("#define CHAR_MIN (-128)\n");
+                result.push_str("#define CHAR_MAX 127\n");
+                result.push_str("#define SHRT_MIN (-32768)\n");
+                result.push_str("#define SHRT_MAX 32767\n");
+                result.push_str("#define INT_MIN (-2147483647-1)\n");
+                result.push_str("#define INT_MAX 2147483647\n");
+                result.push_str("#define UINT_MAX 4294967295U\n");
+                result.push_str("#define LONG_MIN (-9223372036854775807L-1)\n");
+                result.push_str("#define LONG_MAX 9223372036854775807L\n");
+                result.push_str("#define PATH_MAX 4096\n");
+            }
+            StdHeader::Ctype => {
+                // Character classification functions - ISO C99 §7.4
+                // All return non-zero if true, 0 if false
+            }
+            StdHeader::Math => {
+                // Math functions - ISO C99 §7.12
+                result.push_str("#define M_PI 3.14159265358979323846\n");
+                result.push_str("#define M_E 2.71828182845904523536\n");
+                result.push_str("#define INFINITY (1.0/0.0)\n");
+                result.push_str("#define NAN (0.0/0.0)\n");
+            }
+            _ => {}
         }
 
         result.push('\n');
@@ -1042,7 +1752,26 @@ impl StdlibPrototypes {
         // NULL macro (ISO C99 §7.17) - use simple 0 to avoid parser issues
         result.push_str("#define NULL 0\n");
         result.push_str("struct _IO_FILE;\n");
-        result.push_str("typedef struct _IO_FILE FILE;\n\n");
+        result.push_str("typedef struct _IO_FILE FILE;\n");
+        // DECY-239: Standard streams
+        result.push_str("extern FILE* stdin;\n");
+        result.push_str("extern FILE* stdout;\n");
+        result.push_str("extern FILE* stderr;\n");
+        result.push_str("#define EOF (-1)\n");
+        result.push_str("#define SEEK_SET 0\n");
+        result.push_str("#define SEEK_CUR 1\n");
+        result.push_str("#define SEEK_END 2\n");
+        // Common POSIX types
+        result.push_str("typedef int pid_t;\n");
+        result.push_str("typedef long off_t;\n");
+        result.push_str("typedef long time_t;\n");
+        result.push_str("typedef long clock_t;\n");
+        result.push_str("typedef int wchar_t;\n");
+        result.push_str("extern int errno;\n");
+        // Common macros
+        result.push_str("#define CLOCKS_PER_SEC 1000000\n");
+        result.push_str("#define PATH_MAX 4096\n");
+        result.push('\n');
 
         // Inject function prototypes
         let mut protos: Vec<_> = self.functions.values().collect();

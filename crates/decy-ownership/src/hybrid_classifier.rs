@@ -521,7 +521,7 @@ mod tests {
     impl OwnershipModel for MockModel {
         fn predict(&self, _features: &OwnershipFeatures) -> OwnershipPrediction {
             OwnershipPrediction {
-                kind: self.ownership.clone(),
+                kind: self.ownership,
                 confidence: self.confidence as f32,
                 fallback: None,
             }

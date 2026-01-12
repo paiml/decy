@@ -327,6 +327,7 @@ projects = [
     "git",                           # Git source control
     "numpy",                         # NumPy C extensions
     "sqlite",                        # SQLite database
+    "audionoise",                    # Audio noise processing (torvalds)
 ]
 
 [targets.cpython]
@@ -348,3 +349,9 @@ target_sprint = 12
 loc = 150000
 priority = "medium"
 target_sprint = 18
+
+[targets.audionoise]
+loc = 5000                           # Approximate LOC
+priority = "low"
+target_sprint = 25
+repo = "git@github.com:torvalds/AudioNoise.git"
