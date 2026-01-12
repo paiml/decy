@@ -11,7 +11,6 @@ use crate::{HirExpression, HirType};
 // ============================================================================
 
 #[test]
-#[ignore = "DECY-069 RED: SliceIndex variant not yet implemented"]
 fn test_slice_index_creation() {
     // Create SliceIndex expression: arr[5]
     let slice_index = HirExpression::SliceIndex {
@@ -36,7 +35,6 @@ fn test_slice_index_creation() {
 }
 
 #[test]
-#[ignore = "DECY-069 RED: SliceIndex variant not yet implemented"]
 fn test_slice_index_debug_format() {
     // SliceIndex should have Debug implementation
     let slice_index = HirExpression::SliceIndex {
@@ -59,7 +57,6 @@ fn test_slice_index_debug_format() {
 }
 
 #[test]
-#[ignore = "DECY-069 RED: SliceIndex variant not yet implemented"]
 fn test_slice_index_distinguishes_from_array_index() {
     // SliceIndex and ArrayIndex are different variants
     let slice_index = HirExpression::SliceIndex {
@@ -85,7 +82,6 @@ fn test_slice_index_distinguishes_from_array_index() {
 }
 
 #[test]
-#[ignore = "DECY-069 RED: SliceIndex variant not yet implemented"]
 fn test_slice_index_with_expression_index() {
     // SliceIndex can use expression as index: arr[i + 1]
     let slice_index = HirExpression::SliceIndex {
@@ -110,7 +106,6 @@ fn test_slice_index_with_expression_index() {
 }
 
 #[test]
-#[ignore = "DECY-069 RED: SliceIndex variant not yet implemented"]
 fn test_slice_index_element_type_preserved() {
     // SliceIndex preserves element type for codegen
     let int_slice = HirExpression::SliceIndex {

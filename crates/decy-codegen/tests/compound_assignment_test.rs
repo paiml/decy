@@ -310,24 +310,24 @@ fn test_compound_assignment_in_loop() {
                 initializer: Some(HirExpression::IntLiteral(0)),
             },
             HirStatement::For {
-                init: Some(Box::new(HirStatement::VariableDeclaration {
+                init: vec![HirStatement::VariableDeclaration {
                     name: "i".to_string(),
                     var_type: HirType::Int,
                     initializer: Some(HirExpression::IntLiteral(0)),
-                })),
+                }],
                 condition: HirExpression::BinaryOp {
                     op: decy_hir::BinaryOperator::LessThan,
                     left: Box::new(HirExpression::Variable("i".to_string())),
                     right: Box::new(HirExpression::IntLiteral(10)),
                 },
-                increment: Some(Box::new(HirStatement::Assignment {
+                increment: vec![HirStatement::Assignment {
                     target: "i".to_string(),
                     value: HirExpression::BinaryOp {
                         op: decy_hir::BinaryOperator::Add,
                         left: Box::new(HirExpression::Variable("i".to_string())),
                         right: Box::new(HirExpression::IntLiteral(1)),
                     },
-                })),
+                }],
                 body: vec![HirStatement::Assignment {
                     target: "sum".to_string(),
                     value: HirExpression::BinaryOp {
@@ -507,15 +507,11 @@ fn test_compound_assignment_float() {
     let codegen = CodeGenerator::new();
     let result = codegen.generate_function(&func);
 
-    // Verify float type - f32 declaration is present
-    assert!(result.contains("f32"), "Should declare x as f32");
-    // C promotes float+float_literal to double, so codegen casts to f64
-    // This is technically correct C behavior (see ISO C99 section 6.3.1.8)
-    assert!(
-        result.contains("x = (x as f64) + 2.5f64") || result.contains("x = x + 2.5"),
-        "Should generate float arithmetic: {}",
-        result
-    );
+    // Verify float type for variable declaration
+    assert!(result.contains("f32"));
+    // Float literals default to f64 in C, so codegen promotes f32 to f64 for arithmetic
+    // This generates: x = (x as f64) + 2.5f64 (C type promotion semantics)
+    assert!(result.contains("2.5f64"));
     assert!(!result.contains("unsafe"));
 }
 

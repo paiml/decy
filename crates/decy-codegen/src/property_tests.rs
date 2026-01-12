@@ -4,6 +4,22 @@ use super::*;
 use decy_hir::{HirFunction, HirType};
 use proptest::prelude::*;
 
+/// Rust keywords that cannot be used as identifiers
+const RUST_KEYWORDS: &[&str] = &[
+    "as", "async", "await", "break", "const", "continue", "crate", "dyn", "else", "enum", "extern",
+    "false", "fn", "for", "if", "impl", "in", "let", "loop", "match", "mod", "move", "mut", "pub",
+    "ref", "return", "self", "Self", "static", "struct", "super", "trait", "true", "type",
+    "unsafe", "use", "where", "while", "abstract", "become", "box", "do", "final", "macro",
+    "override", "priv", "try", "typeof", "unsized", "virtual", "yield",
+];
+
+/// Strategy for valid Rust identifiers (excludes keywords)
+fn valid_identifier_strategy() -> impl Strategy<Value = String> {
+    "[a-z_][a-z0-9_]{0,10}".prop_filter("must not be a Rust keyword", |s| {
+        !RUST_KEYWORDS.contains(&s.as_str())
+    })
+}
+
 // Strategy for generating HIR types (reuse from decy-hir concepts)
 fn hir_type_strategy() -> impl Strategy<Value = HirType> {
     prop_oneof![
@@ -134,17 +150,34 @@ proptest! {
         prop_assert_eq!(code.parse::<i32>().ok(), Some(val));
     }
 
-    /// Property: Variable references preserve the name exactly
+    /// Property: Variable references preserve the name (or escape if keyword)
     #[test]
     fn property_var_ref_preserves_name(name in "[a-z_][a-z0-9_]{0,10}") {
         use decy_hir::HirExpression;
+
+        // Rust keywords that get escaped
+        const RUST_KEYWORDS: &[&str] = &[
+            "as", "async", "await", "break", "const", "continue", "crate", "dyn", "else", "enum",
+            "extern", "false", "fn", "for", "if", "impl", "in", "let", "loop", "match", "mod", "move",
+            "mut", "pub", "ref", "return", "self", "static", "struct", "super", "trait",
+            "true", "type", "unsafe", "use", "where", "while",
+            "abstract", "become", "box", "do", "final", "macro", "override", "priv", "try", "typeof",
+            "unsized", "virtual", "yield",
+        ];
 
         let expr = HirExpression::Variable(name.clone());
 
         let codegen = CodeGenerator::new();
         let code = codegen.generate_expression(&expr);
 
-        prop_assert_eq!(code, name);
+        // Keywords get escaped with r# prefix
+        let expected = if RUST_KEYWORDS.contains(&name.as_str()) {
+            format!("r#{}", name)
+        } else {
+            name.clone()
+        };
+
+        prop_assert_eq!(code, expected);
     }
 
     // DECY-007 property tests for binary expressions
@@ -394,7 +427,7 @@ proptest! {
 
     /// Property: Function call preserves function name
     #[test]
-    fn property_function_call_preserves_name(name in "[a-z_][a-z0-9_]{0,10}") {
+    fn property_function_call_preserves_name(name in valid_identifier_strategy()) {
         use decy_hir::HirExpression;
 
         let expr = HirExpression::FunctionCall {

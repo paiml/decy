@@ -1,3 +1,7 @@
 [env]
-LLVM_CONFIG_PATH = "/usr/bin/llvm-config-18"
-LIBCLANG_PATH = "/home/user/decy/.local/lib"
+LLVM_CONFIG_PATH = "/usr/bin/llvm-config-14"
+LIBCLANG_PATH = "/usr/lib/llvm-14/lib"
+
+# RAM disk acceleration (auto-generated)
+[build]
+target-dir = "/mnt/zram/targets/decy"

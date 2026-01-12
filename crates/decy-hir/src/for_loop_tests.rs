@@ -36,9 +36,9 @@ fn test_create_for_loop_statement() {
     }];
 
     let for_loop = HirStatement::For {
-        init: Some(Box::new(init)),
+        init: vec![init],
         condition,
-        increment: Some(Box::new(increment)),
+        increment: vec![increment],
         body,
     };
 
@@ -49,8 +49,8 @@ fn test_create_for_loop_statement() {
             increment,
             body,
         } => {
-            assert!(init.is_some());
-            assert!(increment.is_some());
+            assert!(!init.is_empty());
+            assert!(!increment.is_empty());
             assert_eq!(body.len(), 1);
             assert!(matches!(condition, HirExpression::BinaryOp { .. }));
         }
@@ -77,15 +77,15 @@ fn test_for_loop_without_init() {
     };
 
     let for_loop = HirStatement::For {
-        init: None,
+        init: vec![],
         condition,
-        increment: Some(Box::new(increment)),
+        increment: vec![increment],
         body: vec![],
     };
 
     match for_loop {
         HirStatement::For { init, .. } => {
-            assert!(init.is_none());
+            assert!(init.is_empty());
         }
         _ => panic!("Expected For statement"),
     }
@@ -116,15 +116,15 @@ fn test_for_loop_without_increment() {
     }];
 
     let for_loop = HirStatement::For {
-        init: Some(Box::new(init)),
+        init: vec![init],
         condition,
-        increment: None,
+        increment: vec![],
         body,
     };
 
     match for_loop {
         HirStatement::For { increment, .. } => {
-            assert!(increment.is_none());
+            assert!(increment.is_empty());
         }
         _ => panic!("Expected For statement"),
     }
@@ -134,9 +134,9 @@ fn test_for_loop_without_increment() {
 fn test_for_loop_infinite() {
     // for(;;) { break; }
     let for_loop = HirStatement::For {
-        init: None,
+        init: vec![],
         condition: HirExpression::IntLiteral(1), // true in C
-        increment: None,
+        increment: vec![],
         body: vec![HirStatement::Break],
     };
 
@@ -147,8 +147,8 @@ fn test_for_loop_infinite() {
             body,
             ..
         } => {
-            assert!(init.is_none());
-            assert!(increment.is_none());
+            assert!(init.is_empty());
+            assert!(increment.is_empty());
             assert_eq!(body.len(), 1);
         }
         _ => panic!("Expected For statement"),
@@ -163,46 +163,46 @@ fn test_nested_for_loops() {
     //     }
     // }
     let inner_loop = HirStatement::For {
-        init: Some(Box::new(HirStatement::VariableDeclaration {
+        init: vec![HirStatement::VariableDeclaration {
             name: "j".to_string(),
             var_type: HirType::Int,
             initializer: Some(HirExpression::IntLiteral(0)),
-        })),
+        }],
         condition: HirExpression::BinaryOp {
             op: BinaryOperator::LessThan,
             left: Box::new(HirExpression::Variable("j".to_string())),
             right: Box::new(HirExpression::IntLiteral(10)),
         },
-        increment: Some(Box::new(HirStatement::Assignment {
+        increment: vec![HirStatement::Assignment {
             target: "j".to_string(),
             value: HirExpression::BinaryOp {
                 op: BinaryOperator::Add,
                 left: Box::new(HirExpression::Variable("j".to_string())),
                 right: Box::new(HirExpression::IntLiteral(1)),
             },
-        })),
+        }],
         body: vec![],
     };
 
     let outer_loop = HirStatement::For {
-        init: Some(Box::new(HirStatement::VariableDeclaration {
+        init: vec![HirStatement::VariableDeclaration {
             name: "i".to_string(),
             var_type: HirType::Int,
             initializer: Some(HirExpression::IntLiteral(0)),
-        })),
+        }],
         condition: HirExpression::BinaryOp {
             op: BinaryOperator::LessThan,
             left: Box::new(HirExpression::Variable("i".to_string())),
             right: Box::new(HirExpression::IntLiteral(10)),
         },
-        increment: Some(Box::new(HirStatement::Assignment {
+        increment: vec![HirStatement::Assignment {
             target: "i".to_string(),
             value: HirExpression::BinaryOp {
                 op: BinaryOperator::Add,
                 left: Box::new(HirExpression::Variable("i".to_string())),
                 right: Box::new(HirExpression::IntLiteral(1)),
             },
-        })),
+        }],
         body: vec![inner_loop],
     };
 
@@ -222,24 +222,24 @@ fn test_for_loop_with_break_continue() {
     //     if (i % 2 == 0) continue;
     // }
     let for_loop = HirStatement::For {
-        init: Some(Box::new(HirStatement::VariableDeclaration {
+        init: vec![HirStatement::VariableDeclaration {
             name: "i".to_string(),
             var_type: HirType::Int,
             initializer: Some(HirExpression::IntLiteral(0)),
-        })),
+        }],
         condition: HirExpression::BinaryOp {
             op: BinaryOperator::LessThan,
             left: Box::new(HirExpression::Variable("i".to_string())),
             right: Box::new(HirExpression::IntLiteral(10)),
         },
-        increment: Some(Box::new(HirStatement::Assignment {
+        increment: vec![HirStatement::Assignment {
             target: "i".to_string(),
             value: HirExpression::BinaryOp {
                 op: BinaryOperator::Add,
                 left: Box::new(HirExpression::Variable("i".to_string())),
                 right: Box::new(HirExpression::IntLiteral(1)),
             },
-        })),
+        }],
         body: vec![
             HirStatement::If {
                 condition: HirExpression::BinaryOp {

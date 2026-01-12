@@ -46,7 +46,7 @@ impl BoxTransformer {
                 // Future: Add FloatLiteral to HirExpression
                 HirExpression::IntLiteral(0)
             }
-            HirType::Char => HirExpression::IntLiteral(0),
+            HirType::Char | HirType::SignedChar => HirExpression::IntLiteral(0), // DECY-250
             HirType::Option(_) => {
                 // Option types default to None
                 HirExpression::NullLiteral

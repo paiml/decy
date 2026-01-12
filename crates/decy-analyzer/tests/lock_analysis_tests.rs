@@ -304,6 +304,384 @@ fn test_ignore_local_variables_in_locked_region() {
 }
 
 // ============================================================================
+// STATEMENT TYPE COVERAGE TESTS (DECY-COVERAGE)
+// ============================================================================
+
+#[test]
+fn test_return_with_value_in_locked_region() {
+    let func = HirFunction::new_with_body(
+        "test".to_string(),
+        HirType::Int,
+        vec![],
+        vec![
+            lock_call("lock"),
+            HirStatement::Return(Some(HirExpression::Variable("data".to_string()))),
+            unlock_call("lock"),
+        ],
+    );
+
+    let analyzer = LockAnalyzer::new();
+    let mapping = analyzer.analyze_lock_data_mapping(&func);
+
+    assert!(
+        mapping.is_protected_by("data", "lock"),
+        "Variable returned should be tracked as protected"
+    );
+}
+
+#[test]
+fn test_return_without_value_in_locked_region() {
+    let func = HirFunction::new_with_body(
+        "test".to_string(),
+        HirType::Void,
+        vec![],
+        vec![
+            lock_call("lock"),
+            HirStatement::Return(None),
+            unlock_call("lock"),
+        ],
+    );
+
+    let analyzer = LockAnalyzer::new();
+    let mapping = analyzer.analyze_lock_data_mapping(&func);
+
+    // Empty return should not add any variables
+    assert!(mapping.get_protected_data("lock").is_empty());
+}
+
+#[test]
+fn test_if_statement_in_locked_region() {
+    let func = HirFunction::new_with_body(
+        "test".to_string(),
+        HirType::Void,
+        vec![],
+        vec![
+            lock_call("lock"),
+            HirStatement::If {
+                condition: HirExpression::Variable("cond".to_string()),
+                then_block: vec![HirStatement::Assignment {
+                    target: "then_data".to_string(),
+                    value: HirExpression::IntLiteral(1),
+                }],
+                else_block: Some(vec![HirStatement::Assignment {
+                    target: "else_data".to_string(),
+                    value: HirExpression::IntLiteral(2),
+                }]),
+            },
+            unlock_call("lock"),
+        ],
+    );
+
+    let analyzer = LockAnalyzer::new();
+    let mapping = analyzer.analyze_lock_data_mapping(&func);
+
+    assert!(mapping.is_protected_by("cond", "lock"));
+    assert!(mapping.is_protected_by("then_data", "lock"));
+    assert!(mapping.is_protected_by("else_data", "lock"));
+}
+
+#[test]
+fn test_while_loop_in_locked_region() {
+    let func = HirFunction::new_with_body(
+        "test".to_string(),
+        HirType::Void,
+        vec![],
+        vec![
+            lock_call("lock"),
+            HirStatement::While {
+                condition: HirExpression::Variable("cond".to_string()),
+                body: vec![HirStatement::Assignment {
+                    target: "loop_data".to_string(),
+                    value: HirExpression::Variable("source".to_string()),
+                }],
+            },
+            unlock_call("lock"),
+        ],
+    );
+
+    let analyzer = LockAnalyzer::new();
+    let mapping = analyzer.analyze_lock_data_mapping(&func);
+
+    assert!(mapping.is_protected_by("cond", "lock"));
+    assert!(mapping.is_protected_by("loop_data", "lock"));
+    assert!(mapping.is_protected_by("source", "lock"));
+}
+
+#[test]
+fn test_deref_assignment_in_locked_region() {
+    let func = HirFunction::new_with_body(
+        "test".to_string(),
+        HirType::Void,
+        vec![],
+        vec![
+            lock_call("lock"),
+            HirStatement::DerefAssignment {
+                target: HirExpression::Variable("ptr".to_string()),
+                value: HirExpression::Variable("value".to_string()),
+            },
+            unlock_call("lock"),
+        ],
+    );
+
+    let analyzer = LockAnalyzer::new();
+    let mapping = analyzer.analyze_lock_data_mapping(&func);
+
+    assert!(mapping.is_protected_by("ptr", "lock"));
+    assert!(mapping.is_protected_by("value", "lock"));
+}
+
+#[test]
+fn test_array_index_assignment_in_locked_region() {
+    let func = HirFunction::new_with_body(
+        "test".to_string(),
+        HirType::Void,
+        vec![],
+        vec![
+            lock_call("lock"),
+            HirStatement::ArrayIndexAssignment {
+                array: Box::new(HirExpression::Variable("arr".to_string())),
+                index: Box::new(HirExpression::Variable("idx".to_string())),
+                value: HirExpression::Variable("val".to_string()),
+            },
+            unlock_call("lock"),
+        ],
+    );
+
+    let analyzer = LockAnalyzer::new();
+    let mapping = analyzer.analyze_lock_data_mapping(&func);
+
+    assert!(mapping.is_protected_by("arr", "lock"));
+    assert!(mapping.is_protected_by("idx", "lock"));
+    assert!(mapping.is_protected_by("val", "lock"));
+}
+
+#[test]
+fn test_field_assignment_in_locked_region() {
+    let func = HirFunction::new_with_body(
+        "test".to_string(),
+        HirType::Void,
+        vec![],
+        vec![
+            lock_call("lock"),
+            HirStatement::FieldAssignment {
+                object: HirExpression::Variable("obj".to_string()),
+                field: "field".to_string(),
+                value: HirExpression::Variable("new_value".to_string()),
+            },
+            unlock_call("lock"),
+        ],
+    );
+
+    let analyzer = LockAnalyzer::new();
+    let mapping = analyzer.analyze_lock_data_mapping(&func);
+
+    assert!(mapping.is_protected_by("obj", "lock"));
+    assert!(mapping.is_protected_by("new_value", "lock"));
+}
+
+#[test]
+fn test_break_continue_in_locked_region() {
+    let func = HirFunction::new_with_body(
+        "test".to_string(),
+        HirType::Void,
+        vec![],
+        vec![
+            lock_call("lock"),
+            HirStatement::Break,
+            HirStatement::Continue,
+            unlock_call("lock"),
+        ],
+    );
+
+    let analyzer = LockAnalyzer::new();
+    let mapping = analyzer.analyze_lock_data_mapping(&func);
+
+    // Break and Continue don't access variables
+    assert!(mapping.get_protected_data("lock").is_empty());
+}
+
+#[test]
+fn test_variable_declaration_without_initializer() {
+    let func = HirFunction::new_with_body(
+        "test".to_string(),
+        HirType::Void,
+        vec![],
+        vec![
+            lock_call("lock"),
+            HirStatement::VariableDeclaration {
+                name: "x".to_string(),
+                var_type: HirType::Int,
+                initializer: None,
+            },
+            unlock_call("lock"),
+        ],
+    );
+
+    let analyzer = LockAnalyzer::new();
+    let mapping = analyzer.analyze_lock_data_mapping(&func);
+
+    // No initializer means nothing to track
+    assert!(mapping.get_protected_data("lock").is_empty());
+}
+
+// ============================================================================
+// EXPRESSION TYPE COVERAGE TESTS (DECY-COVERAGE)
+// ============================================================================
+
+#[test]
+fn test_unary_op_expression_in_locked_region() {
+    use decy_hir::UnaryOperator;
+
+    let func = HirFunction::new_with_body(
+        "test".to_string(),
+        HirType::Void,
+        vec![],
+        vec![
+            lock_call("lock"),
+            HirStatement::Assignment {
+                target: "result".to_string(),
+                value: HirExpression::UnaryOp {
+                    op: UnaryOperator::Minus,
+                    operand: Box::new(HirExpression::Variable("val".to_string())),
+                },
+            },
+            unlock_call("lock"),
+        ],
+    );
+
+    let analyzer = LockAnalyzer::new();
+    let mapping = analyzer.analyze_lock_data_mapping(&func);
+
+    assert!(mapping.is_protected_by("val", "lock"));
+    assert!(mapping.is_protected_by("result", "lock"));
+}
+
+#[test]
+fn test_dereference_expression_in_locked_region() {
+    let func = HirFunction::new_with_body(
+        "test".to_string(),
+        HirType::Void,
+        vec![],
+        vec![
+            lock_call("lock"),
+            HirStatement::Assignment {
+                target: "result".to_string(),
+                value: HirExpression::Dereference(Box::new(HirExpression::Variable(
+                    "ptr".to_string(),
+                ))),
+            },
+            unlock_call("lock"),
+        ],
+    );
+
+    let analyzer = LockAnalyzer::new();
+    let mapping = analyzer.analyze_lock_data_mapping(&func);
+
+    assert!(mapping.is_protected_by("ptr", "lock"));
+}
+
+#[test]
+fn test_array_index_expression_in_locked_region() {
+    let func = HirFunction::new_with_body(
+        "test".to_string(),
+        HirType::Void,
+        vec![],
+        vec![
+            lock_call("lock"),
+            HirStatement::Assignment {
+                target: "result".to_string(),
+                value: HirExpression::ArrayIndex {
+                    array: Box::new(HirExpression::Variable("arr".to_string())),
+                    index: Box::new(HirExpression::Variable("idx".to_string())),
+                },
+            },
+            unlock_call("lock"),
+        ],
+    );
+
+    let analyzer = LockAnalyzer::new();
+    let mapping = analyzer.analyze_lock_data_mapping(&func);
+
+    assert!(mapping.is_protected_by("arr", "lock"));
+    assert!(mapping.is_protected_by("idx", "lock"));
+}
+
+#[test]
+fn test_field_access_expression_in_locked_region() {
+    let func = HirFunction::new_with_body(
+        "test".to_string(),
+        HirType::Void,
+        vec![],
+        vec![
+            lock_call("lock"),
+            HirStatement::Assignment {
+                target: "result".to_string(),
+                value: HirExpression::FieldAccess {
+                    object: Box::new(HirExpression::Variable("obj".to_string())),
+                    field: "field".to_string(),
+                },
+            },
+            unlock_call("lock"),
+        ],
+    );
+
+    let analyzer = LockAnalyzer::new();
+    let mapping = analyzer.analyze_lock_data_mapping(&func);
+
+    assert!(mapping.is_protected_by("obj", "lock"));
+}
+
+#[test]
+fn test_cast_expression_in_locked_region() {
+    let func = HirFunction::new_with_body(
+        "test".to_string(),
+        HirType::Void,
+        vec![],
+        vec![
+            lock_call("lock"),
+            HirStatement::Assignment {
+                target: "result".to_string(),
+                value: HirExpression::Cast {
+                    expr: Box::new(HirExpression::Variable("val".to_string())),
+                    target_type: HirType::Float,
+                },
+            },
+            unlock_call("lock"),
+        ],
+    );
+
+    let analyzer = LockAnalyzer::new();
+    let mapping = analyzer.analyze_lock_data_mapping(&func);
+
+    assert!(mapping.is_protected_by("val", "lock"));
+}
+
+#[test]
+fn test_literal_expressions_in_locked_region() {
+    let func = HirFunction::new_with_body(
+        "test".to_string(),
+        HirType::Void,
+        vec![],
+        vec![
+            lock_call("lock"),
+            HirStatement::Assignment {
+                target: "result".to_string(),
+                value: HirExpression::IntLiteral(42),
+            },
+            unlock_call("lock"),
+        ],
+    );
+
+    let analyzer = LockAnalyzer::new();
+    let mapping = analyzer.analyze_lock_data_mapping(&func);
+
+    // Literals don't reference variables, only the assignment target
+    let protected = mapping.get_protected_data("lock");
+    assert_eq!(protected.len(), 1);
+    assert!(protected.contains(&"result".to_string()));
+}
+
+// ============================================================================
 // INTEGRATION TEST
 // ============================================================================
 

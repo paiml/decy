@@ -207,3 +207,230 @@ fn test_database_is_not_empty() {
 
     assert!(!stdlib.is_empty(), "Prototype database should not be empty");
 }
+
+// ============================================================================
+// Additional Coverage Tests
+// ============================================================================
+
+#[test]
+fn test_std_header_ctype() {
+    assert_eq!(StdHeader::from_filename("ctype.h"), Some(StdHeader::Ctype));
+}
+
+#[test]
+fn test_std_header_math() {
+    assert_eq!(StdHeader::from_filename("math.h"), Some(StdHeader::Math));
+}
+
+#[test]
+fn test_std_header_time() {
+    assert_eq!(StdHeader::from_filename("time.h"), Some(StdHeader::Time));
+}
+
+#[test]
+fn test_std_header_errno() {
+    assert_eq!(StdHeader::from_filename("errno.h"), Some(StdHeader::Errno));
+}
+
+#[test]
+fn test_std_header_limits() {
+    assert_eq!(
+        StdHeader::from_filename("limits.h"),
+        Some(StdHeader::Limits)
+    );
+}
+
+#[test]
+fn test_std_header_float() {
+    assert_eq!(StdHeader::from_filename("float.h"), Some(StdHeader::Float));
+}
+
+#[test]
+fn test_std_header_locale() {
+    assert_eq!(
+        StdHeader::from_filename("locale.h"),
+        Some(StdHeader::Locale)
+    );
+}
+
+#[test]
+fn test_std_header_setjmp() {
+    assert_eq!(
+        StdHeader::from_filename("setjmp.h"),
+        Some(StdHeader::Setjmp)
+    );
+}
+
+#[test]
+fn test_std_header_signal() {
+    assert_eq!(
+        StdHeader::from_filename("signal.h"),
+        Some(StdHeader::Signal)
+    );
+}
+
+#[test]
+fn test_std_header_stdarg() {
+    assert_eq!(
+        StdHeader::from_filename("stdarg.h"),
+        Some(StdHeader::Stdarg)
+    );
+}
+
+#[test]
+fn test_std_header_stdbool() {
+    assert_eq!(
+        StdHeader::from_filename("stdbool.h"),
+        Some(StdHeader::Stdbool)
+    );
+}
+
+#[test]
+fn test_std_header_stddef() {
+    assert_eq!(
+        StdHeader::from_filename("stddef.h"),
+        Some(StdHeader::Stddef)
+    );
+}
+
+#[test]
+fn test_std_header_stdint() {
+    assert_eq!(
+        StdHeader::from_filename("stdint.h"),
+        Some(StdHeader::Stdint)
+    );
+}
+
+#[test]
+fn test_std_header_unistd() {
+    assert_eq!(
+        StdHeader::from_filename("unistd.h"),
+        Some(StdHeader::Unistd)
+    );
+}
+
+#[test]
+fn test_std_header_fcntl() {
+    assert_eq!(StdHeader::from_filename("fcntl.h"), Some(StdHeader::Fcntl));
+}
+
+#[test]
+fn test_std_header_dirent() {
+    assert_eq!(
+        StdHeader::from_filename("dirent.h"),
+        Some(StdHeader::Dirent)
+    );
+}
+
+#[test]
+fn test_std_header_sys_types() {
+    assert_eq!(
+        StdHeader::from_filename("sys/types.h"),
+        Some(StdHeader::SysTypes)
+    );
+}
+
+#[test]
+fn test_std_header_sys_stat() {
+    assert_eq!(
+        StdHeader::from_filename("sys/stat.h"),
+        Some(StdHeader::SysStat)
+    );
+}
+
+#[test]
+fn test_std_header_sys_mman() {
+    assert_eq!(
+        StdHeader::from_filename("sys/mman.h"),
+        Some(StdHeader::SysMman)
+    );
+}
+
+#[test]
+fn test_std_header_wchar() {
+    assert_eq!(StdHeader::from_filename("wchar.h"), Some(StdHeader::Wchar));
+}
+
+#[test]
+fn test_std_header_assert() {
+    assert_eq!(
+        StdHeader::from_filename("assert.h"),
+        Some(StdHeader::Assert)
+    );
+}
+
+#[test]
+fn test_stdlib_printf_exists() {
+    let stdlib = StdlibPrototypes::new();
+    let printf = stdlib.get_prototype("printf");
+    assert!(printf.is_some());
+}
+
+#[test]
+fn test_stdlib_scanf_exists() {
+    let stdlib = StdlibPrototypes::new();
+    let scanf = stdlib.get_prototype("scanf");
+    assert!(scanf.is_some());
+}
+
+#[test]
+fn test_stdlib_memset_exists() {
+    let stdlib = StdlibPrototypes::new();
+    let memset = stdlib.get_prototype("memset");
+    assert!(memset.is_some());
+}
+
+#[test]
+fn test_function_proto_parameters() {
+    let stdlib = StdlibPrototypes::new();
+    let memcpy = stdlib.get_prototype("memcpy");
+    assert!(memcpy.is_some());
+    let proto = memcpy.unwrap();
+    assert_eq!(proto.parameters.len(), 3); // dest, src, n
+}
+
+#[test]
+fn test_function_proto_variadic() {
+    let stdlib = StdlibPrototypes::new();
+    let sprintf = stdlib.get_prototype("sprintf");
+    assert!(sprintf.is_some());
+    let proto = sprintf.unwrap();
+    assert!(proto.is_variadic);
+}
+
+#[test]
+fn test_parameter_new() {
+    use decy_stdlib::Parameter;
+    let param = Parameter::new("test", "int");
+    assert_eq!(param.name, "test");
+    assert_eq!(param.type_str, "int");
+}
+
+#[test]
+fn test_std_header_eq() {
+    assert_eq!(StdHeader::Stdio, StdHeader::Stdio);
+    assert_ne!(StdHeader::Stdio, StdHeader::Stdlib);
+}
+
+#[test]
+fn test_std_header_hash() {
+    use std::collections::HashSet;
+    let mut set = HashSet::new();
+    set.insert(StdHeader::Stdio);
+    set.insert(StdHeader::Stdlib);
+    assert!(set.contains(&StdHeader::Stdio));
+    assert!(!set.contains(&StdHeader::Math));
+}
+
+#[test]
+fn test_std_header_clone() {
+    let header = StdHeader::Stdio;
+    let cloned = header;
+    assert_eq!(header, cloned);
+}
+
+#[test]
+fn test_std_header_debug() {
+    let debug = format!("{:?}", StdHeader::Stdio);
+    assert!(debug.contains("Stdio"));
+}

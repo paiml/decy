@@ -235,9 +235,14 @@ impl CParser {
 
             // If we have errors, fail the parse
             if severity >= CXDiagnostic_Error {
+                // DECY-237: Print diagnostic for debugging
+                let diag_str = unsafe { clang_getDiagnosticSpelling(diag) };
+                let c_str = unsafe { CStr::from_ptr(clang_getCString(diag_str)) };
+                let error_msg = c_str.to_str().unwrap_or("unknown error").to_string();
+                unsafe { clang_disposeString(diag_str) };
                 unsafe { clang_disposeDiagnostic(diag) };
                 unsafe { clang_disposeTranslationUnit(tu) };
-                anyhow::bail!("C source has syntax errors");
+                anyhow::bail!("C source has syntax errors: {}", error_msg);
             }
 
             unsafe { clang_disposeDiagnostic(diag) };
@@ -270,9 +275,174 @@ impl CParser {
     ///
     /// * `Ok(Ast)` - The parsed AST
     /// * `Err(anyhow::Error)` - If parsing fails
-    pub fn parse_file(&self, _path: &Path) -> Result<Ast> {
-        // RED phase: not yet implemented
-        Err(anyhow::anyhow!("Not implemented yet"))
+    ///
+    /// Parse C source code from a file path.
+    ///
+    /// DECY-237: This method allows includes to resolve properly by parsing
+    /// from the actual file path instead of an in-memory string.
+    pub fn parse_file(&self, path: &Path) -> Result<Ast> {
+        let source = std::fs::read_to_string(path)
+            .with_context(|| format!("Failed to read file: {}", path.display()))?;
+
+        // Convert the path to an absolute path for clang
+        let abs_path = if path.is_absolute() {
+            path.to_path_buf()
+        } else {
+            std::env::current_dir()?.join(path)
+        };
+
+        let filename =
+            CString::new(abs_path.to_string_lossy().as_bytes()).context("Invalid path")?;
+        let source_cstr = CString::new(source.as_str()).context("Invalid source")?;
+
+        let mut ast = Ast::new();
+
+        // Handle empty input
+        if source.trim().is_empty() {
+            return Ok(ast);
+        }
+
+        // SAFETY: Creating unsaved file with valid C strings
+        let unsaved_file = CXUnsavedFile {
+            Filename: filename.as_ptr(),
+            Contents: source_cstr.as_ptr(),
+            Length: source.len() as std::os::raw::c_ulong,
+        };
+
+        // Detect if source contains BARE extern "C"
+        let has_extern_c = source.contains("extern \"C\"");
+        let has_ifdef_guard =
+            source.contains("#ifdef __cplusplus") || source.contains("#if defined(__cplusplus)");
+        let needs_cpp_mode = has_extern_c && !has_ifdef_guard;
+
+        // Prepare command line arguments for C++ mode if needed
+        let cpp_flag = CString::new("-x").unwrap();
+        let cpp_lang = CString::new("c++").unwrap();
+
+        // Standard macro definitions
+        let define_eof = CString::new("-DEOF=-1").unwrap();
+        let define_null = CString::new("-DNULL=0").unwrap();
+        let define_bufsiz = CString::new("-DBUFSIZ=8192").unwrap();
+
+        // DECY-237: Add explicit defines for <limits.h> macros
+        let define_char_bit = CString::new("-DCHAR_BIT=8").unwrap();
+        let define_char_min = CString::new("-DCHAR_MIN=-128").unwrap();
+        let define_char_max = CString::new("-DCHAR_MAX=127").unwrap();
+        let define_schar_min = CString::new("-DSCHAR_MIN=-128").unwrap();
+        let define_schar_max = CString::new("-DSCHAR_MAX=127").unwrap();
+        let define_uchar_max = CString::new("-DUCHAR_MAX=255").unwrap();
+        let define_shrt_min = CString::new("-DSHRT_MIN=-32768").unwrap();
+        let define_shrt_max = CString::new("-DSHRT_MAX=32767").unwrap();
+        let define_ushrt_max = CString::new("-DUSHRT_MAX=65535").unwrap();
+        let define_int_min = CString::new("-DINT_MIN=-2147483648").unwrap();
+        let define_int_max = CString::new("-DINT_MAX=2147483647").unwrap();
+        let define_uint_max = CString::new("-DUINT_MAX=4294967295U").unwrap();
+        let define_long_min = CString::new("-DLONG_MIN=-9223372036854775808L").unwrap();
+        let define_long_max = CString::new("-DLONG_MAX=9223372036854775807L").unwrap();
+        let define_ulong_max = CString::new("-DULONG_MAX=18446744073709551615UL").unwrap();
+
+        // <stdlib.h> macros
+        let define_exit_success = CString::new("-DEXIT_SUCCESS=0").unwrap();
+        let define_exit_failure = CString::new("-DEXIT_FAILURE=1").unwrap();
+        let define_rand_max = CString::new("-DRAND_MAX=2147483647").unwrap();
+
+        // System include paths
+        let include_clang = CString::new("-I/usr/lib/llvm-14/lib/clang/14.0.0/include").unwrap();
+        let include_local = CString::new("-I/usr/local/include").unwrap();
+        let include_arch = CString::new("-I/usr/include/x86_64-linux-gnu").unwrap();
+        let include_usr = CString::new("-I/usr/include").unwrap();
+
+        // Build the args vector with all defines
+        let base_defines: Vec<*const std::os::raw::c_char> = vec![
+            define_eof.as_ptr(),
+            define_null.as_ptr(),
+            define_bufsiz.as_ptr(),
+            define_char_bit.as_ptr(),
+            define_char_min.as_ptr(),
+            define_char_max.as_ptr(),
+            define_schar_min.as_ptr(),
+            define_schar_max.as_ptr(),
+            define_uchar_max.as_ptr(),
+            define_shrt_min.as_ptr(),
+            define_shrt_max.as_ptr(),
+            define_ushrt_max.as_ptr(),
+            define_int_min.as_ptr(),
+            define_int_max.as_ptr(),
+            define_uint_max.as_ptr(),
+            define_long_min.as_ptr(),
+            define_long_max.as_ptr(),
+            define_ulong_max.as_ptr(),
+            define_exit_success.as_ptr(),
+            define_exit_failure.as_ptr(),
+            define_rand_max.as_ptr(),
+            include_clang.as_ptr(),
+            include_local.as_ptr(),
+            include_arch.as_ptr(),
+            include_usr.as_ptr(),
+        ];
+
+        let args_vec: Vec<*const std::os::raw::c_char> = if needs_cpp_mode {
+            let mut args = vec![cpp_flag.as_ptr(), cpp_lang.as_ptr()];
+            args.extend(base_defines);
+            args
+        } else {
+            base_defines
+        };
+
+        // Enable DetailedPreprocessingRecord to capture macro definitions
+        let flags = 1;
+
+        let mut tu = ptr::null_mut();
+        let result = unsafe {
+            clang_parseTranslationUnit2(
+                self.index,
+                filename.as_ptr(),
+                if args_vec.is_empty() {
+                    ptr::null()
+                } else {
+                    args_vec.as_ptr()
+                },
+                args_vec.len() as std::os::raw::c_int,
+                &unsaved_file as *const CXUnsavedFile as *mut CXUnsavedFile,
+                1,
+                flags,
+                &mut tu,
+            )
+        };
+
+        if result != CXError_Success || tu.is_null() {
+            anyhow::bail!("Failed to parse C source file: {}", path.display());
+        }
+
+        // Check for diagnostics
+        let num_diagnostics = unsafe { clang_getNumDiagnostics(tu) };
+        for i in 0..num_diagnostics {
+            let diag = unsafe { clang_getDiagnostic(tu, i) };
+            let severity = unsafe { clang_getDiagnosticSeverity(diag) };
+
+            if severity >= CXDiagnostic_Error {
+                let diag_str = unsafe { clang_getDiagnosticSpelling(diag) };
+                let c_str = unsafe { CStr::from_ptr(clang_getCString(diag_str)) };
+                let error_msg = c_str.to_str().unwrap_or("unknown error").to_string();
+                unsafe { clang_disposeString(diag_str) };
+                unsafe { clang_disposeDiagnostic(diag) };
+                unsafe { clang_disposeTranslationUnit(tu) };
+                anyhow::bail!("C source has syntax errors: {}", error_msg);
+            }
+
+            unsafe { clang_disposeDiagnostic(diag) };
+        }
+
+        // Get cursor and visit
+        let cursor = unsafe { clang_getTranslationUnitCursor(tu) };
+        let ast_ptr = &mut ast as *mut Ast;
+
+        unsafe {
+            clang_visitChildren(cursor, visit_function, ast_ptr as CXClientData);
+            clang_disposeTranslationUnit(tu);
+        }
+
+        Ok(ast)
     }
 }
 
@@ -349,6 +519,12 @@ extern "C" fn visit_function(
             }
         }
         // Local variables in functions are handled by extract_statement in function body parsing
+    } else if kind == 5 {
+        // CXCursor_EnumDecl = 5
+        // DECY-240: Extract enum declaration
+        if let Some(enum_def) = extract_enum(cursor) {
+            ast.add_enum(enum_def);
+        }
     } else if kind == CXCursor_MacroDefinition {
         // Extract macro definition (only from main file, not includes)
         let location = unsafe { clang_getCursorLocation(cursor) };
@@ -526,6 +702,66 @@ fn extract_struct(cursor: CXCursor) -> Option<Struct> {
     }
 
     Some(Struct::new(name, fields))
+}
+
+/// DECY-240: Extract enum information from a clang cursor.
+///
+/// Extracts C enum declarations, including explicit values.
+fn extract_enum(cursor: CXCursor) -> Option<Enum> {
+    // SAFETY: Getting enum name
+    let name_cxstring = unsafe { clang_getCursorSpelling(cursor) };
+    let name = unsafe {
+        let c_str = CStr::from_ptr(clang_getCString(name_cxstring));
+        let name = c_str.to_string_lossy().into_owned();
+        clang_disposeString(name_cxstring);
+        name
+    };
+
+    // Extract enum variants by visiting children
+    let mut variants: Vec<EnumVariant> = Vec::new();
+    let variants_ptr = &mut variants as *mut Vec<EnumVariant>;
+
+    // Visitor callback for enum constants
+    extern "C" fn visit_enum_constants(
+        cursor: CXCursor,
+        _parent: CXCursor,
+        client_data: CXClientData,
+    ) -> CXChildVisitResult {
+        let variants = unsafe { &mut *(client_data as *mut Vec<EnumVariant>) };
+
+        // SAFETY: Getting cursor kind
+        let kind = unsafe { clang_getCursorKind(cursor) };
+
+        // CXCursor_EnumConstantDecl = 7
+        if kind == 7 {
+            // Get variant name
+            let name_cxstring = unsafe { clang_getCursorSpelling(cursor) };
+            let variant_name = unsafe {
+                let c_str = CStr::from_ptr(clang_getCString(name_cxstring));
+                let name = c_str.to_string_lossy().into_owned();
+                clang_disposeString(name_cxstring);
+                name
+            };
+
+            // Get variant value
+            let value = unsafe { clang_getEnumConstantDeclValue(cursor) };
+
+            variants.push(EnumVariant::new(variant_name, Some(value)));
+        }
+
+        CXChildVisit_Continue
+    }
+
+    unsafe {
+        clang_visitChildren(cursor, visit_enum_constants, variants_ptr as CXClientData);
+    }
+
+    // Only return if there are variants (skip empty enums)
+    if variants.is_empty() {
+        return None;
+    }
+
+    Some(Enum::new(name, variants))
 }
 
 /// Extract macro definition from a clang cursor.
@@ -900,6 +1136,12 @@ extern "C" fn visit_statement(
 
 /// Extract a variable declaration statement.
 fn extract_var_decl(cursor: CXCursor) -> Option<Statement> {
+    // DECY-223: Check storage class - skip extern declarations without initializers
+    // These are references to globals, not new local variables
+    // CX_SC_Extern = 2
+    let storage_class = unsafe { clang_Cursor_getStorageClass(cursor) };
+    let is_extern = storage_class == 2;
+
     // Get variable name
     let name_cxstring = unsafe { clang_getCursorSpelling(cursor) };
     let name = unsafe {
@@ -912,6 +1154,41 @@ fn extract_var_decl(cursor: CXCursor) -> Option<Statement> {
     // Get variable type
     let cx_type = unsafe { clang_getCursorType(cursor) };
     let var_type = convert_type(cx_type)?;
+
+    // DECY-223: Early check for extern without initializer - check before visiting children
+    // extern int max; → skip (reference to global)
+    if is_extern {
+        // We need to check if there's an initializer - visit children first
+        let mut has_real_initializer = false;
+        extern "C" fn check_initializer(
+            cursor: CXCursor,
+            _parent: CXCursor,
+            client_data: CXClientData,
+        ) -> CXChildVisitResult {
+            let has_init = unsafe { &mut *(client_data as *mut bool) };
+            let kind = unsafe { clang_getCursorKind(cursor) };
+            // Check for expression kinds that indicate a real initializer
+            if kind == CXCursor_IntegerLiteral
+                || kind == 107 // CXCursor_FloatingLiteral
+                || kind == CXCursor_StringLiteral
+                || kind == CXCursor_CallExpr
+                || kind == CXCursor_BinaryOperator
+                || kind == CXCursor_UnaryOperator
+            {
+                *has_init = true;
+                return CXChildVisit_Break;
+            }
+            CXChildVisit_Continue
+        }
+        let init_ptr = &mut has_real_initializer as *mut bool;
+        unsafe {
+            clang_visitChildren(cursor, check_initializer, init_ptr as CXClientData);
+        }
+        // If extern without initializer, skip it
+        if !has_real_initializer {
+            return None;
+        }
+    }
 
     // Extract initializer by visiting children
     let mut initializer: Option<Expression> = None;
@@ -1147,7 +1424,7 @@ fn extract_inc_dec_stmt(cursor: CXCursor) -> Option<Statement> {
     let mut member_expr: Option<Expression> = None;
     let mut simple_var: Option<String> = None;
 
-    // Visit children to find either a MemberRefExpr or DeclRefExpr
+    // Visit children to find MemberRefExpr, ArraySubscriptExpr, or DeclRefExpr
     extern "C" fn visit_for_inc_target(
         cursor: CXCursor,
         _parent: CXCursor,
@@ -1156,7 +1433,16 @@ fn extract_inc_dec_stmt(cursor: CXCursor) -> Option<Statement> {
         let data = unsafe { &mut *(client_data as *mut (Option<Expression>, Option<String>)) };
         let kind = unsafe { clang_getCursorKind(cursor) };
 
-        // Check for member expression first (sb->length, obj.field)
+        // DECY-219: Check for array subscript expression first (arr[i]++, ndigit[c-'0']++)
+        // Must be checked before recursing, otherwise we only find the DeclRefExpr
+        if kind == CXCursor_ArraySubscriptExpr {
+            if let Some(expr) = extract_array_index(cursor) {
+                data.0 = Some(expr);
+                return CXChildVisit_Break;
+            }
+        }
+
+        // Check for member expression (sb->length, obj.field)
         if kind == CXCursor_MemberRefExpr {
             if let Some(expr) = extract_field_access(cursor) {
                 data.0 = Some(expr);
@@ -1256,6 +1542,35 @@ fn extract_inc_dec_stmt(cursor: CXCursor) -> Option<Statement> {
                 return Some(Statement::FieldAssignment {
                     object: *object,
                     field,
+                    value,
+                });
+            }
+            // DECY-219: Array subscript increment/decrement: arr[i]++ → arr[i] = arr[i] + 1
+            Expression::ArrayIndex { array, index } => {
+                // Create the increment/decrement value expression
+                let value = if delta > 0 {
+                    Expression::BinaryOp {
+                        left: Box::new(Expression::ArrayIndex {
+                            array: array.clone(),
+                            index: index.clone(),
+                        }),
+                        op: BinaryOperator::Add,
+                        right: Box::new(Expression::IntLiteral(1)),
+                    }
+                } else {
+                    Expression::BinaryOp {
+                        left: Box::new(Expression::ArrayIndex {
+                            array: array.clone(),
+                            index: index.clone(),
+                        }),
+                        op: BinaryOperator::Subtract,
+                        right: Box::new(Expression::IntLiteral(1)),
+                    }
+                };
+
+                return Some(Statement::ArrayIndexAssignment {
+                    array,
+                    index,
                     value,
                 });
             }
@@ -1575,9 +1890,10 @@ fn extract_for_stmt(cursor: CXCursor) -> Option<Statement> {
     }
 
     // Second pass: identify what each child is
-    let mut init: Option<Box<Statement>> = None;
+    // DECY-224: Use Vec to support multiple init/increment declarations
+    let mut init: Vec<Statement> = Vec::new();
     let mut condition: Option<Expression> = None;
-    let mut increment: Option<Box<Statement>> = None;
+    let mut increment: Vec<Statement> = Vec::new();
     let mut body: Vec<Statement> = Vec::new();
 
     let num_children = collector.children.len();
@@ -1612,6 +1928,50 @@ fn extract_for_stmt(cursor: CXCursor) -> Option<Statement> {
         } else {
             false
         }
+    }
+
+    // DECY-224: Helper to extract increment statements (handles comma operator)
+    fn extract_increment_stmts(cursor: CXCursor) -> Vec<Statement> {
+        let kind = unsafe { clang_getCursorKind(cursor) };
+        let mut stmts = Vec::new();
+
+        // Check for comma operator (BinaryOperator with comma)
+        if kind == CXCursor_BinaryOperator {
+            // Check if it's a comma operator by looking at the operator
+            if let Some(BinaryOperator::Comma) = extract_binary_operator(cursor) {
+                // Comma operator - recursively extract from both sides
+                let mut children: Vec<CXCursor> = Vec::new();
+                let children_ptr = &mut children as *mut Vec<CXCursor>;
+
+                extern "C" fn collect_children(
+                    cursor: CXCursor,
+                    _parent: CXCursor,
+                    client_data: CXClientData,
+                ) -> CXChildVisitResult {
+                    let children = unsafe { &mut *(client_data as *mut Vec<CXCursor>) };
+                    children.push(cursor);
+                    CXChildVisit_Continue
+                }
+
+                unsafe {
+                    clang_visitChildren(cursor, collect_children, children_ptr as CXClientData);
+                }
+
+                for child in children {
+                    stmts.extend(extract_increment_stmts(child));
+                }
+                return stmts;
+            }
+            // Assignment increment
+            if let Some(stmt) = extract_assignment_stmt(cursor) {
+                stmts.push(stmt);
+            }
+        } else if kind == CXCursor_UnaryOperator {
+            if let Some(stmt) = extract_inc_dec_stmt(cursor) {
+                stmts.push(stmt);
+            }
+        }
+        stmts
     }
 
     if num_children == 0 {
@@ -1659,14 +2019,11 @@ fn extract_for_stmt(cursor: CXCursor) -> Option<Statement> {
                 unsafe {
                     clang_visitChildren(child.cursor, visit_statement, ptr as CXClientData);
                 }
-                if let Some(stmt) = init_stmts.into_iter().next() {
-                    init = Some(Box::new(stmt));
-                }
             } else if child.kind == CXCursor_BinaryOperator {
                 if is_assignment_op(child.cursor) {
                     // Assignment - treat as init
                     if let Some(stmt) = extract_assignment_stmt(child.cursor) {
-                        init = Some(Box::new(stmt));
+                        init.push(stmt);
                     }
                 } else if is_condition_op(child.cursor) {
                     // Comparison - treat as condition
@@ -1676,9 +2033,7 @@ fn extract_for_stmt(cursor: CXCursor) -> Option<Statement> {
                     condition = extract_binary_op(child.cursor);
                 }
             } else if child.kind == CXCursor_UnaryOperator {
-                if let Some(stmt) = extract_inc_dec_stmt(child.cursor) {
-                    increment = Some(Box::new(stmt));
-                }
+                increment = extract_increment_stmts(child.cursor);
             } else {
                 // Treat as condition by default
                 condition = extract_expression_from_cursor(child.cursor);
@@ -1697,30 +2052,19 @@ fn extract_for_stmt(cursor: CXCursor) -> Option<Statement> {
             if first_is_init {
                 // child0 = init, child1 = condition (skip increment)
                 if child0.kind == CXCursor_DeclStmt {
-                    let mut init_stmts = Vec::new();
-                    let ptr = &mut init_stmts as *mut Vec<Statement>;
+                    // DECY-224: Collect ALL declarations
+                    let ptr = &mut init as *mut Vec<Statement>;
                     unsafe {
                         clang_visitChildren(child0.cursor, visit_statement, ptr as CXClientData);
                     }
-                    if let Some(stmt) = init_stmts.into_iter().next() {
-                        init = Some(Box::new(stmt));
-                    }
                 } else if let Some(stmt) = extract_assignment_stmt(child0.cursor) {
-                    init = Some(Box::new(stmt));
+                    init.push(stmt);
                 }
                 condition = extract_expression_from_cursor(child1.cursor);
             } else {
                 // child0 = condition, child1 = increment (no init)
                 condition = extract_expression_from_cursor(child0.cursor);
-                if child1.kind == CXCursor_BinaryOperator {
-                    if let Some(stmt) = extract_assignment_stmt(child1.cursor) {
-                        increment = Some(Box::new(stmt));
-                    }
-                } else if child1.kind == CXCursor_UnaryOperator {
-                    if let Some(stmt) = extract_inc_dec_stmt(child1.cursor) {
-                        increment = Some(Box::new(stmt));
-                    }
-                }
+                increment = extract_increment_stmts(child1.cursor);
             }
         }
         3 => {
@@ -1729,35 +2073,23 @@ fn extract_for_stmt(cursor: CXCursor) -> Option<Statement> {
             let child1 = &pre_body[1];
             let child2 = &pre_body[2];
 
-            // Init
+            // Init - DECY-224: Collect ALL declarations
             if child0.kind == CXCursor_DeclStmt {
-                let mut init_stmts = Vec::new();
-                let ptr = &mut init_stmts as *mut Vec<Statement>;
+                let ptr = &mut init as *mut Vec<Statement>;
                 unsafe {
                     clang_visitChildren(child0.cursor, visit_statement, ptr as CXClientData);
                 }
-                if let Some(stmt) = init_stmts.into_iter().next() {
-                    init = Some(Box::new(stmt));
-                }
             } else if child0.kind == CXCursor_BinaryOperator {
                 if let Some(stmt) = extract_assignment_stmt(child0.cursor) {
-                    init = Some(Box::new(stmt));
+                    init.push(stmt);
                 }
             }
 
             // Condition
             condition = extract_expression_from_cursor(child1.cursor);
 
-            // Increment
-            if child2.kind == CXCursor_BinaryOperator {
-                if let Some(stmt) = extract_assignment_stmt(child2.cursor) {
-                    increment = Some(Box::new(stmt));
-                }
-            } else if child2.kind == CXCursor_UnaryOperator {
-                if let Some(stmt) = extract_inc_dec_stmt(child2.cursor) {
-                    increment = Some(Box::new(stmt));
-                }
-            }
+            // Increment - DECY-224: Handle comma operators
+            increment = extract_increment_stmts(child2.cursor);
         }
         _ => {
             // More than 3 children before body - unexpected, handle gracefully
@@ -2689,6 +3021,110 @@ extern "C" fn visit_binary_operand(
     }
 }
 
+/// DECY-234: Extract binary operator by looking between child cursor locations.
+/// This is more reliable than tokenizing the full extent for macro-expanded expressions.
+#[allow(non_upper_case_globals)]
+fn extract_binary_operator_from_children(
+    cursor: CXCursor,
+    tu: CXTranslationUnit,
+) -> Option<BinaryOperator> {
+    // Collect the two child cursors
+    let mut children: Vec<CXCursor> = Vec::new();
+    let children_ptr = &mut children as *mut Vec<CXCursor>;
+
+    extern "C" fn collect_children(
+        cursor: CXCursor,
+        _parent: CXCursor,
+        client_data: CXClientData,
+    ) -> CXChildVisitResult {
+        let children = unsafe { &mut *(client_data as *mut Vec<CXCursor>) };
+        children.push(cursor);
+        CXChildVisit_Continue
+    }
+
+    unsafe {
+        clang_visitChildren(cursor, collect_children, children_ptr as CXClientData);
+    }
+
+    // Need exactly 2 children for a binary operator
+    if children.len() != 2 {
+        return None;
+    }
+
+    // Get the end location of first child and start location of second child
+    let first_extent = unsafe { clang_getCursorExtent(children[0]) };
+    let second_extent = unsafe { clang_getCursorExtent(children[1]) };
+
+    let first_end = unsafe { clang_getRangeEnd(first_extent) };
+    let second_start = unsafe { clang_getRangeStart(second_extent) };
+
+    // Create a source range between the two children
+    let operator_range = unsafe { clang_getRange(first_end, second_start) };
+
+    // Tokenize this specific range to find the operator
+    let mut tokens = ptr::null_mut();
+    let mut num_tokens = 0;
+
+    unsafe {
+        clang_tokenize(tu, operator_range, &mut tokens, &mut num_tokens);
+    }
+
+    if tokens.is_null() || num_tokens == 0 {
+        return None;
+    }
+
+    // Look for an operator token in this range
+    let mut result = None;
+    for i in 0..num_tokens {
+        unsafe {
+            let token = *tokens.add(i as usize);
+            let token_kind = clang_getTokenKind(token);
+
+            if token_kind == CXToken_Punctuation {
+                let token_cxstring = clang_getTokenSpelling(tu, token);
+                let c_str = CStr::from_ptr(clang_getCString(token_cxstring));
+                if let Ok(token_str) = c_str.to_str() {
+                    result = match token_str {
+                        "+" => Some(BinaryOperator::Add),
+                        "-" => Some(BinaryOperator::Subtract),
+                        "*" => Some(BinaryOperator::Multiply),
+                        "/" => Some(BinaryOperator::Divide),
+                        "%" => Some(BinaryOperator::Modulo),
+                        "==" => Some(BinaryOperator::Equal),
+                        "!=" => Some(BinaryOperator::NotEqual),
+                        "<" => Some(BinaryOperator::LessThan),
+                        ">" => Some(BinaryOperator::GreaterThan),
+                        "<=" => Some(BinaryOperator::LessEqual),
+                        ">=" => Some(BinaryOperator::GreaterEqual),
+                        "&&" => Some(BinaryOperator::LogicalAnd),
+                        "||" => Some(BinaryOperator::LogicalOr),
+                        "<<" => Some(BinaryOperator::LeftShift),
+                        ">>" => Some(BinaryOperator::RightShift),
+                        "&" => Some(BinaryOperator::BitwiseAnd),
+                        "|" => Some(BinaryOperator::BitwiseOr),
+                        "^" => Some(BinaryOperator::BitwiseXor),
+                        "=" => Some(BinaryOperator::Assign),
+                        "," => Some(BinaryOperator::Comma),
+                        _ => None,
+                    };
+                    if result.is_some() {
+                        clang_disposeString(token_cxstring);
+                        break;
+                    }
+                }
+                clang_disposeString(token_cxstring);
+            }
+        }
+    }
+
+    // Dispose tokens
+    unsafe {
+        clang_disposeTokens(tu, tokens, num_tokens);
+    }
+
+    result
+}
+
 /// Extract the binary operator from a cursor by tokenizing.
 #[allow(non_upper_case_globals)]
 fn extract_binary_operator(cursor: CXCursor) -> Option<BinaryOperator> {
@@ -2698,7 +3134,13 @@ fn extract_binary_operator(cursor: CXCursor) -> Option<BinaryOperator> {
         return None;
     }
 
-    // Get the extent (source range) of the cursor
+    // DECY-234: First, try to get operator by looking between child cursors
+    // This handles macro-expanded expressions better than tokenizing the full extent
+    if let Some(op) = extract_binary_operator_from_children(cursor, tu) {
+        return Some(op);
+    }
+
+    // Fallback: Get the extent (source range) of the cursor
     let extent = unsafe { clang_getCursorExtent(cursor) };
 
     // Tokenize to find the operator
@@ -2707,6 +3149,24 @@ fn extract_binary_operator(cursor: CXCursor) -> Option<BinaryOperator> {
 
     unsafe {
         clang_tokenize(tu, extent, &mut tokens, &mut num_tokens);
+    }
+
+    // DECY-234: Get the file of the cursor's expansion location to filter macro tokens
+    // For macro-expanded code, the extent spans multiple locations including macro definitions
+    // We only want operators from the expansion site, not from macro definitions
+    let cursor_loc = unsafe { clang_getCursorLocation(cursor) };
+    let mut cursor_file: CXFile = ptr::null_mut();
+    let mut _line = 0u32;
+    let mut _col = 0u32;
+    let mut _offset = 0u32;
+    unsafe {
+        clang_getExpansionLocation(
+            cursor_loc,
+            &mut cursor_file,
+            &mut _line,
+            &mut _col,
+            &mut _offset,
+        );
     }
 
     let mut operator = None;
@@ -2721,10 +3181,61 @@ fn extract_binary_operator(cursor: CXCursor) -> Option<BinaryOperator> {
     let mut found_first_operand = false;
     let mut paren_depth: i32 = 0; // Track parenthesis nesting depth
 
+    // DECY-234: Get extent line bounds to filter tokens from macro definitions
+    let extent_start = unsafe { clang_getRangeStart(extent) };
+    let extent_end = unsafe { clang_getRangeEnd(extent) };
+    let mut start_line = 0u32;
+    let mut end_line = 0u32;
+    unsafe {
+        clang_getExpansionLocation(
+            extent_start,
+            ptr::null_mut(),
+            &mut start_line,
+            ptr::null_mut(),
+            ptr::null_mut(),
+        );
+        clang_getExpansionLocation(
+            extent_end,
+            ptr::null_mut(),
+            &mut end_line,
+            ptr::null_mut(),
+            ptr::null_mut(),
+        );
+    }
+
     for i in 0..num_tokens {
         unsafe {
             let token = *tokens.add(i as usize);
             let token_kind = clang_getTokenKind(token);
+
+            // DECY-234: Skip tokens that are from macro definitions (different file)
+            let token_loc = clang_getTokenLocation(tu, token);
+            let mut token_file: CXFile = ptr::null_mut();
+            let mut token_line = 0u32;
+            clang_getExpansionLocation(
+                token_loc,
+                &mut token_file,
+                &mut token_line,
+                &mut _col,
+                &mut _offset,
+            );
+
+            // Skip tokens from different files (macro definition files)
+            if !cursor_file.is_null() && !token_file.is_null() && token_file != cursor_file {
+                continue;
+            }
+
+            // DECY-234: Skip tokens outside the extent's line range
+            // When macros are involved, clang_tokenize returns tokens from the macro
+            // definition site (e.g., line 34) even though extent is single-line (e.g., 38-38).
+            // Filter out these spurious tokens.
+            if start_line > 0
+                && end_line > 0
+                && token_line > 0
+                && (token_line < start_line || token_line > end_line)
+            {
+                continue;
+            }
 
             // Track when we've seen the first operand (identifier or literal)
             if token_kind == CXToken_Identifier || token_kind == CXToken_Literal {
@@ -2767,6 +3278,8 @@ fn extract_binary_operator(cursor: CXCursor) -> Option<BinaryOperator> {
                             "^" => Some(BinaryOperator::BitwiseXor),
                             // DECY-195: Assignment operator for embedded assignments like (c=getchar())
                             "=" => Some(BinaryOperator::Assign),
+                            // DECY-224: Comma operator for multi-expression statements (i++, j--)
+                            "," => Some(BinaryOperator::Comma),
                             _ => None,
                         };
                         if let Some(op) = op {
@@ -2781,9 +3294,39 @@ fn extract_binary_operator(cursor: CXCursor) -> Option<BinaryOperator> {
 
     // Select the operator with lowest precedence (appears last in our search)
     // This handles cases like "a > 0 && b > 0" where && should be selected over >
-    // C precedence (low to high): = > || > && > | > ^ > & > == != > < > <= >= > << >> > + - > * / %
+    // C precedence (low to high): , > = > || > && > | > ^ > & > == != > < > <= >= > << >> > + - > * / %
     if !candidates.is_empty() {
-        // DECY-195: Assignment has lowest precedence
+        // DECY-234: Filter out comma operators from candidates when other operators are present
+        // Macro expansion can introduce spurious commas in the token stream
+        // We should only use comma as operator if it's a genuine comma expression
+        let has_arithmetic = candidates.iter().any(|(_, op)| {
+            matches!(
+                op,
+                BinaryOperator::Add
+                    | BinaryOperator::Subtract
+                    | BinaryOperator::Multiply
+                    | BinaryOperator::Divide
+                    | BinaryOperator::Modulo
+            )
+        });
+        let has_comparison = candidates.iter().any(|(_, op)| {
+            matches!(
+                op,
+                BinaryOperator::LessThan
+                    | BinaryOperator::GreaterThan
+                    | BinaryOperator::LessEqual
+                    | BinaryOperator::GreaterEqual
+                    | BinaryOperator::Equal
+                    | BinaryOperator::NotEqual
+            )
+        });
+
+        // Remove comma from candidates if real operators are present
+        if has_arithmetic || has_comparison {
+            candidates.retain(|(_, op)| !matches!(op, BinaryOperator::Comma));
+        }
+
+        // DECY-195: Assignment has lowest precedence (now that spurious commas are filtered)
         for (_, op) in &candidates {
             if matches!(op, BinaryOperator::Assign) {
                 operator = Some(*op);
@@ -3048,6 +3591,13 @@ extern "C" fn visit_call_argument(
                 CXChildVisit_Recurse
             }
         }
+        117 => {
+            // CXCursor_CStyleCastExpr - DECY-243: Cast expression in argument (e.g., (int)x, (unsigned char)cp[i])
+            if let Some(expr) = extract_cast(cursor) {
+                arg_data.arguments.push(expr);
+            }
+            CXChildVisit_Continue
+        }
         _ => CXChildVisit_Continue, // Skip other unknown children
     }
 }
@@ -3077,7 +3627,15 @@ fn extract_unary_op(cursor: CXCursor) -> Option<Expression> {
     let mut is_decrement = false;
     let mut operator_position = 0;
 
-    // Look through tokens to find the unary operator
+    // DECY-255: For expressions like (*p)++, we need to find ++ as the operator
+    // The key insight is: ++ or -- at position > 0 is post-increment/decrement
+    // while * at position 0 is dereference
+    // So we scan all tokens and pick the right operator based on position
+    let mut found_star_at_zero = false;
+    let mut found_open_paren_at_zero = false;
+    let mut found_increment: Option<u32> = None;
+    let mut found_decrement: Option<u32> = None;
+
     for i in 0..num_tokens {
         unsafe {
             let token = *tokens.add(i as usize);
@@ -3088,42 +3646,25 @@ fn extract_unary_op(cursor: CXCursor) -> Option<Expression> {
                 let c_str = CStr::from_ptr(clang_getCString(token_cxstring));
                 if let Ok(token_str) = c_str.to_str() {
                     match token_str {
-                        "*" => {
-                            is_dereference = true;
-                            clang_disposeString(token_cxstring);
-                            break;
-                        }
-                        "-" => {
-                            operator = Some(UnaryOperator::Minus);
-                            clang_disposeString(token_cxstring);
-                            break;
-                        }
-                        "!" => {
-                            operator = Some(UnaryOperator::LogicalNot);
-                            clang_disposeString(token_cxstring);
-                            break;
-                        }
-                        "~" => {
-                            operator = Some(UnaryOperator::BitwiseNot);
-                            clang_disposeString(token_cxstring);
-                            break;
-                        }
-                        "&" => {
-                            operator = Some(UnaryOperator::AddressOf);
-                            clang_disposeString(token_cxstring);
-                            break;
-                        }
+                        "*" if i == 0 => found_star_at_zero = true,
+                        "(" if i == 0 => found_open_paren_at_zero = true,
                         "++" => {
-                            is_increment = true;
-                            operator_position = i;
-                            clang_disposeString(token_cxstring);
-                            break;
+                            found_increment = Some(i);
                         }
                         "--" => {
-                            is_decrement = true;
-                            operator_position = i;
-                            clang_disposeString(token_cxstring);
-                            break;
+                            found_decrement = Some(i);
+                        }
+                        "-" if i == 0 && operator.is_none() => {
+                            operator = Some(UnaryOperator::Minus);
+                        }
+                        "!" if i == 0 && operator.is_none() => {
+                            operator = Some(UnaryOperator::LogicalNot);
+                        }
+                        "~" if i == 0 && operator.is_none() => {
+                            operator = Some(UnaryOperator::BitwiseNot);
+                        }
+                        "&" if i == 0 && operator.is_none() => {
+                            operator = Some(UnaryOperator::AddressOf);
                         }
                         _ => {}
                     }
@@ -3132,6 +3673,46 @@ fn extract_unary_op(cursor: CXCursor) -> Option<Expression> {
             }
         }
     }
+
+    // DECY-255: For (*p)++, we have ( at position 0, * at position 1, and ++ at the end
+    // The ++ is the operator for THIS cursor, * is part of the operand
+    // For *p++ (without parens), the * is the operator and ++ is handled by a nested cursor
+    // CRITICAL: If we have * at position 0 (dereference), the ++ belongs to a nested expression
+    // CRITICAL: If we found a unary operator (-, !, ~, &) at position 0, do NOT override
+    // with ++/-- found at later positions - those belong to different expressions
+    let has_unary_op_at_zero = operator.is_some();
+
+    if let Some(pos) = found_increment {
+        // Only use ++ as operator if:
+        // 1. It's at position 0 (pre-increment), OR
+        // 2. We have ( at position 0 (parenthesized expression like (*p)++), OR
+        // 3. No other unary operator at position 0 and no * at position 0
+        if pos == 0 {
+            is_increment = true;
+            operator_position = pos;
+        } else if found_open_paren_at_zero {
+            // (*p)++ case - the ++ applies to the whole parenthesized expression
+            is_increment = true;
+            operator_position = pos;
+        } else if !has_unary_op_at_zero && !found_star_at_zero {
+            // No dereference and no other unary op at position 0
+            is_increment = true;
+            operator_position = pos;
+        }
+    }
+    if let Some(pos) = found_decrement {
+        // Decrement takes precedence if at position 0, after open paren, or no other unary op
+        if pos == 0 || found_open_paren_at_zero || (!has_unary_op_at_zero && !found_star_at_zero) {
+            is_decrement = true;
+            operator_position = pos;
+        }
+    }
+
+    // If no increment/decrement selected, use dereference if found at position 0
+    if !is_increment && !is_decrement && found_star_at_zero {
+        is_dereference = true;
+    }
+    // operator is already set if we found -, !, ~, or & at position 0
 
     unsafe {
         clang_disposeTokens(tu, tokens, num_tokens);
@@ -3711,7 +4292,9 @@ fn convert_type(cx_type: CXType) -> Option<Type> {
         CXType_ULongLong => Some(Type::UnsignedInt), // DECY-158: unsigned long long → u32
         CXType_Float => Some(Type::Float),
         CXType_Double => Some(Type::Double),
+        23 => Some(Type::Double), // CXType_LongDouble → f64 (Rust has no long double)
         CXType_Char_S | CXType_Char_U => Some(Type::Char),
+        14 => Some(Type::SignedChar), // CXType_SChar - explicitly signed char → i8 (DECY-250)
         CXType_Pointer => {
             // SAFETY: Getting pointee type
             let pointee = unsafe { clang_getPointeeType(cx_type) };
@@ -3859,6 +4442,11 @@ fn convert_type(cx_type: CXType) -> Option<Type> {
                 size: None,
             })
         }
+        106 => {
+            // CXType_Enum - C enums are integers
+            // DECY-240: Map enum types to i32 for Rust compatibility
+            Some(Type::Int)
+        }
         _ => None,
     }
 }
@@ -3904,12 +4492,12 @@ pub enum Statement {
     },
     /// For loop: `for (init; cond; inc) { ... }`
     For {
-        /// Optional init statement
-        init: Option<Box<Statement>>,
+        /// Init statements (can be multiple with comma: int i = 0, j = 10)
+        init: Vec<Statement>,
         /// Optional condition expression
         condition: Option<Expression>,
-        /// Optional increment statement
-        increment: Option<Box<Statement>>,
+        /// Optional increment statements (can be multiple with comma: i++, j--)
+        increment: Vec<Statement>,
         /// Loop body
         body: Vec<Statement>,
     },
@@ -4089,6 +4677,8 @@ pub enum BinaryOperator {
     BitwiseXor,
     /// Assignment (=) - used for embedded assignments like (c=getchar())
     Assign,
+    /// Comma operator (,) - DECY-224: for multi-expression statements
+    Comma,
 }
 
 /// Represents a C expression.
@@ -4301,8 +4891,10 @@ impl Typedef {
             Type::Float => "float",
             Type::Double => "double",
             Type::Char => "char",
+            Type::SignedChar => "signed char", // DECY-250
             Type::Pointer(inner) => match **inner {
                 Type::Char => "char*",
+                Type::SignedChar => "signed char*", // DECY-250
                 Type::Int => "int*",
                 Type::UnsignedInt => "unsigned int*", // DECY-158
                 Type::Float => "float*",
@@ -4553,6 +5145,38 @@ impl Variable {
     }
 }
 
+/// Represents an enum variant (constant) in C.
+#[derive(Debug, Clone, PartialEq)]
+pub struct EnumVariant {
+    /// Variant name
+    pub name: String,
+    /// Explicit value if specified
+    pub value: Option<i64>,
+}
+
+impl EnumVariant {
+    /// Create a new enum variant.
+    pub fn new(name: String, value: Option<i64>) -> Self {
+        Self { name, value }
+    }
+}
+
+/// Represents a C enum definition.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Enum {
+    /// Enum name (empty string for anonymous enums)
+    pub name: String,
+    /// Enum variants
+    pub variants: Vec<EnumVariant>,
+}
+
+impl Enum {
+    /// Create a new enum.
+    pub fn new(name: String, variants: Vec<EnumVariant>) -> Self {
+        Self { name, variants }
+    }
+}
+
 /// Abstract Syntax Tree representing parsed C code.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Ast {
@@ -4561,6 +5185,7 @@ pub struct Ast {
     structs: Vec<Struct>,
     macros: Vec<MacroDefinition>,
     variables: Vec<Variable>,
+    enums: Vec<Enum>,
 }
 
 /// Represents a C macro definition (#define).
@@ -4656,6 +5281,7 @@ impl Ast {
             structs: Vec::new(),
             macros: Vec::new(),
             variables: Vec::new(),
+            enums: Vec::new(),
         }
     }
 
@@ -4711,6 +5337,16 @@ impl Ast {
     /// Add a variable to the AST.
     pub fn add_variable(&mut self, variable: Variable) {
         self.variables.push(variable);
+    }
+
+    /// Get the enums in the AST.
+    pub fn enums(&self) -> &[Enum] {
+        &self.enums
+    }
+
+    /// Add an enum to the AST.
+    pub fn add_enum(&mut self, enum_def: Enum) {
+        self.enums.push(enum_def);
     }
 }
 
@@ -4774,8 +5410,10 @@ pub enum Type {
     Float,
     /// double
     Double,
-    /// char
+    /// char (unsigned char or plain char → u8)
     Char,
+    /// signed char → i8 (DECY-250)
+    SignedChar,
     /// Pointer to a type
     Pointer(Box<Type>),
     /// Struct type (e.g., struct Point)

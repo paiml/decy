@@ -401,6 +401,7 @@ expected_kill_rate = 0.90
             HirType::Float => "3.14".to_string(),
             HirType::Double => "2.718".to_string(),
             HirType::Char => "b'A'".to_string(),
+            HirType::SignedChar => "65i8".to_string(), // DECY-250: 'A' as i8
             HirType::Pointer(_) => "std::ptr::null_mut()".to_string(),
             HirType::Box(inner) => {
                 format!("Box::new({})", Self::default_test_value(inner))

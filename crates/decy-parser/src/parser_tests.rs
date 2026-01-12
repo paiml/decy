@@ -489,8 +489,8 @@ mod tests {
                 body,
             } => {
                 // Check init: int i = 0
-                assert!(init.is_some(), "Should have init statement");
-                match init.as_ref().unwrap().as_ref() {
+                assert!(!init.is_empty(), "Should have init statement");
+                match &init[0] {
                     Statement::VariableDeclaration {
                         name,
                         var_type,
@@ -513,7 +513,7 @@ mod tests {
                 }
 
                 // Check increment: i = i + 1
-                assert!(increment.is_some(), "Should have increment");
+                assert!(!increment.is_empty(), "Should have increment");
 
                 // Check body: s = s + i
                 assert_eq!(body.len(), 1, "Loop body should have one statement");

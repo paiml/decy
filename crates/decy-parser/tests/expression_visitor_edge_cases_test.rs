@@ -286,7 +286,7 @@ fn test_for_loop_increment_with_assignment() {
 
     if let Some(Statement::For { increment, .. }) = for_stmt {
         assert!(
-            increment.is_some(),
+            !increment.is_empty(),
             "For loop should have increment expression"
         );
     }

@@ -216,11 +216,13 @@ impl OutputParamDetector {
                 increment,
                 body,
             } => {
-                if let Some(init_stmt) = init {
+                // DECY-224: Handle multiple init statements
+                for init_stmt in init {
                     Self::analyze_statement_internal(init_stmt, reads, writes);
                 }
                 Self::analyze_expression_internal(condition, reads);
-                if let Some(inc_stmt) = increment {
+                // DECY-224: Handle multiple increment statements
+                for inc_stmt in increment {
                     Self::analyze_statement_internal(inc_stmt, reads, writes);
                 }
                 for s in body {

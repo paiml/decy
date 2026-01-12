@@ -231,11 +231,11 @@ fn test_strlen_in_loop() {
             HirType::Pointer(Box::new(HirType::Char)),
         )],
         vec![HirStatement::For {
-            init: Some(Box::new(HirStatement::VariableDeclaration {
+            init: vec![HirStatement::VariableDeclaration {
                 name: "i".to_string(),
                 var_type: HirType::Int,
                 initializer: Some(HirExpression::IntLiteral(0)),
-            })),
+            }],
             condition: HirExpression::BinaryOp {
                 op: decy_hir::BinaryOperator::LessThan,
                 left: Box::new(HirExpression::Variable("i".to_string())),
@@ -244,14 +244,14 @@ fn test_strlen_in_loop() {
                     arguments: vec![HirExpression::Variable("s".to_string())],
                 }),
             },
-            increment: Some(Box::new(HirStatement::Assignment {
+            increment: vec![HirStatement::Assignment {
                 target: "i".to_string(),
                 value: HirExpression::BinaryOp {
                     op: decy_hir::BinaryOperator::Add,
                     left: Box::new(HirExpression::Variable("i".to_string())),
                     right: Box::new(HirExpression::IntLiteral(1)),
                 },
-            })),
+            }],
             body: vec![],
         }],
     );

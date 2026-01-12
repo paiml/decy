@@ -770,24 +770,24 @@ fn test_detect_array_parameter_high_confidence() {
             HirParameter::new("len".to_string(), HirType::Int),
         ],
         vec![HirStatement::For {
-            init: Some(Box::new(HirStatement::VariableDeclaration {
+            init: vec![HirStatement::VariableDeclaration {
                 name: "i".to_string(),
                 var_type: HirType::Int,
                 initializer: Some(HirExpression::IntLiteral(0)),
-            })),
+            }],
             condition: HirExpression::BinaryOp {
                 op: decy_hir::BinaryOperator::LessThan,
                 left: Box::new(HirExpression::Variable("i".to_string())),
                 right: Box::new(HirExpression::Variable("len".to_string())),
             },
-            increment: Some(Box::new(HirStatement::Assignment {
+            increment: vec![HirStatement::Assignment {
                 target: "i".to_string(),
                 value: HirExpression::BinaryOp {
                     op: decy_hir::BinaryOperator::Add,
                     left: Box::new(HirExpression::Variable("i".to_string())),
                     right: Box::new(HirExpression::IntLiteral(1)),
                 },
-            })),
+            }],
             body: vec![HirStatement::ArrayIndexAssignment {
                 array: Box::new(HirExpression::Variable("arr".to_string())),
                 index: Box::new(HirExpression::Variable("i".to_string())),
@@ -834,4 +834,330 @@ fn test_unnamed_pointer_parameter() {
         Some(false),
         "Unnamed parameter should default to false (conservative)"
     );
+}
+
+// ============================================================================
+// COVERAGE IMPROVEMENT TESTS
+// ============================================================================
+
+#[test]
+fn test_dataflow_graph_new() {
+    let graph = DataflowGraph::new();
+    assert!(graph.variables().is_empty());
+    assert!(graph.nodes_for("anything").is_none());
+    assert!(graph.dependencies_for("anything").is_none());
+}
+
+#[test]
+fn test_has_use_after_free_false() {
+    let graph = DataflowGraph::new();
+    assert!(!graph.has_use_after_free("ptr"));
+}
+
+#[test]
+fn test_use_after_free_indices_none() {
+    let graph = DataflowGraph::new();
+    assert!(graph.use_after_free_indices("ptr").is_none());
+}
+
+#[test]
+fn test_array_base_for_none() {
+    let graph = DataflowGraph::new();
+    assert!(graph.array_base_for("ptr").is_none());
+}
+
+#[test]
+fn test_body_empty() {
+    let graph = DataflowGraph::new();
+    assert!(graph.body().is_empty());
+}
+
+#[test]
+fn test_is_modified_with_array_index_assignment() {
+    let func = HirFunction::new_with_body(
+        "test".to_string(),
+        HirType::Void,
+        vec![HirParameter::new(
+            "arr".to_string(),
+            HirType::Pointer(Box::new(HirType::Int)),
+        )],
+        vec![HirStatement::ArrayIndexAssignment {
+            array: Box::new(HirExpression::Variable("arr".to_string())),
+            index: Box::new(HirExpression::IntLiteral(0)),
+            value: HirExpression::IntLiteral(42),
+        }],
+    );
+
+    let analyzer = DataflowAnalyzer::new();
+    let graph = analyzer.analyze(&func);
+
+    assert!(graph.is_modified("arr"));
+}
+
+#[test]
+fn test_is_modified_with_deref_assignment() {
+    let func = HirFunction::new_with_body(
+        "test".to_string(),
+        HirType::Void,
+        vec![HirParameter::new(
+            "ptr".to_string(),
+            HirType::Pointer(Box::new(HirType::Int)),
+        )],
+        vec![HirStatement::DerefAssignment {
+            target: HirExpression::Variable("ptr".to_string()),
+            value: HirExpression::IntLiteral(42),
+        }],
+    );
+
+    let analyzer = DataflowAnalyzer::new();
+    let graph = analyzer.analyze(&func);
+
+    assert!(graph.is_modified("ptr"));
+}
+
+#[test]
+fn test_is_modified_in_if_block() {
+    let func = HirFunction::new_with_body(
+        "test".to_string(),
+        HirType::Void,
+        vec![HirParameter::new(
+            "arr".to_string(),
+            HirType::Pointer(Box::new(HirType::Int)),
+        )],
+        vec![HirStatement::If {
+            condition: HirExpression::IntLiteral(1),
+            then_block: vec![HirStatement::ArrayIndexAssignment {
+                array: Box::new(HirExpression::Variable("arr".to_string())),
+                index: Box::new(HirExpression::IntLiteral(0)),
+                value: HirExpression::IntLiteral(1),
+            }],
+            else_block: None,
+        }],
+    );
+
+    let analyzer = DataflowAnalyzer::new();
+    let graph = analyzer.analyze(&func);
+
+    assert!(graph.is_modified("arr"));
+}
+
+#[test]
+fn test_is_modified_in_else_block() {
+    let func = HirFunction::new_with_body(
+        "test".to_string(),
+        HirType::Void,
+        vec![HirParameter::new(
+            "arr".to_string(),
+            HirType::Pointer(Box::new(HirType::Int)),
+        )],
+        vec![HirStatement::If {
+            condition: HirExpression::IntLiteral(0),
+            then_block: vec![],
+            else_block: Some(vec![HirStatement::ArrayIndexAssignment {
+                array: Box::new(HirExpression::Variable("arr".to_string())),
+                index: Box::new(HirExpression::IntLiteral(0)),
+                value: HirExpression::IntLiteral(1),
+            }]),
+        }],
+    );
+
+    let analyzer = DataflowAnalyzer::new();
+    let graph = analyzer.analyze(&func);
+
+    assert!(graph.is_modified("arr"));
+}
+
+#[test]
+fn test_is_modified_in_while_loop() {
+    let func = HirFunction::new_with_body(
+        "test".to_string(),
+        HirType::Void,
+        vec![HirParameter::new(
+            "arr".to_string(),
+            HirType::Pointer(Box::new(HirType::Int)),
+        )],
+        vec![HirStatement::While {
+            condition: HirExpression::IntLiteral(1),
+            body: vec![HirStatement::ArrayIndexAssignment {
+                array: Box::new(HirExpression::Variable("arr".to_string())),
+                index: Box::new(HirExpression::IntLiteral(0)),
+                value: HirExpression::IntLiteral(1),
+            }],
+        }],
+    );
+
+    let analyzer = DataflowAnalyzer::new();
+    let graph = analyzer.analyze(&func);
+
+    assert!(graph.is_modified("arr"));
+}
+
+#[test]
+fn test_is_modified_in_for_loop() {
+    let func = HirFunction::new_with_body(
+        "test".to_string(),
+        HirType::Void,
+        vec![HirParameter::new(
+            "arr".to_string(),
+            HirType::Pointer(Box::new(HirType::Int)),
+        )],
+        vec![HirStatement::For {
+            init: vec![],
+            condition: HirExpression::IntLiteral(1),
+            increment: vec![],
+            body: vec![HirStatement::ArrayIndexAssignment {
+                array: Box::new(HirExpression::Variable("arr".to_string())),
+                index: Box::new(HirExpression::IntLiteral(0)),
+                value: HirExpression::IntLiteral(1),
+            }],
+        }],
+    );
+
+    let analyzer = DataflowAnalyzer::new();
+    let graph = analyzer.analyze(&func);
+
+    assert!(graph.is_modified("arr"));
+}
+
+#[test]
+fn test_is_modified_false() {
+    let func = HirFunction::new_with_body(
+        "test".to_string(),
+        HirType::Void,
+        vec![HirParameter::new(
+            "arr".to_string(),
+            HirType::Pointer(Box::new(HirType::Int)),
+        )],
+        vec![HirStatement::Return(Some(HirExpression::IntLiteral(0)))],
+    );
+
+    let analyzer = DataflowAnalyzer::new();
+    let graph = analyzer.analyze(&func);
+
+    assert!(!graph.is_modified("arr"));
+}
+
+#[test]
+fn test_get_array_parameters_with_length() {
+    let func = HirFunction::new_with_body(
+        "test".to_string(),
+        HirType::Void,
+        vec![
+            HirParameter::new("arr".to_string(), HirType::Pointer(Box::new(HirType::Int))),
+            HirParameter::new("len".to_string(), HirType::Int),
+        ],
+        vec![HirStatement::ArrayIndexAssignment {
+            array: Box::new(HirExpression::Variable("arr".to_string())),
+            index: Box::new(HirExpression::Variable("i".to_string())),
+            value: HirExpression::IntLiteral(1),
+        }],
+    );
+
+    let analyzer = DataflowAnalyzer::new();
+    let graph = analyzer.analyze(&func);
+
+    let array_params = graph.get_array_parameters();
+    assert!(!array_params.is_empty());
+    let (name, len) = &array_params[0];
+    assert_eq!(name, "arr");
+    assert_eq!(len.as_deref(), Some("len"));
+}
+
+#[test]
+fn test_is_array_parameter_struct_pointer() {
+    // Struct pointers should not be detected as arrays
+    let func = HirFunction::new_with_body(
+        "test".to_string(),
+        HirType::Void,
+        vec![
+            HirParameter::new(
+                "ptr".to_string(),
+                HirType::Pointer(Box::new(HirType::Struct("MyStruct".to_string()))),
+            ),
+            HirParameter::new("len".to_string(), HirType::Int),
+        ],
+        vec![],
+    );
+
+    let analyzer = DataflowAnalyzer::new();
+    let graph = analyzer.analyze(&func);
+
+    assert_eq!(graph.is_array_parameter("ptr"), Some(false));
+}
+
+#[test]
+fn test_is_array_parameter_non_pointer() {
+    let func = HirFunction::new_with_body(
+        "test".to_string(),
+        HirType::Void,
+        vec![HirParameter::new("x".to_string(), HirType::Int)],
+        vec![],
+    );
+
+    let analyzer = DataflowAnalyzer::new();
+    let graph = analyzer.analyze(&func);
+
+    assert_eq!(graph.is_array_parameter("x"), Some(false));
+}
+
+#[test]
+fn test_is_array_parameter_not_found() {
+    let func = HirFunction::new_with_body("test".to_string(), HirType::Void, vec![], vec![]);
+
+    let analyzer = DataflowAnalyzer::new();
+    let graph = analyzer.analyze(&func);
+
+    assert_eq!(graph.is_array_parameter("unknown"), None);
+}
+
+#[test]
+fn test_node_kind_debug() {
+    let kind = NodeKind::Allocation;
+    let debug = format!("{:?}", kind);
+    assert!(debug.contains("Allocation"));
+}
+
+#[test]
+fn test_node_kind_assignment() {
+    let kind = NodeKind::Assignment {
+        source: "other".to_string(),
+    };
+    let debug = format!("{:?}", kind);
+    assert!(debug.contains("other"));
+}
+
+#[test]
+fn test_node_kind_array_allocation() {
+    let kind = NodeKind::ArrayAllocation {
+        size: Some(10),
+        element_type: HirType::Int,
+    };
+    let debug = format!("{:?}", kind);
+    assert!(debug.contains("ArrayAllocation"));
+}
+
+#[test]
+fn test_pointer_node_clone_eq() {
+    let node = PointerNode {
+        name: "ptr".to_string(),
+        def_index: 0,
+        kind: NodeKind::Allocation,
+    };
+    let cloned = node.clone();
+    assert_eq!(node, cloned);
+}
+
+#[test]
+fn test_dataflow_graph_clone() {
+    let graph = DataflowGraph::new();
+    let cloned = graph.clone();
+    assert_eq!(graph, cloned);
+}
+
+#[test]
+fn test_dataflow_analyzer_default() {
+    let analyzer = DataflowAnalyzer::new();
+    let func = HirFunction::new_with_body("empty".to_string(), HirType::Void, vec![], vec![]);
+    let graph = analyzer.analyze(&func);
+    assert!(graph.variables().is_empty());
 }

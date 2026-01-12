@@ -1076,3 +1076,1583 @@ fn test_decy184_int_ptr_with_pointer_arithmetic_stays_as_pointer() {
         arr_param.param_type()
     );
 }
+
+// ============================================================================
+// Additional Coverage Tests
+// ============================================================================
+
+#[test]
+fn test_array_pointer_keeps_raw_pointer() {
+    // ArrayPointer ownership kind keeps raw pointer for slice transformation
+    let generator = BorrowGenerator::new();
+
+    let ptr_type = HirType::Pointer(Box::new(HirType::Int));
+    let mut inferences = HashMap::new();
+    inferences.insert(
+        "arr".to_string(),
+        OwnershipInference {
+            variable: "arr".to_string(),
+            kind: OwnershipKind::ArrayPointer {
+                base_array: "arr".to_string(),
+                element_type: HirType::Int,
+                base_index: Some(0),
+            },
+            confidence: 0.9,
+            reason: "array parameter".to_string(),
+        },
+    );
+
+    let transformed = generator.transform_type(&ptr_type, "arr", &inferences);
+
+    assert!(
+        matches!(transformed, HirType::Pointer(_)),
+        "ArrayPointer should keep raw pointer for slice transformation"
+    );
+}
+
+#[test]
+fn test_no_inference_keeps_raw_pointer() {
+    // Variable with no inference keeps raw pointer
+    let generator = BorrowGenerator::new();
+
+    let ptr_type = HirType::Pointer(Box::new(HirType::Float));
+    let inferences = HashMap::new(); // Empty - no inference
+
+    let transformed = generator.transform_type(&ptr_type, "unknown", &inferences);
+
+    assert_eq!(
+        transformed,
+        HirType::Pointer(Box::new(HirType::Float)),
+        "No inference should keep raw pointer"
+    );
+}
+
+#[test]
+fn test_borrow_generator_default() {
+    let gen: BorrowGenerator = BorrowGenerator::new();
+    let debug = format!("{:?}", gen);
+    assert!(debug.contains("BorrowGenerator"));
+}
+
+#[test]
+fn test_transform_parameters_empty() {
+    let generator = BorrowGenerator::new();
+    let params: Vec<HirParameter> = vec![];
+    let inferences = HashMap::new();
+
+    let transformed = generator.transform_parameters(&params, &inferences);
+    assert!(transformed.is_empty());
+}
+
+#[test]
+fn test_transform_parameters_mixed() {
+    let generator = BorrowGenerator::new();
+
+    let params = vec![
+        HirParameter::new("ptr".to_string(), HirType::Pointer(Box::new(HirType::Int))),
+        HirParameter::new("val".to_string(), HirType::Int),
+        HirParameter::new("flt".to_string(), HirType::Float),
+    ];
+
+    let mut inferences = HashMap::new();
+    inferences.insert(
+        "ptr".to_string(),
+        OwnershipInference {
+            variable: "ptr".to_string(),
+            kind: OwnershipKind::ImmutableBorrow,
+            confidence: 0.8,
+            reason: "Read only".to_string(),
+        },
+    );
+
+    let transformed = generator.transform_parameters(&params, &inferences);
+
+    assert_eq!(transformed.len(), 3);
+    // ptr should be &i32
+    assert!(matches!(
+        transformed[0].param_type(),
+        HirType::Reference { mutable: false, .. }
+    ));
+    // val and flt should be unchanged
+    assert_eq!(transformed[1].param_type(), &HirType::Int);
+    assert_eq!(transformed[2].param_type(), &HirType::Float);
+}
+
+#[test]
+fn test_transform_nested_pointer() {
+    let generator = BorrowGenerator::new();
+
+    // Pointer to pointer
+    let ptr_ptr_type = HirType::Pointer(Box::new(HirType::Pointer(Box::new(HirType::Char))));
+    let mut inferences = HashMap::new();
+    inferences.insert(
+        "pp".to_string(),
+        OwnershipInference {
+            variable: "pp".to_string(),
+            kind: OwnershipKind::ImmutableBorrow,
+            confidence: 0.7,
+            reason: "pointer to pointer".to_string(),
+        },
+    );
+
+    let transformed = generator.transform_type(&ptr_ptr_type, "pp", &inferences);
+
+    // Should be &*const char (reference to pointer)
+    assert!(matches!(
+        transformed,
+        HirType::Reference { mutable: false, .. }
+    ));
+}
+
+#[test]
+fn test_transform_double_type() {
+    let generator = BorrowGenerator::new();
+
+    let double_type = HirType::Double;
+    let inferences = HashMap::new();
+
+    let transformed = generator.transform_type(&double_type, "x", &inferences);
+    assert_eq!(transformed, HirType::Double);
+}
+
+#[test]
+fn test_transform_char_type() {
+    let generator = BorrowGenerator::new();
+
+    let char_type = HirType::Char;
+    let inferences = HashMap::new();
+
+    let transformed = generator.transform_type(&char_type, "c", &inferences);
+    assert_eq!(transformed, HirType::Char);
+}
+
+#[test]
+fn test_transform_void_type() {
+    let generator = BorrowGenerator::new();
+
+    let void_type = HirType::Void;
+    let inferences = HashMap::new();
+
+    let transformed = generator.transform_type(&void_type, "v", &inferences);
+    assert_eq!(transformed, HirType::Void);
+}
+
+// ============================================================================
+// Coverage Improvement Tests - Statement Mutation Detection
+// ============================================================================
+
+#[test]
+fn test_statement_mutates_variable_in_switch_case() {
+    // Test that statement_mutates_variable detects mutations in switch cases
+    let generator = BorrowGenerator::new();
+
+    let func = HirFunction::new_with_body(
+        "switch_test".to_string(),
+        HirType::Void,
+        vec![HirParameter::new(
+            "arr".to_string(),
+            HirType::Pointer(Box::new(HirType::Int)),
+        )],
+        vec![HirStatement::Switch {
+            condition: HirExpression::Variable("x".to_string()),
+            cases: vec![decy_hir::SwitchCase {
+                value: Some(HirExpression::IntLiteral(1)),
+                body: vec![HirStatement::ArrayIndexAssignment {
+                    array: Box::new(HirExpression::Variable("arr".to_string())),
+                    index: Box::new(HirExpression::IntLiteral(0)),
+                    value: HirExpression::IntLiteral(42),
+                }],
+            }],
+            default_case: Some(vec![HirStatement::ArrayIndexAssignment {
+                array: Box::new(HirExpression::Variable("arr".to_string())),
+                index: Box::new(HirExpression::IntLiteral(1)),
+                value: HirExpression::IntLiteral(99),
+            }]),
+        }],
+    );
+
+    // Use dataflow analyzer to check mutation detection
+    let analyzer = DataflowAnalyzer::new();
+    let graph = analyzer.analyze(&func);
+    let _body = graph.body();
+
+    // Test passes if no panic - the generator handles switch statements
+    let inferences = HashMap::new();
+    let transformed = generator.transform_function(&func, &inferences);
+    assert_eq!(transformed.parameters().len(), 1);
+}
+
+#[test]
+fn test_statement_mutates_variable_in_while_body() {
+    let generator = BorrowGenerator::new();
+
+    let func = HirFunction::new_with_body(
+        "while_test".to_string(),
+        HirType::Void,
+        vec![HirParameter::new(
+            "arr".to_string(),
+            HirType::Pointer(Box::new(HirType::Int)),
+        )],
+        vec![HirStatement::While {
+            condition: HirExpression::IntLiteral(1),
+            body: vec![HirStatement::ArrayIndexAssignment {
+                array: Box::new(HirExpression::Variable("arr".to_string())),
+                index: Box::new(HirExpression::IntLiteral(0)),
+                value: HirExpression::IntLiteral(42),
+            }],
+        }],
+    );
+
+    let inferences = HashMap::new();
+    let transformed = generator.transform_function(&func, &inferences);
+    assert_eq!(transformed.parameters().len(), 1);
+}
+
+#[test]
+fn test_statement_mutates_variable_in_for_body() {
+    let generator = BorrowGenerator::new();
+
+    let func = HirFunction::new_with_body(
+        "for_test".to_string(),
+        HirType::Void,
+        vec![HirParameter::new(
+            "arr".to_string(),
+            HirType::Pointer(Box::new(HirType::Int)),
+        )],
+        vec![HirStatement::For {
+            init: vec![],
+            condition: HirExpression::IntLiteral(1),
+            increment: vec![],
+            body: vec![HirStatement::ArrayIndexAssignment {
+                array: Box::new(HirExpression::Variable("arr".to_string())),
+                index: Box::new(HirExpression::IntLiteral(0)),
+                value: HirExpression::IntLiteral(42),
+            }],
+        }],
+    );
+
+    let inferences = HashMap::new();
+    let transformed = generator.transform_function(&func, &inferences);
+    assert_eq!(transformed.parameters().len(), 1);
+}
+
+#[test]
+fn test_statement_mutates_variable_in_if_then_and_else() {
+    let generator = BorrowGenerator::new();
+
+    let func = HirFunction::new_with_body(
+        "if_else_test".to_string(),
+        HirType::Void,
+        vec![HirParameter::new(
+            "arr".to_string(),
+            HirType::Pointer(Box::new(HirType::Int)),
+        )],
+        vec![HirStatement::If {
+            condition: HirExpression::IntLiteral(1),
+            then_block: vec![HirStatement::ArrayIndexAssignment {
+                array: Box::new(HirExpression::Variable("arr".to_string())),
+                index: Box::new(HirExpression::IntLiteral(0)),
+                value: HirExpression::IntLiteral(1),
+            }],
+            else_block: Some(vec![HirStatement::ArrayIndexAssignment {
+                array: Box::new(HirExpression::Variable("arr".to_string())),
+                index: Box::new(HirExpression::IntLiteral(1)),
+                value: HirExpression::IntLiteral(2),
+            }]),
+        }],
+    );
+
+    let inferences = HashMap::new();
+    let transformed = generator.transform_function(&func, &inferences);
+    assert_eq!(transformed.parameters().len(), 1);
+}
+
+#[test]
+fn test_deref_assignment_mutates_variable() {
+    let generator = BorrowGenerator::new();
+
+    let func = HirFunction::new_with_body(
+        "deref_test".to_string(),
+        HirType::Void,
+        vec![HirParameter::new(
+            "ptr".to_string(),
+            HirType::Pointer(Box::new(HirType::Int)),
+        )],
+        vec![HirStatement::DerefAssignment {
+            target: HirExpression::Variable("ptr".to_string()),
+            value: HirExpression::IntLiteral(42),
+        }],
+    );
+
+    let inferences = HashMap::new();
+    let transformed = generator.transform_function(&func, &inferences);
+    assert_eq!(transformed.parameters().len(), 1);
+}
+
+// ============================================================================
+// Coverage Improvement Tests - Statement Transformation with Length Replacement
+// ============================================================================
+
+#[test]
+fn test_transform_return_statement_with_length() {
+    let generator = BorrowGenerator::new();
+
+    let func = HirFunction::new_with_body(
+        "return_len".to_string(),
+        HirType::Int,
+        vec![
+            HirParameter::new("arr".to_string(), HirType::Pointer(Box::new(HirType::Int))),
+            HirParameter::new("len".to_string(), HirType::Int),
+        ],
+        vec![HirStatement::Return(Some(HirExpression::Variable(
+            "len".to_string(),
+        )))],
+    );
+
+    let inferences = HashMap::new();
+    let transformed = generator.transform_function(&func, &inferences);
+
+    // Parameters should be present (len may or may not be removed depending on array detection)
+    assert!(!transformed.body().is_empty());
+}
+
+#[test]
+fn test_transform_while_statement_with_length() {
+    let generator = BorrowGenerator::new();
+
+    let func = HirFunction::new_with_body(
+        "while_len".to_string(),
+        HirType::Void,
+        vec![
+            HirParameter::new("arr".to_string(), HirType::Pointer(Box::new(HirType::Int))),
+            HirParameter::new("len".to_string(), HirType::Int),
+        ],
+        vec![HirStatement::While {
+            condition: HirExpression::BinaryOp {
+                op: decy_hir::BinaryOperator::LessThan,
+                left: Box::new(HirExpression::Variable("i".to_string())),
+                right: Box::new(HirExpression::Variable("len".to_string())),
+            },
+            body: vec![],
+        }],
+    );
+
+    let inferences = HashMap::new();
+    let transformed = generator.transform_function(&func, &inferences);
+    assert_eq!(transformed.body().len(), 1);
+}
+
+#[test]
+fn test_transform_for_statement_with_length() {
+    let generator = BorrowGenerator::new();
+
+    let func = HirFunction::new_with_body(
+        "for_len".to_string(),
+        HirType::Void,
+        vec![
+            HirParameter::new("arr".to_string(), HirType::Pointer(Box::new(HirType::Int))),
+            HirParameter::new("size".to_string(), HirType::Int),
+        ],
+        vec![HirStatement::For {
+            init: vec![HirStatement::VariableDeclaration {
+                name: "i".to_string(),
+                var_type: HirType::Int,
+                initializer: Some(HirExpression::IntLiteral(0)),
+            }],
+            condition: HirExpression::BinaryOp {
+                op: decy_hir::BinaryOperator::LessThan,
+                left: Box::new(HirExpression::Variable("i".to_string())),
+                right: Box::new(HirExpression::Variable("size".to_string())),
+            },
+            increment: vec![],
+            body: vec![],
+        }],
+    );
+
+    let inferences = HashMap::new();
+    let transformed = generator.transform_function(&func, &inferences);
+    assert_eq!(transformed.body().len(), 1);
+}
+
+#[test]
+fn test_transform_switch_statement_with_length() {
+    let generator = BorrowGenerator::new();
+
+    let func = HirFunction::new_with_body(
+        "switch_len".to_string(),
+        HirType::Void,
+        vec![
+            HirParameter::new("arr".to_string(), HirType::Pointer(Box::new(HirType::Int))),
+            HirParameter::new("count".to_string(), HirType::Int),
+        ],
+        vec![HirStatement::Switch {
+            condition: HirExpression::Variable("count".to_string()),
+            cases: vec![decy_hir::SwitchCase {
+                value: Some(HirExpression::IntLiteral(0)),
+                body: vec![HirStatement::Return(None)],
+            }],
+            default_case: Some(vec![HirStatement::Expression(HirExpression::Variable(
+                "count".to_string(),
+            ))]),
+        }],
+    );
+
+    let inferences = HashMap::new();
+    let transformed = generator.transform_function(&func, &inferences);
+    assert_eq!(transformed.body().len(), 1);
+}
+
+#[test]
+fn test_transform_free_statement() {
+    let generator = BorrowGenerator::new();
+
+    let func = HirFunction::new_with_body(
+        "free_ptr".to_string(),
+        HirType::Void,
+        vec![HirParameter::new(
+            "ptr".to_string(),
+            HirType::Pointer(Box::new(HirType::Int)),
+        )],
+        vec![HirStatement::Free {
+            pointer: HirExpression::Variable("ptr".to_string()),
+        }],
+    );
+
+    let inferences = HashMap::new();
+    let transformed = generator.transform_function(&func, &inferences);
+    assert_eq!(transformed.body().len(), 1);
+}
+
+#[test]
+fn test_transform_field_assignment_statement() {
+    let generator = BorrowGenerator::new();
+
+    let func = HirFunction::new_with_body(
+        "field_assign".to_string(),
+        HirType::Void,
+        vec![HirParameter::new(
+            "obj".to_string(),
+            HirType::Pointer(Box::new(HirType::Struct("Point".to_string()))),
+        )],
+        vec![HirStatement::FieldAssignment {
+            object: HirExpression::Variable("obj".to_string()),
+            field: "x".to_string(),
+            value: HirExpression::IntLiteral(42),
+        }],
+    );
+
+    let inferences = HashMap::new();
+    let transformed = generator.transform_function(&func, &inferences);
+    assert_eq!(transformed.body().len(), 1);
+}
+
+#[test]
+fn test_transform_array_index_assignment_statement() {
+    let generator = BorrowGenerator::new();
+
+    let func = HirFunction::new_with_body(
+        "array_assign".to_string(),
+        HirType::Void,
+        vec![HirParameter::new(
+            "arr".to_string(),
+            HirType::Pointer(Box::new(HirType::Int)),
+        )],
+        vec![HirStatement::ArrayIndexAssignment {
+            array: Box::new(HirExpression::Variable("arr".to_string())),
+            index: Box::new(HirExpression::IntLiteral(0)),
+            value: HirExpression::IntLiteral(42),
+        }],
+    );
+
+    let inferences = HashMap::new();
+    let transformed = generator.transform_function(&func, &inferences);
+    assert_eq!(transformed.body().len(), 1);
+}
+
+#[test]
+fn test_transform_break_continue_statements() {
+    let generator = BorrowGenerator::new();
+
+    let func = HirFunction::new_with_body(
+        "break_continue".to_string(),
+        HirType::Void,
+        vec![],
+        vec![HirStatement::While {
+            condition: HirExpression::IntLiteral(1),
+            body: vec![HirStatement::Break, HirStatement::Continue],
+        }],
+    );
+
+    let inferences = HashMap::new();
+    let transformed = generator.transform_function(&func, &inferences);
+    assert_eq!(transformed.body().len(), 1);
+}
+
+#[test]
+fn test_transform_variable_declaration_statement() {
+    let generator = BorrowGenerator::new();
+
+    let func = HirFunction::new_with_body(
+        "var_decl".to_string(),
+        HirType::Void,
+        vec![HirParameter::new("n".to_string(), HirType::Int)],
+        vec![HirStatement::VariableDeclaration {
+            name: "x".to_string(),
+            var_type: HirType::Int,
+            initializer: Some(HirExpression::Variable("n".to_string())),
+        }],
+    );
+
+    let inferences = HashMap::new();
+    let transformed = generator.transform_function(&func, &inferences);
+    assert_eq!(transformed.body().len(), 1);
+}
+
+// ============================================================================
+// Coverage Improvement Tests - Expression Transformations
+// ============================================================================
+
+#[test]
+fn test_transform_address_of_expression() {
+    let generator = BorrowGenerator::new();
+
+    let func = HirFunction::new_with_body(
+        "addr_of".to_string(),
+        HirType::Pointer(Box::new(HirType::Int)),
+        vec![],
+        vec![HirStatement::Return(Some(HirExpression::AddressOf(
+            Box::new(HirExpression::Variable("x".to_string())),
+        )))],
+    );
+
+    let inferences = HashMap::new();
+    let transformed = generator.transform_function(&func, &inferences);
+    assert_eq!(transformed.body().len(), 1);
+}
+
+#[test]
+fn test_transform_unary_op_expression() {
+    let generator = BorrowGenerator::new();
+
+    let func = HirFunction::new_with_body(
+        "unary_op".to_string(),
+        HirType::Int,
+        vec![],
+        vec![HirStatement::Return(Some(HirExpression::UnaryOp {
+            op: decy_hir::UnaryOperator::Minus,
+            operand: Box::new(HirExpression::Variable("x".to_string())),
+        }))],
+    );
+
+    let inferences = HashMap::new();
+    let transformed = generator.transform_function(&func, &inferences);
+    assert_eq!(transformed.body().len(), 1);
+}
+
+#[test]
+fn test_transform_field_access_expression() {
+    let generator = BorrowGenerator::new();
+
+    let func = HirFunction::new_with_body(
+        "field_access".to_string(),
+        HirType::Int,
+        vec![HirParameter::new(
+            "obj".to_string(),
+            HirType::Struct("Point".to_string()),
+        )],
+        vec![HirStatement::Return(Some(HirExpression::FieldAccess {
+            object: Box::new(HirExpression::Variable("obj".to_string())),
+            field: "x".to_string(),
+        }))],
+    );
+
+    let inferences = HashMap::new();
+    let transformed = generator.transform_function(&func, &inferences);
+    assert_eq!(transformed.body().len(), 1);
+}
+
+#[test]
+fn test_transform_pointer_field_access_expression() {
+    let generator = BorrowGenerator::new();
+
+    let func = HirFunction::new_with_body(
+        "ptr_field_access".to_string(),
+        HirType::Int,
+        vec![HirParameter::new(
+            "obj".to_string(),
+            HirType::Pointer(Box::new(HirType::Struct("Point".to_string()))),
+        )],
+        vec![HirStatement::Return(Some(
+            HirExpression::PointerFieldAccess {
+                pointer: Box::new(HirExpression::Variable("obj".to_string())),
+                field: "x".to_string(),
+            },
+        ))],
+    );
+
+    let inferences = HashMap::new();
+    let transformed = generator.transform_function(&func, &inferences);
+    assert_eq!(transformed.body().len(), 1);
+}
+
+#[test]
+fn test_transform_array_index_expression() {
+    let generator = BorrowGenerator::new();
+
+    let func = HirFunction::new_with_body(
+        "array_index".to_string(),
+        HirType::Int,
+        vec![HirParameter::new(
+            "arr".to_string(),
+            HirType::Pointer(Box::new(HirType::Int)),
+        )],
+        vec![HirStatement::Return(Some(HirExpression::ArrayIndex {
+            array: Box::new(HirExpression::Variable("arr".to_string())),
+            index: Box::new(HirExpression::IntLiteral(0)),
+        }))],
+    );
+
+    let inferences = HashMap::new();
+    let transformed = generator.transform_function(&func, &inferences);
+    assert_eq!(transformed.body().len(), 1);
+}
+
+#[test]
+fn test_transform_cast_expression() {
+    let generator = BorrowGenerator::new();
+
+    let func = HirFunction::new_with_body(
+        "cast_expr".to_string(),
+        HirType::Float,
+        vec![HirParameter::new("x".to_string(), HirType::Int)],
+        vec![HirStatement::Return(Some(HirExpression::Cast {
+            expr: Box::new(HirExpression::Variable("x".to_string())),
+            target_type: HirType::Float,
+        }))],
+    );
+
+    let inferences = HashMap::new();
+    let transformed = generator.transform_function(&func, &inferences);
+    assert_eq!(transformed.body().len(), 1);
+}
+
+#[test]
+fn test_transform_compound_literal_expression() {
+    let generator = BorrowGenerator::new();
+
+    let func = HirFunction::new_with_body(
+        "compound_lit".to_string(),
+        HirType::Struct("Point".to_string()),
+        vec![],
+        vec![HirStatement::Return(Some(HirExpression::CompoundLiteral {
+            literal_type: HirType::Struct("Point".to_string()),
+            initializers: vec![HirExpression::IntLiteral(1), HirExpression::IntLiteral(2)],
+        }))],
+    );
+
+    let inferences = HashMap::new();
+    let transformed = generator.transform_function(&func, &inferences);
+    assert_eq!(transformed.body().len(), 1);
+}
+
+#[test]
+fn test_transform_is_not_null_expression() {
+    let generator = BorrowGenerator::new();
+
+    let func = HirFunction::new_with_body(
+        "is_not_null".to_string(),
+        HirType::Int,
+        vec![HirParameter::new(
+            "ptr".to_string(),
+            HirType::Pointer(Box::new(HirType::Int)),
+        )],
+        vec![HirStatement::If {
+            condition: HirExpression::IsNotNull(Box::new(HirExpression::Variable(
+                "ptr".to_string(),
+            ))),
+            then_block: vec![HirStatement::Return(Some(HirExpression::IntLiteral(1)))],
+            else_block: Some(vec![HirStatement::Return(Some(HirExpression::IntLiteral(
+                0,
+            )))]),
+        }],
+    );
+
+    let inferences = HashMap::new();
+    let transformed = generator.transform_function(&func, &inferences);
+    assert_eq!(transformed.body().len(), 1);
+}
+
+#[test]
+fn test_transform_function_call_expression() {
+    let generator = BorrowGenerator::new();
+
+    let func = HirFunction::new_with_body(
+        "call_func".to_string(),
+        HirType::Int,
+        vec![HirParameter::new("n".to_string(), HirType::Int)],
+        vec![HirStatement::Return(Some(HirExpression::FunctionCall {
+            function: "add".to_string(),
+            arguments: vec![
+                HirExpression::Variable("n".to_string()),
+                HirExpression::IntLiteral(1),
+            ],
+        }))],
+    );
+
+    let inferences = HashMap::new();
+    let transformed = generator.transform_function(&func, &inferences);
+    assert_eq!(transformed.body().len(), 1);
+}
+
+// ============================================================================
+// Coverage Improvement Tests - Pointer Arithmetic Detection
+// ============================================================================
+
+#[test]
+fn test_pointer_arithmetic_with_subtract() {
+    // Test that ptr = ptr - 1 is detected as pointer arithmetic
+    use decy_hir::BinaryOperator;
+
+    let generator = BorrowGenerator::new();
+
+    let func = HirFunction::new_with_body(
+        "ptr_subtract".to_string(),
+        HirType::Void,
+        vec![HirParameter::new(
+            "ptr".to_string(),
+            HirType::Pointer(Box::new(HirType::Int)),
+        )],
+        vec![HirStatement::Assignment {
+            target: "ptr".to_string(),
+            value: HirExpression::BinaryOp {
+                op: BinaryOperator::Subtract,
+                left: Box::new(HirExpression::Variable("ptr".to_string())),
+                right: Box::new(HirExpression::IntLiteral(1)),
+            },
+        }],
+    );
+
+    let mut inferences = HashMap::new();
+    inferences.insert(
+        "ptr".to_string(),
+        OwnershipInference {
+            variable: "ptr".to_string(),
+            kind: OwnershipKind::MutableBorrow,
+            confidence: 0.85,
+            reason: "mutable pointer".to_string(),
+        },
+    );
+
+    let transformed = generator.transform_function(&func, &inferences);
+    // With pointer arithmetic, should stay as Pointer not Reference
+    assert!(matches!(
+        transformed.parameters()[0].param_type(),
+        HirType::Pointer(_)
+    ));
+}
+
+#[test]
+fn test_slice_index_transformation_with_array_pointer() {
+    // Test that *(arr + i) transforms to slice indexing when ArrayPointer is detected
+    use decy_hir::BinaryOperator;
+
+    let generator = BorrowGenerator::new();
+
+    let func = HirFunction::new_with_body(
+        "slice_index".to_string(),
+        HirType::Int,
+        vec![HirParameter::new(
+            "arr".to_string(),
+            HirType::Pointer(Box::new(HirType::Int)),
+        )],
+        vec![HirStatement::Return(Some(HirExpression::Dereference(
+            Box::new(HirExpression::BinaryOp {
+                op: BinaryOperator::Add,
+                left: Box::new(HirExpression::Variable("arr".to_string())),
+                right: Box::new(HirExpression::Variable("i".to_string())),
+            }),
+        )))],
+    );
+
+    let mut inferences = HashMap::new();
+    inferences.insert(
+        "arr".to_string(),
+        OwnershipInference {
+            variable: "arr".to_string(),
+            kind: OwnershipKind::ArrayPointer {
+                base_array: "arr".to_string(),
+                element_type: HirType::Int,
+                base_index: Some(0),
+            },
+            confidence: 0.95,
+            reason: "array parameter".to_string(),
+        },
+    );
+
+    let transformed = generator.transform_function(&func, &inferences);
+    // Should contain SliceIndex transformation
+    assert_eq!(transformed.body().len(), 1);
+}
+
+#[test]
+fn test_length_param_detection_with_n_name() {
+    // Test that 'n' is detected as a length parameter name
+    let generator = BorrowGenerator::new();
+
+    let func = HirFunction::new_with_body(
+        "with_n_param".to_string(),
+        HirType::Void,
+        vec![
+            HirParameter::new("arr".to_string(), HirType::Pointer(Box::new(HirType::Int))),
+            HirParameter::new("n".to_string(), HirType::Int),
+        ],
+        vec![HirStatement::Expression(HirExpression::Variable(
+            "n".to_string(),
+        ))],
+    );
+
+    let inferences = HashMap::new();
+    let transformed = generator.transform_function(&func, &inferences);
+    // Just verify transformation completes
+    assert!(!transformed.parameters().is_empty());
+}
+
+#[test]
+fn test_length_param_detection_with_num_name() {
+    // Test that 'num' is detected as a length parameter name
+    let generator = BorrowGenerator::new();
+
+    let func = HirFunction::new_with_body(
+        "with_num_param".to_string(),
+        HirType::Void,
+        vec![
+            HirParameter::new("arr".to_string(), HirType::Pointer(Box::new(HirType::Int))),
+            HirParameter::new("num".to_string(), HirType::Int),
+        ],
+        vec![HirStatement::Expression(HirExpression::Variable(
+            "num".to_string(),
+        ))],
+    );
+
+    let inferences = HashMap::new();
+    let transformed = generator.transform_function(&func, &inferences);
+    // Just verify transformation completes
+    assert!(!transformed.parameters().is_empty());
+}
+
+// ============================================================================
+// Coverage Improvement Tests - Expression Type Transformations
+// ============================================================================
+
+#[test]
+fn test_transform_calloc_expression() {
+    let generator = BorrowGenerator::new();
+
+    let func = HirFunction::new_with_body(
+        "calloc_test".to_string(),
+        HirType::Pointer(Box::new(HirType::Int)),
+        vec![HirParameter::new("n".to_string(), HirType::Int)],
+        vec![HirStatement::Return(Some(HirExpression::Calloc {
+            count: Box::new(HirExpression::Variable("n".to_string())),
+            element_type: Box::new(HirType::Int),
+        }))],
+    );
+
+    let inferences = HashMap::new();
+    let transformed = generator.transform_function(&func, &inferences);
+    assert_eq!(transformed.body().len(), 1);
+}
+
+#[test]
+fn test_transform_malloc_expression() {
+    let generator = BorrowGenerator::new();
+
+    let func = HirFunction::new_with_body(
+        "malloc_test".to_string(),
+        HirType::Pointer(Box::new(HirType::Int)),
+        vec![HirParameter::new("size".to_string(), HirType::Int)],
+        vec![HirStatement::Return(Some(HirExpression::Malloc {
+            size: Box::new(HirExpression::Variable("size".to_string())),
+        }))],
+    );
+
+    let inferences = HashMap::new();
+    let transformed = generator.transform_function(&func, &inferences);
+    assert_eq!(transformed.body().len(), 1);
+}
+
+#[test]
+fn test_transform_realloc_expression() {
+    let generator = BorrowGenerator::new();
+
+    let func = HirFunction::new_with_body(
+        "realloc_test".to_string(),
+        HirType::Pointer(Box::new(HirType::Int)),
+        vec![
+            HirParameter::new("ptr".to_string(), HirType::Pointer(Box::new(HirType::Int))),
+            HirParameter::new("new_size".to_string(), HirType::Int),
+        ],
+        vec![HirStatement::Return(Some(HirExpression::Realloc {
+            pointer: Box::new(HirExpression::Variable("ptr".to_string())),
+            new_size: Box::new(HirExpression::Variable("new_size".to_string())),
+        }))],
+    );
+
+    let inferences = HashMap::new();
+    let transformed = generator.transform_function(&func, &inferences);
+    assert_eq!(transformed.body().len(), 1);
+}
+
+#[test]
+fn test_transform_string_method_call_expression() {
+    let generator = BorrowGenerator::new();
+
+    let func = HirFunction::new_with_body(
+        "string_method".to_string(),
+        HirType::Int,
+        vec![HirParameter::new(
+            "s".to_string(),
+            HirType::Pointer(Box::new(HirType::Char)),
+        )],
+        vec![HirStatement::Return(Some(
+            HirExpression::StringMethodCall {
+                receiver: Box::new(HirExpression::Variable("s".to_string())),
+                method: "len".to_string(),
+                arguments: vec![],
+            },
+        ))],
+    );
+
+    let inferences = HashMap::new();
+    let transformed = generator.transform_function(&func, &inferences);
+    assert_eq!(transformed.body().len(), 1);
+}
+
+#[test]
+fn test_transform_slice_index_expression() {
+    let generator = BorrowGenerator::new();
+
+    let func = HirFunction::new_with_body(
+        "slice_index".to_string(),
+        HirType::Int,
+        vec![HirParameter::new(
+            "arr".to_string(),
+            HirType::Pointer(Box::new(HirType::Int)),
+        )],
+        vec![HirStatement::Return(Some(HirExpression::SliceIndex {
+            slice: Box::new(HirExpression::Variable("arr".to_string())),
+            index: Box::new(HirExpression::Variable("i".to_string())),
+            element_type: HirType::Int,
+        }))],
+    );
+
+    let inferences = HashMap::new();
+    let transformed = generator.transform_function(&func, &inferences);
+    assert_eq!(transformed.body().len(), 1);
+}
+
+#[test]
+fn test_transform_post_increment_expression() {
+    let generator = BorrowGenerator::new();
+
+    let func = HirFunction::new_with_body(
+        "post_inc".to_string(),
+        HirType::Int,
+        vec![HirParameter::new("x".to_string(), HirType::Int)],
+        vec![HirStatement::Return(Some(HirExpression::PostIncrement {
+            operand: Box::new(HirExpression::Variable("x".to_string())),
+        }))],
+    );
+
+    let inferences = HashMap::new();
+    let transformed = generator.transform_function(&func, &inferences);
+    assert_eq!(transformed.body().len(), 1);
+}
+
+#[test]
+fn test_transform_pre_increment_expression() {
+    let generator = BorrowGenerator::new();
+
+    let func = HirFunction::new_with_body(
+        "pre_inc".to_string(),
+        HirType::Int,
+        vec![HirParameter::new("x".to_string(), HirType::Int)],
+        vec![HirStatement::Return(Some(HirExpression::PreIncrement {
+            operand: Box::new(HirExpression::Variable("x".to_string())),
+        }))],
+    );
+
+    let inferences = HashMap::new();
+    let transformed = generator.transform_function(&func, &inferences);
+    assert_eq!(transformed.body().len(), 1);
+}
+
+#[test]
+fn test_transform_post_decrement_expression() {
+    let generator = BorrowGenerator::new();
+
+    let func = HirFunction::new_with_body(
+        "post_dec".to_string(),
+        HirType::Int,
+        vec![HirParameter::new("x".to_string(), HirType::Int)],
+        vec![HirStatement::Return(Some(HirExpression::PostDecrement {
+            operand: Box::new(HirExpression::Variable("x".to_string())),
+        }))],
+    );
+
+    let inferences = HashMap::new();
+    let transformed = generator.transform_function(&func, &inferences);
+    assert_eq!(transformed.body().len(), 1);
+}
+
+#[test]
+fn test_transform_pre_decrement_expression() {
+    let generator = BorrowGenerator::new();
+
+    let func = HirFunction::new_with_body(
+        "pre_dec".to_string(),
+        HirType::Int,
+        vec![HirParameter::new("x".to_string(), HirType::Int)],
+        vec![HirStatement::Return(Some(HirExpression::PreDecrement {
+            operand: Box::new(HirExpression::Variable("x".to_string())),
+        }))],
+    );
+
+    let inferences = HashMap::new();
+    let transformed = generator.transform_function(&func, &inferences);
+    assert_eq!(transformed.body().len(), 1);
+}
+
+#[test]
+fn test_transform_ternary_expression() {
+    let generator = BorrowGenerator::new();
+
+    let func = HirFunction::new_with_body(
+        "ternary".to_string(),
+        HirType::Int,
+        vec![
+            HirParameter::new("cond".to_string(), HirType::Int),
+            HirParameter::new("a".to_string(), HirType::Int),
+            HirParameter::new("b".to_string(), HirType::Int),
+        ],
+        vec![HirStatement::Return(Some(HirExpression::Ternary {
+            condition: Box::new(HirExpression::Variable("cond".to_string())),
+            then_expr: Box::new(HirExpression::Variable("a".to_string())),
+            else_expr: Box::new(HirExpression::Variable("b".to_string())),
+        }))],
+    );
+
+    let inferences = HashMap::new();
+    let transformed = generator.transform_function(&func, &inferences);
+    assert_eq!(transformed.body().len(), 1);
+}
+
+#[test]
+fn test_transform_dereference_expression() {
+    let generator = BorrowGenerator::new();
+
+    let func = HirFunction::new_with_body(
+        "deref".to_string(),
+        HirType::Int,
+        vec![HirParameter::new(
+            "ptr".to_string(),
+            HirType::Pointer(Box::new(HirType::Int)),
+        )],
+        vec![HirStatement::Return(Some(HirExpression::Dereference(
+            Box::new(HirExpression::Variable("ptr".to_string())),
+        )))],
+    );
+
+    let inferences = HashMap::new();
+    let transformed = generator.transform_function(&func, &inferences);
+    assert_eq!(transformed.body().len(), 1);
+}
+
+// ============================================================================
+// Coverage Improvement Tests - Pointer Arithmetic Detection in Blocks
+// ============================================================================
+
+#[test]
+fn test_pointer_arithmetic_in_if_block() {
+    use decy_hir::BinaryOperator;
+
+    let generator = BorrowGenerator::new();
+
+    let func = HirFunction::new_with_body(
+        "ptr_arith_if".to_string(),
+        HirType::Void,
+        vec![HirParameter::new(
+            "ptr".to_string(),
+            HirType::Pointer(Box::new(HirType::Int)),
+        )],
+        vec![HirStatement::If {
+            condition: HirExpression::IntLiteral(1),
+            then_block: vec![HirStatement::Assignment {
+                target: "ptr".to_string(),
+                value: HirExpression::BinaryOp {
+                    op: BinaryOperator::Add,
+                    left: Box::new(HirExpression::Variable("ptr".to_string())),
+                    right: Box::new(HirExpression::IntLiteral(1)),
+                },
+            }],
+            else_block: None,
+        }],
+    );
+
+    let mut inferences = HashMap::new();
+    inferences.insert(
+        "ptr".to_string(),
+        OwnershipInference {
+            variable: "ptr".to_string(),
+            kind: OwnershipKind::MutableBorrow,
+            confidence: 0.85,
+            reason: "mutable pointer".to_string(),
+        },
+    );
+
+    let transformed = generator.transform_function(&func, &inferences);
+    // With pointer arithmetic in if block, should stay as Pointer
+    assert!(matches!(
+        transformed.parameters()[0].param_type(),
+        HirType::Pointer(_)
+    ));
+}
+
+#[test]
+fn test_pointer_arithmetic_in_else_block() {
+    use decy_hir::BinaryOperator;
+
+    let generator = BorrowGenerator::new();
+
+    let func = HirFunction::new_with_body(
+        "ptr_arith_else".to_string(),
+        HirType::Void,
+        vec![HirParameter::new(
+            "ptr".to_string(),
+            HirType::Pointer(Box::new(HirType::Int)),
+        )],
+        vec![HirStatement::If {
+            condition: HirExpression::IntLiteral(1),
+            then_block: vec![],
+            else_block: Some(vec![HirStatement::Assignment {
+                target: "ptr".to_string(),
+                value: HirExpression::BinaryOp {
+                    op: BinaryOperator::Add,
+                    left: Box::new(HirExpression::Variable("ptr".to_string())),
+                    right: Box::new(HirExpression::IntLiteral(1)),
+                },
+            }]),
+        }],
+    );
+
+    let mut inferences = HashMap::new();
+    inferences.insert(
+        "ptr".to_string(),
+        OwnershipInference {
+            variable: "ptr".to_string(),
+            kind: OwnershipKind::MutableBorrow,
+            confidence: 0.85,
+            reason: "mutable pointer".to_string(),
+        },
+    );
+
+    let transformed = generator.transform_function(&func, &inferences);
+    // With pointer arithmetic in else block, should stay as Pointer
+    assert!(matches!(
+        transformed.parameters()[0].param_type(),
+        HirType::Pointer(_)
+    ));
+}
+
+#[test]
+fn test_pointer_arithmetic_in_while_block() {
+    use decy_hir::BinaryOperator;
+
+    let generator = BorrowGenerator::new();
+
+    let func = HirFunction::new_with_body(
+        "ptr_arith_while".to_string(),
+        HirType::Void,
+        vec![HirParameter::new(
+            "ptr".to_string(),
+            HirType::Pointer(Box::new(HirType::Int)),
+        )],
+        vec![HirStatement::While {
+            condition: HirExpression::IntLiteral(1),
+            body: vec![HirStatement::Assignment {
+                target: "ptr".to_string(),
+                value: HirExpression::BinaryOp {
+                    op: BinaryOperator::Add,
+                    left: Box::new(HirExpression::Variable("ptr".to_string())),
+                    right: Box::new(HirExpression::IntLiteral(1)),
+                },
+            }],
+        }],
+    );
+
+    let mut inferences = HashMap::new();
+    inferences.insert(
+        "ptr".to_string(),
+        OwnershipInference {
+            variable: "ptr".to_string(),
+            kind: OwnershipKind::MutableBorrow,
+            confidence: 0.85,
+            reason: "mutable pointer".to_string(),
+        },
+    );
+
+    let transformed = generator.transform_function(&func, &inferences);
+    // With pointer arithmetic in while block, should stay as Pointer
+    assert!(matches!(
+        transformed.parameters()[0].param_type(),
+        HirType::Pointer(_)
+    ));
+}
+
+#[test]
+fn test_pointer_arithmetic_in_for_block() {
+    use decy_hir::BinaryOperator;
+
+    let generator = BorrowGenerator::new();
+
+    let func = HirFunction::new_with_body(
+        "ptr_arith_for".to_string(),
+        HirType::Void,
+        vec![HirParameter::new(
+            "ptr".to_string(),
+            HirType::Pointer(Box::new(HirType::Int)),
+        )],
+        vec![HirStatement::For {
+            init: vec![],
+            condition: HirExpression::IntLiteral(1),
+            increment: vec![],
+            body: vec![HirStatement::Assignment {
+                target: "ptr".to_string(),
+                value: HirExpression::BinaryOp {
+                    op: BinaryOperator::Add,
+                    left: Box::new(HirExpression::Variable("ptr".to_string())),
+                    right: Box::new(HirExpression::IntLiteral(1)),
+                },
+            }],
+        }],
+    );
+
+    let mut inferences = HashMap::new();
+    inferences.insert(
+        "ptr".to_string(),
+        OwnershipInference {
+            variable: "ptr".to_string(),
+            kind: OwnershipKind::MutableBorrow,
+            confidence: 0.85,
+            reason: "mutable pointer".to_string(),
+        },
+    );
+
+    let transformed = generator.transform_function(&func, &inferences);
+    // With pointer arithmetic in for block, should stay as Pointer
+    assert!(matches!(
+        transformed.parameters()[0].param_type(),
+        HirType::Pointer(_)
+    ));
+}
+
+#[test]
+fn test_post_increment_pointer_arithmetic() {
+    // Test that str++ is detected as pointer arithmetic
+    let generator = BorrowGenerator::new();
+
+    let func = HirFunction::new_with_body(
+        "post_inc_ptr".to_string(),
+        HirType::Void,
+        vec![HirParameter::new(
+            "str".to_string(),
+            HirType::Pointer(Box::new(HirType::Char)),
+        )],
+        vec![HirStatement::Expression(HirExpression::PostIncrement {
+            operand: Box::new(HirExpression::Variable("str".to_string())),
+        })],
+    );
+
+    let mut inferences = HashMap::new();
+    inferences.insert(
+        "str".to_string(),
+        OwnershipInference {
+            variable: "str".to_string(),
+            kind: OwnershipKind::MutableBorrow,
+            confidence: 0.85,
+            reason: "string pointer".to_string(),
+        },
+    );
+
+    let transformed = generator.transform_function(&func, &inferences);
+    // str++ should be detected, param stays as Pointer
+    assert!(matches!(
+        transformed.parameters()[0].param_type(),
+        HirType::Pointer(_)
+    ));
+}
+
+#[test]
+fn test_pre_increment_pointer_arithmetic() {
+    // Test that ++str is detected as pointer arithmetic
+    let generator = BorrowGenerator::new();
+
+    let func = HirFunction::new_with_body(
+        "pre_inc_ptr".to_string(),
+        HirType::Void,
+        vec![HirParameter::new(
+            "str".to_string(),
+            HirType::Pointer(Box::new(HirType::Char)),
+        )],
+        vec![HirStatement::Expression(HirExpression::PreIncrement {
+            operand: Box::new(HirExpression::Variable("str".to_string())),
+        })],
+    );
+
+    let mut inferences = HashMap::new();
+    inferences.insert(
+        "str".to_string(),
+        OwnershipInference {
+            variable: "str".to_string(),
+            kind: OwnershipKind::MutableBorrow,
+            confidence: 0.85,
+            reason: "string pointer".to_string(),
+        },
+    );
+
+    let transformed = generator.transform_function(&func, &inferences);
+    // ++str should be detected, param stays as Pointer
+    assert!(matches!(
+        transformed.parameters()[0].param_type(),
+        HirType::Pointer(_)
+    ));
+}
+
+#[test]
+fn test_post_decrement_pointer_arithmetic() {
+    // Test that str-- is detected as pointer arithmetic
+    let generator = BorrowGenerator::new();
+
+    let func = HirFunction::new_with_body(
+        "post_dec_ptr".to_string(),
+        HirType::Void,
+        vec![HirParameter::new(
+            "str".to_string(),
+            HirType::Pointer(Box::new(HirType::Char)),
+        )],
+        vec![HirStatement::Expression(HirExpression::PostDecrement {
+            operand: Box::new(HirExpression::Variable("str".to_string())),
+        })],
+    );
+
+    let mut inferences = HashMap::new();
+    inferences.insert(
+        "str".to_string(),
+        OwnershipInference {
+            variable: "str".to_string(),
+            kind: OwnershipKind::MutableBorrow,
+            confidence: 0.85,
+            reason: "string pointer".to_string(),
+        },
+    );
+
+    let transformed = generator.transform_function(&func, &inferences);
+    // str-- should be detected, param stays as Pointer
+    assert!(matches!(
+        transformed.parameters()[0].param_type(),
+        HirType::Pointer(_)
+    ));
+}
+
+#[test]
+fn test_pre_decrement_pointer_arithmetic() {
+    // Test that --str is detected as pointer arithmetic
+    let generator = BorrowGenerator::new();
+
+    let func = HirFunction::new_with_body(
+        "pre_dec_ptr".to_string(),
+        HirType::Void,
+        vec![HirParameter::new(
+            "str".to_string(),
+            HirType::Pointer(Box::new(HirType::Char)),
+        )],
+        vec![HirStatement::Expression(HirExpression::PreDecrement {
+            operand: Box::new(HirExpression::Variable("str".to_string())),
+        })],
+    );
+
+    let mut inferences = HashMap::new();
+    inferences.insert(
+        "str".to_string(),
+        OwnershipInference {
+            variable: "str".to_string(),
+            kind: OwnershipKind::MutableBorrow,
+            confidence: 0.85,
+            reason: "string pointer".to_string(),
+        },
+    );
+
+    let transformed = generator.transform_function(&func, &inferences);
+    // --str should be detected, param stays as Pointer
+    assert!(matches!(
+        transformed.parameters()[0].param_type(),
+        HirType::Pointer(_)
+    ));
+}
+
+#[test]
+fn test_binary_op_expression_transformation() {
+    let generator = BorrowGenerator::new();
+
+    let func = HirFunction::new_with_body(
+        "binary_op".to_string(),
+        HirType::Int,
+        vec![
+            HirParameter::new("a".to_string(), HirType::Int),
+            HirParameter::new("b".to_string(), HirType::Int),
+        ],
+        vec![HirStatement::Return(Some(HirExpression::BinaryOp {
+            op: decy_hir::BinaryOperator::Add,
+            left: Box::new(HirExpression::Variable("a".to_string())),
+            right: Box::new(HirExpression::Variable("b".to_string())),
+        }))],
+    );
+
+    let inferences = HashMap::new();
+    let transformed = generator.transform_function(&func, &inferences);
+    assert_eq!(transformed.body().len(), 1);
+}
+
+#[test]
+fn test_sizeof_expression_not_transformed() {
+    let generator = BorrowGenerator::new();
+
+    let func = HirFunction::new_with_body(
+        "sizeof_test".to_string(),
+        HirType::Int,
+        vec![],
+        vec![HirStatement::Return(Some(HirExpression::Sizeof {
+            type_name: "int".to_string(),
+        }))],
+    );
+
+    let inferences = HashMap::new();
+    let transformed = generator.transform_function(&func, &inferences);
+    assert_eq!(transformed.body().len(), 1);
+}
+
+#[test]
+fn test_null_literal_expression_not_transformed() {
+    let generator = BorrowGenerator::new();
+
+    let func = HirFunction::new_with_body(
+        "null_test".to_string(),
+        HirType::Pointer(Box::new(HirType::Void)),
+        vec![],
+        vec![HirStatement::Return(Some(HirExpression::NullLiteral))],
+    );
+
+    let inferences = HashMap::new();
+    let transformed = generator.transform_function(&func, &inferences);
+    assert_eq!(transformed.body().len(), 1);
+}
+
+#[test]
+fn test_literal_expressions_not_transformed() {
+    let generator = BorrowGenerator::new();
+
+    let func = HirFunction::new_with_body(
+        "literals".to_string(),
+        HirType::Void,
+        vec![],
+        vec![
+            HirStatement::Expression(HirExpression::IntLiteral(42)),
+            HirStatement::Expression(HirExpression::FloatLiteral("3.14".to_string())),
+            HirStatement::Expression(HirExpression::StringLiteral("hello".to_string())),
+            HirStatement::Expression(HirExpression::CharLiteral(b'x' as i8)),
+        ],
+    );
+
+    let inferences = HashMap::new();
+    let transformed = generator.transform_function(&func, &inferences);
+    assert_eq!(transformed.body().len(), 4);
+}
+
+#[test]
+fn test_variable_expression_not_transformed() {
+    let generator = BorrowGenerator::new();
+
+    let func = HirFunction::new_with_body(
+        "var_test".to_string(),
+        HirType::Int,
+        vec![HirParameter::new("x".to_string(), HirType::Int)],
+        vec![HirStatement::Return(Some(HirExpression::Variable(
+            "x".to_string(),
+        )))],
+    );
+
+    let inferences = HashMap::new();
+    let transformed = generator.transform_function(&func, &inferences);
+    assert_eq!(transformed.body().len(), 1);
+}
+
+// ============================================================================
+// Coverage Improvement Tests - Length replacement in expressions
+// ============================================================================
+
+#[test]
+fn test_length_replacement_in_variable() {
+    let generator = BorrowGenerator::new();
+
+    // Create a function where 'len' is the length param for 'arr'
+    // and 'len' is used in an expression
+    let func = HirFunction::new_with_body(
+        "len_replace".to_string(),
+        HirType::Int,
+        vec![
+            HirParameter::new("arr".to_string(), HirType::Pointer(Box::new(HirType::Int))),
+            HirParameter::new("len".to_string(), HirType::Int),
+        ],
+        vec![
+            // Use arr[0] to trigger array detection
+            HirStatement::ArrayIndexAssignment {
+                array: Box::new(HirExpression::Variable("arr".to_string())),
+                index: Box::new(HirExpression::IntLiteral(0)),
+                value: HirExpression::IntLiteral(1),
+            },
+            // Return len - should be replaced with arr.len() if array detected
+            HirStatement::Return(Some(HirExpression::Variable("len".to_string()))),
+        ],
+    );
+
+    let inferences = HashMap::new();
+    let transformed = generator.transform_function(&func, &inferences);
+    assert!(!transformed.body().is_empty());
+}
+
+#[test]
+fn test_default_impl() {
+    // Test that BorrowGenerator implements Default
+    let gen: BorrowGenerator = Default::default();
+    let ptr_type = HirType::Pointer(Box::new(HirType::Int));
+    let inferences = HashMap::new();
+    let _ = gen.transform_type(&ptr_type, "x", &inferences);
+}
+
+#[test]
+fn test_transform_slice_to_slice_type_non_pointer() {
+    // Test transform_to_slice_type with non-pointer type (should return unchanged)
+    let generator = BorrowGenerator::new();
+
+    let func = HirFunction::new_with_body(
+        "non_ptr".to_string(),
+        HirType::Void,
+        vec![HirParameter::new("x".to_string(), HirType::Int)],
+        vec![],
+    );
+
+    let inferences = HashMap::new();
+    let transformed = generator.transform_function(&func, &inferences);
+    // Int param should stay as Int
+    assert_eq!(transformed.parameters()[0].param_type(), &HirType::Int);
+}

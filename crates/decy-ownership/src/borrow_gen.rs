@@ -445,25 +445,33 @@ impl BorrowGenerator {
                 increment,
                 body,
             } => HirStatement::For {
-                init: init.as_ref().map(|s| {
-                    Box::new(self.transform_statement_with_length_replacement(
-                        s,
-                        inferences,
-                        length_params_to_remove,
-                    ))
-                }),
+                // DECY-224: Transform all init statements
+                init: init
+                    .iter()
+                    .map(|s| {
+                        self.transform_statement_with_length_replacement(
+                            s,
+                            inferences,
+                            length_params_to_remove,
+                        )
+                    })
+                    .collect(),
                 condition: self.transform_expression_with_length_replacement(
                     condition,
                     inferences,
                     length_params_to_remove,
                 ),
-                increment: increment.as_ref().map(|s| {
-                    Box::new(self.transform_statement_with_length_replacement(
-                        s,
-                        inferences,
-                        length_params_to_remove,
-                    ))
-                }),
+                // DECY-224: Transform all increment statements
+                increment: increment
+                    .iter()
+                    .map(|s| {
+                        self.transform_statement_with_length_replacement(
+                            s,
+                            inferences,
+                            length_params_to_remove,
+                        )
+                    })
+                    .collect(),
                 body: body
                     .iter()
                     .map(|s| {
