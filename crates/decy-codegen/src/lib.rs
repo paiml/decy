@@ -3474,6 +3474,7 @@ impl CodeGenerator {
     /// - malloc(size)
     /// - calloc(count, size)
     /// - (node *)malloc(sizeof(struct node))
+    #[cfg_attr(not(test), allow(dead_code))]
     fn is_malloc_expression(expr: &HirExpression) -> bool {
         match expr {
             HirExpression::Malloc { .. } => true,

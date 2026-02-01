@@ -1048,7 +1048,11 @@ Missing docs are treated as errors: `#![deny(missing_docs)]` is enabled in all c
 
 ## Stack Documentation Search
 
-Query this component's documentation and the entire Sovereign AI Stack using batuta's RAG Oracle:
+**IMPORTANT: Proactively use the batuta RAG oracle when:**
+- Looking up patterns from other stack components (trueno SIMD, aprender ML, realizar inference)
+- Finding cross-language equivalents (C → Rust transpilation patterns from ground truth corpora)
+- Understanding how ownership inference is solved in other transpilers (depyler Python→Rust, bashrs Shell→Rust)
+- Researching unsafe block minimization strategies
 
 ```bash
 # Index all stack documentation (run once, persists to ~/.cache/batuta/rag/)
@@ -1057,13 +1061,12 @@ batuta oracle --rag-index
 # Search across the entire stack
 batuta oracle --rag "your question here"
 
-# Examples
-batuta oracle --rag "SIMD matrix multiplication"
-batuta oracle --rag "how to train a model"
-batuta oracle --rag "tokenization for BERT"
-
-# Check index status
-batuta oracle --rag-stats
+# Decy-specific examples
+batuta oracle --rag "ownership inference for pointer types"
+batuta oracle --rag "C malloc free to Rust Box Vec conversion"
+batuta oracle --rag "unsafe block minimization strategies"
+batuta oracle --rag "transpiler AST to HIR lowering patterns"
+batuta oracle --rag "SIMD intrinsics C to Rust mapping"
 ```
 
-The RAG index includes CLAUDE.md, README.md, and source files from all stack components plus Python ground truth corpora for cross-language pattern matching.
+The RAG index (341+ docs) includes CLAUDE.md, README.md, and source files from all stack components plus Python ground truth corpora for cross-language pattern matching.
