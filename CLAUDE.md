@@ -1070,3 +1070,7 @@ batuta oracle --rag "SIMD intrinsics C to Rust mapping"
 ```
 
 The RAG index (341+ docs) includes CLAUDE.md, README.md, and source files from all stack components plus Python ground truth corpora for cross-language pattern matching.
+
+Index auto-updates via post-commit hooks and `ora-fresh` on shell login.
+To manually check freshness: `ora-fresh`
+To force full reindex: `batuta oracle --rag-index --force`
