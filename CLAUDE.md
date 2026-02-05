@@ -8,6 +8,37 @@ Decy is a C-to-Rust transpiler that generates idiomatic, safe Rust code with min
 
 **Critical Goal**: Minimize unsafe code through advanced ownership and lifetime inference algorithms.
 
+## Code Search (pmat query)
+
+**NEVER use grep or rg for code discovery.** Use `pmat query` instead -- it returns quality-annotated, ranked results with TDG scores and fault annotations.
+
+```bash
+# Find functions by intent
+pmat query "c ast conversion" --limit 10
+
+# Find high-quality code
+pmat query "pointer analysis" --min-grade A --exclude-tests
+
+# Find with fault annotations (unwrap, panic, unsafe, etc.)
+pmat query "memory safety" --faults
+
+# Filter by complexity
+pmat query "type mapping" --max-complexity 10
+
+# Cross-project search
+pmat query "rust codegen" --include-project ../depyler
+
+# Git history search (find code by commit intent via RRF fusion)
+pmat query "fix pointer conversion" -G
+pmat query "fix pointer conversion" --git-history
+
+# Enrichment flags (combine freely)
+pmat query "ast visitor" --churn              # git volatility (commit count, churn score)
+pmat query "type converter" --duplicates          # code clone detection (MinHash+LSH)
+pmat query "code emitter" --entropy             # pattern diversity (repetitive vs unique)
+pmat query "c transpilation" --churn --duplicates --entropy --faults -G  # full audit
+```
+
 ## Development Commands
 
 ### Essential Commands
