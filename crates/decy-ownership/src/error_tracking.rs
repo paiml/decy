@@ -939,4 +939,222 @@ mod tests {
         assert_eq!(suggestion.priority, SuggestionPriority::High);
         assert_eq!(suggestion.category, SuggestionCategory::FeatureHandling);
     }
+
+    // ========================================================================
+    // Additional coverage tests
+    // ========================================================================
+
+    #[test]
+    fn feature_distribution_multiple_features() {
+        let mut tracker = ErrorTracker::new();
+        let error1 = InferenceError::new(
+            "ptr1", "test.c", 1,
+            InferredOwnership::Borrowed, InferredOwnership::Owned,
+            0.6, OwnershipDefect::PointerMisclassification,
+        ).with_features(vec!["malloc_free".into(), "pointer_arithmetic".into()]);
+        let error2 = InferenceError::new(
+            "ptr2", "test.c", 2,
+            InferredOwnership::Borrowed, InferredOwnership::Owned,
+            0.6, OwnershipDefect::PointerMisclassification,
+        ).with_features(vec!["malloc_free".into(), "struct_field".into()]);
+        tracker.record_error(error1);
+        tracker.record_error(error2);
+
+        let dist = tracker.feature_distribution();
+        assert_eq!(dist.get("malloc_free"), Some(&2));
+        assert_eq!(dist.get("pointer_arithmetic"), Some(&1));
+        assert_eq!(dist.get("struct_field"), Some(&1));
+    }
+
+    #[test]
+    fn feature_defect_correlation_test() {
+        let mut tracker = ErrorTracker::new();
+        let error = InferenceError::new(
+            "ptr", "test.c", 1,
+            InferredOwnership::Borrowed, InferredOwnership::Owned,
+            0.6, OwnershipDefect::PointerMisclassification,
+        ).with_features(vec!["malloc_free".into()]);
+        tracker.record_error(error);
+
+        let correlations = tracker.feature_defect_correlation();
+        assert!(!correlations.is_empty());
+        let (feature, defect, count) = &correlations[0];
+        assert_eq!(feature, "malloc_free");
+        assert!(defect.contains("PointerMisclassification"));
+        assert_eq!(*count, 1);
+    }
+
+    #[test]
+    fn calculate_suspiciousness_zero_ratio_edge() {
+        let mut tracker = ErrorTracker::new();
+        // Feature with zero successes and zero failures shouldn't panic
+        // (impossible via normal API, but tests the formula edge case)
+        let suspicious = tracker.calculate_suspiciousness();
+        assert!(suspicious.is_empty());
+    }
+
+    #[test]
+    fn generate_suggestions_medium_priority() {
+        let mut tracker = ErrorTracker::new();
+        // Add 10 errors for the same defect (count > 5 but <= 20 = Medium)
+        for i in 0..10 {
+            tracker.record_error(InferenceError::new(
+                format!("ptr{}", i), "test.c", i as u32,
+                InferredOwnership::Borrowed, InferredOwnership::Owned,
+                0.6, OwnershipDefect::LifetimeInferenceGap,
+            ));
+        }
+        // Also add a few successes so suspiciousness isn't max
+        for _ in 0..20 {
+            tracker.record_success(&["some_feature".into()]);
+        }
+
+        let suggestions = tracker.generate_suggestions();
+        let defect_suggestions: Vec<_> = suggestions.iter()
+            .filter(|s| s.category == SuggestionCategory::DefectPrevention)
+            .collect();
+        assert!(!defect_suggestions.is_empty());
+        assert_eq!(defect_suggestions[0].priority, SuggestionPriority::Medium);
+    }
+
+    #[test]
+    fn generate_suggestions_high_priority_defect() {
+        let mut tracker = ErrorTracker::new();
+        // Add 25 errors for the same defect (count > 20 = High)
+        for i in 0..25 {
+            tracker.record_error(InferenceError::new(
+                format!("ptr{}", i), "test.c", i as u32,
+                InferredOwnership::Borrowed, InferredOwnership::Owned,
+                0.6, OwnershipDefect::PointerMisclassification,
+            ));
+        }
+        for _ in 0..5 {
+            tracker.record_success(&["x".into()]);
+        }
+
+        let suggestions = tracker.generate_suggestions();
+        let defect_suggestions: Vec<_> = suggestions.iter()
+            .filter(|s| s.category == SuggestionCategory::DefectPrevention)
+            .collect();
+        assert!(!defect_suggestions.is_empty());
+        assert_eq!(defect_suggestions[0].priority, SuggestionPriority::High);
+    }
+
+    #[test]
+    fn suggestion_priority_all_variants() {
+        let _c = SuggestionPriority::Critical;
+        let _h = SuggestionPriority::High;
+        let _m = SuggestionPriority::Medium;
+        let _l = SuggestionPriority::Low;
+        assert_ne!(SuggestionPriority::Critical, SuggestionPriority::Low);
+    }
+
+    #[test]
+    fn suggestion_category_all_variants() {
+        let _f = SuggestionCategory::FeatureHandling;
+        let _d = SuggestionCategory::DefectPrevention;
+        let _t = SuggestionCategory::TrainingData;
+        let _c = SuggestionCategory::Configuration;
+        assert_ne!(SuggestionCategory::TrainingData, SuggestionCategory::Configuration);
+    }
+
+    #[test]
+    fn error_tracker_default_trait() {
+        let tracker = ErrorTracker::default();
+        assert_eq!(tracker.error_count(), 0);
+        assert_eq!(tracker.success_count(), 0);
+    }
+
+    #[test]
+    fn generate_markdown_report_empty() {
+        let mut tracker = ErrorTracker::new();
+        let md = tracker.generate_markdown_report();
+        assert!(md.contains("Total Errors | 0"));
+        assert!(md.contains("Total Successes | 0"));
+    }
+
+    #[test]
+    fn generate_markdown_report_with_suggestions() {
+        let mut tracker = ErrorTracker::new();
+        // Add many errors to trigger suggestions
+        for i in 0..30 {
+            let error = InferenceError::new(
+                format!("ptr{}", i), "test.c", i as u32,
+                InferredOwnership::Borrowed, InferredOwnership::Owned,
+                0.6, OwnershipDefect::PointerMisclassification,
+            ).with_features(vec!["problematic".into()]);
+            tracker.record_error(error);
+        }
+        for _ in 0..2 {
+            tracker.record_success(&["problematic".into()]);
+        }
+
+        let md = tracker.generate_markdown_report();
+        assert!(md.contains("Improvement Suggestions"));
+        assert!(md.contains("problematic"));
+    }
+
+    #[test]
+    fn inference_error_confidence_clamp() {
+        let error = InferenceError::new(
+            "ptr", "test.c", 1,
+            InferredOwnership::Borrowed, InferredOwnership::Owned,
+            1.5, // above 1.0
+            OwnershipDefect::PointerMisclassification,
+        );
+        assert_eq!(error.confidence, 1.0);
+
+        let error2 = InferenceError::new(
+            "ptr", "test.c", 1,
+            InferredOwnership::Borrowed, InferredOwnership::Owned,
+            -0.5, // below 0.0
+            OwnershipDefect::PointerMisclassification,
+        );
+        assert_eq!(error2.confidence, 0.0);
+    }
+
+    #[test]
+    fn serialization_round_trip_inference_error() {
+        let error = InferenceError::new(
+            "ptr", "test.c", 1,
+            InferredOwnership::Borrowed, InferredOwnership::Owned,
+            0.6, OwnershipDefect::PointerMisclassification,
+        ).with_features(vec!["malloc_free".into()]).with_rust_error("E0382");
+
+        let json = serde_json::to_string(&error).unwrap();
+        let restored: InferenceError = serde_json::from_str(&json).unwrap();
+        assert_eq!(restored.variable, "ptr");
+        assert_eq!(restored.source_file, "test.c");
+        assert_eq!(restored.rust_error, Some("E0382".into()));
+        assert_eq!(restored.c_features.len(), 1);
+    }
+
+    #[test]
+    fn serialization_round_trip_suggestion() {
+        let suggestion = ImprovementSuggestion {
+            priority: SuggestionPriority::Critical,
+            category: SuggestionCategory::TrainingData,
+            description: "Add more training data".into(),
+            affected_feature: None,
+            affected_defect: Some("LifetimeInferenceGap".into()),
+        };
+        let json = serde_json::to_string(&suggestion).unwrap();
+        let restored: ImprovementSuggestion = serde_json::from_str(&json).unwrap();
+        assert_eq!(restored.priority, SuggestionPriority::Critical);
+        assert_eq!(restored.category, SuggestionCategory::TrainingData);
+    }
+
+    #[test]
+    fn multiple_errors_auto_increments_ids() {
+        let mut tracker = ErrorTracker::new();
+        for i in 0..5 {
+            tracker.record_error(InferenceError::new(
+                format!("ptr{}", i), "test.c", i as u32,
+                InferredOwnership::Borrowed, InferredOwnership::Owned,
+                0.6, OwnershipDefect::PointerMisclassification,
+            ));
+        }
+        let ids: Vec<u64> = tracker.errors().iter().map(|e| e.id).collect();
+        assert_eq!(ids, vec![1, 2, 3, 4, 5]);
+    }
 }

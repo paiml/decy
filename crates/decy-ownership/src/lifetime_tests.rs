@@ -1091,3 +1091,703 @@ fn test_same_scope_variables_relationship() {
         || relationships.contains_key(&("b".to_string(), "a".to_string()));
     assert!(has_rel, "Should have relationship between a and b");
 }
+
+// ============================================================================
+// Additional Coverage Tests - Targeting 55+ uncovered lines
+// ============================================================================
+
+#[test]
+fn test_expression_uses_variable_binary_op_in_return() {
+    // Cover BinaryOp branch in expression_uses_variable via return
+    let func = HirFunction::new_with_body(
+        "binop_test".to_string(),
+        HirType::Int,
+        vec![],
+        vec![
+            HirStatement::VariableDeclaration {
+                name: "a".to_string(),
+                var_type: HirType::Int,
+                initializer: Some(HirExpression::IntLiteral(10)),
+            },
+            HirStatement::Return(Some(HirExpression::BinaryOp {
+                op: decy_hir::BinaryOperator::Add,
+                left: Box::new(HirExpression::Variable("a".to_string())),
+                right: Box::new(HirExpression::IntLiteral(5)),
+            })),
+        ],
+    );
+
+    let analyzer = LifetimeAnalyzer::new();
+    let scope_tree = analyzer.build_scope_tree(&func);
+    let lifetimes = analyzer.track_lifetimes(&func, &scope_tree);
+
+    assert!(
+        lifetimes["a"].escapes,
+        "Variable in binary op return should be detected as escaping"
+    );
+}
+
+#[test]
+fn test_expression_uses_variable_binary_op_right_side() {
+    // Cover BinaryOp right-side branch in expression_uses_variable
+    let func = HirFunction::new_with_body(
+        "binop_right_test".to_string(),
+        HirType::Int,
+        vec![],
+        vec![
+            HirStatement::VariableDeclaration {
+                name: "b".to_string(),
+                var_type: HirType::Int,
+                initializer: Some(HirExpression::IntLiteral(20)),
+            },
+            HirStatement::Return(Some(HirExpression::BinaryOp {
+                op: decy_hir::BinaryOperator::Multiply,
+                left: Box::new(HirExpression::IntLiteral(3)),
+                right: Box::new(HirExpression::Variable("b".to_string())),
+            })),
+        ],
+    );
+
+    let analyzer = LifetimeAnalyzer::new();
+    let scope_tree = analyzer.build_scope_tree(&func);
+    let lifetimes = analyzer.track_lifetimes(&func, &scope_tree);
+
+    assert!(
+        lifetimes["b"].escapes,
+        "Variable on right side of binary op should be detected as escaping"
+    );
+}
+
+#[test]
+fn test_expression_uses_variable_dereference_in_return() {
+    // Cover Dereference branch in expression_uses_variable via return
+    let func = HirFunction::new_with_body(
+        "deref_test".to_string(),
+        HirType::Int,
+        vec![],
+        vec![
+            HirStatement::VariableDeclaration {
+                name: "ptr".to_string(),
+                var_type: HirType::Pointer(Box::new(HirType::Int)),
+                initializer: Some(HirExpression::NullLiteral),
+            },
+            HirStatement::Return(Some(HirExpression::Dereference(Box::new(
+                HirExpression::Variable("ptr".to_string()),
+            )))),
+        ],
+    );
+
+    let analyzer = LifetimeAnalyzer::new();
+    let scope_tree = analyzer.build_scope_tree(&func);
+    let lifetimes = analyzer.track_lifetimes(&func, &scope_tree);
+
+    assert!(
+        lifetimes["ptr"].escapes,
+        "Variable in dereference should be detected as escaping"
+    );
+}
+
+#[test]
+fn test_expression_uses_variable_address_of_in_return() {
+    // Cover AddressOf branch in expression_uses_variable via return
+    let func = HirFunction::new_with_body(
+        "addr_test".to_string(),
+        HirType::Pointer(Box::new(HirType::Int)),
+        vec![],
+        vec![
+            HirStatement::VariableDeclaration {
+                name: "x".to_string(),
+                var_type: HirType::Int,
+                initializer: Some(HirExpression::IntLiteral(42)),
+            },
+            HirStatement::Return(Some(HirExpression::AddressOf(Box::new(
+                HirExpression::Variable("x".to_string()),
+            )))),
+        ],
+    );
+
+    let analyzer = LifetimeAnalyzer::new();
+    let scope_tree = analyzer.build_scope_tree(&func);
+    let lifetimes = analyzer.track_lifetimes(&func, &scope_tree);
+
+    assert!(
+        lifetimes["x"].escapes,
+        "Variable in address-of should be detected as escaping"
+    );
+}
+
+#[test]
+fn test_expression_uses_variable_unary_op_in_return() {
+    // Cover UnaryOp branch in expression_uses_variable via return
+    let func = HirFunction::new_with_body(
+        "unary_test".to_string(),
+        HirType::Int,
+        vec![],
+        vec![
+            HirStatement::VariableDeclaration {
+                name: "n".to_string(),
+                var_type: HirType::Int,
+                initializer: Some(HirExpression::IntLiteral(5)),
+            },
+            HirStatement::Return(Some(HirExpression::UnaryOp {
+                op: decy_hir::UnaryOperator::Minus,
+                operand: Box::new(HirExpression::Variable("n".to_string())),
+            })),
+        ],
+    );
+
+    let analyzer = LifetimeAnalyzer::new();
+    let scope_tree = analyzer.build_scope_tree(&func);
+    let lifetimes = analyzer.track_lifetimes(&func, &scope_tree);
+
+    assert!(
+        lifetimes["n"].escapes,
+        "Variable in unary op should be detected as escaping"
+    );
+}
+
+#[test]
+fn test_expression_uses_variable_function_call_in_return() {
+    // Cover FunctionCall arguments branch in expression_uses_variable via return
+    let func = HirFunction::new_with_body(
+        "funcall_test".to_string(),
+        HirType::Int,
+        vec![],
+        vec![
+            HirStatement::VariableDeclaration {
+                name: "val".to_string(),
+                var_type: HirType::Int,
+                initializer: Some(HirExpression::IntLiteral(7)),
+            },
+            HirStatement::Return(Some(HirExpression::FunctionCall {
+                function: "compute".to_string(),
+                arguments: vec![HirExpression::Variable("val".to_string())],
+            })),
+        ],
+    );
+
+    let analyzer = LifetimeAnalyzer::new();
+    let scope_tree = analyzer.build_scope_tree(&func);
+    let lifetimes = analyzer.track_lifetimes(&func, &scope_tree);
+
+    assert!(
+        lifetimes["val"].escapes,
+        "Variable in function call args should be detected as escaping"
+    );
+}
+
+#[test]
+fn test_expression_uses_variable_field_access_in_return() {
+    // Cover FieldAccess branch in expression_uses_variable via return
+    let func = HirFunction::new_with_body(
+        "field_test".to_string(),
+        HirType::Int,
+        vec![],
+        vec![
+            HirStatement::VariableDeclaration {
+                name: "obj".to_string(),
+                var_type: HirType::Struct("Point".to_string()),
+                initializer: Some(HirExpression::IntLiteral(0)),
+            },
+            HirStatement::Return(Some(HirExpression::FieldAccess {
+                object: Box::new(HirExpression::Variable("obj".to_string())),
+                field: "x".to_string(),
+            })),
+        ],
+    );
+
+    let analyzer = LifetimeAnalyzer::new();
+    let scope_tree = analyzer.build_scope_tree(&func);
+    let lifetimes = analyzer.track_lifetimes(&func, &scope_tree);
+
+    assert!(
+        lifetimes["obj"].escapes,
+        "Variable in field access should be detected as escaping"
+    );
+}
+
+#[test]
+fn test_expression_uses_variable_pointer_field_access_in_return() {
+    // Cover PointerFieldAccess branch in expression_uses_variable via return
+    let func = HirFunction::new_with_body(
+        "ptr_field_test".to_string(),
+        HirType::Int,
+        vec![],
+        vec![
+            HirStatement::VariableDeclaration {
+                name: "ptr".to_string(),
+                var_type: HirType::Pointer(Box::new(HirType::Struct("Node".to_string()))),
+                initializer: Some(HirExpression::NullLiteral),
+            },
+            HirStatement::Return(Some(HirExpression::PointerFieldAccess {
+                pointer: Box::new(HirExpression::Variable("ptr".to_string())),
+                field: "value".to_string(),
+            })),
+        ],
+    );
+
+    let analyzer = LifetimeAnalyzer::new();
+    let scope_tree = analyzer.build_scope_tree(&func);
+    let lifetimes = analyzer.track_lifetimes(&func, &scope_tree);
+
+    assert!(
+        lifetimes["ptr"].escapes,
+        "Variable in pointer field access should be detected as escaping"
+    );
+}
+
+#[test]
+fn test_expression_uses_variable_array_index_in_return() {
+    // Cover ArrayIndex branch in expression_uses_variable via return
+    let func = HirFunction::new_with_body(
+        "arr_idx_test".to_string(),
+        HirType::Int,
+        vec![],
+        vec![
+            HirStatement::VariableDeclaration {
+                name: "arr".to_string(),
+                var_type: HirType::Pointer(Box::new(HirType::Int)),
+                initializer: Some(HirExpression::NullLiteral),
+            },
+            HirStatement::Return(Some(HirExpression::ArrayIndex {
+                array: Box::new(HirExpression::Variable("arr".to_string())),
+                index: Box::new(HirExpression::IntLiteral(0)),
+            })),
+        ],
+    );
+
+    let analyzer = LifetimeAnalyzer::new();
+    let scope_tree = analyzer.build_scope_tree(&func);
+    let lifetimes = analyzer.track_lifetimes(&func, &scope_tree);
+
+    assert!(
+        lifetimes["arr"].escapes,
+        "Variable in array index should be detected as escaping"
+    );
+}
+
+#[test]
+fn test_expression_uses_variable_array_index_variable_in_return() {
+    // Cover ArrayIndex index branch (the index expression uses the variable)
+    let func = HirFunction::new_with_body(
+        "arr_idx_var_test".to_string(),
+        HirType::Int,
+        vec![],
+        vec![
+            HirStatement::VariableDeclaration {
+                name: "idx".to_string(),
+                var_type: HirType::Int,
+                initializer: Some(HirExpression::IntLiteral(2)),
+            },
+            HirStatement::Return(Some(HirExpression::ArrayIndex {
+                array: Box::new(HirExpression::NullLiteral),
+                index: Box::new(HirExpression::Variable("idx".to_string())),
+            })),
+        ],
+    );
+
+    let analyzer = LifetimeAnalyzer::new();
+    let scope_tree = analyzer.build_scope_tree(&func);
+    let lifetimes = analyzer.track_lifetimes(&func, &scope_tree);
+
+    assert!(
+        lifetimes["idx"].escapes,
+        "Variable used as array index should be detected as escaping"
+    );
+}
+
+#[test]
+fn test_expression_uses_variable_literal_returns_false() {
+    // Cover literal branches: IntLiteral, FloatLiteral, StringLiteral, CharLiteral, NullLiteral, Sizeof
+    // A variable NOT used in any of these expressions should NOT escape
+    let func = HirFunction::new_with_body(
+        "literal_test".to_string(),
+        HirType::Int,
+        vec![],
+        vec![
+            HirStatement::VariableDeclaration {
+                name: "unused".to_string(),
+                var_type: HirType::Int,
+                initializer: Some(HirExpression::IntLiteral(100)),
+            },
+            HirStatement::Return(Some(HirExpression::IntLiteral(42))),
+        ],
+    );
+
+    let analyzer = LifetimeAnalyzer::new();
+    let scope_tree = analyzer.build_scope_tree(&func);
+    let lifetimes = analyzer.track_lifetimes(&func, &scope_tree);
+
+    assert!(
+        !lifetimes["unused"].escapes,
+        "Variable not in return expression should not escape"
+    );
+}
+
+#[test]
+fn test_check_if_escapes_no_return() {
+    // Cover check_if_escapes with Return(None) and non-Return statements
+    let func = HirFunction::new_with_body(
+        "no_return_test".to_string(),
+        HirType::Void,
+        vec![],
+        vec![
+            HirStatement::VariableDeclaration {
+                name: "x".to_string(),
+                var_type: HirType::Int,
+                initializer: Some(HirExpression::IntLiteral(5)),
+            },
+            HirStatement::Return(None),
+        ],
+    );
+
+    let analyzer = LifetimeAnalyzer::new();
+    let scope_tree = analyzer.build_scope_tree(&func);
+    let lifetimes = analyzer.track_lifetimes(&func, &scope_tree);
+
+    assert!(
+        !lifetimes["x"].escapes,
+        "Variable should not escape when Return(None)"
+    );
+}
+
+#[test]
+fn test_is_nested_in_nonexistent_scope() {
+    // Cover the None branch in is_nested_in when scope doesn't exist
+    let tree = ScopeTree::new();
+    // Checking a non-existent inner scope should return false
+    assert!(!tree.is_nested_in(999, 0));
+}
+
+#[test]
+fn test_analyze_statements_other_statement_types() {
+    // Cover the _ => { index += 1; } branch in analyze_statements
+    // Use statements that don't match VariableDeclaration, If, or While
+    let func = HirFunction::new_with_body(
+        "misc_stmts".to_string(),
+        HirType::Void,
+        vec![],
+        vec![
+            HirStatement::Break,
+            HirStatement::Continue,
+            HirStatement::Expression(HirExpression::IntLiteral(42)),
+            HirStatement::Assignment {
+                target: "x".to_string(),
+                value: HirExpression::IntLiteral(0),
+            },
+        ],
+    );
+
+    let analyzer = LifetimeAnalyzer::new();
+    let scope_tree = analyzer.build_scope_tree(&func);
+
+    // Should still have root scope, no crashes
+    assert_eq!(scope_tree.scopes().len(), 1);
+}
+
+#[test]
+fn test_compound_literal_no_variable_usage() {
+    // Cover CompoundLiteral branch returning false when variable not present
+    let func = HirFunction::new_with_body(
+        "compound_no_var".to_string(),
+        HirType::Struct("Point".to_string()),
+        vec![],
+        vec![
+            HirStatement::VariableDeclaration {
+                name: "unused".to_string(),
+                var_type: HirType::Int,
+                initializer: Some(HirExpression::IntLiteral(0)),
+            },
+            HirStatement::Return(Some(HirExpression::CompoundLiteral {
+                literal_type: HirType::Struct("Point".to_string()),
+                initializers: vec![
+                    HirExpression::IntLiteral(1),
+                    HirExpression::IntLiteral(2),
+                ],
+            })),
+        ],
+    );
+
+    let analyzer = LifetimeAnalyzer::new();
+    let scope_tree = analyzer.build_scope_tree(&func);
+    let lifetimes = analyzer.track_lifetimes(&func, &scope_tree);
+
+    assert!(
+        !lifetimes["unused"].escapes,
+        "Variable not in compound literal should not escape"
+    );
+}
+
+#[test]
+fn test_function_call_no_matching_variable_args() {
+    // Cover FunctionCall branch when variable is not among arguments
+    let func = HirFunction::new_with_body(
+        "call_no_match".to_string(),
+        HirType::Int,
+        vec![],
+        vec![
+            HirStatement::VariableDeclaration {
+                name: "v".to_string(),
+                var_type: HirType::Int,
+                initializer: Some(HirExpression::IntLiteral(0)),
+            },
+            HirStatement::Return(Some(HirExpression::FunctionCall {
+                function: "foo".to_string(),
+                arguments: vec![HirExpression::IntLiteral(99)],
+            })),
+        ],
+    );
+
+    let analyzer = LifetimeAnalyzer::new();
+    let scope_tree = analyzer.build_scope_tree(&func);
+    let lifetimes = analyzer.track_lifetimes(&func, &scope_tree);
+
+    assert!(
+        !lifetimes["v"].escapes,
+        "Variable not in function call args should not escape"
+    );
+}
+
+#[test]
+fn test_track_lifetimes_empty_function() {
+    // Cover empty function body with no variables
+    let func = HirFunction::new_with_body(
+        "empty".to_string(),
+        HirType::Void,
+        vec![],
+        vec![],
+    );
+
+    let analyzer = LifetimeAnalyzer::new();
+    let scope_tree = analyzer.build_scope_tree(&func);
+    let lifetimes = analyzer.track_lifetimes(&func, &scope_tree);
+
+    assert!(lifetimes.is_empty(), "Empty function should have no lifetimes");
+}
+
+#[test]
+fn test_detect_dangling_pointers_empty_lifetimes() {
+    // Cover detect_dangling_pointers with empty map
+    let analyzer = LifetimeAnalyzer::new();
+    let lifetimes = HashMap::new();
+    let dangling = analyzer.detect_dangling_pointers(&lifetimes);
+    assert!(dangling.is_empty());
+}
+
+#[test]
+fn test_detect_dangling_pointers_non_escaping_nested() {
+    // Variable in nested scope but does NOT escape should NOT be flagged
+    let mut lifetimes = HashMap::new();
+    lifetimes.insert(
+        "x".to_string(),
+        VariableLifetime {
+            name: "x".to_string(),
+            declared_in_scope: 2,
+            first_use: 3,
+            last_use: 5,
+            escapes: false,
+        },
+    );
+
+    let analyzer = LifetimeAnalyzer::new();
+    let dangling = analyzer.detect_dangling_pointers(&lifetimes);
+    assert!(dangling.is_empty(), "Non-escaping variable should not be flagged");
+}
+
+#[test]
+fn test_infer_lifetime_relationships_empty_lifetimes() {
+    // Cover empty lifetimes map in infer_lifetime_relationships
+    let analyzer = LifetimeAnalyzer::new();
+    let tree = ScopeTree::new();
+    let lifetimes = HashMap::new();
+    let relationships = analyzer.infer_lifetime_relationships(&lifetimes, &tree);
+    assert!(relationships.is_empty());
+}
+
+#[test]
+fn test_infer_lifetime_relationships_single_variable() {
+    // Single variable should produce no pairs
+    let analyzer = LifetimeAnalyzer::new();
+    let tree = ScopeTree::new();
+    let mut lifetimes = HashMap::new();
+    lifetimes.insert(
+        "only".to_string(),
+        VariableLifetime {
+            name: "only".to_string(),
+            declared_in_scope: 0,
+            first_use: 0,
+            last_use: 5,
+            escapes: false,
+        },
+    );
+    let relationships = analyzer.infer_lifetime_relationships(&lifetimes, &tree);
+    assert!(relationships.is_empty(), "Single variable should have no relationships");
+}
+
+#[test]
+fn test_compare_lifetimes_outlived_by() {
+    // Test the OutlivedBy branch: scope1 is nested in scope2
+    let mut tree = ScopeTree::new();
+    let inner_scope = tree.add_scope(0, (1, 5));
+    tree.add_variable(0, "outer".to_string());
+    tree.add_variable(inner_scope, "inner".to_string());
+
+    let analyzer = LifetimeAnalyzer::new();
+    let mut lifetimes = HashMap::new();
+    lifetimes.insert(
+        "inner".to_string(),
+        VariableLifetime {
+            name: "inner".to_string(),
+            declared_in_scope: inner_scope,
+            first_use: 1,
+            last_use: 5,
+            escapes: false,
+        },
+    );
+    lifetimes.insert(
+        "outer".to_string(),
+        VariableLifetime {
+            name: "outer".to_string(),
+            declared_in_scope: 0,
+            first_use: 0,
+            last_use: 10,
+            escapes: false,
+        },
+    );
+
+    let relationships = analyzer.infer_lifetime_relationships(&lifetimes, &tree);
+
+    // One of the pairs should show Outlives or OutlivedBy
+    let has_outlives_or_outlived_by = relationships.values().any(|r| {
+        matches!(r, LifetimeRelation::Outlives | LifetimeRelation::OutlivedBy)
+    });
+    assert!(has_outlives_or_outlived_by, "Should detect Outlives/OutlivedBy relationship");
+}
+
+#[test]
+fn test_while_loop_with_nested_if_and_variables() {
+    // Cover complex nesting: while containing if with else
+    let func = HirFunction::new_with_body(
+        "complex_loop".to_string(),
+        HirType::Void,
+        vec![],
+        vec![
+            HirStatement::While {
+                condition: HirExpression::IntLiteral(1),
+                body: vec![
+                    HirStatement::VariableDeclaration {
+                        name: "loop_var".to_string(),
+                        var_type: HirType::Int,
+                        initializer: Some(HirExpression::IntLiteral(0)),
+                    },
+                    HirStatement::If {
+                        condition: HirExpression::Variable("loop_var".to_string()),
+                        then_block: vec![
+                            HirStatement::VariableDeclaration {
+                                name: "then_v".to_string(),
+                                var_type: HirType::Int,
+                                initializer: Some(HirExpression::IntLiteral(1)),
+                            },
+                        ],
+                        else_block: Some(vec![
+                            HirStatement::VariableDeclaration {
+                                name: "else_v".to_string(),
+                                var_type: HirType::Int,
+                                initializer: Some(HirExpression::IntLiteral(2)),
+                            },
+                        ]),
+                    },
+                ],
+            },
+        ],
+    );
+
+    let analyzer = LifetimeAnalyzer::new();
+    let scope_tree = analyzer.build_scope_tree(&func);
+
+    // Should have: root, while-body, then-block, else-block = 4 scopes
+    assert!(
+        scope_tree.scopes().len() >= 4,
+        "Should have scopes for root, while, then, and else. Got {}",
+        scope_tree.scopes().len()
+    );
+}
+
+#[test]
+fn test_deeply_nested_scopes_is_nested_in() {
+    // Cover multi-level ancestor chain traversal in is_nested_in
+    let mut tree = ScopeTree::new();
+    let level1 = tree.add_scope(0, (1, 10));
+    let level2 = tree.add_scope(level1, (2, 8));
+    let level3 = tree.add_scope(level2, (3, 6));
+
+    // level3 is nested in level1 (grandchild)
+    assert!(tree.is_nested_in(level3, level1));
+    // level3 is nested in root
+    assert!(tree.is_nested_in(level3, 0));
+    // root is NOT nested in level3
+    assert!(!tree.is_nested_in(0, level3));
+    // level1 is NOT nested in level3
+    assert!(!tree.is_nested_in(level1, level3));
+}
+
+#[test]
+fn test_string_method_call_no_match() {
+    // Cover StringMethodCall branch when variable is NOT in receiver or args
+    let func = HirFunction::new_with_body(
+        "str_no_match".to_string(),
+        HirType::Int,
+        vec![],
+        vec![
+            HirStatement::VariableDeclaration {
+                name: "unused".to_string(),
+                var_type: HirType::Int,
+                initializer: Some(HirExpression::IntLiteral(0)),
+            },
+            HirStatement::Return(Some(HirExpression::StringMethodCall {
+                receiver: Box::new(HirExpression::StringLiteral("test".to_string())),
+                method: "len".to_string(),
+                arguments: vec![HirExpression::IntLiteral(0)],
+            })),
+        ],
+    );
+
+    let analyzer = LifetimeAnalyzer::new();
+    let scope_tree = analyzer.build_scope_tree(&func);
+    let lifetimes = analyzer.track_lifetimes(&func, &scope_tree);
+
+    assert!(
+        !lifetimes["unused"].escapes,
+        "Variable not in string method call should not escape"
+    );
+}
+
+#[test]
+fn test_realloc_variable_not_present() {
+    // Cover Realloc branch when variable is NOT in pointer or new_size
+    let func = HirFunction::new_with_body(
+        "realloc_no_var".to_string(),
+        HirType::Pointer(Box::new(HirType::Int)),
+        vec![],
+        vec![
+            HirStatement::VariableDeclaration {
+                name: "unused".to_string(),
+                var_type: HirType::Int,
+                initializer: Some(HirExpression::IntLiteral(0)),
+            },
+            HirStatement::Return(Some(HirExpression::Realloc {
+                pointer: Box::new(HirExpression::NullLiteral),
+                new_size: Box::new(HirExpression::IntLiteral(100)),
+            })),
+        ],
+    );
+
+    let analyzer = LifetimeAnalyzer::new();
+    let scope_tree = analyzer.build_scope_tree(&func);
+    let lifetimes = analyzer.track_lifetimes(&func, &scope_tree);
+
+    assert!(
+        !lifetimes["unused"].escapes,
+        "Variable not in realloc should not escape"
+    );
+}
