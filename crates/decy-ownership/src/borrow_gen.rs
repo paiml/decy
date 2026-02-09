@@ -954,3 +954,7 @@ impl Default for BorrowGenerator {
 #[cfg(test)]
 #[path = "borrow_gen_tests.rs"]
 mod borrow_gen_tests;
+
+#[cfg(test)]
+#[path = "borrow_transform_tests.rs"]
+mod borrow_transform_tests;

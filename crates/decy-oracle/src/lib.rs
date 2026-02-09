@@ -72,3 +72,7 @@ pub use trace_verifier::{TraceVerifier, VerificationLevel, VerifierConfig};
 
 #[cfg(feature = "citl")]
 pub use corpus_citl::{CFeature, CorpusCITL, IngestionStats};
+
+#[cfg(test)]
+#[path = "bootstrap_coverage_tests.rs"]
+mod bootstrap_coverage_tests;
