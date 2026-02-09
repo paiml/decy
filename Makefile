@@ -299,6 +299,25 @@ quality-gates: ## Run all quality gates (pre-commit checks)
 		export LIBCLANG_PATH=/usr/lib/llvm-14/lib; \
 	fi && ./scripts/quality-gates.sh
 
+##@ Improvement Infrastructure (DECY-191 through DECY-197)
+
+convergence: ## DECY-191: Run corpus convergence measurement
+	@echo "📊 Running corpus convergence measurement..."
+	@chmod +x ./scripts/convergence.sh
+	@./scripts/convergence.sh
+
+validate-equivalence: ## DECY-195: Run semantic equivalence validation
+	@echo "📊 Running semantic equivalence validation..."
+	@chmod +x ./scripts/validate-equivalence.sh
+	@./scripts/validate-equivalence.sh
+
+determinism: ## DECY-194: Run deterministic output tests
+	@echo "🔒 Running determinism tests..."
+	@if [ -f /etc/debian_version ]; then \
+		export LLVM_CONFIG_PATH=/usr/bin/llvm-config-14; \
+		export LIBCLANG_PATH=/usr/lib/llvm-14/lib; \
+	fi && cargo test -p decy-core --test determinism_tests -- --nocapture
+
 ##@ Performance Validation (Renacer)
 
 renacer-install: ## Install Renacer from crates.io
