@@ -1460,3 +1460,7 @@ pub fn default_pattern_library() -> PatternLibrary {
 
     library
 }
+
+#[cfg(test)]
+#[path = "ml_features_coverage_tests.rs"]
+mod ml_features_coverage_tests;
