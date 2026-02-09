@@ -105,3 +105,5 @@ pub use classifier_integration::{
 
 #[cfg(test)]
 mod ml_features_tests;
+#[cfg(test)]
+mod ownership_coverage_tests;
