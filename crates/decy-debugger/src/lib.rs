@@ -150,5 +150,8 @@ mod tests {
 }
 
 #[cfg(test)]
+mod coverage_tests;
+
+#[cfg(test)]
 mod debugger_coverage_tests;
 
