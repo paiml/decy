@@ -18,7 +18,6 @@
 use super::*;
 use decy_hir::{
     BinaryOperator, HirExpression, HirFunction, HirParameter, HirStatement, HirType, SwitchCase,
-    UnaryOperator,
 };
 
 // ============================================================================
