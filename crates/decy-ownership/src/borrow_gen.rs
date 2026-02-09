@@ -554,6 +554,8 @@ impl BorrowGenerator {
             },
             // Statements that don't contain expressions
             HirStatement::Break | HirStatement::Continue => stmt.clone(),
+            // DECY-197: Inline assembly passes through unchanged
+            HirStatement::InlineAsm { .. } => stmt.clone(),
         }
     }
 
