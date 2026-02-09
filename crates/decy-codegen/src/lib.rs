@@ -7381,3 +7381,7 @@ mod format_specifier_tests;
 #[cfg(test)]
 #[path = "expression_coverage_tests.rs"]
 mod expression_coverage_tests;
+
+#[cfg(test)]
+#[path = "codegen_coverage_tests.rs"]
+mod codegen_coverage_tests;
