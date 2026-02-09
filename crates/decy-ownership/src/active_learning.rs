@@ -985,4 +985,459 @@ mod tests {
         let batch = learner.batch_for_labeling(3);
         assert_eq!(batch.len(), 3);
     }
+
+    // ========================================================================
+    // Additional coverage: margin sampling with fallback
+    // ========================================================================
+
+    #[test]
+    fn margin_sampling_with_fallback() {
+        let calc = UncertaintyCalculator::new();
+        let pred = OwnershipPrediction {
+            kind: InferredOwnership::Borrowed,
+            confidence: 0.6,
+            fallback: Some(InferredOwnership::Owned),
+        };
+
+        let score = calc.calculate(&pred, SelectionStrategy::MarginSampling);
+        // With fallback: margin = 0.6 - 0.6*0.8 = 0.12, score = 1 - 0.12 = 0.88
+        assert!(score > 0.5);
+    }
+
+    #[test]
+    fn margin_sampling_without_fallback() {
+        let calc = UncertaintyCalculator::new();
+        let pred = make_prediction(InferredOwnership::Borrowed, 0.6);
+
+        let score = calc.calculate(&pred, SelectionStrategy::MarginSampling);
+        // Without fallback: falls through to uncertainty sampling: 1 - 0.6 = 0.4
+        assert!((score - 0.4).abs() < 0.001);
+    }
+
+    // ========================================================================
+    // Additional coverage: entropy boundary values
+    // ========================================================================
+
+    #[test]
+    fn entropy_at_zero_confidence() {
+        let calc = UncertaintyCalculator::new();
+        let pred = make_prediction(InferredOwnership::Owned, 0.0);
+
+        let score = calc.calculate(&pred, SelectionStrategy::EntropySampling);
+        assert!((score - 0.0).abs() < 0.001); // p <= 0 returns 0
+    }
+
+    #[test]
+    fn entropy_at_one_confidence() {
+        let calc = UncertaintyCalculator::new();
+        let pred = make_prediction(InferredOwnership::Owned, 1.0);
+
+        let score = calc.calculate(&pred, SelectionStrategy::EntropySampling);
+        assert!((score - 0.0).abs() < 0.001); // p >= 1 returns 0
+    }
+
+    // ========================================================================
+    // Additional coverage: random sampling all InferredOwnership variants
+    // ========================================================================
+
+    #[test]
+    fn random_sampling_all_ownership_kinds() {
+        let calc = UncertaintyCalculator::new();
+        let kinds = vec![
+            InferredOwnership::Owned,
+            InferredOwnership::Borrowed,
+            InferredOwnership::BorrowedMut,
+            InferredOwnership::Shared,
+            InferredOwnership::RawPointer,
+            InferredOwnership::Vec,
+            InferredOwnership::Slice,
+            InferredOwnership::SliceMut,
+        ];
+
+        for kind in kinds {
+            let pred = make_prediction(kind, 0.5);
+            let score = calc.calculate(&pred, SelectionStrategy::Random);
+            assert!(score >= 0.0 && score <= 1.0);
+        }
+    }
+
+    // ========================================================================
+    // Additional coverage: UncertainSample with_source
+    // ========================================================================
+
+    #[test]
+    fn uncertain_sample_with_source() {
+        let features = OwnershipFeatures::default();
+        let pred = make_prediction(InferredOwnership::Borrowed, 0.4);
+        let sample = UncertainSample::new(
+            1,
+            "ptr",
+            features,
+            pred,
+            0.6,
+            SelectionStrategy::UncertaintySampling,
+        )
+        .with_source("test.c", 42);
+
+        assert_eq!(sample.source_file, Some("test.c".to_string()));
+        assert_eq!(sample.source_line, Some(42));
+    }
+
+    // ========================================================================
+    // Additional coverage: SampleQueue edge cases
+    // ========================================================================
+
+    #[test]
+    fn sample_queue_peek_next() {
+        let mut queue = SampleQueue::new(SelectionStrategy::UncertaintySampling);
+
+        assert!(queue.peek_next().is_none());
+
+        let sample = UncertainSample::new(
+            0,
+            "ptr",
+            OwnershipFeatures::default(),
+            make_prediction(InferredOwnership::Borrowed, 0.4),
+            0.6,
+            SelectionStrategy::UncertaintySampling,
+        );
+        queue.enqueue(sample);
+
+        assert!(queue.peek_next().is_some());
+        assert_eq!(queue.pending_count(), 1); // Not consumed
+    }
+
+    #[test]
+    fn sample_queue_clear_pending() {
+        let mut queue = SampleQueue::new(SelectionStrategy::UncertaintySampling);
+
+        for i in 0..3 {
+            let sample = UncertainSample::new(
+                0,
+                format!("ptr{}", i),
+                OwnershipFeatures::default(),
+                make_prediction(InferredOwnership::Borrowed, 0.4),
+                0.5,
+                SelectionStrategy::UncertaintySampling,
+            );
+            queue.enqueue(sample);
+        }
+
+        assert_eq!(queue.pending_count(), 3);
+        queue.clear_pending();
+        assert_eq!(queue.pending_count(), 0);
+    }
+
+    #[test]
+    fn sample_queue_take_labeled() {
+        let mut queue = SampleQueue::new(SelectionStrategy::UncertaintySampling);
+
+        let mut sample = UncertainSample::new(
+            1,
+            "ptr",
+            OwnershipFeatures::default(),
+            make_prediction(InferredOwnership::Borrowed, 0.4),
+            0.6,
+            SelectionStrategy::UncertaintySampling,
+        );
+        sample.apply_label(InferredOwnership::Owned);
+        queue.submit_labeled(sample);
+
+        assert_eq!(queue.labeled_count(), 1);
+        let taken = queue.take_labeled_samples();
+        assert_eq!(taken.len(), 1);
+        assert_eq!(queue.labeled_count(), 0);
+    }
+
+    #[test]
+    fn sample_queue_submit_unlabeled_rejected() {
+        let mut queue = SampleQueue::new(SelectionStrategy::UncertaintySampling);
+
+        let sample = UncertainSample::new(
+            1,
+            "ptr",
+            OwnershipFeatures::default(),
+            make_prediction(InferredOwnership::Borrowed, 0.4),
+            0.6,
+            SelectionStrategy::UncertaintySampling,
+        );
+        // Don't label it
+        queue.submit_labeled(sample);
+        assert_eq!(queue.labeled_count(), 0); // Rejected because unlabeled
+    }
+
+    #[test]
+    fn sample_queue_batch_from_empty() {
+        let mut queue = SampleQueue::new(SelectionStrategy::UncertaintySampling);
+        let batch = queue.batch_for_labeling(5);
+        assert!(batch.is_empty());
+    }
+
+    #[test]
+    fn sample_queue_batch_partial() {
+        let mut queue = SampleQueue::new(SelectionStrategy::UncertaintySampling);
+
+        for i in 0..2 {
+            let sample = UncertainSample::new(
+                0,
+                format!("ptr{}", i),
+                OwnershipFeatures::default(),
+                make_prediction(InferredOwnership::Borrowed, 0.4),
+                0.5,
+                SelectionStrategy::UncertaintySampling,
+            );
+            queue.enqueue(sample);
+        }
+
+        let batch = queue.batch_for_labeling(5);
+        assert_eq!(batch.len(), 2); // Only 2 available
+    }
+
+    #[test]
+    fn sample_queue_total_processed() {
+        let mut queue = SampleQueue::new(SelectionStrategy::UncertaintySampling);
+        assert_eq!(queue.total_processed(), 0);
+
+        for i in 0..3 {
+            let sample = UncertainSample::new(
+                0,
+                format!("ptr{}", i),
+                OwnershipFeatures::default(),
+                make_prediction(InferredOwnership::Borrowed, 0.4),
+                0.5,
+                SelectionStrategy::UncertaintySampling,
+            );
+            queue.enqueue(sample);
+        }
+        assert_eq!(queue.total_processed(), 3);
+    }
+
+    #[test]
+    fn sample_queue_get_labeled_samples() {
+        let queue = SampleQueue::new(SelectionStrategy::UncertaintySampling);
+        assert!(queue.get_labeled_samples().is_empty());
+    }
+
+    // ========================================================================
+    // Additional coverage: SampleQueue overflow (insert_pos >= max_pending)
+    // ========================================================================
+
+    #[test]
+    fn sample_queue_overflow_low_priority_dropped() {
+        let mut queue =
+            SampleQueue::new(SelectionStrategy::UncertaintySampling).with_max_pending(2);
+
+        // Add two high uncertainty samples
+        for u in [0.9, 0.8] {
+            let sample = UncertainSample::new(
+                0,
+                "ptr",
+                OwnershipFeatures::default(),
+                make_prediction(InferredOwnership::Borrowed, 0.4),
+                u,
+                SelectionStrategy::UncertaintySampling,
+            );
+            queue.enqueue(sample);
+        }
+
+        // Add very low uncertainty sample - should not be inserted
+        let low = UncertainSample::new(
+            0,
+            "low",
+            OwnershipFeatures::default(),
+            make_prediction(InferredOwnership::Borrowed, 0.4),
+            0.01,
+            SelectionStrategy::UncertaintySampling,
+        );
+        queue.enqueue(low);
+
+        assert_eq!(queue.pending_count(), 2);
+        // The low priority sample should NOT be in the queue
+        let first = queue.peek_next().unwrap();
+        assert!((first.uncertainty_score - 0.9).abs() < 0.01);
+    }
+
+    // ========================================================================
+    // Additional coverage: ActiveLearner with_confidence_threshold
+    // ========================================================================
+
+    #[test]
+    fn active_learner_with_confidence_threshold() {
+        let learner = ActiveLearner::new().with_confidence_threshold(0.8);
+        let high = make_prediction(InferredOwnership::Owned, 0.75);
+        assert!(learner.is_uncertain(&high)); // Below 0.8
+
+        let very_high = make_prediction(InferredOwnership::Owned, 0.85);
+        assert!(!learner.is_uncertain(&very_high)); // Above 0.8
+    }
+
+    #[test]
+    fn active_learner_take_training_samples() {
+        let mut learner = ActiveLearner::new().with_min_uncertainty(0.2);
+
+        let features = OwnershipFeatures::default();
+        let pred = make_prediction(InferredOwnership::Borrowed, 0.4);
+        learner.process_prediction("ptr", features, pred);
+
+        let mut sample = learner.next_for_labeling().unwrap();
+        sample.apply_label(InferredOwnership::Owned);
+        learner.submit_labeled(sample);
+
+        let training = learner.take_training_samples();
+        assert_eq!(training.len(), 1);
+        assert!(learner.get_training_samples().is_empty()); // Moved out
+    }
+
+    // ========================================================================
+    // Additional coverage: SampleQueue stats with no labeled
+    // ========================================================================
+
+    #[test]
+    fn sample_queue_stats_empty() {
+        let queue = SampleQueue::new(SelectionStrategy::UncertaintySampling);
+        let stats = queue.stats();
+        assert_eq!(stats.pending, 0);
+        assert_eq!(stats.labeled, 0);
+        assert_eq!(stats.total_processed, 0);
+        assert!((stats.avg_uncertainty - 0.0).abs() < 0.001);
+        assert!((stats.prediction_accuracy - 0.0).abs() < 0.001);
+    }
+
+    #[test]
+    fn sample_queue_stats_with_incorrect_prediction() {
+        let mut queue = SampleQueue::new(SelectionStrategy::UncertaintySampling);
+
+        let mut sample = UncertainSample::new(
+            0,
+            "ptr",
+            OwnershipFeatures::default(),
+            make_prediction(InferredOwnership::Borrowed, 0.4),
+            0.6,
+            SelectionStrategy::UncertaintySampling,
+        );
+        sample.apply_label(InferredOwnership::Owned); // Different from prediction
+        queue.submit_labeled(sample);
+
+        let stats = queue.stats();
+        assert!((stats.prediction_accuracy - 0.0).abs() < 0.001); // 0% accurate
+    }
+
+    // ========================================================================
+    // Additional coverage: UncertaintyCalculator custom threshold
+    // ========================================================================
+
+    #[test]
+    fn uncertainty_calculator_custom_threshold_clamp() {
+        let calc = UncertaintyCalculator::with_confidence_threshold(2.0);
+        assert!((calc.confidence_threshold - 1.0).abs() < 0.001);
+
+        let calc2 = UncertaintyCalculator::with_confidence_threshold(-1.0);
+        assert!((calc2.confidence_threshold - 0.0).abs() < 0.001);
+    }
+
+    // ========================================================================
+    // Additional coverage: SampleQueue default
+    // ========================================================================
+
+    #[test]
+    fn sample_queue_default() {
+        let queue = SampleQueue::default();
+        assert_eq!(queue.strategy(), SelectionStrategy::UncertaintySampling);
+    }
+
+    #[test]
+    fn active_learner_default() {
+        let learner = ActiveLearner::default();
+        let stats = learner.stats();
+        assert_eq!(stats.pending, 0);
+    }
+
+    // ========================================================================
+    // Additional coverage: uncertain sample uncertainty clamp
+    // ========================================================================
+
+    #[test]
+    fn uncertain_sample_clamp_high() {
+        let sample = UncertainSample::new(
+            1,
+            "ptr",
+            OwnershipFeatures::default(),
+            make_prediction(InferredOwnership::Borrowed, 0.4),
+            1.5, // Over 1.0
+            SelectionStrategy::UncertaintySampling,
+        );
+        assert!((sample.uncertainty_score - 1.0).abs() < 0.001);
+    }
+
+    #[test]
+    fn uncertain_sample_clamp_low() {
+        let sample = UncertainSample::new(
+            1,
+            "ptr",
+            OwnershipFeatures::default(),
+            make_prediction(InferredOwnership::Borrowed, 0.4),
+            -0.5, // Below 0.0
+            SelectionStrategy::UncertaintySampling,
+        );
+        assert!((sample.uncertainty_score - 0.0).abs() < 0.001);
+    }
+
+    // ========================================================================
+    // Additional coverage: ActiveLearner with_min_uncertainty clamp
+    // ========================================================================
+
+    #[test]
+    fn active_learner_min_uncertainty_clamp() {
+        let learner = ActiveLearner::new().with_min_uncertainty(2.0);
+        // Should be clamped to 1.0
+        let features = OwnershipFeatures::default();
+        let pred = make_prediction(InferredOwnership::Borrowed, 0.01);
+        let mut learner2 = learner;
+        let (_, queued) = learner2.process_prediction("ptr", features, pred);
+        // 1.0 - 0.01 = 0.99 < 1.0 (min_uncertainty), so NOT queued
+        assert!(!queued);
+    }
+
+    // ========================================================================
+    // Additional coverage: process_prediction with MarginSampling strategy
+    // ========================================================================
+
+    #[test]
+    fn active_learner_process_with_margin_strategy() {
+        let mut learner =
+            ActiveLearner::with_strategy(SelectionStrategy::MarginSampling).with_min_uncertainty(0.2);
+
+        let features = OwnershipFeatures::default();
+        let pred = OwnershipPrediction {
+            kind: InferredOwnership::Borrowed,
+            confidence: 0.4,
+            fallback: Some(InferredOwnership::Owned),
+        };
+        let (_, queued) = learner.process_prediction("ptr", features, pred);
+        assert!(queued);
+    }
+
+    #[test]
+    fn active_learner_process_with_entropy_strategy() {
+        let mut learner =
+            ActiveLearner::with_strategy(SelectionStrategy::EntropySampling).with_min_uncertainty(0.2);
+
+        let features = OwnershipFeatures::default();
+        let pred = make_prediction(InferredOwnership::Borrowed, 0.5);
+        let (uncertainty, queued) = learner.process_prediction("ptr", features, pred);
+        assert!((uncertainty - 1.0).abs() < 0.001); // max entropy at 0.5
+        assert!(queued);
+    }
+
+    #[test]
+    fn active_learner_process_with_random_strategy() {
+        let mut learner =
+            ActiveLearner::with_strategy(SelectionStrategy::Random).with_min_uncertainty(0.0);
+
+        let features = OwnershipFeatures::default();
+        let pred = make_prediction(InferredOwnership::Borrowed, 0.5);
+        let (uncertainty, queued) = learner.process_prediction("ptr", features, pred);
+        assert!(uncertainty >= 0.0 && uncertainty <= 1.0);
+        assert!(queued);
+    }
 }

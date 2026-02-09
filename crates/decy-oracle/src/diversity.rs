@@ -731,4 +731,380 @@ mod tests {
         assert!(metrics.js_divergence < 0.001);
         assert!((metrics.coverage_ratio - 1.0).abs() < 0.001); // Empty = fully covered
     }
+
+    // ========================================================================
+    // Additional coverage: analyze_corpus with temp dir
+    // ========================================================================
+
+    #[test]
+    fn test_analyze_corpus_with_c_files() {
+        let dir = tempfile::tempdir().unwrap();
+        // Create a C file with various constructs
+        std::fs::write(
+            dir.path().join("test.c"),
+            r#"
+            #include <stdlib.h>
+            struct Point { int x; int y; };
+            typedef int myint;
+            int main() {
+                int *p = malloc(sizeof(int));
+                char *s = "hello";
+                for (int i = 0; i < 10; i++) {}
+                while (1) { break; }
+                switch (0) { case 0: break; }
+                goto end;
+                end:
+                free(p);
+                return 0;
+            }
+            "#,
+        )
+        .unwrap();
+
+        let hist = analyze_corpus(dir.path()).unwrap();
+        assert_eq!(hist.total_files, 1);
+        assert!(hist.total_loc > 0);
+        assert!(hist.construct_coverage.contains_key(&CConstruct::MallocFree));
+        assert!(hist.construct_coverage.contains_key(&CConstruct::RawPointer));
+        assert!(hist.construct_coverage.contains_key(&CConstruct::Struct));
+        assert!(hist.construct_coverage.contains_key(&CConstruct::Typedef));
+        assert!(hist.construct_coverage.contains_key(&CConstruct::ForLoop));
+        assert!(hist.construct_coverage.contains_key(&CConstruct::WhileLoop));
+        assert!(hist.construct_coverage.contains_key(&CConstruct::Switch));
+        assert!(hist.construct_coverage.contains_key(&CConstruct::Goto));
+    }
+
+    #[test]
+    fn test_analyze_corpus_empty_dir() {
+        let dir = tempfile::tempdir().unwrap();
+        let hist = analyze_corpus(dir.path()).unwrap();
+        assert_eq!(hist.total_files, 0);
+        assert_eq!(hist.total_loc, 0);
+    }
+
+    #[test]
+    fn test_analyze_corpus_no_constructs() {
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::write(dir.path().join("simple.c"), "int main() { return 0; }\n").unwrap();
+        let hist = analyze_corpus(dir.path()).unwrap();
+        assert_eq!(hist.total_files, 1);
+        assert!(hist.total_loc > 0);
+        // No special constructs detected
+        assert!(!hist.construct_coverage.contains_key(&CConstruct::MallocFree));
+    }
+
+    // ========================================================================
+    // Additional coverage: to_report paths
+    // ========================================================================
+
+    #[test]
+    fn test_report_no_comparisons() {
+        let hist = ErrorHistogram::new();
+        let validation = DiversityValidation::new(hist);
+        let report = validation.to_report();
+        assert!(report.contains("No comparison corpora provided"));
+        assert!(report.contains("PASSED"));
+    }
+
+    #[test]
+    fn test_report_with_passing_comparison() {
+        let mut primary = ErrorHistogram::new();
+        primary.total_files = 5;
+        primary.total_loc = 500;
+        primary.record_error("E0382");
+        primary.record_error("E0499");
+
+        let mut comparison = ErrorHistogram::new();
+        comparison.record_error("E0382");
+        comparison.record_error("E0499");
+
+        let mut validation = DiversityValidation::new(primary);
+        validation.add_comparison("similar", comparison, &DiversityConfig::default());
+
+        let report = validation.to_report();
+        assert!(report.contains("Comparison Results"));
+        assert!(report.contains("similar"));
+        assert!(report.contains("PASS"));
+        assert!(report.contains("PASSED"));
+    }
+
+    #[test]
+    fn test_report_with_failing_comparison() {
+        let mut primary = ErrorHistogram::new();
+        primary.record_error("E0382");
+
+        let mut comparison = ErrorHistogram::new();
+        comparison.record_error("E9999");
+
+        let config = DiversityConfig {
+            max_js_divergence: 0.01, // Very strict
+            min_coverage_ratio: 0.99,
+            min_error_codes: 1,
+        };
+
+        let mut validation = DiversityValidation::new(primary);
+        validation.add_comparison("different", comparison, &config);
+
+        let report = validation.to_report();
+        assert!(report.contains("FAILED"));
+        assert!(report.contains("Issues:"));
+    }
+
+    // ========================================================================
+    // Additional coverage: add_comparison threshold paths
+    // ========================================================================
+
+    #[test]
+    fn test_add_comparison_coverage_ratio_below_threshold() {
+        let mut primary = ErrorHistogram::new();
+        primary.record_error("E0382");
+        primary.record_error("E0499");
+        primary.record_error("E0597");
+
+        let mut comparison = ErrorHistogram::new();
+        comparison.record_error("E0308"); // Completely different
+
+        let config = DiversityConfig {
+            max_js_divergence: 1.0, // Very lenient on divergence
+            min_coverage_ratio: 0.9, // Strict on coverage
+            min_error_codes: 1,
+        };
+
+        let mut validation = DiversityValidation::new(primary);
+        validation.add_comparison("low_coverage", comparison, &config);
+
+        assert!(!validation.passed);
+        assert!(validation.issues.iter().any(|i| i.contains("Coverage ratio")));
+    }
+
+    #[test]
+    fn test_add_comparison_js_divergence_above_threshold() {
+        let mut primary = ErrorHistogram::new();
+        primary.record_error("E0382");
+
+        let mut comparison = ErrorHistogram::new();
+        comparison.record_error("E0308");
+
+        let config = DiversityConfig {
+            max_js_divergence: 0.001, // Very strict
+            min_coverage_ratio: 0.0,  // Lenient on coverage
+            min_error_codes: 1,
+        };
+
+        let mut validation = DiversityValidation::new(primary);
+        validation.add_comparison("divergent", comparison, &config);
+
+        assert!(!validation.passed);
+        assert!(validation.issues.iter().any(|i| i.contains("JS divergence")));
+    }
+
+    // ========================================================================
+    // Additional coverage: overlap edge cases
+    // ========================================================================
+
+    #[test]
+    fn test_compare_one_empty_one_nonempty() {
+        let hist1 = ErrorHistogram::new();
+        let mut hist2 = ErrorHistogram::new();
+        hist2.record_error("E0382");
+
+        let metrics = compare_histograms(&hist1, &hist2);
+        assert_eq!(metrics.overlap, 0.0);
+        assert_eq!(metrics.shared_error_codes, 0);
+    }
+
+    #[test]
+    fn test_compare_completely_disjoint() {
+        let mut hist1 = ErrorHistogram::new();
+        hist1.record_error("E0382");
+        hist1.record_error("E0505");
+
+        let mut hist2 = ErrorHistogram::new();
+        hist2.record_error("E0308");
+        hist2.record_error("E0277");
+
+        let metrics = compare_histograms(&hist1, &hist2);
+        assert_eq!(metrics.shared_error_codes, 0);
+        assert!(metrics.coverage_ratio < 0.01);
+        assert!(!metrics.is_acceptable());
+    }
+
+    // ========================================================================
+    // Additional coverage: kl_divergence edge cases
+    // ========================================================================
+
+    #[test]
+    fn test_kl_divergence_with_zeros_in_p() {
+        let mut p = HashMap::new();
+        p.insert("A".to_string(), 0.0);
+        p.insert("B".to_string(), 1.0);
+
+        let mut q = HashMap::new();
+        q.insert("A".to_string(), 0.5);
+        q.insert("B".to_string(), 0.5);
+
+        let keys: std::collections::HashSet<_> = p.keys().chain(q.keys()).cloned().collect();
+        let kl = kl_divergence_safe(&p, &q, &keys);
+        // p("A") = 0, so that term should be 0. Only "B" contributes.
+        assert!(kl > 0.0);
+    }
+
+    #[test]
+    fn test_kl_divergence_empty_keys() {
+        let p = HashMap::new();
+        let q = HashMap::new();
+        let keys = std::collections::HashSet::new();
+        let kl = kl_divergence_safe(&p, &q, &keys);
+        assert!(kl < 0.001);
+    }
+
+    #[test]
+    fn test_js_divergence_empty_keys() {
+        let p = HashMap::new();
+        let q = HashMap::new();
+        let keys = std::collections::HashSet::new();
+        let js = jensen_shannon_divergence(&p, &q, &keys);
+        assert!(js < 0.001);
+    }
+
+    // ========================================================================
+    // Additional coverage: categorize_error remaining variants
+    // ========================================================================
+
+    #[test]
+    fn test_categorize_error_e0507() {
+        assert_eq!(categorize_error("E0507"), ErrorCategory::Ownership);
+    }
+
+    #[test]
+    fn test_categorize_error_e0500() {
+        assert_eq!(categorize_error("E0500"), ErrorCategory::Borrowing);
+    }
+
+    #[test]
+    fn test_categorize_error_e0623() {
+        assert_eq!(categorize_error("E0623"), ErrorCategory::Lifetime);
+    }
+
+    #[test]
+    fn test_categorize_error_e0106() {
+        assert_eq!(categorize_error("E0106"), ErrorCategory::Lifetime);
+    }
+
+    #[test]
+    fn test_categorize_error_e0369() {
+        assert_eq!(categorize_error("E0369"), ErrorCategory::Type);
+    }
+
+    // ========================================================================
+    // Additional coverage: construct enums
+    // ========================================================================
+
+    #[test]
+    fn test_all_construct_variants_recordable() {
+        let mut hist = ErrorHistogram::new();
+        let constructs = vec![
+            CConstruct::RawPointer,
+            CConstruct::Array,
+            CConstruct::MallocFree,
+            CConstruct::FunctionPointer,
+            CConstruct::Struct,
+            CConstruct::Union,
+            CConstruct::Enum,
+            CConstruct::Typedef,
+            CConstruct::Macro,
+            CConstruct::Goto,
+            CConstruct::Switch,
+            CConstruct::ForLoop,
+            CConstruct::WhileLoop,
+            CConstruct::DoWhile,
+        ];
+
+        for c in &constructs {
+            hist.record_construct(*c);
+        }
+        assert_eq!(hist.construct_coverage.len(), 14);
+    }
+
+    // ========================================================================
+    // Additional coverage: DiversityMetrics passes_threshold
+    // ========================================================================
+
+    #[test]
+    fn test_compare_histograms_passes_threshold_true() {
+        let mut h1 = ErrorHistogram::new();
+        h1.record_error("E0382");
+        h1.record_error("E0499");
+
+        let metrics = compare_histograms(&h1, &h1);
+        assert!(metrics.passes_threshold);
+    }
+
+    #[test]
+    fn test_compare_histograms_passes_threshold_false() {
+        let mut h1 = ErrorHistogram::new();
+        h1.record_error("E0382");
+
+        let mut h2 = ErrorHistogram::new();
+        h2.record_error("E9999");
+
+        let metrics = compare_histograms(&h1, &h2);
+        assert!(!metrics.passes_threshold);
+    }
+
+    // ========================================================================
+    // Additional coverage: DiversityConfig serialization
+    // ========================================================================
+
+    #[test]
+    fn test_diversity_config_serialize() {
+        let config = DiversityConfig::default();
+        let json = serde_json::to_string(&config).unwrap();
+        assert!(json.contains("max_js_divergence"));
+        let deserialized: DiversityConfig = serde_json::from_str(&json).unwrap();
+        assert!((deserialized.max_js_divergence - 0.15).abs() < 0.001);
+    }
+
+    #[test]
+    fn test_error_histogram_serialize() {
+        let mut hist = ErrorHistogram::new();
+        hist.total_files = 10;
+        hist.total_loc = 500;
+        hist.record_error("E0382");
+        hist.record_construct(CConstruct::RawPointer);
+
+        let json = serde_json::to_string(&hist).unwrap();
+        let deserialized: ErrorHistogram = serde_json::from_str(&json).unwrap();
+        assert_eq!(deserialized.total_files, 10);
+        assert_eq!(deserialized.total_errors(), 1);
+    }
+
+    #[test]
+    fn test_diversity_metrics_serialize() {
+        let metrics = DiversityMetrics {
+            js_divergence: 0.1,
+            kl_divergence: 0.2,
+            overlap: 0.8,
+            primary_unique_errors: 5,
+            comparison_unique_errors: 5,
+            shared_error_codes: 4,
+            coverage_ratio: 0.8,
+            passes_threshold: true,
+        };
+
+        let json = serde_json::to_string(&metrics).unwrap();
+        let deserialized: DiversityMetrics = serde_json::from_str(&json).unwrap();
+        assert!((deserialized.js_divergence - 0.1).abs() < 0.001);
+    }
+
+    #[test]
+    fn test_diversity_validation_serialize() {
+        let mut primary = ErrorHistogram::new();
+        primary.record_error("E0382");
+        let validation = DiversityValidation::new(primary);
+
+        let json = serde_json::to_string(&validation).unwrap();
+        let deserialized: DiversityValidation = serde_json::from_str(&json).unwrap();
+        assert!(deserialized.passed);
+    }
 }
