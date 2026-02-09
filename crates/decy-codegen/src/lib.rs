@@ -7397,3 +7397,7 @@ mod expression_target_type_tests;
 #[cfg(test)]
 #[path = "expression_deep_branch_tests.rs"]
 mod expression_deep_branch_tests;
+
+#[cfg(test)]
+#[path = "box_transform_coverage_tests.rs"]
+mod box_transform_coverage_tests;

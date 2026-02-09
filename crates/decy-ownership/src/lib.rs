@@ -104,6 +104,10 @@ pub use classifier_integration::{
 };
 
 #[cfg(test)]
+mod classifier_coverage_tests;
+#[cfg(test)]
+mod lifetime_gen_coverage_tests;
+#[cfg(test)]
 mod ml_features_tests;
 #[cfg(test)]
 mod model_versioning_coverage_tests;
