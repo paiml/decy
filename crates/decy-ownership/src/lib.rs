@@ -116,3 +116,5 @@ mod ownership_coverage_tests;
 #[cfg(test)]
 #[path = "pattern_library_tests.rs"]
 mod pattern_library_tests;
+#[cfg(test)]
+mod ab_testing_coverage_tests;
