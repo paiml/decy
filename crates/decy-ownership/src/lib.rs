@@ -118,3 +118,11 @@ mod ownership_coverage_tests;
 mod pattern_library_tests;
 #[cfg(test)]
 mod ab_testing_coverage_tests;
+#[cfg(test)]
+mod ml_stmt_coverage_tests;
+#[cfg(test)]
+mod model_versioning_deep_tests;
+#[cfg(test)]
+mod deep_coverage_tests;
+#[cfg(test)]
+mod pipeline_inference_tests;
