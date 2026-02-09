@@ -1803,6 +1803,10 @@ impl Default for StdlibPrototypes {
 }
 
 #[cfg(test)]
+#[path = "inject_prototype_tests.rs"]
+mod inject_prototype_tests;
+
+#[cfg(test)]
 mod tests {
     use super::*;
 
