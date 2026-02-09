@@ -253,3 +253,263 @@ fn test_disable_doc_test_generation() {
         "Should not generate doc tests when disabled"
     );
 }
+
+// ============================================================================
+// Additional coverage: default_test_value all type branches
+// ============================================================================
+
+#[test]
+fn test_default_test_value_void() {
+    assert_eq!(TestGenerator::default_test_value(&HirType::Void), "()");
+}
+
+#[test]
+fn test_default_test_value_int() {
+    assert_eq!(TestGenerator::default_test_value(&HirType::Int), "42");
+}
+
+#[test]
+fn test_default_test_value_unsigned_int() {
+    assert_eq!(
+        TestGenerator::default_test_value(&HirType::UnsignedInt),
+        "42u32"
+    );
+}
+
+#[test]
+fn test_default_test_value_float() {
+    assert_eq!(
+        TestGenerator::default_test_value(&HirType::Float),
+        "3.14"
+    );
+}
+
+#[test]
+fn test_default_test_value_double() {
+    assert_eq!(
+        TestGenerator::default_test_value(&HirType::Double),
+        "2.718"
+    );
+}
+
+#[test]
+fn test_default_test_value_char() {
+    assert_eq!(TestGenerator::default_test_value(&HirType::Char), "b'A'");
+}
+
+#[test]
+fn test_default_test_value_signed_char() {
+    assert_eq!(
+        TestGenerator::default_test_value(&HirType::SignedChar),
+        "65i8"
+    );
+}
+
+#[test]
+fn test_default_test_value_pointer() {
+    assert_eq!(
+        TestGenerator::default_test_value(&HirType::Pointer(Box::new(HirType::Int))),
+        "std::ptr::null_mut()"
+    );
+}
+
+#[test]
+fn test_default_test_value_box() {
+    assert_eq!(
+        TestGenerator::default_test_value(&HirType::Box(Box::new(HirType::Int))),
+        "Box::new(42)"
+    );
+}
+
+#[test]
+fn test_default_test_value_vec() {
+    assert_eq!(
+        TestGenerator::default_test_value(&HirType::Vec(Box::new(HirType::Int))),
+        "Vec::new()"
+    );
+}
+
+#[test]
+fn test_default_test_value_option() {
+    assert_eq!(
+        TestGenerator::default_test_value(&HirType::Option(Box::new(HirType::Int))),
+        "Some(42)"
+    );
+}
+
+#[test]
+fn test_default_test_value_reference() {
+    assert_eq!(
+        TestGenerator::default_test_value(&HirType::Reference {
+            inner: Box::new(HirType::Int),
+            mutable: false,
+        }),
+        "&42"
+    );
+}
+
+#[test]
+fn test_default_test_value_struct() {
+    assert_eq!(
+        TestGenerator::default_test_value(&HirType::Struct("Point".to_string())),
+        "Point::default()"
+    );
+}
+
+#[test]
+fn test_default_test_value_enum() {
+    assert_eq!(
+        TestGenerator::default_test_value(&HirType::Enum("Color".to_string())),
+        "Color::default()"
+    );
+}
+
+#[test]
+fn test_default_test_value_array_with_size() {
+    assert_eq!(
+        TestGenerator::default_test_value(&HirType::Array {
+            element_type: Box::new(HirType::Int),
+            size: Some(5),
+        }),
+        "[42; 5]"
+    );
+}
+
+#[test]
+fn test_default_test_value_array_unsized() {
+    assert_eq!(
+        TestGenerator::default_test_value(&HirType::Array {
+            element_type: Box::new(HirType::Int),
+            size: None,
+        }),
+        "&[]"
+    );
+}
+
+#[test]
+fn test_default_test_value_function_pointer() {
+    let result = TestGenerator::default_test_value(&HirType::FunctionPointer {
+        return_type: Box::new(HirType::Void),
+        param_types: vec![],
+    });
+    assert!(result.contains("todo!"));
+}
+
+#[test]
+fn test_default_test_value_string_literal() {
+    assert_eq!(
+        TestGenerator::default_test_value(&HirType::StringLiteral),
+        r#""test string""#
+    );
+}
+
+#[test]
+fn test_default_test_value_owned_string() {
+    assert_eq!(
+        TestGenerator::default_test_value(&HirType::OwnedString),
+        r#"String::from("test string")"#
+    );
+}
+
+#[test]
+fn test_default_test_value_string_reference() {
+    assert_eq!(
+        TestGenerator::default_test_value(&HirType::StringReference),
+        r#""test string""#
+    );
+}
+
+#[test]
+fn test_default_test_value_union() {
+    let result = TestGenerator::default_test_value(&HirType::Union(vec![
+        ("field1".to_string(), HirType::Int),
+    ]));
+    assert!(result.contains("todo!"));
+}
+
+#[test]
+fn test_default_test_value_type_alias() {
+    assert_eq!(
+        TestGenerator::default_test_value(&HirType::TypeAlias("size_t".to_string())),
+        "0"
+    );
+}
+
+// ============================================================================
+// Additional coverage: generate_tests with mutation disabled
+// ============================================================================
+
+#[test]
+fn test_mutation_config_disabled() {
+    let config = TestGenConfig {
+        generate_mutation_config: false,
+        ..Default::default()
+    };
+
+    let generator = TestGenerator::new(config);
+    let func = HirFunction::new("test".to_string(), HirType::Void, vec![]);
+    let tests = generator.generate_tests(&func);
+
+    assert!(tests.mutation_config.is_none());
+}
+
+// ============================================================================
+// Additional coverage: function with Box parameter (generates null test)
+// ============================================================================
+
+#[test]
+fn test_null_test_for_box_parameter() {
+    let generator = TestGenerator::new(TestGenConfig::default());
+
+    let func = HirFunction::new(
+        "process_box".to_string(),
+        HirType::Void,
+        vec![HirParameter::new(
+            "data".to_string(),
+            HirType::Box(Box::new(HirType::Int)),
+        )],
+    );
+
+    let tests = generator.generate_tests(&func);
+
+    let has_null_test = tests
+        .unit_tests
+        .iter()
+        .any(|t| t.contains("null") || t.contains("None"));
+
+    assert!(has_null_test, "Should generate null test for Box parameter");
+}
+
+// ============================================================================
+// Additional coverage: doc tests with no parameters
+// ============================================================================
+
+#[test]
+fn test_doc_tests_no_params() {
+    let generator = TestGenerator::new(TestGenConfig::default());
+
+    let func = HirFunction::new("get_value".to_string(), HirType::Int, vec![]);
+
+    let tests = generator.generate_tests(&func);
+    assert!(!tests.doc_tests.is_empty());
+    let doc_test = &tests.doc_tests[0];
+    assert!(doc_test.contains("get_value()"));
+}
+
+// ============================================================================
+// Additional coverage: config equality
+// ============================================================================
+
+#[test]
+fn test_config_clone_and_eq() {
+    let config = TestGenConfig::default();
+    let clone = config.clone();
+    assert_eq!(config, clone);
+}
+
+#[test]
+fn test_config_debug_format() {
+    let config = TestGenConfig::default();
+    let debug = format!("{:?}", config);
+    assert!(debug.contains("TestGenConfig"));
+}
