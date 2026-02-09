@@ -313,4 +313,197 @@ mod tests {
             Some(&2)
         );
     }
+
+    // ============================================================================
+    // Additional coverage: Display impls
+    // ============================================================================
+
+    #[test]
+    fn test_pipeline_stage_display_all_variants() {
+        assert_eq!(format!("{}", PipelineStage::Parsing), "parsing");
+        assert_eq!(format!("{}", PipelineStage::HirConversion), "hir_conversion");
+        assert_eq!(
+            format!("{}", PipelineStage::OwnershipInference),
+            "ownership_inference"
+        );
+        assert_eq!(
+            format!("{}", PipelineStage::LifetimeAnalysis),
+            "lifetime_analysis"
+        );
+        assert_eq!(
+            format!("{}", PipelineStage::CodeGeneration),
+            "code_generation"
+        );
+    }
+
+    #[test]
+    fn test_decision_type_display_all_variants() {
+        assert_eq!(
+            format!("{}", DecisionType::PointerClassification),
+            "pointer_classification"
+        );
+        assert_eq!(format!("{}", DecisionType::TypeMapping), "type_mapping");
+        assert_eq!(
+            format!("{}", DecisionType::SafetyTransformation),
+            "safety_transformation"
+        );
+        assert_eq!(
+            format!("{}", DecisionType::LifetimeAnnotation),
+            "lifetime_annotation"
+        );
+        assert_eq!(
+            format!("{}", DecisionType::PatternDetection),
+            "pattern_detection"
+        );
+        assert_eq!(
+            format!("{}", DecisionType::SignatureTransformation),
+            "signature_transformation"
+        );
+    }
+
+    // ============================================================================
+    // Additional coverage: edge cases
+    // ============================================================================
+
+    #[test]
+    fn test_trace_summary_empty() {
+        let collector = TraceCollector::new();
+        let summary = collector.summary();
+        assert_eq!(summary.total_decisions, 0);
+        assert_eq!(summary.avg_confidence, 0.0);
+        assert!(summary.decisions_by_stage.is_empty());
+    }
+
+    #[test]
+    fn test_trace_collector_entries_for_stage_no_match() {
+        let mut collector = TraceCollector::new();
+        collector.record(TraceEntry {
+            stage: PipelineStage::Parsing,
+            source_location: None,
+            decision_type: DecisionType::TypeMapping,
+            chosen: "int".to_string(),
+            alternatives: vec![],
+            confidence: 1.0,
+            reason: "test".to_string(),
+        });
+
+        let codegen = collector.entries_for_stage(&PipelineStage::CodeGeneration);
+        assert!(codegen.is_empty());
+    }
+
+    #[test]
+    fn test_trace_collector_to_json_empty() {
+        let collector = TraceCollector::new();
+        let json = collector.to_json();
+        assert_eq!(json, "[]");
+    }
+
+    #[test]
+    fn test_trace_collector_multiple_stages() {
+        let mut collector = TraceCollector::new();
+        collector.record(TraceEntry {
+            stage: PipelineStage::Parsing,
+            source_location: Some("line 1".to_string()),
+            decision_type: DecisionType::TypeMapping,
+            chosen: "i32".to_string(),
+            alternatives: vec!["i64".to_string()],
+            confidence: 0.9,
+            reason: "int maps to i32".to_string(),
+        });
+        collector.record(TraceEntry {
+            stage: PipelineStage::HirConversion,
+            source_location: Some("line 5".to_string()),
+            decision_type: DecisionType::PatternDetection,
+            chosen: "for_loop".to_string(),
+            alternatives: vec!["while_loop".to_string()],
+            confidence: 0.85,
+            reason: "C for → Rust for".to_string(),
+        });
+        collector.record(TraceEntry {
+            stage: PipelineStage::LifetimeAnalysis,
+            source_location: None,
+            decision_type: DecisionType::LifetimeAnnotation,
+            chosen: "'a".to_string(),
+            alternatives: vec!["'static".to_string()],
+            confidence: 0.7,
+            reason: "scope analysis".to_string(),
+        });
+        collector.record(TraceEntry {
+            stage: PipelineStage::CodeGeneration,
+            source_location: Some("line 10".to_string()),
+            decision_type: DecisionType::SafetyTransformation,
+            chosen: "safe_indexing".to_string(),
+            alternatives: vec!["raw_pointer".to_string()],
+            confidence: 0.95,
+            reason: "bounds check possible".to_string(),
+        });
+        collector.record(TraceEntry {
+            stage: PipelineStage::OwnershipInference,
+            source_location: None,
+            decision_type: DecisionType::SignatureTransformation,
+            chosen: "&[i32]".to_string(),
+            alternatives: vec!["*const i32".to_string()],
+            confidence: 0.88,
+            reason: "array param to slice".to_string(),
+        });
+
+        assert_eq!(collector.len(), 5);
+
+        let summary = collector.summary();
+        assert_eq!(summary.total_decisions, 5);
+        assert_eq!(summary.decisions_by_stage.len(), 5);
+        assert_eq!(summary.decisions_by_stage.get("parsing"), Some(&1));
+        assert_eq!(summary.decisions_by_stage.get("hir_conversion"), Some(&1));
+        assert_eq!(summary.decisions_by_stage.get("lifetime_analysis"), Some(&1));
+        assert_eq!(summary.decisions_by_stage.get("code_generation"), Some(&1));
+        assert_eq!(
+            summary.decisions_by_stage.get("ownership_inference"),
+            Some(&1)
+        );
+
+        let json = collector.to_json();
+        assert!(json.contains("parsing"));
+        assert!(json.contains("hir_conversion"));
+        assert!(json.contains("lifetime_analysis"));
+        assert!(json.contains("safety_transformation"));
+        assert!(json.contains("signature_transformation"));
+    }
+
+    #[test]
+    fn test_trace_entry_serialization_roundtrip() {
+        let entry = TraceEntry {
+            stage: PipelineStage::OwnershipInference,
+            source_location: Some("test.c:42:5".to_string()),
+            decision_type: DecisionType::PointerClassification,
+            chosen: "Box<i32>".to_string(),
+            alternatives: vec!["&i32".to_string(), "&mut i32".to_string()],
+            confidence: 0.92,
+            reason: "single_alloc_single_free_pattern".to_string(),
+        };
+
+        let json = serde_json::to_string(&entry).unwrap();
+        let deserialized: TraceEntry = serde_json::from_str(&json).unwrap();
+        assert_eq!(deserialized.chosen, "Box<i32>");
+        assert_eq!(deserialized.alternatives.len(), 2);
+        assert_eq!(deserialized.confidence, 0.92);
+    }
+
+    #[test]
+    fn test_trace_summary_serialization() {
+        let mut collector = TraceCollector::new();
+        collector.record(TraceEntry {
+            stage: PipelineStage::Parsing,
+            source_location: None,
+            decision_type: DecisionType::TypeMapping,
+            chosen: "i32".to_string(),
+            alternatives: vec![],
+            confidence: 1.0,
+            reason: "test".to_string(),
+        });
+
+        let summary = collector.summary();
+        let json = serde_json::to_string(&summary).unwrap();
+        assert!(json.contains("total_decisions"));
+        assert!(json.contains("avg_confidence"));
+    }
 }
