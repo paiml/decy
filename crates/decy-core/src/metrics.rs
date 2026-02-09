@@ -428,4 +428,239 @@ mod tests {
     fn test_extract_error_code_partial() {
         assert_eq!(extract_error_code("E03"), "UNKNOWN");
     }
+
+    // TierMetrics tests
+
+    #[test]
+    fn test_tier_metrics_new() {
+        let tier = TierMetrics::new("chapter-1");
+        assert_eq!(tier.tier_name, "chapter-1");
+        assert_eq!(tier.total_files, 0);
+        assert_eq!(tier.transpile_success, 0);
+    }
+
+    #[test]
+    fn test_tier_metrics_transpile_rate_empty() {
+        let tier = TierMetrics::new("empty");
+        assert_eq!(tier.transpile_rate(), 0.0);
+    }
+
+    #[test]
+    fn test_tier_metrics_transpile_rate() {
+        let mut tier = TierMetrics::new("test");
+        tier.total_files = 10;
+        tier.transpile_success = 8;
+        assert!((tier.transpile_rate() - 0.8).abs() < 0.001);
+    }
+
+    #[test]
+    fn test_tier_metrics_compile_rate_empty() {
+        let tier = TierMetrics::new("empty");
+        assert_eq!(tier.compile_rate(), 0.0);
+    }
+
+    #[test]
+    fn test_tier_metrics_compile_rate() {
+        let mut tier = TierMetrics::new("test");
+        tier.total_files = 10;
+        tier.compile_success = 7;
+        assert!((tier.compile_rate() - 0.7).abs() < 0.001);
+    }
+
+    // ConvergenceReport tests
+
+    #[test]
+    fn test_convergence_report_new_empty() {
+        let report = ConvergenceReport::new();
+        assert!(report.tiers.is_empty());
+        assert_eq!(report.overall_transpile_rate(), 0.0);
+        assert_eq!(report.overall_compile_rate(), 0.0);
+    }
+
+    #[test]
+    fn test_convergence_report_add_tier() {
+        let mut report = ConvergenceReport::new();
+        let mut tier = TierMetrics::new("tier1");
+        tier.total_files = 10;
+        tier.transpile_success = 9;
+        tier.compile_success = 7;
+        report.add_tier(tier);
+        assert_eq!(report.tiers.len(), 1);
+    }
+
+    #[test]
+    fn test_convergence_report_overall_rates() {
+        let mut report = ConvergenceReport::new();
+        let mut t1 = TierMetrics::new("t1");
+        t1.total_files = 10;
+        t1.transpile_success = 8;
+        t1.compile_success = 6;
+        let mut t2 = TierMetrics::new("t2");
+        t2.total_files = 10;
+        t2.transpile_success = 10;
+        t2.compile_success = 8;
+        report.add_tier(t1);
+        report.add_tier(t2);
+
+        assert!((report.overall_transpile_rate() - 0.9).abs() < 0.001);
+        assert!((report.overall_compile_rate() - 0.7).abs() < 0.001);
+    }
+
+    #[test]
+    fn test_convergence_report_to_markdown() {
+        let mut report = ConvergenceReport::new();
+        let mut tier = TierMetrics::new("chapter-1");
+        tier.total_files = 20;
+        tier.transpile_success = 18;
+        tier.compile_success = 15;
+        report.add_tier(tier);
+
+        let md = report.to_markdown();
+        assert!(md.contains("Corpus Convergence Report"));
+        assert!(md.contains("chapter-1"));
+        assert!(md.contains("20"));
+        assert!(md.contains("18"));
+        assert!(md.contains("15"));
+        assert!(md.contains("Total"));
+    }
+
+    // EquivalenceMetrics tests
+
+    #[test]
+    fn test_equivalence_metrics_new_empty() {
+        let metrics = EquivalenceMetrics::new();
+        assert_eq!(metrics.total_files, 0);
+        assert_eq!(metrics.equivalence_rate(), 0.0);
+    }
+
+    #[test]
+    fn test_equivalence_metrics_rate() {
+        let mut metrics = EquivalenceMetrics::new();
+        metrics.total_files = 20;
+        metrics.equivalent = 18;
+        metrics.divergent = 2;
+        assert!((metrics.equivalence_rate() - 0.9).abs() < 0.001);
+    }
+
+    #[test]
+    fn test_equivalence_metrics_to_markdown() {
+        let mut metrics = EquivalenceMetrics::new();
+        metrics.total_files = 10;
+        metrics.equivalent = 8;
+        metrics.divergent = 1;
+        metrics.errors = 1;
+
+        let md = metrics.to_markdown();
+        assert!(md.contains("Semantic Equivalence Report"));
+        assert!(md.contains("10"));
+        assert!(md.contains("80.0%"));
+    }
+
+    #[test]
+    fn test_equivalence_metrics_to_markdown_with_divergences() {
+        let mut metrics = EquivalenceMetrics::new();
+        metrics.total_files = 5;
+        metrics.equivalent = 4;
+        metrics.divergent = 1;
+        metrics.errors = 0;
+        metrics.divergences.push(EquivalenceDivergence {
+            file: "test.c".to_string(),
+            expected_stdout: "hello".to_string(),
+            actual_stdout: "world".to_string(),
+            expected_exit: 0,
+            actual_exit: 1,
+        });
+
+        let md = metrics.to_markdown();
+        assert!(md.contains("Divergences"));
+        assert!(md.contains("test.c"));
+        assert!(md.contains("exit 0 vs 1"));
+    }
+
+    // CompileMetrics tests for uncovered paths
+
+    #[test]
+    fn test_compile_metrics_new_empty() {
+        let metrics = CompileMetrics::new();
+        assert_eq!(metrics.success_rate(), 0.0);
+        assert_eq!(metrics.total_attempts(), 0);
+        assert!(metrics.error_histogram().is_empty());
+    }
+
+    #[test]
+    fn test_compile_metrics_record_success() {
+        let mut metrics = CompileMetrics::new();
+        metrics.record_success();
+        metrics.record_success();
+        assert!((metrics.success_rate() - 1.0).abs() < 0.001);
+        assert_eq!(metrics.successes(), 2);
+    }
+
+    #[test]
+    fn test_compile_metrics_record_failure() {
+        let mut metrics = CompileMetrics::new();
+        metrics.record_success();
+        metrics.record_failure("E0308: mismatched types");
+        metrics.record_failure("E0502: cannot borrow");
+        assert!((metrics.success_rate() - (1.0 / 3.0)).abs() < 0.01);
+        assert_eq!(metrics.failures(), 2);
+    }
+
+    #[test]
+    fn test_compile_metrics_error_histogram() {
+        let mut metrics = CompileMetrics::new();
+        metrics.record_failure("E0308: mismatched");
+        metrics.record_failure("E0308: mismatched again");
+        metrics.record_failure("E0502: borrow");
+        let hist = metrics.error_histogram();
+        assert_eq!(hist.get("E0308"), Some(&2));
+        assert_eq!(hist.get("E0502"), Some(&1));
+    }
+
+    #[test]
+    fn test_compile_metrics_meets_target() {
+        let mut metrics = CompileMetrics::new();
+        for _ in 0..8 {
+            metrics.record_success();
+        }
+        for _ in 0..2 {
+            metrics.record_failure("E0308: test");
+        }
+        assert!(metrics.meets_target(0.80));
+        assert!(!metrics.meets_target(0.90));
+    }
+
+    #[test]
+    fn test_compile_metrics_to_markdown() {
+        let mut metrics = CompileMetrics::new();
+        metrics.record_success();
+        metrics.record_failure("E0308: test");
+        let md = metrics.to_markdown();
+        assert!(md.contains("Compile Success Rate"));
+        assert!(md.contains("50.0%"));
+        assert!(md.contains("E0308"));
+    }
+
+    #[test]
+    fn test_compile_metrics_to_markdown_passing() {
+        let mut metrics = CompileMetrics::new();
+        for _ in 0..10 {
+            metrics.record_success();
+        }
+        let md = metrics.to_markdown();
+        assert!(md.contains("PASS"));
+        assert!(md.contains("100.0%"));
+    }
+
+    #[test]
+    fn test_compile_metrics_reset() {
+        let mut metrics = CompileMetrics::new();
+        metrics.record_success();
+        metrics.record_failure("E0308: test");
+        metrics.reset();
+        assert_eq!(metrics.total_attempts(), 0);
+        assert_eq!(metrics.successes(), 0);
+        assert_eq!(metrics.failures(), 0);
+        assert!(metrics.error_histogram().is_empty());
+    }
 }
