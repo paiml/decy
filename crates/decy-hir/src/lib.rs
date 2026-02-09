@@ -1026,6 +1026,21 @@ pub enum HirStatement {
     /// Added to fix bug where function call statements (like printf) were being
     /// converted to Break placeholder, causing them to disappear during transpilation.
     Expression(HirExpression),
+    /// Inline assembly statement (C: asm("...") or __asm__("..."))
+    ///
+    /// C inline assembly cannot be automatically transpiled to safe Rust.
+    /// This variant preserves the assembly text for manual review.
+    ///
+    /// # DECY-197
+    ///
+    /// Added to handle inline assembly in C code. The codegen emits a
+    /// review-required comment rather than attempting automatic translation.
+    InlineAsm {
+        /// The raw assembly text from the C source
+        text: String,
+        /// Whether the assembly might be translatable to Rust intrinsics
+        translatable: bool,
+    },
 }
 
 impl HirStatement {

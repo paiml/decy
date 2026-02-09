@@ -593,6 +593,8 @@ impl DataflowAnalyzer {
                 // e.g., printf() calls, function calls, etc.
                 self.track_expression_uses(expr, graph, index);
             }
+            // DECY-197: Inline assembly has no pointer operations to track
+            HirStatement::InlineAsm { .. } => {}
         }
     }
 

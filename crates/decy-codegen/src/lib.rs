@@ -4823,6 +4823,18 @@ impl CodeGenerator {
                 // C: printf("Hello"); → Rust: printf("Hello");
                 format!("{};", self.generate_expression_with_context(expr, ctx))
             }
+            // DECY-197: Inline assembly - emit review-required comment
+            HirStatement::InlineAsm { text, translatable } => {
+                let mut result = String::new();
+                result.push_str("// DECY: manual review required - inline assembly\n");
+                if *translatable {
+                    result.push_str(
+                        "// DECY: this assembly may be translatable to Rust intrinsics\n",
+                    );
+                }
+                result.push_str(&format!("// Original asm: {}", text.replace('\n', "\n// ")));
+                result
+            }
         }
     }
 
