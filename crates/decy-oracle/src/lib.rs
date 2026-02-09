@@ -84,3 +84,7 @@ mod config_coverage_tests;
 #[cfg(test)]
 #[path = "verification_coverage_tests.rs"]
 mod verification_coverage_tests;
+
+#[cfg(test)]
+#[path = "dataset_coverage_tests.rs"]
+mod dataset_coverage_tests;
