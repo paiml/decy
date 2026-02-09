@@ -1,6 +1,6 @@
 //! DECY-192: Falsification test suite.
 //!
-//! 150 C programs that MUST transpile and produce compilable Rust.
+//! 200 C programs that MUST transpile and produce compilable Rust.
 //! These tests are **append-only**: never weaken or delete a test.
 //!
 //! Organization:
@@ -19,6 +19,11 @@
 //! - C121-C130: Typedef, enum, sizeof (PATHOLOGICAL)
 //! - C131-C140: Multi-dimensional arrays, function pointers (PATHOLOGICAL)
 //! - C141-C150: Compound assignment, ternary chains, edge cases (PATHOLOGICAL)
+//! - C151-C160: Deep nesting and complex control flow (PATHOLOGICAL)
+//! - C161-C170: Complex arithmetic and expressions (PATHOLOGICAL)
+//! - C171-C180: Array algorithms (PATHOLOGICAL)
+//! - C181-C190: Struct-heavy patterns (PATHOLOGICAL)
+//! - C191-C200: Edge cases and corner cases (MOST PATHOLOGICAL)
 
 use std::io::Write;
 use std::process::Command;
@@ -2270,5 +2275,1045 @@ fn c150_collatz_steps() {
         }
         int main() { return collatz_steps(27); }"#,
         "C150",
+    );
+}
+
+// ============================================================================
+// C151-C160: Deep Nesting and Complex Control Flow (PATHOLOGICAL)
+// ============================================================================
+
+#[test]
+fn c151_deeply_nested_if_six_levels() {
+    assert_transpiles_and_compiles(
+        r#"int classify_deep(int a, int b, int c) {
+            if (a > 0) {
+                if (b > 0) {
+                    if (c > 0) {
+                        if (a > b) {
+                            if (b > c) {
+                                if (a > c) {
+                                    return 6;
+                                }
+                                return 5;
+                            }
+                            return 4;
+                        }
+                        return 3;
+                    }
+                    return 2;
+                }
+                return 1;
+            }
+            return 0;
+        }
+        int main() { return classify_deep(10, 5, 3); }"#,
+        "C151",
+    );
+}
+
+#[test]
+fn c152_interleaved_for_while_break_continue() {
+    assert_transpiles_and_compiles(
+        r#"int main() {
+            int total = 0;
+            int i;
+            for (i = 0; i < 5; i++) {
+                if (i == 1) continue;
+                int j = 0;
+                while (j < 5) {
+                    j = j + 1;
+                    if (j == 3) continue;
+                    if (j == 5) break;
+                    total = total + 1;
+                }
+                if (i == 3) break;
+            }
+            return total;
+        }"#,
+        "C152",
+    );
+}
+
+#[test]
+fn c153_switch_inside_loop_inside_if() {
+    assert_transpiles_and_compiles(
+        r#"int process(int mode, int n) {
+            int result = 0;
+            if (mode > 0) {
+                int i;
+                for (i = 0; i < n; i++) {
+                    switch (i % 3) {
+                        case 0: result = result + 1; break;
+                        case 1: result = result + 2; break;
+                        case 2: result = result + 3; break;
+                        default: break;
+                    }
+                }
+            }
+            return result;
+        }
+        int main() { return process(1, 9); }"#,
+        "C153",
+    );
+}
+
+#[test]
+fn c154_multiple_early_returns_complex() {
+    assert_transpiles_and_compiles(
+        r#"int validate(int a, int b, int c, int d) {
+            if (a < 0) return -1;
+            if (b < 0) return -2;
+            if (c < 0) return -3;
+            if (d < 0) return -4;
+            if (a + b > 100) return -5;
+            if (c + d > 100) return -6;
+            if (a * b > c * d) return 1;
+            return 0;
+        }
+        int main() { return validate(5, 10, 3, 7); }"#,
+        "C154",
+    );
+}
+
+#[test]
+fn c155_while_complex_conditions() {
+    assert_transpiles_and_compiles(
+        r#"int main() {
+            int a = 100;
+            int b = 200;
+            int count = 0;
+            while ((a > 0 && b > 0) || count < 5) {
+                a = a - 7;
+                b = b - 13;
+                count = count + 1;
+                if (count > 50) break;
+            }
+            return count;
+        }"#,
+        "C155",
+    );
+}
+
+#[test]
+fn c156_nontrivial_recursion() {
+    assert_transpiles_and_compiles(
+        r#"int ackermann_bounded(int m, int n) {
+            if (m == 0) return n + 1;
+            if (m > 3) return n;
+            if (n == 0) return ackermann_bounded(m - 1, 1);
+            return ackermann_bounded(m - 1, ackermann_bounded(m, n - 1));
+        }
+        int main() { return ackermann_bounded(2, 3); }"#,
+        "C156",
+    );
+}
+
+#[test]
+fn c157_loop_conditional_increment() {
+    assert_transpiles_and_compiles(
+        r#"int main() {
+            int arr[10];
+            int i;
+            for (i = 0; i < 10; i++) arr[i] = i * 3;
+            int sum = 0;
+            i = 0;
+            while (i < 10) {
+                if (arr[i] % 2 == 0) {
+                    sum = sum + arr[i];
+                    i = i + 2;
+                } else {
+                    sum = sum - 1;
+                    i = i + 1;
+                }
+            }
+            return sum;
+        }"#,
+        "C157",
+    );
+}
+
+#[test]
+fn c158_triple_nested_switch() {
+    assert_transpiles_and_compiles(
+        r#"int dispatch(int a, int b, int c) {
+            int result = 0;
+            switch (a) {
+                case 0:
+                    switch (b) {
+                        case 0:
+                            switch (c) {
+                                case 0: result = 1; break;
+                                case 1: result = 2; break;
+                                default: result = 3; break;
+                            }
+                            break;
+                        case 1: result = 10; break;
+                        default: result = 11; break;
+                    }
+                    break;
+                case 1:
+                    switch (b) {
+                        case 0: result = 100; break;
+                        default: result = 101; break;
+                    }
+                    break;
+                default: result = 999; break;
+            }
+            return result;
+        }
+        int main() { return dispatch(0, 0, 1); }"#,
+        "C158",
+    );
+}
+
+#[test]
+fn c159_if_else_chain_ten_branches() {
+    assert_transpiles_and_compiles(
+        r#"int categorize(int n) {
+            if (n < 10) return 0;
+            else if (n < 20) return 1;
+            else if (n < 30) return 2;
+            else if (n < 40) return 3;
+            else if (n < 50) return 4;
+            else if (n < 60) return 5;
+            else if (n < 70) return 6;
+            else if (n < 80) return 7;
+            else if (n < 90) return 8;
+            else if (n < 100) return 9;
+            else return 10;
+        }
+        int main() { return categorize(55); }"#,
+        "C159",
+    );
+}
+
+#[test]
+fn c160_fibonacci_memoized_array() {
+    assert_transpiles_and_compiles(
+        r#"int main() {
+            int fib[20];
+            fib[0] = 0;
+            fib[1] = 1;
+            int i;
+            for (i = 2; i < 20; i++) {
+                fib[i] = fib[i - 1] + fib[i - 2];
+            }
+            return fib[19];
+        }"#,
+        "C160",
+    );
+}
+
+// ============================================================================
+// C161-C170: Complex Arithmetic and Expressions (PATHOLOGICAL)
+// ============================================================================
+
+#[test]
+fn c161_integer_overflow_detection() {
+    assert_transpiles_and_compiles(
+        r#"int safe_add(int a, int b) {
+            if (a > 0 && b > 0 && a > 2147483647 - b) return -1;
+            if (a < 0 && b < 0 && a < -2147483647 - b) return -1;
+            return a + b;
+        }
+        int main() { return safe_add(100, 200); }"#,
+        "C161",
+    );
+}
+
+#[test]
+fn c162_division_with_remainder() {
+    assert_transpiles_and_compiles(
+        r#"struct DivResult { int quotient; int remainder; };
+        struct DivResult divide(int a, int b) {
+            struct DivResult r;
+            r.quotient = a / b;
+            r.remainder = a % b;
+            return r;
+        }
+        int main() {
+            struct DivResult r = divide(17, 5);
+            return r.quotient * 10 + r.remainder;
+        }"#,
+        "C162",
+    );
+}
+
+#[test]
+fn c163_bitwise_flag_manipulation() {
+    assert_transpiles_and_compiles(
+        r#"int main() {
+            int flags = 0;
+            int FLAG_A = 1;
+            int FLAG_B = 2;
+            int FLAG_C = 4;
+            int FLAG_D = 8;
+            flags = flags | FLAG_A;
+            flags = flags | FLAG_C;
+            int has_a = (flags & FLAG_A) != 0;
+            int has_b = (flags & FLAG_B) != 0;
+            flags = flags & ~FLAG_A;
+            flags = flags ^ FLAG_D;
+            return flags;
+        }"#,
+        "C163",
+    );
+}
+
+#[test]
+fn c164_power_of_two_check() {
+    assert_transpiles_and_compiles(
+        r#"int is_power_of_two(int n) {
+            if (n <= 0) return 0;
+            return (n & (n - 1)) == 0;
+        }
+        int main() {
+            int a = is_power_of_two(16);
+            int b = is_power_of_two(17);
+            return a * 10 + b;
+        }"#,
+        "C164",
+    );
+}
+
+#[test]
+fn c165_count_trailing_zeros() {
+    assert_transpiles_and_compiles(
+        r#"int ctz(int n) {
+            if (n == 0) return 32;
+            int count = 0;
+            while ((n & 1) == 0) {
+                count = count + 1;
+                n = n >> 1;
+            }
+            return count;
+        }
+        int main() { return ctz(48); }"#,
+        "C165",
+    );
+}
+
+#[test]
+fn c166_rotate_bits_left() {
+    assert_transpiles_and_compiles(
+        r#"unsigned int rotate_left(unsigned int val, int n) {
+            return (val << n) | (val >> (32 - n));
+        }
+        unsigned int rotate_right(unsigned int val, int n) {
+            return (val >> n) | (val << (32 - n));
+        }
+        int main() {
+            unsigned int x = 0x12345678;
+            unsigned int y = rotate_left(x, 8);
+            unsigned int z = rotate_right(y, 8);
+            return (int)(z == x);
+        }"#,
+        "C166",
+    );
+}
+
+#[test]
+fn c167_sign_extension_pattern() {
+    assert_transpiles_and_compiles(
+        r#"int sign_extend_8(int val) {
+            int mask = 1 << 7;
+            val = val & 0xFF;
+            return (val ^ mask) - mask;
+        }
+        int main() { return sign_extend_8(0x80); }"#,
+        "C167",
+    );
+}
+
+#[test]
+fn c168_saturating_addition() {
+    assert_transpiles_and_compiles(
+        r#"int sat_add(int a, int b, int max_val) {
+            int sum = a + b;
+            if (sum > max_val) return max_val;
+            if (sum < 0) return 0;
+            return sum;
+        }
+        int main() { return sat_add(200, 150, 255); }"#,
+        "C168",
+    );
+}
+
+#[test]
+fn c169_absolute_difference() {
+    assert_transpiles_and_compiles(
+        r#"int abs_diff(int a, int b) {
+            if (a > b) return a - b;
+            return b - a;
+        }
+        int main() {
+            int x = abs_diff(10, 25);
+            int y = abs_diff(25, 10);
+            return x + y;
+        }"#,
+        "C169",
+    );
+}
+
+#[test]
+fn c170_integer_sqrt_newton() {
+    assert_transpiles_and_compiles(
+        r#"int isqrt(int n) {
+            if (n < 2) return n;
+            int x = n;
+            int y = (x + 1) / 2;
+            while (y < x) {
+                x = y;
+                y = (x + n / x) / 2;
+            }
+            return x;
+        }
+        int main() { return isqrt(144); }"#,
+        "C170",
+    );
+}
+
+// ============================================================================
+// C171-C180: Array Algorithms (PATHOLOGICAL)
+// ============================================================================
+
+#[test]
+fn c171_insertion_sort() {
+    assert_transpiles_and_compiles(
+        r#"void insertion_sort(int arr[], int n) {
+            int i;
+            for (i = 1; i < n; i++) {
+                int key = arr[i];
+                int j = i - 1;
+                while (j >= 0 && arr[j] > key) {
+                    arr[j + 1] = arr[j];
+                    j = j - 1;
+                }
+                arr[j + 1] = key;
+            }
+        }
+        int main() {
+            int data[5];
+            data[0] = 5; data[1] = 3; data[2] = 4; data[3] = 1; data[4] = 2;
+            insertion_sort(data, 5);
+            return data[0] * 10000 + data[1] * 1000 + data[2] * 100 + data[3] * 10 + data[4];
+        }"#,
+        "C171",
+    );
+}
+
+#[test]
+fn c172_selection_sort() {
+    assert_transpiles_and_compiles(
+        r#"void selection_sort(int arr[], int n) {
+            int i; int j;
+            for (i = 0; i < n - 1; i++) {
+                int min_idx = i;
+                for (j = i + 1; j < n; j++) {
+                    if (arr[j] < arr[min_idx]) min_idx = j;
+                }
+                if (min_idx != i) {
+                    int tmp = arr[i];
+                    arr[i] = arr[min_idx];
+                    arr[min_idx] = tmp;
+                }
+            }
+        }
+        int main() {
+            int data[4];
+            data[0] = 64; data[1] = 25; data[2] = 12; data[3] = 22;
+            selection_sort(data, 4);
+            return data[0];
+        }"#,
+        "C172",
+    );
+}
+
+#[test]
+fn c173_merge_two_sorted_arrays() {
+    assert_transpiles_and_compiles(
+        r#"void merge_sorted(int a[], int na, int b[], int nb, int out[]) {
+            int i = 0; int j = 0; int k = 0;
+            while (i < na && j < nb) {
+                if (a[i] <= b[j]) {
+                    out[k] = a[i];
+                    i = i + 1;
+                } else {
+                    out[k] = b[j];
+                    j = j + 1;
+                }
+                k = k + 1;
+            }
+            while (i < na) { out[k] = a[i]; i = i + 1; k = k + 1; }
+            while (j < nb) { out[k] = b[j]; j = j + 1; k = k + 1; }
+        }
+        int main() {
+            int a[3]; a[0] = 1; a[1] = 3; a[2] = 5;
+            int b[3]; b[0] = 2; b[1] = 4; b[2] = 6;
+            int out[6];
+            merge_sorted(a, 3, b, 3, out);
+            return out[0] * 100 + out[3] * 10 + out[5];
+        }"#,
+        "C173",
+    );
+}
+
+#[test]
+fn c174_dutch_national_flag_partition() {
+    assert_transpiles_and_compiles(
+        r#"void dutch_flag(int arr[], int n, int pivot) {
+            int lo = 0; int mid = 0; int hi = n - 1;
+            while (mid <= hi) {
+                if (arr[mid] < pivot) {
+                    int tmp = arr[lo]; arr[lo] = arr[mid]; arr[mid] = tmp;
+                    lo = lo + 1;
+                    mid = mid + 1;
+                } else if (arr[mid] > pivot) {
+                    int tmp = arr[mid]; arr[mid] = arr[hi]; arr[hi] = tmp;
+                    hi = hi - 1;
+                } else {
+                    mid = mid + 1;
+                }
+            }
+        }
+        int main() {
+            int data[6];
+            data[0] = 2; data[1] = 0; data[2] = 1; data[3] = 2; data[4] = 0; data[5] = 1;
+            dutch_flag(data, 6, 1);
+            return data[0] * 100 + data[2] * 10 + data[5];
+        }"#,
+        "C174",
+    );
+}
+
+#[test]
+fn c175_move_zeros_to_end() {
+    assert_transpiles_and_compiles(
+        r#"void move_zeros(int arr[], int n) {
+            int write_pos = 0;
+            int i;
+            for (i = 0; i < n; i++) {
+                if (arr[i] != 0) {
+                    arr[write_pos] = arr[i];
+                    write_pos = write_pos + 1;
+                }
+            }
+            while (write_pos < n) {
+                arr[write_pos] = 0;
+                write_pos = write_pos + 1;
+            }
+        }
+        int main() {
+            int data[5];
+            data[0] = 0; data[1] = 1; data[2] = 0; data[3] = 3; data[4] = 0;
+            move_zeros(data, 5);
+            return data[0] * 100 + data[1] * 10 + data[4];
+        }"#,
+        "C175",
+    );
+}
+
+#[test]
+fn c176_find_duplicates() {
+    assert_transpiles_and_compiles(
+        r#"int has_duplicates(int arr[], int n) {
+            int i; int j;
+            for (i = 0; i < n; i++) {
+                for (j = i + 1; j < n; j++) {
+                    if (arr[i] == arr[j]) return 1;
+                }
+            }
+            return 0;
+        }
+        int main() {
+            int data[5];
+            data[0] = 1; data[1] = 2; data[2] = 3; data[3] = 2; data[4] = 5;
+            return has_duplicates(data, 5);
+        }"#,
+        "C176",
+    );
+}
+
+#[test]
+fn c177_is_palindrome_array() {
+    assert_transpiles_and_compiles(
+        r#"int is_palindrome(int arr[], int n) {
+            int i;
+            for (i = 0; i < n / 2; i++) {
+                if (arr[i] != arr[n - 1 - i]) return 0;
+            }
+            return 1;
+        }
+        int main() {
+            int data[5];
+            data[0] = 1; data[1] = 2; data[2] = 3; data[3] = 2; data[4] = 1;
+            return is_palindrome(data, 5);
+        }"#,
+        "C177",
+    );
+}
+
+#[test]
+fn c178_prefix_sum() {
+    assert_transpiles_and_compiles(
+        r#"void prefix_sum(int arr[], int out[], int n) {
+            out[0] = arr[0];
+            int i;
+            for (i = 1; i < n; i++) {
+                out[i] = out[i - 1] + arr[i];
+            }
+        }
+        int range_sum(int prefix[], int l, int r) {
+            if (l == 0) return prefix[r];
+            return prefix[r] - prefix[l - 1];
+        }
+        int main() {
+            int data[5]; data[0] = 1; data[1] = 2; data[2] = 3; data[3] = 4; data[4] = 5;
+            int psum[5];
+            prefix_sum(data, psum, 5);
+            return range_sum(psum, 1, 3);
+        }"#,
+        "C178",
+    );
+}
+
+#[test]
+fn c179_sliding_window_max() {
+    assert_transpiles_and_compiles(
+        r#"int max_of_window(int arr[], int start, int end) {
+            int max = arr[start];
+            int i;
+            for (i = start + 1; i < end; i++) {
+                if (arr[i] > max) max = arr[i];
+            }
+            return max;
+        }
+        int sliding_window_max_sum(int arr[], int n, int k) {
+            int sum = 0;
+            int i;
+            for (i = 0; i <= n - k; i++) {
+                sum = sum + max_of_window(arr, i, i + k);
+            }
+            return sum;
+        }
+        int main() {
+            int data[6]; data[0] = 1; data[1] = 3; data[2] = 2;
+            data[3] = 5; data[4] = 1; data[5] = 4;
+            return sliding_window_max_sum(data, 6, 3);
+        }"#,
+        "C179",
+    );
+}
+
+#[test]
+fn c180_kadane_max_subarray() {
+    assert_transpiles_and_compiles(
+        r#"int kadane(int arr[], int n) {
+            int max_ending = arr[0];
+            int max_so_far = arr[0];
+            int i;
+            for (i = 1; i < n; i++) {
+                if (max_ending + arr[i] > arr[i]) {
+                    max_ending = max_ending + arr[i];
+                } else {
+                    max_ending = arr[i];
+                }
+                if (max_ending > max_so_far) {
+                    max_so_far = max_ending;
+                }
+            }
+            return max_so_far;
+        }
+        int main() {
+            int data[8];
+            data[0] = -2; data[1] = 1; data[2] = -3; data[3] = 4;
+            data[4] = -1; data[5] = 2; data[6] = 1; data[7] = -5;
+            return kadane(data, 8);
+        }"#,
+        "C180",
+    );
+}
+
+// ============================================================================
+// C181-C190: Struct-Heavy Patterns (PATHOLOGICAL)
+// ============================================================================
+
+#[test]
+fn c181_struct_eight_fields() {
+    assert_transpiles_and_compiles(
+        r#"struct Record {
+            int a; int b; int c; int d;
+            int e; int f; int g; int h;
+        };
+        int sum_record(struct Record r) {
+            return r.a + r.b + r.c + r.d + r.e + r.f + r.g + r.h;
+        }
+        int main() {
+            struct Record r;
+            r.a = 1; r.b = 2; r.c = 3; r.d = 4;
+            r.e = 5; r.f = 6; r.g = 7; r.h = 8;
+            return sum_record(r);
+        }"#,
+        "C181",
+    );
+}
+
+#[test]
+fn c182_array_of_structs_sort() {
+    assert_transpiles_and_compiles(
+        r#"struct Entry { int key; int value; };
+        void sort_entries(struct Entry arr[], int n) {
+            int i; int j;
+            for (i = 0; i < n - 1; i++) {
+                for (j = 0; j < n - i - 1; j++) {
+                    if (arr[j].key > arr[j + 1].key) {
+                        struct Entry tmp = arr[j];
+                        arr[j] = arr[j + 1];
+                        arr[j + 1] = tmp;
+                    }
+                }
+            }
+        }
+        int main() {
+            struct Entry data[3];
+            data[0].key = 3; data[0].value = 30;
+            data[1].key = 1; data[1].value = 10;
+            data[2].key = 2; data[2].value = 20;
+            sort_entries(data, 3);
+            return data[0].value;
+        }"#,
+        "C182",
+    );
+}
+
+#[test]
+fn c183_struct_init_via_function() {
+    assert_transpiles_and_compiles(
+        r#"struct Vec2 { int x; int y; };
+        struct Vec2 make_vec2(int x, int y) {
+            struct Vec2 v;
+            v.x = x;
+            v.y = y;
+            return v;
+        }
+        int dot(struct Vec2 a, struct Vec2 b) {
+            return a.x * b.x + a.y * b.y;
+        }
+        int main() {
+            struct Vec2 a = make_vec2(3, 4);
+            struct Vec2 b = make_vec2(1, 2);
+            return dot(a, b);
+        }"#,
+        "C183",
+    );
+}
+
+#[test]
+fn c184_struct_comparison_function() {
+    assert_transpiles_and_compiles(
+        r#"struct Point { int x; int y; };
+        int points_equal(struct Point a, struct Point b) {
+            return a.x == b.x && a.y == b.y;
+        }
+        int point_less(struct Point a, struct Point b) {
+            if (a.x != b.x) return a.x < b.x;
+            return a.y < b.y;
+        }
+        int main() {
+            struct Point p1; p1.x = 3; p1.y = 4;
+            struct Point p2; p2.x = 3; p2.y = 4;
+            struct Point p3; p3.x = 1; p3.y = 9;
+            return points_equal(p1, p2) * 10 + point_less(p3, p1);
+        }"#,
+        "C184",
+    );
+}
+
+#[test]
+fn c185_struct_modification_via_pointer() {
+    assert_transpiles_and_compiles(
+        r#"struct Counter { int count; int max; };
+        void increment(struct Counter *c) {
+            if (c->count < c->max) {
+                c->count = c->count + 1;
+            }
+        }
+        int main() {
+            struct Counter c;
+            c.count = 0;
+            c.max = 5;
+            increment(&c);
+            increment(&c);
+            increment(&c);
+            return c.count;
+        }"#,
+        "C185",
+    );
+}
+
+#[test]
+fn c186_struct_with_char_array() {
+    assert_transpiles_and_compiles(
+        r#"struct Name {
+            char data[8];
+            int len;
+        };
+        int main() {
+            struct Name n;
+            n.data[0] = 'H';
+            n.data[1] = 'i';
+            n.data[2] = '\0';
+            n.len = 2;
+            return n.len;
+        }"#,
+        "C186",
+    );
+}
+
+#[test]
+fn c187_nested_struct_three_levels() {
+    assert_transpiles_and_compiles(
+        r#"struct Leaf { int value; };
+        struct Branch { struct Leaf left; struct Leaf right; };
+        struct Tree { struct Branch root; int size; };
+        int tree_sum(struct Tree t) {
+            return t.root.left.value + t.root.right.value + t.size;
+        }
+        int main() {
+            struct Tree t;
+            t.root.left.value = 10;
+            t.root.right.value = 20;
+            t.size = 2;
+            return tree_sum(t);
+        }"#,
+        "C187",
+    );
+}
+
+#[test]
+fn c188_struct_returning_struct() {
+    assert_transpiles_and_compiles(
+        r#"struct Pair { int first; int second; };
+        struct Pair swap_pair(struct Pair p) {
+            struct Pair result;
+            result.first = p.second;
+            result.second = p.first;
+            return result;
+        }
+        struct Pair add_pairs(struct Pair a, struct Pair b) {
+            struct Pair result;
+            result.first = a.first + b.first;
+            result.second = a.second + b.second;
+            return result;
+        }
+        int main() {
+            struct Pair p1; p1.first = 1; p1.second = 2;
+            struct Pair p2 = swap_pair(p1);
+            struct Pair p3 = add_pairs(p1, p2);
+            return p3.first * 10 + p3.second;
+        }"#,
+        "C188",
+    );
+}
+
+#[test]
+fn c189_struct_array_search() {
+    assert_transpiles_and_compiles(
+        r#"struct Item { int id; int weight; };
+        int find_by_id(struct Item items[], int n, int target_id) {
+            int i;
+            for (i = 0; i < n; i++) {
+                if (items[i].id == target_id) return items[i].weight;
+            }
+            return -1;
+        }
+        int main() {
+            struct Item items[4];
+            items[0].id = 10; items[0].weight = 100;
+            items[1].id = 20; items[1].weight = 200;
+            items[2].id = 30; items[2].weight = 300;
+            items[3].id = 40; items[3].weight = 400;
+            return find_by_id(items, 4, 30);
+        }"#,
+        "C189",
+    );
+}
+
+#[test]
+fn c190_linked_list_node_no_malloc() {
+    assert_transpiles_and_compiles(
+        r#"struct Node { int value; int next_idx; };
+        int sum_list(struct Node nodes[], int head) {
+            int sum = 0;
+            int cur = head;
+            while (cur >= 0) {
+                sum = sum + nodes[cur].value;
+                cur = nodes[cur].next_idx;
+            }
+            return sum;
+        }
+        int main() {
+            struct Node nodes[3];
+            nodes[0].value = 10; nodes[0].next_idx = 1;
+            nodes[1].value = 20; nodes[1].next_idx = 2;
+            nodes[2].value = 30; nodes[2].next_idx = -1;
+            return sum_list(nodes, 0);
+        }"#,
+        "C190",
+    );
+}
+
+// ============================================================================
+// C191-C200: Edge Cases and Corner Cases (MOST PATHOLOGICAL)
+// ============================================================================
+
+#[test]
+fn c191_empty_function_body() {
+    assert_transpiles_and_compiles(
+        r#"void do_nothing() {}
+        int main() { do_nothing(); return 0; }"#,
+        "C191",
+    );
+}
+
+#[test]
+fn c192_function_eight_parameters() {
+    assert_transpiles_and_compiles(
+        r#"int sum8(int a, int b, int c, int d, int e, int f, int g, int h) {
+            return a + b + c + d + e + f + g + h;
+        }
+        int main() { return sum8(1, 2, 3, 4, 5, 6, 7, 8); }"#,
+        "C192",
+    );
+}
+
+#[test]
+fn c193_deeply_nested_expression() {
+    assert_transpiles_and_compiles(
+        r#"int main() {
+            int a = 2; int b = 3; int c = 4; int d = 5;
+            int e = 6; int f = 7; int g = 8; int h = 9;
+            return a + b * c - d / e + f * g - h;
+        }"#,
+        "C193",
+    );
+}
+
+#[test]
+fn c194_chained_function_calls_deep() {
+    assert_transpiles_and_compiles(
+        r#"int inc(int x) { return x + 1; }
+        int dbl(int x) { return x * 2; }
+        int sqr(int x) { return x * x; }
+        int neg(int x) { return -x; }
+        int main() { return neg(sqr(dbl(inc(3)))); }"#,
+        "C194",
+    );
+}
+
+#[test]
+fn c195_multiple_arrays_one_function() {
+    assert_transpiles_and_compiles(
+        r#"int main() {
+            int a[5]; int b[5]; int c[5];
+            int i;
+            for (i = 0; i < 5; i++) {
+                a[i] = i;
+                b[i] = i * 2;
+            }
+            for (i = 0; i < 5; i++) {
+                c[i] = a[i] + b[i];
+            }
+            int sum = 0;
+            for (i = 0; i < 5; i++) {
+                sum = sum + c[i];
+            }
+            return sum;
+        }"#,
+        "C195",
+    );
+}
+
+#[test]
+fn c196_mixed_int_char_operations() {
+    assert_transpiles_and_compiles(
+        r#"int main() {
+            int x = 65;
+            int y = 10;
+            int z = x + y;
+            int w = z - 5;
+            int v = w * 2;
+            return v / 3;
+        }"#,
+        "C196",
+    );
+}
+
+#[test]
+fn c197_loop_variable_reuse() {
+    assert_transpiles_and_compiles(
+        r#"int main() {
+            int sum = 0;
+            int i;
+            for (i = 0; i < 5; i++) {
+                sum = sum + i;
+            }
+            for (i = 10; i < 15; i++) {
+                sum = sum + i;
+            }
+            for (i = 0; i < 3; i++) {
+                sum = sum - i;
+            }
+            return sum;
+        }"#,
+        "C197",
+    );
+}
+
+#[test]
+fn c198_conditional_on_arithmetic() {
+    assert_transpiles_and_compiles(
+        r#"int evaluate(int a, int b, int c, int d) {
+            if (a + b > c * d) return 1;
+            if (a * b < c - d) return 2;
+            if ((a + b) * (c + d) > 100) return 3;
+            if (a / (b + 1) >= c % (d + 1)) return 4;
+            return 0;
+        }
+        int main() { return evaluate(10, 20, 3, 4); }"#,
+        "C198",
+    );
+}
+
+#[test]
+fn c199_assign_in_complex_expression() {
+    assert_transpiles_and_compiles(
+        r#"int main() {
+            int a = 5;
+            int b = 10;
+            int c = 15;
+            int result = 0;
+            result = (a * b) + (b * c) - (a * c);
+            int d = result / 5;
+            int e = d + a * (b - c);
+            return e;
+        }"#,
+        "C199",
+    );
+}
+
+#[test]
+fn c200_function_returns_zero_noop() {
+    assert_transpiles_and_compiles(
+        r#"int noop() { return 0; }
+        int also_noop(int x) { return 0; }
+        int identity(int x) { return x; }
+        int main() {
+            int a = noop();
+            int b = also_noop(42);
+            int c = identity(7);
+            return a + b + c;
+        }"#,
+        "C200",
     );
 }
