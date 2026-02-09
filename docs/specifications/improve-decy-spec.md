@@ -232,7 +232,7 @@ Decy sits in a family of transpiler projects (depyler, bashrs) and shares the C-
 | 1 | Compilation Cache | Medium | High | depyler | Deferred (existing TranspilationCache) |
 | 2 | Corpus Convergence Loop | Medium | **Critical** | depyler | **DONE** (DECY-191) |
 | 3 | From-Scratch Parser | High | High | CCC | Deferred |
-| 4 | Falsification Test Suite | Medium | **Critical** | bashrs | **DONE** (DECY-192, 150 tests, 130 pass, 20 falsified) |
+| 4 | Falsification Test Suite | Medium | **Critical** | bashrs | **DONE** (DECY-192, 200 tests, 180 pass, 20 falsified) |
 | 5 | Optimization Passes | High | High | CCC | **DONE** (DECY-196) |
 | 6 | Decision Tracing | Low | Medium | depyler | **DONE** (DECY-193) |
 | 7 | Equivalence Validation | Medium | **Critical** | CCC | **DONE** (DECY-195) |
@@ -260,9 +260,14 @@ Decy sits in a family of transpiler projects (depyler, bashrs) and shares the C-
 | C121-C130 | Typedef, enum, sizeof | 10 | 9 | 1 |
 | C131-C140 | Multi-dimensional arrays, recursion | 10 | 10 | 0 |
 | C141-C150 | Compound assignment, algorithms | 10 | 10 | 0 |
-| **TOTAL** | | **150** | **130** | **20** |
+| C151-C160 | Preprocessor-style, macro edge cases | 10 | 10 | 0 |
+| C161-C170 | Advanced pointer patterns | 10 | 10 | 0 |
+| C171-C180 | Nested data structures | 10 | 10 | 0 |
+| C181-C190 | Bitfield, union, volatile patterns | 10 | 10 | 0 |
+| C191-C200 | Real-world algorithm patterns | 10 | 10 | 0 |
+| **TOTAL** | | **200** | **180** | **20** |
 
-**Falsification Rate**: 86.7% passing (130/150)
+**Falsification Rate**: 90.0% passing (180/200)
 
 Key gaps identified by falsification:
 - **Char arithmetic**: char+int, char comparisons, escape char math
