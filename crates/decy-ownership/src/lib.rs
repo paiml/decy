@@ -106,4 +106,9 @@ pub use classifier_integration::{
 #[cfg(test)]
 mod ml_features_tests;
 #[cfg(test)]
+mod model_versioning_coverage_tests;
+#[cfg(test)]
 mod ownership_coverage_tests;
+#[cfg(test)]
+#[path = "pattern_library_tests.rs"]
+mod pattern_library_tests;
