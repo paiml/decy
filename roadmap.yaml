@@ -10872,3 +10872,215 @@ sprint_31_single_shot:
       files_modified:
         - crates/decy-codegen/src/lib.rs
         - crates/decy-codegen/src/codegen_tests.rs
+
+# Sprint Improvement Infrastructure: Quality & Robustness (drawn from depyler, bashrs, claudes-c-compiler)
+sprint_improvement_infra:
+  name: "Improvement Infrastructure: Determinism, Falsification, Convergence, Tracing, Equivalence, Optimization, Inline ASM"
+  duration: "2 weeks"
+  goals:
+    - Corpus convergence measurement (DECY-191)
+    - Falsification test suite (DECY-192)
+    - Decision tracing / flight recorder (DECY-193)
+    - Deterministic output guarantee (DECY-194)
+    - Semantic equivalence validation (DECY-195)
+    - HIR optimization pass (DECY-196)
+    - Inline assembly strategy (DECY-197)
+  story_points: 34
+
+  tickets:
+    DECY-191:
+      title: "Corpus convergence measurement"
+      type: quality
+      priority: high
+      story_points: 5
+      assignee: Claude
+      status: done
+      phase: DONE
+      started_date: "2026-02-09"
+      completed_date: "2026-02-09"
+      actual_metrics:
+        scripts_created: 1
+        structs_added: 2
+        makefile_targets_added: 1
+      description: |
+        Measure real-world transpilation success rates using the K&R C validation corpus.
+        Create convergence.sh script that iterates validation/kr-c/chapter-{1..8}/*.c,
+        transpiles each, attempts rustc compilation, reports per-chapter pass/fail/rate.
+        Add ConvergenceReport and TierMetrics structs to decy-core/src/metrics.rs.
+        Inspired by depyler's corpus convergence loop.
+      acceptance_criteria:
+        - scripts/convergence.sh produces per-chapter markdown table ✓
+        - ConvergenceReport struct tracks per-tier metrics ✓
+        - make convergence target works ✓
+      files_modified:
+        - scripts/convergence.sh
+        - crates/decy-core/src/metrics.rs
+        - Makefile
+
+    DECY-192:
+      title: "Falsification test suite"
+      type: quality
+      priority: high
+      story_points: 8
+      assignee: Claude
+      status: in_progress
+      phase: GREEN
+      started_date: "2026-02-09"
+      actual_metrics:
+        tests_added: 50
+        tests_passing: 50
+        coverage: "C001-C050 implemented"
+      description: |
+        Create append-only falsification test suite with 150 C programs that must
+        transpile and compile. Each test uses transpile_and_compile helper.
+        C001-C010: Integer types. C011-C020: Control flow. C021-C030: Functions.
+        C031-C040: Structs. C041-C050: Functions/returns.
+        C051-C080: Pointers and arrays. C081-C100: Standard library.
+        C101-C120: Preprocessor. C121-C150: Advanced (function ptrs, variadic, bitfields).
+        Inspired by bashrs's falsification methodology.
+      acceptance_criteria:
+        - crates/decy-core/tests/c_falsification_tests.rs with 50 test functions ✓
+        - Each test transpiles C and verifies rustc compilation ✓
+        - Tests are append-only (never weaken or delete) ✓
+        - Expand to 150 tests (C051-C150) for full C language surface coverage
+      files_modified:
+        - crates/decy-core/tests/c_falsification_tests.rs
+
+    DECY-193:
+      title: "Decision tracing / flight recorder"
+      type: feature
+      priority: medium
+      story_points: 5
+      assignee: Claude
+      status: done
+      phase: DONE
+      started_date: "2026-02-09"
+      completed_date: "2026-02-09"
+      actual_metrics:
+        tests_added: 5
+        tests_passing: 5
+        structs_added: 4
+        enums_added: 2
+      description: |
+        Add JSON audit trail for transpilation decisions. Create TraceEntry struct
+        (stage, source_location, decision_type, chosen, alternatives, confidence, reason)
+        and TraceCollector in decy-core/src/trace.rs. Add transpile_with_trace() that
+        injects TraceCollector at ownership inference stage. Add --trace flag to CLI.
+        Inspired by depyler's decision tracing.
+      acceptance_criteria:
+        - trace.rs module with TraceEntry and TraceCollector ✓
+        - transpile_with_trace() returns trace alongside Rust code ✓
+        - decy transpile --trace emits JSON trace to stderr ✓
+      files_modified:
+        - crates/decy-core/src/trace.rs
+        - crates/decy-core/src/lib.rs
+        - crates/decy/src/main.rs
+
+    DECY-194:
+      title: "Deterministic output guarantee"
+      type: quality
+      priority: high
+      story_points: 3
+      assignee: Claude
+      status: done
+      phase: DONE
+      started_date: "2026-02-09"
+      completed_date: "2026-02-09"
+      actual_metrics:
+        tests_added: 15
+        tests_passing: 15
+      description: |
+        Guarantee that transpiling the same C code twice produces byte-identical
+        Rust output. Create determinism test suite with 15 fixed C programs.
+        Inspired by bashrs's deterministic output guarantee.
+      acceptance_criteria:
+        - crates/decy-core/tests/determinism_tests.rs with 10+ tests ✓
+        - Each test transpiles C twice, asserts byte-identical output ✓
+        - make determinism target works ✓
+      files_modified:
+        - crates/decy-core/tests/determinism_tests.rs
+        - Makefile
+
+    DECY-195:
+      title: "Semantic equivalence validation"
+      type: quality
+      priority: medium
+      story_points: 5
+      assignee: Claude
+      status: done
+      phase: DONE
+      started_date: "2026-02-09"
+      completed_date: "2026-02-09"
+      actual_metrics:
+        scripts_created: 1
+        structs_added: 2
+        makefile_targets_added: 1
+      description: |
+        Validate that transpiled Rust code produces the same output and exit code
+        as the original C code. Create validate-equivalence.sh that for each C file:
+        gcc compile+run vs decy transpile+rustc compile+run, diff stdout+exit code.
+        Add EquivalenceMetrics structs to metrics.rs.
+        Inspired by claudes-c-compiler's multi-architecture validation.
+      acceptance_criteria:
+        - scripts/validate-equivalence.sh produces equivalence report ✓
+        - EquivalenceMetrics tracks pass/fail/divergences ✓
+        - make validate-equivalence target works ✓
+      files_modified:
+        - scripts/validate-equivalence.sh
+        - crates/decy-core/src/metrics.rs
+        - Makefile
+
+    DECY-196:
+      title: "HIR optimization pass"
+      type: feature
+      priority: medium
+      story_points: 5
+      assignee: Claude
+      status: done
+      phase: DONE
+      started_date: "2026-02-09"
+      completed_date: "2026-02-09"
+      actual_metrics:
+        tests_added: 13
+        tests_passing: 13
+        optimization_passes: 3
+      description: |
+        Add HIR-level optimization passes before codegen: constant folding
+        (literal arithmetic), temporary elimination (single-use let chains),
+        dead branch removal (if(1)/if(0)). Runs in fixed-point loop (max 3 iterations).
+        Inspired by claudes-c-compiler's optimization infrastructure.
+      acceptance_criteria:
+        - crates/decy-core/src/optimize.rs with three passes ✓
+        - optimize_function() runs between ownership and codegen ✓
+        - Unit tests for each optimization pass ✓
+      files_modified:
+        - crates/decy-core/src/optimize.rs
+        - crates/decy-core/src/lib.rs
+
+    DECY-197:
+      title: "Inline assembly strategy"
+      type: feature
+      priority: low
+      story_points: 3
+      assignee: Claude
+      status: done
+      phase: DONE
+      started_date: "2026-02-09"
+      completed_date: "2026-02-09"
+      actual_metrics:
+        tests_added: 0
+        enum_variants_added: 1
+        match_arms_updated: 3
+      description: |
+        Handle inline assembly in C code by adding InlineAsm variant to HirStatement
+        and emitting a review-required comment in codegen.
+        Inspired by claudes-c-compiler's builtin assembler awareness.
+      acceptance_criteria:
+        - InlineAsm variant in HirStatement ✓
+        - Codegen emits DECY manual review comment ✓
+        - Match arms updated in borrow_gen.rs and dataflow.rs ✓
+      files_modified:
+        - crates/decy-hir/src/lib.rs
+        - crates/decy-codegen/src/lib.rs
+        - crates/decy-ownership/src/borrow_gen.rs
+        - crates/decy-ownership/src/dataflow.rs
