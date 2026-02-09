@@ -369,4 +369,408 @@ mod tests {
         assert!(!output.is_empty());
         assert!(output.contains("main"));
     }
+
+    // ============================================================================
+    // Coverage: for loop, while loop, if/else, variable decl, assignment
+    // ============================================================================
+
+    #[test]
+    fn test_visualize_for_loop() {
+        let mut temp_file = NamedTempFile::new().unwrap();
+        writeln!(
+            temp_file,
+            "int main() {{ int i; for (i = 0; i < 10; i = i + 1) {{ }} return 0; }}"
+        )
+        .unwrap();
+
+        let result = visualize_c_ast(temp_file.path(), false);
+        assert!(result.is_ok());
+        let output = result.unwrap();
+        assert!(output.contains("Function: main"));
+    }
+
+    #[test]
+    fn test_visualize_while_loop() {
+        let mut temp_file = NamedTempFile::new().unwrap();
+        writeln!(
+            temp_file,
+            "int main() {{ int x = 10; while (x) {{ x = x - 1; }} return 0; }}"
+        )
+        .unwrap();
+
+        let result = visualize_c_ast(temp_file.path(), false);
+        assert!(result.is_ok());
+        let output = result.unwrap();
+        assert!(output.contains("Function: main"));
+    }
+
+    #[test]
+    fn test_visualize_if_else() {
+        let mut temp_file = NamedTempFile::new().unwrap();
+        writeln!(
+            temp_file,
+            "int main() {{ int x = 5; if (x) {{ return 1; }} else {{ return 0; }} }}"
+        )
+        .unwrap();
+
+        let result = visualize_c_ast(temp_file.path(), false);
+        assert!(result.is_ok());
+        let output = result.unwrap();
+        assert!(output.contains("Function: main"));
+    }
+
+    #[test]
+    fn test_visualize_variable_declaration() {
+        let mut temp_file = NamedTempFile::new().unwrap();
+        writeln!(
+            temp_file,
+            "int main() {{ int x = 42; int y = x + 1; return y; }}"
+        )
+        .unwrap();
+
+        let result = visualize_c_ast(temp_file.path(), false);
+        assert!(result.is_ok());
+        let output = result.unwrap();
+        assert!(output.contains("Function: main"));
+    }
+
+    #[test]
+    fn test_visualize_assignment() {
+        let mut temp_file = NamedTempFile::new().unwrap();
+        writeln!(
+            temp_file,
+            "int main() {{ int x = 0; x = 42; return x; }}"
+        )
+        .unwrap();
+
+        let result = visualize_c_ast(temp_file.path(), false);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_visualize_function_call() {
+        let mut temp_file = NamedTempFile::new().unwrap();
+        writeln!(
+            temp_file,
+            "int add(int a, int b) {{ return a + b; }}\nint main() {{ return add(2, 3); }}"
+        )
+        .unwrap();
+
+        let result = visualize_c_ast(temp_file.path(), false);
+        assert!(result.is_ok());
+        let output = result.unwrap();
+        // Should show both functions
+        assert!(output.contains("Function: add") || output.contains("Function: main"));
+    }
+
+    #[test]
+    fn test_visualize_multiple_parameters() {
+        let mut temp_file = NamedTempFile::new().unwrap();
+        writeln!(
+            temp_file,
+            "int add3(int a, int b, int c) {{ return a + b + c; }}"
+        )
+        .unwrap();
+
+        let result = visualize_c_ast(temp_file.path(), false);
+        assert!(result.is_ok());
+        let output = result.unwrap();
+        assert!(output.contains("Parameters:"));
+    }
+
+    #[test]
+    fn test_visualize_void_return() {
+        let mut temp_file = NamedTempFile::new().unwrap();
+        writeln!(temp_file, "void noop() {{ return; }}").unwrap();
+
+        let result = visualize_c_ast(temp_file.path(), false);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_visualize_statistics() {
+        let mut temp_file = NamedTempFile::new().unwrap();
+        writeln!(
+            temp_file,
+            "int f1() {{ return 1; }}\nint f2() {{ return 2; }}"
+        )
+        .unwrap();
+
+        let result = visualize_c_ast(temp_file.path(), false);
+        assert!(result.is_ok());
+        let output = result.unwrap();
+        assert!(output.contains("Statistics"));
+        assert!(output.contains("Functions:"));
+        assert!(output.contains("Total statements:"));
+    }
+
+    #[test]
+    fn test_visualize_colors_for_loop() {
+        let mut temp_file = NamedTempFile::new().unwrap();
+        writeln!(
+            temp_file,
+            "int main() {{ int i; for (i = 0; i < 5; i = i + 1) {{ }} return 0; }}"
+        )
+        .unwrap();
+
+        let result = visualize_c_ast(temp_file.path(), true);
+        assert!(result.is_ok());
+        let output = result.unwrap();
+        assert!(!output.is_empty());
+    }
+
+    #[test]
+    fn test_visualize_colors_if_else() {
+        let mut temp_file = NamedTempFile::new().unwrap();
+        writeln!(
+            temp_file,
+            "int main() {{ int x = 1; if (x) {{ return 1; }} else {{ return 0; }} }}"
+        )
+        .unwrap();
+
+        let result = visualize_c_ast(temp_file.path(), true);
+        assert!(result.is_ok());
+    }
+
+    // ============================================================================
+    // Coverage: error paths
+    // ============================================================================
+
+    #[test]
+    fn test_visualize_nonexistent_file() {
+        let result = visualize_c_ast(Path::new("/nonexistent/file.c"), false);
+        assert!(result.is_err());
+    }
+
+    // ============================================================================
+    // Coverage: format_expression and format_statement direct tests
+    // ============================================================================
+
+    #[test]
+    fn test_format_expression_int_literal_no_colors() {
+        let expr = Expression::IntLiteral(42);
+        let result = format_expression(&expr, false);
+        assert_eq!(result, "42");
+    }
+
+    #[test]
+    fn test_format_expression_int_literal_with_colors() {
+        let expr = Expression::IntLiteral(42);
+        let result = format_expression(&expr, true);
+        // Color codes wrap the number
+        assert!(result.contains("42"));
+    }
+
+    #[test]
+    fn test_format_expression_variable_no_colors() {
+        let expr = Expression::Variable("x".to_string());
+        let result = format_expression(&expr, false);
+        assert_eq!(result, "x");
+    }
+
+    #[test]
+    fn test_format_expression_variable_with_colors() {
+        let expr = Expression::Variable("x".to_string());
+        let result = format_expression(&expr, true);
+        assert!(result.contains("x"));
+    }
+
+    #[test]
+    fn test_format_expression_binary_op() {
+        let expr = Expression::BinaryOp {
+            left: Box::new(Expression::IntLiteral(1)),
+            op: decy_parser::parser::BinaryOperator::Add,
+            right: Box::new(Expression::IntLiteral(2)),
+        };
+        let result = format_expression(&expr, false);
+        assert!(result.contains("1"));
+        assert!(result.contains("2"));
+        assert!(result.contains("Add"));
+    }
+
+    #[test]
+    fn test_format_expression_function_call_no_colors() {
+        let expr = Expression::FunctionCall {
+            function: "printf".to_string(),
+            arguments: vec![Expression::Variable("msg".to_string())],
+        };
+        let result = format_expression(&expr, false);
+        assert!(result.contains("printf"));
+        assert!(result.contains("msg"));
+    }
+
+    #[test]
+    fn test_format_expression_function_call_with_colors() {
+        let expr = Expression::FunctionCall {
+            function: "printf".to_string(),
+            arguments: vec![Expression::IntLiteral(0)],
+        };
+        let result = format_expression(&expr, true);
+        assert!(result.contains("printf"));
+    }
+
+    #[test]
+    fn test_format_expression_catchall() {
+        let expr = Expression::StringLiteral("hello".to_string());
+        let result = format_expression(&expr, false);
+        // Falls through to Debug format
+        assert!(!result.is_empty());
+    }
+
+    #[test]
+    fn test_format_statement_return_some_no_colors() {
+        let stmt = Statement::Return(Some(Expression::IntLiteral(0)));
+        let mut output = String::new();
+        format_statement(&stmt, 0, &mut output, false);
+        assert!(output.contains("Return"));
+        assert!(output.contains("0"));
+    }
+
+    #[test]
+    fn test_format_statement_return_none_no_colors() {
+        let stmt = Statement::Return(None);
+        let mut output = String::new();
+        format_statement(&stmt, 0, &mut output, false);
+        assert!(output.contains("Return (void)"));
+    }
+
+    #[test]
+    fn test_format_statement_return_none_with_colors() {
+        let stmt = Statement::Return(None);
+        let mut output = String::new();
+        format_statement(&stmt, 0, &mut output, true);
+        assert!(output.contains("Return"));
+    }
+
+    #[test]
+    fn test_format_statement_assignment_no_colors() {
+        let stmt = Statement::Assignment {
+            target: "x".to_string(),
+            value: Expression::IntLiteral(42),
+        };
+        let mut output = String::new();
+        format_statement(&stmt, 0, &mut output, false);
+        assert!(output.contains("Assignment"));
+        assert!(output.contains("x"));
+    }
+
+    #[test]
+    fn test_format_statement_if_with_else_no_colors() {
+        let stmt = Statement::If {
+            condition: Expression::Variable("x".to_string()),
+            then_block: vec![Statement::Return(Some(Expression::IntLiteral(1)))],
+            else_block: Some(vec![Statement::Return(Some(Expression::IntLiteral(0)))]),
+        };
+        let mut output = String::new();
+        format_statement(&stmt, 0, &mut output, false);
+        assert!(output.contains("If"));
+        assert!(output.contains("then: 1 stmts"));
+        assert!(output.contains("else: 1 stmts"));
+    }
+
+    #[test]
+    fn test_format_statement_if_with_else_with_colors() {
+        let stmt = Statement::If {
+            condition: Expression::Variable("x".to_string()),
+            then_block: vec![Statement::Return(Some(Expression::IntLiteral(1)))],
+            else_block: Some(vec![Statement::Return(Some(Expression::IntLiteral(0)))]),
+        };
+        let mut output = String::new();
+        format_statement(&stmt, 0, &mut output, true);
+        assert!(output.contains("else: 1 stmts"));
+    }
+
+    #[test]
+    fn test_format_statement_while_no_colors() {
+        let stmt = Statement::While {
+            condition: Expression::Variable("running".to_string()),
+            body: vec![Statement::Return(Some(Expression::IntLiteral(0)))],
+        };
+        let mut output = String::new();
+        format_statement(&stmt, 0, &mut output, false);
+        assert!(output.contains("While"));
+        assert!(output.contains("1 stmts"));
+    }
+
+    #[test]
+    fn test_format_statement_for_no_colors() {
+        let stmt = Statement::For {
+            init: vec![Statement::VariableDeclaration {
+                name: "i".to_string(),
+                var_type: decy_parser::Type::Int,
+                initializer: Some(Expression::IntLiteral(0)),
+            }],
+            condition: Some(Expression::Variable("i".to_string())),
+            increment: vec![],
+            body: vec![],
+        };
+        let mut output = String::new();
+        format_statement(&stmt, 0, &mut output, false);
+        assert!(output.contains("For"));
+    }
+
+    #[test]
+    fn test_format_statement_var_decl_no_colors() {
+        let stmt = Statement::VariableDeclaration {
+            name: "x".to_string(),
+            var_type: decy_parser::Type::Int,
+            initializer: Some(Expression::IntLiteral(42)),
+        };
+        let mut output = String::new();
+        format_statement(&stmt, 0, &mut output, false);
+        assert!(output.contains("VarDecl"));
+        assert!(output.contains("x"));
+    }
+
+    #[test]
+    fn test_format_statement_var_decl_no_init() {
+        let stmt = Statement::VariableDeclaration {
+            name: "y".to_string(),
+            var_type: decy_parser::Type::Int,
+            initializer: None,
+        };
+        let mut output = String::new();
+        format_statement(&stmt, 0, &mut output, false);
+        assert!(output.contains("VarDecl"));
+        assert!(output.contains("y"));
+    }
+
+    #[test]
+    fn test_format_statement_catchall() {
+        let stmt = Statement::Break;
+        let mut output = String::new();
+        format_statement(&stmt, 0, &mut output, false);
+        assert!(!output.is_empty());
+    }
+
+    #[test]
+    fn test_format_function_no_body() {
+        let function = Function {
+            name: "empty".to_string(),
+            return_type: decy_parser::Type::Void,
+            parameters: vec![],
+            body: vec![],
+        };
+        let mut output = String::new();
+        format_function(&function, 0, &mut output, false);
+        assert!(output.contains("Function: empty"));
+    }
+
+    #[test]
+    fn test_format_function_with_colors() {
+        let function = Function {
+            name: "test_fn".to_string(),
+            return_type: decy_parser::Type::Int,
+            parameters: vec![decy_parser::Parameter::new(
+                "x".to_string(),
+                decy_parser::Type::Int,
+            )],
+            body: vec![Statement::Return(Some(Expression::Variable(
+                "x".to_string(),
+            )))],
+        };
+        let mut output = String::new();
+        format_function(&function, 0, &mut output, true);
+        assert!(output.contains("test_fn"));
+    }
 }
