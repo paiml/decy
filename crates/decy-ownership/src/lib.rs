@@ -126,3 +126,9 @@ mod model_versioning_deep_tests;
 mod deep_coverage_tests;
 #[cfg(test)]
 mod pipeline_inference_tests;
+#[cfg(test)]
+mod inference_coverage_tests;
+#[cfg(test)]
+mod training_data_coverage_tests;
+#[cfg(test)]
+mod struct_lifetime_coverage_tests;
