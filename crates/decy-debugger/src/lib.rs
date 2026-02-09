@@ -148,3 +148,7 @@ mod tests {
         assert!(output.contains("add"), "Should contain function name");
     }
 }
+
+#[cfg(test)]
+mod debugger_coverage_tests;
+
