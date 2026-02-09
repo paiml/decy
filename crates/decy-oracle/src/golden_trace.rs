@@ -459,3 +459,367 @@ dataset = load_dataset("paiml/decy-golden-traces")
         )
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn sample_trace(tier: TraceTier) -> GoldenTrace {
+        GoldenTrace::new(
+            "int x = 42;".to_string(),
+            "let x: i32 = 42;".to_string(),
+            tier,
+            "test.c",
+        )
+    }
+
+    // ========================================================================
+    // GoldenTrace creation and builders
+    // ========================================================================
+
+    #[test]
+    fn test_golden_trace_new() {
+        let trace = sample_trace(TraceTier::P0);
+        assert_eq!(trace.c_snippet, "int x = 42;");
+        assert_eq!(trace.rust_snippet, "let x: i32 = 42;");
+        assert_eq!(trace.metadata.tier, TraceTier::P0);
+        assert_eq!(trace.metadata.source_file, "test.c");
+        assert!(trace.metadata.trace_id.starts_with("trace_"));
+        assert!(!trace.metadata.human_verified);
+    }
+
+    #[test]
+    fn test_golden_trace_with_safety_explanation() {
+        let trace = sample_trace(TraceTier::P0)
+            .with_safety_explanation("Direct integer mapping, no unsafe required");
+        assert_eq!(
+            trace.safety_explanation,
+            "Direct integer mapping, no unsafe required"
+        );
+    }
+
+    #[test]
+    fn test_golden_trace_set_explanation() {
+        let mut trace = sample_trace(TraceTier::P0);
+        trace.set_explanation("test explanation".to_string());
+        assert_eq!(trace.safety_explanation, "test explanation");
+    }
+
+    #[test]
+    fn test_golden_trace_add_transformation() {
+        let mut trace = sample_trace(TraceTier::P1);
+        trace.add_transformation(SafetyTransformation {
+            kind: TransformationKind::MallocToBox,
+            c_pattern: "malloc(sizeof(int))".to_string(),
+            rust_pattern: "Box::new(0i32)".to_string(),
+        });
+        assert_eq!(trace.metadata.transformations.len(), 1);
+    }
+
+    // ========================================================================
+    // generate_explanation
+    // ========================================================================
+
+    #[test]
+    fn test_generate_explanation_with_transformations() {
+        let mut trace = sample_trace(TraceTier::P2);
+        trace.add_transformation(SafetyTransformation {
+            kind: TransformationKind::MallocToBox,
+            c_pattern: "malloc()".to_string(),
+            rust_pattern: "Box::new()".to_string(),
+        });
+        trace.add_transformation(SafetyTransformation {
+            kind: TransformationKind::NullToOption,
+            c_pattern: "NULL".to_string(),
+            rust_pattern: "None".to_string(),
+        });
+        trace.generate_explanation();
+        assert!(trace.safety_explanation.contains("Safety transformations"));
+        assert!(trace.safety_explanation.contains("MallocToBox"));
+        assert!(trace.safety_explanation.contains("NullToOption"));
+    }
+
+    #[test]
+    fn test_generate_explanation_no_transformations() {
+        let mut trace = sample_trace(TraceTier::P0);
+        trace.generate_explanation();
+        assert!(trace
+            .safety_explanation
+            .contains("Direct translation with no unsafe patterns detected"));
+    }
+
+    // ========================================================================
+    // Export formats: JSONL, ChatML, Alpaca
+    // ========================================================================
+
+    #[test]
+    fn test_to_jsonl() {
+        let trace = sample_trace(TraceTier::P0)
+            .with_safety_explanation("Safe mapping");
+        let jsonl = trace.to_jsonl().unwrap();
+        assert!(jsonl.contains("int x = 42;"));
+        assert!(jsonl.contains("let x: i32 = 42;"));
+        // Verify it's valid JSON
+        let _: serde_json::Value = serde_json::from_str(&jsonl).unwrap();
+    }
+
+    #[test]
+    fn test_to_chatml() {
+        let trace = sample_trace(TraceTier::P0)
+            .with_safety_explanation("Direct mapping");
+        let chatml = trace.to_chatml();
+        assert!(chatml.contains("<|im_start|>system"));
+        assert!(chatml.contains("<|im_start|>user"));
+        assert!(chatml.contains("<|im_start|>assistant"));
+        assert!(chatml.contains("int x = 42;"));
+        assert!(chatml.contains("let x: i32 = 42;"));
+        assert!(chatml.contains("Direct mapping"));
+    }
+
+    #[test]
+    fn test_to_alpaca() {
+        let trace = sample_trace(TraceTier::P1)
+            .with_safety_explanation("Transformed pattern");
+        let alpaca = trace.to_alpaca();
+        assert_eq!(
+            alpaca["instruction"],
+            "Transpile this C code to safe, idiomatic Rust code."
+        );
+        assert!(alpaca["input"].as_str().unwrap().contains("int x = 42;"));
+        assert!(alpaca["output"].as_str().unwrap().contains("let x: i32 = 42;"));
+        assert_eq!(alpaca["metadata"]["tier"], "P1");
+    }
+
+    // ========================================================================
+    // TraceTier Display and FromStr
+    // ========================================================================
+
+    #[test]
+    fn test_trace_tier_display() {
+        assert_eq!(TraceTier::P0.to_string(), "P0");
+        assert_eq!(TraceTier::P1.to_string(), "P1");
+        assert_eq!(TraceTier::P2.to_string(), "P2");
+    }
+
+    #[test]
+    fn test_trace_tier_from_str() {
+        assert_eq!("P0".parse::<TraceTier>().unwrap(), TraceTier::P0);
+        assert_eq!("P1".parse::<TraceTier>().unwrap(), TraceTier::P1);
+        assert_eq!("P2".parse::<TraceTier>().unwrap(), TraceTier::P2);
+        // Case insensitive
+        assert_eq!("p0".parse::<TraceTier>().unwrap(), TraceTier::P0);
+    }
+
+    #[test]
+    fn test_trace_tier_from_str_invalid() {
+        let err = "P3".parse::<TraceTier>().unwrap_err();
+        assert!(err.contains("Invalid tier"));
+    }
+
+    // ========================================================================
+    // TransformationKind all variants
+    // ========================================================================
+
+    #[test]
+    fn test_all_transformation_kinds_serializable() {
+        let kinds = vec![
+            TransformationKind::MallocToBox,
+            TransformationKind::CallocToVec,
+            TransformationKind::NullToOption,
+            TransformationKind::PointerToReference,
+            TransformationKind::PthreadToMutex,
+            TransformationKind::OutputParamToResult,
+            TransformationKind::TaggedUnionToEnum,
+            TransformationKind::ArrayParamToSlice,
+            TransformationKind::Other("custom".to_string()),
+        ];
+
+        for kind in kinds {
+            let t = SafetyTransformation {
+                kind,
+                c_pattern: "c".to_string(),
+                rust_pattern: "rust".to_string(),
+            };
+            let json = serde_json::to_string(&t).unwrap();
+            let _: SafetyTransformation = serde_json::from_str(&json).unwrap();
+        }
+    }
+
+    // ========================================================================
+    // GoldenTraceDataset
+    // ========================================================================
+
+    #[test]
+    fn test_dataset_new() {
+        let ds = GoldenTraceDataset::new();
+        assert_eq!(ds.traces.len(), 0);
+        assert_eq!(ds.stats.total_traces, 0);
+    }
+
+    #[test]
+    fn test_dataset_add_trace() {
+        let mut ds = GoldenTraceDataset::new();
+        ds.add_trace(sample_trace(TraceTier::P0));
+        ds.add_trace(sample_trace(TraceTier::P1));
+        ds.add_trace(sample_trace(TraceTier::P2));
+
+        assert_eq!(ds.stats.total_traces, 3);
+        assert_eq!(ds.stats.traces_by_tier.get("P0"), Some(&1));
+        assert_eq!(ds.stats.traces_by_tier.get("P1"), Some(&1));
+        assert_eq!(ds.stats.traces_by_tier.get("P2"), Some(&1));
+        assert!(ds.stats.avg_c_length > 0.0);
+        assert!(ds.stats.avg_rust_length > 0.0);
+    }
+
+    #[test]
+    fn test_dataset_add_trace_with_transformations() {
+        let mut ds = GoldenTraceDataset::new();
+        let mut trace = sample_trace(TraceTier::P2);
+        trace.add_transformation(SafetyTransformation {
+            kind: TransformationKind::MallocToBox,
+            c_pattern: "malloc".to_string(),
+            rust_pattern: "Box::new".to_string(),
+        });
+        ds.add_trace(trace);
+
+        assert_eq!(ds.stats.traces_by_transformation.len(), 1);
+    }
+
+    // ========================================================================
+    // Dataset exports
+    // ========================================================================
+
+    #[test]
+    fn test_dataset_export_jsonl() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("traces.jsonl");
+
+        let mut ds = GoldenTraceDataset::new();
+        ds.add_trace(
+            sample_trace(TraceTier::P0).with_safety_explanation("safe"),
+        );
+        ds.add_trace(
+            sample_trace(TraceTier::P1).with_safety_explanation("safe"),
+        );
+
+        ds.export_jsonl(&path).unwrap();
+
+        let content = std::fs::read_to_string(&path).unwrap();
+        let lines: Vec<_> = content.lines().collect();
+        assert_eq!(lines.len(), 2);
+        // Each line is valid JSON
+        for line in lines {
+            let _: serde_json::Value = serde_json::from_str(line).unwrap();
+        }
+    }
+
+    #[test]
+    fn test_dataset_export_chatml() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("traces.chatml");
+
+        let mut ds = GoldenTraceDataset::new();
+        ds.add_trace(
+            sample_trace(TraceTier::P0).with_safety_explanation("safe"),
+        );
+
+        ds.export_chatml(&path).unwrap();
+
+        let content = std::fs::read_to_string(&path).unwrap();
+        assert!(content.contains("<|im_start|>"));
+    }
+
+    #[test]
+    fn test_dataset_export_alpaca() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("traces.json");
+
+        let mut ds = GoldenTraceDataset::new();
+        ds.add_trace(
+            sample_trace(TraceTier::P0).with_safety_explanation("safe"),
+        );
+
+        ds.export_alpaca(&path).unwrap();
+
+        let content = std::fs::read_to_string(&path).unwrap();
+        let arr: Vec<serde_json::Value> = serde_json::from_str(&content).unwrap();
+        assert_eq!(arr.len(), 1);
+    }
+
+    // ========================================================================
+    // Dataset card
+    // ========================================================================
+
+    #[test]
+    fn test_dataset_generate_card() {
+        let mut ds = GoldenTraceDataset::new();
+        let mut trace = sample_trace(TraceTier::P0);
+        trace.add_transformation(SafetyTransformation {
+            kind: TransformationKind::MallocToBox,
+            c_pattern: "malloc".to_string(),
+            rust_pattern: "Box::new".to_string(),
+        });
+        ds.add_trace(trace);
+        ds.add_trace(sample_trace(TraceTier::P1));
+
+        let card = ds.generate_card();
+        assert!(card.contains("Golden Traces Dataset"));
+        assert!(card.contains("Total Traces"));
+        assert!(card.contains("Apache-2.0"));
+    }
+
+    #[test]
+    fn test_dataset_generate_card_empty() {
+        let ds = GoldenTraceDataset::new();
+        let card = ds.generate_card();
+        assert!(card.contains("Total Traces"));
+    }
+
+    // ========================================================================
+    // DatasetMetadata default
+    // ========================================================================
+
+    #[test]
+    fn test_dataset_metadata_default() {
+        let meta = DatasetMetadata::default();
+        assert_eq!(meta.version, "1.0.0");
+        assert_eq!(meta.license, "Apache-2.0");
+        assert!(meta.description.contains("Golden Traces"));
+    }
+
+    // ========================================================================
+    // TraceContext default
+    // ========================================================================
+
+    #[test]
+    fn test_trace_context_default() {
+        let ctx = TraceContext::default();
+        assert!(ctx.headers.is_empty());
+        assert!(ctx.type_definitions.is_empty());
+        assert!(ctx.function_signatures.is_empty());
+        assert!(ctx.globals.is_empty());
+    }
+
+    // ========================================================================
+    // Serialization round-trips
+    // ========================================================================
+
+    #[test]
+    fn test_golden_trace_serialize_roundtrip() {
+        let trace = sample_trace(TraceTier::P0)
+            .with_safety_explanation("test");
+        let json = serde_json::to_string(&trace).unwrap();
+        let deserialized: GoldenTrace = serde_json::from_str(&json).unwrap();
+        assert_eq!(deserialized.c_snippet, trace.c_snippet);
+        assert_eq!(deserialized.rust_snippet, trace.rust_snippet);
+    }
+
+    #[test]
+    fn test_dataset_serialize_roundtrip() {
+        let mut ds = GoldenTraceDataset::new();
+        ds.add_trace(sample_trace(TraceTier::P0));
+        let json = serde_json::to_string(&ds).unwrap();
+        let deserialized: GoldenTraceDataset = serde_json::from_str(&json).unwrap();
+        assert_eq!(deserialized.traces.len(), 1);
+    }
+}
