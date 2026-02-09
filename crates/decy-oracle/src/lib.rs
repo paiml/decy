@@ -76,3 +76,11 @@ pub use corpus_citl::{CFeature, CorpusCITL, IngestionStats};
 #[cfg(test)]
 #[path = "bootstrap_coverage_tests.rs"]
 mod bootstrap_coverage_tests;
+
+#[cfg(test)]
+#[path = "config_coverage_tests.rs"]
+mod config_coverage_tests;
+
+#[cfg(test)]
+#[path = "verification_coverage_tests.rs"]
+mod verification_coverage_tests;
