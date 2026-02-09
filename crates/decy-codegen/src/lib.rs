@@ -7377,3 +7377,7 @@ mod pattern_gen_tests;
 #[cfg(test)]
 #[path = "format_specifier_tests.rs"]
 mod format_specifier_tests;
+
+#[cfg(test)]
+#[path = "expression_coverage_tests.rs"]
+mod expression_coverage_tests;
