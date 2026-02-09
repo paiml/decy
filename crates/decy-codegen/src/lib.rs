@@ -7409,3 +7409,7 @@ mod format_and_sig_tests;
 #[cfg(test)]
 #[path = "expr_stmt_deep_tests.rs"]
 mod expr_stmt_deep_tests;
+
+#[cfg(test)]
+#[path = "expr_codegen_deep2_tests.rs"]
+mod expr_codegen_deep2_tests;

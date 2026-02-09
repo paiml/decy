@@ -92,3 +92,7 @@ mod dataset_coverage_tests;
 #[cfg(test)]
 #[path = "import_coverage_tests.rs"]
 mod import_coverage_tests;
+
+#[cfg(test)]
+#[path = "bootstrap_deep_tests.rs"]
+mod bootstrap_deep_tests;
