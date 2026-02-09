@@ -596,4 +596,553 @@ mod tests {
         };
         assert_eq!(fold_constants_expr(expr), HirExpression::IntLiteral(0x0F));
     }
+
+    // ============================================================================
+    // Additional coverage: fold_int_binary paths
+    // ============================================================================
+
+    #[test]
+    fn test_constant_folding_subtract() {
+        let expr = HirExpression::BinaryOp {
+            op: BinaryOperator::Subtract,
+            left: Box::new(HirExpression::IntLiteral(10)),
+            right: Box::new(HirExpression::IntLiteral(3)),
+        };
+        assert_eq!(fold_constants_expr(expr), HirExpression::IntLiteral(7));
+    }
+
+    #[test]
+    fn test_constant_folding_divide() {
+        let expr = HirExpression::BinaryOp {
+            op: BinaryOperator::Divide,
+            left: Box::new(HirExpression::IntLiteral(20)),
+            right: Box::new(HirExpression::IntLiteral(4)),
+        };
+        assert_eq!(fold_constants_expr(expr), HirExpression::IntLiteral(5));
+    }
+
+    #[test]
+    fn test_constant_folding_modulo() {
+        let expr = HirExpression::BinaryOp {
+            op: BinaryOperator::Modulo,
+            left: Box::new(HirExpression::IntLiteral(17)),
+            right: Box::new(HirExpression::IntLiteral(5)),
+        };
+        assert_eq!(fold_constants_expr(expr), HirExpression::IntLiteral(2));
+    }
+
+    #[test]
+    fn test_constant_folding_modulo_by_zero() {
+        let expr = HirExpression::BinaryOp {
+            op: BinaryOperator::Modulo,
+            left: Box::new(HirExpression::IntLiteral(17)),
+            right: Box::new(HirExpression::IntLiteral(0)),
+        };
+        match fold_constants_expr(expr) {
+            HirExpression::BinaryOp { .. } => {}
+            other => panic!("Expected BinaryOp, got {:?}", other),
+        }
+    }
+
+    #[test]
+    fn test_constant_folding_left_shift() {
+        let expr = HirExpression::BinaryOp {
+            op: BinaryOperator::LeftShift,
+            left: Box::new(HirExpression::IntLiteral(1)),
+            right: Box::new(HirExpression::IntLiteral(4)),
+        };
+        assert_eq!(fold_constants_expr(expr), HirExpression::IntLiteral(16));
+    }
+
+    #[test]
+    fn test_constant_folding_left_shift_overflow() {
+        let expr = HirExpression::BinaryOp {
+            op: BinaryOperator::LeftShift,
+            left: Box::new(HirExpression::IntLiteral(1)),
+            right: Box::new(HirExpression::IntLiteral(32)),
+        };
+        // Shift amount out of range → not folded
+        match fold_constants_expr(expr) {
+            HirExpression::BinaryOp { .. } => {}
+            other => panic!("Expected BinaryOp, got {:?}", other),
+        }
+    }
+
+    #[test]
+    fn test_constant_folding_right_shift() {
+        let expr = HirExpression::BinaryOp {
+            op: BinaryOperator::RightShift,
+            left: Box::new(HirExpression::IntLiteral(16)),
+            right: Box::new(HirExpression::IntLiteral(2)),
+        };
+        assert_eq!(fold_constants_expr(expr), HirExpression::IntLiteral(4));
+    }
+
+    #[test]
+    fn test_constant_folding_right_shift_overflow() {
+        let expr = HirExpression::BinaryOp {
+            op: BinaryOperator::RightShift,
+            left: Box::new(HirExpression::IntLiteral(16)),
+            right: Box::new(HirExpression::IntLiteral(-1)),
+        };
+        match fold_constants_expr(expr) {
+            HirExpression::BinaryOp { .. } => {}
+            other => panic!("Expected BinaryOp, got {:?}", other),
+        }
+    }
+
+    #[test]
+    fn test_constant_folding_bitwise_or() {
+        let expr = HirExpression::BinaryOp {
+            op: BinaryOperator::BitwiseOr,
+            left: Box::new(HirExpression::IntLiteral(0xF0)),
+            right: Box::new(HirExpression::IntLiteral(0x0F)),
+        };
+        assert_eq!(fold_constants_expr(expr), HirExpression::IntLiteral(0xFF));
+    }
+
+    #[test]
+    fn test_constant_folding_bitwise_xor() {
+        let expr = HirExpression::BinaryOp {
+            op: BinaryOperator::BitwiseXor,
+            left: Box::new(HirExpression::IntLiteral(0xFF)),
+            right: Box::new(HirExpression::IntLiteral(0x0F)),
+        };
+        assert_eq!(fold_constants_expr(expr), HirExpression::IntLiteral(0xF0));
+    }
+
+    #[test]
+    fn test_constant_folding_unsupported_op() {
+        // Comparison operators return None from fold_int_binary
+        let expr = HirExpression::BinaryOp {
+            op: BinaryOperator::Equal,
+            left: Box::new(HirExpression::IntLiteral(5)),
+            right: Box::new(HirExpression::IntLiteral(5)),
+        };
+        match fold_constants_expr(expr) {
+            HirExpression::BinaryOp { .. } => {}
+            other => panic!("Expected BinaryOp, got {:?}", other),
+        }
+    }
+
+    // ============================================================================
+    // Additional coverage: fold_constants_expr FunctionCall path
+    // ============================================================================
+
+    #[test]
+    fn test_constant_folding_function_call_args() {
+        // foo(2 + 3) → foo(5)
+        let expr = HirExpression::FunctionCall {
+            function: "foo".to_string(),
+            arguments: vec![HirExpression::BinaryOp {
+                op: BinaryOperator::Add,
+                left: Box::new(HirExpression::IntLiteral(2)),
+                right: Box::new(HirExpression::IntLiteral(3)),
+            }],
+        };
+        match fold_constants_expr(expr) {
+            HirExpression::FunctionCall {
+                function,
+                arguments,
+            } => {
+                assert_eq!(function, "foo");
+                assert_eq!(arguments, vec![HirExpression::IntLiteral(5)]);
+            }
+            other => panic!("Expected FunctionCall, got {:?}", other),
+        }
+    }
+
+    // ============================================================================
+    // Additional coverage: fold_constants_stmt For loop path
+    // ============================================================================
+
+    #[test]
+    fn test_constant_folding_for_loop() {
+        // for(i=0; i<2+3; i++) { ... } → for(i=0; i<5; i++) { ... }
+        let stmt = HirStatement::For {
+            init: vec![HirStatement::VariableDeclaration {
+                name: "i".to_string(),
+                var_type: HirType::Int,
+                initializer: Some(HirExpression::IntLiteral(0)),
+            }],
+            condition: HirExpression::BinaryOp {
+                op: BinaryOperator::Add,
+                left: Box::new(HirExpression::IntLiteral(2)),
+                right: Box::new(HirExpression::IntLiteral(3)),
+            },
+            increment: vec![HirStatement::Expression(HirExpression::Variable(
+                "i".to_string(),
+            ))],
+            body: vec![HirStatement::Return(Some(HirExpression::IntLiteral(1)))],
+        };
+
+        match fold_constants_stmt(stmt) {
+            HirStatement::For {
+                condition, body, ..
+            } => {
+                assert_eq!(condition, HirExpression::IntLiteral(5));
+                assert!(!body.is_empty());
+            }
+            other => panic!("Expected For, got {:?}", other),
+        }
+    }
+
+    // ============================================================================
+    // Additional coverage: fold_constants_stmt Expression and Assignment paths
+    // ============================================================================
+
+    #[test]
+    fn test_constant_folding_expression_stmt() {
+        let stmt = HirStatement::Expression(HirExpression::BinaryOp {
+            op: BinaryOperator::Add,
+            left: Box::new(HirExpression::IntLiteral(1)),
+            right: Box::new(HirExpression::IntLiteral(2)),
+        });
+        match fold_constants_stmt(stmt) {
+            HirStatement::Expression(HirExpression::IntLiteral(3)) => {}
+            other => panic!("Expected Expression(IntLiteral(3)), got {:?}", other),
+        }
+    }
+
+    #[test]
+    fn test_constant_folding_assignment() {
+        let stmt = HirStatement::Assignment {
+            target: "x".to_string(),
+            value: HirExpression::BinaryOp {
+                op: BinaryOperator::Multiply,
+                left: Box::new(HirExpression::IntLiteral(6)),
+                right: Box::new(HirExpression::IntLiteral(7)),
+            },
+        };
+        match fold_constants_stmt(stmt) {
+            HirStatement::Assignment { value, .. } => {
+                assert_eq!(value, HirExpression::IntLiteral(42));
+            }
+            other => panic!("Expected Assignment, got {:?}", other),
+        }
+    }
+
+    #[test]
+    fn test_constant_folding_pass_through() {
+        // Statements without foldable expressions pass through unchanged
+        let stmt = HirStatement::Break;
+        assert_eq!(fold_constants_stmt(stmt), HirStatement::Break);
+    }
+
+    // ============================================================================
+    // Additional coverage: unary op non-Minus
+    // ============================================================================
+
+    #[test]
+    fn test_unary_not_folding_not_applied() {
+        // LogicalNot on a literal should not be folded (only Minus is)
+        let expr = HirExpression::UnaryOp {
+            op: decy_hir::UnaryOperator::LogicalNot,
+            operand: Box::new(HirExpression::IntLiteral(1)),
+        };
+        match fold_constants_expr(expr) {
+            HirExpression::UnaryOp { .. } => {}
+            other => panic!("Expected UnaryOp, got {:?}", other),
+        }
+    }
+
+    #[test]
+    fn test_unary_minus_on_variable() {
+        // -x with variable should not fold
+        let expr = HirExpression::UnaryOp {
+            op: decy_hir::UnaryOperator::Minus,
+            operand: Box::new(HirExpression::Variable("x".to_string())),
+        };
+        match fold_constants_expr(expr) {
+            HirExpression::UnaryOp { .. } => {}
+            other => panic!("Expected UnaryOp, got {:?}", other),
+        }
+    }
+
+    // ============================================================================
+    // Additional coverage: is_allocation_expr paths
+    // ============================================================================
+
+    #[test]
+    fn test_is_allocation_expr_malloc() {
+        assert!(is_allocation_expr(&HirExpression::Malloc {
+            size: Box::new(HirExpression::IntLiteral(4)),
+        }));
+    }
+
+    #[test]
+    fn test_is_allocation_expr_calloc() {
+        assert!(is_allocation_expr(&HirExpression::Calloc {
+            count: Box::new(HirExpression::IntLiteral(10)),
+            element_type: Box::new(HirType::Int),
+        }));
+    }
+
+    #[test]
+    fn test_is_allocation_expr_realloc() {
+        assert!(is_allocation_expr(&HirExpression::Realloc {
+            pointer: Box::new(HirExpression::Variable("p".to_string())),
+            new_size: Box::new(HirExpression::IntLiteral(64)),
+        }));
+    }
+
+    #[test]
+    fn test_is_allocation_expr_cast_wrapping_malloc() {
+        assert!(is_allocation_expr(&HirExpression::Cast {
+            target_type: HirType::Pointer(Box::new(HirType::Int)),
+            expr: Box::new(HirExpression::Malloc {
+                size: Box::new(HirExpression::IntLiteral(4)),
+            }),
+        }));
+    }
+
+    #[test]
+    fn test_is_allocation_expr_function_call_malloc() {
+        assert!(is_allocation_expr(&HirExpression::FunctionCall {
+            function: "malloc".to_string(),
+            arguments: vec![HirExpression::IntLiteral(4)],
+        }));
+    }
+
+    #[test]
+    fn test_is_allocation_expr_function_call_calloc() {
+        assert!(is_allocation_expr(&HirExpression::FunctionCall {
+            function: "calloc".to_string(),
+            arguments: vec![HirExpression::IntLiteral(10), HirExpression::IntLiteral(4)],
+        }));
+    }
+
+    #[test]
+    fn test_is_allocation_expr_regular_call() {
+        assert!(!is_allocation_expr(&HirExpression::FunctionCall {
+            function: "printf".to_string(),
+            arguments: vec![],
+        }));
+    }
+
+    #[test]
+    fn test_is_allocation_expr_literal() {
+        assert!(!is_allocation_expr(&HirExpression::IntLiteral(42)));
+    }
+
+    // ============================================================================
+    // Additional coverage: count_uses / count_uses_in_stmt / count_uses_in_expr
+    // ============================================================================
+
+    #[test]
+    fn test_count_uses_empty() {
+        assert_eq!(count_uses("x", &[]), 0);
+    }
+
+    #[test]
+    fn test_count_uses_in_return() {
+        let stmts = vec![HirStatement::Return(Some(HirExpression::Variable(
+            "x".to_string(),
+        )))];
+        assert_eq!(count_uses("x", &stmts), 1);
+        assert_eq!(count_uses("y", &stmts), 0);
+    }
+
+    #[test]
+    fn test_count_uses_in_assignment() {
+        let stmts = vec![HirStatement::Assignment {
+            target: "y".to_string(),
+            value: HirExpression::Variable("x".to_string()),
+        }];
+        assert_eq!(count_uses("x", &stmts), 1);
+    }
+
+    #[test]
+    fn test_count_uses_in_expression_stmt() {
+        let stmts = vec![HirStatement::Expression(HirExpression::FunctionCall {
+            function: "foo".to_string(),
+            arguments: vec![
+                HirExpression::Variable("x".to_string()),
+                HirExpression::Variable("x".to_string()),
+            ],
+        })];
+        assert_eq!(count_uses("x", &stmts), 2);
+    }
+
+    #[test]
+    fn test_count_uses_in_if_with_else() {
+        let stmts = vec![HirStatement::If {
+            condition: HirExpression::Variable("x".to_string()),
+            then_block: vec![HirStatement::Return(Some(HirExpression::Variable(
+                "x".to_string(),
+            )))],
+            else_block: Some(vec![HirStatement::Return(Some(HirExpression::Variable(
+                "x".to_string(),
+            )))]),
+        }];
+        assert_eq!(count_uses("x", &stmts), 3); // condition + then + else
+    }
+
+    #[test]
+    fn test_count_uses_in_expr_binary_op() {
+        let expr = HirExpression::BinaryOp {
+            op: BinaryOperator::Add,
+            left: Box::new(HirExpression::Variable("x".to_string())),
+            right: Box::new(HirExpression::Variable("x".to_string())),
+        };
+        assert_eq!(count_uses_in_expr("x", &expr), 2);
+    }
+
+    #[test]
+    fn test_count_uses_in_expr_unary_op() {
+        let expr = HirExpression::UnaryOp {
+            op: decy_hir::UnaryOperator::Minus,
+            operand: Box::new(HirExpression::Variable("x".to_string())),
+        };
+        assert_eq!(count_uses_in_expr("x", &expr), 1);
+    }
+
+    #[test]
+    fn test_count_uses_in_expr_non_matching() {
+        let expr = HirExpression::IntLiteral(42);
+        assert_eq!(count_uses_in_expr("x", &expr), 0);
+    }
+
+    #[test]
+    fn test_count_uses_in_stmt_break() {
+        assert_eq!(count_uses_in_stmt("x", &HirStatement::Break), 0);
+    }
+
+    #[test]
+    fn test_count_uses_in_stmt_return_none() {
+        assert_eq!(count_uses_in_stmt("x", &HirStatement::Return(None)), 0);
+    }
+
+    // ============================================================================
+    // Additional coverage: temp elimination edge cases
+    // ============================================================================
+
+    #[test]
+    fn test_temp_elimination_single_stmt() {
+        // Less than 2 statements → no elimination
+        let stmts = vec![HirStatement::Return(Some(HirExpression::IntLiteral(1)))];
+        let result = eliminate_temporaries(stmts.clone());
+        assert_eq!(result, stmts);
+    }
+
+    #[test]
+    fn test_temp_elimination_no_match() {
+        // Two statements but no tmp pattern
+        let stmts = vec![
+            HirStatement::Expression(HirExpression::IntLiteral(1)),
+            HirStatement::Return(Some(HirExpression::IntLiteral(2))),
+        ];
+        let result = eliminate_temporaries(stmts.clone());
+        assert_eq!(result, stmts);
+    }
+
+    #[test]
+    fn test_temp_elimination_allocation_preserved() {
+        // let p = malloc(4); return p; → NOT eliminated (allocation pattern needed)
+        let stmts = vec![
+            HirStatement::VariableDeclaration {
+                name: "p".to_string(),
+                var_type: HirType::Pointer(Box::new(HirType::Int)),
+                initializer: Some(HirExpression::Malloc {
+                    size: Box::new(HirExpression::IntLiteral(4)),
+                }),
+            },
+            HirStatement::Return(Some(HirExpression::Variable("p".to_string()))),
+        ];
+        let result = eliminate_temporaries(stmts);
+        assert_eq!(result.len(), 2); // NOT eliminated
+    }
+
+    #[test]
+    fn test_temp_elimination_multi_use_preserved() {
+        // let x = 42; return x; x used elsewhere → NOT eliminated
+        let stmts = vec![
+            HirStatement::VariableDeclaration {
+                name: "x".to_string(),
+                var_type: HirType::Int,
+                initializer: Some(HirExpression::IntLiteral(42)),
+            },
+            HirStatement::Return(Some(HirExpression::Variable("x".to_string()))),
+            HirStatement::Expression(HirExpression::Variable("x".to_string())),
+        ];
+        let result = eliminate_temporaries(stmts);
+        assert_eq!(result.len(), 3); // NOT eliminated (x used later)
+    }
+
+    // ============================================================================
+    // Additional coverage: dead branch with non-constant condition
+    // ============================================================================
+
+    #[test]
+    fn test_dead_branch_non_constant_if() {
+        // if(x) { ... } → kept (non-constant)
+        let stmts = vec![HirStatement::If {
+            condition: HirExpression::Variable("x".to_string()),
+            then_block: vec![HirStatement::Return(Some(HirExpression::IntLiteral(1)))],
+            else_block: Some(vec![HirStatement::Return(Some(
+                HirExpression::IntLiteral(0),
+            ))]),
+        }];
+        let result = remove_dead_branches(stmts);
+        assert_eq!(result.len(), 1);
+        match &result[0] {
+            HirStatement::If { .. } => {}
+            other => panic!("Expected If, got {:?}", other),
+        }
+    }
+
+    #[test]
+    fn test_dead_branch_while_non_constant() {
+        // while(x) { ... } → kept
+        let stmts = vec![HirStatement::While {
+            condition: HirExpression::Variable("x".to_string()),
+            body: vec![HirStatement::Break],
+        }];
+        let result = remove_dead_branches(stmts);
+        assert_eq!(result.len(), 1);
+        match &result[0] {
+            HirStatement::While { .. } => {}
+            other => panic!("Expected While, got {:?}", other),
+        }
+    }
+
+    #[test]
+    fn test_dead_branch_while_nonzero_constant() {
+        // while(1) { break; } → kept (constant true but infinite loop, not eliminated)
+        let stmts = vec![HirStatement::While {
+            condition: HirExpression::IntLiteral(1),
+            body: vec![HirStatement::Break],
+        }];
+        let result = remove_dead_branches(stmts);
+        assert_eq!(result.len(), 1);
+    }
+
+    // ============================================================================
+    // Additional coverage: fixed-point loop convergence
+    // ============================================================================
+
+    #[test]
+    fn test_optimize_no_change_single_iteration() {
+        // Already optimized function → single iteration
+        let func = HirFunction::new_with_body(
+            "noop".to_string(),
+            HirType::Int,
+            vec![],
+            vec![HirStatement::Return(Some(HirExpression::IntLiteral(0)))],
+        );
+        let optimized = optimize_function(&func);
+        assert_eq!(optimized.body().len(), 1);
+    }
+
+    #[test]
+    fn test_optimize_empty_function() {
+        let func = HirFunction::new_with_body(
+            "empty".to_string(),
+            HirType::Void,
+            vec![],
+            vec![],
+        );
+        let optimized = optimize_function(&func);
+        assert!(optimized.body().is_empty());
+    }
 }
