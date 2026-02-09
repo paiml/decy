@@ -19,19 +19,18 @@
 
 ---
 
-## What's New in 2.0
+## Table of Contents
 
-**Release Date:** January 2025
-
-- **99.9% Test Pass Rate** - 1,391 tests passing
-- **95% Code Coverage** - Comprehensive test suite
-- **DECY-220**: Fixed malloc cast expression handling (`(int*)malloc(n)` → `Vec<T>`)
-- **Portable Tests**: All test paths use `CARGO_MANIFEST_DIR`
-- **System Include Discovery**: Automatic detection of `stdlib.h`, `string.h`
-
-```bash
-cargo install decy
-```
+- [Quick Start](#quick-start)
+- [Quality Metrics](#quality-metrics-pmat)
+- [Installation](#installation)
+- [Features](#features)
+- [Architecture](#architecture)
+- [Unsafe Minimization](#unsafe-minimization)
+- [Development](#development)
+- [Documentation](#documentation)
+- [Contributing](#contributing)
+- [License](#license)
 
 ---
 
@@ -237,6 +236,35 @@ cargo llvm-cov --workspace      # Coverage
 - **[Specification](docs/specifications/decy-spec-v1.md)** - Technical spec
 - **[Unsafe Strategy](docs/specifications/decy-unsafe-minimization-strategy.md)** - How we reduce unsafe
 - **[Roadmap](roadmap.yaml)** - Development plan
+
+---
+
+## Contributing
+
+Contributions are welcome! Please follow the EXTREME TDD workflow:
+
+1. **Pick a ticket** from `roadmap.yaml` (or create one)
+2. **RED**: Write failing tests first (`git commit --no-verify -m "[RED] DECY-XXX: ..."`)
+3. **GREEN**: Implement minimal solution to pass tests
+4. **REFACTOR**: Meet quality gates (`make quality-gates`)
+
+### Quality Requirements
+
+- All tests must pass (`cargo test --workspace`)
+- Zero clippy warnings (`cargo clippy --workspace -- -D warnings`)
+- Coverage >= 80% (`cargo llvm-cov --workspace`)
+- No SATD comments (TODO, FIXME, HACK, etc.)
+
+### Getting Started
+
+```bash
+make install       # Install dependencies
+make build         # Build workspace
+make test          # Run all tests
+make quality-gates # Run all checks
+```
+
+See [GETTING_STARTED.md](GETTING_STARTED.md) for detailed developer setup.
 
 ---
 
