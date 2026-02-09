@@ -203,6 +203,208 @@ impl TranspilationResult {
     }
 }
 
+/// DECY-191: Per-tier metrics for corpus convergence measurement.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct TierMetrics {
+    /// Tier name (e.g., "chapter-1", "P0", "P1")
+    pub tier_name: String,
+    /// Number of C files in this tier
+    pub total_files: u64,
+    /// Files that transpiled successfully
+    pub transpile_success: u64,
+    /// Files that compiled after transpilation
+    pub compile_success: u64,
+    /// Files that failed transpilation
+    pub transpile_failures: u64,
+    /// Files that transpiled but failed compilation
+    pub compile_failures: u64,
+}
+
+impl TierMetrics {
+    /// Create new tier metrics for a named tier.
+    pub fn new(name: &str) -> Self {
+        Self {
+            tier_name: name.to_string(),
+            ..Default::default()
+        }
+    }
+
+    /// Transpilation success rate (0.0 to 1.0).
+    pub fn transpile_rate(&self) -> f64 {
+        if self.total_files == 0 {
+            0.0
+        } else {
+            self.transpile_success as f64 / self.total_files as f64
+        }
+    }
+
+    /// Compile success rate (0.0 to 1.0).
+    pub fn compile_rate(&self) -> f64 {
+        if self.total_files == 0 {
+            0.0
+        } else {
+            self.compile_success as f64 / self.total_files as f64
+        }
+    }
+}
+
+/// DECY-191: Convergence report across all tiers.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct ConvergenceReport {
+    /// Per-tier metrics
+    pub tiers: Vec<TierMetrics>,
+}
+
+impl ConvergenceReport {
+    /// Create a new empty convergence report.
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Add tier metrics to the report.
+    pub fn add_tier(&mut self, tier: TierMetrics) {
+        self.tiers.push(tier);
+    }
+
+    /// Overall transpilation rate across all tiers.
+    pub fn overall_transpile_rate(&self) -> f64 {
+        let total: u64 = self.tiers.iter().map(|t| t.total_files).sum();
+        let success: u64 = self.tiers.iter().map(|t| t.transpile_success).sum();
+        if total == 0 {
+            0.0
+        } else {
+            success as f64 / total as f64
+        }
+    }
+
+    /// Overall compile rate across all tiers.
+    pub fn overall_compile_rate(&self) -> f64 {
+        let total: u64 = self.tiers.iter().map(|t| t.total_files).sum();
+        let success: u64 = self.tiers.iter().map(|t| t.compile_success).sum();
+        if total == 0 {
+            0.0
+        } else {
+            success as f64 / total as f64
+        }
+    }
+
+    /// Generate a markdown table of convergence results.
+    pub fn to_markdown(&self) -> String {
+        let mut report = String::new();
+        report.push_str("## Corpus Convergence Report\n\n");
+        report.push_str("| Tier | Files | Transpile | Compile | Transpile Rate | Compile Rate |\n");
+        report.push_str("|------|-------|-----------|---------|----------------|-------------|\n");
+
+        for tier in &self.tiers {
+            report.push_str(&format!(
+                "| {} | {} | {} | {} | {:.1}% | {:.1}% |\n",
+                tier.tier_name,
+                tier.total_files,
+                tier.transpile_success,
+                tier.compile_success,
+                tier.transpile_rate() * 100.0,
+                tier.compile_rate() * 100.0,
+            ));
+        }
+
+        let total_files: u64 = self.tiers.iter().map(|t| t.total_files).sum();
+        let total_transpile: u64 = self.tiers.iter().map(|t| t.transpile_success).sum();
+        let total_compile: u64 = self.tiers.iter().map(|t| t.compile_success).sum();
+
+        report.push_str(&format!(
+            "| **Total** | **{}** | **{}** | **{}** | **{:.1}%** | **{:.1}%** |\n",
+            total_files,
+            total_transpile,
+            total_compile,
+            self.overall_transpile_rate() * 100.0,
+            self.overall_compile_rate() * 100.0,
+        ));
+
+        report
+    }
+}
+
+/// DECY-195: Record of a semantic equivalence divergence.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct EquivalenceDivergence {
+    /// Path to the C file
+    pub file: String,
+    /// Expected output (from gcc)
+    pub expected_stdout: String,
+    /// Actual output (from transpiled Rust)
+    pub actual_stdout: String,
+    /// Expected exit code (from gcc)
+    pub expected_exit: i32,
+    /// Actual exit code (from transpiled Rust)
+    pub actual_exit: i32,
+}
+
+/// DECY-195: Metrics for semantic equivalence validation.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct EquivalenceMetrics {
+    /// Number of files tested
+    pub total_files: u64,
+    /// Files with matching output and exit code
+    pub equivalent: u64,
+    /// Files with divergent behavior
+    pub divergent: u64,
+    /// Files that could not be compiled (either C or Rust)
+    pub errors: u64,
+    /// Detailed divergence records
+    pub divergences: Vec<EquivalenceDivergence>,
+}
+
+impl EquivalenceMetrics {
+    /// Create new empty equivalence metrics.
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Equivalence rate (0.0 to 1.0).
+    pub fn equivalence_rate(&self) -> f64 {
+        if self.total_files == 0 {
+            0.0
+        } else {
+            self.equivalent as f64 / self.total_files as f64
+        }
+    }
+
+    /// Generate a markdown report.
+    pub fn to_markdown(&self) -> String {
+        let mut report = String::new();
+        report.push_str("## Semantic Equivalence Report\n\n");
+        report.push_str(&format!(
+            "| Metric | Value |\n\
+             |--------|-------|\n\
+             | Total Files | {} |\n\
+             | Equivalent | {} |\n\
+             | Divergent | {} |\n\
+             | Errors | {} |\n\
+             | Equivalence Rate | {:.1}% |\n",
+            self.total_files,
+            self.equivalent,
+            self.divergent,
+            self.errors,
+            self.equivalence_rate() * 100.0,
+        ));
+
+        if !self.divergences.is_empty() {
+            report.push_str("\n### Divergences\n\n");
+            for d in &self.divergences {
+                report.push_str(&format!(
+                    "- **{}**: exit {} vs {} | stdout differs: {}\n",
+                    d.file,
+                    d.expected_exit,
+                    d.actual_exit,
+                    d.expected_stdout != d.actual_stdout,
+                ));
+            }
+        }
+
+        report
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
