@@ -971,4 +971,359 @@ mod tests {
 
         assert_eq!(schedule.timezone_offset, 8);
     }
+
+    // ========================================================================
+    // Additional coverage tests
+    // ========================================================================
+
+    #[test]
+    fn training_metrics_zero_precision_and_recall_yields_zero_f1() {
+        let metrics = TrainingMetrics::new(0.0, 0.0);
+        assert!((metrics.f1_score - 0.0).abs() < 0.001);
+        assert!((metrics.precision - 0.0).abs() < 0.001);
+        assert!((metrics.recall - 0.0).abs() < 0.001);
+    }
+
+    #[test]
+    fn retraining_result_is_success_for_all_variants() {
+        let degraded = RetrainingResult::Degraded {
+            degradation: 0.05,
+            new_metrics: TrainingMetrics::new(0.80, 0.75),
+            current_metrics: ModelQualityMetrics::new(0.90, 0.90, 0.85, 0.87, 0.9, 0.05, 1000),
+        };
+        assert!(!degraded.is_success());
+
+        let insufficient = RetrainingResult::InsufficientData {
+            actual: 50,
+            required: 1000,
+        };
+        assert!(!insufficient.is_success());
+
+        let error = RetrainingResult::TrainingError {
+            error: "Out of memory".to_string(),
+        };
+        assert!(!error.is_success());
+    }
+
+    #[test]
+    fn retraining_result_metrics_for_degraded_variant() {
+        let degraded = RetrainingResult::Degraded {
+            degradation: 0.05,
+            new_metrics: TrainingMetrics::new(0.80, 0.75),
+            current_metrics: ModelQualityMetrics::new(0.90, 0.90, 0.85, 0.87, 0.9, 0.05, 1000),
+        };
+        let m = degraded.metrics().unwrap();
+        assert!((m.precision - 0.80).abs() < 0.001);
+    }
+
+    #[test]
+    fn retraining_result_metrics_for_quality_gate_failed() {
+        let failed = RetrainingResult::QualityGateFailed {
+            reason: "low recall".to_string(),
+            metrics: TrainingMetrics::new(0.70, 0.60),
+        };
+        let m = failed.metrics().unwrap();
+        assert!((m.recall - 0.60).abs() < 0.001);
+    }
+
+    #[test]
+    fn retraining_result_metrics_for_training_error() {
+        let error = RetrainingResult::TrainingError {
+            error: "fail".to_string(),
+        };
+        assert!(error.metrics().is_none());
+    }
+
+    #[test]
+    fn pipeline_training_error_path() {
+        struct FailingTrainer;
+        impl ModelTrainer for FailingTrainer {
+            fn train(&self, _data: &DataSplit) -> Result<TrainingMetrics, String> {
+                Err("Training diverged".to_string())
+            }
+        }
+
+        let mut pipeline = RetrainingPipeline::with_defaults(FailingTrainer);
+        let samples = make_samples(1000);
+        let result = pipeline.execute(samples);
+
+        assert!(!result.is_success());
+        assert!(matches!(result, RetrainingResult::TrainingError { .. }));
+        assert_eq!(pipeline.history().len(), 1);
+        assert!(matches!(
+            pipeline.history()[0].result,
+            ExecutionSummary::Error { .. }
+        ));
+    }
+
+    #[test]
+    fn pipeline_rollback() {
+        // Pre-populate version manager with two versions (second better)
+        let mut vm = ModelVersionManager::new();
+        let metrics_v1 = ModelQualityMetrics::new(0.90, 0.90, 0.88, 0.89, 0.9, 0.0, 100);
+        let metrics_v2 = ModelQualityMetrics::new(0.93, 0.92, 0.91, 0.915, 0.9, 0.0, 200);
+        let entry1 = ModelEntry::new(ModelVersion::new(1, 0, 0), metrics_v1, "v1", "models/v1.bin");
+        let entry2 = ModelEntry::new(ModelVersion::new(1, 1, 0), metrics_v2, "v2", "models/v2.bin");
+        vm.register_version(entry1).unwrap();
+        vm.register_version(entry2).unwrap();
+
+        let trainer = NullTrainer::new(0.92, 0.88);
+        let mut pipeline = RetrainingPipeline::new(trainer, vm, RetrainingConfig::default());
+
+        // Rollback to first version
+        let v1 = ModelVersion::new(1, 0, 0);
+        let rb = pipeline.rollback(&v1);
+        assert!(rb.is_ok());
+        let rb = rb.unwrap();
+        assert!(rb.success);
+        assert_eq!(rb.to_version, v1);
+    }
+
+    #[test]
+    fn pipeline_current_version() {
+        let trainer = NullTrainer::new(0.92, 0.88);
+        let mut pipeline = RetrainingPipeline::with_defaults(trainer);
+
+        assert!(pipeline.current_version().is_none());
+
+        let samples = make_samples(1000);
+        pipeline.execute(samples);
+
+        let cv = pipeline.current_version();
+        assert!(cv.is_some());
+        assert_eq!(cv.unwrap().version, ModelVersion::new(1, 0, 0));
+    }
+
+    #[test]
+    fn pipeline_config_accessors() {
+        let trainer = NullTrainer::new(0.92, 0.88);
+        let mut pipeline = RetrainingPipeline::with_defaults(trainer);
+
+        let config = pipeline.config();
+        assert!((config.min_precision - 0.85).abs() < 0.001);
+
+        let mut new_config = RetrainingConfig::default();
+        new_config.min_precision = 0.95;
+        pipeline.set_config(new_config);
+        assert!((pipeline.config().min_precision - 0.95).abs() < 0.001);
+    }
+
+    #[test]
+    fn pipeline_success_rate_empty_history() {
+        let trainer = NullTrainer::new(0.92, 0.88);
+        let pipeline = RetrainingPipeline::with_defaults(trainer);
+
+        assert!((pipeline.success_rate() - 0.0).abs() < 0.001);
+    }
+
+    #[test]
+    fn pipeline_data_split_fails_minimum_check_after_split() {
+        // Craft config where total >= min_required but the split doesn't
+        // meet per-category minimums. Use a custom config with very
+        // specific ratio/minimum requirements.
+        let trainer = NullTrainer::new(0.92, 0.88);
+        let config = RetrainingConfig {
+            min_precision: 0.85,
+            min_recall: 0.80,
+            max_degradation: 0.02,
+            cv_folds: 5,
+            min_train_samples: 80,
+            min_validation_samples: 20,
+            min_test_samples: 20,
+            train_ratio: 0.50,         // Only 50% to train
+            validation_ratio: 0.10,    // Only 10% to validation
+        };
+
+        let vm = ModelVersionManager::new();
+        let mut pipeline = RetrainingPipeline::new(trainer, vm, config);
+
+        // 120 samples, total min = 80+20+20 = 120, so passes first check.
+        // But with 50/10/40 split: train=60, val=12, test=48
+        // train(60) < min_train(80) -> fails meets_minimum_sizes
+        let samples = make_samples(120);
+        let result = pipeline.execute(samples);
+
+        assert!(!result.is_success());
+        assert!(matches!(result, RetrainingResult::InsufficientData { .. }));
+    }
+
+    #[test]
+    fn pipeline_successive_promotions_bump_version() {
+        let trainer = NullTrainer::new(0.92, 0.88);
+        let mut pipeline = RetrainingPipeline::with_defaults(trainer);
+
+        let samples1 = make_samples(1000);
+        let result1 = pipeline.execute(samples1);
+        assert!(result1.is_success());
+        if let RetrainingResult::Promoted { version, .. } = result1 {
+            assert_eq!(version, ModelVersion::new(1, 0, 0));
+        }
+
+        let samples2 = make_samples(1000);
+        let result2 = pipeline.execute(samples2);
+        assert!(result2.is_success());
+        if let RetrainingResult::Promoted { version, .. } = result2 {
+            assert_eq!(version, ModelVersion::new(1, 1, 0));
+        }
+    }
+
+    #[test]
+    fn schedule_description_all_days() {
+        let days = [
+            (0, "Sunday"),
+            (1, "Monday"),
+            (2, "Tuesday"),
+            (3, "Wednesday"),
+            (4, "Thursday"),
+            (5, "Friday"),
+            (6, "Saturday"),
+        ];
+
+        for (day_num, day_name) in &days {
+            let schedule = RetrainingSchedule::new(*day_num, 10, 30);
+            let desc = schedule.description();
+            assert!(
+                desc.contains(day_name),
+                "Expected '{}' in description '{}' for day {}",
+                day_name,
+                desc,
+                day_num
+            );
+        }
+    }
+
+    #[test]
+    fn schedule_description_positive_timezone() {
+        let schedule = RetrainingSchedule::new(1, 9, 0).with_timezone(5);
+        let desc = schedule.description();
+        assert!(desc.contains("UTC+5"));
+    }
+
+    #[test]
+    fn schedule_description_negative_timezone() {
+        let schedule = RetrainingSchedule::new(3, 14, 0).with_timezone(-8);
+        let desc = schedule.description();
+        assert!(desc.contains("UTC-8"));
+    }
+
+    #[test]
+    fn schedule_description_zero_timezone() {
+        let schedule = RetrainingSchedule::new(0, 2, 0).with_timezone(0);
+        let desc = schedule.description();
+        assert!(desc.contains("UTC+0"));
+    }
+
+    #[test]
+    fn data_split_small_input() {
+        // Only 1 sample
+        let samples = make_samples(1);
+        let split = DataSplit::new(samples, 0.70, 0.15);
+        assert_eq!(split.total_count(), 1);
+        // With 1 sample, train_end=0, val_end=0, so all go to test
+        assert!(!split.meets_minimum_sizes(1, 0, 0));
+    }
+
+    #[test]
+    fn data_split_two_samples() {
+        let samples = make_samples(2);
+        let split = DataSplit::new(samples, 0.70, 0.15);
+        assert_eq!(split.total_count(), 2);
+        // train_end=1, val_end=1, so train=1, val=0, test=1
+        assert_eq!(split.train.len(), 1);
+        assert_eq!(split.validation.len(), 0);
+        assert_eq!(split.test.len(), 1);
+    }
+
+    #[test]
+    fn training_sample_different_labels() {
+        let features = OwnershipFeaturesBuilder::default().build();
+        let borrowed = TrainingSample::new(features.clone(), InferredOwnership::Borrowed, "b.c", 1);
+        assert!(matches!(borrowed.label, InferredOwnership::Borrowed));
+
+        let shared = TrainingSample::new(features.clone(), InferredOwnership::Shared, "s.c", 2);
+        assert!(matches!(shared.label, InferredOwnership::Shared));
+
+        let mut_b = TrainingSample::new(features, InferredOwnership::BorrowedMut, "m.c", 3);
+        assert!(matches!(mut_b.label, InferredOwnership::BorrowedMut));
+    }
+
+    #[test]
+    fn execution_summary_variants_debug() {
+        let promoted = ExecutionSummary::Promoted {
+            version: "v1.0.0".to_string(),
+        };
+        assert!(format!("{:?}", promoted).contains("Promoted"));
+
+        let qgf = ExecutionSummary::QualityGateFailed {
+            reason: "low precision".to_string(),
+        };
+        assert!(format!("{:?}", qgf).contains("QualityGateFailed"));
+
+        let degraded = ExecutionSummary::Degraded { amount: 0.05 };
+        assert!(format!("{:?}", degraded).contains("Degraded"));
+
+        let insuf = ExecutionSummary::InsufficientData;
+        assert!(format!("{:?}", insuf).contains("InsufficientData"));
+
+        let err = ExecutionSummary::Error {
+            message: "boom".to_string(),
+        };
+        assert!(format!("{:?}", err).contains("Error"));
+    }
+
+    #[test]
+    fn pipeline_history_records_quality_gate_failure() {
+        let trainer = NullTrainer::new(0.70, 0.60);
+        let mut pipeline = RetrainingPipeline::with_defaults(trainer);
+
+        let samples = make_samples(1000);
+        pipeline.execute(samples);
+
+        assert_eq!(pipeline.history().len(), 1);
+        assert!(matches!(
+            pipeline.history()[0].result,
+            ExecutionSummary::QualityGateFailed { .. }
+        ));
+    }
+
+    #[test]
+    fn pipeline_history_records_insufficient_data() {
+        let trainer = NullTrainer::new(0.92, 0.88);
+        let mut pipeline = RetrainingPipeline::with_defaults(trainer);
+
+        let samples = make_samples(100);
+        pipeline.execute(samples);
+
+        assert_eq!(pipeline.history().len(), 1);
+        assert!(matches!(
+            pipeline.history()[0].result,
+            ExecutionSummary::InsufficientData
+        ));
+    }
+
+    #[test]
+    fn pipeline_history_records_degradation() {
+        // Setup: register a strong model, then try training with weaker metrics
+        let weak_trainer = NullTrainer::new(0.86, 0.81);
+        let mut vm = ModelVersionManager::new();
+
+        let strong_metrics = ModelQualityMetrics::new(0.90, 0.92, 0.88, 0.90, 0.95, 0.05, 1000);
+        let strong_entry = ModelEntry::new(
+            ModelVersion::new(1, 0, 0),
+            strong_metrics,
+            "Strong model",
+            "models/strong.bin",
+        );
+        let _ = vm.register_version(strong_entry);
+
+        let mut pipeline = RetrainingPipeline::new(weak_trainer, vm, RetrainingConfig::default());
+        let samples = make_samples(1000);
+        pipeline.execute(samples);
+
+        assert_eq!(pipeline.history().len(), 1);
+        assert!(matches!(
+            pipeline.history()[0].result,
+            ExecutionSummary::Degraded { .. }
+        ));
+    }
 }
