@@ -132,3 +132,5 @@ mod inference_coverage_tests;
 mod training_data_coverage_tests;
 #[cfg(test)]
 mod struct_lifetime_coverage_tests;
+#[cfg(test)]
+mod deep_coverage_tests2;
