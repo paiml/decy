@@ -7389,3 +7389,7 @@ mod codegen_coverage_tests;
 #[cfg(test)]
 #[path = "statement_coverage_tests.rs"]
 mod statement_coverage_tests;
+
+#[cfg(test)]
+#[path = "expression_target_type_tests.rs"]
+mod expression_target_type_tests;
