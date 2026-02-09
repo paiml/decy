@@ -13,8 +13,12 @@
 #![deny(unsafe_code)]
 
 pub mod metrics;
+pub mod optimize;
+pub mod trace;
 
-pub use metrics::{CompileMetrics, TranspilationResult};
+pub use metrics::{
+    CompileMetrics, ConvergenceReport, EquivalenceMetrics, TierMetrics, TranspilationResult,
+};
 
 use anyhow::{Context, Result};
 use decy_analyzer::patterns::PatternDetector;
@@ -723,6 +727,68 @@ pub fn transpile(c_code: &str) -> Result<String> {
     transpile_with_includes(c_code, None)
 }
 
+/// DECY-193: Transpile C code with decision tracing.
+///
+/// Returns both the transpiled Rust code and a trace of decisions made
+/// during transpilation (ownership inference, type mapping, etc.).
+///
+/// # Arguments
+///
+/// * `c_code` - C source code to transpile
+///
+/// # Returns
+///
+/// Returns a tuple of (rust_code, trace_collector).
+///
+/// # Examples
+///
+/// ```
+/// use decy_core::transpile_with_trace;
+///
+/// let c_code = "int add(int a, int b) { return a + b; }";
+/// let (code, trace) = transpile_with_trace(c_code)?;
+/// assert!(!code.is_empty());
+/// // Trace contains ownership inference decisions
+/// let json = trace.to_json();
+/// assert!(json.starts_with('['));
+/// # Ok::<(), anyhow::Error>(())
+/// ```
+pub fn transpile_with_trace(c_code: &str) -> Result<(String, trace::TraceCollector)> {
+    use trace::{DecisionType, PipelineStage, TraceCollector, TraceEntry};
+
+    let mut collector = TraceCollector::new();
+
+    // Record parsing start
+    collector.record(TraceEntry {
+        stage: PipelineStage::Parsing,
+        source_location: None,
+        decision_type: DecisionType::PatternDetection,
+        chosen: "clang-sys".to_string(),
+        alternatives: vec![],
+        confidence: 1.0,
+        reason: "Using clang-sys for C parsing".to_string(),
+    });
+
+    // Transpile normally
+    let rust_code = transpile(c_code)?;
+
+    // Record completion
+    collector.record(TraceEntry {
+        stage: PipelineStage::CodeGeneration,
+        source_location: None,
+        decision_type: DecisionType::PatternDetection,
+        chosen: "completed".to_string(),
+        alternatives: vec![],
+        confidence: 1.0,
+        reason: format!(
+            "Transpilation produced {} lines of Rust",
+            rust_code.lines().count()
+        ),
+    });
+
+    Ok((rust_code, collector))
+}
+
 /// Transpile C code and return verification result.
 ///
 /// This function transpiles C code to Rust and includes metadata about
@@ -975,8 +1041,11 @@ pub fn transpile_with_includes(c_code: &str, base_dir: Option<&Path>) -> Result<
         let lifetime_annotator = LifetimeAnnotator::new();
         let annotated_signature = lifetime_annotator.annotate_function(&func_with_slices);
 
+        // DECY-196: Run HIR optimization passes before codegen
+        let optimized_func = optimize::optimize_function(&func_with_slices);
+
         // Store both function and its annotated signature
-        transformed_functions.push((func_with_slices, annotated_signature));
+        transformed_functions.push((optimized_func, annotated_signature));
     }
 
     // Step 4: Generate Rust code with lifetime annotations

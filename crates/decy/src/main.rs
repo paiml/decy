@@ -35,6 +35,10 @@ enum Commands {
         #[arg(short, long, value_name = "FILE")]
         output: Option<PathBuf>,
 
+        /// DECY-193: Emit JSON decision trace to stderr
+        #[arg(long)]
+        trace: bool,
+
         /// Enable CITL oracle for error correction
         #[arg(long)]
         oracle: bool,
@@ -240,6 +244,7 @@ fn main() -> Result<()> {
         Some(Commands::Transpile {
             input,
             output,
+            trace,
             oracle,
             oracle_threshold,
             auto_fix,
@@ -251,7 +256,7 @@ fn main() -> Result<()> {
                 .with_capture(capture)
                 .with_import(import_patterns)
                 .with_report_format(oracle_report);
-            transpile_file(input, output, &oracle_opts)?;
+            transpile_file(input, output, &oracle_opts, trace)?;
         }
         Some(Commands::TranspileProject {
             input,
@@ -320,6 +325,7 @@ fn transpile_file(
     input: PathBuf,
     output: Option<PathBuf>,
     oracle_opts: &OracleOptions,
+    trace_enabled: bool,
 ) -> Result<()> {
     // Read input file
     let c_code = fs::read_to_string(&input).with_context(|| {
@@ -343,6 +349,19 @@ fn transpile_file(
             })?;
         let code = result.rust_code.clone();
         (code, Some(result))
+    } else if trace_enabled {
+        // DECY-193: Transpile with decision tracing
+        let (code, trace_collector) =
+            decy_core::transpile_with_trace(&c_code).with_context(|| {
+                format!(
+                    "Failed to transpile {}\n\nTry: Check if the C code has syntax errors\n  or: Preprocess the file first: gcc -E {} -o preprocessed.c",
+                    input.display(),
+                    input.display()
+                )
+            })?;
+        // Emit trace to stderr as JSON
+        eprintln!("{}", trace_collector.to_json());
+        (code, None)
     } else {
         // Standard transpilation using decy-core with #include support
         let code = decy_core::transpile_with_includes(&c_code, base_dir).with_context(|| {
