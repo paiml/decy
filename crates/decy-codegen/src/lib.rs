@@ -7405,3 +7405,7 @@ mod box_transform_coverage_tests;
 #[cfg(test)]
 #[path = "format_and_sig_tests.rs"]
 mod format_and_sig_tests;
+
+#[cfg(test)]
+#[path = "expr_stmt_deep_tests.rs"]
+mod expr_stmt_deep_tests;
