@@ -1850,4 +1850,787 @@ mod tests {
 
         assert_eq!(proto.to_c_declaration(), "int rand(void);");
     }
+
+    // ========================================================================
+    // inject_prototypes_for_header: Common preamble tests
+    // ========================================================================
+
+    #[test]
+    fn test_inject_header_common_preamble_present_for_all_headers() {
+        let stdlib = StdlibPrototypes::new();
+        let headers = [
+            StdHeader::Stdio,
+            StdHeader::Errno,
+            StdHeader::Time,
+            StdHeader::Stdarg,
+            StdHeader::Stdbool,
+            StdHeader::Stdint,
+            StdHeader::Unistd,
+            StdHeader::Fcntl,
+            StdHeader::Dirent,
+            StdHeader::SysTypes,
+            StdHeader::SysStat,
+            StdHeader::SysMman,
+            StdHeader::Wchar,
+            StdHeader::Signal,
+            StdHeader::Limits,
+            StdHeader::Ctype,
+            StdHeader::Math,
+            StdHeader::Assert,
+            StdHeader::Float,
+            StdHeader::Locale,
+            StdHeader::Setjmp,
+            StdHeader::Stddef,
+            StdHeader::Stdlib,
+            StdHeader::String,
+        ];
+        for header in &headers {
+            let result = stdlib.inject_prototypes_for_header(*header);
+            assert!(
+                result.contains("typedef unsigned long size_t;"),
+                "{:?} missing size_t",
+                header
+            );
+            assert!(
+                result.contains("typedef long ssize_t;"),
+                "{:?} missing ssize_t",
+                header
+            );
+            assert!(
+                result.contains("typedef long ptrdiff_t;"),
+                "{:?} missing ptrdiff_t",
+                header
+            );
+            assert!(
+                result.contains("#define NULL 0"),
+                "{:?} missing NULL",
+                header
+            );
+            assert!(
+                result.contains("// Built-in prototypes for"),
+                "{:?} missing comment header",
+                header
+            );
+        }
+    }
+
+    // ========================================================================
+    // inject_prototypes_for_header: Stdio
+    // ========================================================================
+
+    #[test]
+    fn test_inject_header_stdio_type_definitions() {
+        let stdlib = StdlibPrototypes::new();
+        let result = stdlib.inject_prototypes_for_header(StdHeader::Stdio);
+        assert!(result.contains("struct _IO_FILE;"));
+        assert!(result.contains("typedef struct _IO_FILE FILE;"));
+        assert!(result.contains("extern FILE* stdin;"));
+        assert!(result.contains("extern FILE* stdout;"));
+        assert!(result.contains("extern FILE* stderr;"));
+    }
+
+    #[test]
+    fn test_inject_header_stdio_macros() {
+        let stdlib = StdlibPrototypes::new();
+        let result = stdlib.inject_prototypes_for_header(StdHeader::Stdio);
+        assert!(result.contains("#define EOF (-1)"));
+        assert!(result.contains("#define SEEK_SET 0"));
+        assert!(result.contains("#define SEEK_CUR 1"));
+        assert!(result.contains("#define SEEK_END 2"));
+        assert!(result.contains("#define BUFSIZ 8192"));
+        assert!(result.contains("#define L_tmpnam 20"));
+        assert!(result.contains("#define _IONBF 2"));
+        assert!(result.contains("#define _IOLBF 1"));
+        assert!(result.contains("#define _IOFBF 0"));
+    }
+
+    #[test]
+    fn test_inject_header_stdio_functions() {
+        let stdlib = StdlibPrototypes::new();
+        let result = stdlib.inject_prototypes_for_header(StdHeader::Stdio);
+        // Formatted output
+        assert!(result.contains("int printf(const char* format, ...);"));
+        assert!(result.contains("int fprintf(FILE* stream, const char* format, ...);"));
+        assert!(result.contains("int sprintf(char* str, const char* format, ...);"));
+        assert!(result.contains("int snprintf(char* str, size_t size, const char* format, ...);"));
+        // Formatted input
+        assert!(result.contains("int scanf(const char* format, ...);"));
+        assert!(result.contains("int fscanf(FILE* stream, const char* format, ...);"));
+        assert!(result.contains("int sscanf(const char* str, const char* format, ...);"));
+        // File operations
+        assert!(result.contains("FILE* fopen("));
+        assert!(result.contains("int fclose(FILE* stream);"));
+        assert!(result.contains("size_t fread("));
+        assert!(result.contains("size_t fwrite("));
+        assert!(result.contains("int fseek("));
+        assert!(result.contains("long ftell(FILE* stream);"));
+        assert!(result.contains("void rewind(FILE* stream);"));
+        // Character I/O
+        assert!(result.contains("int getchar(void);"));
+        assert!(result.contains("int putchar(int c);"));
+        assert!(result.contains("int fgetc(FILE* stream);"));
+        assert!(result.contains("int fputc(int c, FILE* stream);"));
+        assert!(result.contains("char* fgets("));
+        assert!(result.contains("int fputs("));
+        assert!(result.contains("int puts(const char* s);"));
+    }
+
+    #[test]
+    fn test_inject_header_stdio_does_not_contain_stdlib_functions() {
+        let stdlib = StdlibPrototypes::new();
+        let result = stdlib.inject_prototypes_for_header(StdHeader::Stdio);
+        // malloc is in stdlib, not stdio
+        assert!(!result.contains("void* malloc("));
+        assert!(!result.contains("void free("));
+    }
+
+    // ========================================================================
+    // inject_prototypes_for_header: Errno
+    // ========================================================================
+
+    #[test]
+    fn test_inject_header_errno_definitions() {
+        let stdlib = StdlibPrototypes::new();
+        let result = stdlib.inject_prototypes_for_header(StdHeader::Errno);
+        assert!(result.contains("extern int errno;"));
+        assert!(result.contains("#define EACCES 13"));
+        assert!(result.contains("#define ENOENT 2"));
+        assert!(result.contains("#define EINVAL 22"));
+        assert!(result.contains("#define ENOMEM 12"));
+        assert!(result.contains("#define ERANGE 34"));
+    }
+
+    #[test]
+    fn test_inject_header_errno_no_functions() {
+        let stdlib = StdlibPrototypes::new();
+        let result = stdlib.inject_prototypes_for_header(StdHeader::Errno);
+        // Errno header has no registered functions, only macros/declarations
+        assert!(!result.contains("int printf("));
+        assert!(!result.contains("void* malloc("));
+    }
+
+    // ========================================================================
+    // inject_prototypes_for_header: Time
+    // ========================================================================
+
+    #[test]
+    fn test_inject_header_time_type_definitions() {
+        let stdlib = StdlibPrototypes::new();
+        let result = stdlib.inject_prototypes_for_header(StdHeader::Time);
+        assert!(result.contains("typedef long time_t;"));
+        assert!(result.contains("typedef long clock_t;"));
+        assert!(result.contains("struct tm;"));
+        assert!(result.contains("#define CLOCKS_PER_SEC 1000000"));
+    }
+
+    #[test]
+    fn test_inject_header_time_functions() {
+        let stdlib = StdlibPrototypes::new();
+        let result = stdlib.inject_prototypes_for_header(StdHeader::Time);
+        assert!(result.contains("clock_t clock(void);"));
+        assert!(result.contains("time_t time(time_t* timer);"));
+    }
+
+    // ========================================================================
+    // inject_prototypes_for_header: Stdarg
+    // ========================================================================
+
+    #[test]
+    fn test_inject_header_stdarg_definitions() {
+        let stdlib = StdlibPrototypes::new();
+        let result = stdlib.inject_prototypes_for_header(StdHeader::Stdarg);
+        assert!(result.contains("typedef void* va_list;"));
+        assert!(result.contains("#define va_start(ap, last) ((void)0)"));
+        assert!(result.contains("#define va_end(ap) ((void)0)"));
+        assert!(result.contains("#define va_arg(ap, type) (*(type*)0)"));
+    }
+
+    // ========================================================================
+    // inject_prototypes_for_header: Stdbool
+    // ========================================================================
+
+    #[test]
+    fn test_inject_header_stdbool_definitions() {
+        let stdlib = StdlibPrototypes::new();
+        let result = stdlib.inject_prototypes_for_header(StdHeader::Stdbool);
+        assert!(result.contains("typedef _Bool bool;"));
+        assert!(result.contains("#define true 1"));
+        assert!(result.contains("#define false 0"));
+    }
+
+    // ========================================================================
+    // inject_prototypes_for_header: Stdint
+    // ========================================================================
+
+    #[test]
+    fn test_inject_header_stdint_type_definitions() {
+        let stdlib = StdlibPrototypes::new();
+        let result = stdlib.inject_prototypes_for_header(StdHeader::Stdint);
+        assert!(result.contains("typedef signed char int8_t;"));
+        assert!(result.contains("typedef short int16_t;"));
+        assert!(result.contains("typedef int int32_t;"));
+        assert!(result.contains("typedef long long int64_t;"));
+        assert!(result.contains("typedef unsigned char uint8_t;"));
+        assert!(result.contains("typedef unsigned short uint16_t;"));
+        assert!(result.contains("typedef unsigned int uint32_t;"));
+        assert!(result.contains("typedef unsigned long long uint64_t;"));
+        assert!(result.contains("typedef long intptr_t;"));
+        assert!(result.contains("typedef unsigned long uintptr_t;"));
+    }
+
+    // ========================================================================
+    // inject_prototypes_for_header: Unistd
+    // ========================================================================
+
+    #[test]
+    fn test_inject_header_unistd_type_definitions() {
+        let stdlib = StdlibPrototypes::new();
+        let result = stdlib.inject_prototypes_for_header(StdHeader::Unistd);
+        assert!(result.contains("typedef int pid_t;"));
+        assert!(result.contains("typedef long off_t;"));
+        assert!(result.contains("typedef unsigned int uid_t;"));
+        assert!(result.contains("typedef unsigned int gid_t;"));
+    }
+
+    #[test]
+    fn test_inject_header_unistd_macros() {
+        let stdlib = StdlibPrototypes::new();
+        let result = stdlib.inject_prototypes_for_header(StdHeader::Unistd);
+        assert!(result.contains("#define STDIN_FILENO 0"));
+        assert!(result.contains("#define STDOUT_FILENO 1"));
+        assert!(result.contains("#define STDERR_FILENO 2"));
+        assert!(result.contains("#define F_OK 0"));
+        assert!(result.contains("#define R_OK 4"));
+        assert!(result.contains("#define W_OK 2"));
+        assert!(result.contains("#define X_OK 1"));
+        assert!(result.contains("#define _SC_OPEN_MAX 4"));
+        assert!(result.contains("#define _SC_PAGESIZE 30"));
+    }
+
+    #[test]
+    fn test_inject_header_unistd_functions() {
+        let stdlib = StdlibPrototypes::new();
+        let result = stdlib.inject_prototypes_for_header(StdHeader::Unistd);
+        assert!(result.contains("int pipe(int* pipefd);"));
+        assert!(result.contains("pid_t fork(void);"));
+        assert!(result.contains("ssize_t read(int fd, void* buf, size_t count);"));
+        assert!(result.contains("ssize_t write(int fd, const void* buf, size_t count);"));
+        assert!(result.contains("int close(int fd);"));
+        assert!(result.contains("off_t lseek(int fd, off_t offset, int whence);"));
+        assert!(result.contains("int dup(int oldfd);"));
+        assert!(result.contains("int dup2(int oldfd, int newfd);"));
+    }
+
+    // ========================================================================
+    // inject_prototypes_for_header: Fcntl
+    // ========================================================================
+
+    #[test]
+    fn test_inject_header_fcntl_macros() {
+        let stdlib = StdlibPrototypes::new();
+        let result = stdlib.inject_prototypes_for_header(StdHeader::Fcntl);
+        assert!(result.contains("#define O_RDONLY 0"));
+        assert!(result.contains("#define O_WRONLY 1"));
+        assert!(result.contains("#define O_RDWR 2"));
+        assert!(result.contains("#define O_CREAT 0100"));
+        assert!(result.contains("#define O_TRUNC 01000"));
+        assert!(result.contains("#define O_APPEND 02000"));
+        assert!(result.contains("#define O_NONBLOCK 04000"));
+        assert!(result.contains("#define LOCK_SH 1"));
+        assert!(result.contains("#define LOCK_EX 2"));
+        assert!(result.contains("#define LOCK_UN 8"));
+    }
+
+    #[test]
+    fn test_inject_header_fcntl_functions() {
+        let stdlib = StdlibPrototypes::new();
+        let result = stdlib.inject_prototypes_for_header(StdHeader::Fcntl);
+        assert!(result.contains("int open(const char* pathname, int flags, ...);"));
+    }
+
+    // ========================================================================
+    // inject_prototypes_for_header: Dirent
+    // ========================================================================
+
+    #[test]
+    fn test_inject_header_dirent_type_definitions() {
+        let stdlib = StdlibPrototypes::new();
+        let result = stdlib.inject_prototypes_for_header(StdHeader::Dirent);
+        assert!(result.contains("struct dirent { char d_name[256]; };"));
+        assert!(result.contains("typedef struct __dirstream DIR;"));
+    }
+
+    #[test]
+    fn test_inject_header_dirent_functions() {
+        let stdlib = StdlibPrototypes::new();
+        let result = stdlib.inject_prototypes_for_header(StdHeader::Dirent);
+        assert!(result.contains("DIR* opendir(const char* name);"));
+        assert!(result.contains("struct dirent* readdir(DIR* dirp);"));
+        assert!(result.contains("int closedir(DIR* dirp);"));
+    }
+
+    // ========================================================================
+    // inject_prototypes_for_header: SysTypes
+    // ========================================================================
+
+    #[test]
+    fn test_inject_header_sys_types_definitions() {
+        let stdlib = StdlibPrototypes::new();
+        let result = stdlib.inject_prototypes_for_header(StdHeader::SysTypes);
+        assert!(result.contains("typedef int pid_t;"));
+        assert!(result.contains("typedef long off_t;"));
+        assert!(result.contains("typedef unsigned int mode_t;"));
+        assert!(result.contains("typedef long ssize_t;"));
+    }
+
+    // ========================================================================
+    // inject_prototypes_for_header: SysStat
+    // ========================================================================
+
+    #[test]
+    fn test_inject_header_sys_stat_definitions() {
+        let stdlib = StdlibPrototypes::new();
+        let result = stdlib.inject_prototypes_for_header(StdHeader::SysStat);
+        assert!(result.contains("struct stat { long st_size; int st_mode; };"));
+        assert!(result.contains("#define S_ISREG(m)"));
+        assert!(result.contains("#define S_ISDIR(m)"));
+    }
+
+    // ========================================================================
+    // inject_prototypes_for_header: SysMman
+    // ========================================================================
+
+    #[test]
+    fn test_inject_header_sys_mman_macros() {
+        let stdlib = StdlibPrototypes::new();
+        let result = stdlib.inject_prototypes_for_header(StdHeader::SysMman);
+        assert!(result.contains("#define PROT_NONE 0"));
+        assert!(result.contains("#define PROT_READ 1"));
+        assert!(result.contains("#define PROT_WRITE 2"));
+        assert!(result.contains("#define PROT_EXEC 4"));
+        assert!(result.contains("#define MAP_SHARED 1"));
+        assert!(result.contains("#define MAP_PRIVATE 2"));
+        assert!(result.contains("#define MAP_ANONYMOUS 0x20"));
+        assert!(result.contains("#define MAP_FAILED ((void*)-1)"));
+    }
+
+    // ========================================================================
+    // inject_prototypes_for_header: Wchar
+    // ========================================================================
+
+    #[test]
+    fn test_inject_header_wchar_definitions() {
+        let stdlib = StdlibPrototypes::new();
+        let result = stdlib.inject_prototypes_for_header(StdHeader::Wchar);
+        assert!(result.contains("typedef int wchar_t;"));
+        assert!(result.contains("typedef int wint_t;"));
+        assert!(result.contains("#define WEOF (-1)"));
+    }
+
+    // ========================================================================
+    // inject_prototypes_for_header: Signal
+    // ========================================================================
+
+    #[test]
+    fn test_inject_header_signal_definitions() {
+        let stdlib = StdlibPrototypes::new();
+        let result = stdlib.inject_prototypes_for_header(StdHeader::Signal);
+        assert!(result.contains("typedef void (*sighandler_t)(int);"));
+        assert!(result.contains("#define SIGINT 2"));
+        assert!(result.contains("#define SIGTERM 15"));
+    }
+
+    // ========================================================================
+    // inject_prototypes_for_header: Limits
+    // ========================================================================
+
+    #[test]
+    fn test_inject_header_limits_macros() {
+        let stdlib = StdlibPrototypes::new();
+        let result = stdlib.inject_prototypes_for_header(StdHeader::Limits);
+        assert!(result.contains("#define CHAR_BIT 8"));
+        assert!(result.contains("#define CHAR_MIN (-128)"));
+        assert!(result.contains("#define CHAR_MAX 127"));
+        assert!(result.contains("#define SHRT_MIN (-32768)"));
+        assert!(result.contains("#define SHRT_MAX 32767"));
+        assert!(result.contains("#define INT_MIN (-2147483647-1)"));
+        assert!(result.contains("#define INT_MAX 2147483647"));
+        assert!(result.contains("#define UINT_MAX 4294967295U"));
+        assert!(result.contains("#define LONG_MIN (-9223372036854775807L-1)"));
+        assert!(result.contains("#define LONG_MAX 9223372036854775807L"));
+        assert!(result.contains("#define PATH_MAX 4096"));
+    }
+
+    // ========================================================================
+    // inject_prototypes_for_header: Ctype
+    // ========================================================================
+
+    #[test]
+    fn test_inject_header_ctype_functions() {
+        let stdlib = StdlibPrototypes::new();
+        let result = stdlib.inject_prototypes_for_header(StdHeader::Ctype);
+        assert!(result.contains("int isspace(int c);"));
+        assert!(result.contains("int isdigit(int c);"));
+        assert!(result.contains("int isalpha(int c);"));
+        assert!(result.contains("int isalnum(int c);"));
+        assert!(result.contains("int isupper(int c);"));
+        assert!(result.contains("int islower(int c);"));
+        assert!(result.contains("int tolower(int c);"));
+        assert!(result.contains("int toupper(int c);"));
+    }
+
+    #[test]
+    fn test_inject_header_ctype_no_extra_type_defs() {
+        let stdlib = StdlibPrototypes::new();
+        let result = stdlib.inject_prototypes_for_header(StdHeader::Ctype);
+        // Ctype has no header-specific type definitions beyond the common preamble
+        assert!(!result.contains("typedef struct _IO_FILE FILE;"));
+        assert!(!result.contains("typedef long time_t;"));
+    }
+
+    // ========================================================================
+    // inject_prototypes_for_header: Math
+    // ========================================================================
+
+    #[test]
+    fn test_inject_header_math_macros() {
+        let stdlib = StdlibPrototypes::new();
+        let result = stdlib.inject_prototypes_for_header(StdHeader::Math);
+        assert!(result.contains("#define M_PI 3.14159265358979323846"));
+        assert!(result.contains("#define M_E 2.71828182845904523536"));
+        assert!(result.contains("#define INFINITY (1.0/0.0)"));
+        assert!(result.contains("#define NAN (0.0/0.0)"));
+    }
+
+    #[test]
+    fn test_inject_header_math_trig_functions() {
+        let stdlib = StdlibPrototypes::new();
+        let result = stdlib.inject_prototypes_for_header(StdHeader::Math);
+        assert!(result.contains("double sin(double x);"));
+        assert!(result.contains("double cos(double x);"));
+        assert!(result.contains("double tan(double x);"));
+        assert!(result.contains("double asin(double x);"));
+        assert!(result.contains("double acos(double x);"));
+        assert!(result.contains("double atan(double x);"));
+        assert!(result.contains("double atan2(double y, double x);"));
+    }
+
+    #[test]
+    fn test_inject_header_math_power_and_log_functions() {
+        let stdlib = StdlibPrototypes::new();
+        let result = stdlib.inject_prototypes_for_header(StdHeader::Math);
+        assert!(result.contains("double sqrt(double x);"));
+        assert!(result.contains("double pow(double x, double y);"));
+        assert!(result.contains("double exp(double x);"));
+        assert!(result.contains("double log(double x);"));
+        assert!(result.contains("double log10(double x);"));
+    }
+
+    #[test]
+    fn test_inject_header_math_rounding_functions() {
+        let stdlib = StdlibPrototypes::new();
+        let result = stdlib.inject_prototypes_for_header(StdHeader::Math);
+        assert!(result.contains("double fabs(double x);"));
+        assert!(result.contains("double ceil(double x);"));
+        assert!(result.contains("double floor(double x);"));
+        assert!(result.contains("double round(double x);"));
+        assert!(result.contains("double trunc(double x);"));
+        assert!(result.contains("double fmod(double x, double y);"));
+    }
+
+    // ========================================================================
+    // inject_prototypes_for_header: Assert (wildcard arm)
+    // ========================================================================
+
+    #[test]
+    fn test_inject_header_assert_has_common_preamble() {
+        let stdlib = StdlibPrototypes::new();
+        let result = stdlib.inject_prototypes_for_header(StdHeader::Assert);
+        // Assert falls through to wildcard - only common preamble
+        assert!(result.contains("// Built-in prototypes for Assert"));
+        assert!(result.contains("typedef unsigned long size_t;"));
+        assert!(result.contains("#define NULL 0"));
+    }
+
+    #[test]
+    fn test_inject_header_assert_no_header_specific_types() {
+        let stdlib = StdlibPrototypes::new();
+        let result = stdlib.inject_prototypes_for_header(StdHeader::Assert);
+        // No functions are registered under Assert header
+        assert!(!result.contains("typedef struct _IO_FILE FILE;"));
+        assert!(!result.contains("typedef long time_t;"));
+        assert!(!result.contains("extern int errno;"));
+    }
+
+    // ========================================================================
+    // inject_prototypes_for_header: Float (wildcard arm)
+    // ========================================================================
+
+    #[test]
+    fn test_inject_header_float_has_common_preamble() {
+        let stdlib = StdlibPrototypes::new();
+        let result = stdlib.inject_prototypes_for_header(StdHeader::Float);
+        assert!(result.contains("// Built-in prototypes for Float"));
+        assert!(result.contains("typedef unsigned long size_t;"));
+        assert!(result.contains("#define NULL 0"));
+    }
+
+    #[test]
+    fn test_inject_header_float_no_functions() {
+        let stdlib = StdlibPrototypes::new();
+        let result = stdlib.inject_prototypes_for_header(StdHeader::Float);
+        // No functions registered under Float header
+        assert!(!result.contains("double sin("));
+        assert!(!result.contains("int printf("));
+    }
+
+    // ========================================================================
+    // inject_prototypes_for_header: Locale (wildcard arm)
+    // ========================================================================
+
+    #[test]
+    fn test_inject_header_locale_has_common_preamble() {
+        let stdlib = StdlibPrototypes::new();
+        let result = stdlib.inject_prototypes_for_header(StdHeader::Locale);
+        assert!(result.contains("// Built-in prototypes for Locale"));
+        assert!(result.contains("typedef unsigned long size_t;"));
+    }
+
+    // ========================================================================
+    // inject_prototypes_for_header: Setjmp (wildcard arm)
+    // ========================================================================
+
+    #[test]
+    fn test_inject_header_setjmp_has_common_preamble() {
+        let stdlib = StdlibPrototypes::new();
+        let result = stdlib.inject_prototypes_for_header(StdHeader::Setjmp);
+        assert!(result.contains("// Built-in prototypes for Setjmp"));
+        assert!(result.contains("typedef unsigned long size_t;"));
+    }
+
+    // ========================================================================
+    // inject_prototypes_for_header: Stddef (wildcard arm)
+    // ========================================================================
+
+    #[test]
+    fn test_inject_header_stddef_has_common_preamble() {
+        let stdlib = StdlibPrototypes::new();
+        let result = stdlib.inject_prototypes_for_header(StdHeader::Stddef);
+        assert!(result.contains("// Built-in prototypes for Stddef"));
+        assert!(result.contains("typedef unsigned long size_t;"));
+        assert!(result.contains("typedef long ptrdiff_t;"));
+    }
+
+    // ========================================================================
+    // inject_prototypes_for_header: Stdlib
+    // ========================================================================
+
+    #[test]
+    fn test_inject_header_stdlib_memory_functions() {
+        let stdlib = StdlibPrototypes::new();
+        let result = stdlib.inject_prototypes_for_header(StdHeader::Stdlib);
+        assert!(result.contains("void* malloc(size_t size);"));
+        assert!(result.contains("void* calloc(size_t nmemb, size_t size);"));
+        assert!(result.contains("void* realloc(void* ptr, size_t size);"));
+        assert!(result.contains("void free(void* ptr);"));
+    }
+
+    #[test]
+    fn test_inject_header_stdlib_conversion_functions() {
+        let stdlib = StdlibPrototypes::new();
+        let result = stdlib.inject_prototypes_for_header(StdHeader::Stdlib);
+        assert!(result.contains("int atoi(const char* nptr);"));
+        assert!(result.contains("long atol(const char* nptr);"));
+        assert!(result.contains("double atof(const char* nptr);"));
+        assert!(result.contains("long strtol(const char* nptr, char** endptr, int base);"));
+        assert!(result.contains("double strtod(const char* nptr, char** endptr);"));
+    }
+
+    #[test]
+    fn test_inject_header_stdlib_process_functions() {
+        let stdlib = StdlibPrototypes::new();
+        let result = stdlib.inject_prototypes_for_header(StdHeader::Stdlib);
+        assert!(result.contains("void exit(int status);"));
+        assert!(result.contains("void abort(void);"));
+        assert!(result.contains("char* getenv(const char* name);"));
+        assert!(result.contains("int system(const char* command);"));
+    }
+
+    #[test]
+    fn test_inject_header_stdlib_random_functions() {
+        let stdlib = StdlibPrototypes::new();
+        let result = stdlib.inject_prototypes_for_header(StdHeader::Stdlib);
+        assert!(result.contains("int rand(void);"));
+        assert!(result.contains("void srand(unsigned int seed);"));
+    }
+
+    #[test]
+    fn test_inject_header_stdlib_arithmetic_functions() {
+        let stdlib = StdlibPrototypes::new();
+        let result = stdlib.inject_prototypes_for_header(StdHeader::Stdlib);
+        assert!(result.contains("int abs(int j);"));
+        assert!(result.contains("long labs(long j);"));
+    }
+
+    #[test]
+    fn test_inject_header_stdlib_skips_function_pointer_params() {
+        let stdlib = StdlibPrototypes::new();
+        let result = stdlib.inject_prototypes_for_header(StdHeader::Stdlib);
+        // qsort and bsearch have function pointer parameters and should be skipped
+        assert!(
+            !result.contains("void qsort("),
+            "qsort with function pointer param should be filtered out"
+        );
+        assert!(
+            !result.contains("void* bsearch("),
+            "bsearch with function pointer param should be filtered out"
+        );
+    }
+
+    #[test]
+    fn test_inject_header_stdlib_does_not_contain_stdio_functions() {
+        let stdlib = StdlibPrototypes::new();
+        let result = stdlib.inject_prototypes_for_header(StdHeader::Stdlib);
+        assert!(!result.contains("int printf("));
+        assert!(!result.contains("FILE* fopen("));
+    }
+
+    // ========================================================================
+    // inject_prototypes_for_header: String
+    // ========================================================================
+
+    #[test]
+    fn test_inject_header_string_copy_functions() {
+        let stdlib = StdlibPrototypes::new();
+        let result = stdlib.inject_prototypes_for_header(StdHeader::String);
+        assert!(result.contains("void* memcpy(void* dest, const void* src, size_t n);"));
+        assert!(result.contains("void* memmove(void* dest, const void* src, size_t n);"));
+        assert!(result.contains("char* strcpy(char* dest, const char* src);"));
+        assert!(result.contains("char* strncpy(char* dest, const char* src, size_t n);"));
+    }
+
+    #[test]
+    fn test_inject_header_string_concat_functions() {
+        let stdlib = StdlibPrototypes::new();
+        let result = stdlib.inject_prototypes_for_header(StdHeader::String);
+        assert!(result.contains("char* strcat(char* dest, const char* src);"));
+        assert!(result.contains("char* strncat(char* dest, const char* src, size_t n);"));
+    }
+
+    #[test]
+    fn test_inject_header_string_comparison_functions() {
+        let stdlib = StdlibPrototypes::new();
+        let result = stdlib.inject_prototypes_for_header(StdHeader::String);
+        assert!(result.contains("int memcmp(const void* s1, const void* s2, size_t n);"));
+        assert!(result.contains("int strcmp(const char* s1, const char* s2);"));
+        assert!(result.contains("int strncmp(const char* s1, const char* s2, size_t n);"));
+    }
+
+    #[test]
+    fn test_inject_header_string_search_functions() {
+        let stdlib = StdlibPrototypes::new();
+        let result = stdlib.inject_prototypes_for_header(StdHeader::String);
+        assert!(result.contains("void* memchr(const void* s, int c, size_t n);"));
+        assert!(result.contains("char* strchr(const char* s, int c);"));
+        assert!(result.contains("char* strrchr(const char* s, int c);"));
+        assert!(result.contains("char* strstr(const char* haystack, const char* needle);"));
+        assert!(result.contains("char* strtok(char* str, const char* delim);"));
+    }
+
+    #[test]
+    fn test_inject_header_string_misc_functions() {
+        let stdlib = StdlibPrototypes::new();
+        let result = stdlib.inject_prototypes_for_header(StdHeader::String);
+        assert!(result.contains("void* memset(void* s, int c, size_t n);"));
+        assert!(result.contains("size_t strlen(const char* s);"));
+        assert!(result.contains("char* strdup(const char* s);"));
+    }
+
+    #[test]
+    fn test_inject_header_string_does_not_contain_math() {
+        let stdlib = StdlibPrototypes::new();
+        let result = stdlib.inject_prototypes_for_header(StdHeader::String);
+        assert!(!result.contains("double sin("));
+        assert!(!result.contains("#define M_PI"));
+    }
+
+    // ========================================================================
+    // inject_prototypes_for_header: Cross-header isolation tests
+    // ========================================================================
+
+    #[test]
+    fn test_inject_header_isolation_no_cross_contamination() {
+        let stdlib = StdlibPrototypes::new();
+
+        // Each header only gets its own functions
+        let stdio_result = stdlib.inject_prototypes_for_header(StdHeader::Stdio);
+        let string_result = stdlib.inject_prototypes_for_header(StdHeader::String);
+        let math_result = stdlib.inject_prototypes_for_header(StdHeader::Math);
+        let ctype_result = stdlib.inject_prototypes_for_header(StdHeader::Ctype);
+
+        // stdio should not have string functions
+        assert!(!stdio_result.contains("size_t strlen("));
+        assert!(!stdio_result.contains("void* memcpy("));
+
+        // string should not have stdio functions
+        assert!(!string_result.contains("int printf("));
+        assert!(!string_result.contains("FILE* fopen("));
+
+        // math should not have ctype functions
+        assert!(!math_result.contains("int isspace("));
+        assert!(!math_result.contains("int toupper("));
+
+        // ctype should not have math functions
+        assert!(!ctype_result.contains("double sqrt("));
+        assert!(!ctype_result.contains("#define M_PI"));
+    }
+
+    #[test]
+    fn test_inject_header_functions_are_sorted_alphabetically() {
+        let stdlib = StdlibPrototypes::new();
+        let result = stdlib.inject_prototypes_for_header(StdHeader::String);
+
+        // Functions should appear in alphabetical order
+        let memchr_pos = result.find("void* memchr(").unwrap();
+        let memcmp_pos = result.find("int memcmp(").unwrap();
+        let memcpy_pos = result.find("void* memcpy(").unwrap();
+        let strlen_pos = result.find("size_t strlen(").unwrap();
+        let strstr_pos = result.find("char* strstr(").unwrap();
+
+        assert!(memchr_pos < memcmp_pos);
+        assert!(memcmp_pos < memcpy_pos);
+        assert!(memcpy_pos < strlen_pos);
+        assert!(strlen_pos < strstr_pos);
+    }
+
+    #[test]
+    fn test_inject_header_comment_contains_header_name() {
+        let stdlib = StdlibPrototypes::new();
+
+        let result = stdlib.inject_prototypes_for_header(StdHeader::Stdio);
+        assert!(result.contains("// Built-in prototypes for Stdio"));
+
+        let result = stdlib.inject_prototypes_for_header(StdHeader::Math);
+        assert!(result.contains("// Built-in prototypes for Math"));
+
+        let result = stdlib.inject_prototypes_for_header(StdHeader::SysMman);
+        assert!(result.contains("// Built-in prototypes for SysMman"));
+    }
+
+    #[test]
+    fn test_inject_header_result_ends_with_declarations() {
+        let stdlib = StdlibPrototypes::new();
+        // Verify that function declarations end with semicolons and newlines
+        let result = stdlib.inject_prototypes_for_header(StdHeader::Stdlib);
+        // All function lines should end with ";\n"
+        for line in result.lines() {
+            if line.contains('(') && line.contains(')') && !line.starts_with("//") && !line.starts_with("#") && !line.starts_with("typedef") && !line.starts_with("struct") && !line.starts_with("extern") {
+                assert!(
+                    line.ends_with(';'),
+                    "Function declaration line should end with semicolon: {}",
+                    line
+                );
+            }
+        }
+    }
 }
