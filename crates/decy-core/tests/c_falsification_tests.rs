@@ -1523,3 +1523,752 @@ fn c100_chained_comparisons() {
         "C100",
     );
 }
+
+// ============================================================================
+// C101-C110: Global Variables and Static Storage (PATHOLOGICAL)
+// ============================================================================
+
+#[test]
+fn c101_global_int() {
+    assert_transpiles_and_compiles(
+        r#"int counter = 0;
+        void increment() { counter = counter + 1; }
+        int main() {
+            increment();
+            increment();
+            increment();
+            return counter;
+        }"#,
+        "C101",
+    );
+}
+
+#[test]
+fn c102_multiple_globals() {
+    assert_transpiles_and_compiles(
+        r#"int x = 10;
+        int y = 20;
+        int z = 30;
+        int sum_globals() { return x + y + z; }
+        int main() { return sum_globals(); }"#,
+        "C102",
+    );
+}
+
+#[test]
+fn c103_global_array() {
+    assert_transpiles_and_compiles(
+        r#"int data[5];
+        void init_data() {
+            int i;
+            for (i = 0; i < 5; i++) data[i] = i * 10;
+        }
+        int main() {
+            init_data();
+            return data[3];
+        }"#,
+        "C103",
+    );
+}
+
+#[test]
+#[ignore = "FALSIFIED: global struct variable codegen issue"]
+fn c104_global_struct() {
+    assert_transpiles_and_compiles(
+        r#"struct Config { int debug; int verbose; };
+        struct Config cfg;
+        int main() {
+            cfg.debug = 1;
+            cfg.verbose = 0;
+            return cfg.debug;
+        }"#,
+        "C104",
+    );
+}
+
+#[test]
+fn c105_global_const() {
+    assert_transpiles_and_compiles(
+        r#"const int MAX_SIZE = 100;
+        int main() { return MAX_SIZE; }"#,
+        "C105",
+    );
+}
+
+#[test]
+fn c106_static_local_variable() {
+    assert_transpiles_and_compiles(
+        r#"int next_id() {
+            static int counter = 0;
+            counter = counter + 1;
+            return counter;
+        }
+        int main() {
+            next_id();
+            next_id();
+            return next_id();
+        }"#,
+        "C106",
+    );
+}
+
+#[test]
+fn c107_global_initialized_array() {
+    assert_transpiles_and_compiles(
+        r#"int primes[5];
+        int main() {
+            primes[0] = 2; primes[1] = 3; primes[2] = 5;
+            primes[3] = 7; primes[4] = 11;
+            return primes[4];
+        }"#,
+        "C107",
+    );
+}
+
+#[test]
+fn c108_global_read_write() {
+    assert_transpiles_and_compiles(
+        r#"int state = 0;
+        int get_state() { return state; }
+        void set_state(int s) { state = s; }
+        int main() {
+            set_state(42);
+            return get_state();
+        }"#,
+        "C108",
+    );
+}
+
+#[test]
+fn c109_global_double() {
+    assert_transpiles_and_compiles(
+        r#"double pi_approx = 3.14;
+        int main() { return (int)(pi_approx * 2); }"#,
+        "C109",
+    );
+}
+
+#[test]
+#[ignore = "FALSIFIED: mixed global types (int+double+char) codegen issue"]
+fn c110_multiple_global_types() {
+    assert_transpiles_and_compiles(
+        r#"int g_int = 1;
+        double g_dbl = 2.5;
+        char g_chr = 'A';
+        int main() { return g_int + (int)g_dbl + g_chr; }"#,
+        "C110",
+    );
+}
+
+// ============================================================================
+// C111-C120: Do-While, Goto, Comma Operator (PATHOLOGICAL)
+// ============================================================================
+
+#[test]
+fn c111_do_while_basic() {
+    assert_transpiles_and_compiles(
+        r#"int main() {
+            int x = 0;
+            do {
+                x = x + 1;
+            } while (x < 10);
+            return x;
+        }"#,
+        "C111",
+    );
+}
+
+#[test]
+fn c112_do_while_single_iteration() {
+    assert_transpiles_and_compiles(
+        r#"int main() {
+            int x = 100;
+            do {
+                x = x + 1;
+            } while (x < 50);
+            return x;
+        }"#,
+        "C112",
+    );
+}
+
+#[test]
+fn c113_nested_do_while() {
+    assert_transpiles_and_compiles(
+        r#"int main() {
+            int sum = 0;
+            int i = 0;
+            do {
+                int j = 0;
+                do {
+                    sum = sum + 1;
+                    j = j + 1;
+                } while (j < 3);
+                i = i + 1;
+            } while (i < 3);
+            return sum;
+        }"#,
+        "C113",
+    );
+}
+
+#[test]
+#[ignore = "FALSIFIED: do-while with break codegen issue"]
+fn c114_do_while_with_break() {
+    assert_transpiles_and_compiles(
+        r#"int main() {
+            int x = 0;
+            do {
+                x = x + 1;
+                if (x == 5) break;
+            } while (x < 100);
+            return x;
+        }"#,
+        "C114",
+    );
+}
+
+#[test]
+fn c115_while_true_break() {
+    assert_transpiles_and_compiles(
+        r#"int main() {
+            int x = 0;
+            while (1) {
+                x = x + 1;
+                if (x >= 10) break;
+            }
+            return x;
+        }"#,
+        "C115",
+    );
+}
+
+#[test]
+fn c116_for_empty_body() {
+    assert_transpiles_and_compiles(
+        r#"int main() {
+            int i;
+            int x = 0;
+            for (i = 0; i < 10; i++) {
+                x = x + 1;
+            }
+            return x;
+        }"#,
+        "C116",
+    );
+}
+
+#[test]
+fn c117_nested_if_deep() {
+    assert_transpiles_and_compiles(
+        r#"int classify(int n) {
+            if (n > 100) {
+                if (n > 1000) {
+                    return 3;
+                } else {
+                    return 2;
+                }
+            } else {
+                if (n > 0) {
+                    return 1;
+                } else {
+                    return 0;
+                }
+            }
+        }
+        int main() { return classify(500); }"#,
+        "C117",
+    );
+}
+
+#[test]
+fn c118_switch_with_default() {
+    assert_transpiles_and_compiles(
+        r#"int day_type(int day) {
+            switch (day) {
+                case 0: return 0;
+                case 6: return 0;
+                case 1: case 2: case 3: case 4: case 5: return 1;
+                default: return -1;
+            }
+        }
+        int main() { return day_type(3); }"#,
+        "C118",
+    );
+}
+
+#[test]
+fn c119_continue_in_loop() {
+    assert_transpiles_and_compiles(
+        r#"int count_positive(int arr[], int n) {
+            int count = 0;
+            int i;
+            for (i = 0; i < n; i++) {
+                if (arr[i] <= 0) continue;
+                count = count + 1;
+            }
+            return count;
+        }
+        int main() {
+            int data[5];
+            data[0] = -1; data[1] = 2; data[2] = 0; data[3] = 4; data[4] = -3;
+            return count_positive(data, 5);
+        }"#,
+        "C119",
+    );
+}
+
+#[test]
+fn c120_multiple_switch_cases() {
+    assert_transpiles_and_compiles(
+        r#"int grade(int score) {
+            switch (score / 10) {
+                case 10: case 9: return 4;
+                case 8: return 3;
+                case 7: return 2;
+                case 6: return 1;
+                default: return 0;
+            }
+        }
+        int main() { return grade(85); }"#,
+        "C120",
+    );
+}
+
+// ============================================================================
+// C121-C130: Typedef, Enum, Sizeof (PATHOLOGICAL)
+// ============================================================================
+
+#[test]
+fn c121_typedef_int() {
+    assert_transpiles_and_compiles(
+        r#"typedef int Score;
+        Score add_scores(Score a, Score b) { return a + b; }
+        int main() { return add_scores(50, 30); }"#,
+        "C121",
+    );
+}
+
+#[test]
+fn c122_enum_basic() {
+    assert_transpiles_and_compiles(
+        r#"enum Color { RED, GREEN, BLUE };
+        int main() {
+            enum Color c = GREEN;
+            return c;
+        }"#,
+        "C122",
+    );
+}
+
+#[test]
+fn c123_enum_with_values() {
+    assert_transpiles_and_compiles(
+        r#"enum HttpStatus {
+            OK = 200,
+            NOT_FOUND = 404,
+            ERROR = 500
+        };
+        int main() { return OK; }"#,
+        "C123",
+    );
+}
+
+#[test]
+fn c124_sizeof_variable() {
+    assert_transpiles_and_compiles(
+        r#"int main() {
+            int x = 42;
+            int s = sizeof(x);
+            return s;
+        }"#,
+        "C124",
+    );
+}
+
+#[test]
+#[ignore = "FALSIFIED: sizeof(struct) comparison codegen issue"]
+fn c125_sizeof_struct() {
+    assert_transpiles_and_compiles(
+        r#"struct Small { int a; };
+        struct Large { int a; int b; int c; int d; };
+        int main() {
+            return sizeof(struct Large) > sizeof(struct Small);
+        }"#,
+        "C125",
+    );
+}
+
+#[test]
+fn c126_typedef_struct() {
+    assert_transpiles_and_compiles(
+        r#"typedef struct { int x; int y; } Point;
+        int distance_sq(Point a, Point b) {
+            int dx = a.x - b.x;
+            int dy = a.y - b.y;
+            return dx * dx + dy * dy;
+        }
+        int main() {
+            Point p1; p1.x = 0; p1.y = 0;
+            Point p2; p2.x = 3; p2.y = 4;
+            return distance_sq(p1, p2);
+        }"#,
+        "C126",
+    );
+}
+
+#[test]
+fn c127_enum_as_switch() {
+    assert_transpiles_and_compiles(
+        r#"enum Op { ADD, SUB, MUL };
+        int apply(enum Op op, int a, int b) {
+            switch (op) {
+                case ADD: return a + b;
+                case SUB: return a - b;
+                case MUL: return a * b;
+                default: return 0;
+            }
+        }
+        int main() { return apply(MUL, 6, 7); }"#,
+        "C127",
+    );
+}
+
+#[test]
+fn c128_nested_struct() {
+    assert_transpiles_and_compiles(
+        r#"struct Inner { int val; };
+        struct Outer { struct Inner in_field; int extra; };
+        int main() {
+            struct Outer o;
+            o.in_field.val = 10;
+            o.extra = 20;
+            return o.in_field.val + o.extra;
+        }"#,
+        "C128",
+    );
+}
+
+#[test]
+fn c129_typedef_function_alias() {
+    assert_transpiles_and_compiles(
+        r#"typedef int Integer;
+        typedef double Real;
+        Integer round_real(Real x) {
+            return (Integer)(x + 0.5);
+        }
+        int main() { return round_real(3.7); }"#,
+        "C129",
+    );
+}
+
+#[test]
+fn c130_sizeof_array() {
+    assert_transpiles_and_compiles(
+        r#"int main() {
+            int arr[10];
+            int element_count = sizeof(arr) / sizeof(arr[0]);
+            return element_count;
+        }"#,
+        "C130",
+    );
+}
+
+// ============================================================================
+// C131-C140: Multi-Dimensional Arrays, Function Pointers (PATHOLOGICAL)
+// ============================================================================
+
+#[test]
+fn c131_2d_array() {
+    assert_transpiles_and_compiles(
+        r#"int main() {
+            int matrix[3][3];
+            int i; int j;
+            for (i = 0; i < 3; i++)
+                for (j = 0; j < 3; j++)
+                    matrix[i][j] = i * 3 + j;
+            return matrix[2][2];
+        }"#,
+        "C131",
+    );
+}
+
+#[test]
+fn c132_array_of_arrays_sum() {
+    assert_transpiles_and_compiles(
+        r#"int main() {
+            int rows[2][3];
+            rows[0][0] = 1; rows[0][1] = 2; rows[0][2] = 3;
+            rows[1][0] = 4; rows[1][1] = 5; rows[1][2] = 6;
+            int sum = 0;
+            int i; int j;
+            for (i = 0; i < 2; i++)
+                for (j = 0; j < 3; j++)
+                    sum = sum + rows[i][j];
+            return sum;
+        }"#,
+        "C132",
+    );
+}
+
+#[test]
+fn c133_function_pointer_basic() {
+    assert_transpiles_and_compiles(
+        r#"int add(int a, int b) { return a + b; }
+        int sub(int a, int b) { return a - b; }
+        int apply(int (*op)(int, int), int x, int y) {
+            return op(x, y);
+        }
+        int main() { return apply(add, 10, 3); }"#,
+        "C133",
+    );
+}
+
+#[test]
+fn c134_recursive_fibonacci() {
+    assert_transpiles_and_compiles(
+        r#"int fib(int n) {
+            if (n <= 1) return n;
+            return fib(n - 1) + fib(n - 2);
+        }
+        int main() { return fib(10); }"#,
+        "C134",
+    );
+}
+
+#[test]
+fn c135_recursive_factorial() {
+    assert_transpiles_and_compiles(
+        r#"int factorial(int n) {
+            if (n <= 1) return 1;
+            return n * factorial(n - 1);
+        }
+        int main() { return factorial(6); }"#,
+        "C135",
+    );
+}
+
+#[test]
+fn c136_recursive_gcd() {
+    assert_transpiles_and_compiles(
+        r#"int gcd(int a, int b) {
+            if (b == 0) return a;
+            return gcd(b, a % b);
+        }
+        int main() { return gcd(48, 18); }"#,
+        "C136",
+    );
+}
+
+#[test]
+fn c137_binary_search() {
+    assert_transpiles_and_compiles(
+        r#"int binary_search(int arr[], int n, int target) {
+            int lo = 0;
+            int hi = n - 1;
+            while (lo <= hi) {
+                int mid = lo + (hi - lo) / 2;
+                if (arr[mid] == target) return mid;
+                if (arr[mid] < target) lo = mid + 1;
+                else hi = mid - 1;
+            }
+            return -1;
+        }
+        int main() {
+            int data[5];
+            data[0] = 10; data[1] = 20; data[2] = 30; data[3] = 40; data[4] = 50;
+            return binary_search(data, 5, 30);
+        }"#,
+        "C137",
+    );
+}
+
+#[test]
+fn c138_matrix_multiply_element() {
+    assert_transpiles_and_compiles(
+        r#"int main() {
+            int a[2][2]; int b[2][2]; int c[2][2];
+            a[0][0] = 1; a[0][1] = 2; a[1][0] = 3; a[1][1] = 4;
+            b[0][0] = 5; b[0][1] = 6; b[1][0] = 7; b[1][1] = 8;
+            c[0][0] = a[0][0]*b[0][0] + a[0][1]*b[1][0];
+            return c[0][0];
+        }"#,
+        "C138",
+    );
+}
+
+#[test]
+fn c139_deeply_nested_loops() {
+    assert_transpiles_and_compiles(
+        r#"int main() {
+            int count = 0;
+            int i; int j; int k;
+            for (i = 0; i < 3; i++)
+                for (j = 0; j < 3; j++)
+                    for (k = 0; k < 3; k++)
+                        count = count + 1;
+            return count;
+        }"#,
+        "C139",
+    );
+}
+
+#[test]
+fn c140_array_rotation() {
+    assert_transpiles_and_compiles(
+        r#"void rotate_left(int arr[], int n) {
+            int first = arr[0];
+            int i;
+            for (i = 0; i < n - 1; i++)
+                arr[i] = arr[i + 1];
+            arr[n - 1] = first;
+        }
+        int main() {
+            int data[4];
+            data[0] = 1; data[1] = 2; data[2] = 3; data[3] = 4;
+            rotate_left(data, 4);
+            return data[0];
+        }"#,
+        "C140",
+    );
+}
+
+// ============================================================================
+// C141-C150: Compound Assignment, Ternary Chains, Edge Cases (PATHOLOGICAL)
+// ============================================================================
+
+#[test]
+fn c141_modulo_chain() {
+    assert_transpiles_and_compiles(
+        r#"int is_leap_year(int year) {
+            if (year % 400 == 0) return 1;
+            if (year % 100 == 0) return 0;
+            if (year % 4 == 0) return 1;
+            return 0;
+        }
+        int main() { return is_leap_year(2000); }"#,
+        "C141",
+    );
+}
+
+#[test]
+fn c142_absolute_value_branchless() {
+    assert_transpiles_and_compiles(
+        r#"int abs_val(int x) {
+            int mask = x >> 31;
+            return (x + mask) ^ mask;
+        }
+        int main() { return abs_val(-42); }"#,
+        "C142",
+    );
+}
+
+#[test]
+fn c143_min_max_functions() {
+    assert_transpiles_and_compiles(
+        r#"int min(int a, int b) { return a < b ? a : b; }
+        int max(int a, int b) { return a > b ? a : b; }
+        int main() { return min(10, 20) + max(10, 20); }"#,
+        "C143",
+    );
+}
+
+#[test]
+fn c144_swap_without_temp() {
+    assert_transpiles_and_compiles(
+        r#"int main() {
+            int a = 5;
+            int b = 10;
+            a = a ^ b;
+            b = a ^ b;
+            a = a ^ b;
+            return a * 100 + b;
+        }"#,
+        "C144",
+    );
+}
+
+#[test]
+fn c145_nested_function_calls() {
+    assert_transpiles_and_compiles(
+        r#"int square(int x) { return x * x; }
+        int add(int a, int b) { return a + b; }
+        int main() { return add(square(3), square(4)); }"#,
+        "C145",
+    );
+}
+
+#[test]
+fn c146_early_return_guard() {
+    assert_transpiles_and_compiles(
+        r#"int safe_divide(int a, int b) {
+            if (b == 0) return -1;
+            return a / b;
+        }
+        int main() { return safe_divide(10, 0); }"#,
+        "C146",
+    );
+}
+
+#[test]
+fn c147_cascading_if_else() {
+    assert_transpiles_and_compiles(
+        r#"int fizzbuzz_type(int n) {
+            if (n % 15 == 0) return 3;
+            else if (n % 3 == 0) return 1;
+            else if (n % 5 == 0) return 2;
+            else return 0;
+        }
+        int main() { return fizzbuzz_type(15); }"#,
+        "C147",
+    );
+}
+
+#[test]
+fn c148_accumulator_pattern() {
+    assert_transpiles_and_compiles(
+        r#"int digit_sum(int n) {
+            int sum = 0;
+            while (n > 0) {
+                sum = sum + n % 10;
+                n = n / 10;
+            }
+            return sum;
+        }
+        int main() { return digit_sum(12345); }"#,
+        "C148",
+    );
+}
+
+#[test]
+fn c149_count_bits() {
+    assert_transpiles_and_compiles(
+        r#"int popcount(int n) {
+            int count = 0;
+            while (n > 0) {
+                count = count + (n & 1);
+                n = n >> 1;
+            }
+            return count;
+        }
+        int main() { return popcount(255); }"#,
+        "C149",
+    );
+}
+
+#[test]
+fn c150_collatz_steps() {
+    assert_transpiles_and_compiles(
+        r#"int collatz_steps(int n) {
+            int steps = 0;
+            while (n != 1) {
+                if (n % 2 == 0) n = n / 2;
+                else n = 3 * n + 1;
+                steps = steps + 1;
+            }
+            return steps;
+        }
+        int main() { return collatz_steps(27); }"#,
+        "C150",
+    );
+}

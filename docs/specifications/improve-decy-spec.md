@@ -1,6 +1,6 @@
 # Improve Decy: Cross-Project Analysis & Improvement Specification
 
-**Status**: Implemented (7/10 items complete)
+**Status**: Implemented (8/10 items complete)
 **Date**: 2026-02-09
 **Sources**: depyler (Python-to-Rust), bashrs (Shell-to-Rust), claudes-c-compiler (C compiler)
 
@@ -232,7 +232,7 @@ Decy sits in a family of transpiler projects (depyler, bashrs) and shares the C-
 | 1 | Compilation Cache | Medium | High | depyler | Deferred (existing TranspilationCache) |
 | 2 | Corpus Convergence Loop | Medium | **Critical** | depyler | **DONE** (DECY-191) |
 | 3 | From-Scratch Parser | High | High | CCC | Deferred |
-| 4 | Falsification Test Suite | Medium | **Critical** | bashrs | **IN PROGRESS** (DECY-192, C001-C050 done) |
+| 4 | Falsification Test Suite | Medium | **Critical** | bashrs | **DONE** (DECY-192, 150 tests, 130 pass, 20 falsified) |
 | 5 | Optimization Passes | High | High | CCC | **DONE** (DECY-196) |
 | 6 | Decision Tracing | Low | Medium | depyler | **DONE** (DECY-193) |
 | 7 | Equivalence Validation | Medium | **Critical** | CCC | **DONE** (DECY-195) |
@@ -242,8 +242,35 @@ Decy sits in a family of transpiler projects (depyler, bashrs) and shares the C-
 
 **Implementation Date**: 2026-02-09
 
-**Implemented**: Items 2, 4 (partial), 5, 6, 7, 8, 9
+**Implemented**: Items 2, 4, 5, 6, 7, 8, 9
 **Deferred**: Items 1, 3, 10 (lower priority, higher effort)
+
+### Falsification Results Summary
+
+| Range | Category | Tests | Passing | Falsified |
+|-------|----------|-------|---------|-----------|
+| C001-C050 | Basic types, control flow, structs, functions | 50 | 50 | 0 |
+| C051-C060 | Pointers and address-of | 10 | 4 | 6 |
+| C061-C070 | Arrays and indexing | 10 | 10 | 0 |
+| C071-C080 | Type casting and coercion | 10 | 9 | 1 |
+| C081-C090 | String and char operations | 10 | 2 | 8 |
+| C091-C100 | Nested expressions, operator precedence | 10 | 9 | 1 |
+| C101-C110 | Global variables, static storage | 10 | 8 | 2 |
+| C111-C120 | Do-while, control flow edge cases | 10 | 9 | 1 |
+| C121-C130 | Typedef, enum, sizeof | 10 | 9 | 1 |
+| C131-C140 | Multi-dimensional arrays, recursion | 10 | 10 | 0 |
+| C141-C150 | Compound assignment, algorithms | 10 | 10 | 0 |
+| **TOTAL** | | **150** | **130** | **20** |
+
+**Falsification Rate**: 86.7% passing (130/150)
+
+Key gaps identified by falsification:
+- **Char arithmetic**: char+int, char comparisons, escape char math
+- **Pointer operations**: double pointer, void* cast, null check, pointer arithmetic
+- **String operations**: char* parameters, string literal assignment
+- **Boolean negation**: !x operator
+- **Global struct**: struct typed global variables
+- **Do-while break**: break inside do-while loop
 
 ---
 
