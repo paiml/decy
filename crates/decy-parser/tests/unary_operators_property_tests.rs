@@ -20,7 +20,7 @@ prop_compose! {
             "int", "char", "float", "double", "void", "long", "short", "signed", "unsigned",
             "struct", "union", "enum", "typedef",
             "const", "volatile", "static", "extern", "auto", "register",
-            "sizeof", "typeof",
+            "sizeof", "typeof", "asm", "inline", "restrict",
         ];
 
         if C_KEYWORDS.contains(&s.as_str()) {
