@@ -11269,3 +11269,456 @@ fn generate_function_with_structs_single_pointer_param() {
         code
     );
 }
+
+// ============================================================================
+// Batch 5: generate_function_with_lifetimes (lines 6595-6690)
+// ============================================================================
+
+#[test]
+fn generate_function_with_lifetimes_simple() {
+    // Lines 6595-6600: Simple function with lifetimes
+    use decy_ownership::lifetime_gen::{
+        AnnotatedParameter, AnnotatedSignature, AnnotatedType, LifetimeParam,
+    };
+    let cg = CodeGenerator::new();
+    let func = HirFunction::new_with_body(
+        "get_ref".to_string(),
+        HirType::Pointer(Box::new(HirType::Int)),
+        vec![HirParameter::new(
+            "data".to_string(),
+            HirType::Pointer(Box::new(HirType::Int)),
+        )],
+        vec![HirStatement::Return(Some(HirExpression::Variable(
+            "data".to_string(),
+        )))],
+    );
+    let sig = AnnotatedSignature {
+        name: "get_ref".to_string(),
+        lifetimes: vec![LifetimeParam::new("'a".to_string())],
+        parameters: vec![AnnotatedParameter {
+            name: "data".to_string(),
+            param_type: AnnotatedType::Reference {
+                inner: Box::new(AnnotatedType::Simple(HirType::Int)),
+                mutable: true,
+                lifetime: Some(LifetimeParam::new("'a".to_string())),
+            },
+        }],
+        return_type: AnnotatedType::Reference {
+            inner: Box::new(AnnotatedType::Simple(HirType::Int)),
+            mutable: true,
+            lifetime: Some(LifetimeParam::new("'a".to_string())),
+        },
+    };
+    let code = cg.generate_function_with_lifetimes(&func, &sig);
+    assert!(
+        code.contains("fn get_ref"),
+        "Should generate function with lifetimes, got: {}",
+        code
+    );
+}
+
+#[test]
+fn generate_function_with_lifetimes_and_structs_pointer_param() {
+    // Lines 6617-6690: Full function with lifetimes, structs, and pointer params
+    use decy_ownership::lifetime_gen::{
+        AnnotatedParameter, AnnotatedSignature, AnnotatedType,
+    };
+    let cg = CodeGenerator::new();
+    let func = HirFunction::new_with_body(
+        "process".to_string(),
+        HirType::Void,
+        vec![HirParameter::new(
+            "arr".to_string(),
+            HirType::Pointer(Box::new(HirType::Int)),
+        )],
+        vec![HirStatement::Return(None)],
+    );
+    let sig = AnnotatedSignature {
+        name: "process".to_string(),
+        lifetimes: vec![],
+        parameters: vec![AnnotatedParameter {
+            name: "arr".to_string(),
+            param_type: AnnotatedType::Simple(HirType::Pointer(Box::new(HirType::Int))),
+        }],
+        return_type: AnnotatedType::Simple(HirType::Void),
+    };
+    let code = cg.generate_function_with_lifetimes_and_structs(
+        &func,
+        &sig,
+        &[],
+        &[],
+        &[],
+        &[],
+        &[],
+    );
+    assert!(
+        code.contains("fn process"),
+        "Should generate function with lifetimes and structs, got: {}",
+        code
+    );
+}
+
+#[test]
+fn generate_function_with_lifetimes_and_structs_array_param() {
+    // Lines 6675-6690: Pointer param detected as array → slice context
+    use decy_ownership::lifetime_gen::{
+        AnnotatedParameter, AnnotatedSignature, AnnotatedType,
+    };
+    let cg = CodeGenerator::new();
+    let func = HirFunction::new_with_body(
+        "sum_arr".to_string(),
+        HirType::Int,
+        vec![
+            HirParameter::new(
+                "arr".to_string(),
+                HirType::Pointer(Box::new(HirType::Int)),
+            ),
+            HirParameter::new("n".to_string(), HirType::Int),
+        ],
+        vec![
+            // Access arr[0] to trigger array detection
+            HirStatement::Return(Some(HirExpression::ArrayIndex {
+                array: Box::new(HirExpression::Variable("arr".to_string())),
+                index: Box::new(HirExpression::IntLiteral(0)),
+            })),
+        ],
+    );
+    let sig = AnnotatedSignature {
+        name: "sum_arr".to_string(),
+        lifetimes: vec![],
+        parameters: vec![
+            AnnotatedParameter {
+                name: "arr".to_string(),
+                param_type: AnnotatedType::Simple(HirType::Pointer(Box::new(HirType::Int))),
+            },
+            AnnotatedParameter {
+                name: "n".to_string(),
+                param_type: AnnotatedType::Simple(HirType::Int),
+            },
+        ],
+        return_type: AnnotatedType::Simple(HirType::Int),
+    };
+    let code = cg.generate_function_with_lifetimes_and_structs(
+        &func,
+        &sig,
+        &[],
+        &[],
+        &[],
+        &[],
+        &[],
+    );
+    assert!(
+        code.contains("fn sum_arr"),
+        "Should generate function with array param context, got: {}",
+        code
+    );
+}
+
+// ============================================================================
+// Batch 5: transform_vec_statement with capacity (line 6939-6941)
+// ============================================================================
+
+#[test]
+fn transform_vec_statement_with_capacity() {
+    // Lines 6913-6917: VecCandidate WITH capacity_expr
+    let cg = CodeGenerator::new();
+    let stmt = HirStatement::VariableDeclaration {
+        name: "items".to_string(),
+        var_type: HirType::Pointer(Box::new(HirType::Int)),
+        initializer: Some(HirExpression::Malloc {
+            size: Box::new(HirExpression::BinaryOp {
+                op: BinaryOperator::Multiply,
+                left: Box::new(HirExpression::IntLiteral(10)),
+                right: Box::new(HirExpression::IntLiteral(4)),
+            }),
+        }),
+    };
+    let candidate = decy_analyzer::patterns::VecCandidate {
+        variable: "items".to_string(),
+        malloc_index: 0,
+        free_index: None,
+        capacity_expr: Some(HirExpression::IntLiteral(10)),
+    };
+    let result = cg.transform_vec_statement(&stmt, &candidate);
+    if let HirStatement::VariableDeclaration {
+        var_type,
+        initializer,
+        ..
+    } = &result
+    {
+        assert!(
+            matches!(var_type, HirType::Vec(_)),
+            "Should transform to Vec type, got: {:?}",
+            var_type
+        );
+        assert!(
+            initializer.is_some(),
+            "Should have Vec::with_capacity initializer"
+        );
+    } else {
+        panic!("Expected VariableDeclaration");
+    }
+}
+
+// ============================================================================
+// Batch 5: generate_function_with_box_and_vec_transform with body (line 6983)
+// ============================================================================
+
+#[test]
+fn generate_function_with_box_and_vec_transform_with_body() {
+    // Lines 6970-6985: Combined transform with matching candidates
+    let cg = CodeGenerator::new();
+    let func = HirFunction::new_with_body(
+        "alloc_both".to_string(),
+        HirType::Void,
+        vec![],
+        vec![
+            HirStatement::VariableDeclaration {
+                name: "arr".to_string(),
+                var_type: HirType::Pointer(Box::new(HirType::Int)),
+                initializer: Some(HirExpression::Malloc {
+                    size: Box::new(HirExpression::BinaryOp {
+                        op: BinaryOperator::Multiply,
+                        left: Box::new(HirExpression::IntLiteral(10)),
+                        right: Box::new(HirExpression::IntLiteral(4)),
+                    }),
+                }),
+            },
+            HirStatement::Return(None),
+        ],
+    );
+    let vec_candidates = vec![decy_analyzer::patterns::VecCandidate {
+        variable: "arr".to_string(),
+        malloc_index: 0,
+        free_index: None,
+        capacity_expr: Some(HirExpression::IntLiteral(10)),
+    }];
+    let code = cg.generate_function_with_box_and_vec_transform(&func, &[], &vec_candidates);
+    assert!(
+        code.contains("fn alloc_both"),
+        "Should generate combined transform function, got: {}",
+        code
+    );
+}
+
+// ============================================================================
+// Batch 5: Malloc Vec with non-multiply size (lines 4193-4197)
+// ============================================================================
+
+#[test]
+fn stmt_malloc_vec_non_multiply_size() {
+    // Lines 4192-4197: Malloc with Vec type but non-multiply size → Vec::new()
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let stmt = HirStatement::VariableDeclaration {
+        name: "items".to_string(),
+        var_type: HirType::Vec(Box::new(HirType::Int)),
+        initializer: Some(HirExpression::Malloc {
+            size: Box::new(HirExpression::IntLiteral(40)),
+        }),
+    };
+    let code = cg.generate_statement_with_context(&stmt, None, &mut ctx, None);
+    assert!(
+        code.contains("Vec::new()"),
+        "Vec malloc with non-multiply size should use Vec::new(), got: {}",
+        code
+    );
+}
+
+// ============================================================================
+// Batch 5: Malloc Box with non-Default struct (lines 4215-4228)
+// ============================================================================
+
+#[test]
+fn stmt_malloc_box_struct_no_default() {
+    // Lines 4221-4228: FunctionCall("malloc") with Box(Struct) without Default → zeroed
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    // Note: no struct registered as having Default, so struct_has_default returns false
+    let stmt = HirStatement::VariableDeclaration {
+        name: "node".to_string(),
+        var_type: HirType::Pointer(Box::new(HirType::Struct("Node".to_string()))),
+        initializer: Some(HirExpression::FunctionCall {
+            function: "malloc".to_string(),
+            arguments: vec![HirExpression::Sizeof {
+                type_name: "Node".to_string(),
+            }],
+        }),
+    };
+    let code = cg.generate_statement_with_context(&stmt, None, &mut ctx, None);
+    assert!(
+        code.contains("zeroed") || code.contains("Box::new"),
+        "Malloc Box struct without Default should use zeroed, got: {}",
+        code
+    );
+}
+
+// ============================================================================
+// Batch 5: Realloc NULL with non-multiply size (lines 4475)
+// ============================================================================
+
+#[test]
+fn realloc_null_non_multiply_fallback() {
+    // Lines 4461-4475: Realloc from NULL with non-multiply size → no resize
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("items".to_string(), HirType::Vec(Box::new(HirType::Int)));
+    let stmt = HirStatement::Assignment {
+        target: "items".to_string(),
+        value: HirExpression::Realloc {
+            pointer: Box::new(HirExpression::NullLiteral),
+            new_size: Box::new(HirExpression::IntLiteral(100)),
+        },
+    };
+    let code = cg.generate_statement_with_context(&stmt, None, &mut ctx, None);
+    // Non-multiply size → falls through to normal realloc path at line 4478+
+    assert!(
+        !code.is_empty(),
+        "Realloc NULL with non-multiply should produce code"
+    );
+}
+
+// ============================================================================
+// Batch 5: String iter param assignment with non-matching left (lines 4522-4524)
+// ============================================================================
+
+#[test]
+fn string_iter_param_assignment_left_mismatch() {
+    // Lines 4505-4522: String iter param, BinaryOp but left != target
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("s".to_string(), HirType::Pointer(Box::new(HirType::Char)));
+    ctx.add_string_iter_param("s".to_string(), "s_idx".to_string());
+    let stmt = HirStatement::Assignment {
+        target: "s".to_string(),
+        value: HirExpression::BinaryOp {
+            op: BinaryOperator::Add,
+            left: Box::new(HirExpression::Variable("other".to_string())),
+            right: Box::new(HirExpression::IntLiteral(1)),
+        },
+    };
+    let code = cg.generate_statement_with_context(&stmt, None, &mut ctx, None);
+    // Left is "other", not "s", so doesn't match string iter advance
+    assert!(
+        !code.is_empty(),
+        "Mismatched left should still produce code"
+    );
+}
+
+// ============================================================================
+// Batch 5: DerefAssignment with strip_unsafe (lines 4731-4734)
+// ============================================================================
+
+#[test]
+fn deref_assign_double_pointer_strips_unsafe() {
+    // Lines 4728-4734: strip_unsafe helper in DerefAssignment
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable(
+        "pp".to_string(),
+        HirType::Reference {
+            inner: Box::new(HirType::Pointer(Box::new(HirType::Int))),
+            mutable: true,
+        },
+    );
+    let stmt = HirStatement::DerefAssignment {
+        target: HirExpression::Dereference(Box::new(HirExpression::Variable("pp".to_string()))),
+        value: HirExpression::IntLiteral(99),
+    };
+    let code = cg.generate_statement_with_context(&stmt, None, &mut ctx, None);
+    assert!(
+        code.contains("unsafe"),
+        "Reference(Pointer) deref assign should be unsafe, got: {}",
+        code
+    );
+}
+
+// ============================================================================
+// Batch 5: ArrayIndexAssignment non-variable (line 4818)
+// ============================================================================
+
+#[test]
+fn array_index_assign_field_access_array() {
+    // Line 4818: ArrayIndexAssignment where array is not a simple Variable
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let stmt = HirStatement::ArrayIndexAssignment {
+        array: Box::new(HirExpression::FieldAccess {
+            object: Box::new(HirExpression::Variable("obj".to_string())),
+            field: "data".to_string(),
+        }),
+        index: Box::new(HirExpression::IntLiteral(0)),
+        value: HirExpression::IntLiteral(42),
+    };
+    let code = cg.generate_statement_with_context(&stmt, None, &mut ctx, None);
+    assert!(
+        code.contains("obj.data") && code.contains("["),
+        "ArrayIndexAssignment with field access should work, got: {}",
+        code
+    );
+}
+
+// ============================================================================
+// Batch 5: Pointer arithmetic assignment field access (lines 5571-5572, 5582)
+// ============================================================================
+
+#[test]
+fn ptr_arithmetic_add_assignment_not_same_var() {
+    // Lines 5565-5572: ptr = ptr + n where left is not same variable
+    let cg = CodeGenerator::new();
+    let stmt = HirStatement::Assignment {
+        target: "ptr".to_string(),
+        value: HirExpression::BinaryOp {
+            op: BinaryOperator::Add,
+            left: Box::new(HirExpression::Variable("other".to_string())),
+            right: Box::new(HirExpression::IntLiteral(1)),
+        },
+    };
+    assert!(
+        !cg.statement_uses_pointer_arithmetic(&stmt, "ptr"),
+        "ptr = other + 1 should NOT detect pointer arithmetic for ptr"
+    );
+}
+
+#[test]
+fn ptr_arithmetic_field_access_any_pointer() {
+    // Lines 5590-5591: ptr = any_ptr->field
+    let cg = CodeGenerator::new();
+    let stmt = HirStatement::Assignment {
+        target: "cur".to_string(),
+        value: HirExpression::PointerFieldAccess {
+            pointer: Box::new(HirExpression::Variable("head".to_string())),
+            field: "next".to_string(),
+        },
+    };
+    assert!(
+        cg.statement_uses_pointer_arithmetic(&stmt, "cur"),
+        "cur = head->next should detect pointer arithmetic"
+    );
+}
+
+#[test]
+fn ptr_arithmetic_expression_pre_increment() {
+    // Lines 5624-5628: PreIncrement expression
+    let cg = CodeGenerator::new();
+    let stmt = HirStatement::Expression(HirExpression::PreIncrement {
+        operand: Box::new(HirExpression::Variable("ptr".to_string())),
+    });
+    assert!(
+        cg.statement_uses_pointer_arithmetic(&stmt, "ptr"),
+        "++ptr should detect pointer arithmetic"
+    );
+}
+
+#[test]
+fn ptr_arithmetic_expression_post_decrement() {
+    // Lines 5626-5628: PostDecrement expression
+    let cg = CodeGenerator::new();
+    let stmt = HirStatement::Expression(HirExpression::PostDecrement {
+        operand: Box::new(HirExpression::Variable("ptr".to_string())),
+    });
+    assert!(
+        cg.statement_uses_pointer_arithmetic(&stmt, "ptr"),
+        "ptr-- should detect pointer arithmetic"
+    );
+}
