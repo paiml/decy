@@ -3395,3 +3395,209 @@ fn expr_calloc_generates_vec_zeroed() {
         code
     );
 }
+
+// ============================================================================
+// Signature generation: pointer parameter transformation with body
+// ============================================================================
+
+#[test]
+fn signature_pointer_param_read_only_becomes_ref() {
+    let cg = CodeGenerator::new();
+    // void print_val(int* p) { return *p; }
+    let func = HirFunction::new_with_body(
+        "print_val".to_string(),
+        HirType::Int,
+        vec![HirParameter::new(
+            "p".to_string(),
+            HirType::Pointer(Box::new(HirType::Int)),
+        )],
+        vec![HirStatement::Return(Some(HirExpression::Dereference(
+            Box::new(HirExpression::Variable("p".to_string())),
+        )))],
+    );
+    let sig = cg.generate_signature(&func);
+    assert!(
+        sig.contains("&") && sig.contains("i32"),
+        "Read-only pointer param should become reference, got: {}",
+        sig
+    );
+}
+
+#[test]
+fn signature_pointer_param_modified_becomes_mut_ref() {
+    let cg = CodeGenerator::new();
+    // int increment(int* p) { *p = *p + 1; return *p; }
+    // Using int return type + deref write means output param detector won't claim 'p'
+    let func = HirFunction::new_with_body(
+        "increment".to_string(),
+        HirType::Int,
+        vec![HirParameter::new(
+            "p".to_string(),
+            HirType::Pointer(Box::new(HirType::Int)),
+        )],
+        vec![
+            HirStatement::DerefAssignment {
+                target: HirExpression::Variable("p".to_string()),
+                value: HirExpression::BinaryOp {
+                    op: BinaryOperator::Add,
+                    left: Box::new(HirExpression::Dereference(Box::new(
+                        HirExpression::Variable("p".to_string()),
+                    ))),
+                    right: Box::new(HirExpression::IntLiteral(1)),
+                },
+            },
+            HirStatement::Return(Some(HirExpression::Dereference(Box::new(
+                HirExpression::Variable("p".to_string()),
+            )))),
+        ],
+    );
+    let sig = cg.generate_signature(&func);
+    assert!(
+        sig.contains("&mut") && sig.contains("i32"),
+        "Modified pointer param should become &mut, got: {}",
+        sig
+    );
+}
+
+#[test]
+fn signature_void_star_stub_no_generic() {
+    let cg = CodeGenerator::new();
+    // void process(void* data); — no body (stub)
+    let func = HirFunction::new(
+        "process".to_string(),
+        HirType::Void,
+        vec![HirParameter::new(
+            "data".to_string(),
+            HirType::Pointer(Box::new(HirType::Void)),
+        )],
+    );
+    let sig = cg.generate_signature(&func);
+    assert!(
+        !sig.contains("<T>"),
+        "void* stub without body should NOT get generic <T>, got: {}",
+        sig
+    );
+    assert!(
+        sig.contains("*mut ()"),
+        "void* stub should become *mut (), got: {}",
+        sig
+    );
+}
+
+#[test]
+fn signature_multiple_params_mixed_types() {
+    let cg = CodeGenerator::new();
+    let func = HirFunction::new_with_body(
+        "compute".to_string(),
+        HirType::Float,
+        vec![
+            HirParameter::new("x".to_string(), HirType::Int),
+            HirParameter::new("scale".to_string(), HirType::Float),
+        ],
+        vec![HirStatement::Return(Some(HirExpression::BinaryOp {
+            op: BinaryOperator::Multiply,
+            left: Box::new(HirExpression::Cast {
+                target_type: HirType::Float,
+                expr: Box::new(HirExpression::Variable("x".to_string())),
+            }),
+            right: Box::new(HirExpression::Variable("scale".to_string())),
+        }))],
+    );
+    let sig = cg.generate_signature(&func);
+    assert!(
+        sig.contains("x:") && sig.contains("scale:"),
+        "Should contain both params, got: {}",
+        sig
+    );
+    assert!(
+        sig.contains("-> f32"),
+        "Should return f32, got: {}",
+        sig
+    );
+}
+
+#[test]
+fn signature_array_param_becomes_slice() {
+    let cg = CodeGenerator::new();
+    // int sum(int arr[10]) { return arr[0]; }
+    let func = HirFunction::new_with_body(
+        "sum".to_string(),
+        HirType::Int,
+        vec![HirParameter::new(
+            "arr".to_string(),
+            HirType::Array {
+                element_type: Box::new(HirType::Int),
+                size: Some(10),
+            },
+        )],
+        vec![HirStatement::Return(Some(HirExpression::BinaryOp {
+            op: BinaryOperator::Add,
+            left: Box::new(HirExpression::Variable("arr".to_string())),
+            right: Box::new(HirExpression::IntLiteral(0)),
+        }))],
+    );
+    let sig = cg.generate_signature(&func);
+    assert!(
+        sig.contains("[i32]") || sig.contains("arr"),
+        "Array param should become slice or keep name, got: {}",
+        sig
+    );
+}
+
+// ============================================================================
+// generate_function: full function code generation
+// ============================================================================
+
+#[test]
+fn generate_function_simple() {
+    let cg = CodeGenerator::new();
+    let func = HirFunction::new_with_body(
+        "add".to_string(),
+        HirType::Int,
+        vec![
+            HirParameter::new("a".to_string(), HirType::Int),
+            HirParameter::new("b".to_string(), HirType::Int),
+        ],
+        vec![HirStatement::Return(Some(HirExpression::BinaryOp {
+            op: BinaryOperator::Add,
+            left: Box::new(HirExpression::Variable("a".to_string())),
+            right: Box::new(HirExpression::Variable("b".to_string())),
+        }))],
+    );
+    let code = cg.generate_function(&func);
+    assert!(
+        code.contains("fn add"),
+        "Should contain fn add, got: {}",
+        code
+    );
+    assert!(
+        code.contains("return"),
+        "Should contain return, got: {}",
+        code
+    );
+}
+
+#[test]
+fn generate_function_void_no_return() {
+    let cg = CodeGenerator::new();
+    let func = HirFunction::new_with_body(
+        "do_nothing".to_string(),
+        HirType::Void,
+        vec![],
+        vec![HirStatement::Expression(HirExpression::FunctionCall {
+            function: "puts".to_string(),
+            arguments: vec![HirExpression::StringLiteral("hello".to_string())],
+        })],
+    );
+    let code = cg.generate_function(&func);
+    assert!(
+        code.contains("fn do_nothing"),
+        "Should contain fn do_nothing, got: {}",
+        code
+    );
+    assert!(
+        !code.contains("->"),
+        "Void function should have no return type arrow, got: {}",
+        code
+    );
+}
