@@ -1887,3 +1887,799 @@ fn pattern_library_add_replaces_existing_id() {
     assert_eq!(pattern.error_kind(), OwnershipErrorKind::DanglingPointerRisk);
     assert_eq!(pattern.description(), "second version");
 }
+
+// ============================================================================
+// COMPREHENSIVE default_pattern_library COVERAGE TESTS
+// ============================================================================
+// These tests exercise every pattern added by default_pattern_library(),
+// validating all fields (id, error_kind, description, c_pattern, rust_error,
+// severity, curriculum_level, suggested_fix) for each of the 17 patterns.
+// ============================================================================
+
+#[test]
+fn default_library_exact_pattern_count() {
+    let library = default_pattern_library();
+    assert_eq!(library.len(), 17, "Default library should have exactly 17 patterns");
+}
+
+#[test]
+fn default_library_is_not_empty() {
+    let library = default_pattern_library();
+    assert!(!library.is_empty());
+}
+
+#[test]
+fn default_library_deterministic() {
+    let lib1 = default_pattern_library();
+    let lib2 = default_pattern_library();
+    assert_eq!(lib1.len(), lib2.len());
+    // Every pattern in lib1 should exist in lib2 with same fields
+    for pattern in lib1.iter() {
+        let other = lib2.get(pattern.id()).expect("Pattern should exist in second library");
+        assert_eq!(pattern.id(), other.id());
+        assert_eq!(pattern.error_kind(), other.error_kind());
+        assert_eq!(pattern.description(), other.description());
+        assert_eq!(pattern.severity(), other.severity());
+        assert_eq!(pattern.curriculum_level(), other.curriculum_level());
+    }
+}
+
+// ============================================================================
+// Level 1: Basic Ownership Patterns
+// ============================================================================
+
+#[test]
+fn default_library_malloc_to_box_pattern() {
+    let library = default_pattern_library();
+    let p = library.get("malloc-to-box").expect("malloc-to-box should exist");
+    assert_eq!(p.error_kind(), OwnershipErrorKind::PointerMisclassification);
+    assert_eq!(p.severity(), ErrorSeverity::Warning);
+    assert_eq!(p.curriculum_level(), 1);
+    assert_eq!(p.c_pattern(), Some("void *ptr = malloc(sizeof(T))"));
+    assert_eq!(p.rust_error(), Some("E0308"));
+    assert!(p.description().contains("malloc"));
+    assert!(p.description().contains("Box<T>"));
+    let fix = p.suggested_fix().expect("Should have fix");
+    assert!(fix.description().contains("Box"));
+    assert!(fix.code_template().contains("Box::new"));
+    assert_eq!(p.occurrence_count(), 0);
+}
+
+#[test]
+fn default_library_array_to_vec_pattern() {
+    let library = default_pattern_library();
+    let p = library.get("array-to-vec").expect("array-to-vec should exist");
+    assert_eq!(p.error_kind(), OwnershipErrorKind::PointerMisclassification);
+    assert_eq!(p.severity(), ErrorSeverity::Warning);
+    assert_eq!(p.curriculum_level(), 1);
+    assert_eq!(p.c_pattern(), Some("T *arr = malloc(n * sizeof(T))"));
+    assert_eq!(p.rust_error(), Some("E0308"));
+    assert!(p.description().contains("Vec<T>"));
+    let fix = p.suggested_fix().expect("Should have fix");
+    assert!(fix.code_template().contains("Vec::with_capacity"));
+}
+
+#[test]
+fn default_library_const_to_immut_ref_pattern() {
+    let library = default_pattern_library();
+    let p = library.get("const-to-immut-ref").expect("const-to-immut-ref should exist");
+    assert_eq!(p.error_kind(), OwnershipErrorKind::MutabilityMismatch);
+    assert_eq!(p.severity(), ErrorSeverity::Warning);
+    assert_eq!(p.curriculum_level(), 1);
+    assert_eq!(p.c_pattern(), Some("const T *ptr"));
+    assert_eq!(p.rust_error(), Some("E0596"));
+    assert!(p.description().contains("immutable reference"));
+    let fix = p.suggested_fix().expect("Should have fix");
+    assert!(fix.code_template().contains("&T"));
+}
+
+// ============================================================================
+// Level 2: Lifetime Patterns
+// ============================================================================
+
+#[test]
+fn default_library_missing_lifetime_pattern() {
+    let library = default_pattern_library();
+    let p = library.get("missing-lifetime").expect("missing-lifetime should exist");
+    assert_eq!(p.error_kind(), OwnershipErrorKind::LifetimeInferenceGap);
+    assert_eq!(p.severity(), ErrorSeverity::Error);
+    assert_eq!(p.curriculum_level(), 2);
+    assert_eq!(p.c_pattern(), Some("T* get_field(Struct *s) { return &s->field; }"));
+    assert_eq!(p.rust_error(), Some("E0106"));
+    assert!(p.description().contains("lifetime annotation"));
+    let fix = p.suggested_fix().expect("Should have fix");
+    assert!(fix.code_template().contains("<'a>"));
+    assert!(fix.code_template().contains("&'a"));
+}
+
+#[test]
+fn default_library_struct_lifetime_pattern() {
+    let library = default_pattern_library();
+    let p = library.get("struct-lifetime").expect("struct-lifetime should exist");
+    assert_eq!(p.error_kind(), OwnershipErrorKind::LifetimeInferenceGap);
+    assert_eq!(p.severity(), ErrorSeverity::Error);
+    assert_eq!(p.curriculum_level(), 2);
+    assert_eq!(p.c_pattern(), Some("struct View { T *data; }"));
+    assert_eq!(p.rust_error(), Some("E0106"));
+    assert!(p.description().contains("lifetime parameter"));
+    let fix = p.suggested_fix().expect("Should have fix");
+    assert!(fix.code_template().contains("<'a>"));
+}
+
+#[test]
+fn default_library_array_param_to_slice_pattern() {
+    let library = default_pattern_library();
+    let p = library.get("array-param-to-slice").expect("array-param-to-slice should exist");
+    assert_eq!(p.error_kind(), OwnershipErrorKind::ArraySliceMismatch);
+    assert_eq!(p.severity(), ErrorSeverity::Warning);
+    assert_eq!(p.curriculum_level(), 2);
+    assert_eq!(p.c_pattern(), Some("void process(int arr[], size_t len)"));
+    assert_eq!(p.rust_error(), Some("E0308"));
+    assert!(p.description().contains("slice"));
+    let fix = p.suggested_fix().expect("Should have fix");
+    assert!(fix.code_template().contains("&[i32]"));
+}
+
+// ============================================================================
+// Level 3: Borrow Checker Patterns
+// ============================================================================
+
+#[test]
+fn default_library_mutable_aliasing_pattern() {
+    let library = default_pattern_library();
+    let p = library.get("mutable-aliasing").expect("mutable-aliasing should exist");
+    assert_eq!(p.error_kind(), OwnershipErrorKind::AliasViolation);
+    assert_eq!(p.severity(), ErrorSeverity::Error);
+    assert_eq!(p.curriculum_level(), 3);
+    assert_eq!(p.c_pattern(), Some("T *a = ptr; T *b = ptr; *a = x; *b = y;"));
+    assert_eq!(p.rust_error(), Some("E0499"));
+    assert!(p.description().contains("multiple mutable references"));
+    let fix = p.suggested_fix().expect("Should have fix");
+    assert!(fix.description().contains("single mutable reference"));
+}
+
+#[test]
+fn default_library_immut_mut_aliasing_pattern() {
+    let library = default_pattern_library();
+    let p = library.get("immut-mut-aliasing").expect("immut-mut-aliasing should exist");
+    assert_eq!(p.error_kind(), OwnershipErrorKind::AliasViolation);
+    assert_eq!(p.severity(), ErrorSeverity::Error);
+    assert_eq!(p.curriculum_level(), 3);
+    assert_eq!(p.c_pattern(), Some("const T *r = ptr; *ptr = x; use(r);"));
+    assert_eq!(p.rust_error(), Some("E0502"));
+    assert!(p.description().contains("mutable reference"));
+    assert!(p.description().contains("immutable"));
+    let fix = p.suggested_fix().expect("Should have fix");
+    assert!(fix.description().contains("End immutable borrow"));
+}
+
+#[test]
+fn default_library_use_after_free_pattern() {
+    let library = default_pattern_library();
+    let p = library.get("use-after-free").expect("use-after-free should exist");
+    assert_eq!(p.error_kind(), OwnershipErrorKind::DanglingPointerRisk);
+    assert_eq!(p.severity(), ErrorSeverity::Critical);
+    assert_eq!(p.curriculum_level(), 3);
+    assert_eq!(p.c_pattern(), Some("free(ptr); use(ptr);"));
+    assert_eq!(p.rust_error(), Some("E0382"));
+    assert!(p.description().contains("undefined behavior"));
+    let fix = p.suggested_fix().expect("Should have fix");
+    assert!(fix.code_template().contains("take()"));
+}
+
+#[test]
+fn default_library_return_local_ref_pattern() {
+    let library = default_pattern_library();
+    let p = library.get("return-local-ref").expect("return-local-ref should exist");
+    assert_eq!(p.error_kind(), OwnershipErrorKind::DanglingPointerRisk);
+    assert_eq!(p.severity(), ErrorSeverity::Critical);
+    assert_eq!(p.curriculum_level(), 3);
+    assert_eq!(p.c_pattern(), Some("int* foo() { int x = 1; return &x; }"));
+    assert_eq!(p.rust_error(), Some("E0515"));
+    assert!(p.description().contains("local variable"));
+    let fix = p.suggested_fix().expect("Should have fix");
+    assert!(fix.description().contains("owned value"));
+}
+
+// ============================================================================
+// Level 4: Resource Management Patterns
+// ============================================================================
+
+#[test]
+fn default_library_missing_free_pattern() {
+    let library = default_pattern_library();
+    let p = library.get("missing-free").expect("missing-free should exist");
+    assert_eq!(p.error_kind(), OwnershipErrorKind::ResourceLeakPattern);
+    assert_eq!(p.severity(), ErrorSeverity::Warning);
+    assert_eq!(p.curriculum_level(), 4);
+    assert_eq!(p.c_pattern(), Some("void* p = malloc(...); return; // leak!"));
+    assert!(p.rust_error().is_none(), "missing-free has no Rust error code");
+    assert!(p.description().contains("leak"));
+    let fix = p.suggested_fix().expect("Should have fix");
+    assert!(fix.description().contains("RAII"));
+}
+
+#[test]
+fn default_library_file_handle_leak_pattern() {
+    let library = default_pattern_library();
+    let p = library.get("file-handle-leak").expect("file-handle-leak should exist");
+    assert_eq!(p.error_kind(), OwnershipErrorKind::ResourceLeakPattern);
+    assert_eq!(p.severity(), ErrorSeverity::Warning);
+    assert_eq!(p.curriculum_level(), 4);
+    assert_eq!(p.c_pattern(), Some("FILE *f = fopen(...); return; // leak!"));
+    assert!(p.rust_error().is_none(), "file-handle-leak has no Rust error code");
+    assert!(p.description().contains("File handle"));
+    let fix = p.suggested_fix().expect("Should have fix");
+    assert!(fix.code_template().contains("File::open"));
+}
+
+#[test]
+fn default_library_unnecessary_unsafe_pattern() {
+    let library = default_pattern_library();
+    let p = library.get("unnecessary-unsafe").expect("unnecessary-unsafe should exist");
+    assert_eq!(p.error_kind(), OwnershipErrorKind::UnsafeMinimizationFailure);
+    assert_eq!(p.severity(), ErrorSeverity::Warning);
+    assert_eq!(p.curriculum_level(), 4);
+    assert_eq!(p.c_pattern(), Some("*(ptr + i) = value; // pointer arithmetic"));
+    assert!(p.rust_error().is_none(), "unnecessary-unsafe has no Rust error code");
+    assert!(p.description().contains("Safe alternative"));
+    let fix = p.suggested_fix().expect("Should have fix");
+    assert!(fix.code_template().contains("slice[i]"));
+}
+
+#[test]
+fn default_library_null_check_to_option_pattern() {
+    let library = default_pattern_library();
+    let p = library.get("null-check-to-option").expect("null-check-to-option should exist");
+    assert_eq!(p.error_kind(), OwnershipErrorKind::UnsafeMinimizationFailure);
+    assert_eq!(p.severity(), ErrorSeverity::Warning);
+    assert_eq!(p.curriculum_level(), 4);
+    assert_eq!(p.c_pattern(), Some("if (ptr != NULL) { use(ptr); }"));
+    assert!(p.rust_error().is_none(), "null-check-to-option has no Rust error code");
+    assert!(p.description().contains("Option<T>"));
+    let fix = p.suggested_fix().expect("Should have fix");
+    assert!(fix.code_template().contains("if let Some"));
+}
+
+// ============================================================================
+// Level 5: Complex Patterns
+// ============================================================================
+
+#[test]
+fn default_library_self_referential_struct_pattern() {
+    let library = default_pattern_library();
+    let p = library.get("self-referential-struct").expect("self-referential-struct should exist");
+    assert_eq!(p.error_kind(), OwnershipErrorKind::AliasViolation);
+    assert_eq!(p.severity(), ErrorSeverity::Error);
+    assert_eq!(p.curriculum_level(), 5);
+    assert_eq!(p.c_pattern(), Some("struct Node { struct Node *next; int data; }"));
+    assert_eq!(p.rust_error(), Some("E0597"));
+    assert!(p.description().contains("Self-referential"));
+    let fix = p.suggested_fix().expect("Should have fix");
+    assert!(fix.code_template().contains("Option<Box<Node>>"));
+}
+
+#[test]
+fn default_library_multiple_lifetimes_pattern() {
+    let library = default_pattern_library();
+    let p = library.get("multiple-lifetimes").expect("multiple-lifetimes should exist");
+    assert_eq!(p.error_kind(), OwnershipErrorKind::LifetimeInferenceGap);
+    assert_eq!(p.severity(), ErrorSeverity::Error);
+    assert_eq!(p.curriculum_level(), 5);
+    assert_eq!(p.c_pattern(), Some("T* pick(T *a, T *b, int cond)"));
+    assert_eq!(p.rust_error(), Some("E0106"));
+    assert!(p.description().contains("explicit lifetimes"));
+    let fix = p.suggested_fix().expect("Should have fix");
+    assert!(fix.code_template().contains("<'a>"));
+}
+
+#[test]
+fn default_library_interior_mutability_pattern_detailed() {
+    let library = default_pattern_library();
+    let p = library.get("interior-mutability").expect("interior-mutability should exist");
+    assert_eq!(p.error_kind(), OwnershipErrorKind::MutabilityMismatch);
+    assert_eq!(p.severity(), ErrorSeverity::Warning);
+    assert_eq!(p.curriculum_level(), 5);
+    assert_eq!(
+        p.c_pattern(),
+        Some("void inc(Counter *c) { c->count++; } // called via const ptr")
+    );
+    assert_eq!(p.rust_error(), Some("E0596"));
+    assert!(p.description().contains("Cell/RefCell"));
+    let fix = p.suggested_fix().expect("Should have fix");
+    assert!(fix.code_template().contains("Cell<i32>"));
+}
+
+// ============================================================================
+// Error kind distribution in default library
+// ============================================================================
+
+#[test]
+fn default_library_pointer_misclassification_count() {
+    let library = default_pattern_library();
+    let patterns = library.get_by_error_kind(OwnershipErrorKind::PointerMisclassification);
+    assert_eq!(patterns.len(), 2, "Should have 2 PointerMisclassification patterns");
+}
+
+#[test]
+fn default_library_lifetime_inference_gap_count() {
+    let library = default_pattern_library();
+    let patterns = library.get_by_error_kind(OwnershipErrorKind::LifetimeInferenceGap);
+    assert_eq!(patterns.len(), 3, "Should have 3 LifetimeInferenceGap patterns");
+}
+
+#[test]
+fn default_library_dangling_pointer_risk_count() {
+    let library = default_pattern_library();
+    let patterns = library.get_by_error_kind(OwnershipErrorKind::DanglingPointerRisk);
+    assert_eq!(patterns.len(), 2, "Should have 2 DanglingPointerRisk patterns");
+}
+
+#[test]
+fn default_library_alias_violation_count() {
+    let library = default_pattern_library();
+    let patterns = library.get_by_error_kind(OwnershipErrorKind::AliasViolation);
+    assert_eq!(patterns.len(), 3, "Should have 3 AliasViolation patterns");
+}
+
+#[test]
+fn default_library_unsafe_minimization_failure_count() {
+    let library = default_pattern_library();
+    let patterns = library.get_by_error_kind(OwnershipErrorKind::UnsafeMinimizationFailure);
+    assert_eq!(patterns.len(), 2, "Should have 2 UnsafeMinimizationFailure patterns");
+}
+
+#[test]
+fn default_library_array_slice_mismatch_count() {
+    let library = default_pattern_library();
+    let patterns = library.get_by_error_kind(OwnershipErrorKind::ArraySliceMismatch);
+    assert_eq!(patterns.len(), 1, "Should have 1 ArraySliceMismatch pattern");
+}
+
+#[test]
+fn default_library_resource_leak_count() {
+    let library = default_pattern_library();
+    let patterns = library.get_by_error_kind(OwnershipErrorKind::ResourceLeakPattern);
+    assert_eq!(patterns.len(), 2, "Should have 2 ResourceLeakPattern patterns");
+}
+
+#[test]
+fn default_library_mutability_mismatch_count() {
+    let library = default_pattern_library();
+    let patterns = library.get_by_error_kind(OwnershipErrorKind::MutabilityMismatch);
+    assert_eq!(patterns.len(), 2, "Should have 2 MutabilityMismatch patterns");
+}
+
+#[test]
+fn default_library_error_kind_counts_sum_to_total() {
+    let library = default_pattern_library();
+    let total = library.len();
+    let sum = library.get_by_error_kind(OwnershipErrorKind::PointerMisclassification).len()
+        + library.get_by_error_kind(OwnershipErrorKind::LifetimeInferenceGap).len()
+        + library.get_by_error_kind(OwnershipErrorKind::DanglingPointerRisk).len()
+        + library.get_by_error_kind(OwnershipErrorKind::AliasViolation).len()
+        + library.get_by_error_kind(OwnershipErrorKind::UnsafeMinimizationFailure).len()
+        + library.get_by_error_kind(OwnershipErrorKind::ArraySliceMismatch).len()
+        + library.get_by_error_kind(OwnershipErrorKind::ResourceLeakPattern).len()
+        + library.get_by_error_kind(OwnershipErrorKind::MutabilityMismatch).len();
+    assert_eq!(sum, total, "Error kind counts should sum to total");
+}
+
+// ============================================================================
+// Curriculum ordering tests
+// ============================================================================
+
+#[test]
+fn default_library_curriculum_ordered_is_non_decreasing() {
+    let library = default_pattern_library();
+    let ordered = library.curriculum_ordered();
+    for window in ordered.windows(2) {
+        assert!(
+            window[0].curriculum_level() <= window[1].curriculum_level(),
+            "Curriculum ordering violated: {} (level {}) before {} (level {})",
+            window[0].id(),
+            window[0].curriculum_level(),
+            window[1].id(),
+            window[1].curriculum_level()
+        );
+    }
+}
+
+#[test]
+fn default_library_curriculum_levels_1_through_5() {
+    let library = default_pattern_library();
+    let ordered = library.curriculum_ordered();
+    let levels: std::collections::BTreeSet<u8> =
+        ordered.iter().map(|p| p.curriculum_level()).collect();
+    assert_eq!(
+        levels,
+        [1, 2, 3, 4, 5].iter().cloned().collect(),
+        "Should have patterns at all 5 curriculum levels"
+    );
+}
+
+#[test]
+fn default_library_level_1_patterns() {
+    let library = default_pattern_library();
+    let level_1: Vec<_> = library.iter().filter(|p| p.curriculum_level() == 1).collect();
+    assert_eq!(level_1.len(), 3, "Level 1 should have 3 patterns");
+    let ids: std::collections::HashSet<&str> = level_1.iter().map(|p| p.id()).collect();
+    assert!(ids.contains("malloc-to-box"));
+    assert!(ids.contains("array-to-vec"));
+    assert!(ids.contains("const-to-immut-ref"));
+}
+
+#[test]
+fn default_library_level_2_patterns() {
+    let library = default_pattern_library();
+    let level_2: Vec<_> = library.iter().filter(|p| p.curriculum_level() == 2).collect();
+    assert_eq!(level_2.len(), 3, "Level 2 should have 3 patterns");
+    let ids: std::collections::HashSet<&str> = level_2.iter().map(|p| p.id()).collect();
+    assert!(ids.contains("missing-lifetime"));
+    assert!(ids.contains("struct-lifetime"));
+    assert!(ids.contains("array-param-to-slice"));
+}
+
+#[test]
+fn default_library_level_3_patterns() {
+    let library = default_pattern_library();
+    let level_3: Vec<_> = library.iter().filter(|p| p.curriculum_level() == 3).collect();
+    assert_eq!(level_3.len(), 4, "Level 3 should have 4 patterns");
+    let ids: std::collections::HashSet<&str> = level_3.iter().map(|p| p.id()).collect();
+    assert!(ids.contains("mutable-aliasing"));
+    assert!(ids.contains("immut-mut-aliasing"));
+    assert!(ids.contains("use-after-free"));
+    assert!(ids.contains("return-local-ref"));
+}
+
+#[test]
+fn default_library_level_4_patterns() {
+    let library = default_pattern_library();
+    let level_4: Vec<_> = library.iter().filter(|p| p.curriculum_level() == 4).collect();
+    assert_eq!(level_4.len(), 4, "Level 4 should have 4 patterns");
+    let ids: std::collections::HashSet<&str> = level_4.iter().map(|p| p.id()).collect();
+    assert!(ids.contains("missing-free"));
+    assert!(ids.contains("file-handle-leak"));
+    assert!(ids.contains("unnecessary-unsafe"));
+    assert!(ids.contains("null-check-to-option"));
+}
+
+#[test]
+fn default_library_level_5_patterns_detailed() {
+    let library = default_pattern_library();
+    let level_5: Vec<_> = library.iter().filter(|p| p.curriculum_level() == 5).collect();
+    assert_eq!(level_5.len(), 3, "Level 5 should have 3 patterns");
+    let ids: std::collections::HashSet<&str> = level_5.iter().map(|p| p.id()).collect();
+    assert!(ids.contains("self-referential-struct"));
+    assert!(ids.contains("multiple-lifetimes"));
+    assert!(ids.contains("interior-mutability"));
+}
+
+// ============================================================================
+// match_rust_error on default library
+// ============================================================================
+
+#[test]
+fn default_library_match_e0308() {
+    let library = default_pattern_library();
+    let matches = library.match_rust_error("E0308");
+    assert!(!matches.is_empty(), "Should match E0308 patterns");
+    let ids: Vec<&str> = matches.iter().map(|p| p.id()).collect();
+    assert!(ids.contains(&"malloc-to-box"), "E0308 should match malloc-to-box");
+    assert!(ids.contains(&"array-to-vec"), "E0308 should match array-to-vec");
+    assert!(ids.contains(&"array-param-to-slice"), "E0308 should match array-param-to-slice");
+}
+
+#[test]
+fn default_library_match_e0106() {
+    let library = default_pattern_library();
+    let matches = library.match_rust_error("E0106");
+    assert!(!matches.is_empty(), "Should match E0106 patterns");
+    let ids: Vec<&str> = matches.iter().map(|p| p.id()).collect();
+    assert!(ids.contains(&"missing-lifetime"));
+    assert!(ids.contains(&"struct-lifetime"));
+    assert!(ids.contains(&"multiple-lifetimes"));
+}
+
+#[test]
+fn default_library_match_e0499() {
+    let library = default_pattern_library();
+    let matches = library.match_rust_error("E0499");
+    assert_eq!(matches.len(), 1, "Should match exactly 1 E0499 pattern");
+    assert_eq!(matches[0].id(), "mutable-aliasing");
+}
+
+#[test]
+fn default_library_match_e0502() {
+    let library = default_pattern_library();
+    let matches = library.match_rust_error("E0502");
+    assert_eq!(matches.len(), 1);
+    assert_eq!(matches[0].id(), "immut-mut-aliasing");
+}
+
+#[test]
+fn default_library_match_e0382() {
+    let library = default_pattern_library();
+    let matches = library.match_rust_error("E0382");
+    assert_eq!(matches.len(), 1);
+    assert_eq!(matches[0].id(), "use-after-free");
+}
+
+#[test]
+fn default_library_match_e0515() {
+    let library = default_pattern_library();
+    let matches = library.match_rust_error("E0515");
+    assert_eq!(matches.len(), 1);
+    assert_eq!(matches[0].id(), "return-local-ref");
+}
+
+#[test]
+fn default_library_match_e0596() {
+    let library = default_pattern_library();
+    let matches = library.match_rust_error("E0596");
+    assert!(!matches.is_empty(), "Should match E0596 patterns");
+    let ids: Vec<&str> = matches.iter().map(|p| p.id()).collect();
+    assert!(ids.contains(&"const-to-immut-ref"));
+    assert!(ids.contains(&"interior-mutability"));
+}
+
+#[test]
+fn default_library_match_e0597() {
+    let library = default_pattern_library();
+    let matches = library.match_rust_error("E0597");
+    assert_eq!(matches.len(), 1);
+    assert_eq!(matches[0].id(), "self-referential-struct");
+}
+
+#[test]
+fn default_library_match_no_match() {
+    let library = default_pattern_library();
+    let matches = library.match_rust_error("E9999");
+    assert!(matches.is_empty(), "No patterns should match E9999");
+}
+
+// ============================================================================
+// Severity distribution in default library
+// ============================================================================
+
+#[test]
+fn default_library_critical_severity_patterns() {
+    let library = default_pattern_library();
+    let critical: Vec<_> = library
+        .iter()
+        .filter(|p| p.severity() == ErrorSeverity::Critical)
+        .collect();
+    assert_eq!(critical.len(), 2, "Should have 2 Critical patterns");
+    let ids: std::collections::HashSet<&str> = critical.iter().map(|p| p.id()).collect();
+    assert!(ids.contains("use-after-free"));
+    assert!(ids.contains("return-local-ref"));
+}
+
+#[test]
+fn default_library_error_severity_patterns() {
+    let library = default_pattern_library();
+    let errors: Vec<_> = library
+        .iter()
+        .filter(|p| p.severity() == ErrorSeverity::Error)
+        .collect();
+    assert_eq!(errors.len(), 6, "Should have 6 Error severity patterns");
+}
+
+#[test]
+fn default_library_warning_severity_patterns() {
+    let library = default_pattern_library();
+    let warnings: Vec<_> = library
+        .iter()
+        .filter(|p| p.severity() == ErrorSeverity::Warning)
+        .collect();
+    assert_eq!(warnings.len(), 9, "Should have 9 Warning severity patterns");
+}
+
+// ============================================================================
+// All patterns have suggested fixes
+// ============================================================================
+
+#[test]
+fn default_library_all_patterns_have_fixes() {
+    let library = default_pattern_library();
+    for pattern in library.iter() {
+        assert!(
+            pattern.suggested_fix().is_some(),
+            "Pattern {} should have a suggested fix",
+            pattern.id()
+        );
+    }
+}
+
+#[test]
+fn default_library_all_fixes_have_descriptions() {
+    let library = default_pattern_library();
+    for pattern in library.iter() {
+        let fix = pattern.suggested_fix().unwrap();
+        assert!(
+            !fix.description().is_empty(),
+            "Fix for pattern {} should have description",
+            pattern.id()
+        );
+    }
+}
+
+#[test]
+fn default_library_all_fixes_have_code_templates() {
+    let library = default_pattern_library();
+    for pattern in library.iter() {
+        let fix = pattern.suggested_fix().unwrap();
+        assert!(
+            !fix.code_template().is_empty(),
+            "Fix for pattern {} should have code template",
+            pattern.id()
+        );
+    }
+}
+
+#[test]
+fn default_library_all_fixes_have_default_confidence() {
+    let library = default_pattern_library();
+    for pattern in library.iter() {
+        let fix = pattern.suggested_fix().unwrap();
+        assert!(
+            (fix.confidence() - 0.5).abs() < f32::EPSILON,
+            "Fix for pattern {} should have default confidence 0.5, got {}",
+            pattern.id(),
+            fix.confidence()
+        );
+    }
+}
+
+// ============================================================================
+// All patterns have c_patterns
+// ============================================================================
+
+#[test]
+fn default_library_all_patterns_have_c_pattern() {
+    let library = default_pattern_library();
+    for pattern in library.iter() {
+        assert!(
+            pattern.c_pattern().is_some(),
+            "Pattern {} should have a C pattern example",
+            pattern.id()
+        );
+        assert!(
+            !pattern.c_pattern().unwrap().is_empty(),
+            "Pattern {} C pattern should not be empty",
+            pattern.id()
+        );
+    }
+}
+
+// ============================================================================
+// Iterate and collect all pattern IDs
+// ============================================================================
+
+#[test]
+fn default_library_all_pattern_ids() {
+    let library = default_pattern_library();
+    let mut ids: Vec<&str> = library.iter().map(|p| p.id()).collect();
+    ids.sort();
+    let expected = vec![
+        "array-param-to-slice",
+        "array-to-vec",
+        "const-to-immut-ref",
+        "file-handle-leak",
+        "immut-mut-aliasing",
+        "interior-mutability",
+        "malloc-to-box",
+        "missing-free",
+        "missing-lifetime",
+        "multiple-lifetimes",
+        "mutable-aliasing",
+        "null-check-to-option",
+        "return-local-ref",
+        "self-referential-struct",
+        "struct-lifetime",
+        "unnecessary-unsafe",
+        "use-after-free",
+    ];
+    // Check at least the expected patterns exist (there may be 2 more for level 5)
+    for eid in &expected {
+        assert!(ids.contains(eid), "Missing pattern ID: {}", eid);
+    }
+}
+
+// ============================================================================
+// Deep field access: force materialization of all data through formatting
+// ============================================================================
+
+#[test]
+fn default_library_format_all_patterns_to_string() {
+    let library = default_pattern_library();
+    let mut output = String::new();
+    for pattern in library.iter() {
+        output.push_str(&format!(
+            "[{}] kind={:?} sev={:?} level={} desc='{}' c='{}' rust={:?} fix_desc='{}' fix_code='{}'\n",
+            pattern.id(),
+            pattern.error_kind(),
+            pattern.severity(),
+            pattern.curriculum_level(),
+            pattern.description(),
+            pattern.c_pattern().unwrap_or("none"),
+            pattern.rust_error(),
+            pattern.suggested_fix().map(|f| f.description()).unwrap_or("none"),
+            pattern.suggested_fix().map(|f| f.code_template()).unwrap_or("none"),
+        ));
+    }
+    assert_eq!(output.lines().count(), 17, "Should format exactly 17 patterns");
+    assert!(output.len() > 1000, "Formatted output should be substantial");
+}
+
+// ============================================================================
+// Clone library and verify data preservation
+// ============================================================================
+
+#[test]
+fn default_library_clone_preserves_all_data() {
+    let original = default_pattern_library();
+    let cloned = original.clone();
+    assert_eq!(original.len(), cloned.len());
+    for pattern in original.iter() {
+        let cloned_pattern = cloned.get(pattern.id()).expect("Cloned should have same pattern");
+        assert_eq!(pattern.id(), cloned_pattern.id());
+        assert_eq!(pattern.error_kind(), cloned_pattern.error_kind());
+        assert_eq!(pattern.description(), cloned_pattern.description());
+        assert_eq!(pattern.severity(), cloned_pattern.severity());
+        assert_eq!(pattern.curriculum_level(), cloned_pattern.curriculum_level());
+        assert_eq!(pattern.c_pattern(), cloned_pattern.c_pattern());
+        assert_eq!(pattern.rust_error(), cloned_pattern.rust_error());
+    }
+}
+
+// ============================================================================
+// get_mut on default library patterns
+// ============================================================================
+
+#[test]
+fn default_library_get_mut_and_record_occurrence() {
+    let mut library = default_pattern_library();
+    // Record occurrences for a pattern
+    {
+        let p = library.get_mut("malloc-to-box").expect("Should find malloc-to-box");
+        assert_eq!(p.occurrence_count(), 0);
+        p.record_occurrence();
+        p.record_occurrence();
+        p.record_occurrence();
+        assert_eq!(p.occurrence_count(), 3);
+    }
+    // Verify it persisted
+    let p = library.get("malloc-to-box").unwrap();
+    assert_eq!(p.occurrence_count(), 3);
+}
+
+// ============================================================================
+// Serialize/Deserialize default library
+// ============================================================================
+
+#[test]
+fn default_library_serialize_deserialize_roundtrip() {
+    let library = default_pattern_library();
+    let json = serde_json::to_string(&library).expect("Should serialize");
+    let deserialized: PatternLibrary = serde_json::from_str(&json).expect("Should deserialize");
+    assert_eq!(library.len(), deserialized.len());
+    for pattern in library.iter() {
+        let other = deserialized.get(pattern.id()).expect("Deserialized should have pattern");
+        assert_eq!(pattern.id(), other.id());
+        assert_eq!(pattern.error_kind(), other.error_kind());
+    }
+}
+
+// ============================================================================
+// Debug format for default library
+// ============================================================================
+
+#[test]
+fn default_library_debug_format() {
+    let library = default_pattern_library();
+    let debug_str = format!("{:?}", library);
+    assert!(debug_str.contains("PatternLibrary"));
+    assert!(debug_str.contains("malloc-to-box"));
+    assert!(debug_str.contains("use-after-free"));
+}
