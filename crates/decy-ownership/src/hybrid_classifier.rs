@@ -1010,6 +1010,74 @@ mod tests {
         let result = classifier.classify_ensemble(&inference_unknown, &features, &model_agree_raw);
         assert_eq!(result.method, ClassificationMethod::Hybrid);
         assert_eq!(result.ownership, InferredOwnership::RawPointer);
+
+        // ImmutableBorrow → Borrowed
+        let inference_immut = OwnershipInference {
+            variable: "data".to_string(),
+            kind: OwnershipKind::ImmutableBorrow,
+            confidence: 0.85,
+            reason: "read-only access".to_string(),
+        };
+        let model_agree_borrow = MockModel::with_confidence(InferredOwnership::Borrowed, 0.9);
+        let result =
+            classifier.classify_ensemble(&inference_immut, &features, &model_agree_borrow);
+        assert_eq!(result.method, ClassificationMethod::Hybrid);
+        assert_eq!(result.ownership, InferredOwnership::Borrowed);
+
+        // ArrayPointer → Slice
+        let inference_arr = OwnershipInference {
+            variable: "arr".to_string(),
+            kind: OwnershipKind::ArrayPointer {
+                base_array: "arr".to_string(),
+                element_type: decy_hir::HirType::Int,
+                base_index: Some(0),
+            },
+            confidence: 0.75,
+            reason: "array parameter".to_string(),
+        };
+        let model_agree_slice = MockModel::with_confidence(InferredOwnership::Slice, 0.8);
+        let result =
+            classifier.classify_ensemble(&inference_arr, &features, &model_agree_slice);
+        assert_eq!(result.method, ClassificationMethod::Hybrid);
+        assert_eq!(result.ownership, InferredOwnership::Slice);
+    }
+
+    #[test]
+    fn classify_ensemble_immutable_borrow_disagreement() {
+        // Rules say ImmutableBorrow (Borrowed), ML says Owned → ML wins with higher confidence
+        let classifier = HybridClassifier::new();
+        let features = OwnershipFeatures::default();
+        let inference = OwnershipInference {
+            variable: "ptr".to_string(),
+            kind: OwnershipKind::ImmutableBorrow,
+            confidence: 0.5,
+            reason: "read-only".to_string(),
+        };
+        let model = MockModel::with_confidence(InferredOwnership::Owned, 0.9);
+        let result = classifier.classify_ensemble(&inference, &features, &model);
+        assert_eq!(result.method, ClassificationMethod::MachineLearning);
+        assert_eq!(result.ownership, InferredOwnership::Owned);
+    }
+
+    #[test]
+    fn classify_ensemble_array_pointer_disagree_rules_win() {
+        // Rules say ArrayPointer (Slice), ML says BorrowedMut → rules win
+        let classifier = HybridClassifier::new();
+        let features = OwnershipFeatures::default();
+        let inference = OwnershipInference {
+            variable: "buf".to_string(),
+            kind: OwnershipKind::ArrayPointer {
+                base_array: "buf".to_string(),
+                element_type: decy_hir::HirType::Char,
+                base_index: None,
+            },
+            confidence: 0.9,
+            reason: "array pattern".to_string(),
+        };
+        let model = MockModel::with_confidence(InferredOwnership::BorrowedMut, 0.3);
+        let result = classifier.classify_ensemble(&inference, &features, &model);
+        assert_eq!(result.method, ClassificationMethod::RuleBased);
+        assert_eq!(result.ownership, InferredOwnership::Slice);
     }
 
     // ========================================================================
