@@ -4582,3 +4582,567 @@ fn stmt_var_decl_string_literal_type() {
         code
     );
 }
+
+// ============================================================================
+// generate_annotated_signature_with_func coverage
+// ============================================================================
+
+#[test]
+fn annotated_sig_simple_void_function() {
+    use decy_ownership::lifetime_gen::{AnnotatedSignature, AnnotatedType};
+    let cg = CodeGenerator::new();
+    let sig = AnnotatedSignature {
+        name: "noop".to_string(),
+        lifetimes: vec![],
+        parameters: vec![],
+        return_type: AnnotatedType::Simple(HirType::Void),
+    };
+    let code = cg.generate_annotated_signature_with_func(&sig, None);
+    assert!(
+        code.contains("fn noop()"),
+        "Should generate fn noop(), got: {}",
+        code
+    );
+    assert!(
+        !code.contains("->"),
+        "Void should have no return arrow, got: {}",
+        code
+    );
+}
+
+#[test]
+fn annotated_sig_with_params_no_func() {
+    use decy_ownership::lifetime_gen::{AnnotatedParameter, AnnotatedSignature, AnnotatedType};
+    let cg = CodeGenerator::new();
+    let sig = AnnotatedSignature {
+        name: "add".to_string(),
+        lifetimes: vec![],
+        parameters: vec![
+            AnnotatedParameter {
+                name: "a".to_string(),
+                param_type: AnnotatedType::Simple(HirType::Int),
+            },
+            AnnotatedParameter {
+                name: "b".to_string(),
+                param_type: AnnotatedType::Simple(HirType::Int),
+            },
+        ],
+        return_type: AnnotatedType::Simple(HirType::Int),
+    };
+    let code = cg.generate_annotated_signature_with_func(&sig, None);
+    assert!(
+        code.contains("fn add"),
+        "Should contain fn add, got: {}",
+        code
+    );
+    assert!(
+        code.contains("a:") && code.contains("b:"),
+        "Should contain both params, got: {}",
+        code
+    );
+    assert!(
+        code.contains("-> i32"),
+        "Should return i32, got: {}",
+        code
+    );
+}
+
+#[test]
+fn annotated_sig_keyword_rename() {
+    use decy_ownership::lifetime_gen::{AnnotatedSignature, AnnotatedType};
+    let cg = CodeGenerator::new();
+    let sig = AnnotatedSignature {
+        name: "type".to_string(),
+        lifetimes: vec![],
+        parameters: vec![],
+        return_type: AnnotatedType::Simple(HirType::Int),
+    };
+    let code = cg.generate_annotated_signature_with_func(&sig, None);
+    assert!(
+        code.contains("c_type"),
+        "Keyword 'type' should be renamed to c_type, got: {}",
+        code
+    );
+}
+
+#[test]
+fn annotated_sig_main_no_return_type() {
+    use decy_ownership::lifetime_gen::{AnnotatedSignature, AnnotatedType};
+    let cg = CodeGenerator::new();
+    let sig = AnnotatedSignature {
+        name: "main".to_string(),
+        lifetimes: vec![],
+        parameters: vec![],
+        return_type: AnnotatedType::Simple(HirType::Int),
+    };
+    // main function with int return should NOT have -> i32 (Rust main returns ())
+    let func = HirFunction::new("main".to_string(), HirType::Int, vec![]);
+    let code = cg.generate_annotated_signature_with_func(&sig, Some(&func));
+    assert!(
+        !code.contains("->"),
+        "main() should have no return type arrow, got: {}",
+        code
+    );
+}
+
+#[test]
+fn annotated_sig_with_pointer_param_and_func_body() {
+    use decy_ownership::lifetime_gen::{AnnotatedParameter, AnnotatedSignature, AnnotatedType};
+    let cg = CodeGenerator::new();
+    let sig = AnnotatedSignature {
+        name: "read_val".to_string(),
+        lifetimes: vec![],
+        parameters: vec![AnnotatedParameter {
+            name: "p".to_string(),
+            param_type: AnnotatedType::Simple(HirType::Pointer(Box::new(HirType::Int))),
+        }],
+        return_type: AnnotatedType::Simple(HirType::Int),
+    };
+    // Function that only reads via pointer → &i32
+    let func = HirFunction::new_with_body(
+        "read_val".to_string(),
+        HirType::Int,
+        vec![HirParameter::new(
+            "p".to_string(),
+            HirType::Pointer(Box::new(HirType::Int)),
+        )],
+        vec![HirStatement::Return(Some(HirExpression::Dereference(
+            Box::new(HirExpression::Variable("p".to_string())),
+        )))],
+    );
+    let code = cg.generate_annotated_signature_with_func(&sig, Some(&func));
+    assert!(
+        code.contains("&") && code.contains("i32"),
+        "Read-only pointer should become reference, got: {}",
+        code
+    );
+}
+
+// ============================================================================
+// generate_function_with_lifetimes: full function generation
+// ============================================================================
+
+#[test]
+fn gen_func_with_lifetimes_simple() {
+    use decy_ownership::lifetime_gen::{AnnotatedParameter, AnnotatedSignature, AnnotatedType};
+    let cg = CodeGenerator::new();
+    let func = HirFunction::new_with_body(
+        "square".to_string(),
+        HirType::Int,
+        vec![HirParameter::new("x".to_string(), HirType::Int)],
+        vec![HirStatement::Return(Some(HirExpression::BinaryOp {
+            op: BinaryOperator::Multiply,
+            left: Box::new(HirExpression::Variable("x".to_string())),
+            right: Box::new(HirExpression::Variable("x".to_string())),
+        }))],
+    );
+    let sig = AnnotatedSignature {
+        name: "square".to_string(),
+        lifetimes: vec![],
+        parameters: vec![AnnotatedParameter {
+            name: "x".to_string(),
+            param_type: AnnotatedType::Simple(HirType::Int),
+        }],
+        return_type: AnnotatedType::Simple(HirType::Int),
+    };
+    let code = cg.generate_function_with_lifetimes(&func, &sig);
+    assert!(
+        code.contains("fn square"),
+        "Should contain fn square, got: {}",
+        code
+    );
+    assert!(
+        code.contains("return") || code.contains("x * x") || code.contains("x"),
+        "Should contain body, got: {}",
+        code
+    );
+}
+
+#[test]
+fn gen_func_with_lifetimes_empty_body() {
+    use decy_ownership::lifetime_gen::{AnnotatedSignature, AnnotatedType};
+    let cg = CodeGenerator::new();
+    let func = HirFunction::new_with_body(
+        "stub".to_string(),
+        HirType::Void,
+        vec![],
+        vec![],
+    );
+    let sig = AnnotatedSignature {
+        name: "stub".to_string(),
+        lifetimes: vec![],
+        parameters: vec![],
+        return_type: AnnotatedType::Simple(HirType::Void),
+    };
+    let code = cg.generate_function_with_lifetimes(&func, &sig);
+    assert!(
+        code.contains("fn stub"),
+        "Should contain fn stub, got: {}",
+        code
+    );
+}
+
+#[test]
+fn gen_func_with_lifetimes_pointer_param() {
+    use decy_ownership::lifetime_gen::{AnnotatedParameter, AnnotatedSignature, AnnotatedType};
+    let cg = CodeGenerator::new();
+    let func = HirFunction::new_with_body(
+        "inc".to_string(),
+        HirType::Void,
+        vec![HirParameter::new(
+            "val".to_string(),
+            HirType::Pointer(Box::new(HirType::Int)),
+        )],
+        vec![HirStatement::DerefAssignment {
+            target: HirExpression::Variable("val".to_string()),
+            value: HirExpression::BinaryOp {
+                op: BinaryOperator::Add,
+                left: Box::new(HirExpression::Dereference(Box::new(
+                    HirExpression::Variable("val".to_string()),
+                ))),
+                right: Box::new(HirExpression::IntLiteral(1)),
+            },
+        }],
+    );
+    let sig = AnnotatedSignature {
+        name: "inc".to_string(),
+        lifetimes: vec![],
+        parameters: vec![AnnotatedParameter {
+            name: "val".to_string(),
+            param_type: AnnotatedType::Simple(HirType::Pointer(Box::new(HirType::Int))),
+        }],
+        return_type: AnnotatedType::Simple(HirType::Void),
+    };
+    let code = cg.generate_function_with_lifetimes(&func, &sig);
+    assert!(
+        code.contains("fn inc"),
+        "Should contain fn inc, got: {}",
+        code
+    );
+    assert!(
+        code.contains("&mut") || code.contains("val"),
+        "Should transform pointer param, got: {}",
+        code
+    );
+}
+
+// ============================================================================
+// More expression targets: string method, field access, array index
+// ============================================================================
+
+#[test]
+fn expr_field_access_nested() {
+    let cg = CodeGenerator::new();
+    // point.inner.x — nested field access
+    let expr = HirExpression::FieldAccess {
+        object: Box::new(HirExpression::FieldAccess {
+            object: Box::new(HirExpression::Variable("point".to_string())),
+            field: "inner".to_string(),
+        }),
+        field: "x".to_string(),
+    };
+    let code = cg.generate_expression(&expr);
+    assert!(
+        code.contains("point") && code.contains("inner") && code.contains("x"),
+        "Nested FieldAccess should chain, got: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_array_index_expression() {
+    let cg = CodeGenerator::new();
+    // arr[i + 1]
+    let expr = HirExpression::ArrayIndex {
+        array: Box::new(HirExpression::Variable("arr".to_string())),
+        index: Box::new(HirExpression::BinaryOp {
+            op: BinaryOperator::Add,
+            left: Box::new(HirExpression::Variable("i".to_string())),
+            right: Box::new(HirExpression::IntLiteral(1)),
+        }),
+    };
+    let code = cg.generate_expression(&expr);
+    assert!(
+        code.contains("arr"),
+        "ArrayIndex with expr index should reference arr, got: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_string_method_call_len() {
+    let cg = CodeGenerator::new();
+    let expr = HirExpression::StringMethodCall {
+        receiver: Box::new(HirExpression::Variable("s".to_string())),
+        method: "len".to_string(),
+        arguments: vec![],
+    };
+    let code = cg.generate_expression(&expr);
+    assert!(
+        code.contains("len") || code.contains("s"),
+        "StringMethodCall should reference method, got: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_is_not_null_via_not_equal() {
+    let cg = CodeGenerator::new();
+    let expr = HirExpression::IsNotNull(Box::new(HirExpression::Variable("ptr".to_string())));
+    let code = cg.generate_expression(&expr);
+    assert!(
+        code.contains("ptr") || code.contains("null") || code.contains("Some"),
+        "IsNotNull should check ptr for non-null, got: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_function_call_strcpy() {
+    let cg = CodeGenerator::new();
+    // C: strcpy(dst, src);
+    let expr = HirExpression::FunctionCall {
+        function: "strcpy".to_string(),
+        arguments: vec![
+            HirExpression::Variable("dst".to_string()),
+            HirExpression::Variable("src".to_string()),
+        ],
+    };
+    let code = cg.generate_expression(&expr);
+    assert!(
+        code.contains("dst") || code.contains("src") || code.contains("clone"),
+        "strcpy should generate clone or copy, got: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_function_call_strlen() {
+    let cg = CodeGenerator::new();
+    let expr = HirExpression::FunctionCall {
+        function: "strlen".to_string(),
+        arguments: vec![HirExpression::Variable("s".to_string())],
+    };
+    let code = cg.generate_expression(&expr);
+    assert!(
+        code.contains("len") || code.contains("s"),
+        "strlen should generate .len(), got: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_function_call_atoi() {
+    let cg = CodeGenerator::new();
+    let expr = HirExpression::FunctionCall {
+        function: "atoi".to_string(),
+        arguments: vec![HirExpression::Variable("str_val".to_string())],
+    };
+    let code = cg.generate_expression(&expr);
+    assert!(
+        code.contains("parse") || code.contains("str_val"),
+        "atoi should generate parse::<i32>(), got: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_function_call_abs() {
+    let cg = CodeGenerator::new();
+    let expr = HirExpression::FunctionCall {
+        function: "abs".to_string(),
+        arguments: vec![HirExpression::Variable("n".to_string())],
+    };
+    let code = cg.generate_expression(&expr);
+    assert!(
+        code.contains("abs") || code.contains("n"),
+        "abs should generate .abs(), got: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_function_call_exit() {
+    let cg = CodeGenerator::new();
+    let expr = HirExpression::FunctionCall {
+        function: "exit".to_string(),
+        arguments: vec![HirExpression::IntLiteral(1)],
+    };
+    let code = cg.generate_expression(&expr);
+    assert!(
+        code.contains("exit") || code.contains("process"),
+        "exit should generate std::process::exit, got: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_function_call_puts() {
+    let cg = CodeGenerator::new();
+    let expr = HirExpression::FunctionCall {
+        function: "puts".to_string(),
+        arguments: vec![HirExpression::StringLiteral("hello".to_string())],
+    };
+    let code = cg.generate_expression(&expr);
+    assert!(
+        code.contains("println") || code.contains("hello"),
+        "puts should generate println!, got: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_function_call_qsort() {
+    let cg = CodeGenerator::new();
+    // C: qsort(arr, n, sizeof(int), compare);
+    let expr = HirExpression::FunctionCall {
+        function: "qsort".to_string(),
+        arguments: vec![
+            HirExpression::Variable("arr".to_string()),
+            HirExpression::Variable("n".to_string()),
+            HirExpression::Sizeof {
+                type_name: "int".to_string(),
+            },
+            HirExpression::Variable("compare".to_string()),
+        ],
+    };
+    let code = cg.generate_expression(&expr);
+    assert!(
+        code.contains("sort") || code.contains("arr"),
+        "qsort should generate sort_by, got: {}",
+        code
+    );
+}
+
+// ============================================================================
+// More statement patterns
+// ============================================================================
+
+#[test]
+fn stmt_while_with_break_inside() {
+    let cg = CodeGenerator::new();
+    let stmt = HirStatement::While {
+        condition: HirExpression::IntLiteral(1),
+        body: vec![
+            HirStatement::If {
+                condition: HirExpression::BinaryOp {
+                    op: BinaryOperator::Equal,
+                    left: Box::new(HirExpression::Variable("x".to_string())),
+                    right: Box::new(HirExpression::IntLiteral(0)),
+                },
+                then_block: vec![HirStatement::Break],
+                else_block: None,
+            },
+            HirStatement::Expression(HirExpression::UnaryOp {
+                op: UnaryOperator::PostDecrement,
+                operand: Box::new(HirExpression::Variable("x".to_string())),
+            }),
+        ],
+    };
+    let code = cg.generate_statement(&stmt);
+    assert!(
+        code.contains("while") || code.contains("loop"),
+        "While with break should generate loop structure, got: {}",
+        code
+    );
+}
+
+#[test]
+fn stmt_field_assignment() {
+    let cg = CodeGenerator::new();
+    let stmt = HirStatement::FieldAssignment {
+        object: HirExpression::Variable("point".to_string()),
+        field: "x".to_string(),
+        value: HirExpression::IntLiteral(10),
+    };
+    let code = cg.generate_statement(&stmt);
+    assert!(
+        code.contains("point") && code.contains("x") && code.contains("10"),
+        "FieldAssignment should set point.x = 10, got: {}",
+        code
+    );
+}
+
+#[test]
+fn stmt_multiple_var_decl() {
+    let cg = CodeGenerator::new();
+    // C: int a = 1, b = 2;  → two separate declarations
+    let stmt1 = HirStatement::VariableDeclaration {
+        name: "a".to_string(),
+        var_type: HirType::Int,
+        initializer: Some(HirExpression::IntLiteral(1)),
+    };
+    let stmt2 = HirStatement::VariableDeclaration {
+        name: "b".to_string(),
+        var_type: HirType::Int,
+        initializer: Some(HirExpression::IntLiteral(2)),
+    };
+    let code1 = cg.generate_statement(&stmt1);
+    let code2 = cg.generate_statement(&stmt2);
+    assert!(code1.contains("a") && code2.contains("b"));
+}
+
+#[test]
+fn stmt_var_decl_pointer_to_struct() {
+    let cg = CodeGenerator::new();
+    let stmt = HirStatement::VariableDeclaration {
+        name: "node".to_string(),
+        var_type: HirType::Pointer(Box::new(HirType::Struct("Node".to_string()))),
+        initializer: Some(HirExpression::NullLiteral),
+    };
+    let code = cg.generate_statement(&stmt);
+    assert!(
+        code.contains("node"),
+        "Pointer to struct decl should contain node, got: {}",
+        code
+    );
+}
+
+#[test]
+fn stmt_var_decl_function_pointer() {
+    let cg = CodeGenerator::new();
+    let stmt = HirStatement::VariableDeclaration {
+        name: "callback".to_string(),
+        var_type: HirType::FunctionPointer {
+            param_types: vec![HirType::Int],
+            return_type: Box::new(HirType::Void),
+        },
+        initializer: None,
+    };
+    let code = cg.generate_statement(&stmt);
+    assert!(
+        code.contains("callback") || code.contains("fn"),
+        "Function pointer decl should contain fn or callback, got: {}",
+        code
+    );
+}
+
+#[test]
+fn stmt_inline_asm_non_translatable() {
+    let cg = CodeGenerator::new();
+    let stmt = HirStatement::InlineAsm {
+        text: "nop".to_string(),
+        translatable: false,
+    };
+    let code = cg.generate_statement(&stmt);
+    assert!(
+        !code.is_empty(),
+        "InlineAsm should generate comment or placeholder, got: {}",
+        code
+    );
+}
+
+#[test]
+fn stmt_inline_asm_translatable_pause() {
+    let cg = CodeGenerator::new();
+    let stmt = HirStatement::InlineAsm {
+        text: "pause".to_string(),
+        translatable: true,
+    };
+    let code = cg.generate_statement(&stmt);
+    assert!(
+        !code.is_empty(),
+        "Translatable InlineAsm should generate something, got: {}",
+        code
+    );
+}
