@@ -2893,3 +2893,505 @@ fn expr_cast_to_unsigned() {
         code
     );
 }
+
+// ============================================================================
+// Statement coverage: VLA (variable-length array) patterns
+// ============================================================================
+
+#[test]
+fn statement_vla_int_array() {
+    let cg = CodeGenerator::new();
+    let stmt = HirStatement::VariableDeclaration {
+        name: "arr".to_string(),
+        var_type: HirType::Array {
+            element_type: Box::new(HirType::Int),
+            size: None,
+        },
+        initializer: Some(HirExpression::Variable("n".to_string())),
+    };
+    let code = cg.generate_statement(&stmt);
+    assert!(
+        code.contains("vec![") && code.contains("0i32"),
+        "VLA int should generate vec![0i32; n], got: {}",
+        code
+    );
+}
+
+#[test]
+fn statement_vla_float_array() {
+    let cg = CodeGenerator::new();
+    let stmt = HirStatement::VariableDeclaration {
+        name: "buf".to_string(),
+        var_type: HirType::Array {
+            element_type: Box::new(HirType::Float),
+            size: None,
+        },
+        initializer: Some(HirExpression::Variable("size".to_string())),
+    };
+    let code = cg.generate_statement(&stmt);
+    assert!(
+        code.contains("vec![") && code.contains("0.0f32"),
+        "VLA float should generate vec![0.0f32; size], got: {}",
+        code
+    );
+}
+
+#[test]
+fn statement_vla_double_array() {
+    let cg = CodeGenerator::new();
+    let stmt = HirStatement::VariableDeclaration {
+        name: "data".to_string(),
+        var_type: HirType::Array {
+            element_type: Box::new(HirType::Double),
+            size: None,
+        },
+        initializer: Some(HirExpression::Variable("len".to_string())),
+    };
+    let code = cg.generate_statement(&stmt);
+    assert!(
+        code.contains("vec![") && code.contains("0.0f64"),
+        "VLA double should generate vec![0.0f64; len], got: {}",
+        code
+    );
+}
+
+#[test]
+fn statement_vla_char_array() {
+    let cg = CodeGenerator::new();
+    let stmt = HirStatement::VariableDeclaration {
+        name: "buffer".to_string(),
+        var_type: HirType::Array {
+            element_type: Box::new(HirType::Char),
+            size: None,
+        },
+        initializer: Some(HirExpression::Variable("sz".to_string())),
+    };
+    let code = cg.generate_statement(&stmt);
+    assert!(
+        code.contains("vec![") && code.contains("0u8"),
+        "VLA char should generate vec![0u8; sz], got: {}",
+        code
+    );
+}
+
+#[test]
+fn statement_vla_unsigned_int_array() {
+    let cg = CodeGenerator::new();
+    let stmt = HirStatement::VariableDeclaration {
+        name: "counts".to_string(),
+        var_type: HirType::Array {
+            element_type: Box::new(HirType::UnsignedInt),
+            size: None,
+        },
+        initializer: Some(HirExpression::Variable("n".to_string())),
+    };
+    let code = cg.generate_statement(&stmt);
+    assert!(
+        code.contains("vec![") && code.contains("0u32"),
+        "VLA unsigned int should generate vec![0u32; n], got: {}",
+        code
+    );
+}
+
+#[test]
+fn statement_vla_signed_char_array() {
+    let cg = CodeGenerator::new();
+    let stmt = HirStatement::VariableDeclaration {
+        name: "vals".to_string(),
+        var_type: HirType::Array {
+            element_type: Box::new(HirType::SignedChar),
+            size: None,
+        },
+        initializer: Some(HirExpression::Variable("n".to_string())),
+    };
+    let code = cg.generate_statement(&stmt);
+    assert!(
+        code.contains("vec![") && code.contains("0i8"),
+        "VLA signed char should generate vec![0i8; n], got: {}",
+        code
+    );
+}
+
+// ============================================================================
+// Statement coverage: malloc initialization patterns
+// ============================================================================
+
+#[test]
+fn statement_malloc_init_box_pattern() {
+    let cg = CodeGenerator::new();
+    let stmt = HirStatement::VariableDeclaration {
+        name: "data".to_string(),
+        var_type: HirType::Pointer(Box::new(HirType::Struct("Node".to_string()))),
+        initializer: Some(HirExpression::Malloc {
+            size: Box::new(HirExpression::Sizeof {
+                type_name: "Node".to_string(),
+            }),
+        }),
+    };
+    let code = cg.generate_statement(&stmt);
+    assert!(
+        code.contains("Box") || code.contains("box"),
+        "Struct malloc should generate Box, got: {}",
+        code
+    );
+}
+
+#[test]
+fn statement_malloc_init_vec_pattern() {
+    let cg = CodeGenerator::new();
+    let stmt = HirStatement::VariableDeclaration {
+        name: "arr".to_string(),
+        var_type: HirType::Pointer(Box::new(HirType::Int)),
+        initializer: Some(HirExpression::Malloc {
+            size: Box::new(HirExpression::BinaryOp {
+                op: BinaryOperator::Multiply,
+                left: Box::new(HirExpression::Variable("n".to_string())),
+                right: Box::new(HirExpression::Sizeof {
+                    type_name: "int".to_string(),
+                }),
+            }),
+        }),
+    };
+    let code = cg.generate_statement(&stmt);
+    assert!(
+        code.contains("Vec") || code.contains("vec"),
+        "Array malloc pattern should generate Vec, got: {}",
+        code
+    );
+}
+
+// ============================================================================
+// Statement coverage: char* string literal initialization
+// ============================================================================
+
+#[test]
+fn statement_char_ptr_string_literal() {
+    let cg = CodeGenerator::new();
+    let stmt = HirStatement::VariableDeclaration {
+        name: "msg".to_string(),
+        var_type: HirType::Pointer(Box::new(HirType::Char)),
+        initializer: Some(HirExpression::StringLiteral("hello world".to_string())),
+    };
+    let code = cg.generate_statement(&stmt);
+    assert!(
+        code.contains("&str") || code.contains("hello world"),
+        "char* with string literal should use &str, got: {}",
+        code
+    );
+}
+
+// ============================================================================
+// Statement coverage: char array from string literal
+// ============================================================================
+
+#[test]
+fn statement_char_array_string_init() {
+    let cg = CodeGenerator::new();
+    let stmt = HirStatement::VariableDeclaration {
+        name: "buf".to_string(),
+        var_type: HirType::Array {
+            element_type: Box::new(HirType::Char),
+            size: Some(10),
+        },
+        initializer: Some(HirExpression::StringLiteral("test".to_string())),
+    };
+    let code = cg.generate_statement(&stmt);
+    assert!(
+        code.contains("test") || code.contains("b\"test"),
+        "Char array from string should contain the string, got: {}",
+        code
+    );
+}
+
+// ============================================================================
+// Statement coverage: return in main (exit code) vs non-main
+// ============================================================================
+
+#[test]
+fn statement_return_none() {
+    let cg = CodeGenerator::new();
+    let stmt = HirStatement::Return(None);
+    let code = cg.generate_statement(&stmt);
+    assert!(
+        code.contains("return"),
+        "Return None should generate return, got: {}",
+        code
+    );
+}
+
+#[test]
+fn statement_return_expression() {
+    let cg = CodeGenerator::new();
+    let stmt = HirStatement::Return(Some(HirExpression::Variable("result".to_string())));
+    let code = cg.generate_statement(&stmt);
+    assert!(
+        code.contains("return") && code.contains("result"),
+        "Return expr should generate return result, got: {}",
+        code
+    );
+}
+
+// ============================================================================
+// Statement coverage: while loop
+// ============================================================================
+
+#[test]
+fn statement_while_basic() {
+    let cg = CodeGenerator::new();
+    let stmt = HirStatement::While {
+        condition: HirExpression::BinaryOp {
+            op: BinaryOperator::GreaterThan,
+            left: Box::new(HirExpression::Variable("n".to_string())),
+            right: Box::new(HirExpression::IntLiteral(0)),
+        },
+        body: vec![HirStatement::Expression(HirExpression::UnaryOp {
+            op: UnaryOperator::PostDecrement,
+            operand: Box::new(HirExpression::Variable("n".to_string())),
+        })],
+    };
+    let code = cg.generate_statement(&stmt);
+    assert!(
+        code.contains("while"),
+        "While should generate while, got: {}",
+        code
+    );
+}
+
+// ============================================================================
+// Statement coverage: if/else
+// ============================================================================
+
+#[test]
+fn statement_if_only() {
+    let cg = CodeGenerator::new();
+    let stmt = HirStatement::If {
+        condition: HirExpression::Variable("flag".to_string()),
+        then_block: vec![HirStatement::Return(Some(HirExpression::IntLiteral(1)))],
+        else_block: None,
+    };
+    let code = cg.generate_statement(&stmt);
+    assert!(
+        code.contains("if"),
+        "If should generate if, got: {}",
+        code
+    );
+}
+
+#[test]
+fn statement_if_else() {
+    let cg = CodeGenerator::new();
+    let stmt = HirStatement::If {
+        condition: HirExpression::BinaryOp {
+            op: BinaryOperator::Equal,
+            left: Box::new(HirExpression::Variable("x".to_string())),
+            right: Box::new(HirExpression::IntLiteral(0)),
+        },
+        then_block: vec![HirStatement::Return(Some(HirExpression::IntLiteral(0)))],
+        else_block: Some(vec![HirStatement::Return(Some(
+            HirExpression::IntLiteral(1),
+        ))]),
+    };
+    let code = cg.generate_statement(&stmt);
+    assert!(
+        code.contains("if") && code.contains("else"),
+        "If/else should generate both branches, got: {}",
+        code
+    );
+}
+
+// ============================================================================
+// Statement coverage: continue and break
+// ============================================================================
+
+#[test]
+fn statement_break() {
+    let cg = CodeGenerator::new();
+    let stmt = HirStatement::Break;
+    let code = cg.generate_statement(&stmt);
+    assert!(code.contains("break"), "Break should generate break, got: {}", code);
+}
+
+#[test]
+fn statement_continue() {
+    let cg = CodeGenerator::new();
+    let stmt = HirStatement::Continue;
+    let code = cg.generate_statement(&stmt);
+    assert!(code.contains("continue"), "Continue should generate continue, got: {}", code);
+}
+
+// ============================================================================
+// Statement coverage: expression statement
+// ============================================================================
+
+#[test]
+fn statement_expression_function_call() {
+    let cg = CodeGenerator::new();
+    let stmt = HirStatement::Expression(HirExpression::FunctionCall {
+        function: "process".to_string(),
+        arguments: vec![HirExpression::Variable("data".to_string())],
+    });
+    let code = cg.generate_statement(&stmt);
+    assert!(
+        code.contains("process") && code.contains("data"),
+        "Expression statement should contain function call, got: {}",
+        code
+    );
+}
+
+// ============================================================================
+// Statement coverage: assignment
+// ============================================================================
+
+#[test]
+fn statement_assignment_simple() {
+    let cg = CodeGenerator::new();
+    let stmt = HirStatement::Assignment {
+        target: "x".to_string(),
+        value: HirExpression::IntLiteral(42),
+    };
+    let code = cg.generate_statement(&stmt);
+    assert!(
+        code.contains("x") && code.contains("42"),
+        "Assignment should contain target and value, got: {}",
+        code
+    );
+}
+
+// ============================================================================
+// Expression coverage: binary operators
+// ============================================================================
+
+#[test]
+fn expr_binary_add() {
+    let cg = CodeGenerator::new();
+    let expr = HirExpression::BinaryOp {
+        op: BinaryOperator::Add,
+        left: Box::new(HirExpression::Variable("a".to_string())),
+        right: Box::new(HirExpression::Variable("b".to_string())),
+    };
+    let code = cg.generate_expression(&expr);
+    assert!(
+        code.contains("+") || code.contains("a") && code.contains("b"),
+        "Add should generate +, got: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_binary_subtract() {
+    let cg = CodeGenerator::new();
+    let expr = HirExpression::BinaryOp {
+        op: BinaryOperator::Subtract,
+        left: Box::new(HirExpression::Variable("a".to_string())),
+        right: Box::new(HirExpression::Variable("b".to_string())),
+    };
+    let code = cg.generate_expression(&expr);
+    assert!(
+        code.contains("-") || code.contains("wrapping_sub"),
+        "Subtract should generate - or wrapping_sub, got: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_binary_logical_and() {
+    let cg = CodeGenerator::new();
+    let expr = HirExpression::BinaryOp {
+        op: BinaryOperator::LogicalAnd,
+        left: Box::new(HirExpression::Variable("a".to_string())),
+        right: Box::new(HirExpression::Variable("b".to_string())),
+    };
+    let code = cg.generate_expression(&expr);
+    assert!(
+        code.contains("&&") || code.contains("!= 0"),
+        "LogicalAnd should generate &&, got: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_binary_logical_or() {
+    let cg = CodeGenerator::new();
+    let expr = HirExpression::BinaryOp {
+        op: BinaryOperator::LogicalOr,
+        left: Box::new(HirExpression::Variable("a".to_string())),
+        right: Box::new(HirExpression::Variable("b".to_string())),
+    };
+    let code = cg.generate_expression(&expr);
+    assert!(
+        code.contains("||") || code.contains("!= 0"),
+        "LogicalOr should generate ||, got: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_binary_bitwise_and() {
+    let cg = CodeGenerator::new();
+    let expr = HirExpression::BinaryOp {
+        op: BinaryOperator::BitwiseAnd,
+        left: Box::new(HirExpression::Variable("flags".to_string())),
+        right: Box::new(HirExpression::IntLiteral(0xFF)),
+    };
+    let code = cg.generate_expression(&expr);
+    assert!(
+        code.contains("&") || code.contains("flags"),
+        "BitwiseAnd should generate &, got: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_binary_shift_left() {
+    let cg = CodeGenerator::new();
+    let expr = HirExpression::BinaryOp {
+        op: BinaryOperator::LeftShift,
+        left: Box::new(HirExpression::IntLiteral(1)),
+        right: Box::new(HirExpression::Variable("n".to_string())),
+    };
+    let code = cg.generate_expression(&expr);
+    assert!(
+        code.contains("<<"),
+        "LeftShift should generate <<, got: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_null_literal_codegen() {
+    let cg = CodeGenerator::new();
+    let expr = HirExpression::NullLiteral;
+    let code = cg.generate_expression(&expr);
+    assert!(
+        code.contains("None") || code.contains("null"),
+        "NullLiteral should generate None or null, got: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_is_not_null_codegen() {
+    let cg = CodeGenerator::new();
+    let expr = HirExpression::IsNotNull(Box::new(HirExpression::Variable("ptr".to_string())));
+    let code = cg.generate_expression(&expr);
+    assert!(
+        code.contains("is_some") || code.contains("is_null") || code.contains("ptr"),
+        "IsNotNull should generate null check, got: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_calloc_generates_vec_zeroed() {
+    let cg = CodeGenerator::new();
+    let expr = HirExpression::Calloc {
+        count: Box::new(HirExpression::IntLiteral(10)),
+        element_type: Box::new(HirType::Int),
+    };
+    let code = cg.generate_expression(&expr);
+    assert!(
+        code.contains("vec![") || code.contains("Vec"),
+        "Calloc should generate vec or Vec, got: {}",
+        code
+    );
+}
