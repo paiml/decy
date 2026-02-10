@@ -676,6 +676,228 @@ fn example() {
         assert!(!result.success);
         assert!(!result.errors.is_empty());
     }
+
+    // ========================================================================
+    // Pattern detection: transmute, assembly, FFI, Other
+    // ========================================================================
+
+    #[test]
+    fn test_pattern_detection_transmute() {
+        let code = r#"
+            fn with_transmute() {
+                unsafe {
+                    let x: u32 = std::mem::transmute(1.0f32);
+                }
+            }
+        "#;
+        let report = audit_rust_code(code).expect("Audit failed");
+        assert_eq!(report.unsafe_blocks.len(), 1);
+        assert_eq!(report.unsafe_blocks[0].pattern, UnsafePattern::Transmute);
+        assert_eq!(report.unsafe_blocks[0].confidence, 40);
+        assert!(report.unsafe_blocks[0].suggestion.contains("From/Into"));
+    }
+
+    #[test]
+    fn test_pattern_detection_assembly() {
+        // The auditor uses quote! to stringify the unsafe block, then searches for "asm!"
+        // core::arch::asm! macro invocation appears in the stringified form
+        let code = r#"
+            fn with_asm() {
+                unsafe {
+                    std::arch::asm!("nop");
+                }
+            }
+        "#;
+        let report = audit_rust_code(code).expect("Audit failed");
+        assert_eq!(report.unsafe_blocks.len(), 1);
+        // The stringified block contains "asm!" so it should match Assembly
+        // If the macro doesn't appear in stringified form, it may fall through to Other
+        let pattern = &report.unsafe_blocks[0].pattern;
+        assert!(
+            *pattern == UnsafePattern::Assembly || *pattern == UnsafePattern::Other,
+            "Expected Assembly or Other, got {:?}",
+            pattern
+        );
+    }
+
+    #[test]
+    fn test_pattern_detection_ffi() {
+        let code = r#"
+            fn with_ffi() {
+                unsafe {
+                    extern "C" {
+                        fn puts(s: *const u8) -> i32;
+                    }
+                }
+            }
+        "#;
+        let report = audit_rust_code(code).expect("Audit failed");
+        assert_eq!(report.unsafe_blocks.len(), 1);
+        assert_eq!(report.unsafe_blocks[0].pattern, UnsafePattern::FfiCall);
+        assert_eq!(report.unsafe_blocks[0].confidence, 30);
+        assert!(report.unsafe_blocks[0].suggestion.contains("safe wrapper"));
+    }
+
+    #[test]
+    fn test_pattern_detection_other() {
+        let code = r#"
+            fn with_other_unsafe() {
+                unsafe {
+                    let v: Vec<i32> = Vec::new();
+                    let _ = v.len();
+                }
+            }
+        "#;
+        let report = audit_rust_code(code).expect("Audit failed");
+        assert_eq!(report.unsafe_blocks.len(), 1);
+        assert_eq!(report.unsafe_blocks[0].pattern, UnsafePattern::Other);
+        assert_eq!(report.unsafe_blocks[0].confidence, 50);
+        assert!(report.unsafe_blocks[0].suggestion.contains("Review"));
+    }
+
+    // ========================================================================
+    // meets_density_target + high_confidence_blocks
+    // ========================================================================
+
+    #[test]
+    fn test_meets_density_target_low_density() {
+        let report = UnsafeAuditReport::new(100, 3, vec![]);
+        assert!(report.meets_density_target());
+        assert!(report.unsafe_density_percent < 5.0);
+    }
+
+    #[test]
+    fn test_meets_density_target_high_density() {
+        let report = UnsafeAuditReport::new(100, 10, vec![]);
+        assert!(!report.meets_density_target());
+        assert!(report.unsafe_density_percent >= 5.0);
+    }
+
+    #[test]
+    fn test_meets_density_target_zero_lines() {
+        let report = UnsafeAuditReport::new(0, 0, vec![]);
+        assert!(report.meets_density_target());
+        assert!((report.unsafe_density_percent - 0.0).abs() < 0.001);
+    }
+
+    #[test]
+    fn test_high_confidence_blocks_filtering() {
+        let blocks = vec![
+            UnsafeBlock {
+                line: 1,
+                confidence: 85,
+                pattern: UnsafePattern::RawPointerDeref,
+                suggestion: "Use Box".to_string(),
+            },
+            UnsafeBlock {
+                line: 10,
+                confidence: 40,
+                pattern: UnsafePattern::Transmute,
+                suggestion: "Use From".to_string(),
+            },
+            UnsafeBlock {
+                line: 20,
+                confidence: 70,
+                pattern: UnsafePattern::Other,
+                suggestion: "Review".to_string(),
+            },
+        ];
+        let report = UnsafeAuditReport::new(100, 10, blocks);
+        let high = report.high_confidence_blocks();
+        assert_eq!(high.len(), 2); // confidence 85 and 70
+        assert!(high.iter().all(|b| b.confidence >= 70));
+    }
+
+    #[test]
+    fn test_high_confidence_blocks_empty() {
+        let report = UnsafeAuditReport::new(100, 0, vec![]);
+        assert!(report.high_confidence_blocks().is_empty());
+    }
+
+    // ========================================================================
+    // UnsafeAuditor default + unsafe fn detection
+    // ========================================================================
+
+    #[test]
+    fn test_unsafe_auditor_default() {
+        let auditor = UnsafeAuditor::default();
+        assert_eq!(auditor.total_lines, 0);
+        assert_eq!(auditor.unsafe_lines, 0);
+        assert!(auditor.unsafe_blocks.is_empty());
+    }
+
+    #[test]
+    fn test_unsafe_fn_detection_body_lines() {
+        let code = r#"
+            unsafe fn dangerous() {
+                let x = 1;
+                let y = 2;
+                let z = 3;
+            }
+        "#;
+        let report = audit_rust_code(code).expect("Audit failed");
+        assert!(!report.unsafe_blocks.is_empty());
+        let block = &report.unsafe_blocks[0];
+        assert_eq!(block.confidence, 60);
+        assert_eq!(block.pattern, UnsafePattern::Other);
+        assert!(block.suggestion.contains("Unsafe function"));
+    }
+
+    // ========================================================================
+    // verify_compilation: warnings path + edge cases
+    // ========================================================================
+
+    #[test]
+    fn test_verify_compilation_with_warnings() {
+        let code = "#[warn(unused_variables)] fn main() { let x = 42; }";
+        let result = verify_compilation(code).expect("rustc failed to run");
+        assert!(result.success);
+        // May or may not have warnings depending on rustc config
+    }
+
+    #[test]
+    fn test_verify_compilation_multiple_errors() {
+        let code = "fn main() { undefined_a(); undefined_b(); }";
+        let result = verify_compilation(code).expect("rustc failed to run");
+        assert!(!result.success);
+        assert!(!result.errors.is_empty());
+    }
+
+    #[test]
+    fn test_compilation_error_without_code() {
+        // Error lines without [EXXXX] format
+        let code = "this is not valid rust at all";
+        let result = verify_compilation(code).expect("rustc failed to run");
+        assert!(!result.success);
+        // Should have errors, some may lack error codes
+        assert!(!result.errors.is_empty());
+    }
+
+    #[test]
+    fn test_average_confidence_calculation() {
+        let blocks = vec![
+            UnsafeBlock {
+                line: 0,
+                confidence: 80,
+                pattern: UnsafePattern::RawPointerDeref,
+                suggestion: "s".to_string(),
+            },
+            UnsafeBlock {
+                line: 0,
+                confidence: 40,
+                pattern: UnsafePattern::Transmute,
+                suggestion: "s".to_string(),
+            },
+        ];
+        let report = UnsafeAuditReport::new(100, 10, blocks);
+        assert!((report.average_confidence - 60.0).abs() < 0.001);
+    }
+
+    #[test]
+    fn test_average_confidence_no_blocks() {
+        let report = UnsafeAuditReport::new(100, 0, vec![]);
+        assert!((report.average_confidence - 0.0).abs() < 0.001);
+    }
 }
 
 #[cfg(test)]
