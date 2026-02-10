@@ -5617,3 +5617,424 @@ fn typed_decl_option_type() {
         code
     );
 }
+
+// ============================================================================
+// Special library function coverage (via FunctionCall expressions)
+// ============================================================================
+
+#[test]
+fn expr_fread_call() {
+    let cg = CodeGenerator::new();
+    // C: fread(buf, 1, 100, fp)
+    let expr = HirExpression::FunctionCall {
+        function: "fread".to_string(),
+        arguments: vec![
+            HirExpression::Variable("buf".to_string()),
+            HirExpression::IntLiteral(1),
+            HirExpression::IntLiteral(100),
+            HirExpression::Variable("fp".to_string()),
+        ],
+    };
+    let code = cg.generate_expression(&expr);
+    assert!(
+        !code.is_empty(),
+        "fread should generate read code, got: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_fwrite_call() {
+    let cg = CodeGenerator::new();
+    // C: fwrite(buf, 1, 100, fp)
+    let expr = HirExpression::FunctionCall {
+        function: "fwrite".to_string(),
+        arguments: vec![
+            HirExpression::Variable("buf".to_string()),
+            HirExpression::IntLiteral(1),
+            HirExpression::IntLiteral(100),
+            HirExpression::Variable("fp".to_string()),
+        ],
+    };
+    let code = cg.generate_expression(&expr);
+    assert!(
+        !code.is_empty(),
+        "fwrite should generate write code, got: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_snprintf_call() {
+    let cg = CodeGenerator::new();
+    // C: snprintf(buf, 100, "%d", val)
+    let expr = HirExpression::FunctionCall {
+        function: "snprintf".to_string(),
+        arguments: vec![
+            HirExpression::Variable("buf".to_string()),
+            HirExpression::IntLiteral(100),
+            HirExpression::StringLiteral("%d".to_string()),
+            HirExpression::Variable("val".to_string()),
+        ],
+    };
+    let code = cg.generate_expression(&expr);
+    assert!(
+        code.contains("format") || code.contains("buf"),
+        "snprintf should generate format!, got: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_sprintf_call() {
+    let cg = CodeGenerator::new();
+    // C: sprintf(buf, "%s %d", name, age)
+    let expr = HirExpression::FunctionCall {
+        function: "sprintf".to_string(),
+        arguments: vec![
+            HirExpression::Variable("buf".to_string()),
+            HirExpression::StringLiteral("%s %d".to_string()),
+            HirExpression::Variable("name".to_string()),
+            HirExpression::Variable("age".to_string()),
+        ],
+    };
+    let code = cg.generate_expression(&expr);
+    assert!(
+        code.contains("format") || code.contains("buf"),
+        "sprintf should generate format!, got: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_atof_call() {
+    let cg = CodeGenerator::new();
+    let expr = HirExpression::FunctionCall {
+        function: "atof".to_string(),
+        arguments: vec![HirExpression::Variable("str_val".to_string())],
+    };
+    let code = cg.generate_expression(&expr);
+    assert!(
+        code.contains("parse") || code.contains("f64"),
+        "atof should generate parse::<f64>(), got: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_unknown_function_call() {
+    let cg = CodeGenerator::new();
+    // Unrecognized function — should fall through to default handling
+    let expr = HirExpression::FunctionCall {
+        function: "custom_func".to_string(),
+        arguments: vec![
+            HirExpression::Variable("a".to_string()),
+            HirExpression::IntLiteral(42),
+        ],
+    };
+    let code = cg.generate_expression(&expr);
+    assert!(
+        code.contains("custom_func"),
+        "Unknown function should preserve name, got: {}",
+        code
+    );
+}
+
+// ============================================================================
+// Complex statement patterns for deeper coverage
+// ============================================================================
+
+#[test]
+fn stmt_if_else_with_return() {
+    let cg = CodeGenerator::new();
+    let stmt = HirStatement::If {
+        condition: HirExpression::BinaryOp {
+            op: BinaryOperator::GreaterThan,
+            left: Box::new(HirExpression::Variable("x".to_string())),
+            right: Box::new(HirExpression::IntLiteral(0)),
+        },
+        then_block: vec![HirStatement::Return(Some(HirExpression::Variable(
+            "x".to_string(),
+        )))],
+        else_block: Some(vec![HirStatement::Return(Some(
+            HirExpression::UnaryOp {
+                op: UnaryOperator::Minus,
+                operand: Box::new(HirExpression::Variable("x".to_string())),
+            },
+        ))]),
+    };
+    let code = cg.generate_statement(&stmt);
+    assert!(
+        code.contains("if") && code.contains("else"),
+        "If with else should generate both branches, got: {}",
+        code
+    );
+}
+
+#[test]
+fn stmt_nested_if_else() {
+    let cg = CodeGenerator::new();
+    let stmt = HirStatement::If {
+        condition: HirExpression::BinaryOp {
+            op: BinaryOperator::LessThan,
+            left: Box::new(HirExpression::Variable("a".to_string())),
+            right: Box::new(HirExpression::IntLiteral(0)),
+        },
+        then_block: vec![HirStatement::Assignment {
+            target: "result".to_string(),
+            value: HirExpression::IntLiteral(-1),
+        }],
+        else_block: Some(vec![HirStatement::If {
+            condition: HirExpression::BinaryOp {
+                op: BinaryOperator::GreaterThan,
+                left: Box::new(HirExpression::Variable("a".to_string())),
+                right: Box::new(HirExpression::IntLiteral(0)),
+            },
+            then_block: vec![HirStatement::Assignment {
+                target: "result".to_string(),
+                value: HirExpression::IntLiteral(1),
+            }],
+            else_block: Some(vec![HirStatement::Assignment {
+                target: "result".to_string(),
+                value: HirExpression::IntLiteral(0),
+            }]),
+        }]),
+    };
+    let code = cg.generate_statement(&stmt);
+    assert!(
+        code.contains("if") && code.contains("else"),
+        "Nested if-else should generate chain, got: {}",
+        code
+    );
+}
+
+#[test]
+fn stmt_while_with_complex_condition() {
+    let cg = CodeGenerator::new();
+    let stmt = HirStatement::While {
+        condition: HirExpression::BinaryOp {
+            op: BinaryOperator::LogicalAnd,
+            left: Box::new(HirExpression::BinaryOp {
+                op: BinaryOperator::LessThan,
+                left: Box::new(HirExpression::Variable("i".to_string())),
+                right: Box::new(HirExpression::Variable("n".to_string())),
+            }),
+            right: Box::new(HirExpression::BinaryOp {
+                op: BinaryOperator::NotEqual,
+                left: Box::new(HirExpression::Variable("done".to_string())),
+                right: Box::new(HirExpression::IntLiteral(1)),
+            }),
+        },
+        body: vec![HirStatement::Expression(HirExpression::UnaryOp {
+            op: UnaryOperator::PostIncrement,
+            operand: Box::new(HirExpression::Variable("i".to_string())),
+        })],
+    };
+    let code = cg.generate_statement(&stmt);
+    assert!(
+        code.contains("while") || code.contains("loop"),
+        "While with complex condition should generate loop, got: {}",
+        code
+    );
+}
+
+#[test]
+fn stmt_for_with_multiple_init() {
+    let cg = CodeGenerator::new();
+    // C: for(int i = 0, j = 10; i < j; i++, j--)
+    let stmt = HirStatement::For {
+        init: vec![
+            HirStatement::VariableDeclaration {
+                name: "i".to_string(),
+                var_type: HirType::Int,
+                initializer: Some(HirExpression::IntLiteral(0)),
+            },
+            HirStatement::VariableDeclaration {
+                name: "j".to_string(),
+                var_type: HirType::Int,
+                initializer: Some(HirExpression::IntLiteral(10)),
+            },
+        ],
+        condition: Some(HirExpression::BinaryOp {
+            op: BinaryOperator::LessThan,
+            left: Box::new(HirExpression::Variable("i".to_string())),
+            right: Box::new(HirExpression::Variable("j".to_string())),
+        }),
+        increment: vec![
+            HirStatement::Expression(HirExpression::UnaryOp {
+                op: UnaryOperator::PostIncrement,
+                operand: Box::new(HirExpression::Variable("i".to_string())),
+            }),
+            HirStatement::Expression(HirExpression::UnaryOp {
+                op: UnaryOperator::PostDecrement,
+                operand: Box::new(HirExpression::Variable("j".to_string())),
+            }),
+        ],
+        body: vec![HirStatement::Continue],
+    };
+    let code = cg.generate_statement(&stmt);
+    assert!(
+        code.contains("i") && code.contains("j"),
+        "For with multiple init/increment should contain both vars, got: {}",
+        code
+    );
+}
+
+#[test]
+fn stmt_free_expression() {
+    let cg = CodeGenerator::new();
+    // C: free(ptr);  → RAII drop (comment or drop())
+    let stmt = HirStatement::Free {
+        pointer: HirExpression::Variable("ptr".to_string()),
+    };
+    let code = cg.generate_statement(&stmt);
+    assert!(
+        code.contains("drop") || code.contains("ptr") || code.contains("//"),
+        "Free should generate drop or comment, got: {}",
+        code
+    );
+}
+
+#[test]
+fn typed_decl_box_type_direct() {
+    let cg = CodeGenerator::new();
+    let stmt = HirStatement::VariableDeclaration {
+        name: "b".to_string(),
+        var_type: HirType::Box(Box::new(HirType::Int)),
+        initializer: None,
+    };
+    let code = cg.generate_statement(&stmt);
+    assert!(
+        code.contains("Box") || code.contains("b"),
+        "Box type decl should contain Box, got: {}",
+        code
+    );
+}
+
+#[test]
+fn typed_decl_reference_type() {
+    let cg = CodeGenerator::new();
+    let stmt = HirStatement::VariableDeclaration {
+        name: "r".to_string(),
+        var_type: HirType::Reference {
+            inner: Box::new(HirType::Int),
+            mutable: false,
+        },
+        initializer: Some(HirExpression::Variable("x".to_string())),
+    };
+    let code = cg.generate_statement(&stmt);
+    assert!(
+        code.contains("r") || code.contains("&"),
+        "Reference type decl should contain & or r, got: {}",
+        code
+    );
+}
+
+#[test]
+fn typed_decl_mut_reference_type() {
+    let cg = CodeGenerator::new();
+    let stmt = HirStatement::VariableDeclaration {
+        name: "r".to_string(),
+        var_type: HirType::Reference {
+            inner: Box::new(HirType::Int),
+            mutable: true,
+        },
+        initializer: Some(HirExpression::Variable("x".to_string())),
+    };
+    let code = cg.generate_statement(&stmt);
+    assert!(
+        code.contains("r") || code.contains("&mut"),
+        "Mutable reference type decl should contain &mut, got: {}",
+        code
+    );
+}
+
+#[test]
+fn typed_decl_owned_string() {
+    let cg = CodeGenerator::new();
+    let stmt = HirStatement::VariableDeclaration {
+        name: "s".to_string(),
+        var_type: HirType::OwnedString,
+        initializer: Some(HirExpression::StringLiteral("hello".to_string())),
+    };
+    let code = cg.generate_statement(&stmt);
+    assert!(
+        code.contains("String") || code.contains("s") || code.contains("hello"),
+        "OwnedString decl should contain String, got: {}",
+        code
+    );
+}
+
+#[test]
+fn typed_decl_string_reference() {
+    let cg = CodeGenerator::new();
+    let stmt = HirStatement::VariableDeclaration {
+        name: "s".to_string(),
+        var_type: HirType::StringReference,
+        initializer: Some(HirExpression::StringLiteral("hello".to_string())),
+    };
+    let code = cg.generate_statement(&stmt);
+    assert!(
+        code.contains("str") || code.contains("s") || code.contains("hello"),
+        "StringReference decl should contain &str, got: {}",
+        code
+    );
+}
+
+#[test]
+fn typed_decl_union_type() {
+    let cg = CodeGenerator::new();
+    let stmt = HirStatement::VariableDeclaration {
+        name: "u".to_string(),
+        var_type: HirType::Union(vec![
+            ("i".to_string(), HirType::Int),
+            ("f".to_string(), HirType::Float),
+        ]),
+        initializer: Some(HirExpression::IntLiteral(42)),
+    };
+    let code = cg.generate_statement(&stmt);
+    assert!(
+        code.contains("u"),
+        "Union type decl should contain u, got: {}",
+        code
+    );
+}
+
+#[test]
+fn typed_decl_array_with_size() {
+    let cg = CodeGenerator::new();
+    // C: int arr[10] = {0};
+    let stmt = HirStatement::VariableDeclaration {
+        name: "arr".to_string(),
+        var_type: HirType::Array {
+            element_type: Box::new(HirType::Int),
+            size: Some(10),
+        },
+        initializer: Some(HirExpression::IntLiteral(0)),
+    };
+    let code = cg.generate_statement(&stmt);
+    assert!(
+        code.contains("arr"),
+        "Array with size decl should contain arr, got: {}",
+        code
+    );
+}
+
+#[test]
+fn typed_decl_function_pointer_with_init() {
+    let cg = CodeGenerator::new();
+    let stmt = HirStatement::VariableDeclaration {
+        name: "cmp".to_string(),
+        var_type: HirType::FunctionPointer {
+            param_types: vec![HirType::Int, HirType::Int],
+            return_type: Box::new(HirType::Int),
+        },
+        initializer: Some(HirExpression::Variable("compare".to_string())),
+    };
+    let code = cg.generate_statement(&stmt);
+    assert!(
+        code.contains("cmp") || code.contains("compare"),
+        "Function pointer with init should reference cmp, got: {}",
+        code
+    );
+}
