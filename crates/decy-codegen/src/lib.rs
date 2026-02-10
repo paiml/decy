@@ -7427,3 +7427,7 @@ mod expr_target_deep_tests;
 #[cfg(test)]
 #[path = "codegen_remaining_tests.rs"]
 mod codegen_remaining_tests;
+
+#[cfg(test)]
+#[path = "codegen_deep_coverage_tests.rs"]
+mod codegen_deep_coverage_tests;
