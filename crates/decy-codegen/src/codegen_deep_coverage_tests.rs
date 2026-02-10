@@ -4,7 +4,10 @@
 //! StringMethodCall, IsNotNull, Calloc, TypeContext helpers.
 
 use super::*;
-use decy_hir::{HirExpression, HirType};
+use decy_hir::{
+    BinaryOperator, HirExpression, HirFunction, HirParameter, HirStatement, HirType, SwitchCase,
+    UnaryOperator,
+};
 
 // ============================================================================
 // convert_format_specifiers edge cases
@@ -2210,4 +2213,683 @@ fn stdlib_qsort_invalid_args() {
     };
     let code = cg.generate_expression(&expr);
     assert!(code.contains("qsort requires 4 args"));
+}
+
+// ============================================================================
+// Signature generation: function name renaming (DECY-241 keyword conflicts)
+// ============================================================================
+
+#[test]
+fn signature_renames_write_to_c_write() {
+    let cg = CodeGenerator::new();
+    let func = HirFunction::new("write".to_string(), HirType::Void, vec![]);
+    let sig = cg.generate_signature(&func);
+    assert!(
+        sig.contains("fn c_write"),
+        "write should be renamed to c_write, got: {}",
+        sig
+    );
+}
+
+#[test]
+fn signature_renames_read_to_c_read() {
+    let cg = CodeGenerator::new();
+    let func = HirFunction::new("read".to_string(), HirType::Int, vec![]);
+    let sig = cg.generate_signature(&func);
+    assert!(
+        sig.contains("fn c_read"),
+        "read should be renamed to c_read, got: {}",
+        sig
+    );
+}
+
+#[test]
+fn signature_renames_type_to_c_type() {
+    let cg = CodeGenerator::new();
+    let func = HirFunction::new("type".to_string(), HirType::Void, vec![]);
+    let sig = cg.generate_signature(&func);
+    assert!(
+        sig.contains("fn c_type"),
+        "type should be renamed to c_type, got: {}",
+        sig
+    );
+}
+
+#[test]
+fn signature_renames_match_to_c_match() {
+    let cg = CodeGenerator::new();
+    let func = HirFunction::new("match".to_string(), HirType::Int, vec![]);
+    let sig = cg.generate_signature(&func);
+    assert!(
+        sig.contains("fn c_match"),
+        "match should be renamed to c_match, got: {}",
+        sig
+    );
+}
+
+#[test]
+fn signature_renames_self_to_c_self() {
+    let cg = CodeGenerator::new();
+    let func = HirFunction::new("self".to_string(), HirType::Void, vec![]);
+    let sig = cg.generate_signature(&func);
+    assert!(
+        sig.contains("fn c_self"),
+        "self should be renamed to c_self, got: {}",
+        sig
+    );
+}
+
+#[test]
+fn signature_renames_in_to_c_in() {
+    let cg = CodeGenerator::new();
+    let func = HirFunction::new("in".to_string(), HirType::Void, vec![]);
+    let sig = cg.generate_signature(&func);
+    assert!(
+        sig.contains("fn c_in"),
+        "in should be renamed to c_in, got: {}",
+        sig
+    );
+}
+
+#[test]
+fn signature_preserves_normal_name() {
+    let cg = CodeGenerator::new();
+    let func = HirFunction::new("process_data".to_string(), HirType::Int, vec![]);
+    let sig = cg.generate_signature(&func);
+    assert!(
+        sig.contains("fn process_data"),
+        "Normal name should be preserved, got: {}",
+        sig
+    );
+}
+
+// ============================================================================
+// Signature generation: main() special case, return types
+// ============================================================================
+
+#[test]
+fn signature_main_omits_return_type() {
+    let cg = CodeGenerator::new();
+    let func = HirFunction::new("main".to_string(), HirType::Int, vec![]);
+    let sig = cg.generate_signature(&func);
+    assert!(
+        sig.contains("fn main"),
+        "Should generate main, got: {}",
+        sig
+    );
+    assert!(
+        !sig.contains("-> i32"),
+        "main should not have -> i32 return, got: {}",
+        sig
+    );
+}
+
+#[test]
+fn signature_non_main_has_return_type() {
+    let cg = CodeGenerator::new();
+    let func = HirFunction::new("compute".to_string(), HirType::Int, vec![]);
+    let sig = cg.generate_signature(&func);
+    assert!(
+        sig.contains("-> i32"),
+        "Non-main with Int return should have -> i32, got: {}",
+        sig
+    );
+}
+
+#[test]
+fn signature_void_return_no_arrow() {
+    let cg = CodeGenerator::new();
+    let func = HirFunction::new("process".to_string(), HirType::Void, vec![]);
+    let sig = cg.generate_signature(&func);
+    assert!(
+        !sig.contains("->"),
+        "Void return should have no arrow, got: {}",
+        sig
+    );
+}
+
+#[test]
+fn signature_float_return() {
+    let cg = CodeGenerator::new();
+    let func = HirFunction::new("calc".to_string(), HirType::Float, vec![]);
+    let sig = cg.generate_signature(&func);
+    assert!(
+        sig.contains("-> f32"),
+        "Float return should be -> f32, got: {}",
+        sig
+    );
+}
+
+#[test]
+fn signature_double_return() {
+    let cg = CodeGenerator::new();
+    let func = HirFunction::new("precise".to_string(), HirType::Double, vec![]);
+    let sig = cg.generate_signature(&func);
+    assert!(
+        sig.contains("-> f64"),
+        "Double return should be -> f64, got: {}",
+        sig
+    );
+}
+
+#[test]
+fn signature_char_return() {
+    let cg = CodeGenerator::new();
+    let func = HirFunction::new("getchar_fn".to_string(), HirType::Char, vec![]);
+    let sig = cg.generate_signature(&func);
+    assert!(
+        sig.contains("->"),
+        "Char return should have arrow, got: {}",
+        sig
+    );
+}
+
+// ============================================================================
+// Signature generation: parameters
+// ============================================================================
+
+#[test]
+fn signature_basic_int_params() {
+    let cg = CodeGenerator::new();
+    let func = HirFunction::new(
+        "add".to_string(),
+        HirType::Int,
+        vec![
+            HirParameter::new("a".to_string(), HirType::Int),
+            HirParameter::new("b".to_string(), HirType::Int),
+        ],
+    );
+    let sig = cg.generate_signature(&func);
+    assert!(sig.contains("a:"), "Should contain param a, got: {}", sig);
+    assert!(sig.contains("b:"), "Should contain param b, got: {}", sig);
+}
+
+#[test]
+fn signature_pointer_param() {
+    let cg = CodeGenerator::new();
+    let func = HirFunction::new_with_body(
+        "deref".to_string(),
+        HirType::Int,
+        vec![HirParameter::new(
+            "ptr".to_string(),
+            HirType::Pointer(Box::new(HirType::Int)),
+        )],
+        vec![HirStatement::Return(Some(HirExpression::Dereference(
+            Box::new(HirExpression::Variable("ptr".to_string())),
+        )))],
+    );
+    let sig = cg.generate_signature(&func);
+    assert!(sig.contains("ptr"), "Should contain ptr param, got: {}", sig);
+}
+
+#[test]
+fn signature_unsigned_int_return() {
+    let cg = CodeGenerator::new();
+    let func = HirFunction::new("count".to_string(), HirType::UnsignedInt, vec![]);
+    let sig = cg.generate_signature(&func);
+    assert!(
+        sig.contains("-> u32"),
+        "UnsignedInt return should be -> u32, got: {}",
+        sig
+    );
+}
+
+// ============================================================================
+// Expression target type: null pointer detection
+// ============================================================================
+
+#[test]
+fn expr_int_zero_to_pointer_is_null_mut() {
+    let cg = CodeGenerator::new();
+    // VariableDeclaration with pointer type and IntLiteral(0) initializer
+    let stmt = HirStatement::VariableDeclaration {
+        name: "ptr".to_string(),
+        var_type: HirType::Pointer(Box::new(HirType::Int)),
+        initializer: Some(HirExpression::IntLiteral(0)),
+    };
+    let code = cg.generate_statement(&stmt);
+    assert!(
+        code.contains("null_mut") || code.contains("None"),
+        "0 assigned to pointer should generate null_mut or None, got: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_int_nonzero_to_pointer_no_null() {
+    let cg = CodeGenerator::new();
+    let stmt = HirStatement::VariableDeclaration {
+        name: "ptr".to_string(),
+        var_type: HirType::Pointer(Box::new(HirType::Int)),
+        initializer: Some(HirExpression::IntLiteral(42)),
+    };
+    let code = cg.generate_statement(&stmt);
+    assert!(
+        !code.contains("null_mut"),
+        "Non-zero to pointer should NOT be null_mut, got: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_string_literal_to_pointer_type() {
+    let cg = CodeGenerator::new();
+    let stmt = HirStatement::VariableDeclaration {
+        name: "msg".to_string(),
+        var_type: HirType::Pointer(Box::new(HirType::Char)),
+        initializer: Some(HirExpression::StringLiteral("hello".to_string())),
+    };
+    let code = cg.generate_statement(&stmt);
+    assert!(
+        code.contains("hello"),
+        "String literal assigned to char* should contain the string, got: {}",
+        code
+    );
+}
+
+// ============================================================================
+// Statement coverage: InlineAsm
+// ============================================================================
+
+#[test]
+fn statement_inline_asm_translatable() {
+    let cg = CodeGenerator::new();
+    let stmt = HirStatement::InlineAsm {
+        text: "nop".to_string(),
+        translatable: true,
+    };
+    let code = cg.generate_statement(&stmt);
+    assert!(
+        code.contains("asm") || code.contains("nop"),
+        "InlineAsm with translatable should generate asm, got: {}",
+        code
+    );
+}
+
+#[test]
+fn statement_inline_asm_not_translatable() {
+    let cg = CodeGenerator::new();
+    let stmt = HirStatement::InlineAsm {
+        text: "int 0x80".to_string(),
+        translatable: false,
+    };
+    let code = cg.generate_statement(&stmt);
+    assert!(
+        !code.is_empty(),
+        "InlineAsm non-translatable should generate something, got: {}",
+        code
+    );
+}
+
+// ============================================================================
+// Statement coverage: switch/case with char literal
+// ============================================================================
+
+#[test]
+fn statement_switch_basic() {
+    let cg = CodeGenerator::new();
+    let stmt = HirStatement::Switch {
+        condition: HirExpression::Variable("x".to_string()),
+        cases: vec![SwitchCase {
+            value: Some(HirExpression::IntLiteral(1)),
+            body: vec![HirStatement::Return(Some(HirExpression::IntLiteral(10)))],
+        }],
+        default_case: Some(vec![HirStatement::Return(Some(
+            HirExpression::IntLiteral(0),
+        ))]),
+    };
+    let code = cg.generate_statement(&stmt);
+    assert!(
+        code.contains("match"),
+        "Switch should generate match, got: {}",
+        code
+    );
+}
+
+#[test]
+fn statement_switch_char_cases() {
+    let cg = CodeGenerator::new();
+    let stmt = HirStatement::Switch {
+        condition: HirExpression::Variable("ch".to_string()),
+        cases: vec![
+            SwitchCase {
+                value: Some(HirExpression::CharLiteral(b'a' as i8)),
+                body: vec![HirStatement::Return(Some(HirExpression::IntLiteral(1)))],
+            },
+            SwitchCase {
+                value: Some(HirExpression::CharLiteral(b'b' as i8)),
+                body: vec![HirStatement::Return(Some(HirExpression::IntLiteral(2)))],
+            },
+        ],
+        default_case: None,
+    };
+    let code = cg.generate_statement(&stmt);
+    assert!(
+        code.contains("match"),
+        "Switch with chars should generate match, got: {}",
+        code
+    );
+}
+
+// ============================================================================
+// Statement coverage: for loop variants
+// ============================================================================
+
+#[test]
+fn statement_for_with_init_and_increment() {
+    let cg = CodeGenerator::new();
+    let stmt = HirStatement::For {
+        init: vec![HirStatement::VariableDeclaration {
+            name: "i".to_string(),
+            var_type: HirType::Int,
+            initializer: Some(HirExpression::IntLiteral(0)),
+        }],
+        condition: Some(HirExpression::BinaryOp {
+            op: BinaryOperator::LessThan,
+            left: Box::new(HirExpression::Variable("i".to_string())),
+            right: Box::new(HirExpression::IntLiteral(10)),
+        }),
+        increment: vec![HirStatement::Expression(HirExpression::UnaryOp {
+            op: UnaryOperator::PostIncrement,
+            operand: Box::new(HirExpression::Variable("i".to_string())),
+        })],
+        body: vec![HirStatement::Expression(HirExpression::FunctionCall {
+            function: "puts".to_string(),
+            arguments: vec![HirExpression::StringLiteral("tick".to_string())],
+        })],
+    };
+    let code = cg.generate_statement(&stmt);
+    assert!(
+        code.contains("while") || code.contains("for"),
+        "For loop should generate while or for, got: {}",
+        code
+    );
+}
+
+#[test]
+fn statement_for_infinite_loop() {
+    let cg = CodeGenerator::new();
+    let stmt = HirStatement::For {
+        init: vec![],
+        condition: None,
+        increment: vec![],
+        body: vec![HirStatement::Break],
+    };
+    let code = cg.generate_statement(&stmt);
+    assert!(
+        code.contains("loop"),
+        "for(;;) should generate loop, got: {}",
+        code
+    );
+}
+
+// ============================================================================
+// Statement coverage: deref assignment
+// ============================================================================
+
+#[test]
+fn statement_deref_assignment() {
+    let cg = CodeGenerator::new();
+    let stmt = HirStatement::DerefAssignment {
+        target: HirExpression::Variable("ptr".to_string()),
+        value: HirExpression::IntLiteral(42),
+    };
+    let code = cg.generate_statement(&stmt);
+    assert!(
+        code.contains("42"),
+        "Deref assignment should contain value, got: {}",
+        code
+    );
+}
+
+// ============================================================================
+// Statement coverage: array index assignment
+// ============================================================================
+
+#[test]
+fn statement_array_index_assignment() {
+    let cg = CodeGenerator::new();
+    let stmt = HirStatement::ArrayIndexAssignment {
+        array: Box::new(HirExpression::Variable("arr".to_string())),
+        index: Box::new(HirExpression::IntLiteral(0)),
+        value: HirExpression::IntLiteral(99),
+    };
+    let code = cg.generate_statement(&stmt);
+    assert!(
+        code.contains("arr") && code.contains("99"),
+        "Array index assignment should contain array and value, got: {}",
+        code
+    );
+}
+
+// ============================================================================
+// Statement coverage: field assignment
+// ============================================================================
+
+#[test]
+fn statement_field_assignment() {
+    let cg = CodeGenerator::new();
+    let stmt = HirStatement::FieldAssignment {
+        object: HirExpression::Variable("point".to_string()),
+        field: "x".to_string(),
+        value: HirExpression::IntLiteral(10),
+    };
+    let code = cg.generate_statement(&stmt);
+    assert!(
+        code.contains("point") && code.contains("x") && code.contains("10"),
+        "Field assignment should contain object, field, value, got: {}",
+        code
+    );
+}
+
+// ============================================================================
+// Statement coverage: free
+// ============================================================================
+
+#[test]
+fn statement_free_generates_drop_comment() {
+    let cg = CodeGenerator::new();
+    let stmt = HirStatement::Free {
+        pointer: HirExpression::Variable("ptr".to_string()),
+    };
+    let code = cg.generate_statement(&stmt);
+    assert!(
+        code.contains("drop") || code.contains("RAII") || code.contains("freed"),
+        "Free should generate drop/RAII comment, got: {}",
+        code
+    );
+}
+
+// ============================================================================
+// Expression coverage: char literal
+// ============================================================================
+
+#[test]
+fn expr_char_literal_printable() {
+    let cg = CodeGenerator::new();
+    let expr = HirExpression::CharLiteral(b'A' as i8);
+    let code = cg.generate_expression(&expr);
+    assert!(
+        code.contains("'A'") || code.contains("b'A'") || code.contains("65"),
+        "Printable char should generate char literal, got: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_char_literal_non_printable() {
+    let cg = CodeGenerator::new();
+    let expr = HirExpression::CharLiteral(b'\n' as i8);
+    let code = cg.generate_expression(&expr);
+    assert!(
+        !code.is_empty(),
+        "Non-printable char should generate something, got: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_char_literal_zero() {
+    let cg = CodeGenerator::new();
+    let expr = HirExpression::CharLiteral(0);
+    let code = cg.generate_expression(&expr);
+    assert!(
+        !code.is_empty(),
+        "Null char should generate something, got: {}",
+        code
+    );
+}
+
+// ============================================================================
+// Expression coverage: unary ops
+// ============================================================================
+
+#[test]
+fn expr_unary_post_increment() {
+    let cg = CodeGenerator::new();
+    let expr = HirExpression::UnaryOp {
+        op: UnaryOperator::PostIncrement,
+        operand: Box::new(HirExpression::Variable("i".to_string())),
+    };
+    let code = cg.generate_expression(&expr);
+    assert!(!code.is_empty(), "PostIncrement should generate code, got: {}", code);
+}
+
+#[test]
+fn expr_unary_pre_decrement() {
+    let cg = CodeGenerator::new();
+    let expr = HirExpression::UnaryOp {
+        op: UnaryOperator::PreDecrement,
+        operand: Box::new(HirExpression::Variable("n".to_string())),
+    };
+    let code = cg.generate_expression(&expr);
+    assert!(!code.is_empty(), "PreDecrement should generate code, got: {}", code);
+}
+
+#[test]
+fn expr_unary_logical_not() {
+    let cg = CodeGenerator::new();
+    let expr = HirExpression::UnaryOp {
+        op: UnaryOperator::LogicalNot,
+        operand: Box::new(HirExpression::Variable("flag".to_string())),
+    };
+    let code = cg.generate_expression(&expr);
+    assert!(
+        code.contains("!") || code.contains("== 0"),
+        "LogicalNot should generate negation or == 0, got: {}",
+        code
+    );
+}
+
+// ============================================================================
+// Expression coverage: dereference
+// ============================================================================
+
+#[test]
+fn expr_dereference_variable() {
+    let cg = CodeGenerator::new();
+    let expr = HirExpression::Dereference(Box::new(HirExpression::Variable(
+        "ptr".to_string(),
+    )));
+    let code = cg.generate_expression(&expr);
+    assert!(
+        code.contains("ptr"),
+        "Dereference should contain variable name, got: {}",
+        code
+    );
+}
+
+// ============================================================================
+// Expression coverage: address-of
+// ============================================================================
+
+#[test]
+fn expr_address_of_variable() {
+    let cg = CodeGenerator::new();
+    let expr = HirExpression::AddressOf(Box::new(HirExpression::Variable(
+        "x".to_string(),
+    )));
+    let code = cg.generate_expression(&expr);
+    assert!(
+        code.contains("&") || code.contains("x"),
+        "AddressOf should generate reference, got: {}",
+        code
+    );
+}
+
+// ============================================================================
+// Expression coverage: sizeof
+// ============================================================================
+
+#[test]
+fn expr_sizeof_type() {
+    let cg = CodeGenerator::new();
+    let expr = HirExpression::Sizeof { type_name: "int".to_string() };
+    let code = cg.generate_expression(&expr);
+    assert!(
+        code.contains("size_of") || code.contains("mem::size_of"),
+        "SizeOf should generate size_of, got: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_sizeof_pointer_type() {
+    let cg = CodeGenerator::new();
+    let expr = HirExpression::Sizeof { type_name: "char*".to_string() };
+    let code = cg.generate_expression(&expr);
+    assert!(
+        code.contains("size_of"),
+        "SizeOf pointer should generate size_of, got: {}",
+        code
+    );
+}
+
+// ============================================================================
+// Expression coverage: type cast (Cast variant)
+// ============================================================================
+
+#[test]
+fn expr_cast_var_to_float() {
+    let cg = CodeGenerator::new();
+    let expr = HirExpression::Cast {
+        expr: Box::new(HirExpression::Variable("x".to_string())),
+        target_type: HirType::Float,
+    };
+    let code = cg.generate_expression(&expr);
+    assert!(
+        code.contains("as f32") || code.contains("f32"),
+        "Cast var to float should generate as f32, got: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_cast_var_to_int() {
+    let cg = CodeGenerator::new();
+    let expr = HirExpression::Cast {
+        expr: Box::new(HirExpression::Variable("f".to_string())),
+        target_type: HirType::Int,
+    };
+    let code = cg.generate_expression(&expr);
+    assert!(
+        code.contains("as i32") || code.contains("i32"),
+        "Cast float to int should generate as i32, got: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_cast_to_unsigned() {
+    let cg = CodeGenerator::new();
+    let expr = HirExpression::Cast {
+        expr: Box::new(HirExpression::Variable("x".to_string())),
+        target_type: HirType::UnsignedInt,
+    };
+    let code = cg.generate_expression(&expr);
+    assert!(
+        code.contains("as u32") || code.contains("u32"),
+        "Cast to unsigned should generate u32, got: {}",
+        code
+    );
 }
