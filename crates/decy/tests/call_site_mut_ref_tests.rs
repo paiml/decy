@@ -92,8 +92,7 @@ fn test_call_site_mut_ref_multiple_params() {
 /// C: print_value(&x)  where print_value takes (const int *p)
 /// Expected: print_value(&x)  (immutable reference)
 ///
-/// Note: This requires detecting 'const' qualifiers in the parser/HIR.
-/// TODO: DECY-118 - Implement const pointer detection for immutable references
+/// Note: This requires detecting 'const' qualifiers in the parser/HIR (DECY-118).
 #[test]
 #[ignore = "DECY-118: Const pointer detection not yet implemented"]
 fn test_call_site_immut_ref_for_readonly() {

@@ -152,9 +152,6 @@ impl UncertainSample {
 pub struct UncertaintyCalculator {
     /// Confidence threshold below which samples are considered uncertain
     pub(crate) confidence_threshold: f64,
-    /// Margin threshold for margin sampling (reserved for future use)
-    #[allow(dead_code)]
-    margin_threshold: f64,
 }
 
 impl Default for UncertaintyCalculator {
@@ -168,7 +165,6 @@ impl UncertaintyCalculator {
     pub fn new() -> Self {
         Self {
             confidence_threshold: 0.65,
-            margin_threshold: 0.15,
         }
     }
 
@@ -176,7 +172,6 @@ impl UncertaintyCalculator {
     pub fn with_confidence_threshold(threshold: f64) -> Self {
         Self {
             confidence_threshold: threshold.clamp(0.0, 1.0),
-            margin_threshold: 0.15,
         }
     }
 

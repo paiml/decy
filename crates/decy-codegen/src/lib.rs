@@ -111,8 +111,8 @@ impl TypeContext {
         self.string_iter_params.insert(param_name, index_var);
     }
 
-    /// DECY-134: Check if a variable is a string iteration param
-    #[allow(dead_code)] // Reserved for future use in call-site transformation
+    /// DECY-134: Check if a variable is a string iteration param.
+    #[cfg(test)]
     fn is_string_iter_param(&self, name: &str) -> bool {
         self.string_iter_params.contains_key(name)
     }

@@ -14,17 +14,17 @@ use decy_oracle::{
 pub struct OracleOptions {
     /// Enable oracle-assisted transpilation
     pub enabled: bool,
-    /// Confidence threshold for auto-fix (0.0-1.0) - used by citl feature
-    #[allow(dead_code)]
+    /// Confidence threshold for auto-fix (0.0-1.0)
+    #[cfg_attr(not(feature = "citl"), allow(dead_code))]
     pub threshold: f32,
-    /// Enable automatic fix application - used by citl feature
-    #[allow(dead_code)]
+    /// Enable automatic fix application
+    #[cfg_attr(not(feature = "citl"), allow(dead_code))]
     pub auto_fix: bool,
-    /// Maximum retry attempts - used by citl feature
-    #[allow(dead_code)]
+    /// Maximum retry attempts
+    #[cfg_attr(not(feature = "citl"), allow(dead_code))]
     pub max_retries: usize,
-    /// Path to patterns file - used by citl feature
-    #[allow(dead_code)]
+    /// Path to patterns file
+    #[cfg_attr(not(feature = "citl"), allow(dead_code))]
     pub patterns_path: Option<std::path::PathBuf>,
     /// Enable pattern capture for learning
     pub capture_patterns: bool,

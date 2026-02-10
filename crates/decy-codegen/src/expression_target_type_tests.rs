@@ -69,7 +69,7 @@ fn test_float_literal_c_suffix_f_stripped() {
 }
 
 #[test]
-fn test_float_literal_c_suffix_L_stripped() {
+fn test_float_literal_c_suffix_l_stripped() {
     let codegen = CodeGenerator::new();
     let func = make_func_returning(
         HirType::Double,
