@@ -255,7 +255,7 @@ The transpiler must preserve C program semantics. Differential testing compiles 
 
 ### Coverage Results
 
-Post-implementation workspace coverage: **97.27% line coverage** (target: 95%)
+Post-implementation workspace coverage: **97.68% line coverage** (target: 95%)
 
 | Crate | Coverage | Notes |
 |-------|----------|-------|
@@ -263,16 +263,16 @@ Post-implementation workspace coverage: **97.27% line coverage** (target: 95%)
 | decy-hir | 97.50% | Well-covered via falsification + unit tests |
 | decy-analyzer | 97.00% | Lock analysis, subprocess analysis at 90-96% |
 | decy-ownership | 98.90% | 17 inference branch tests added via graph helpers |
-| decy-codegen | 94.67% | 661 deep coverage tests (lifetimes, call args, null checks, pointer analysis, transforms) |
+| decy-codegen | 96.29% | 710 deep coverage tests (type inference, var-to-ptr, null checks, pointer analysis, transforms) |
 | decy-verify | 99.23% | Compile verification fully tested |
 | decy-core | 97.61% | Pipeline tests + uninitialized globals + enum/function dedup |
 | decy-stdlib | 100.00% | Complete coverage |
 
 ### Test Corpus
 
-- **Total tests**: 12,296 passing across workspace
+- **Total tests**: 12,345 passing across workspace
 - **Falsification tests**: 2,150 total (92 falsified, 95.7% pass rate)
-- **Codegen deep tests**: 661 (lifetimes, call arg transformations, null checks, pointer analysis, Vec/Box transforms, deref assigns, sizeof, global variables, format specifiers)
+- **Codegen deep tests**: 710 (type inference, var-to-ptr conversions, null checks, pointer analysis, Vec/Box transforms, deref assigns, sizeof, global variables, format specifiers, strlen idioms)
 - **Core pipeline tests**: 12 new (uninitialized globals, enum variants, function dedup)
 - **Inference branch tests**: 17 (via DataflowGraph test helpers for defensive branches)
 
