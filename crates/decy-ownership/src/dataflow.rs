@@ -776,6 +776,29 @@ impl Default for DataflowAnalyzer {
     }
 }
 
+/// Test helpers for constructing DataflowGraph with specific node configurations.
+/// Used by inference_tests.rs to test defensive branches that the analyzer can't produce.
+#[cfg(test)]
+impl DataflowGraph {
+    /// Add a node for a variable.
+    pub(crate) fn with_node(mut self, var: &str, node: PointerNode) -> Self {
+        self.nodes.entry(var.to_string()).or_default().push(node);
+        self
+    }
+
+    /// Add an empty variable entry (no nodes). Triggers classify_pointer empty-nodes path.
+    pub(crate) fn with_empty_var(mut self, var: &str) -> Self {
+        self.nodes.entry(var.to_string()).or_default();
+        self
+    }
+
+    /// Set array base relationship.
+    pub(crate) fn with_array_base(mut self, var: &str, base: &str) -> Self {
+        self.array_bases.insert(var.to_string(), base.to_string());
+        self
+    }
+}
+
 #[cfg(test)]
 #[path = "dataflow_tests.rs"]
 mod dataflow_tests;
