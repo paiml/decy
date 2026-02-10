@@ -1,0 +1,34 @@
+# PMAT Quality Metrics Configuration
+# See: https://github.com/paiml/pmat
+
+[thresholds]
+coverage_minimum = 80.0
+coverage_target = 85.0
+mutation_score = 85.0
+max_cyclomatic = 10
+max_cognitive = 15
+max_unsafe_per_1000_loc = 5
+
+[coverage]
+tool = "cargo-llvm-cov"
+exclude_patterns = [
+    "test_generator",
+    "quality/gates",
+    "decy-agent",
+    "decy-mcp",
+    "decy-repo",
+    "decy-debugger",
+    "main\\.rs",
+    "repl\\.rs",
+]
+
+[property_testing]
+proptest_cases = 256
+quickcheck_tests = 256
+
+[dead_code]
+threshold_percent = 15.0
+
+[dependencies]
+max_direct = 50
+max_transitive = 300
