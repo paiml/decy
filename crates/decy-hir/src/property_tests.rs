@@ -143,11 +143,11 @@ proptest! {
                 var_type: HirType::Int,
                 initializer: Some(HirExpression::IntLiteral(0)),
             }],
-            condition: HirExpression::BinaryOp {
+            condition: Some(HirExpression::BinaryOp {
                 op: BinaryOperator::LessThan,
                 left: Box::new(HirExpression::Variable(var_name)),
                 right: Box::new(HirExpression::IntLiteral(limit)),
-            },
+            }),
             increment: vec![],
             body: vec![],
         };
@@ -167,11 +167,11 @@ proptest! {
     ) {
         let for_stmt = HirStatement::For {
             init: vec![],
-            condition: HirExpression::BinaryOp {
+            condition: Some(HirExpression::BinaryOp {
                 op: BinaryOperator::LessThan,
                 left: Box::new(HirExpression::Variable(var_name)),
                 right: Box::new(HirExpression::IntLiteral(limit)),
-            },
+            }),
             increment: vec![],
             body: vec![],
         };
@@ -192,7 +192,7 @@ proptest! {
 
         let for_stmt = HirStatement::For {
             init: vec![],
-            condition: HirExpression::IntLiteral(1),
+            condition: Some(HirExpression::IntLiteral(1)),
             increment: vec![],
             body: body.clone(),
         };
@@ -216,11 +216,11 @@ proptest! {
                 var_type: HirType::Int,
                 initializer: Some(HirExpression::IntLiteral(0)),
             }],
-            condition: HirExpression::BinaryOp {
+            condition: Some(HirExpression::BinaryOp {
                 op: BinaryOperator::LessThan,
                 left: Box::new(HirExpression::Variable(var_name)),
                 right: Box::new(HirExpression::IntLiteral(limit)),
-            },
+            }),
             increment: vec![],
             body: vec![],
         };

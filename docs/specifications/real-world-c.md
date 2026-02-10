@@ -1,0 +1,193 @@
+# Real-World C Transpilation Specification
+
+**Status**: Active
+**Created**: 2026-02-10
+**Version**: 1.0
+
+## Problem Statement
+
+Decy transpiles toy C functions but fails on real-world code. Three critical gaps:
+
+1. **No output verification**: Generated Rust is never compiled — silent type errors, missing imports, and broken lifetimes ship undetected.
+2. **Panics on legal C**: `for(;;)` (infinite loop) panics the transpiler despite being idiomatic C99 (§6.8.5.3).
+3. **Unusable for real codebases**: Missing `unsafe` escape hatch, no incremental adoption path, no feedback loop.
+
+This specification defines five strategies to close these gaps, grounded in Popperian falsification (concrete testable predictions), Toyota Way principles (Jidoka, Genchi Genbutsu, Kaizen), and peer-reviewed transpilation research.
+
+## Strategy 1: Compile-the-Output Verification
+
+### Motivation
+
+A transpiler that does not compile its own output is a transpiler that lies. Every generated Rust file must pass `rustc` type checking before being presented to the user.
+
+**Toyota Way — Jidoka (自働化)**: Build quality in at the source. Detect defects at the point of creation, not downstream. The transpiler must stop the line when it produces uncompilable output.
+
+### Approach
+
+Add `verify_compilation()` to `decy-verify` that:
+
+1. Writes generated Rust to a temporary file
+2. Invokes `rustc --emit=metadata --edition=2021` (type-check only, no codegen)
+3. Parses structured stderr for error codes and spans
+4. Returns `CompilationResult { success, errors, warnings }`
+
+Wire into CLI via `--verify` flag on the `transpile` subcommand.
+
+### Falsifiable Predictions
+
+| ID | Prediction | Test |
+|----|-----------|------|
+| S1-P1 | `verify_compilation("fn main() {}")` returns `success: true` | Unit test |
+| S1-P2 | `verify_compilation("fn main() { let x: i32 = \"bad\"; }")` returns error E0308 | Unit test |
+| S1-P3 | `decy transpile --verify valid.c` exits 0 with "Compilation verified" on stderr | Integration test |
+| S1-P4 | `decy transpile --verify invalid.c` exits non-zero with structured error report | Integration test |
+
+### References
+
+- Rigger & Su, "Testing Database Engines via Pivoted Query Synthesis", OOPSLA 2020 — validates outputs against oracle (analogous: rustc as oracle)
+- Csmith (Yang et al., "Finding and Understanding Bugs in C Compilers", PLDI 2011) — compiler output validation methodology
+- Le et al., "Compiler Validation via Equivalence Modulo Inputs", PLDI 2014 — differential testing of compiler outputs
+
+## Strategy 2: Unsafe-First Codegen + for(;;) Fix
+
+### Motivation
+
+Real C code uses `for(;;)` for event loops, polling, and state machines. Panicking on legal C99 is a correctness bug. Additionally, the current codegen attempts safe Rust first and fails silently on complex patterns — an unsafe-first approach with progressive refinement produces correct code sooner.
+
+**Toyota Way — Genchi Genbutsu (現地現物)**: Go and see. Real C codebases use `for(;;)` extensively (Linux kernel: 15,000+ instances, Redis: 200+ instances). The transpiler must handle what real code actually does.
+
+### Approach
+
+#### B1: Make For condition optional in HIR
+
+Change `HirStatement::For { condition: HirExpression }` to `condition: Option<HirExpression>`. This correctly models C99 §6.8.5.3: "the controlling expression is omitted, it is replaced by a nonzero constant" — i.e., an omitted condition means infinite loop.
+
+#### B2: Emit `loop {}` when condition is None
+
+In codegen, branch on `condition`:
+- `Some(cond)` → current behavior: `while cond { body; increment; }`
+- `None` → `loop { body; increment; }` (idiomatic Rust infinite loop)
+
+#### B3-B6: Propagate Option through pipeline
+
+Update all pattern matches in core, optimizer, ownership, analyzer, and test files.
+
+### Falsifiable Predictions
+
+| ID | Prediction | Test |
+|----|-----------|------|
+| S2-P1 | `for(;;) { break; }` transpiles to `loop { break; }` without panic | Unit test |
+| S2-P2 | `for(int i=0; i<10; i++)` still transpiles to `while i < 10 { ... }` | Regression test |
+| S2-P3 | `for(;;) { if(done) break; process(); }` produces compilable Rust | Compile verification test |
+| S2-P4 | No existing test regresses (all 500+ tests pass) | `cargo test --workspace` |
+
+### References
+
+- ISO/IEC 9899:1999 (C99) §6.8.5.3 — "If the clause-1 expression is omitted, the controlling expression is replaced by a nonzero constant"
+- Kernighan & Ritchie, "The C Programming Language", 2nd Ed., §3.5 — `for(;;)` idiom
+- Emre et al., "Translating C to Safer Rust", OOPSLA 2021 — handling C control flow in transpilation
+
+## Strategy 3: Progressive Unsafe Refinement
+
+### Motivation
+
+Current approach: attempt safe Rust, fail on complex patterns, produce broken output. Better approach: emit correct `unsafe` Rust first, then progressively refine to safe patterns using ownership inference.
+
+**Toyota Way — Kaizen (改善)**: Continuous improvement. Start with working (unsafe) code, iteratively reduce unsafe blocks. Each iteration must preserve correctness (verified by Strategy 1).
+
+### Approach (Future)
+
+1. **Phase 1**: Emit raw pointer operations as `unsafe { ... }` blocks
+2. **Phase 2**: Apply ownership inference to classify pointers
+3. **Phase 3**: Replace classified pointers with safe equivalents
+4. **Phase 4**: Verify compilation after each refinement pass
+
+### Falsifiable Predictions
+
+| ID | Prediction | Test |
+|----|-----------|------|
+| S3-P1 | `malloc/free` pair emits `unsafe { Box::new() }` before ownership inference | Unit test |
+| S3-P2 | After ownership inference, same code emits `Box::new()` without unsafe | Unit test |
+| S3-P3 | Unsafe block count monotonically decreases across refinement passes | Property test |
+| S3-P4 | Output compiles at every intermediate stage | Compile verification |
+
+### References
+
+- Astrauskas et al., "Leveraging Rust Types for Modular Specification and Verification", OOPSLA 2019 — type-driven safety verification
+- Evans et al., "Is Rust Used Safely by Software Developers?", ICSE 2020 — unsafe Rust usage patterns in practice
+- Emre et al., "Translating C to Safer Rust", OOPSLA 2021 — progressive unsafe elimination
+
+## Strategy 4: Mutation-Guided Transpilation Testing
+
+### Motivation
+
+Traditional testing verifies the happy path. Mutation testing systematically injects faults to verify that tests actually detect bugs. For a transpiler, mutations in the codegen reveal which output patterns are under-tested.
+
+### Approach (Future)
+
+1. Define mutation operators for transpiler output (swap `&T`/`&mut T`, remove lifetime annotations, change `Box` to raw pointer)
+2. Apply mutations to generated Rust
+3. Verify that at least one test detects each mutation
+4. Mutations that survive indicate gaps in test coverage
+
+### Falsifiable Predictions
+
+| ID | Prediction | Test |
+|----|-----------|------|
+| S4-P1 | Swapping `&T` → `&mut T` in output causes at least one test failure | Mutation test |
+| S4-P2 | Removing lifetime annotations from output causes compilation failure | Mutation test |
+| S4-P3 | Mutation kill rate ≥85% across codegen output | Aggregate metric |
+
+### References
+
+- Jia & Harman, "An Analysis and Survey of the Development of Mutation Testing", IEEE TSE 2011 — mutation testing foundations
+- Papadakis et al., "Mutation Testing Advances: An Analysis and Survey", Advances in Computers 2019 — state of the art
+- Just et al., "Are Mutants a Valid Substitute for Real Faults in Software Testing?", FSE 2014 — mutation validity
+
+## Strategy 5: Differential Testing Against GCC/Clang Semantics
+
+### Motivation
+
+The transpiler must preserve C program semantics. Differential testing compiles original C and transpiled Rust, runs both on the same inputs, and compares outputs.
+
+### Approach (Future)
+
+1. Compile C source with GCC/Clang
+2. Transpile C to Rust, compile with rustc
+3. Generate random inputs (guided by function signatures)
+4. Execute both binaries on same inputs
+5. Compare stdout, exit codes, and side effects
+
+### Falsifiable Predictions
+
+| ID | Prediction | Test |
+|----|-----------|------|
+| S5-P1 | `int add(int a, int b) { return a+b; }` produces identical results for 10,000 random inputs | Differential test |
+| S5-P2 | Array indexing produces identical results (within bounds) | Differential test |
+| S5-P3 | String operations produce identical results for ASCII inputs | Differential test |
+
+### References
+
+- Yang et al., "Finding and Understanding Bugs in C Compilers", PLDI 2011 — Csmith differential testing
+- Le et al., "Compiler Validation via Equivalence Modulo Inputs", PLDI 2014 — EMI testing
+- Chen et al., "An Empirical Comparison of Compiler Testing Techniques", ICSE 2016 — testing technique comparison
+
+## Implementation Priority
+
+| Strategy | Priority | Status | Rationale |
+|----------|----------|--------|-----------|
+| S2: for(;;) fix | P0 | **This PR** | Correctness bug — panics on legal C99 |
+| S1: Compile verification | P1 | **This PR** | Foundation for all other strategies |
+| S3: Progressive unsafe | P2 | Future | Requires S1 as prerequisite |
+| S4: Mutation testing | P3 | Future | Requires S1 + S3 |
+| S5: Differential testing | P3 | Future | Requires S1 + working codegen |
+
+## Quality Gates
+
+All changes in this specification must pass:
+
+- `cargo build --workspace` — clean compile
+- `cargo clippy --workspace -- -D warnings` — zero warnings
+- `cargo test --workspace` — all tests pass (500+)
+- No regressions in existing falsification tests
+- New tests for every falsifiable prediction marked as "This PR"

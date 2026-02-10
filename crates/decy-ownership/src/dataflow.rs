@@ -547,8 +547,10 @@ impl DataflowAnalyzer {
                 for init_stmt in init {
                     self.track_statement(init_stmt, graph, index);
                 }
-                // Track condition expression
-                self.track_expression_uses(condition, graph, index);
+                // Track condition expression (if present; None = for(;;))
+                if let Some(cond) = condition {
+                    self.track_expression_uses(cond, graph, index);
+                }
                 // Track loop body
                 for s in body {
                     self.track_statement(s, graph, index);

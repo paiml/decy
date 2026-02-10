@@ -638,7 +638,7 @@ fn feature_extractor_free_in_for_loop() {
         vec![make_param("ptr", HirType::Pointer(Box::new(HirType::Int)))],
         vec![HirStatement::For {
             init: vec![],
-            condition: HirExpression::Variable("flag".to_string()),
+            condition: Some(HirExpression::Variable("flag".to_string())),
             increment: vec![],
             body: vec![HirStatement::Free {
                 pointer: HirExpression::Variable("ptr".to_string()),

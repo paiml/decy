@@ -1464,7 +1464,7 @@ fn for_loop_generates_init_and_while() {
             var_type: HirType::Int,
             initializer: Some(int_lit(0)),
         }],
-        condition: binop(BinaryOperator::LessThan, int_var("i"), int_lit(10)),
+        condition: Some(binop(BinaryOperator::LessThan, int_var("i"), int_lit(10))),
         increment: vec![HirStatement::Assignment {
             target: "i".to_string(),
             value: binop(BinaryOperator::Add, int_var("i"), int_lit(1)),

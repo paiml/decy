@@ -775,11 +775,11 @@ fn test_detect_array_parameter_high_confidence() {
                 var_type: HirType::Int,
                 initializer: Some(HirExpression::IntLiteral(0)),
             }],
-            condition: HirExpression::BinaryOp {
+            condition: Some(HirExpression::BinaryOp {
                 op: decy_hir::BinaryOperator::LessThan,
                 left: Box::new(HirExpression::Variable("i".to_string())),
                 right: Box::new(HirExpression::Variable("len".to_string())),
-            },
+            }),
             increment: vec![HirStatement::Assignment {
                 target: "i".to_string(),
                 value: HirExpression::BinaryOp {
@@ -1003,7 +1003,7 @@ fn test_is_modified_in_for_loop() {
         )],
         vec![HirStatement::For {
             init: vec![],
-            condition: HirExpression::IntLiteral(1),
+            condition: Some(HirExpression::IntLiteral(1)),
             increment: vec![],
             body: vec![HirStatement::ArrayIndexAssignment {
                 array: Box::new(HirExpression::Variable("arr".to_string())),

@@ -1321,7 +1321,7 @@ fn test_statement_mutates_variable_in_for_body() {
         )],
         vec![HirStatement::For {
             init: vec![],
-            condition: HirExpression::IntLiteral(1),
+            condition: Some(HirExpression::IntLiteral(1)),
             increment: vec![],
             body: vec![HirStatement::ArrayIndexAssignment {
                 array: Box::new(HirExpression::Variable("arr".to_string())),
@@ -1459,11 +1459,11 @@ fn test_transform_for_statement_with_length() {
                 var_type: HirType::Int,
                 initializer: Some(HirExpression::IntLiteral(0)),
             }],
-            condition: HirExpression::BinaryOp {
+            condition: Some(HirExpression::BinaryOp {
                 op: decy_hir::BinaryOperator::LessThan,
                 left: Box::new(HirExpression::Variable("i".to_string())),
                 right: Box::new(HirExpression::Variable("size".to_string())),
-            },
+            }),
             increment: vec![],
             body: vec![],
         }],
@@ -2324,7 +2324,7 @@ fn test_pointer_arithmetic_in_for_block() {
         )],
         vec![HirStatement::For {
             init: vec![],
-            condition: HirExpression::IntLiteral(1),
+            condition: Some(HirExpression::IntLiteral(1)),
             increment: vec![],
             body: vec![HirStatement::Assignment {
                 target: "ptr".to_string(),

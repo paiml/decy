@@ -290,6 +290,103 @@ pub fn audit_rust_code(rust_code: &str) -> Result<UnsafeAuditReport> {
     auditor.audit(rust_code)
 }
 
+/// A structured compilation error from rustc
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CompilationError {
+    /// Error code (e.g., "E0308")
+    pub code: Option<String>,
+    /// Error message
+    pub message: String,
+}
+
+/// Result of compiling generated Rust code
+#[derive(Debug, Clone)]
+pub struct CompilationResult {
+    /// Whether compilation succeeded
+    pub success: bool,
+    /// Errors found during compilation
+    pub errors: Vec<CompilationError>,
+    /// Warnings found during compilation
+    pub warnings: Vec<String>,
+}
+
+/// Verify that generated Rust code compiles by invoking rustc.
+///
+/// Uses `rustc --emit=metadata --edition=2021` for fast type-checking
+/// without full code generation.
+///
+/// # Example
+///
+/// ```no_run
+/// use decy_verify::verify_compilation;
+///
+/// let result = verify_compilation("fn main() {}").expect("rustc failed to run");
+/// assert!(result.success);
+/// ```
+pub fn verify_compilation(rust_code: &str) -> Result<CompilationResult> {
+    use std::process::Command;
+    use std::time::{SystemTime, UNIX_EPOCH};
+
+    let unique_id = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|d| d.as_nanos())
+        .unwrap_or(0);
+    let temp_dir = std::env::temp_dir();
+    let temp_file = temp_dir.join(format!("decy_verify_{}.rs", unique_id));
+    let temp_output = temp_dir.join(format!("decy_verify_{}.rmeta", unique_id));
+
+    std::fs::write(&temp_file, rust_code)
+        .context("Failed to write temp file for compilation check")?;
+
+    let output = Command::new("rustc")
+        .arg("--emit=metadata")
+        .arg("--edition=2021")
+        .arg("-o")
+        .arg(&temp_output)
+        .arg(&temp_file)
+        .output()
+        .context("Failed to run rustc — is it installed?")?;
+
+    // Clean up temp files
+    let _ = std::fs::remove_file(&temp_file);
+    let _ = std::fs::remove_file(&temp_output);
+
+    let stderr = String::from_utf8_lossy(&output.stderr);
+
+    if output.status.success() {
+        let warnings: Vec<String> = stderr
+            .lines()
+            .filter(|l| l.contains("warning"))
+            .map(|l| l.to_string())
+            .collect();
+        Ok(CompilationResult {
+            success: true,
+            errors: vec![],
+            warnings,
+        })
+    } else {
+        let mut errors = Vec::new();
+        for line in stderr.lines() {
+            if line.starts_with("error") {
+                // Extract error code like E0308 from "error[E0308]: ..."
+                let code = line
+                    .find('[')
+                    .and_then(|start| line.find(']').map(|end| (start, end)))
+                    .map(|(start, end)| line[start + 1..end].to_string());
+                errors.push(CompilationError {
+                    code,
+                    message: line.to_string(),
+                });
+            }
+        }
+        Ok(CompilationResult {
+            success: false,
+            errors,
+            warnings: vec![],
+        })
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -550,6 +647,34 @@ fn example() {
         let report = audit_rust_code(code).expect("Audit failed");
         // Should detect unsafe function (entire function body is unsafe context)
         assert!(!report.unsafe_blocks.is_empty() || report.unsafe_lines > 0);
+    }
+
+    #[test]
+    fn test_verify_compilation_valid_code() {
+        let result = verify_compilation("fn main() {}").expect("rustc failed to run");
+        assert!(result.success, "Valid Rust should compile");
+        assert!(result.errors.is_empty());
+    }
+
+    #[test]
+    fn test_verify_compilation_type_error() {
+        let result = verify_compilation("fn main() { let x: i32 = \"bad\"; }")
+            .expect("rustc failed to run");
+        assert!(!result.success, "Type error should fail compilation");
+        assert!(!result.errors.is_empty(), "Should have at least one error");
+        // E0308 is the mismatched types error
+        let has_e0308 = result.errors.iter().any(|e| {
+            e.code.as_deref() == Some("E0308")
+        });
+        assert!(has_e0308, "Should contain E0308 error code");
+    }
+
+    #[test]
+    fn test_verify_compilation_missing_function() {
+        let result = verify_compilation("fn main() { undefined_function(); }")
+            .expect("rustc failed to run");
+        assert!(!result.success);
+        assert!(!result.errors.is_empty());
     }
 }
 

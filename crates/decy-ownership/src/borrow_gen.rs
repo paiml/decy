@@ -456,11 +456,13 @@ impl BorrowGenerator {
                         )
                     })
                     .collect(),
-                condition: self.transform_expression_with_length_replacement(
-                    condition,
-                    inferences,
-                    length_params_to_remove,
-                ),
+                condition: condition.as_ref().map(|c| {
+                    self.transform_expression_with_length_replacement(
+                        c,
+                        inferences,
+                        length_params_to_remove,
+                    )
+                }),
                 // DECY-224: Transform all increment statements
                 increment: increment
                     .iter()

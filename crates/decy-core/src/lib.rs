@@ -1786,7 +1786,9 @@ fn statement_compares_to_null(stmt: &HirStatement, var_name: &str) -> bool {
         HirStatement::For {
             condition, body, ..
         } => {
-            expression_compares_to_null(condition, var_name)
+            condition
+                .as_ref()
+                .is_some_and(|c| expression_compares_to_null(c, var_name))
                 || body.iter().any(|s| statement_compares_to_null(s, var_name))
         }
         HirStatement::Switch {
@@ -2825,7 +2827,7 @@ mod tests {
 
         let body = vec![HirStatement::For {
             init: vec![],
-            condition: HirExpression::IntLiteral(1), // true condition
+            condition: Some(HirExpression::IntLiteral(1)), // true condition
             increment: vec![],
             body: vec![HirStatement::Assignment {
                 target: "ptr".to_string(),
@@ -2977,11 +2979,11 @@ mod tests {
 
         let body = vec![HirStatement::For {
             init: vec![],
-            condition: HirExpression::BinaryOp {
+            condition: Some(HirExpression::BinaryOp {
                 op: BinaryOperator::NotEqual,
                 left: Box::new(HirExpression::Variable("ptr".to_string())),
                 right: Box::new(HirExpression::NullLiteral),
-            },
+            }),
             increment: vec![],
             body: vec![],
         }];
@@ -3400,7 +3402,7 @@ mod tests {
 
         let stmt = HirStatement::For {
             init: vec![],
-            condition: HirExpression::IntLiteral(1), // true condition
+            condition: Some(HirExpression::IntLiteral(1)), // true condition
             increment: vec![],
             body: vec![HirStatement::If {
                 condition: HirExpression::BinaryOp {
