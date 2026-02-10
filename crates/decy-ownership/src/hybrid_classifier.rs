@@ -30,7 +30,7 @@
 //! └─────────────────────────────────────────────────────────────┘
 //! ```
 
-use crate::inference::{OwnershipInference, OwnershipInferencer, OwnershipKind};
+use crate::inference::{OwnershipInference, OwnershipKind};
 use crate::ml_features::{InferredOwnership, OwnershipFeatures, OwnershipPrediction};
 use serde::{Deserialize, Serialize};
 
@@ -136,9 +136,6 @@ impl OwnershipModel for NullModel {
 /// Hybrid ownership classifier combining rules and ML.
 #[derive(Debug)]
 pub struct HybridClassifier {
-    /// Rule-based inferencer (reserved for future rule execution)
-    #[allow(dead_code)]
-    rule_inferencer: OwnershipInferencer,
     /// Confidence threshold for ML predictions
     confidence_threshold: f64,
     /// Whether ML is enabled
@@ -155,7 +152,6 @@ impl HybridClassifier {
     /// Create a new hybrid classifier with default settings.
     pub fn new() -> Self {
         Self {
-            rule_inferencer: OwnershipInferencer::new(),
             confidence_threshold: DEFAULT_CONFIDENCE_THRESHOLD,
             ml_enabled: false,
         }
@@ -164,7 +160,6 @@ impl HybridClassifier {
     /// Create with custom confidence threshold.
     pub fn with_threshold(threshold: f64) -> Self {
         Self {
-            rule_inferencer: OwnershipInferencer::new(),
             confidence_threshold: threshold.clamp(0.0, 1.0),
             ml_enabled: false,
         }

@@ -519,10 +519,7 @@ fn test_unsafe_block_count_target() {
         0.0
     };
 
-    // DECY-261: Current implementation generates one unsafe per global variable access
-    // With 3 global ops in ~13 LOC = ~230 per 1000 LOC
-    // Target: baseline <=250, optimize to <=50 by combining consecutive unsafe blocks
-    // TODO: Implement unsafe block combining for consecutive global variable operations
+    // DECY-261: One unsafe per global variable access; 3 global ops in ~13 LOC = ~230/1000 LOC
     assert!(
         unsafe_per_1000 <= 250.0,
         "Race condition handling should minimize unsafe (got {:.2} per 1000 LOC, want <=250)",

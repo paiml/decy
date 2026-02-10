@@ -28,7 +28,6 @@
 //!
 //! - `citl`: Enable entrenar CITL integration for pattern mining
 
-// TODO: Re-enable missing_docs when crate stabilizes
 #![allow(missing_docs)]
 #![deny(unsafe_code)]
 
