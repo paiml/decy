@@ -12555,3 +12555,391 @@ fn dereference_binary_op_non_pointer_left_no_unsafe() {
     // No unsafe since left operand is not a pointer
     assert!(!result.contains("unsafe"), "Got: {}", result);
 }
+
+// ============================================================================
+// BATCH 7: sizeof member access, string iter func call args, deref assign
+//          double pointer, pointer subtraction, calloc default, ArrayIndex
+//          global, switch case, format positions edge case
+// ============================================================================
+
+#[test]
+fn sizeof_member_access_resolved_field_type() {
+    // Lines 2987-2995: sizeof(struct.field) via member access → field type resolution
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.structs.insert(
+        "Node".to_string(),
+        vec![
+            ("value".to_string(), HirType::Int),
+            ("next".to_string(), HirType::Pointer(Box::new(HirType::Struct("Node".to_string())))),
+        ],
+    );
+    let expr = HirExpression::Sizeof {
+        type_name: "Node value".to_string(),
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(
+        result.contains("size_of::<i32>()"),
+        "Should resolve field type, got: {}",
+        result
+    );
+}
+
+#[test]
+fn sizeof_member_access_unknown_struct_fallback() {
+    // Lines 3005-3006: sizeof(struct.field) with unknown struct → fallback
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    let expr = HirExpression::Sizeof {
+        type_name: "Unknown field".to_string(),
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(result.contains("size_of"), "Should use fallback, got: {}", result);
+}
+
+#[test]
+fn calloc_expression_non_standard_element_type() {
+    // Line 3052: Calloc with non-standard element type (e.g., Struct)
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    let expr = HirExpression::Calloc {
+        count: Box::new(HirExpression::IntLiteral(10)),
+        element_type: Box::new(HirType::Struct("Node".to_string())),
+    };
+    let result = cg.generate_expression_with_context(&expr, &ctx);
+    assert!(result.contains("vec!"), "Got: {}", result);
+    assert!(result.contains("Node::default()"), "Got: {}", result);
+}
+
+#[test]
+fn string_iter_func_call_arg_address_of() {
+    // Lines 2712-2718: String iter func with AddressOf arg (inside !is_address_of branch)
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable(
+        "buf".to_string(),
+        HirType::Array {
+            element_type: Box::new(HirType::Char),
+            size: Some(256),
+        },
+    );
+    // Register "process" as a string iter func with param 0 as mutable
+    ctx.add_string_iter_func("process".to_string(), vec![(0, true)]);
+    ctx.add_function(
+        "process".to_string(),
+        vec![HirType::Pointer(Box::new(HirType::Char))],
+    );
+    let expr = HirExpression::FunctionCall {
+        function: "process".to_string(),
+        arguments: vec![HirExpression::Variable("buf".to_string())],
+    };
+    let result = cg.generate_expression_with_context(&expr, &ctx);
+    // Array arg to string iter func → &mut buf
+    assert!(result.contains("&mut buf"), "Got: {}", result);
+}
+
+#[test]
+fn string_iter_func_call_arg_string_literal() {
+    // Lines 2707-2710: String iter func with StringLiteral arg → b"string"
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_string_iter_func("process".to_string(), vec![(0, false)]);
+    ctx.add_function(
+        "process".to_string(),
+        vec![HirType::Pointer(Box::new(HirType::Char))],
+    );
+    let expr = HirExpression::FunctionCall {
+        function: "process".to_string(),
+        arguments: vec![HirExpression::StringLiteral("hello".to_string())],
+    };
+    let result = cg.generate_expression_with_context(&expr, &ctx);
+    assert!(result.contains("b\"hello\""), "Got: {}", result);
+}
+
+#[test]
+fn string_iter_func_call_arg_immutable_array() {
+    // Lines 2702-2703: String iter func with immutable array arg → &arr
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable(
+        "data".to_string(),
+        HirType::Array {
+            element_type: Box::new(HirType::Char),
+            size: Some(64),
+        },
+    );
+    ctx.add_string_iter_func("read_data".to_string(), vec![(0, false)]);
+    ctx.add_function(
+        "read_data".to_string(),
+        vec![HirType::Pointer(Box::new(HirType::Char))],
+    );
+    let expr = HirExpression::FunctionCall {
+        function: "read_data".to_string(),
+        arguments: vec![HirExpression::Variable("data".to_string())],
+    };
+    let result = cg.generate_expression_with_context(&expr, &ctx);
+    assert!(result.contains("&data"), "Got: {}", result);
+    assert!(!result.contains("&mut"), "Should be immutable, got: {}", result);
+}
+
+#[test]
+fn slice_param_with_sized_array_arg() {
+    // Lines 2773-2775: Unsized array param (slice) with sized array arg → &mut arr
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable(
+        "arr".to_string(),
+        HirType::Array {
+            element_type: Box::new(HirType::Int),
+            size: Some(10),
+        },
+    );
+    // Function param is Array { size: None } (unsized/slice param)
+    ctx.add_function(
+        "sort".to_string(),
+        vec![HirType::Array {
+            element_type: Box::new(HirType::Int),
+            size: None,
+        }],
+    );
+    let expr = HirExpression::FunctionCall {
+        function: "sort".to_string(),
+        arguments: vec![HirExpression::Variable("arr".to_string())],
+    };
+    let result = cg.generate_expression_with_context(&expr, &ctx);
+    assert!(result.contains("&mut arr"), "Got: {}", result);
+}
+
+#[test]
+fn pointer_field_access_non_pointer_var() {
+    // Line 2869: PointerFieldAccess where variable is NOT a pointer → no unsafe
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("node".to_string(), HirType::Struct("Node".to_string()));
+    ctx.structs.insert(
+        "Node".to_string(),
+        vec![("value".to_string(), HirType::Int)],
+    );
+    let expr = HirExpression::PointerFieldAccess {
+        pointer: Box::new(HirExpression::Variable("node".to_string())),
+        field: "value".to_string(),
+    };
+    let result = cg.generate_expression_with_context(&expr, &ctx);
+    assert!(!result.contains("unsafe"), "Got: {}", result);
+}
+
+#[test]
+fn array_index_non_variable_global_check() {
+    // Line 2899: ArrayIndex where array expr is not Variable → is_global is false fallthrough
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable(
+        "ptr".to_string(),
+        HirType::Pointer(Box::new(HirType::Pointer(Box::new(HirType::Int)))),
+    );
+    let expr = HirExpression::ArrayIndex {
+        array: Box::new(HirExpression::Dereference(Box::new(
+            HirExpression::Variable("ptr".to_string()),
+        ))),
+        index: Box::new(HirExpression::IntLiteral(0)),
+    };
+    let result = cg.generate_expression_with_context(&expr, &ctx);
+    assert!(result.contains("0"), "Got: {}", result);
+}
+
+#[test]
+fn deref_assign_double_pointer_ref() {
+    // Lines 4762-4779: DerefAssignment where var is Reference { inner: Pointer(_) }
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable(
+        "pp".to_string(),
+        HirType::Reference {
+            inner: Box::new(HirType::Pointer(Box::new(HirType::Int))),
+            mutable: true,
+        },
+    );
+    let stmt = HirStatement::DerefAssignment {
+        target: HirExpression::Dereference(Box::new(
+            HirExpression::Variable("pp".to_string()),
+        )),
+        value: HirExpression::IntLiteral(42),
+    };
+    let result = cg.generate_statement_with_context(&stmt, Some("test_fn"), &mut ctx, Some(&HirType::Void));
+    assert!(result.contains("unsafe"), "Got: {}", result);
+}
+
+#[test]
+fn deref_assign_double_pointer_ptr() {
+    // Lines 4767-4769: DerefAssignment where var is Pointer(Pointer(_))
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable(
+        "pp".to_string(),
+        HirType::Pointer(Box::new(HirType::Pointer(Box::new(HirType::Int)))),
+    );
+    let stmt = HirStatement::DerefAssignment {
+        target: HirExpression::Dereference(Box::new(
+            HirExpression::Variable("pp".to_string()),
+        )),
+        value: HirExpression::IntLiteral(42),
+    };
+    let result = cg.generate_statement_with_context(&stmt, Some("test_fn"), &mut ctx, Some(&HirType::Void));
+    assert!(result.contains("unsafe"), "Got: {}", result);
+}
+
+#[test]
+fn deref_assign_double_pointer_non_matching() {
+    // Line 4770: DerefAssignment where var is other type → no yields_raw_ptr
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable(
+        "pp".to_string(),
+        HirType::Reference {
+            inner: Box::new(HirType::Int),
+            mutable: true,
+        },
+    );
+    let stmt = HirStatement::DerefAssignment {
+        target: HirExpression::Dereference(Box::new(
+            HirExpression::Variable("pp".to_string()),
+        )),
+        value: HirExpression::IntLiteral(42),
+    };
+    let result = cg.generate_statement_with_context(&stmt, Some("test_fn"), &mut ctx, Some(&HirType::Void));
+    assert!(!result.contains("unsafe"), "Got: {}", result);
+}
+
+#[test]
+fn deref_assign_strip_unsafe_from_value() {
+    // Lines 4731-4734: strip_unsafe helper strips "unsafe { X }" → "X"
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable(
+        "p".to_string(),
+        HirType::Pointer(Box::new(HirType::Int)),
+    );
+    ctx.add_variable(
+        "q".to_string(),
+        HirType::Pointer(Box::new(HirType::Int)),
+    );
+    let stmt = HirStatement::DerefAssignment {
+        target: HirExpression::Variable("p".to_string()),
+        value: HirExpression::Dereference(Box::new(
+            HirExpression::Variable("q".to_string()),
+        )),
+    };
+    let result = cg.generate_statement_with_context(&stmt, Some("test_fn"), &mut ctx, Some(&HirType::Void));
+    assert!(result.contains("unsafe"), "Got: {}", result);
+    assert!(
+        result.matches("unsafe").count() <= 2,
+        "Should strip nested unsafe, got: {}",
+        result
+    );
+}
+
+#[test]
+fn pointer_subtraction_non_pointer_right() {
+    // Lines 1579-1583: ptr - integer (not another pointer) → wrapping_sub
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable(
+        "p".to_string(),
+        HirType::Pointer(Box::new(HirType::Int)),
+    );
+    let expr = HirExpression::BinaryOp {
+        op: BinaryOperator::Subtract,
+        left: Box::new(HirExpression::Variable("p".to_string())),
+        right: Box::new(HirExpression::IntLiteral(3)),
+    };
+    let result = cg.generate_expression_with_context(&expr, &ctx);
+    assert!(result.contains("wrapping_sub"), "Got: {}", result);
+}
+
+#[test]
+fn pointer_subtraction_non_variable_right() {
+    // ptr - (expr) where right is not a variable → wrapping_sub
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable(
+        "p".to_string(),
+        HirType::Pointer(Box::new(HirType::Int)),
+    );
+    let expr = HirExpression::BinaryOp {
+        op: BinaryOperator::Subtract,
+        left: Box::new(HirExpression::Variable("p".to_string())),
+        right: Box::new(HirExpression::BinaryOp {
+            op: BinaryOperator::Add,
+            left: Box::new(HirExpression::IntLiteral(1)),
+            right: Box::new(HirExpression::IntLiteral(2)),
+        }),
+    };
+    let result = cg.generate_expression_with_context(&expr, &ctx);
+    assert!(result.contains("wrapping_sub"), "Got: {}", result);
+}
+
+#[test]
+fn array_index_assignment_global_array() {
+    // Lines 4807-4818: ArrayIndexAssignment with global array → unsafe
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_global("table".to_string());
+    ctx.add_variable(
+        "table".to_string(),
+        HirType::Array {
+            element_type: Box::new(HirType::Int),
+            size: Some(100),
+        },
+    );
+    let stmt = HirStatement::ArrayIndexAssignment {
+        array: Box::new(HirExpression::Variable("table".to_string())),
+        index: Box::new(HirExpression::IntLiteral(5)),
+        value: HirExpression::IntLiteral(99),
+    };
+    let result = cg.generate_statement_with_context(&stmt, Some("test_fn"), &mut ctx, Some(&HirType::Void));
+    assert!(result.contains("unsafe"), "Got: {}", result);
+}
+
+#[test]
+fn format_string_positions_incomplete_specifier() {
+    // Lines 3940-3942: Format string with % at end (no specifier after %) → fallback
+    let positions = CodeGenerator::find_string_format_positions("hello%");
+    // Incomplete format specifier at end — should not crash, may or may not find a position
+    let _ = positions; // Just verifying no panic
+}
+
+#[test]
+fn infer_expression_type_pointer_field_access_reference() {
+    // Line 313: PointerFieldAccess where type is Reference → get_field_type_from_type
+    let mut ctx = TypeContext::new();
+    ctx.add_variable(
+        "node".to_string(),
+        HirType::Reference {
+            inner: Box::new(HirType::Struct("Node".to_string())),
+            mutable: false,
+        },
+    );
+    ctx.structs.insert(
+        "Node".to_string(),
+        vec![("value".to_string(), HirType::Int)],
+    );
+    let expr = HirExpression::PointerFieldAccess {
+        pointer: Box::new(HirExpression::Variable("node".to_string())),
+        field: "value".to_string(),
+    };
+    let result = ctx.infer_expression_type(&expr);
+    assert_eq!(result, Some(HirType::Int));
+}
+
+#[test]
+fn infer_expression_type_pointer_field_access_non_ptr() {
+    // Line 316: PointerFieldAccess where type is not Pointer/Box/Reference → None
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("x".to_string(), HirType::Int);
+    let expr = HirExpression::PointerFieldAccess {
+        pointer: Box::new(HirExpression::Variable("x".to_string())),
+        field: "field".to_string(),
+    };
+    let result = ctx.infer_expression_type(&expr);
+    assert_eq!(result, None);
+}
