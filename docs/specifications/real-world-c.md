@@ -231,7 +231,7 @@ The transpiler must preserve C program semantics. Differential testing compiles 
 |----------|----------|--------|-----------|
 | S2: for(;;) fix | P0 | **Done** | Correctness bug — panics on legal C99 |
 | S1: Compile verification | P1 | **Done** | Foundation for all other strategies |
-| S3: Progressive unsafe | P2 | **In Progress** | Stdlib mapping + unsafe fallback |
+| S3: Progressive unsafe | P2 | **Phase 1 Done** | Stdlib mapping complete (13 inline + 5 stub) |
 | S4: Mutation testing | P3 | Future | Requires S1 + S3 |
 | S5: Differential testing | P3 | Future | Requires S1 + working codegen |
 
@@ -263,14 +263,14 @@ Post-implementation workspace coverage: **96.75% line coverage** (target: 95%)
 | decy-hir | 97.50% | Well-covered via falsification + unit tests |
 | decy-analyzer | 97.00% | Lock analysis, subprocess analysis at 90-96% |
 | decy-ownership | 98.90% | 17 inference branch tests added via graph helpers |
-| decy-codegen | 94.13% | 91 deep coverage tests, 172 total codegen tests |
+| decy-codegen | 91.90% | 252 deep coverage tests (signatures, statements, VLA, malloc) |
 | decy-verify | 99.23% | Compile verification fully tested |
-| decy-core | 94.24% | Pipeline orchestration tests |
+| decy-core | 97.61% | Pipeline tests + uninitialized globals + enum/function dedup |
 | decy-stdlib | 100.00% | Complete coverage |
 
 ### Test Corpus
 
-- **Total tests**: 11,893 passing across workspace
+- **Total tests**: 11,918 passing across workspace
 - **Falsification tests**: 2,150 total (92 falsified, 95.7% pass rate)
 - **Codegen deep tests**: 214 (targeting uncovered statement/expression/helper/signature paths)
 - **Core pipeline tests**: 12 new (uninitialized globals, enum variants, function dedup)
