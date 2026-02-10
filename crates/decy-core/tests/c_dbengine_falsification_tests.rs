@@ -1064,7 +1064,6 @@ int db_bitmap_popcount(db_bitmap_t *bm) {
 
 /// C1544: Bloom filter index for approximate membership testing
 #[test]
-#[ignore = "FALSIFIED: panic in HIR lowering 'For loop must have condition' on db_bloom_hash loop"]
 fn c1544_bloom_filter_index() {
     let c_code = r#"
 typedef unsigned int uint32_t;

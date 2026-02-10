@@ -1340,7 +1340,6 @@ int treap_search(const treap_t *t, int node, int key) {
 }
 
 #[test]
-#[ignore = "FALSIFIED: Transpiler panics with 'For loop must have condition' on B-tree split with complex for-loop index expression"]
 fn c519_btree_node_operations() {
     let c_code = r#"
 #define BT_ORDER 3
@@ -1433,7 +1432,6 @@ int bt_split_child(btree_t *bt, int parent_idx, int child_pos) {
 }
 
 #[test]
-#[ignore = "FALSIFIED: Transpiler panics with 'For loop must have condition' on bloom filter multi-hash loop"]
 fn c520_bloom_filter() {
     let c_code = r#"
 typedef unsigned char uint8_t;

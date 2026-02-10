@@ -593,7 +593,6 @@ int process(int *commands, int n) {
 }
 
 #[test]
-#[ignore = "FALSIFIED: for(;;) infinite loop panics - HIR requires loop condition"]
 fn c027_infinite_for_loop() {
     let c_code = r#"
 int infinite_loop_break(int *arr, int max) {

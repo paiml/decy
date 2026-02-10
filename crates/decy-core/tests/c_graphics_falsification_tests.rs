@@ -1483,7 +1483,6 @@ float spline_length_approx(spline_point_t p0, spline_point_t p1,
 }
 
 #[test]
-#[ignore = "FALSIFIED: transpiler panics with 'For loop must have condition' in HIR lowering for spatial hash grid nested loops"]
 fn c444_spatial_hash_grid_broad_phase_collision() {
     let c_code = r#"
 #define GRID_SIZE 16

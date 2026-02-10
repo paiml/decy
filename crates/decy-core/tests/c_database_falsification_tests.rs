@@ -747,7 +747,6 @@ int hash_index_delete(hash_index_t *ht, uint32_t key) {
 }
 
 #[test]
-#[ignore = "FALSIFIED: transpiler panics with 'For loop must have condition' in HIR lowering for nested for loops with popcount pattern"]
 fn c358_bloom_filter_bit_array() {
     let c_code = r#"
 typedef unsigned int uint32_t;
