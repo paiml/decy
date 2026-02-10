@@ -3431,4 +3431,210 @@ mod tests {
         let stmt = HirStatement::Expression(HirExpression::Variable("x".to_string()));
         assert!(!statement_compares_to_null(&stmt, "ptr"));
     }
+
+    // ========================================================================
+    // transpile_with_trace coverage
+    // ========================================================================
+
+    #[test]
+    fn test_transpile_with_trace_basic() {
+        let c_code = "int add(int a, int b) { return a + b; }";
+        let result = transpile_with_trace(c_code);
+        assert!(result.is_ok(), "transpile_with_trace should succeed");
+        let (rust_code, collector) = result.unwrap();
+        assert!(rust_code.contains("fn add"));
+        let entries = collector.entries();
+        assert!(entries.len() >= 2, "Should have parsing + completion entries");
+    }
+
+    // ========================================================================
+    // transpile_with_verification coverage (additional)
+    // ========================================================================
+
+    #[test]
+    fn test_transpile_with_verification_empty_code() {
+        // Empty code should still produce some result
+        let result = transpile_with_verification("");
+        assert!(result.is_ok());
+    }
+
+    // ========================================================================
+    // extract_function_names coverage
+    // ========================================================================
+
+    #[test]
+    fn test_extract_function_names_basic() {
+        let code = "fn add(a: i32, b: i32) -> i32 {\n    a + b\n}";
+        let names = extract_function_names(code);
+        assert!(names.contains(&"add".to_string()));
+    }
+
+    #[test]
+    fn test_extract_function_names_pub_fn() {
+        let code = "pub fn multiply(x: i32, y: i32) -> i32 {\n    x * y\n}";
+        let names = extract_function_names(code);
+        assert!(names.contains(&"multiply".to_string()));
+    }
+
+    #[test]
+    fn test_extract_function_names_generic() {
+        let code = "fn process<'a>(data: &'a [i32]) -> &'a i32 {\n    &data[0]\n}";
+        let names = extract_function_names(code);
+        assert!(names.contains(&"process".to_string()));
+    }
+
+    #[test]
+    fn test_extract_function_names_multiple() {
+        let code = "fn foo(x: i32) {}\npub fn bar(y: f64) {}\nfn baz() {}";
+        let names = extract_function_names(code);
+        assert_eq!(names.len(), 3);
+        assert!(names.contains(&"foo".to_string()));
+        assert!(names.contains(&"bar".to_string()));
+        assert!(names.contains(&"baz".to_string()));
+    }
+
+    #[test]
+    fn test_extract_function_names_no_functions() {
+        let code = "let x = 42;\nstruct Point { x: i32 }";
+        let names = extract_function_names(code);
+        assert!(names.is_empty());
+    }
+
+    // ========================================================================
+    // generate_ffi_declarations coverage
+    // ========================================================================
+
+    #[test]
+    fn test_generate_ffi_declarations_with_functions() {
+        let functions = vec!["add".to_string(), "multiply".to_string()];
+        let ffi = generate_ffi_declarations(&functions);
+        assert!(ffi.contains("extern \"C\""));
+        assert!(ffi.contains("add"));
+        assert!(ffi.contains("multiply"));
+    }
+
+    // ========================================================================
+    // extract_dependencies coverage
+    // ========================================================================
+
+    #[test]
+    fn test_extract_dependencies_no_includes() {
+        let tmp = TempDir::new().unwrap();
+        let src = tmp.path().join("main.c");
+        std::fs::write(&src, "int main() { return 0; }").unwrap();
+        let deps = extract_dependencies(&src, "int main() { return 0; }").unwrap();
+        assert!(deps.is_empty());
+    }
+
+    #[test]
+    fn test_extract_dependencies_with_includes() {
+        let tmp = TempDir::new().unwrap();
+        let header = tmp.path().join("utils.h");
+        std::fs::write(&header, "int helper(int x);").unwrap();
+        let src = tmp.path().join("main.c");
+        let c_code = "#include \"utils.h\"\nint main() { return 0; }";
+        std::fs::write(&src, c_code).unwrap();
+        let deps = extract_dependencies(&src, c_code).unwrap();
+        assert_eq!(deps.len(), 1);
+        assert!(deps[0].ends_with("utils.h"));
+    }
+
+    #[test]
+    fn test_extract_dependencies_missing_header() {
+        let tmp = TempDir::new().unwrap();
+        let src = tmp.path().join("main.c");
+        let c_code = "#include \"nonexistent.h\"\nint main() { return 0; }";
+        std::fs::write(&src, c_code).unwrap();
+        let deps = extract_dependencies(&src, c_code).unwrap();
+        assert!(deps.is_empty()); // File doesn't exist, so not included
+    }
+
+    // ========================================================================
+    // uses_pointer_arithmetic coverage
+    // ========================================================================
+
+    #[test]
+    fn test_uses_pointer_arithmetic_empty_body() {
+        use decy_hir::{HirParameter, HirType};
+        let func = HirFunction::new(
+            "test".to_string(),
+            HirType::Void,
+            vec![HirParameter::new(
+                "p".to_string(),
+                HirType::Pointer(Box::new(HirType::Int)),
+            )],
+        );
+        assert!(!uses_pointer_arithmetic(&func, "p"));
+    }
+
+    #[test]
+    fn test_uses_pointer_arithmetic_with_increment() {
+        use decy_hir::{BinaryOperator, HirParameter, HirType};
+        let func = HirFunction::new_with_body(
+            "test".to_string(),
+            HirType::Void,
+            vec![HirParameter::new(
+                "p".to_string(),
+                HirType::Pointer(Box::new(HirType::Int)),
+            )],
+            vec![HirStatement::Assignment {
+                target: "p".to_string(),
+                value: HirExpression::BinaryOp {
+                    op: BinaryOperator::Add,
+                    left: Box::new(HirExpression::Variable("p".to_string())),
+                    right: Box::new(HirExpression::IntLiteral(1)),
+                },
+            }],
+        );
+        assert!(uses_pointer_arithmetic(&func, "p"));
+    }
+
+    // ========================================================================
+    // statement_compares_to_null: switch and for(;;)
+    // ========================================================================
+
+    #[test]
+    fn test_statement_compares_to_null_switch() {
+        let stmt = HirStatement::Switch {
+            condition: HirExpression::BinaryOp {
+                op: decy_hir::BinaryOperator::Equal,
+                left: Box::new(HirExpression::Variable("ptr".to_string())),
+                right: Box::new(HirExpression::NullLiteral),
+            },
+            cases: vec![],
+            default_case: None,
+        };
+        assert!(statement_compares_to_null(&stmt, "ptr"));
+    }
+
+    #[test]
+    fn test_statement_compares_to_null_for_none_condition() {
+        // for(;;) with no condition — should not match null comparison
+        let stmt = HirStatement::For {
+            init: vec![],
+            condition: None,
+            increment: vec![],
+            body: vec![],
+        };
+        assert!(!statement_compares_to_null(&stmt, "ptr"));
+    }
+
+    #[test]
+    fn test_statement_compares_to_null_for_with_null_in_body() {
+        let stmt = HirStatement::For {
+            init: vec![],
+            condition: Some(HirExpression::IntLiteral(1)),
+            increment: vec![],
+            body: vec![HirStatement::If {
+                condition: HirExpression::BinaryOp {
+                    op: decy_hir::BinaryOperator::Equal,
+                    left: Box::new(HirExpression::Variable("ptr".to_string())),
+                    right: Box::new(HirExpression::NullLiteral),
+                },
+                then_block: vec![HirStatement::Break],
+                else_block: None,
+            }],
+        };
+        assert!(statement_compares_to_null(&stmt, "ptr"));
+    }
 }
