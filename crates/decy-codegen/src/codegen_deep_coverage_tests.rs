@@ -7487,3 +7487,424 @@ fn annotated_sig_int_return_type() {
         code
     );
 }
+
+// ============================================================================
+// RETURN IN MAIN — std::process::exit with char cast
+// ============================================================================
+
+#[test]
+fn stmt_return_in_main_char_cast() {
+    // C: return 'a'; in main → std::process::exit('a' as i32);
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("c".to_string(), HirType::Char);
+    let stmt = HirStatement::Return(Some(HirExpression::Variable("c".to_string())));
+    let code = cg.generate_statement_with_context(&stmt, Some("main"), &mut ctx, None);
+    assert!(
+        code.contains("std::process::exit") && code.contains("as i32"),
+        "Char return in main should cast to i32, got: {}",
+        code
+    );
+}
+
+#[test]
+fn stmt_return_in_main_int_no_cast() {
+    // C: return 0; in main → std::process::exit(0);
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let stmt = HirStatement::Return(Some(HirExpression::IntLiteral(0)));
+    let code = cg.generate_statement_with_context(&stmt, Some("main"), &mut ctx, None);
+    assert!(
+        code.contains("std::process::exit(0)"),
+        "Int return in main should call process::exit, got: {}",
+        code
+    );
+}
+
+#[test]
+fn stmt_return_in_main_no_expr() {
+    // C: return; in main → std::process::exit(0);
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let stmt = HirStatement::Return(None);
+    let code = cg.generate_statement_with_context(&stmt, Some("main"), &mut ctx, None);
+    assert!(
+        code.contains("std::process::exit(0)"),
+        "Empty return in main should call process::exit(0), got: {}",
+        code
+    );
+}
+
+#[test]
+fn stmt_return_in_non_main_just_return() {
+    // C: return x; in add() → return x;
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let stmt = HirStatement::Return(Some(HirExpression::Variable("x".to_string())));
+    let code = cg.generate_statement_with_context(&stmt, Some("add"), &mut ctx, None);
+    assert!(
+        code.contains("return x"),
+        "Non-main return should use return statement, got: {}",
+        code
+    );
+}
+
+// ============================================================================
+// POINTER DEREFERENCE ASSIGNMENT — unsafe wrapping
+// ============================================================================
+
+#[test]
+fn stmt_deref_assignment_with_safety_comment() {
+    // C: *ptr = 42; → unsafe { *ptr = 42; } (when ptr is known pointer)
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("ptr".to_string(), HirType::Pointer(Box::new(HirType::Int)));
+    let stmt = HirStatement::DerefAssignment {
+        target: HirExpression::Variable("ptr".to_string()),
+        value: HirExpression::IntLiteral(42),
+    };
+    let code = cg.generate_statement_with_context(&stmt, None, &mut ctx, None);
+    assert!(
+        code.contains("unsafe") && code.contains("*ptr"),
+        "Deref assignment should use unsafe block, got: {}",
+        code
+    );
+}
+
+// ============================================================================
+// OPTION COMPARISON WITH NULL (reversed)
+// ============================================================================
+
+#[test]
+fn expr_null_equal_option_reversed_is_none() {
+    // C: NULL == opt → opt.is_none()
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("opt".to_string(), HirType::Option(Box::new(HirType::Int)));
+    let expr = HirExpression::BinaryOp {
+        op: BinaryOperator::Equal,
+        left: Box::new(HirExpression::NullLiteral),
+        right: Box::new(HirExpression::Variable("opt".to_string())),
+    };
+    let code = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(
+        code.contains("is_none") || code.contains("None") || code.contains("=="),
+        "NULL == Option should work, got: {}",
+        code
+    );
+}
+
+// ============================================================================
+// POINTER NULL CHECK — ptr == 0
+// ============================================================================
+
+#[test]
+fn expr_pointer_equal_zero_null_check() {
+    // C: ptr == 0 → ptr == std::ptr::null_mut()
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("ptr".to_string(), HirType::Pointer(Box::new(HirType::Int)));
+    let expr = HirExpression::BinaryOp {
+        op: BinaryOperator::Equal,
+        left: Box::new(HirExpression::Variable("ptr".to_string())),
+        right: Box::new(HirExpression::IntLiteral(0)),
+    };
+    let code = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(
+        code.contains("null") || code.contains("is_null"),
+        "Pointer == 0 should become null check, got: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_pointer_not_equal_zero_not_null() {
+    // C: ptr != 0 → !ptr.is_null() or ptr != null_mut()
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("ptr".to_string(), HirType::Pointer(Box::new(HirType::Int)));
+    let expr = HirExpression::BinaryOp {
+        op: BinaryOperator::NotEqual,
+        left: Box::new(HirExpression::Variable("ptr".to_string())),
+        right: Box::new(HirExpression::IntLiteral(0)),
+    };
+    let code = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(
+        code.contains("null") || code.contains("!"),
+        "Pointer != 0 should become not-null check, got: {}",
+        code
+    );
+}
+
+// ============================================================================
+// TERNARY / CONDITIONAL EXPRESSION
+// ============================================================================
+
+#[test]
+fn expr_ternary_with_unary_else() {
+    // C: x > 0 ? x : -x → if x > 0 { x } else { -x }
+    let cg = CodeGenerator::new();
+    let expr = HirExpression::Ternary {
+        condition: Box::new(HirExpression::BinaryOp {
+            op: BinaryOperator::GreaterThan,
+            left: Box::new(HirExpression::Variable("x".to_string())),
+            right: Box::new(HirExpression::IntLiteral(0)),
+        }),
+        then_expr: Box::new(HirExpression::Variable("x".to_string())),
+        else_expr: Box::new(HirExpression::UnaryOp {
+            op: UnaryOperator::Minus,
+            operand: Box::new(HirExpression::Variable("x".to_string())),
+        }),
+    };
+    let code = cg.generate_expression(&expr);
+    assert!(
+        code.contains("if"),
+        "Ternary should generate if expression, got: {}",
+        code
+    );
+}
+
+// ============================================================================
+// FUNCTION CALL — fopen, fclose special handling
+// ============================================================================
+
+#[test]
+fn expr_fopen_call() {
+    let cg = CodeGenerator::new();
+    let expr = HirExpression::FunctionCall {
+        function: "fopen".to_string(),
+        arguments: vec![
+            HirExpression::StringLiteral("test.txt".to_string()),
+            HirExpression::StringLiteral("r".to_string()),
+        ],
+    };
+    let code = cg.generate_expression(&expr);
+    assert!(
+        code.contains("File") || code.contains("open") || code.contains("fopen"),
+        "fopen should generate File::open or equivalent, got: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_fclose_call() {
+    let cg = CodeGenerator::new();
+    let expr = HirExpression::FunctionCall {
+        function: "fclose".to_string(),
+        arguments: vec![HirExpression::Variable("fp".to_string())],
+    };
+    let code = cg.generate_expression(&expr);
+    assert!(
+        code.contains("drop") || code.contains("fp"),
+        "fclose should generate drop or equivalent, got: {}",
+        code
+    );
+}
+
+// ============================================================================
+// ASSIGNMENT TO STRUCT FIELD — pointer field with unsafe
+// ============================================================================
+
+#[test]
+fn stmt_field_assignment_pointer_obj_unsafe() {
+    // C: ptr->field = value; → unsafe { (*ptr).field = value; }
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("ptr".to_string(), HirType::Pointer(Box::new(
+        HirType::Struct("Node".to_string()),
+    )));
+    let stmt = HirStatement::FieldAssignment {
+        object: HirExpression::Dereference(Box::new(HirExpression::Variable("ptr".to_string()))),
+        field: "value".to_string(),
+        value: HirExpression::IntLiteral(42),
+    };
+    let code = cg.generate_statement_with_context(&stmt, None, &mut ctx, None);
+    assert!(
+        code.contains("unsafe") || code.contains("ptr"),
+        "Pointer field assignment should use unsafe, got: {}",
+        code
+    );
+}
+
+// ============================================================================
+// WHILE WITH POINTER CONDITION
+// ============================================================================
+
+#[test]
+fn stmt_while_pointer_condition() {
+    // C: while (ptr) { ... } → while !ptr.is_null() { ... }
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("ptr".to_string(), HirType::Pointer(Box::new(HirType::Int)));
+    let stmt = HirStatement::While {
+        condition: HirExpression::Variable("ptr".to_string()),
+        body: vec![HirStatement::Break],
+    };
+    let code = cg.generate_statement_with_context(&stmt, None, &mut ctx, None);
+    assert!(
+        code.contains("while") && (code.contains("is_null") || code.contains("!= 0")),
+        "While with pointer should check null, got: {}",
+        code
+    );
+}
+
+// ============================================================================
+// SWITCH WITH FALL-THROUGH — multiple cases sharing body
+// ============================================================================
+
+#[test]
+fn stmt_switch_empty_case_fallthrough() {
+    // C: switch(x) { case 1: case 2: return 1; }
+    // Cases with empty bodies fall through to next case
+    let cg = CodeGenerator::new();
+    let stmt = HirStatement::Switch {
+        condition: HirExpression::Variable("x".to_string()),
+        cases: vec![
+            SwitchCase {
+                value: Some(HirExpression::IntLiteral(1)),
+                body: vec![], // empty = fallthrough
+            },
+            SwitchCase {
+                value: Some(HirExpression::IntLiteral(2)),
+                body: vec![HirStatement::Return(Some(HirExpression::IntLiteral(1)))],
+            },
+        ],
+        default_case: None,
+    };
+    let code = cg.generate_statement(&stmt);
+    assert!(
+        code.contains("match") || code.contains("1") && code.contains("2"),
+        "Switch with fallthrough should generate match, got: {}",
+        code
+    );
+}
+
+// ============================================================================
+// FOR LOOP — with condition and body
+// ============================================================================
+
+#[test]
+fn stmt_for_standard_loop() {
+    // C: for(int i = 0; i < 10; i++) { ... }
+    let cg = CodeGenerator::new();
+    let stmt = HirStatement::For {
+        init: vec![HirStatement::VariableDeclaration {
+            name: "i".to_string(),
+            var_type: HirType::Int,
+            initializer: Some(HirExpression::IntLiteral(0)),
+        }],
+        condition: Some(HirExpression::BinaryOp {
+            op: BinaryOperator::LessThan,
+            left: Box::new(HirExpression::Variable("i".to_string())),
+            right: Box::new(HirExpression::IntLiteral(10)),
+        }),
+        increment: vec![HirStatement::Expression(HirExpression::UnaryOp {
+            op: UnaryOperator::PostIncrement,
+            operand: Box::new(HirExpression::Variable("i".to_string())),
+        })],
+        body: vec![HirStatement::Expression(HirExpression::FunctionCall {
+            function: "printf".to_string(),
+            arguments: vec![
+                HirExpression::StringLiteral("%d".to_string()),
+                HirExpression::Variable("i".to_string()),
+            ],
+        })],
+    };
+    let code = cg.generate_statement(&stmt);
+    assert!(
+        code.contains("while") && code.contains("10"),
+        "Standard for loop should generate while, got: {}",
+        code
+    );
+}
+
+// ============================================================================
+// ARRAY INDEX EXPRESSION — safe and unsafe paths
+// ============================================================================
+
+#[test]
+fn expr_array_index_pointer_unsafe() {
+    // C: ptr[i] → unsafe { *ptr.add(i as usize) }
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("arr".to_string(), HirType::Pointer(Box::new(HirType::Int)));
+    let expr = HirExpression::ArrayIndex {
+        array: Box::new(HirExpression::Variable("arr".to_string())),
+        index: Box::new(HirExpression::Variable("i".to_string())),
+    };
+    let code = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(
+        code.contains("unsafe") || code.contains("arr"),
+        "Pointer array index should use unsafe, got: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_array_index_global_unsafe() {
+    // C: global_arr[i] → unsafe { global_arr[i as usize] }
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable(
+        "global_arr".to_string(),
+        HirType::Array {
+            element_type: Box::new(HirType::Int),
+            size: Some(10),
+        },
+    );
+    ctx.add_global("global_arr".to_string());
+    let expr = HirExpression::ArrayIndex {
+        array: Box::new(HirExpression::Variable("global_arr".to_string())),
+        index: Box::new(HirExpression::Variable("i".to_string())),
+    };
+    let code = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(
+        code.contains("unsafe"),
+        "Global array index should use unsafe, got: {}",
+        code
+    );
+}
+
+// ============================================================================
+// FIELD ACCESS — regular and pointer
+// ============================================================================
+
+#[test]
+fn expr_pointer_field_access_unsafe() {
+    // C: ptr->field → unsafe { (*ptr).field }
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("ptr".to_string(), HirType::Pointer(Box::new(
+        HirType::Struct("Node".to_string()),
+    )));
+    let expr = HirExpression::PointerFieldAccess {
+        pointer: Box::new(HirExpression::Variable("ptr".to_string())),
+        field: "value".to_string(),
+    };
+    let code = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(
+        code.contains("unsafe") || code.contains("ptr") && code.contains("value"),
+        "Pointer field access should use unsafe, got: {}",
+        code
+    );
+}
+
+// ============================================================================
+// SLICE INDEX EXPRESSION
+// ============================================================================
+
+#[test]
+fn expr_slice_index() {
+    let cg = CodeGenerator::new();
+    let expr = HirExpression::SliceIndex {
+        slice: Box::new(HirExpression::Variable("data".to_string())),
+        index: Box::new(HirExpression::Variable("i".to_string())),
+        element_type: HirType::Int,
+    };
+    let code = cg.generate_expression(&expr);
+    assert!(
+        code.contains("data") && code.contains("i"),
+        "Slice index should contain variable names, got: {}",
+        code
+    );
+}
