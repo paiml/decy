@@ -1899,3 +1899,412 @@ fn stmt_field_assignment_reserved_keyword() {
     // "type" is a Rust keyword, should be escaped
     assert!(code.contains("r#type") || code.contains("type_"));
 }
+
+// ============================================================================
+// S3-Phase1: Standard library function mapping tests
+// ============================================================================
+
+#[test]
+fn stdlib_memcpy_generates_copy_from_slice() {
+    let cg = CodeGenerator::new();
+    let expr = HirExpression::FunctionCall {
+        function: "memcpy".to_string(),
+        arguments: vec![
+            HirExpression::Variable("dst".to_string()),
+            HirExpression::Variable("src".to_string()),
+            HirExpression::Variable("n".to_string()),
+        ],
+    };
+    let code = cg.generate_expression(&expr);
+    assert!(
+        code.contains("copy_from_slice"),
+        "memcpy should generate copy_from_slice, got: {}",
+        code
+    );
+}
+
+#[test]
+fn stdlib_memcpy_invalid_args() {
+    let cg = CodeGenerator::new();
+    let expr = HirExpression::FunctionCall {
+        function: "memcpy".to_string(),
+        arguments: vec![HirExpression::Variable("dst".to_string())],
+    };
+    let code = cg.generate_expression(&expr);
+    assert!(code.contains("memcpy requires 3 args"));
+}
+
+#[test]
+fn stdlib_memset_generates_fill() {
+    let cg = CodeGenerator::new();
+    let expr = HirExpression::FunctionCall {
+        function: "memset".to_string(),
+        arguments: vec![
+            HirExpression::Variable("buf".to_string()),
+            HirExpression::IntLiteral(0),
+            HirExpression::Variable("n".to_string()),
+        ],
+    };
+    let code = cg.generate_expression(&expr);
+    assert!(
+        code.contains("fill"),
+        "memset should generate fill, got: {}",
+        code
+    );
+}
+
+#[test]
+fn stdlib_memset_invalid_args() {
+    let cg = CodeGenerator::new();
+    let expr = HirExpression::FunctionCall {
+        function: "memset".to_string(),
+        arguments: vec![],
+    };
+    let code = cg.generate_expression(&expr);
+    assert!(code.contains("memset requires 3 args"));
+}
+
+#[test]
+fn stdlib_strcmp_generates_cmp() {
+    let cg = CodeGenerator::new();
+    let expr = HirExpression::FunctionCall {
+        function: "strcmp".to_string(),
+        arguments: vec![
+            HirExpression::Variable("a".to_string()),
+            HirExpression::Variable("b".to_string()),
+        ],
+    };
+    let code = cg.generate_expression(&expr);
+    assert!(
+        code.contains(".cmp("),
+        "strcmp should generate .cmp(), got: {}",
+        code
+    );
+    assert!(code.contains("as i32"));
+}
+
+#[test]
+fn stdlib_strcmp_invalid_args() {
+    let cg = CodeGenerator::new();
+    let expr = HirExpression::FunctionCall {
+        function: "strcmp".to_string(),
+        arguments: vec![HirExpression::Variable("a".to_string())],
+    };
+    let code = cg.generate_expression(&expr);
+    assert!(code.contains("strcmp requires 2 args"));
+}
+
+#[test]
+fn stdlib_strncmp_generates_bounded_cmp() {
+    let cg = CodeGenerator::new();
+    let expr = HirExpression::FunctionCall {
+        function: "strncmp".to_string(),
+        arguments: vec![
+            HirExpression::Variable("a".to_string()),
+            HirExpression::Variable("b".to_string()),
+            HirExpression::IntLiteral(5),
+        ],
+    };
+    let code = cg.generate_expression(&expr);
+    assert!(
+        code.contains(".cmp("),
+        "strncmp should generate .cmp(), got: {}",
+        code
+    );
+}
+
+#[test]
+fn stdlib_strncmp_invalid_args() {
+    let cg = CodeGenerator::new();
+    let expr = HirExpression::FunctionCall {
+        function: "strncmp".to_string(),
+        arguments: vec![],
+    };
+    let code = cg.generate_expression(&expr);
+    assert!(code.contains("strncmp requires 3 args"));
+}
+
+#[test]
+fn stdlib_strcat_generates_push_str() {
+    let cg = CodeGenerator::new();
+    let expr = HirExpression::FunctionCall {
+        function: "strcat".to_string(),
+        arguments: vec![
+            HirExpression::Variable("dst".to_string()),
+            HirExpression::Variable("src".to_string()),
+        ],
+    };
+    let code = cg.generate_expression(&expr);
+    assert!(
+        code.contains("push_str"),
+        "strcat should generate push_str, got: {}",
+        code
+    );
+}
+
+#[test]
+fn stdlib_strcat_invalid_args() {
+    let cg = CodeGenerator::new();
+    let expr = HirExpression::FunctionCall {
+        function: "strcat".to_string(),
+        arguments: vec![],
+    };
+    let code = cg.generate_expression(&expr);
+    assert!(code.contains("strcat requires 2 args"));
+}
+
+#[test]
+fn stdlib_atoi_generates_parse() {
+    let cg = CodeGenerator::new();
+    let expr = HirExpression::FunctionCall {
+        function: "atoi".to_string(),
+        arguments: vec![HirExpression::Variable("s".to_string())],
+    };
+    let code = cg.generate_expression(&expr);
+    assert!(
+        code.contains("parse::<i32>"),
+        "atoi should generate parse::<i32>(), got: {}",
+        code
+    );
+    assert!(code.contains("unwrap_or(0)"));
+}
+
+#[test]
+fn stdlib_atoi_invalid_args() {
+    let cg = CodeGenerator::new();
+    let expr = HirExpression::FunctionCall {
+        function: "atoi".to_string(),
+        arguments: vec![],
+    };
+    let code = cg.generate_expression(&expr);
+    assert!(code.contains("atoi requires 1 arg"));
+}
+
+#[test]
+fn stdlib_atof_generates_parse_f64() {
+    let cg = CodeGenerator::new();
+    let expr = HirExpression::FunctionCall {
+        function: "atof".to_string(),
+        arguments: vec![HirExpression::Variable("s".to_string())],
+    };
+    let code = cg.generate_expression(&expr);
+    assert!(
+        code.contains("parse::<f64>"),
+        "atof should generate parse::<f64>(), got: {}",
+        code
+    );
+    assert!(code.contains("unwrap_or(0.0)"));
+}
+
+#[test]
+fn stdlib_atof_invalid_args() {
+    let cg = CodeGenerator::new();
+    let expr = HirExpression::FunctionCall {
+        function: "atof".to_string(),
+        arguments: vec![],
+    };
+    let code = cg.generate_expression(&expr);
+    assert!(code.contains("atof requires 1 arg"));
+}
+
+#[test]
+fn stdlib_abs_generates_abs() {
+    let cg = CodeGenerator::new();
+    let expr = HirExpression::FunctionCall {
+        function: "abs".to_string(),
+        arguments: vec![HirExpression::Variable("x".to_string())],
+    };
+    let code = cg.generate_expression(&expr);
+    assert!(
+        code.contains(".abs()"),
+        "abs should generate .abs(), got: {}",
+        code
+    );
+}
+
+#[test]
+fn stdlib_abs_invalid_args() {
+    let cg = CodeGenerator::new();
+    let expr = HirExpression::FunctionCall {
+        function: "abs".to_string(),
+        arguments: vec![],
+    };
+    let code = cg.generate_expression(&expr);
+    assert!(code.contains("abs requires 1 arg"));
+}
+
+#[test]
+fn stdlib_exit_generates_process_exit() {
+    let cg = CodeGenerator::new();
+    let expr = HirExpression::FunctionCall {
+        function: "exit".to_string(),
+        arguments: vec![HirExpression::IntLiteral(0)],
+    };
+    let code = cg.generate_expression(&expr);
+    assert!(
+        code.contains("std::process::exit"),
+        "exit should generate std::process::exit, got: {}",
+        code
+    );
+}
+
+#[test]
+fn stdlib_exit_no_args() {
+    let cg = CodeGenerator::new();
+    let expr = HirExpression::FunctionCall {
+        function: "exit".to_string(),
+        arguments: vec![],
+    };
+    let code = cg.generate_expression(&expr);
+    assert!(code.contains("std::process::exit(1)"));
+}
+
+#[test]
+fn stdlib_puts_generates_println() {
+    let cg = CodeGenerator::new();
+    let expr = HirExpression::FunctionCall {
+        function: "puts".to_string(),
+        arguments: vec![HirExpression::StringLiteral("hello".to_string())],
+    };
+    let code = cg.generate_expression(&expr);
+    assert!(
+        code.contains("println!"),
+        "puts should generate println!, got: {}",
+        code
+    );
+}
+
+#[test]
+fn stdlib_puts_no_args() {
+    let cg = CodeGenerator::new();
+    let expr = HirExpression::FunctionCall {
+        function: "puts".to_string(),
+        arguments: vec![],
+    };
+    let code = cg.generate_expression(&expr);
+    assert!(code.contains("println!()"));
+}
+
+#[test]
+fn stdlib_snprintf_generates_format() {
+    let cg = CodeGenerator::new();
+    let expr = HirExpression::FunctionCall {
+        function: "snprintf".to_string(),
+        arguments: vec![
+            HirExpression::Variable("buf".to_string()),
+            HirExpression::IntLiteral(256),
+            HirExpression::StringLiteral("value: %d".to_string()),
+            HirExpression::Variable("x".to_string()),
+        ],
+    };
+    let code = cg.generate_expression(&expr);
+    assert!(
+        code.contains("format!"),
+        "snprintf should generate format!, got: {}",
+        code
+    );
+}
+
+#[test]
+fn stdlib_snprintf_no_varargs() {
+    let cg = CodeGenerator::new();
+    let expr = HirExpression::FunctionCall {
+        function: "snprintf".to_string(),
+        arguments: vec![
+            HirExpression::Variable("buf".to_string()),
+            HirExpression::IntLiteral(256),
+            HirExpression::StringLiteral("hello".to_string()),
+        ],
+    };
+    let code = cg.generate_expression(&expr);
+    assert!(code.contains("format!"));
+}
+
+#[test]
+fn stdlib_snprintf_invalid_args() {
+    let cg = CodeGenerator::new();
+    let expr = HirExpression::FunctionCall {
+        function: "snprintf".to_string(),
+        arguments: vec![HirExpression::Variable("buf".to_string())],
+    };
+    let code = cg.generate_expression(&expr);
+    assert!(code.contains("snprintf requires 3+ args"));
+}
+
+#[test]
+fn stdlib_sprintf_generates_format() {
+    let cg = CodeGenerator::new();
+    let expr = HirExpression::FunctionCall {
+        function: "sprintf".to_string(),
+        arguments: vec![
+            HirExpression::Variable("buf".to_string()),
+            HirExpression::StringLiteral("val=%d".to_string()),
+            HirExpression::Variable("x".to_string()),
+        ],
+    };
+    let code = cg.generate_expression(&expr);
+    assert!(
+        code.contains("format!"),
+        "sprintf should generate format!, got: {}",
+        code
+    );
+}
+
+#[test]
+fn stdlib_sprintf_no_varargs() {
+    let cg = CodeGenerator::new();
+    let expr = HirExpression::FunctionCall {
+        function: "sprintf".to_string(),
+        arguments: vec![
+            HirExpression::Variable("buf".to_string()),
+            HirExpression::StringLiteral("hello".to_string()),
+        ],
+    };
+    let code = cg.generate_expression(&expr);
+    assert!(code.contains("format!"));
+}
+
+#[test]
+fn stdlib_sprintf_invalid_args() {
+    let cg = CodeGenerator::new();
+    let expr = HirExpression::FunctionCall {
+        function: "sprintf".to_string(),
+        arguments: vec![],
+    };
+    let code = cg.generate_expression(&expr);
+    assert!(code.contains("sprintf requires 2+ args"));
+}
+
+#[test]
+fn stdlib_qsort_generates_sort_by() {
+    let cg = CodeGenerator::new();
+    let expr = HirExpression::FunctionCall {
+        function: "qsort".to_string(),
+        arguments: vec![
+            HirExpression::Variable("arr".to_string()),
+            HirExpression::Variable("n".to_string()),
+            HirExpression::FunctionCall {
+                function: "sizeof".to_string(),
+                arguments: vec![HirExpression::Variable("int".to_string())],
+            },
+            HirExpression::Variable("compare".to_string()),
+        ],
+    };
+    let code = cg.generate_expression(&expr);
+    assert!(
+        code.contains("sort_by"),
+        "qsort should generate sort_by, got: {}",
+        code
+    );
+}
+
+#[test]
+fn stdlib_qsort_invalid_args() {
+    let cg = CodeGenerator::new();
+    let expr = HirExpression::FunctionCall {
+        function: "qsort".to_string(),
+        arguments: vec![HirExpression::Variable("arr".to_string())],
+    };
+    let code = cg.generate_expression(&expr);
+    assert!(code.contains("qsort requires 4 args"));
+}

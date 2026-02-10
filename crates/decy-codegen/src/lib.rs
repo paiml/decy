@@ -2519,6 +2519,178 @@ impl CodeGenerator {
                             "/* WTERMSIG requires status arg */".to_string()
                         }
                     }
+                    // S3-Phase1: memcpy(dst, src, n) → dst[..n].copy_from_slice(&src[..n])
+                    // Reference: ISO C99 §7.21.2.1
+                    "memcpy" => {
+                        if arguments.len() == 3 {
+                            let dst = self.generate_expression_with_context(&arguments[0], ctx);
+                            let src = self.generate_expression_with_context(&arguments[1], ctx);
+                            let n = self.generate_expression_with_context(&arguments[2], ctx);
+                            format!(
+                                "{{ let n = ({}) as usize; {}[..n].copy_from_slice(&{}[..n]); }}",
+                                n, dst, src
+                            )
+                        } else {
+                            "/* memcpy requires 3 args */".to_string()
+                        }
+                    }
+                    // S3-Phase1: memset(ptr, val, n) → slice.fill(val)
+                    // Reference: ISO C99 §7.21.6.1
+                    "memset" => {
+                        if arguments.len() == 3 {
+                            let ptr = self.generate_expression_with_context(&arguments[0], ctx);
+                            let val = self.generate_expression_with_context(&arguments[1], ctx);
+                            let n = self.generate_expression_with_context(&arguments[2], ctx);
+                            format!(
+                                "{{ let n = ({}) as usize; {}[..n].fill(({}) as u8); }}",
+                                n, ptr, val
+                            )
+                        } else {
+                            "/* memset requires 3 args */".to_string()
+                        }
+                    }
+                    // S3-Phase1: strcmp(a, b) → a.cmp(b) or == comparison
+                    // Reference: K&R §B3, ISO C99 §7.21.4.2
+                    "strcmp" => {
+                        if arguments.len() == 2 {
+                            let a = self.generate_expression_with_context(&arguments[0], ctx);
+                            let b = self.generate_expression_with_context(&arguments[1], ctx);
+                            // strcmp returns 0 when equal, negative/positive otherwise
+                            // Use Ord::cmp for full semantics
+                            format!("{}.cmp(&{}) as i32", a, b)
+                        } else {
+                            "0 /* strcmp requires 2 args */".to_string()
+                        }
+                    }
+                    // S3-Phase1: strncmp(a, b, n) → a[..n].cmp(&b[..n])
+                    // Reference: ISO C99 §7.21.4.4
+                    "strncmp" => {
+                        if arguments.len() == 3 {
+                            let a = self.generate_expression_with_context(&arguments[0], ctx);
+                            let b = self.generate_expression_with_context(&arguments[1], ctx);
+                            let n = self.generate_expression_with_context(&arguments[2], ctx);
+                            format!(
+                                "{{ let n = ({}) as usize; {}[..n].cmp(&{}[..n]) as i32 }}",
+                                n, a, b
+                            )
+                        } else {
+                            "0 /* strncmp requires 3 args */".to_string()
+                        }
+                    }
+                    // S3-Phase1: strcat(dst, src) → { dst.push_str(&src); dst }
+                    // Reference: K&R §B3, ISO C99 §7.21.3.1
+                    "strcat" => {
+                        if arguments.len() == 2 {
+                            let dst = self.generate_expression_with_context(&arguments[0], ctx);
+                            let src = self.generate_expression_with_context(&arguments[1], ctx);
+                            format!("{{ {}.push_str(&{}); {} }}", dst, src, dst)
+                        } else {
+                            "\"\" /* strcat requires 2 args */".to_string()
+                        }
+                    }
+                    // S3-Phase1: atoi(s) → s.parse::<i32>().unwrap_or(0)
+                    // Reference: K&R §B5, ISO C99 §7.20.1.2
+                    "atoi" => {
+                        if arguments.len() == 1 {
+                            let s = self.generate_expression_with_context(&arguments[0], ctx);
+                            format!("{}.parse::<i32>().unwrap_or(0)", s)
+                        } else {
+                            "0 /* atoi requires 1 arg */".to_string()
+                        }
+                    }
+                    // S3-Phase1: atof(s) → s.parse::<f64>().unwrap_or(0.0)
+                    // Reference: ISO C99 §7.20.1.1
+                    "atof" => {
+                        if arguments.len() == 1 {
+                            let s = self.generate_expression_with_context(&arguments[0], ctx);
+                            format!("{}.parse::<f64>().unwrap_or(0.0)", s)
+                        } else {
+                            "0.0 /* atof requires 1 arg */".to_string()
+                        }
+                    }
+                    // S3-Phase1: abs(x) → x.abs()
+                    // Reference: ISO C99 §7.20.6.1
+                    "abs" => {
+                        if arguments.len() == 1 {
+                            let x = self.generate_expression_with_context(&arguments[0], ctx);
+                            format!("({}).abs()", x)
+                        } else {
+                            "0 /* abs requires 1 arg */".to_string()
+                        }
+                    }
+                    // S3-Phase1: exit(code) → std::process::exit(code)
+                    // Reference: ISO C99 §7.20.4.3
+                    "exit" => {
+                        if arguments.len() == 1 {
+                            let code = self.generate_expression_with_context(&arguments[0], ctx);
+                            format!("std::process::exit({})", code)
+                        } else {
+                            "std::process::exit(1)".to_string()
+                        }
+                    }
+                    // S3-Phase1: puts(s) → println!("{}", s)
+                    // Reference: ISO C99 §7.19.7.10
+                    "puts" => {
+                        if arguments.len() == 1 {
+                            let s = self.generate_expression_with_context(&arguments[0], ctx);
+                            format!("println!(\"{{}}\", {})", s)
+                        } else {
+                            "println!()".to_string()
+                        }
+                    }
+                    // S3-Phase1: snprintf(buf, n, fmt, ...) → format!(fmt, ...)
+                    // Reference: ISO C99 §7.19.6.5
+                    "snprintf" => {
+                        if arguments.len() >= 3 {
+                            let fmt = self.generate_expression_with_context(&arguments[2], ctx);
+                            let rust_fmt = Self::convert_c_format_to_rust(&fmt);
+                            if arguments.len() == 3 {
+                                format!("format!({})", rust_fmt)
+                            } else {
+                                let args: Vec<String> = arguments[3..]
+                                    .iter()
+                                    .map(|a| self.generate_expression_with_context(a, ctx))
+                                    .collect();
+                                format!("format!({}, {})", rust_fmt, args.join(", "))
+                            }
+                        } else {
+                            "String::new() /* snprintf requires 3+ args */".to_string()
+                        }
+                    }
+                    // S3-Phase1: sprintf(buf, fmt, ...) → format!(fmt, ...)
+                    // Reference: ISO C99 §7.19.6.6
+                    "sprintf" => {
+                        if arguments.len() >= 2 {
+                            let fmt = self.generate_expression_with_context(&arguments[1], ctx);
+                            let rust_fmt = Self::convert_c_format_to_rust(&fmt);
+                            if arguments.len() == 2 {
+                                format!("format!({})", rust_fmt)
+                            } else {
+                                let args: Vec<String> = arguments[2..]
+                                    .iter()
+                                    .map(|a| self.generate_expression_with_context(a, ctx))
+                                    .collect();
+                                format!("format!({}, {})", rust_fmt, args.join(", "))
+                            }
+                        } else {
+                            "String::new() /* sprintf requires 2+ args */".to_string()
+                        }
+                    }
+                    // S3-Phase1: qsort(base, n, size, cmp) → base.sort_by(cmp)
+                    // Reference: ISO C99 §7.20.5.2
+                    "qsort" => {
+                        if arguments.len() == 4 {
+                            let base = self.generate_expression_with_context(&arguments[0], ctx);
+                            let n = self.generate_expression_with_context(&arguments[1], ctx);
+                            let cmp = self.generate_expression_with_context(&arguments[3], ctx);
+                            format!(
+                                "{}[..{} as usize].sort_by(|a, b| {}(a, b))",
+                                base, n, cmp
+                            )
+                        } else {
+                            "/* qsort requires 4 args */".to_string()
+                        }
+                    }
                     // Default: pass through function call as-is
                     // DECY-116 + DECY-117: Transform call sites for slice functions and reference mutability
                     _ => {
