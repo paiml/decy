@@ -270,9 +270,9 @@ Post-implementation workspace coverage: **96.75% line coverage** (target: 95%)
 
 ### Test Corpus
 
-- **Total tests**: 12,004 passing across workspace
+- **Total tests**: 12,101 passing across workspace
 - **Falsification tests**: 2,150 total (92 falsified, 95.7% pass rate)
-- **Codegen deep tests**: 298 (targeting uncovered statement/expression/helper/signature/format paths)
+- **Codegen deep tests**: 448 (targeting uncovered statement/expression/helper/signature/format/coercion/global paths)
 - **Core pipeline tests**: 12 new (uninitialized globals, enum variants, function dedup)
 - **Inference branch tests**: 17 (via DataflowGraph test helpers for defensive branches)
 
