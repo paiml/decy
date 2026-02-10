@@ -863,4 +863,412 @@ mod tests {
         };
         assert!(ArrayParameterTransformer::statement_uses_pointer_arithmetic(&stmt, "ptr"));
     }
+
+    // ============================================================================
+    // ADDITIONAL COVERAGE: ArrayIndexAssignment, UnaryOp, edge cases
+    // ============================================================================
+
+    #[test]
+    fn test_transform_statement_array_index_assignment() {
+        let mut map: HashMap<String, Option<String>> = HashMap::new();
+        map.insert("arr".to_string(), Some("len".to_string()));
+
+        let stmt = HirStatement::ArrayIndexAssignment {
+            array: Box::new(HirExpression::Variable("arr".to_string())),
+            index: Box::new(HirExpression::Variable("len".to_string())),
+            value: HirExpression::IntLiteral(42),
+        };
+        let result = ArrayParameterTransformer::transform_statement(&stmt, &map);
+        match result {
+            HirStatement::ArrayIndexAssignment {
+                array,
+                index,
+                value,
+            } => {
+                // array stays as Variable (not a length param)
+                assert!(matches!(*array, HirExpression::Variable(_)));
+                // index was "len" → should be transformed to arr.len()
+                assert!(matches!(*index, HirExpression::StringMethodCall { .. }));
+                assert!(matches!(value, HirExpression::IntLiteral(42)));
+            }
+            _ => panic!("Expected ArrayIndexAssignment"),
+        }
+    }
+
+    #[test]
+    fn test_transform_expression_unary_op() {
+        let map: HashMap<String, Option<String>> = HashMap::new();
+        let expr = HirExpression::UnaryOp {
+            op: decy_hir::UnaryOperator::Minus,
+            operand: Box::new(HirExpression::Variable("x".to_string())),
+        };
+        let result = ArrayParameterTransformer::transform_expression(&expr, &map);
+        match result {
+            HirExpression::UnaryOp { op, operand } => {
+                assert!(matches!(op, decy_hir::UnaryOperator::Minus));
+                assert!(matches!(*operand, HirExpression::Variable(ref n) if n == "x"));
+            }
+            _ => panic!("Expected UnaryOp"),
+        }
+    }
+
+    #[test]
+    fn test_transform_statement_var_decl_no_initializer() {
+        let map: HashMap<String, Option<String>> = HashMap::new();
+        let stmt = HirStatement::VariableDeclaration {
+            name: "x".to_string(),
+            var_type: HirType::Int,
+            initializer: None,
+        };
+        let result = ArrayParameterTransformer::transform_statement(&stmt, &map);
+        match result {
+            HirStatement::VariableDeclaration { initializer, .. } => {
+                assert!(initializer.is_none());
+            }
+            _ => panic!("Expected VariableDeclaration"),
+        }
+    }
+
+    #[test]
+    fn test_transform_expression_binary_op_with_length_param() {
+        let mut map: HashMap<String, Option<String>> = HashMap::new();
+        map.insert("arr".to_string(), Some("len".to_string()));
+
+        let expr = HirExpression::BinaryOp {
+            op: BinaryOperator::LessThan,
+            left: Box::new(HirExpression::Variable("i".to_string())),
+            right: Box::new(HirExpression::Variable("len".to_string())),
+        };
+        let result = ArrayParameterTransformer::transform_expression(&expr, &map);
+        match result {
+            HirExpression::BinaryOp { right, .. } => {
+                // "len" should be transformed to arr.len()
+                assert!(matches!(*right, HirExpression::StringMethodCall { .. }));
+            }
+            _ => panic!("Expected BinaryOp"),
+        }
+    }
+
+    #[test]
+    fn test_transform_expression_function_call_with_length_param() {
+        let mut map: HashMap<String, Option<String>> = HashMap::new();
+        map.insert("arr".to_string(), Some("size".to_string()));
+
+        let expr = HirExpression::FunctionCall {
+            function: "process".to_string(),
+            arguments: vec![
+                HirExpression::Variable("arr".to_string()),
+                HirExpression::Variable("size".to_string()),
+            ],
+        };
+        let result = ArrayParameterTransformer::transform_expression(&expr, &map);
+        match result {
+            HirExpression::FunctionCall { arguments, .. } => {
+                assert_eq!(arguments.len(), 2);
+                // "size" arg should be transformed to arr.len()
+                assert!(matches!(arguments[1], HirExpression::StringMethodCall { .. }));
+            }
+            _ => panic!("Expected FunctionCall"),
+        }
+    }
+
+    #[test]
+    fn test_transform_expression_cast_with_length_param() {
+        let mut map: HashMap<String, Option<String>> = HashMap::new();
+        map.insert("arr".to_string(), Some("n".to_string()));
+
+        let expr = HirExpression::Cast {
+            expr: Box::new(HirExpression::Variable("n".to_string())),
+            target_type: HirType::Int,
+        };
+        let result = ArrayParameterTransformer::transform_expression(&expr, &map);
+        match result {
+            HirExpression::Cast { expr, .. } => {
+                assert!(matches!(*expr, HirExpression::StringMethodCall { .. }));
+            }
+            _ => panic!("Expected Cast"),
+        }
+    }
+
+    #[test]
+    fn test_transform_expression_dereference_with_length_param() {
+        let mut map: HashMap<String, Option<String>> = HashMap::new();
+        map.insert("arr".to_string(), Some("len".to_string()));
+
+        let expr =
+            HirExpression::Dereference(Box::new(HirExpression::Variable("len".to_string())));
+        let result = ArrayParameterTransformer::transform_expression(&expr, &map);
+        match result {
+            HirExpression::Dereference(inner) => {
+                assert!(matches!(*inner, HirExpression::StringMethodCall { .. }));
+            }
+            _ => panic!("Expected Dereference"),
+        }
+    }
+
+    #[test]
+    fn test_transform_expression_address_of_with_length_param() {
+        let mut map: HashMap<String, Option<String>> = HashMap::new();
+        map.insert("arr".to_string(), Some("len".to_string()));
+
+        let expr = HirExpression::AddressOf(Box::new(HirExpression::Variable("len".to_string())));
+        let result = ArrayParameterTransformer::transform_expression(&expr, &map);
+        match result {
+            HirExpression::AddressOf(inner) => {
+                assert!(matches!(*inner, HirExpression::StringMethodCall { .. }));
+            }
+            _ => panic!("Expected AddressOf"),
+        }
+    }
+
+    #[test]
+    fn test_transform_expression_array_index_with_length_param() {
+        let mut map: HashMap<String, Option<String>> = HashMap::new();
+        map.insert("arr".to_string(), Some("len".to_string()));
+
+        let expr = HirExpression::ArrayIndex {
+            array: Box::new(HirExpression::Variable("arr".to_string())),
+            index: Box::new(HirExpression::Variable("len".to_string())),
+        };
+        let result = ArrayParameterTransformer::transform_expression(&expr, &map);
+        match result {
+            HirExpression::ArrayIndex { index, .. } => {
+                assert!(matches!(*index, HirExpression::StringMethodCall { .. }));
+            }
+            _ => panic!("Expected ArrayIndex"),
+        }
+    }
+
+    #[test]
+    fn test_statement_uses_pointer_arithmetic_non_matching_assignment() {
+        // Assignment with non-arithmetic operation (e.g., multiply)
+        let stmt = HirStatement::Assignment {
+            target: "arr".to_string(),
+            value: HirExpression::BinaryOp {
+                op: BinaryOperator::Multiply,
+                left: Box::new(HirExpression::Variable("arr".to_string())),
+                right: Box::new(HirExpression::IntLiteral(2)),
+            },
+        };
+        assert!(!ArrayParameterTransformer::statement_uses_pointer_arithmetic(&stmt, "arr"));
+    }
+
+    #[test]
+    fn test_statement_uses_pointer_arithmetic_assignment_different_left() {
+        // target matches but left side of BinaryOp is different variable
+        let stmt = HirStatement::Assignment {
+            target: "arr".to_string(),
+            value: HirExpression::BinaryOp {
+                op: BinaryOperator::Add,
+                left: Box::new(HirExpression::Variable("other".to_string())),
+                right: Box::new(HirExpression::IntLiteral(1)),
+            },
+        };
+        assert!(!ArrayParameterTransformer::statement_uses_pointer_arithmetic(&stmt, "arr"));
+    }
+
+    #[test]
+    fn test_statement_uses_pointer_arithmetic_non_binary_value() {
+        // Assignment where value is not a BinaryOp
+        let stmt = HirStatement::Assignment {
+            target: "arr".to_string(),
+            value: HirExpression::IntLiteral(0),
+        };
+        assert!(!ArrayParameterTransformer::statement_uses_pointer_arithmetic(&stmt, "arr"));
+    }
+
+    #[test]
+    fn test_statement_uses_pointer_arithmetic_if_no_else() {
+        // If with no else block, no arithmetic in then
+        let stmt = HirStatement::If {
+            condition: HirExpression::Variable("flag".to_string()),
+            then_block: vec![HirStatement::Break],
+            else_block: None,
+        };
+        assert!(!ArrayParameterTransformer::statement_uses_pointer_arithmetic(&stmt, "ptr"));
+    }
+
+    #[test]
+    fn test_statement_uses_pointer_arithmetic_break_passthrough() {
+        let stmt = HirStatement::Break;
+        assert!(!ArrayParameterTransformer::statement_uses_pointer_arithmetic(&stmt, "ptr"));
+    }
+
+    #[test]
+    fn test_uses_pointer_arithmetic_multiple_statements() {
+        let func = HirFunction::new_with_body(
+            "test".to_string(),
+            HirType::Void,
+            vec![HirParameter::new(
+                "arr".to_string(),
+                HirType::Pointer(Box::new(HirType::Int)),
+            )],
+            vec![
+                HirStatement::VariableDeclaration {
+                    name: "x".to_string(),
+                    var_type: HirType::Int,
+                    initializer: Some(HirExpression::IntLiteral(0)),
+                },
+                HirStatement::Assignment {
+                    target: "arr".to_string(),
+                    value: HirExpression::BinaryOp {
+                        op: BinaryOperator::Add,
+                        left: Box::new(HirExpression::Variable("arr".to_string())),
+                        right: Box::new(HirExpression::IntLiteral(1)),
+                    },
+                },
+            ],
+        );
+        assert!(ArrayParameterTransformer::uses_pointer_arithmetic(
+            &func, "arr"
+        ));
+    }
+
+    #[test]
+    fn test_transform_statement_if_with_length_params() {
+        let mut map: HashMap<String, Option<String>> = HashMap::new();
+        map.insert("arr".to_string(), Some("len".to_string()));
+
+        let stmt = HirStatement::If {
+            condition: HirExpression::BinaryOp {
+                op: BinaryOperator::LessThan,
+                left: Box::new(HirExpression::Variable("i".to_string())),
+                right: Box::new(HirExpression::Variable("len".to_string())),
+            },
+            then_block: vec![HirStatement::Assignment {
+                target: "x".to_string(),
+                value: HirExpression::Variable("len".to_string()),
+            }],
+            else_block: Some(vec![HirStatement::Assignment {
+                target: "y".to_string(),
+                value: HirExpression::Variable("len".to_string()),
+            }]),
+        };
+        let result = ArrayParameterTransformer::transform_statement(&stmt, &map);
+        match result {
+            HirStatement::If {
+                condition,
+                then_block,
+                else_block,
+            } => {
+                // condition should have len transformed
+                if let HirExpression::BinaryOp { right, .. } = condition {
+                    assert!(matches!(*right, HirExpression::StringMethodCall { .. }));
+                }
+                // then_block assignment value should be transformed
+                if let HirStatement::Assignment { value, .. } = &then_block[0] {
+                    assert!(matches!(value, HirExpression::StringMethodCall { .. }));
+                }
+                // else_block assignment value should be transformed
+                let else_stmts = else_block.unwrap();
+                if let HirStatement::Assignment { value, .. } = &else_stmts[0] {
+                    assert!(matches!(value, HirExpression::StringMethodCall { .. }));
+                }
+            }
+            _ => panic!("Expected If"),
+        }
+    }
+
+    #[test]
+    fn test_transform_statement_while_with_length_param() {
+        let mut map: HashMap<String, Option<String>> = HashMap::new();
+        map.insert("arr".to_string(), Some("n".to_string()));
+
+        let stmt = HirStatement::While {
+            condition: HirExpression::Variable("n".to_string()),
+            body: vec![HirStatement::Assignment {
+                target: "x".to_string(),
+                value: HirExpression::Variable("n".to_string()),
+            }],
+        };
+        let result = ArrayParameterTransformer::transform_statement(&stmt, &map);
+        match result {
+            HirStatement::While { condition, body } => {
+                assert!(matches!(condition, HirExpression::StringMethodCall { .. }));
+                if let HirStatement::Assignment { value, .. } = &body[0] {
+                    assert!(matches!(value, HirExpression::StringMethodCall { .. }));
+                }
+            }
+            _ => panic!("Expected While"),
+        }
+    }
+
+    #[test]
+    fn test_transform_statement_for_with_length_param() {
+        let mut map: HashMap<String, Option<String>> = HashMap::new();
+        map.insert("arr".to_string(), Some("n".to_string()));
+
+        let stmt = HirStatement::For {
+            init: vec![HirStatement::VariableDeclaration {
+                name: "i".to_string(),
+                var_type: HirType::Int,
+                initializer: Some(HirExpression::IntLiteral(0)),
+            }],
+            condition: Some(HirExpression::BinaryOp {
+                op: BinaryOperator::LessThan,
+                left: Box::new(HirExpression::Variable("i".to_string())),
+                right: Box::new(HirExpression::Variable("n".to_string())),
+            }),
+            increment: vec![HirStatement::Assignment {
+                target: "i".to_string(),
+                value: HirExpression::BinaryOp {
+                    op: BinaryOperator::Add,
+                    left: Box::new(HirExpression::Variable("i".to_string())),
+                    right: Box::new(HirExpression::IntLiteral(1)),
+                },
+            }],
+            body: vec![HirStatement::Return(Some(HirExpression::Variable(
+                "n".to_string(),
+            )))],
+        };
+        let result = ArrayParameterTransformer::transform_statement(&stmt, &map);
+        match result {
+            HirStatement::For {
+                condition, body, ..
+            } => {
+                // Condition should have "n" transformed
+                let cond = condition.unwrap();
+                if let HirExpression::BinaryOp { right, .. } = cond {
+                    assert!(matches!(*right, HirExpression::StringMethodCall { .. }));
+                }
+                // Return in body should have "n" transformed
+                if let HirStatement::Return(Some(expr)) = &body[0] {
+                    assert!(matches!(expr, HirExpression::StringMethodCall { .. }));
+                }
+            }
+            _ => panic!("Expected For"),
+        }
+    }
+
+    #[test]
+    fn test_transform_statement_expression_with_length_param() {
+        let mut map: HashMap<String, Option<String>> = HashMap::new();
+        map.insert("arr".to_string(), Some("sz".to_string()));
+
+        let stmt = HirStatement::Expression(HirExpression::FunctionCall {
+            function: "print".to_string(),
+            arguments: vec![HirExpression::Variable("sz".to_string())],
+        });
+        let result = ArrayParameterTransformer::transform_statement(&stmt, &map);
+        match result {
+            HirStatement::Expression(HirExpression::FunctionCall { arguments, .. }) => {
+                assert!(matches!(
+                    arguments[0],
+                    HirExpression::StringMethodCall { .. }
+                ));
+            }
+            _ => panic!("Expected Expression(FunctionCall)"),
+        }
+    }
+
+    #[test]
+    fn test_transform_expression_variable_array_param_no_length() {
+        // Array param with None length — variable should not be transformed
+        let mut map: HashMap<String, Option<String>> = HashMap::new();
+        map.insert("arr".to_string(), None);
+
+        let expr = HirExpression::Variable("arr".to_string());
+        let result = ArrayParameterTransformer::transform_expression(&expr, &map);
+        assert!(matches!(result, HirExpression::Variable(ref n) if n == "arr"));
+    }
 }
