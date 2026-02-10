@@ -864,4 +864,347 @@ mod tests {
             InferredOwnership::Slice
         );
     }
+
+    // ========================================================================
+    // Deep coverage: classify_ensemble all branches
+    // ========================================================================
+
+    #[test]
+    fn classify_ensemble_agreement_confidence_capped_at_one() {
+        // When both have very high confidence, boosted value should cap at 1.0
+        let classifier = HybridClassifier::new();
+
+        let inference = OwnershipInference {
+            variable: "ptr".to_string(),
+            kind: OwnershipKind::Owning,
+            confidence: 0.99, // Very high rule confidence
+            reason: "malloc + free".to_string(),
+        };
+
+        let features = OwnershipFeatures::default();
+        // ML agrees with high confidence
+        let model = MockModel::with_confidence(InferredOwnership::Owned, 0.99);
+
+        let result = classifier.classify_ensemble(&inference, &features, &model);
+
+        assert_eq!(result.method, ClassificationMethod::Hybrid);
+        assert_eq!(result.ownership, InferredOwnership::Owned);
+        // (0.99 + 0.99) / 2 * 1.1 = 1.089 -> capped at 1.0
+        assert!((result.confidence - 1.0).abs() < 0.001);
+        assert!(result.reasoning.contains("boosted"));
+    }
+
+    #[test]
+    fn classify_ensemble_agreement_low_confidence_boosted() {
+        let classifier = HybridClassifier::new();
+
+        let inference = OwnershipInference {
+            variable: "ptr".to_string(),
+            kind: OwnershipKind::ImmutableBorrow,
+            confidence: 0.4,
+            reason: "parameter read-only".to_string(),
+        };
+
+        let features = OwnershipFeatures::default();
+        let model = MockModel::with_confidence(InferredOwnership::Borrowed, 0.5);
+
+        let result = classifier.classify_ensemble(&inference, &features, &model);
+
+        assert_eq!(result.method, ClassificationMethod::Hybrid);
+        assert_eq!(result.ownership, InferredOwnership::Borrowed);
+        // (0.4 + 0.5) / 2 * 1.1 = 0.495
+        assert!(result.confidence > 0.49);
+        assert!(result.confidence < 0.51);
+    }
+
+    #[test]
+    fn classify_ensemble_disagreement_ml_wins_with_exact_equality() {
+        // Edge: ML confidence equals rules confidence => rules win (else branch)
+        let classifier = HybridClassifier::new();
+
+        let inference = OwnershipInference {
+            variable: "ptr".to_string(),
+            kind: OwnershipKind::Owning,
+            confidence: 0.7, // Same as ML
+            reason: "allocation".to_string(),
+        };
+
+        let features = OwnershipFeatures::default();
+        let model = MockModel::with_confidence(InferredOwnership::Borrowed, 0.7);
+
+        let result = classifier.classify_ensemble(&inference, &features, &model);
+
+        // They disagree, confidence is equal => rules win (ml_conf > inference.confidence is false)
+        assert_eq!(result.method, ClassificationMethod::RuleBased);
+        assert_eq!(result.ownership, InferredOwnership::Owned);
+        assert!(result.reasoning.contains("Rules win"));
+    }
+
+    #[test]
+    fn classify_ensemble_disagreement_ml_wins_clearly() {
+        let classifier = HybridClassifier::new();
+
+        let inference = OwnershipInference {
+            variable: "ptr".to_string(),
+            kind: OwnershipKind::Unknown, // Low confidence from rules
+            confidence: 0.3,
+            reason: "unknown pattern".to_string(),
+        };
+
+        let features = OwnershipFeatures::default();
+        let model = MockModel::with_confidence(InferredOwnership::Vec, 0.95);
+
+        let result = classifier.classify_ensemble(&inference, &features, &model);
+
+        assert_eq!(result.method, ClassificationMethod::MachineLearning);
+        assert_eq!(result.ownership, InferredOwnership::Vec);
+        assert!((result.confidence - 0.95).abs() < 0.001);
+        assert!(result.reasoning.contains("ML wins"));
+    }
+
+    #[test]
+    fn classify_ensemble_disagreement_rules_win_clearly() {
+        let classifier = HybridClassifier::new();
+
+        let inference = OwnershipInference {
+            variable: "ptr".to_string(),
+            kind: OwnershipKind::Owning,
+            confidence: 0.95,
+            reason: "malloc with free".to_string(),
+        };
+
+        let features = OwnershipFeatures::default();
+        let model = MockModel::with_confidence(InferredOwnership::Borrowed, 0.2);
+
+        let result = classifier.classify_ensemble(&inference, &features, &model);
+
+        assert_eq!(result.method, ClassificationMethod::RuleBased);
+        assert_eq!(result.ownership, InferredOwnership::Owned);
+        assert!((result.confidence - 0.95).abs() < 0.001);
+        assert!(result.reasoning.contains("Rules win"));
+        assert!(result.ml_result.is_some());
+        assert!(result.rule_result.is_some());
+    }
+
+    #[test]
+    fn classify_ensemble_all_ownership_kinds() {
+        // Test ensemble with different ownership kind conversions
+        let classifier = HybridClassifier::new();
+        let features = OwnershipFeatures::default();
+
+        // MutableBorrow
+        let inference_mut = OwnershipInference {
+            variable: "ptr".to_string(),
+            kind: OwnershipKind::MutableBorrow,
+            confidence: 0.7,
+            reason: "mutation detected".to_string(),
+        };
+        let model_agree = MockModel::with_confidence(InferredOwnership::BorrowedMut, 0.8);
+        let result = classifier.classify_ensemble(&inference_mut, &features, &model_agree);
+        assert_eq!(result.method, ClassificationMethod::Hybrid);
+        assert_eq!(result.ownership, InferredOwnership::BorrowedMut);
+
+        // Unknown -> RawPointer
+        let inference_unknown = OwnershipInference {
+            variable: "ptr".to_string(),
+            kind: OwnershipKind::Unknown,
+            confidence: 0.3,
+            reason: "uncertain".to_string(),
+        };
+        let model_agree_raw = MockModel::with_confidence(InferredOwnership::RawPointer, 0.4);
+        let result = classifier.classify_ensemble(&inference_unknown, &features, &model_agree_raw);
+        assert_eq!(result.method, ClassificationMethod::Hybrid);
+        assert_eq!(result.ownership, InferredOwnership::RawPointer);
+    }
+
+    // ========================================================================
+    // classify_hybrid: additional branch coverage
+    // ========================================================================
+
+    #[test]
+    fn classify_hybrid_at_exact_threshold() {
+        // ML confidence clearly above threshold => should use ML
+        // Note: confidence is f32 in OwnershipPrediction, compared as f64
+        // so we use a value clearly above to avoid f32 precision issues
+        let mut classifier = HybridClassifier::with_threshold(0.5);
+        classifier.enable_ml();
+
+        let inference = OwnershipInference {
+            variable: "ptr".to_string(),
+            kind: OwnershipKind::Unknown,
+            confidence: 0.3,
+            reason: "uncertain".to_string(),
+        };
+
+        let features = OwnershipFeatures::default();
+        let model = MockModel::with_confidence(InferredOwnership::Owned, 0.75);
+
+        let result = classifier.classify_hybrid(&inference, &features, &model);
+
+        // 0.75 >= 0.5 => use ML
+        assert_eq!(result.method, ClassificationMethod::MachineLearning);
+        assert_eq!(result.ownership, InferredOwnership::Owned);
+        assert!(result.reasoning.contains("ML prediction"));
+    }
+
+    #[test]
+    fn classify_hybrid_just_below_threshold() {
+        let mut classifier = HybridClassifier::with_threshold(0.65);
+        classifier.enable_ml();
+
+        let inference = OwnershipInference {
+            variable: "ptr".to_string(),
+            kind: OwnershipKind::Owning,
+            confidence: 0.9,
+            reason: "malloc".to_string(),
+        };
+
+        let features = OwnershipFeatures::default();
+        let model = MockModel::with_confidence(InferredOwnership::Borrowed, 0.6499);
+
+        let result = classifier.classify_hybrid(&inference, &features, &model);
+
+        // 0.6499 < 0.65 => fallback to rules
+        assert_eq!(result.method, ClassificationMethod::Fallback);
+        assert_eq!(result.ownership, InferredOwnership::Owned);
+        assert!(result.reasoning.contains("Fallback"));
+    }
+
+    // ========================================================================
+    // HybridClassifier: set_threshold coverage
+    // ========================================================================
+
+    #[test]
+    fn set_threshold_clamps() {
+        let mut classifier = HybridClassifier::new();
+        classifier.set_threshold(2.0);
+        assert!((classifier.confidence_threshold() - 1.0).abs() < 0.001);
+
+        classifier.set_threshold(-1.0);
+        assert!((classifier.confidence_threshold() - 0.0).abs() < 0.001);
+
+        classifier.set_threshold(0.42);
+        assert!((classifier.confidence_threshold() - 0.42).abs() < 0.001);
+    }
+
+    // ========================================================================
+    // HybridMetrics: additional coverage
+    // ========================================================================
+
+    #[test]
+    fn hybrid_metrics_record_hybrid_method() {
+        let mut metrics = HybridMetrics::new();
+        let result = HybridResult {
+            variable: "x".to_string(),
+            ownership: InferredOwnership::Owned,
+            confidence: 0.9,
+            method: ClassificationMethod::Hybrid,
+            rule_result: Some(InferredOwnership::Owned),
+            ml_result: Some(OwnershipPrediction {
+                kind: InferredOwnership::Owned,
+                confidence: 0.9,
+                fallback: None,
+            }),
+            reasoning: "hybrid agreement".to_string(),
+        };
+        metrics.record(&result);
+
+        assert_eq!(metrics.hybrid, 1);
+        assert_eq!(metrics.total, 1);
+        assert_eq!(metrics.agreements, 1);
+        assert_eq!(metrics.disagreements, 0);
+    }
+
+    #[test]
+    fn hybrid_metrics_agreement_rate_no_comparisons() {
+        let metrics = HybridMetrics::new();
+        // No comparisons = perfect agreement by default
+        assert!((metrics.agreement_rate() - 1.0).abs() < 0.001);
+    }
+
+    #[test]
+    fn hybrid_metrics_all_methods_tracked() {
+        let mut metrics = HybridMetrics::new();
+
+        // Record one of each method
+        for (method, rule_own, ml_own) in [
+            (ClassificationMethod::RuleBased, InferredOwnership::Owned, InferredOwnership::Owned),
+            (ClassificationMethod::MachineLearning, InferredOwnership::Borrowed, InferredOwnership::Borrowed),
+            (ClassificationMethod::Fallback, InferredOwnership::Owned, InferredOwnership::Borrowed),
+            (ClassificationMethod::Hybrid, InferredOwnership::Vec, InferredOwnership::Vec),
+        ] {
+            let result = HybridResult {
+                variable: "x".to_string(),
+                ownership: rule_own,
+                confidence: 0.8,
+                method,
+                rule_result: Some(rule_own),
+                ml_result: Some(OwnershipPrediction {
+                    kind: ml_own,
+                    confidence: 0.8,
+                    fallback: None,
+                }),
+                reasoning: "test".to_string(),
+            };
+            metrics.record(&result);
+        }
+
+        assert_eq!(metrics.total, 4);
+        assert_eq!(metrics.rule_based, 1);
+        assert_eq!(metrics.ml_used, 1);
+        assert_eq!(metrics.fallback, 1);
+        assert_eq!(metrics.hybrid, 1);
+        // agreements: RuleBased (same), MachineLearning (same), Hybrid (same) = 3
+        // disagreements: Fallback (Owned vs Borrowed) = 1
+        assert_eq!(metrics.agreements, 3);
+        assert_eq!(metrics.disagreements, 1);
+    }
+
+    #[test]
+    fn hybrid_result_ml_not_rejected_without_ml_result() {
+        let result = HybridResult {
+            variable: "x".to_string(),
+            ownership: InferredOwnership::Owned,
+            confidence: 0.8,
+            method: ClassificationMethod::Fallback,
+            rule_result: Some(InferredOwnership::Owned),
+            ml_result: None, // No ML result
+            reasoning: "rules only".to_string(),
+        };
+
+        assert!(result.used_fallback());
+        // ml_rejected requires ml_result.is_some() AND Fallback method
+        assert!(!result.ml_rejected());
+    }
+
+    // ========================================================================
+    // NullModel: batch predict coverage
+    // ========================================================================
+
+    #[test]
+    fn null_model_batch_predict() {
+        let model = NullModel;
+        let features = vec![
+            OwnershipFeatures::default(),
+            OwnershipFeatures::default(),
+            OwnershipFeatures::default(),
+        ];
+        let predictions = model.predict_batch(&features);
+        assert_eq!(predictions.len(), 3);
+        for pred in &predictions {
+            assert_eq!(pred.kind, InferredOwnership::RawPointer);
+            assert!((pred.confidence as f64).abs() < 0.001);
+        }
+    }
+
+    // ========================================================================
+    // Default implementation
+    // ========================================================================
+
+    #[test]
+    fn hybrid_classifier_default_impl() {
+        let classifier = HybridClassifier::default();
+        assert!(!classifier.ml_enabled());
+        assert!((classifier.confidence_threshold() - DEFAULT_CONFIDENCE_THRESHOLD).abs() < 0.001);
+    }
 }

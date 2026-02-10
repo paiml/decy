@@ -1341,4 +1341,448 @@ mod tests {
             );
         }
     }
+
+    // ========================================================================
+    // Deep coverage: force line-level execution of every struct literal
+    // by snapshot-asserting the full content of every pattern field
+    // ========================================================================
+
+    /// Collect all (error_code, decision, description, fix_diff_len) tuples
+    /// to force the compiler to materialize every field.
+    #[test]
+    fn test_snapshot_all_pattern_fields_materialized() {
+        let patterns = get_bootstrap_patterns();
+        let mut snapshot: Vec<(&str, &str, &str, usize)> = Vec::new();
+        for p in &patterns {
+            snapshot.push((
+                p.error_code,
+                p.decision,
+                p.description,
+                p.fix_diff.len(),
+            ));
+        }
+        // Verify snapshot length matches pattern count
+        assert_eq!(snapshot.len(), 25);
+
+        // Verify each entry has non-empty fields
+        for (i, (code, decision, desc, diff_len)) in snapshot.iter().enumerate() {
+            assert!(!code.is_empty(), "Pattern {} error_code empty", i);
+            assert!(!decision.is_empty(), "Pattern {} decision empty", i);
+            assert!(!desc.is_empty(), "Pattern {} description empty", i);
+            assert!(*diff_len > 0, "Pattern {} fix_diff empty", i);
+        }
+    }
+
+    /// Hash every pattern's content to force all field reads.
+    #[test]
+    fn test_pattern_content_hashing_forces_field_access() {
+        use std::collections::hash_map::DefaultHasher;
+        use std::hash::{Hash, Hasher};
+
+        let patterns = get_bootstrap_patterns();
+        let mut hashes: Vec<u64> = Vec::new();
+
+        for p in &patterns {
+            let mut hasher = DefaultHasher::new();
+            p.error_code.hash(&mut hasher);
+            p.fix_diff.hash(&mut hasher);
+            p.decision.hash(&mut hasher);
+            p.description.hash(&mut hasher);
+            hashes.push(hasher.finish());
+        }
+
+        // All hashes should be unique (each pattern has unique content)
+        let unique_count = {
+            let mut sorted = hashes.clone();
+            sorted.sort();
+            sorted.dedup();
+            sorted.len()
+        };
+        assert_eq!(
+            unique_count,
+            hashes.len(),
+            "All patterns should have unique content hashes"
+        );
+    }
+
+    /// Concatenate all fix_diffs and verify total content size is substantial.
+    #[test]
+    fn test_all_fix_diffs_concatenated_size() {
+        let patterns = get_bootstrap_patterns();
+        let total_diff_chars: usize = patterns.iter().map(|p| p.fix_diff.len()).sum();
+        // 25 patterns with meaningful diffs should total > 500 chars
+        assert!(
+            total_diff_chars > 500,
+            "Total fix_diff content should be >500 chars, got {}",
+            total_diff_chars
+        );
+    }
+
+    /// Verify specific fix_diff substring content for every pattern index.
+    #[test]
+    fn test_every_pattern_fix_diff_has_transformation() {
+        let patterns = get_bootstrap_patterns();
+        let expected_substrings: Vec<&str> = vec![
+            "as i32",                     // 0: type_coercion cast
+            "&mut i32",                   // 1: *mut -> &mut
+            "&i32",                       // 2: *const -> &
+            "&mut x",                     // 3: mutable_reference
+            "std::process::exit",         // 4: exit cast
+            "unsafe { *ptr = value; }",   // 5: unsafe deref write
+            "unsafe { *ptr }",            // 6: unsafe deref read
+            "unsafe { extern_fn(); }",    // 7: unsafe extern
+            "value.clone()",              // 8: clone before move
+            "let y = &x",                // 9: borrow instead of move
+            "fn take(s: &String)",        // 10: borrow parameter
+            "drop(a)",                    // 11: sequential mutable borrow
+            "arr.swap(i, j)",             // 12: use stdlib method
+            "x = 5",                      // 13: reorder borrow
+            "let x = 5",                  // 14: extend lifetime
+            "-> i32",                     // 15: return owned E0597
+            "-> Vec<i32>",               // 16: return owned E0515
+            "local.clone()",              // 17: clone return
+            "&[i32]",                     // 18: array to slice
+            "arr.get(i)",                 // 19: bounds checked access
+            "wrapping_add",               // 20: safe pointer arithmetic
+            "Box::new(value)",            // 21: malloc to box
+            "Vec::with_capacity(n)",      // 22: malloc array to vec
+            "p.field",                    // 23: arrow to dot
+            "Option<Box<Node>>",          // 24: nullable to option
+        ];
+
+        assert_eq!(patterns.len(), expected_substrings.len());
+        for (i, (p, expected)) in patterns.iter().zip(expected_substrings.iter()).enumerate() {
+            assert!(
+                p.fix_diff.contains(expected),
+                "Pattern {} ({}) fix_diff should contain '{}', got: '{}'",
+                i,
+                p.decision,
+                expected,
+                p.fix_diff
+            );
+        }
+    }
+
+    /// Verify every description contains expected keywords.
+    #[test]
+    fn test_every_pattern_description_keywords() {
+        let patterns = get_bootstrap_patterns();
+        let expected_keywords: Vec<&str> = vec![
+            "cast",           // 0
+            "mutable",        // 1
+            "immutable",      // 2
+            "mutable",        // 3
+            "Cast",           // 4
+            "dereference",    // 5
+            "pointer read",   // 6
+            "extern function", // 7
+            "Clone",          // 8
+            "Borrow",         // 9
+            "borrow",         // 10
+            "mutable borrow", // 11
+            "stdlib",         // 12
+            "Reorder",        // 13
+            "outer scope",    // 14
+            "Return owned",   // 15
+            "Return owned",   // 16
+            "Clone local",    // 17
+            "slice",          // 18
+            "bounds",         // 19
+            "pointer arithmetic", // 20
+            "Box",            // 21
+            "Vec",            // 22
+            "arrow",          // 23
+            "Option",         // 24
+        ];
+
+        assert_eq!(patterns.len(), expected_keywords.len());
+        for (i, (p, keyword)) in patterns.iter().zip(expected_keywords.iter()).enumerate() {
+            assert!(
+                p.description.contains(keyword),
+                "Pattern {} ({}) description should contain '{}', got: '{}'",
+                i,
+                p.decision,
+                keyword,
+                p.description
+            );
+        }
+    }
+
+    /// Verify the exact sequence of decisions in order.
+    #[test]
+    fn test_pattern_decision_sequence() {
+        let patterns = get_bootstrap_patterns();
+        let decisions: Vec<&str> = patterns.iter().map(|p| p.decision).collect();
+        let expected = vec![
+            "type_coercion",
+            "pointer_to_reference",
+            "pointer_to_reference",
+            "mutable_reference",
+            "type_coercion",
+            "unsafe_deref",
+            "unsafe_deref",
+            "unsafe_extern",
+            "clone_before_move",
+            "borrow_instead_of_move",
+            "borrow_parameter",
+            "sequential_mutable_borrow",
+            "use_stdlib_method",
+            "reorder_borrow",
+            "extend_lifetime",
+            "return_owned",
+            "return_owned",
+            "clone_return",
+            "array_to_slice",
+            "bounds_checked_access",
+            "safe_pointer_arithmetic",
+            "malloc_to_box",
+            "malloc_array_to_vec",
+            "arrow_to_dot",
+            "nullable_to_option",
+        ];
+        assert_eq!(decisions, expected, "Decision sequence should match exactly");
+    }
+
+    /// Verify the exact sequence of error codes in order.
+    #[test]
+    fn test_pattern_error_code_sequence() {
+        let patterns = get_bootstrap_patterns();
+        let codes: Vec<&str> = patterns.iter().map(|p| p.error_code).collect();
+        let expected = vec![
+            "E0308", "E0308", "E0308", "E0308", "E0308", // type mismatch group
+            "E0133", "E0133", "E0133",                     // unsafe group
+            "E0382", "E0382", "E0382",                     // use after move group
+            "E0499", "E0499",                               // multiple mutable borrow group
+            "E0506",                                         // assign to borrowed
+            "E0597", "E0597",                               // lifetime group
+            "E0515", "E0515",                               // return reference to local group
+            "E0308", "E0308", "E0308",                     // C-specific array/pointer
+            "E0308", "E0308",                               // C-specific malloc
+            "E0308", "E0308",                               // C-specific struct
+        ];
+        assert_eq!(codes, expected, "Error code sequence should match exactly");
+    }
+
+    /// Verify all fix_diffs contain both removal and addition lines.
+    #[test]
+    fn test_every_fix_diff_has_removal_and_addition() {
+        let patterns = get_bootstrap_patterns();
+        for (i, p) in patterns.iter().enumerate() {
+            let has_removal = p.fix_diff.lines().any(|l| l.starts_with('-'));
+            let has_addition = p.fix_diff.lines().any(|l| l.starts_with('+'));
+            assert!(
+                has_removal,
+                "Pattern {} ({}) should have '-' removal line in fix_diff: '{}'",
+                i, p.decision, p.fix_diff
+            );
+            assert!(
+                has_addition,
+                "Pattern {} ({}) should have '+' addition line in fix_diff: '{}'",
+                i, p.decision, p.fix_diff
+            );
+        }
+    }
+
+    /// Force materialization of patterns by collecting into a formatted string.
+    #[test]
+    fn test_format_all_patterns_to_string() {
+        let patterns = get_bootstrap_patterns();
+        let mut output = String::new();
+        for (i, p) in patterns.iter().enumerate() {
+            output.push_str(&format!(
+                "[{}] {} | {} | {} | diff_len={}\n",
+                i, p.error_code, p.decision, p.description, p.fix_diff.len()
+            ));
+        }
+        // Should have 25 entries (one per pattern)
+        assert_eq!(output.lines().count(), 25);
+        // Total output should be substantial
+        assert!(output.len() > 500, "Formatted output should be >500 chars");
+    }
+
+    /// Test that patterns can be cloned into a new vec without losing data.
+    #[test]
+    fn test_clone_all_patterns_preserves_data() {
+        let originals = get_bootstrap_patterns();
+        let clones: Vec<BootstrapPattern> = originals
+            .iter()
+            .map(|p| p.clone())
+            .collect();
+
+        assert_eq!(originals.len(), clones.len());
+        for (orig, cloned) in originals.iter().zip(clones.iter()) {
+            assert_eq!(orig.error_code, cloned.error_code);
+            assert_eq!(orig.fix_diff, cloned.fix_diff);
+            assert_eq!(orig.decision, cloned.decision);
+            assert_eq!(orig.description, cloned.description);
+        }
+    }
+
+    /// Verify patterns are grouped by error category sections.
+    #[test]
+    fn test_patterns_grouped_by_error_category() {
+        let patterns = get_bootstrap_patterns();
+
+        // E0308 type mismatch: indices 0-4
+        for i in 0..5 {
+            assert_eq!(
+                patterns[i].error_code, "E0308",
+                "Index {} should be E0308",
+                i
+            );
+        }
+
+        // E0133 unsafe: indices 5-7
+        for i in 5..8 {
+            assert_eq!(
+                patterns[i].error_code, "E0133",
+                "Index {} should be E0133",
+                i
+            );
+        }
+
+        // E0382 use after move: indices 8-10
+        for i in 8..11 {
+            assert_eq!(
+                patterns[i].error_code, "E0382",
+                "Index {} should be E0382",
+                i
+            );
+        }
+
+        // E0499 multiple mutable borrow: indices 11-12
+        for i in 11..13 {
+            assert_eq!(
+                patterns[i].error_code, "E0499",
+                "Index {} should be E0499",
+                i
+            );
+        }
+
+        // E0506 assign to borrowed: index 13
+        assert_eq!(patterns[13].error_code, "E0506");
+
+        // E0597 lifetime: indices 14-15
+        for i in 14..16 {
+            assert_eq!(
+                patterns[i].error_code, "E0597",
+                "Index {} should be E0597",
+                i
+            );
+        }
+
+        // E0515 return ref to local: indices 16-17
+        for i in 16..18 {
+            assert_eq!(
+                patterns[i].error_code, "E0515",
+                "Index {} should be E0515",
+                i
+            );
+        }
+
+        // C-specific E0308: indices 18-24
+        for i in 18..25 {
+            assert_eq!(
+                patterns[i].error_code, "E0308",
+                "Index {} should be E0308",
+                i
+            );
+        }
+    }
+
+    /// Verify every pattern's fix_diff has multiple lines (contains newlines).
+    #[test]
+    fn test_all_fix_diffs_are_multiline() {
+        let patterns = get_bootstrap_patterns();
+        for (i, p) in patterns.iter().enumerate() {
+            let line_count = p.fix_diff.lines().count();
+            assert!(
+                line_count >= 2,
+                "Pattern {} ({}) fix_diff should have at least 2 lines, got {}",
+                i,
+                p.decision,
+                line_count
+            );
+        }
+    }
+
+    /// Test that calling get_bootstrap_patterns twice returns identical data.
+    #[test]
+    fn test_get_bootstrap_patterns_is_deterministic() {
+        let first = get_bootstrap_patterns();
+        let second = get_bootstrap_patterns();
+        assert_eq!(first.len(), second.len());
+        for (a, b) in first.iter().zip(second.iter()) {
+            assert_eq!(a.error_code, b.error_code);
+            assert_eq!(a.fix_diff, b.fix_diff);
+            assert_eq!(a.decision, b.decision);
+            assert_eq!(a.description, b.description);
+        }
+    }
+
+    /// Verify unique decisions count matches expected.
+    #[test]
+    fn test_unique_decisions_count() {
+        let patterns = get_bootstrap_patterns();
+        let unique: std::collections::HashSet<&str> =
+            patterns.iter().map(|p| p.decision).collect();
+        assert_eq!(unique.len(), 21);
+    }
+
+    /// Verify unique error codes count matches expected.
+    #[test]
+    fn test_unique_error_codes_count() {
+        let patterns = get_bootstrap_patterns();
+        let unique: std::collections::HashSet<&str> =
+            patterns.iter().map(|p| p.error_code).collect();
+        assert_eq!(unique.len(), 7);
+    }
+
+    /// BootstrapStats: verify by_decision sum matches total.
+    #[test]
+    fn test_bootstrap_stats_decision_sum_matches_total() {
+        let stats = BootstrapStats::from_patterns();
+        let decision_sum: usize = stats.by_decision.values().sum();
+        assert_eq!(
+            decision_sum, stats.total_patterns,
+            "Sum of decision counts should equal total patterns"
+        );
+    }
+
+    /// BootstrapStats: verify by_error_code sum matches total.
+    #[test]
+    fn test_bootstrap_stats_error_code_sum_matches_total() {
+        let stats = BootstrapStats::from_patterns();
+        let code_sum: usize = stats.by_error_code.values().sum();
+        assert_eq!(
+            code_sum, stats.total_patterns,
+            "Sum of error code counts should equal total patterns"
+        );
+    }
+
+    /// Test BootstrapStats pretty format line count.
+    #[test]
+    fn test_bootstrap_stats_pretty_line_count() {
+        let stats = BootstrapStats::from_patterns();
+        let pretty = stats.to_string_pretty();
+        let line_count = pretty.lines().count();
+        // Header (1) + blank (1) + "By Error Code:" (1) + 7 codes + blank (1)
+        // + "By Decision Type:" (1) + 21 decisions = 33+
+        assert!(
+            line_count >= 30,
+            "Pretty format should have at least 30 lines, got {}",
+            line_count
+        );
+    }
+
+    /// Verify BootstrapStats default has zero values.
+    #[test]
+    fn test_bootstrap_stats_default_values_are_zero() {
+        let stats = BootstrapStats::default();
+        assert_eq!(stats.total_patterns, 0);
+        assert_eq!(stats.by_error_code.len(), 0);
+        assert_eq!(stats.by_decision.len(), 0);
+        let pretty = stats.to_string_pretty();
+        assert!(pretty.contains("Bootstrap Patterns: 0"));
+    }
 }
