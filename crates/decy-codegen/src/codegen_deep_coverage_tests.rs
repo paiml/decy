@@ -178,6 +178,55 @@ fn format_spec_zero_padded_hex() {
     assert_eq!(result, "{:02x}");
 }
 
+#[test]
+fn format_spec_percent_i() {
+    // %i is same as %d (signed integer)
+    let result = CodeGenerator::convert_format_specifiers("val=%i");
+    assert_eq!(result, "val={}");
+}
+
+#[test]
+fn format_spec_unknown_specifier() {
+    // Unknown specifier should keep original C format string
+    let result = CodeGenerator::convert_format_specifiers("test %q end");
+    assert!(result.contains("%q"), "Unknown specifier should be kept, got: {}", result);
+}
+
+#[test]
+fn format_spec_uppercase_float() {
+    // %F is same as %f
+    let result = CodeGenerator::convert_format_specifiers("val=%F");
+    assert_eq!(result, "val={}");
+}
+
+#[test]
+fn format_spec_float_precision_only() {
+    // %.3f → {:.3}
+    let result = CodeGenerator::convert_format_specifiers("%.3f");
+    assert_eq!(result, "{:.3}");
+}
+
+#[test]
+fn format_spec_multiple_flags() {
+    // Multiple flags combined: %+05d
+    let result = CodeGenerator::convert_format_specifiers("%+05d");
+    assert!(result.contains("{:"), "Should generate Rust format, got: {}", result);
+}
+
+#[test]
+fn format_spec_string_width() {
+    // %20s → {:20}
+    let result = CodeGenerator::convert_format_specifiers("%20s");
+    assert_eq!(result, "{:20}");
+}
+
+#[test]
+fn format_spec_hh_length_modifier() {
+    // %hhd → {} (length modifier stripped)
+    let result = CodeGenerator::convert_format_specifiers("val=%hhd");
+    assert_eq!(result, "val={}");
+}
+
 // ============================================================================
 // find_string_format_positions
 // ============================================================================
