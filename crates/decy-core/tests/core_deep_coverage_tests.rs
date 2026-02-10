@@ -1427,3 +1427,221 @@ fn deep_transpilation_cache_save_load() {
     let loaded = TranspilationCache::load(&cache_dir);
     assert!(loaded.is_ok(), "Cache load should succeed: {:?}", loaded.err());
 }
+
+// ============================================================================
+// process_ast_to_rust: UNINITIALIZED GLOBALS (default value generation)
+// ============================================================================
+
+#[test]
+fn deep_transpile_uninitialized_int_global() {
+    let temp = TempDir::new().unwrap();
+    let file = create_temp_c_file(
+        &temp,
+        "uninit_int.c",
+        r#"
+        int counter;
+        int main() {
+            counter = 42;
+            return counter;
+        }
+        "#,
+    );
+    let result = transpile_from_file_path(&file);
+    assert!(result.is_ok(), "Uninitialized int global should transpile: {:?}", result.err());
+    let rust = result.unwrap();
+    assert!(rust.contains("counter"), "Should contain global counter");
+}
+
+#[test]
+fn deep_transpile_uninitialized_float_global() {
+    let temp = TempDir::new().unwrap();
+    let file = create_temp_c_file(
+        &temp,
+        "uninit_float.c",
+        r#"
+        float ratio;
+        double precise;
+        int main() {
+            ratio = 0.5;
+            precise = 3.14;
+            return 0;
+        }
+        "#,
+    );
+    let result = transpile_from_file_path(&file);
+    assert!(result.is_ok(), "Uninitialized float globals should transpile: {:?}", result.err());
+    let rust = result.unwrap();
+    assert!(rust.contains("ratio"), "Should contain ratio global");
+    assert!(rust.contains("precise"), "Should contain precise global");
+}
+
+#[test]
+fn deep_transpile_uninitialized_char_global() {
+    let temp = TempDir::new().unwrap();
+    let file = create_temp_c_file(
+        &temp,
+        "uninit_char.c",
+        r#"
+        char flag;
+        int main() {
+            flag = 'Y';
+            return 0;
+        }
+        "#,
+    );
+    let result = transpile_from_file_path(&file);
+    assert!(result.is_ok(), "Uninitialized char global should transpile: {:?}", result.err());
+}
+
+#[test]
+fn deep_transpile_uninitialized_pointer_global() {
+    let temp = TempDir::new().unwrap();
+    let file = create_temp_c_file(
+        &temp,
+        "uninit_ptr.c",
+        r#"
+        int *buffer;
+        int main() {
+            return 0;
+        }
+        "#,
+    );
+    let result = transpile_from_file_path(&file);
+    assert!(result.is_ok(), "Uninitialized pointer global should transpile: {:?}", result.err());
+}
+
+#[test]
+fn deep_transpile_uninitialized_array_global() {
+    let temp = TempDir::new().unwrap();
+    let file = create_temp_c_file(
+        &temp,
+        "uninit_arr.c",
+        r#"
+        int arr[10];
+        char buf[256];
+        float floats[5];
+        int main() {
+            arr[0] = 1;
+            return 0;
+        }
+        "#,
+    );
+    let result = transpile_from_file_path(&file);
+    assert!(result.is_ok(), "Uninitialized array globals should transpile: {:?}", result.err());
+}
+
+// ============================================================================
+// process_ast_to_rust: ENUM VARIANTS WITHOUT EXPLICIT VALUES
+// ============================================================================
+
+#[test]
+fn deep_transpile_enum_implicit_values() {
+    let temp = TempDir::new().unwrap();
+    let file = create_temp_c_file(
+        &temp,
+        "enum_implicit.c",
+        r#"
+        enum Status {
+            OK,
+            ERROR,
+            PENDING
+        };
+
+        int main() {
+            return OK;
+        }
+        "#,
+    );
+    let result = transpile_from_file_path(&file);
+    assert!(result.is_ok(), "Enum with implicit values should transpile: {:?}", result.err());
+}
+
+#[test]
+fn deep_transpile_enum_mixed_values() {
+    let temp = TempDir::new().unwrap();
+    let file = create_temp_c_file(
+        &temp,
+        "enum_mixed.c",
+        r#"
+        enum Priority {
+            LOW,
+            MEDIUM = 5,
+            HIGH,
+            CRITICAL = 100
+        };
+
+        int main() {
+            return LOW;
+        }
+        "#,
+    );
+    let result = transpile_from_file_path(&file);
+    assert!(result.is_ok(), "Enum with mixed values should transpile: {:?}", result.err());
+}
+
+// ============================================================================
+// process_ast_to_rust: FUNCTION DECLARATION + DEFINITION DEDUPLICATION
+// ============================================================================
+
+#[test]
+fn deep_transpile_function_decl_then_def() {
+    let temp = TempDir::new().unwrap();
+    let file = create_temp_c_file(
+        &temp,
+        "decl_def.c",
+        r#"
+        int add(int a, int b);
+
+        int main() {
+            return add(1, 2);
+        }
+
+        int add(int a, int b) {
+            return a + b;
+        }
+        "#,
+    );
+    let result = transpile_from_file_path(&file);
+    assert!(result.is_ok(), "Function decl then def should transpile: {:?}", result.err());
+    let rust = result.unwrap();
+    assert!(rust.contains("fn add"), "Should contain add function");
+}
+
+// ============================================================================
+// process_ast_to_rust: MULTIPLE CONSTRUCTS COMBINED
+// ============================================================================
+
+#[test]
+fn deep_transpile_many_globals_many_types() {
+    let temp = TempDir::new().unwrap();
+    let file = create_temp_c_file(
+        &temp,
+        "many_globals.c",
+        r#"
+        int g_int;
+        float g_float;
+        double g_double;
+        char g_char;
+        unsigned int g_uint = 0;
+
+        struct Config {
+            int width;
+            int height;
+        };
+
+        enum Mode { FAST, SLOW, AUTO };
+
+        typedef unsigned int uint32;
+
+        int main() {
+            g_int = 42;
+            return 0;
+        }
+        "#,
+    );
+    let result = transpile_from_file_path(&file);
+    assert!(result.is_ok(), "Many globals with many types should transpile: {:?}", result.err());
+    let rust = result.unwrap();
+    assert!(rust.contains("g_int"), "Should contain g_int");
+    assert!(rust.contains("Config"), "Should contain Config struct");
+}
