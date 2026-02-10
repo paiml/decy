@@ -12,14 +12,5 @@ categories.workspace = true
 description = "Background daemon for incremental transpilation and watching"
 
 [dependencies]
-decy-core = { version = "2.0.0", path = "../decy-core" }
-tokio.workspace = true
-async-trait.workspace = true
-anyhow.workspace = true
-thiserror.workspace = true
-tracing.workspace = true
-serde.workspace = true
-serde_json.workspace = true
 
 [dev-dependencies]
-proptest.workspace = true

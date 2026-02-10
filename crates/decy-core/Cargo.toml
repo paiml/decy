@@ -31,7 +31,6 @@ sha2.workspace = true
 proptest.workspace = true
 criterion.workspace = true
 tempfile.workspace = true
-aprender = { version = "0.24", features = ["audio-noise", "audio-playback"] }
 
 [[bench]]
 name = "pipeline_benchmarks"
