@@ -100,21 +100,39 @@ Current approach: attempt safe Rust, fail on complex patterns, produce broken ou
 
 Four-phase refinement pipeline. Each phase produces compilable Rust (verified by S1).
 
-**Phase 1: Stdlib Function Mapping** (In Progress)
+**Phase 1: Stdlib Function Mapping** (Done)
 
-Map C standard library functions to safe Rust equivalents:
+Two categories of stdlib mappings based on type safety:
 
-| C Function | Rust Equivalent | Safety Level |
-|------------|----------------|-------------|
-| `memcpy(dst, src, n)` | `dst[..n].copy_from_slice(&src[..n])` | Safe |
-| `memset(ptr, val, n)` | `slice.fill(val)` | Safe |
-| `strcpy(dst, src)` | `dst.clone_from(src)` or `String::from()` | Safe |
-| `strcmp(a, b)` | `a.cmp(b)` or `a == b` | Safe |
-| `strlen(s)` | `s.len()` | Safe |
-| `malloc(n)` | `Box::new()` / `Vec::with_capacity()` | Safe (already implemented) |
-| `free(ptr)` | Drop (RAII) | Safe (already implemented) |
-| `printf(fmt, ...)` | `println!()` / `print!()` | Safe (already implemented) |
-| `qsort(base, n, sz, cmp)` | `slice.sort_by()` | Safe |
+**Category A: Inline expansion** (type-safe, no pointer operands):
+
+| C Function | Rust Equivalent | Status |
+|------------|----------------|--------|
+| `malloc(n)` | `Box::new()` / `Vec::with_capacity()` | Done (pre-existing) |
+| `free(ptr)` | Drop (RAII) | Done (pre-existing) |
+| `printf(fmt, ...)` | `println!()` / `print!()` | Done (pre-existing) |
+| `strlen(s)` | `s.len()` | Done (pre-existing) |
+| `strcpy(dst, src)` | `dst.clone_from(src)` | Done (pre-existing) |
+| `atoi(s)` | `s.parse::<i32>().unwrap_or(0)` | Done |
+| `atof(s)` | `s.parse::<f64>().unwrap_or(0.0)` | Done |
+| `abs(x)` | `(x).abs()` | Done |
+| `exit(code)` | `std::process::exit(code)` | Done |
+| `puts(s)` | `println!("{}", s)` | Done |
+| `snprintf(buf, n, fmt, ...)` | `format!(fmt, args)` | Done |
+| `sprintf(buf, fmt, ...)` | `format!(fmt, args)` | Done |
+| `qsort(base, n, sz, cmp)` | `base[..n].sort_by(\|a, b\| cmp(a, b))` | Done |
+
+**Category B: Stub mechanism** (pointer-based, can't inline safely):
+
+| C Function | Approach | Rationale |
+|------------|----------|-----------|
+| `memcpy(dst, src, n)` | Generated stub | Operands are raw pointers (`*mut u8`) in transpiled code |
+| `memset(ptr, val, n)` | Generated stub | Operands are raw pointers |
+| `strcmp(a, b)` | Generated stub | Arguments may be `*mut u8` or `&str` — type mismatch |
+| `strncmp(a, b, n)` | Generated stub | Same as strcmp |
+| `strcat(dst, src)` | Generated stub | Pointer-based mutation |
+
+**Key insight**: Inline expansion only works for functions where transpiled argument types match Rust method receivers. Pointer-based C functions (memcpy, memset, strcmp, strncmp, strcat) use raw pointer types (`*mut u8`) in transpiled code, making safe Rust methods like `.copy_from_slice()` or `.cmp()` inapplicable. The stub mechanism generates type-compatible function signatures that bridge the gap.
 
 **Phase 2: Unsafe Fallback Codegen**
 
@@ -252,7 +270,7 @@ Post-implementation workspace coverage: **96.70% line coverage** (target: 95%)
 
 ### Test Corpus
 
-- **Total tests**: 11,798 passing across workspace
+- **Total tests**: 11,839 passing across workspace
 - **Falsification tests**: 2,150 total (92 falsified, 95.7% pass rate)
 - **Codegen deep tests**: 172 (targeting uncovered statement/expression/helper paths)
 - **Inference branch tests**: 17 (via DataflowGraph test helpers for defensive branches)
