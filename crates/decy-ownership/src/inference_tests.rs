@@ -2682,3 +2682,458 @@ fn test_pointer_does_not_escape() {
         assert!(inf.confidence >= 0.85);
     }
 }
+
+// ============================================================================
+// Direct DataflowGraph construction tests (defensive branch coverage)
+// These test branches that the DataflowAnalyzer can't produce but exist as
+// defensive code in classify_pointer, is_mutated, calculate_confidence, etc.
+// ============================================================================
+
+use crate::dataflow::{NodeKind, PointerNode};
+
+#[test]
+fn test_classify_empty_nodes_returns_unknown() {
+    // When a variable exists in the graph but has zero nodes,
+    // classify_pointer should return Unknown (line 177)
+    let graph = DataflowGraph::new().with_empty_var("orphan");
+
+    let inferencer = OwnershipInferencer::new();
+    let inferences = inferencer.infer(&graph);
+
+    assert!(inferences.contains_key("orphan"));
+    assert_eq!(inferences["orphan"].kind, OwnershipKind::Unknown);
+}
+
+#[test]
+fn test_classify_parameter_mutated_returns_mutable_borrow() {
+    // Parameter node + Dereference node → is_mutated returns true → MutableBorrow (line 112)
+    let graph = DataflowGraph::new()
+        .with_node(
+            "ptr",
+            PointerNode {
+                name: "ptr".to_string(),
+                def_index: 0,
+                kind: NodeKind::Parameter,
+            },
+        )
+        .with_node(
+            "ptr",
+            PointerNode {
+                name: "ptr".to_string(),
+                def_index: 1,
+                kind: NodeKind::Dereference,
+            },
+        );
+
+    let inferencer = OwnershipInferencer::new();
+    let inferences = inferencer.infer(&graph);
+
+    assert!(inferences.contains_key("ptr"));
+    assert_eq!(
+        inferences["ptr"].kind,
+        OwnershipKind::MutableBorrow,
+        "Parameter with dereference mutation should be MutableBorrow"
+    );
+}
+
+#[test]
+fn test_classify_assignment_mutated_returns_mutable_borrow() {
+    // Assignment node + Dereference node → is_mutated returns true → MutableBorrow (line 151)
+    let graph = DataflowGraph::new()
+        .with_node(
+            "alias",
+            PointerNode {
+                name: "alias".to_string(),
+                def_index: 0,
+                kind: NodeKind::Assignment {
+                    source: "original".to_string(),
+                },
+            },
+        )
+        .with_node(
+            "alias",
+            PointerNode {
+                name: "alias".to_string(),
+                def_index: 1,
+                kind: NodeKind::Dereference,
+            },
+        );
+
+    let inferencer = OwnershipInferencer::new();
+    let inferences = inferencer.infer(&graph);
+
+    assert!(inferences.contains_key("alias"));
+    assert_eq!(
+        inferences["alias"].kind,
+        OwnershipKind::MutableBorrow,
+        "Assignment with dereference mutation should be MutableBorrow"
+    );
+}
+
+#[test]
+fn test_classify_free_node_returns_owning_direct() {
+    // Free as first node → Owning (line 162)
+    let graph = DataflowGraph::new().with_node(
+        "freed",
+        PointerNode {
+            name: "freed".to_string(),
+            def_index: 0,
+            kind: NodeKind::Free,
+        },
+    );
+
+    let inferencer = OwnershipInferencer::new();
+    let inferences = inferencer.infer(&graph);
+
+    assert!(inferences.contains_key("freed"));
+    assert_eq!(inferences["freed"].kind, OwnershipKind::Owning);
+}
+
+#[test]
+fn test_confidence_mutable_borrow() {
+    // MutableBorrow confidence should be 0.75 (line 242)
+    let graph = DataflowGraph::new()
+        .with_node(
+            "ptr",
+            PointerNode {
+                name: "ptr".to_string(),
+                def_index: 0,
+                kind: NodeKind::Parameter,
+            },
+        )
+        .with_node(
+            "ptr",
+            PointerNode {
+                name: "ptr".to_string(),
+                def_index: 1,
+                kind: NodeKind::Dereference,
+            },
+        );
+
+    let inferencer = OwnershipInferencer::new();
+    let inferences = inferencer.infer(&graph);
+
+    assert!(inferences.contains_key("ptr"));
+    // Base confidence for MutableBorrow is 0.75, no escape → stays 0.75
+    assert!(
+        (inferences["ptr"].confidence - 0.75).abs() < 0.01,
+        "MutableBorrow confidence should be ~0.75, got {}",
+        inferences["ptr"].confidence
+    );
+}
+
+#[test]
+fn test_confidence_unknown_kind_direct() {
+    // Unknown confidence should be 0.3 (line 244)
+    let graph = DataflowGraph::new().with_empty_var("orphan");
+
+    let inferencer = OwnershipInferencer::new();
+    let inferences = inferencer.infer(&graph);
+
+    assert!(inferences.contains_key("orphan"));
+    assert!(
+        (inferences["orphan"].confidence - 0.3).abs() < 0.01,
+        "Unknown confidence should be ~0.3, got {}",
+        inferences["orphan"].confidence
+    );
+}
+
+#[test]
+fn test_reasoning_parameter_mutable_borrow() {
+    // Reasoning for Parameter + MutableBorrow: "is a parameter, may be modified" (line 288)
+    let graph = DataflowGraph::new()
+        .with_node(
+            "out",
+            PointerNode {
+                name: "out".to_string(),
+                def_index: 0,
+                kind: NodeKind::Parameter,
+            },
+        )
+        .with_node(
+            "out",
+            PointerNode {
+                name: "out".to_string(),
+                def_index: 1,
+                kind: NodeKind::Dereference,
+            },
+        );
+
+    let inferencer = OwnershipInferencer::new();
+    let inferences = inferencer.infer(&graph);
+
+    assert!(inferences.contains_key("out"));
+    assert!(
+        inferences["out"].reason.contains("parameter")
+            && inferences["out"].reason.contains("modified"),
+        "Reasoning should mention parameter modification, got: {}",
+        inferences["out"].reason
+    );
+}
+
+#[test]
+fn test_reasoning_assignment_mutable_borrow() {
+    // Reasoning for Assignment + MutableBorrow: "assigned from X, mutable borrow" (line 293-294)
+    let graph = DataflowGraph::new()
+        .with_node(
+            "alias",
+            PointerNode {
+                name: "alias".to_string(),
+                def_index: 0,
+                kind: NodeKind::Assignment {
+                    source: "original".to_string(),
+                },
+            },
+        )
+        .with_node(
+            "alias",
+            PointerNode {
+                name: "alias".to_string(),
+                def_index: 1,
+                kind: NodeKind::Dereference,
+            },
+        );
+
+    let inferencer = OwnershipInferencer::new();
+    let inferences = inferencer.infer(&graph);
+
+    assert!(inferences.contains_key("alias"));
+    assert!(
+        inferences["alias"].reason.contains("assigned from")
+            && inferences["alias"].reason.contains("mutable"),
+        "Reasoning should mention assignment + mutable, got: {}",
+        inferences["alias"].reason
+    );
+}
+
+#[test]
+fn test_reasoning_no_nodes_for_variable() {
+    // No tracked nodes → fallback reasoning (line 319)
+    let graph = DataflowGraph::new().with_empty_var("ghost");
+
+    let inferencer = OwnershipInferencer::new();
+    let inferences = inferencer.infer(&graph);
+
+    assert!(inferences.contains_key("ghost"));
+    assert!(
+        inferences["ghost"].reason.contains("no tracked nodes"),
+        "Reasoning should say no tracked nodes, got: {}",
+        inferences["ghost"].reason
+    );
+}
+
+#[test]
+fn test_confidence_mutable_borrow_escapes_reduced() {
+    // MutableBorrow + escapes → confidence reduced by 0.05 (line 257)
+    let graph = DataflowGraph::new()
+        .with_node(
+            "ptr",
+            PointerNode {
+                name: "ptr".to_string(),
+                def_index: 0,
+                kind: NodeKind::Parameter,
+            },
+        )
+        .with_node(
+            "ptr",
+            PointerNode {
+                name: "ptr".to_string(),
+                def_index: 1,
+                kind: NodeKind::Dereference,
+            },
+        )
+        // Assignment node makes escapes_function return true
+        .with_node(
+            "ptr",
+            PointerNode {
+                name: "ptr".to_string(),
+                def_index: 2,
+                kind: NodeKind::Assignment {
+                    source: "other".to_string(),
+                },
+            },
+        );
+
+    let inferencer = OwnershipInferencer::new();
+    let inferences = inferencer.infer(&graph);
+
+    assert!(inferences.contains_key("ptr"));
+    // Base 0.75 - 0.05 = 0.70
+    assert!(
+        (inferences["ptr"].confidence - 0.70).abs() < 0.01,
+        "MutableBorrow with escape should have confidence ~0.70, got {}",
+        inferences["ptr"].confidence
+    );
+}
+
+#[test]
+fn test_classify_assignment_from_array_with_source_not_array_alloc() {
+    // Assignment from array base, but source node is NOT ArrayAllocation
+    // Falls through to decy_hir::HirType::Int fallback (line 132)
+    let graph = DataflowGraph::new()
+        .with_node(
+            "arr",
+            PointerNode {
+                name: "arr".to_string(),
+                def_index: 0,
+                kind: NodeKind::Allocation, // NOT ArrayAllocation
+            },
+        )
+        .with_node(
+            "ptr",
+            PointerNode {
+                name: "ptr".to_string(),
+                def_index: 1,
+                kind: NodeKind::Assignment {
+                    source: "arr".to_string(),
+                },
+            },
+        )
+        .with_array_base("ptr", "arr");
+
+    let inferencer = OwnershipInferencer::new();
+    let inferences = inferencer.infer(&graph);
+
+    assert!(inferences.contains_key("ptr"));
+    // Should still be ArrayPointer but with default Int element type
+    if let OwnershipKind::ArrayPointer { element_type, .. } = &inferences["ptr"].kind {
+        assert_eq!(*element_type, decy_hir::HirType::Int);
+    } else {
+        panic!(
+            "Expected ArrayPointer, got {:?}",
+            inferences["ptr"].kind
+        );
+    }
+}
+
+#[test]
+fn test_classify_assignment_from_array_source_empty_nodes() {
+    // Assignment from array base, source has empty nodes
+    // Falls through to HirType::Int fallback (line 135)
+    let graph = DataflowGraph::new()
+        .with_empty_var("arr")
+        .with_node(
+            "ptr",
+            PointerNode {
+                name: "ptr".to_string(),
+                def_index: 0,
+                kind: NodeKind::Assignment {
+                    source: "arr".to_string(),
+                },
+            },
+        )
+        .with_array_base("ptr", "arr");
+
+    let inferencer = OwnershipInferencer::new();
+    let inferences = inferencer.infer(&graph);
+
+    assert!(inferences.contains_key("ptr"));
+    if let OwnershipKind::ArrayPointer { element_type, .. } = &inferences["ptr"].kind {
+        assert_eq!(*element_type, decy_hir::HirType::Int);
+    } else {
+        panic!(
+            "Expected ArrayPointer, got {:?}",
+            inferences["ptr"].kind
+        );
+    }
+}
+
+#[test]
+fn test_classify_assignment_from_array_no_source_nodes() {
+    // Assignment from array base, but source var doesn't exist in graph
+    // Falls through to HirType::Int fallback (line 138)
+    let graph = DataflowGraph::new()
+        .with_node(
+            "ptr",
+            PointerNode {
+                name: "ptr".to_string(),
+                def_index: 0,
+                kind: NodeKind::Assignment {
+                    source: "nonexistent".to_string(),
+                },
+            },
+        )
+        .with_array_base("ptr", "missing_arr");
+
+    let inferencer = OwnershipInferencer::new();
+    let inferences = inferencer.infer(&graph);
+
+    assert!(inferences.contains_key("ptr"));
+    if let OwnershipKind::ArrayPointer { element_type, .. } = &inferences["ptr"].kind {
+        assert_eq!(*element_type, decy_hir::HirType::Int);
+    } else {
+        panic!(
+            "Expected ArrayPointer, got {:?}",
+            inferences["ptr"].kind
+        );
+    }
+}
+
+#[test]
+fn test_is_mutated_returns_false_no_dereference() {
+    // Variable with only Parameter node → is_mutated returns false
+    let graph = DataflowGraph::new().with_node(
+        "ptr",
+        PointerNode {
+            name: "ptr".to_string(),
+            def_index: 0,
+            kind: NodeKind::Parameter,
+        },
+    );
+
+    let inferencer = OwnershipInferencer::new();
+    let inferences = inferencer.infer(&graph);
+
+    // Parameter + not mutated → ImmutableBorrow
+    assert_eq!(inferences["ptr"].kind, OwnershipKind::ImmutableBorrow);
+}
+
+#[test]
+fn test_reasoning_default_arm_dereference_unknown() {
+    // Dereference node with non-standard kind triggers default reasoning arm (line 316)
+    let graph = DataflowGraph::new().with_node(
+        "d",
+        PointerNode {
+            name: "d".to_string(),
+            def_index: 0,
+            kind: NodeKind::Dereference,
+        },
+    );
+
+    let inferencer = OwnershipInferencer::new();
+    let inferences = inferencer.infer(&graph);
+
+    assert!(inferences.contains_key("d"));
+    assert_eq!(inferences["d"].kind, OwnershipKind::ImmutableBorrow);
+    // Dereference + ImmutableBorrow doesn't match any specific arm → default
+    assert!(
+        inferences["d"].reason.contains("ownership"),
+        "Should use default reasoning, got: {}",
+        inferences["d"].reason
+    );
+}
+
+#[test]
+fn test_reasoning_free_node_owning() {
+    // Free node → Owning, but Free+Owning isn't in the reasoning match → default arm
+    let graph = DataflowGraph::new().with_node(
+        "f",
+        PointerNode {
+            name: "f".to_string(),
+            def_index: 0,
+            kind: NodeKind::Free,
+        },
+    );
+
+    let inferencer = OwnershipInferencer::new();
+    let inferences = inferencer.infer(&graph);
+
+    assert!(inferences.contains_key("f"));
+    assert_eq!(inferences["f"].kind, OwnershipKind::Owning);
+    // Free+Owning doesn't match Allocation+Owning → default arm
+    assert!(
+        inferences["f"].reason.contains("ownership"),
+        "Should use default reasoning for Free+Owning, got: {}",
+        inferences["f"].reason
+    );
+}
