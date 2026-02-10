@@ -12,18 +12,5 @@ categories.workspace = true
 description = "GitHub repository transpilation with parallel processing"
 
 [dependencies]
-decy-core = { version = "2.0.0", path = "../decy-core" }
-git2.workspace = true
-octocrab.workspace = true
-tokio.workspace = true
-rayon.workspace = true
-petgraph.workspace = true
-anyhow.workspace = true
-thiserror.workspace = true
-tracing.workspace = true
-serde.workspace = true
-serde_json.workspace = true
-serde_yaml.workspace = true
 
 [dev-dependencies]
-proptest.workspace = true

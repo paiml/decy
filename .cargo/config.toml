@@ -1,7 +1,4 @@
-[env]
-LLVM_CONFIG_PATH = "/usr/bin/llvm-config-14"
-LIBCLANG_PATH = "/usr/lib/llvm-14/lib"
-
-# RAM disk acceleration (auto-generated)
+# Temporary coverage config - DO NOT COMMIT
+# Replaces project config during coverage runs
 [build]
-target-dir = "/mnt/zram/targets/decy"
+target-dir = "/mnt/nvme-raid0/coverage/decy"
