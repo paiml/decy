@@ -970,8 +970,8 @@ pub enum HirStatement {
     For {
         /// Initialization statements (e.g., int i = 0, j = 10) - DECY-224
         init: Vec<HirStatement>,
-        /// Loop condition expression
-        condition: HirExpression,
+        /// Loop condition expression (None = infinite loop, e.g. `for(;;)`)
+        condition: Option<HirExpression>,
         /// Increment statements (e.g., i++, j--) - DECY-224
         increment: Vec<HirStatement>,
         /// Loop body (statements to execute while condition is true)
@@ -1086,9 +1086,9 @@ impl HirStatement {
             } => HirStatement::For {
                 // DECY-224: Support multiple init statements
                 init: init.iter().map(HirStatement::from_ast_statement).collect(),
-                condition: HirExpression::from_ast_expression(
-                    condition.as_ref().expect("For loop must have condition"),
-                ),
+                condition: condition
+                    .as_ref()
+                    .map(HirExpression::from_ast_expression),
                 // DECY-224: Support multiple increment statements
                 increment: increment
                     .iter()

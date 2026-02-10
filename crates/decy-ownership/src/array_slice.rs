@@ -191,7 +191,9 @@ impl ArrayParameterTransformer {
                     .iter()
                     .map(|s| Self::transform_statement(s, array_param_map))
                     .collect(),
-                condition: Self::transform_expression(condition, array_param_map),
+                condition: condition
+                    .as_ref()
+                    .map(|c| Self::transform_expression(c, array_param_map)),
                 // DECY-224: Transform all increment statements
                 increment: increment
                     .iter()
@@ -653,11 +655,11 @@ mod tests {
                 var_type: HirType::Int,
                 initializer: Some(HirExpression::IntLiteral(0)),
             }],
-            condition: HirExpression::BinaryOp {
+            condition: Some(HirExpression::BinaryOp {
                 op: BinaryOperator::LessThan,
                 left: Box::new(HirExpression::Variable("i".to_string())),
                 right: Box::new(HirExpression::IntLiteral(10)),
-            },
+            }),
             increment: vec![HirStatement::Assignment {
                 target: "i".to_string(),
                 value: HirExpression::BinaryOp {
@@ -853,7 +855,7 @@ mod tests {
     fn test_statement_uses_pointer_arithmetic_in_for() {
         let stmt = HirStatement::For {
             init: vec![],
-            condition: HirExpression::Variable("cond".to_string()),
+            condition: Some(HirExpression::Variable("cond".to_string())),
             increment: vec![],
             body: vec![HirStatement::Expression(HirExpression::PostIncrement {
                 operand: Box::new(HirExpression::Variable("ptr".to_string())),

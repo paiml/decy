@@ -396,7 +396,7 @@ fn test_for_loop_analysis() {
         vec![void_ptr_param("data")],
         vec![HirStatement::For {
             init: vec![],
-            condition: HirExpression::IntLiteral(1),
+            condition: Some(HirExpression::IntLiteral(1)),
             increment: vec![],
             body: vec![HirStatement::VariableDeclaration {
                 name: "val".to_string(),

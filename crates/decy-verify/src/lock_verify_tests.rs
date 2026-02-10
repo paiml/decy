@@ -789,7 +789,7 @@ mod tests {
                 unlock_stmt("mutex"),
                 HirStatement::For {
                     init: vec![],
-                    condition: HirExpression::IntLiteral(0),
+                    condition: Some(HirExpression::IntLiteral(0)),
                     increment: vec![],
                     body: vec![],
                 },

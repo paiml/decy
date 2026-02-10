@@ -1374,11 +1374,11 @@ fn stmt_for_loop() {
             var_type: HirType::Int,
             initializer: Some(HirExpression::IntLiteral(0)),
         }],
-        condition: HirExpression::BinaryOp {
+        condition: Some(HirExpression::BinaryOp {
             op: BinaryOperator::LessThan,
             left: Box::new(HirExpression::Variable("i".to_string())),
             right: Box::new(HirExpression::IntLiteral(10)),
-        },
+        }),
         increment: vec![HirStatement::Assignment {
             target: "i".to_string(),
             value: HirExpression::BinaryOp {

@@ -49,11 +49,11 @@ fn test_for_loop_basic() {
             var_type: HirType::Int,
             initializer: Some(HirExpression::IntLiteral(0)),
         }],
-        condition: HirExpression::BinaryOp {
+        condition: Some(HirExpression::BinaryOp {
             op: BinaryOperator::LessThan,
             left: Box::new(HirExpression::Variable("i".to_string())),
             right: Box::new(HirExpression::IntLiteral(10)),
-        },
+        }),
         increment: vec![HirStatement::Assignment {
             target: "i".to_string(),
             value: HirExpression::BinaryOp {
@@ -91,11 +91,11 @@ fn test_for_loop_multiple_init_and_increment() {
                 initializer: Some(HirExpression::IntLiteral(10)),
             },
         ],
-        condition: HirExpression::BinaryOp {
+        condition: Some(HirExpression::BinaryOp {
             op: BinaryOperator::LessThan,
             left: Box::new(HirExpression::Variable("i".to_string())),
             right: Box::new(HirExpression::Variable("j".to_string())),
-        },
+        }),
         increment: vec![
             HirStatement::Assignment {
                 target: "i".to_string(),
@@ -137,11 +137,11 @@ fn test_for_loop_empty_body() {
             var_type: HirType::Int,
             initializer: Some(HirExpression::IntLiteral(0)),
         }],
-        condition: HirExpression::BinaryOp {
+        condition: Some(HirExpression::BinaryOp {
             op: BinaryOperator::LessThan,
             left: Box::new(HirExpression::Variable("i".to_string())),
             right: Box::new(HirExpression::IntLiteral(5)),
-        },
+        }),
         increment: vec![HirStatement::Assignment {
             target: "i".to_string(),
             value: HirExpression::BinaryOp {
@@ -460,11 +460,11 @@ fn test_continue_in_for_loop() {
             var_type: HirType::Int,
             initializer: Some(HirExpression::IntLiteral(0)),
         }],
-        condition: HirExpression::BinaryOp {
+        condition: Some(HirExpression::BinaryOp {
             op: BinaryOperator::LessThan,
             left: Box::new(HirExpression::Variable("i".to_string())),
             right: Box::new(HirExpression::IntLiteral(20)),
-        },
+        }),
         increment: vec![HirStatement::Assignment {
             target: "i".to_string(),
             value: HirExpression::BinaryOp {
@@ -1275,11 +1275,11 @@ fn test_nested_for_in_for() {
             var_type: HirType::Int,
             initializer: Some(HirExpression::IntLiteral(0)),
         }],
-        condition: HirExpression::BinaryOp {
+        condition: Some(HirExpression::BinaryOp {
             op: BinaryOperator::LessThan,
             left: Box::new(HirExpression::Variable("i".to_string())),
             right: Box::new(HirExpression::IntLiteral(3)),
-        },
+        }),
         increment: vec![HirStatement::Assignment {
             target: "i".to_string(),
             value: HirExpression::BinaryOp {
@@ -1294,11 +1294,11 @@ fn test_nested_for_in_for() {
                 var_type: HirType::Int,
                 initializer: Some(HirExpression::IntLiteral(0)),
             }],
-            condition: HirExpression::BinaryOp {
+            condition: Some(HirExpression::BinaryOp {
                 op: BinaryOperator::LessThan,
                 left: Box::new(HirExpression::Variable("j".to_string())),
                 right: Box::new(HirExpression::IntLiteral(3)),
-            },
+            }),
             increment: vec![HirStatement::Assignment {
                 target: "j".to_string(),
                 value: HirExpression::BinaryOp {
@@ -1557,11 +1557,11 @@ fn test_for_loop_with_break_condition() {
             var_type: HirType::Int,
             initializer: Some(HirExpression::IntLiteral(0)),
         }],
-        condition: HirExpression::BinaryOp {
+        condition: Some(HirExpression::BinaryOp {
             op: BinaryOperator::LessThan,
             left: Box::new(HirExpression::Variable("i".to_string())),
             right: Box::new(HirExpression::IntLiteral(100)),
-        },
+        }),
         increment: vec![HirStatement::Assignment {
             target: "i".to_string(),
             value: HirExpression::BinaryOp {

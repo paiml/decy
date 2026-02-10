@@ -62,6 +62,10 @@ enum Commands {
         /// Output oracle metrics report (json, markdown, prometheus)
         #[arg(long, value_name = "FORMAT")]
         oracle_report: Option<String>,
+
+        /// Verify that generated Rust compiles (runs rustc type-check)
+        #[arg(long)]
+        verify: bool,
     },
     /// Transpile an entire C project (directory)
     TranspileProject {
@@ -251,12 +255,13 @@ fn main() -> Result<()> {
             capture,
             import_patterns,
             oracle_report,
+            verify,
         }) => {
             let oracle_opts = OracleOptions::new(oracle, Some(oracle_threshold), auto_fix)
                 .with_capture(capture)
                 .with_import(import_patterns)
                 .with_report_format(oracle_report);
-            transpile_file(input, output, &oracle_opts, trace)?;
+            transpile_file(input, output, &oracle_opts, trace, verify)?;
         }
         Some(Commands::TranspileProject {
             input,
@@ -326,6 +331,7 @@ fn transpile_file(
     output: Option<PathBuf>,
     oracle_opts: &OracleOptions,
     trace_enabled: bool,
+    verify: bool,
 ) -> Result<()> {
     // Read input file
     let c_code = fs::read_to_string(&input).with_context(|| {
@@ -373,6 +379,24 @@ fn transpile_file(
         })?;
         (code, None)
     };
+
+    // Verify compilation if requested
+    if verify {
+        let result = decy_verify::verify_compilation(&rust_code)
+            .context("Failed to verify compilation")?;
+        if result.success {
+            eprintln!("Compilation verified: output passes rustc type-check");
+        } else {
+            eprintln!("Compilation verification FAILED:");
+            for err in &result.errors {
+                eprintln!("  {}", err.message);
+            }
+            anyhow::bail!(
+                "Generated Rust does not compile ({} errors)",
+                result.errors.len()
+            );
+        }
+    }
 
     // DECY-AUDIT-002: Detect if the source has no main function and provide guidance
     let has_main = rust_code.contains("fn main(");

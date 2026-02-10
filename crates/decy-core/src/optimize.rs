@@ -109,7 +109,7 @@ fn fold_constants_stmt(stmt: HirStatement) -> HirStatement {
             body,
         } => HirStatement::For {
             init: init.into_iter().map(fold_constants_stmt).collect(),
-            condition: fold_constants_expr(condition),
+            condition: condition.map(fold_constants_expr),
             increment: increment.into_iter().map(fold_constants_stmt).collect(),
             body: body.into_iter().map(fold_constants_stmt).collect(),
         },
@@ -765,11 +765,11 @@ mod tests {
                 var_type: HirType::Int,
                 initializer: Some(HirExpression::IntLiteral(0)),
             }],
-            condition: HirExpression::BinaryOp {
+            condition: Some(HirExpression::BinaryOp {
                 op: BinaryOperator::Add,
                 left: Box::new(HirExpression::IntLiteral(2)),
                 right: Box::new(HirExpression::IntLiteral(3)),
-            },
+            }),
             increment: vec![HirStatement::Expression(HirExpression::Variable(
                 "i".to_string(),
             ))],
@@ -780,7 +780,7 @@ mod tests {
             HirStatement::For {
                 condition, body, ..
             } => {
-                assert_eq!(condition, HirExpression::IntLiteral(5));
+                assert_eq!(condition, Some(HirExpression::IntLiteral(5)));
                 assert!(!body.is_empty());
             }
             other => panic!("Expected For, got {:?}", other),

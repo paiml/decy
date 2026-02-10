@@ -14,11 +14,11 @@ fn test_generate_simple_for_loop() {
             var_type: HirType::Int,
             initializer: Some(HirExpression::IntLiteral(0)),
         }],
-        condition: HirExpression::BinaryOp {
+        condition: Some(HirExpression::BinaryOp {
             op: BinaryOperator::LessThan,
             left: Box::new(HirExpression::Variable("i".to_string())),
             right: Box::new(HirExpression::IntLiteral(10)),
-        },
+        }),
         increment: vec![HirStatement::Assignment {
             target: "i".to_string(),
             value: HirExpression::BinaryOp {
@@ -53,11 +53,11 @@ fn test_generate_for_loop_without_init() {
 
     let for_loop = HirStatement::For {
         init: vec![],
-        condition: HirExpression::BinaryOp {
+        condition: Some(HirExpression::BinaryOp {
             op: BinaryOperator::LessThan,
             left: Box::new(HirExpression::Variable("i".to_string())),
             right: Box::new(HirExpression::IntLiteral(10)),
-        },
+        }),
         increment: vec![HirStatement::Assignment {
             target: "i".to_string(),
             value: HirExpression::BinaryOp {
@@ -88,11 +88,11 @@ fn test_generate_for_loop_without_increment() {
             var_type: HirType::Int,
             initializer: Some(HirExpression::IntLiteral(0)),
         }],
-        condition: HirExpression::BinaryOp {
+        condition: Some(HirExpression::BinaryOp {
             op: BinaryOperator::LessThan,
             left: Box::new(HirExpression::Variable("i".to_string())),
             right: Box::new(HirExpression::IntLiteral(10)),
-        },
+        }),
         increment: vec![],
         body: vec![HirStatement::Assignment {
             target: "i".to_string(),
@@ -118,7 +118,7 @@ fn test_generate_for_loop_infinite() {
 
     let for_loop = HirStatement::For {
         init: vec![],
-        condition: HirExpression::IntLiteral(1), // true
+        condition: Some(HirExpression::IntLiteral(1)), // true
         increment: vec![],
         body: vec![HirStatement::Break],
     };
@@ -140,11 +140,11 @@ fn test_generate_nested_for_loops() {
             var_type: HirType::Int,
             initializer: Some(HirExpression::IntLiteral(0)),
         }],
-        condition: HirExpression::BinaryOp {
+        condition: Some(HirExpression::BinaryOp {
             op: BinaryOperator::LessThan,
             left: Box::new(HirExpression::Variable("j".to_string())),
             right: Box::new(HirExpression::IntLiteral(10)),
-        },
+        }),
         increment: vec![HirStatement::Assignment {
             target: "j".to_string(),
             value: HirExpression::BinaryOp {
@@ -162,11 +162,11 @@ fn test_generate_nested_for_loops() {
             var_type: HirType::Int,
             initializer: Some(HirExpression::IntLiteral(0)),
         }],
-        condition: HirExpression::BinaryOp {
+        condition: Some(HirExpression::BinaryOp {
             op: BinaryOperator::LessThan,
             left: Box::new(HirExpression::Variable("i".to_string())),
             right: Box::new(HirExpression::IntLiteral(10)),
-        },
+        }),
         increment: vec![HirStatement::Assignment {
             target: "i".to_string(),
             value: HirExpression::BinaryOp {
@@ -195,11 +195,11 @@ fn test_generate_for_loop_with_break_continue() {
             var_type: HirType::Int,
             initializer: Some(HirExpression::IntLiteral(0)),
         }],
-        condition: HirExpression::BinaryOp {
+        condition: Some(HirExpression::BinaryOp {
             op: BinaryOperator::LessThan,
             left: Box::new(HirExpression::Variable("i".to_string())),
             right: Box::new(HirExpression::IntLiteral(10)),
-        },
+        }),
         increment: vec![HirStatement::Assignment {
             target: "i".to_string(),
             value: HirExpression::BinaryOp {
@@ -226,11 +226,11 @@ fn test_for_loop_code_structure() {
             var_type: HirType::Int,
             initializer: Some(HirExpression::IntLiteral(0)),
         }],
-        condition: HirExpression::BinaryOp {
+        condition: Some(HirExpression::BinaryOp {
             op: BinaryOperator::LessThan,
             left: Box::new(HirExpression::Variable("i".to_string())),
             right: Box::new(HirExpression::IntLiteral(10)),
-        },
+        }),
         increment: vec![HirStatement::Assignment {
             target: "i".to_string(),
             value: HirExpression::BinaryOp {
@@ -254,4 +254,30 @@ fn test_for_loop_code_structure() {
         while_pos < increment_pos,
         "While should come before increment"
     );
+}
+
+#[test]
+fn test_for_infinite_loop_no_condition() {
+    // for(;;) { break; } → loop { break; }
+    let codegen = CodeGenerator::new();
+
+    let for_loop = HirStatement::For {
+        init: vec![],
+        condition: None, // for(;;) has no condition
+        increment: vec![],
+        body: vec![HirStatement::Break],
+    };
+
+    let code = codegen.generate_statement(&for_loop);
+    assert!(
+        code.contains("loop"),
+        "for(;;) should generate `loop`, got: {}",
+        code
+    );
+    assert!(
+        !code.contains("while"),
+        "for(;;) should NOT generate `while`, got: {}",
+        code
+    );
+    assert!(code.contains("break"), "body should contain break");
 }

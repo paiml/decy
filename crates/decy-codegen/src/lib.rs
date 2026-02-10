@@ -4477,11 +4477,15 @@ impl CodeGenerator {
                     code.push('\n');
                 }
 
-                // Generate while loop with condition
-                code.push_str(&format!(
-                    "while {} {{\n",
-                    self.generate_expression_with_context(condition, ctx)
-                ));
+                // Generate loop: `loop {}` for None (for(;;)), `while cond {}` for Some
+                if let Some(cond) = condition {
+                    code.push_str(&format!(
+                        "while {} {{\n",
+                        self.generate_expression_with_context(cond, ctx)
+                    ));
+                } else {
+                    code.push_str("loop {\n");
+                }
 
                 // Generate loop body
                 for stmt in body {
@@ -5393,8 +5397,10 @@ impl CodeGenerator {
             HirStatement::For {
                 condition, body, ..
             } => {
-                if self.expression_compares_to_null(condition, var_name) {
-                    return true;
+                if let Some(cond) = condition {
+                    if self.expression_compares_to_null(cond, var_name) {
+                        return true;
+                    }
                 }
                 body.iter()
                     .any(|s| self.statement_uses_null_comparison(s, var_name))
