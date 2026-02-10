@@ -12943,3 +12943,354 @@ fn infer_expression_type_pointer_field_access_non_ptr() {
     let result = ctx.infer_expression_type(&expr);
     assert_eq!(result, None);
 }
+
+// ============================================================================
+// BATCH 8: BinaryOp paths via generate_expression_with_target_type
+//          These lines (1308-1461) are only reachable through the target_type
+//          variant, NOT generate_expression_with_context
+// ============================================================================
+
+#[test]
+fn binop_target_type_global_array_assign() {
+    // Lines 1300-1308: BinaryOp Assign to global array index → unsafe via target_type path
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_global("data".to_string());
+    ctx.add_variable(
+        "data".to_string(),
+        HirType::Array {
+            element_type: Box::new(HirType::Int),
+            size: Some(10),
+        },
+    );
+    let expr = HirExpression::BinaryOp {
+        op: BinaryOperator::Assign,
+        left: Box::new(HirExpression::ArrayIndex {
+            array: Box::new(HirExpression::Variable("data".to_string())),
+            index: Box::new(HirExpression::IntLiteral(0)),
+        }),
+        right: Box::new(HirExpression::IntLiteral(42)),
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, Some(&HirType::Int));
+    assert!(result.contains("unsafe"), "Got: {}", result);
+}
+
+#[test]
+fn binop_target_type_option_null_equal() {
+    // Lines 1324-1329: Option var == NULL → .is_none() via target_type path
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable(
+        "p".to_string(),
+        HirType::Option(Box::new(HirType::Int)),
+    );
+    let expr = HirExpression::BinaryOp {
+        op: BinaryOperator::Equal,
+        left: Box::new(HirExpression::Variable("p".to_string())),
+        right: Box::new(HirExpression::NullLiteral),
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, Some(&HirType::Int));
+    assert!(result.contains("is_none"), "Got: {}", result);
+}
+
+#[test]
+fn binop_target_type_option_null_not_equal() {
+    // Lines 1324-1329: Option var != NULL → .is_some() via target_type path
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable(
+        "p".to_string(),
+        HirType::Option(Box::new(HirType::Int)),
+    );
+    let expr = HirExpression::BinaryOp {
+        op: BinaryOperator::NotEqual,
+        left: Box::new(HirExpression::Variable("p".to_string())),
+        right: Box::new(HirExpression::NullLiteral),
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, Some(&HirType::Int));
+    assert!(result.contains("is_some"), "Got: {}", result);
+}
+
+#[test]
+fn binop_target_type_null_option_reversed() {
+    // Lines 1334-1339: NULL == Option var → .is_none() (reversed) via target_type path
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable(
+        "p".to_string(),
+        HirType::Option(Box::new(HirType::Int)),
+    );
+    let expr = HirExpression::BinaryOp {
+        op: BinaryOperator::Equal,
+        left: Box::new(HirExpression::NullLiteral),
+        right: Box::new(HirExpression::Variable("p".to_string())),
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, Some(&HirType::Int));
+    assert!(result.contains("is_none"), "Got: {}", result);
+}
+
+#[test]
+fn binop_target_type_vec_null_equal() {
+    // Lines 1392-1401: Vec == 0 → "false" via target_type path
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("arr".to_string(), HirType::Vec(Box::new(HirType::Int)));
+    let expr = HirExpression::BinaryOp {
+        op: BinaryOperator::Equal,
+        left: Box::new(HirExpression::Variable("arr".to_string())),
+        right: Box::new(HirExpression::IntLiteral(0)),
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, Some(&HirType::Int));
+    assert!(result.contains("false"), "Got: {}", result);
+}
+
+#[test]
+fn binop_target_type_vec_null_not_equal() {
+    // Lines 1392-1401: Vec != NULL → "true" via target_type path
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("arr".to_string(), HirType::Vec(Box::new(HirType::Int)));
+    let expr = HirExpression::BinaryOp {
+        op: BinaryOperator::NotEqual,
+        left: Box::new(HirExpression::Variable("arr".to_string())),
+        right: Box::new(HirExpression::NullLiteral),
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, Some(&HirType::Int));
+    assert!(result.contains("true"), "Got: {}", result);
+}
+
+#[test]
+fn binop_target_type_box_null_equal() {
+    // Lines 1410-1421: Box == 0 → "false" via target_type path
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable(
+        "node".to_string(),
+        HirType::Box(Box::new(HirType::Struct("Node".to_string()))),
+    );
+    let expr = HirExpression::BinaryOp {
+        op: BinaryOperator::Equal,
+        left: Box::new(HirExpression::Variable("node".to_string())),
+        right: Box::new(HirExpression::IntLiteral(0)),
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, Some(&HirType::Int));
+    assert!(result.contains("false"), "Got: {}", result);
+}
+
+#[test]
+fn binop_target_type_box_null_not_equal() {
+    // Lines 1410-1423: Box != NULL → "true" via target_type path
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable(
+        "node".to_string(),
+        HirType::Box(Box::new(HirType::Struct("Node".to_string()))),
+    );
+    let expr = HirExpression::BinaryOp {
+        op: BinaryOperator::NotEqual,
+        left: Box::new(HirExpression::Variable("node".to_string())),
+        right: Box::new(HirExpression::NullLiteral),
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, Some(&HirType::Int));
+    assert!(result.contains("true"), "Got: {}", result);
+}
+
+#[test]
+fn binop_target_type_strlen_equal_zero() {
+    // Lines 1434-1443: strlen(s) == 0 → is_empty() via target_type path
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    let expr = HirExpression::BinaryOp {
+        op: BinaryOperator::Equal,
+        left: Box::new(HirExpression::FunctionCall {
+            function: "strlen".to_string(),
+            arguments: vec![HirExpression::Variable("s".to_string())],
+        }),
+        right: Box::new(HirExpression::IntLiteral(0)),
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, Some(&HirType::Int));
+    assert!(result.contains("is_empty"), "Got: {}", result);
+}
+
+#[test]
+fn binop_target_type_strlen_not_equal_zero() {
+    // Lines 1434-1443: strlen(s) != 0 → !is_empty() via target_type path
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    let expr = HirExpression::BinaryOp {
+        op: BinaryOperator::NotEqual,
+        left: Box::new(HirExpression::FunctionCall {
+            function: "strlen".to_string(),
+            arguments: vec![HirExpression::Variable("s".to_string())],
+        }),
+        right: Box::new(HirExpression::IntLiteral(0)),
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, Some(&HirType::Int));
+    assert!(result.contains("!s.is_empty()"), "Got: {}", result);
+}
+
+#[test]
+fn binop_target_type_zero_strlen_reversed() {
+    // Lines 1452-1461: 0 == strlen(s) → is_empty() via target_type path (reversed)
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    let expr = HirExpression::BinaryOp {
+        op: BinaryOperator::Equal,
+        left: Box::new(HirExpression::IntLiteral(0)),
+        right: Box::new(HirExpression::FunctionCall {
+            function: "strlen".to_string(),
+            arguments: vec![HirExpression::Variable("s".to_string())],
+        }),
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, Some(&HirType::Int));
+    assert!(result.contains("is_empty"), "Got: {}", result);
+}
+
+#[test]
+fn binop_target_type_zero_strlen_not_equal_reversed() {
+    // Lines 1452-1461: 0 != strlen(s) → !is_empty() via target_type path (reversed)
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    let expr = HirExpression::BinaryOp {
+        op: BinaryOperator::NotEqual,
+        left: Box::new(HirExpression::IntLiteral(0)),
+        right: Box::new(HirExpression::FunctionCall {
+            function: "strlen".to_string(),
+            arguments: vec![HirExpression::Variable("s".to_string())],
+        }),
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, Some(&HirType::Int));
+    assert!(result.contains("!s.is_empty()"), "Got: {}", result);
+}
+
+#[test]
+fn var_to_ptr_ref_array_type_mismatch() {
+    // Line 1178: Reference { inner: Array { elem: Int } } to Pointer(Char) — type mismatch, falls through
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable(
+        "arr_ref".to_string(),
+        HirType::Reference {
+            inner: Box::new(HirType::Array {
+                element_type: Box::new(HirType::Int),
+                size: Some(10),
+            }),
+            mutable: true,
+        },
+    );
+    let expr = HirExpression::Variable("arr_ref".to_string());
+    // Target is Pointer(Char) but arr_ref is Reference(Array(Int)) — element type mismatch
+    let result = cg.generate_expression_with_target_type(
+        &expr,
+        &ctx,
+        Some(&HirType::Pointer(Box::new(HirType::Char))),
+    );
+    // Falls through element_type_match because Int != Char, then through inner == ptr_inner check
+    // since Array != Char, so it hits the default escape path
+    assert!(!result.is_empty(), "Got: {}", result);
+}
+
+#[test]
+fn var_to_ptr_int_to_char_via_target_type() {
+    // Lines 1223-1228: Int variable with Char target → "x as u8" via target_type
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("c".to_string(), HirType::Int);
+    let expr = HirExpression::Variable("c".to_string());
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, Some(&HirType::Char));
+    assert!(result.contains("as u8"), "Got: {}", result);
+}
+
+#[test]
+fn binop_target_type_pointer_field_compare_zero() {
+    // Lines 1367-1376: ptr->field == 0 where field is pointer → null_mut via target_type path
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable(
+        "node".to_string(),
+        HirType::Pointer(Box::new(HirType::Struct("Node".to_string()))),
+    );
+    ctx.structs.insert(
+        "Node".to_string(),
+        vec![("next".to_string(), HirType::Pointer(Box::new(HirType::Struct("Node".to_string()))))],
+    );
+    let expr = HirExpression::BinaryOp {
+        op: BinaryOperator::Equal,
+        left: Box::new(HirExpression::PointerFieldAccess {
+            pointer: Box::new(HirExpression::Variable("node".to_string())),
+            field: "next".to_string(),
+        }),
+        right: Box::new(HirExpression::IntLiteral(0)),
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, Some(&HirType::Int));
+    assert!(result.contains("std::ptr::null_mut()"), "Got: {}", result);
+}
+
+#[test]
+fn binop_target_type_pointer_subtract_wrapping() {
+    // Lines 1579-1583: ptr - integer via target_type path → wrapping_sub
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable(
+        "p".to_string(),
+        HirType::Pointer(Box::new(HirType::Int)),
+    );
+    let expr = HirExpression::BinaryOp {
+        op: BinaryOperator::Subtract,
+        left: Box::new(HirExpression::Variable("p".to_string())),
+        right: Box::new(HirExpression::IntLiteral(3)),
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, Some(&HirType::Pointer(Box::new(HirType::Int))));
+    assert!(result.contains("wrapping_sub"), "Got: {}", result);
+}
+
+#[test]
+fn deref_post_increment_on_string_literal_type() {
+    // Lines 1896-1903: Dereference(PostIncrement(string_literal var)) via target_type
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("s".to_string(), HirType::StringLiteral);
+    let expr = HirExpression::Dereference(Box::new(HirExpression::PostIncrement {
+        operand: Box::new(HirExpression::Variable("s".to_string())),
+    }));
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, Some(&HirType::Char));
+    // StringLiteral matches the check at line 1896-1897
+    assert!(!result.is_empty(), "Got: {}", result);
+}
+
+#[test]
+fn deref_binary_op_non_pointer_left_target_type() {
+    // Line 1917: Dereference of BinaryOp with non-pointer left via target_type
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("x".to_string(), HirType::Int);
+    let expr = HirExpression::Dereference(Box::new(HirExpression::BinaryOp {
+        op: BinaryOperator::Add,
+        left: Box::new(HirExpression::Variable("x".to_string())),
+        right: Box::new(HirExpression::IntLiteral(1)),
+    }));
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, Some(&HirType::Int));
+    assert!(!result.contains("unsafe"), "Got: {}", result);
+}
+
+#[test]
+fn logical_not_unary_op_integer_target_type() {
+    // Lines 2007-2014: LogicalNot via UnaryOp arm (lines 2003-2015) in target_type
+    // These lines 2007-2014 are in the LATER UnaryOp match — only reachable if LogicalNot
+    // was NOT caught by the early match at line 1047-1078.
+    // Actually, looking at the code, lines 1047-1078 are ALSO in generate_expression_with_target_type
+    // and they always match LogicalNot first. Lines 2006-2014 are dead code for LogicalNot.
+    // But they ARE reachable for the general UnaryOp arm which handles other operators.
+    // Actually no — the LogicalNot is specifically matched at 1049-1078 and 2006.
+    // Lines 2007-2014 are truly dead since 1047-1078 always catches first. Skip these.
+    // Instead, verify that the early match handles both paths:
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("x".to_string(), HirType::Int);
+    let expr = HirExpression::UnaryOp {
+        op: UnaryOperator::LogicalNot,
+        operand: Box::new(HirExpression::Variable("x".to_string())),
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, Some(&HirType::Int));
+    assert!(result.contains("== 0) as i32"), "Got: {}", result);
+}
