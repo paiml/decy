@@ -670,3 +670,1232 @@ fn type_context_function_param_type() {
     assert!(ctx.get_function_param_type("process", 2).is_none());
     assert!(ctx.get_function_param_type("unknown", 0).is_none());
 }
+
+// ============================================================================
+// Statement codegen: generate_statement
+// ============================================================================
+
+#[test]
+fn stmt_return_with_value() {
+    let cg = CodeGenerator::new();
+    let stmt = HirStatement::Return(Some(HirExpression::IntLiteral(42)));
+    let code = cg.generate_statement(&stmt);
+    assert_eq!(code, "return 42;");
+}
+
+#[test]
+fn stmt_return_void() {
+    let cg = CodeGenerator::new();
+    let stmt = HirStatement::Return(None);
+    let code = cg.generate_statement(&stmt);
+    assert_eq!(code, "return;");
+}
+
+#[test]
+fn stmt_return_in_main_exits() {
+    let cg = CodeGenerator::new();
+    let stmt = HirStatement::Return(Some(HirExpression::IntLiteral(1)));
+    let code = cg.generate_statement_for_function(&stmt, Some("main"));
+    assert_eq!(code, "std::process::exit(1);");
+}
+
+#[test]
+fn stmt_return_in_main_void_exits_zero() {
+    let cg = CodeGenerator::new();
+    let stmt = HirStatement::Return(None);
+    let code = cg.generate_statement_for_function(&stmt, Some("main"));
+    assert_eq!(code, "std::process::exit(0);");
+}
+
+#[test]
+fn stmt_break() {
+    let cg = CodeGenerator::new();
+    let stmt = HirStatement::Break;
+    let code = cg.generate_statement(&stmt);
+    assert_eq!(code, "break;");
+}
+
+#[test]
+fn stmt_continue() {
+    let cg = CodeGenerator::new();
+    let stmt = HirStatement::Continue;
+    let code = cg.generate_statement(&stmt);
+    assert_eq!(code, "continue;");
+}
+
+#[test]
+fn stmt_expression() {
+    let cg = CodeGenerator::new();
+    let stmt = HirStatement::Expression(HirExpression::FunctionCall {
+        function: "foo".to_string(),
+        arguments: vec![HirExpression::IntLiteral(42)],
+    });
+    let code = cg.generate_statement(&stmt);
+    assert!(code.contains("foo"));
+    assert!(code.ends_with(';'));
+}
+
+#[test]
+fn stmt_free_generates_raii_comment() {
+    let cg = CodeGenerator::new();
+    let stmt = HirStatement::Free {
+        pointer: HirExpression::Variable("ptr".to_string()),
+    };
+    let code = cg.generate_statement(&stmt);
+    assert!(code.contains("RAII"));
+    assert!(code.contains("ptr"));
+}
+
+#[test]
+fn stmt_inline_asm_not_translatable() {
+    let cg = CodeGenerator::new();
+    let stmt = HirStatement::InlineAsm {
+        text: "mov eax, ebx".to_string(),
+        translatable: false,
+    };
+    let code = cg.generate_statement(&stmt);
+    assert!(code.contains("manual review required"));
+    assert!(code.contains("mov eax, ebx"));
+    assert!(!code.contains("translatable to Rust"));
+}
+
+#[test]
+fn stmt_inline_asm_translatable() {
+    let cg = CodeGenerator::new();
+    let stmt = HirStatement::InlineAsm {
+        text: "nop".to_string(),
+        translatable: true,
+    };
+    let code = cg.generate_statement(&stmt);
+    assert!(code.contains("manual review required"));
+    assert!(code.contains("translatable to Rust intrinsics"));
+}
+
+#[test]
+fn stmt_if_with_boolean_condition() {
+    let cg = CodeGenerator::new();
+    let stmt = HirStatement::If {
+        condition: HirExpression::BinaryOp {
+            op: decy_hir::BinaryOperator::Equal,
+            left: Box::new(HirExpression::Variable("x".to_string())),
+            right: Box::new(HirExpression::IntLiteral(0)),
+        },
+        then_block: vec![HirStatement::Return(Some(HirExpression::IntLiteral(1)))],
+        else_block: None,
+    };
+    let code = cg.generate_statement(&stmt);
+    assert!(code.contains("if x == 0"));
+    assert!(code.contains("return 1;"));
+}
+
+#[test]
+fn stmt_if_with_else() {
+    let cg = CodeGenerator::new();
+    let stmt = HirStatement::If {
+        condition: HirExpression::BinaryOp {
+            op: decy_hir::BinaryOperator::GreaterThan,
+            left: Box::new(HirExpression::Variable("a".to_string())),
+            right: Box::new(HirExpression::Variable("b".to_string())),
+        },
+        then_block: vec![HirStatement::Return(Some(HirExpression::Variable(
+            "a".to_string(),
+        )))],
+        else_block: Some(vec![HirStatement::Return(Some(HirExpression::Variable(
+            "b".to_string(),
+        )))]),
+    };
+    let code = cg.generate_statement(&stmt);
+    assert!(code.contains("if a > b"));
+    assert!(code.contains("} else {"));
+}
+
+#[test]
+fn stmt_if_non_boolean_condition_wraps_ne_zero() {
+    let cg = CodeGenerator::new();
+    let stmt = HirStatement::If {
+        condition: HirExpression::Variable("flag".to_string()),
+        then_block: vec![HirStatement::Break],
+        else_block: None,
+    };
+    let code = cg.generate_statement(&stmt);
+    assert!(code.contains("!= 0"));
+}
+
+#[test]
+fn stmt_while_basic() {
+    let cg = CodeGenerator::new();
+    let stmt = HirStatement::While {
+        condition: HirExpression::BinaryOp {
+            op: decy_hir::BinaryOperator::LessThan,
+            left: Box::new(HirExpression::Variable("i".to_string())),
+            right: Box::new(HirExpression::Variable("n".to_string())),
+        },
+        body: vec![HirStatement::Expression(HirExpression::PostIncrement {
+            operand: Box::new(HirExpression::Variable("i".to_string())),
+        })],
+    };
+    let code = cg.generate_statement(&stmt);
+    assert!(code.contains("while i < n"));
+}
+
+#[test]
+fn stmt_for_with_init_cond_inc() {
+    let cg = CodeGenerator::new();
+    let stmt = HirStatement::For {
+        init: vec![HirStatement::VariableDeclaration {
+            name: "i".to_string(),
+            var_type: HirType::Int,
+            initializer: Some(HirExpression::IntLiteral(0)),
+        }],
+        condition: Some(HirExpression::BinaryOp {
+            op: decy_hir::BinaryOperator::LessThan,
+            left: Box::new(HirExpression::Variable("i".to_string())),
+            right: Box::new(HirExpression::IntLiteral(10)),
+        }),
+        increment: vec![HirStatement::Assignment {
+            target: "i".to_string(),
+            value: HirExpression::BinaryOp {
+                op: decy_hir::BinaryOperator::Add,
+                left: Box::new(HirExpression::Variable("i".to_string())),
+                right: Box::new(HirExpression::IntLiteral(1)),
+            },
+        }],
+        body: vec![HirStatement::Break],
+    };
+    let code = cg.generate_statement(&stmt);
+    assert!(code.contains("let mut i"));
+    assert!(code.contains("while i < 10"));
+    assert!(code.contains("break;"));
+}
+
+#[test]
+fn stmt_for_infinite_loop() {
+    let cg = CodeGenerator::new();
+    let stmt = HirStatement::For {
+        init: vec![],
+        condition: None,
+        increment: vec![],
+        body: vec![HirStatement::Break],
+    };
+    let code = cg.generate_statement(&stmt);
+    assert!(code.contains("loop {"));
+    assert!(code.contains("break;"));
+}
+
+#[test]
+fn stmt_switch_basic() {
+    let cg = CodeGenerator::new();
+    let stmt = HirStatement::Switch {
+        condition: HirExpression::Variable("choice".to_string()),
+        cases: vec![decy_hir::SwitchCase {
+            value: Some(HirExpression::IntLiteral(1)),
+            body: vec![
+                HirStatement::Return(Some(HirExpression::StringLiteral("one".to_string()))),
+                HirStatement::Break,
+            ],
+        }],
+        default_case: Some(vec![HirStatement::Return(Some(
+            HirExpression::StringLiteral("other".to_string()),
+        ))]),
+    };
+    let code = cg.generate_statement(&stmt);
+    assert!(code.contains("match choice"));
+    assert!(code.contains("1 =>"));
+    assert!(code.contains("_ =>"));
+    // Break statements should be filtered out
+    assert!(!code.contains("break;"));
+}
+
+#[test]
+fn stmt_variable_declaration_with_init() {
+    let cg = CodeGenerator::new();
+    let stmt = HirStatement::VariableDeclaration {
+        name: "x".to_string(),
+        var_type: HirType::Int,
+        initializer: Some(HirExpression::IntLiteral(42)),
+    };
+    let code = cg.generate_statement(&stmt);
+    assert!(code.contains("let mut x"));
+    assert!(code.contains("42"));
+}
+
+#[test]
+fn stmt_variable_declaration_no_init() {
+    let cg = CodeGenerator::new();
+    let stmt = HirStatement::VariableDeclaration {
+        name: "y".to_string(),
+        var_type: HirType::Float,
+        initializer: None,
+    };
+    let code = cg.generate_statement(&stmt);
+    assert!(code.contains("let mut y"));
+    assert!(code.contains("f32"));
+}
+
+#[test]
+fn stmt_assignment_simple() {
+    let cg = CodeGenerator::new();
+    let stmt = HirStatement::Assignment {
+        target: "x".to_string(),
+        value: HirExpression::IntLiteral(99),
+    };
+    let code = cg.generate_statement(&stmt);
+    assert_eq!(code, "x = 99;");
+}
+
+#[test]
+fn stmt_deref_assignment_field_access() {
+    let cg = CodeGenerator::new();
+    let stmt = HirStatement::DerefAssignment {
+        target: HirExpression::PointerFieldAccess {
+            pointer: Box::new(HirExpression::Variable("node".to_string())),
+            field: "next".to_string(),
+        },
+        value: HirExpression::NullLiteral,
+    };
+    let code = cg.generate_statement(&stmt);
+    // PointerFieldAccess doesn't need extra dereference
+    assert!(code.contains("node"));
+    assert!(code.contains("next"));
+}
+
+#[test]
+fn stmt_deref_assignment_array_index() {
+    let cg = CodeGenerator::new();
+    let stmt = HirStatement::DerefAssignment {
+        target: HirExpression::ArrayIndex {
+            array: Box::new(HirExpression::Variable("arr".to_string())),
+            index: Box::new(HirExpression::IntLiteral(0)),
+        },
+        value: HirExpression::IntLiteral(42),
+    };
+    let code = cg.generate_statement(&stmt);
+    assert!(code.contains("arr"));
+    assert!(code.contains("42"));
+}
+
+#[test]
+fn stmt_field_assignment_basic() {
+    let cg = CodeGenerator::new();
+    let stmt = HirStatement::FieldAssignment {
+        object: HirExpression::Variable("point".to_string()),
+        field: "x".to_string(),
+        value: HirExpression::IntLiteral(10),
+    };
+    let code = cg.generate_statement(&stmt);
+    assert_eq!(code, "point.x = 10;");
+}
+
+#[test]
+fn stmt_array_index_assignment_basic() {
+    let cg = CodeGenerator::new();
+    let stmt = HirStatement::ArrayIndexAssignment {
+        array: Box::new(HirExpression::Variable("arr".to_string())),
+        index: Box::new(HirExpression::Variable("i".to_string())),
+        value: HirExpression::IntLiteral(0),
+    };
+    let code = cg.generate_statement(&stmt);
+    assert!(code.contains("arr[(i) as usize] = 0;"));
+}
+
+// ============================================================================
+// Expression codegen: CompoundLiteral
+// ============================================================================
+
+#[test]
+fn expr_compound_literal_struct_empty() {
+    let cg = CodeGenerator::new();
+    let expr = HirExpression::CompoundLiteral {
+        literal_type: HirType::Struct("Point".to_string()),
+        initializers: vec![],
+    };
+    let code = cg.generate_expression(&expr);
+    assert_eq!(code, "Point {}");
+}
+
+#[test]
+fn expr_compound_literal_struct_with_values() {
+    let cg = CodeGenerator::new();
+    let expr = HirExpression::CompoundLiteral {
+        literal_type: HirType::Struct("Point".to_string()),
+        initializers: vec![HirExpression::IntLiteral(10), HirExpression::IntLiteral(20)],
+    };
+    let code = cg.generate_expression(&expr);
+    assert!(code.contains("Point"));
+    assert!(code.contains("10"));
+    assert!(code.contains("20"));
+}
+
+#[test]
+fn expr_compound_literal_array_empty_with_size() {
+    let cg = CodeGenerator::new();
+    let expr = HirExpression::CompoundLiteral {
+        literal_type: HirType::Array {
+            element_type: Box::new(HirType::Int),
+            size: Some(5),
+        },
+        initializers: vec![],
+    };
+    let code = cg.generate_expression(&expr);
+    assert_eq!(code, "[0i32; 5]");
+}
+
+#[test]
+fn expr_compound_literal_array_single_init() {
+    let cg = CodeGenerator::new();
+    let expr = HirExpression::CompoundLiteral {
+        literal_type: HirType::Array {
+            element_type: Box::new(HirType::Int),
+            size: Some(10),
+        },
+        initializers: vec![HirExpression::IntLiteral(0)],
+    };
+    let code = cg.generate_expression(&expr);
+    assert_eq!(code, "[0; 10]");
+}
+
+#[test]
+fn expr_compound_literal_array_partial_init() {
+    let cg = CodeGenerator::new();
+    let expr = HirExpression::CompoundLiteral {
+        literal_type: HirType::Array {
+            element_type: Box::new(HirType::Int),
+            size: Some(4),
+        },
+        initializers: vec![HirExpression::IntLiteral(1), HirExpression::IntLiteral(2)],
+    };
+    let code = cg.generate_expression(&expr);
+    // Should pad with defaults
+    assert!(code.contains("1"));
+    assert!(code.contains("2"));
+    assert!(code.contains("0i32"));
+}
+
+#[test]
+fn expr_compound_literal_array_full_init() {
+    let cg = CodeGenerator::new();
+    let expr = HirExpression::CompoundLiteral {
+        literal_type: HirType::Array {
+            element_type: Box::new(HirType::Int),
+            size: Some(3),
+        },
+        initializers: vec![
+            HirExpression::IntLiteral(1),
+            HirExpression::IntLiteral(2),
+            HirExpression::IntLiteral(3),
+        ],
+    };
+    let code = cg.generate_expression(&expr);
+    assert_eq!(code, "[1, 2, 3]");
+}
+
+#[test]
+fn expr_compound_literal_array_no_size() {
+    let cg = CodeGenerator::new();
+    let expr = HirExpression::CompoundLiteral {
+        literal_type: HirType::Array {
+            element_type: Box::new(HirType::Int),
+            size: None,
+        },
+        initializers: vec![HirExpression::IntLiteral(1), HirExpression::IntLiteral(2)],
+    };
+    let code = cg.generate_expression(&expr);
+    assert_eq!(code, "[1, 2]");
+}
+
+#[test]
+fn expr_compound_literal_other_type() {
+    let cg = CodeGenerator::new();
+    let expr = HirExpression::CompoundLiteral {
+        literal_type: HirType::Double,
+        initializers: vec![],
+    };
+    let code = cg.generate_expression(&expr);
+    assert!(code.contains("Compound literal"));
+}
+
+// ============================================================================
+// Expression codegen: Cast
+// ============================================================================
+
+#[test]
+fn expr_cast_int_to_float() {
+    let cg = CodeGenerator::new();
+    let expr = HirExpression::Cast {
+        target_type: HirType::Float,
+        expr: Box::new(HirExpression::Variable("x".to_string())),
+    };
+    let code = cg.generate_expression(&expr);
+    assert_eq!(code, "x as f32");
+}
+
+#[test]
+fn expr_cast_binary_op_wrapped_in_parens() {
+    let cg = CodeGenerator::new();
+    let expr = HirExpression::Cast {
+        target_type: HirType::Int,
+        expr: Box::new(HirExpression::BinaryOp {
+            op: decy_hir::BinaryOperator::Add,
+            left: Box::new(HirExpression::Variable("a".to_string())),
+            right: Box::new(HirExpression::Variable("b".to_string())),
+        }),
+    };
+    let code = cg.generate_expression(&expr);
+    assert!(code.contains("(a + b) as i32"));
+}
+
+#[test]
+fn expr_cast_address_of_to_int() {
+    let cg = CodeGenerator::new();
+    let expr = HirExpression::Cast {
+        target_type: HirType::Int,
+        expr: Box::new(HirExpression::AddressOf(Box::new(
+            HirExpression::Variable("x".to_string()),
+        ))),
+    };
+    let code = cg.generate_expression(&expr);
+    assert!(code.contains("as *const _"));
+    assert!(code.contains("as isize"));
+}
+
+// ============================================================================
+// Helper functions: is_string_ternary
+// ============================================================================
+
+#[test]
+fn is_string_ternary_true() {
+    let expr = HirExpression::Ternary {
+        condition: Box::new(HirExpression::Variable("flag".to_string())),
+        then_expr: Box::new(HirExpression::StringLiteral("yes".to_string())),
+        else_expr: Box::new(HirExpression::StringLiteral("no".to_string())),
+    };
+    assert!(CodeGenerator::is_string_ternary(&expr));
+}
+
+#[test]
+fn is_string_ternary_false_non_string() {
+    let expr = HirExpression::Ternary {
+        condition: Box::new(HirExpression::Variable("flag".to_string())),
+        then_expr: Box::new(HirExpression::IntLiteral(1)),
+        else_expr: Box::new(HirExpression::IntLiteral(0)),
+    };
+    assert!(!CodeGenerator::is_string_ternary(&expr));
+}
+
+#[test]
+fn is_string_ternary_false_not_ternary() {
+    let expr = HirExpression::Variable("x".to_string());
+    assert!(!CodeGenerator::is_string_ternary(&expr));
+}
+
+// ============================================================================
+// Helper functions: wrap_with_cstr, wrap_raw_ptr_with_cstr
+// ============================================================================
+
+#[test]
+fn wrap_with_cstr_basic() {
+    let result = CodeGenerator::wrap_with_cstr("buf");
+    assert!(result.contains("CStr::from_ptr"));
+    assert!(result.contains("buf.as_ptr()"));
+    assert!(result.contains("unsafe"));
+}
+
+#[test]
+fn wrap_raw_ptr_with_cstr_basic() {
+    let result = CodeGenerator::wrap_raw_ptr_with_cstr("raw_ptr");
+    assert!(result.contains("CStr::from_ptr"));
+    assert!(result.contains("raw_ptr as *const i8"));
+    assert!(!result.contains(".as_ptr()"));
+}
+
+// ============================================================================
+// Helper functions: is_malloc_call, is_any_malloc_or_calloc, is_array_allocation_size
+// ============================================================================
+
+#[test]
+fn is_any_malloc_basic() {
+    let expr = HirExpression::Malloc {
+        size: Box::new(HirExpression::IntLiteral(100)),
+    };
+    assert!(CodeGenerator::is_any_malloc_or_calloc(&expr));
+}
+
+#[test]
+fn is_any_malloc_calloc() {
+    let expr = HirExpression::Calloc {
+        count: Box::new(HirExpression::IntLiteral(10)),
+        element_type: Box::new(HirType::Int),
+    };
+    assert!(CodeGenerator::is_any_malloc_or_calloc(&expr));
+}
+
+#[test]
+fn is_any_malloc_func_call() {
+    let expr = HirExpression::FunctionCall {
+        function: "malloc".to_string(),
+        arguments: vec![HirExpression::IntLiteral(100)],
+    };
+    assert!(CodeGenerator::is_any_malloc_or_calloc(&expr));
+}
+
+#[test]
+fn is_any_malloc_through_cast() {
+    let expr = HirExpression::Cast {
+        target_type: HirType::Pointer(Box::new(HirType::Int)),
+        expr: Box::new(HirExpression::Malloc {
+            size: Box::new(HirExpression::IntLiteral(100)),
+        }),
+    };
+    assert!(CodeGenerator::is_any_malloc_or_calloc(&expr));
+}
+
+#[test]
+fn is_any_malloc_false() {
+    let expr = HirExpression::Variable("ptr".to_string());
+    assert!(!CodeGenerator::is_any_malloc_or_calloc(&expr));
+}
+
+#[test]
+fn is_malloc_call_array_pattern() {
+    let expr = HirExpression::Malloc {
+        size: Box::new(HirExpression::BinaryOp {
+            op: decy_hir::BinaryOperator::Multiply,
+            left: Box::new(HirExpression::Variable("n".to_string())),
+            right: Box::new(HirExpression::Sizeof {
+                type_name: "int".to_string(),
+            }),
+        }),
+    };
+    assert!(CodeGenerator::is_malloc_call(&expr));
+}
+
+#[test]
+fn is_malloc_call_sizeof_only_not_array() {
+    let expr = HirExpression::Malloc {
+        size: Box::new(HirExpression::Sizeof {
+            type_name: "struct Point".to_string(),
+        }),
+    };
+    assert!(!CodeGenerator::is_malloc_call(&expr));
+}
+
+#[test]
+fn is_array_allocation_size_multiply() {
+    let expr = HirExpression::BinaryOp {
+        op: decy_hir::BinaryOperator::Multiply,
+        left: Box::new(HirExpression::Variable("n".to_string())),
+        right: Box::new(HirExpression::Sizeof {
+            type_name: "int".to_string(),
+        }),
+    };
+    assert!(CodeGenerator::is_array_allocation_size(&expr));
+}
+
+#[test]
+fn is_array_allocation_size_sizeof_false() {
+    let expr = HirExpression::Sizeof {
+        type_name: "int".to_string(),
+    };
+    assert!(!CodeGenerator::is_array_allocation_size(&expr));
+}
+
+#[test]
+fn is_array_allocation_size_int_literal_false() {
+    let expr = HirExpression::IntLiteral(100);
+    assert!(!CodeGenerator::is_array_allocation_size(&expr));
+}
+
+#[test]
+fn is_array_allocation_size_variable_false() {
+    let expr = HirExpression::Variable("size".to_string());
+    assert!(!CodeGenerator::is_array_allocation_size(&expr));
+}
+
+// ============================================================================
+// Helper functions: is_malloc_array_pattern
+// ============================================================================
+
+#[test]
+fn is_malloc_array_pattern_through_cast() {
+    let expr = HirExpression::Cast {
+        target_type: HirType::Pointer(Box::new(HirType::Int)),
+        expr: Box::new(HirExpression::Malloc {
+            size: Box::new(HirExpression::BinaryOp {
+                op: decy_hir::BinaryOperator::Multiply,
+                left: Box::new(HirExpression::Variable("n".to_string())),
+                right: Box::new(HirExpression::Sizeof {
+                    type_name: "int".to_string(),
+                }),
+            }),
+        }),
+    };
+    assert!(CodeGenerator::is_malloc_array_pattern(&expr));
+}
+
+// ============================================================================
+// Statement codegen: Realloc in Assignment
+// ============================================================================
+
+#[test]
+fn stmt_assignment_realloc_zero_clears() {
+    let cg = CodeGenerator::new();
+    let stmt = HirStatement::Assignment {
+        target: "buf".to_string(),
+        value: HirExpression::Realloc {
+            pointer: Box::new(HirExpression::Variable("buf".to_string())),
+            new_size: Box::new(HirExpression::IntLiteral(0)),
+        },
+    };
+    let code = cg.generate_statement(&stmt);
+    assert!(code.contains("buf.clear()"));
+}
+
+#[test]
+fn stmt_assignment_realloc_with_multiply_resizes() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("buf".to_string(), HirType::Vec(Box::new(HirType::Int)));
+    let stmt = HirStatement::Assignment {
+        target: "buf".to_string(),
+        value: HirExpression::Realloc {
+            pointer: Box::new(HirExpression::Variable("buf".to_string())),
+            new_size: Box::new(HirExpression::BinaryOp {
+                op: decy_hir::BinaryOperator::Multiply,
+                left: Box::new(HirExpression::Variable("new_count".to_string())),
+                right: Box::new(HirExpression::Sizeof {
+                    type_name: "int".to_string(),
+                }),
+            }),
+        },
+    };
+    let code = cg.generate_statement_with_context(&stmt, None, &mut ctx, None);
+    assert!(code.contains("buf.resize"));
+    assert!(code.contains("new_count"));
+}
+
+#[test]
+fn stmt_assignment_realloc_fallback_size() {
+    let cg = CodeGenerator::new();
+    let stmt = HirStatement::Assignment {
+        target: "buf".to_string(),
+        value: HirExpression::Realloc {
+            pointer: Box::new(HirExpression::Variable("buf".to_string())),
+            new_size: Box::new(HirExpression::Variable("new_sz".to_string())),
+        },
+    };
+    let code = cg.generate_statement(&stmt);
+    assert!(code.contains("buf.resize"));
+    assert!(code.contains("as usize"));
+}
+
+// ============================================================================
+// Statement codegen: Assignment with globals
+// ============================================================================
+
+#[test]
+fn stmt_assignment_global_wraps_unsafe() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_global("g_counter".to_string());
+    let stmt = HirStatement::Assignment {
+        target: "g_counter".to_string(),
+        value: HirExpression::IntLiteral(0),
+    };
+    let code = cg.generate_statement_with_context(&stmt, None, &mut ctx, None);
+    assert!(code.contains("unsafe"));
+    assert!(code.contains("g_counter = 0"));
+}
+
+#[test]
+fn stmt_assignment_errno() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let stmt = HirStatement::Assignment {
+        target: "errno".to_string(),
+        value: HirExpression::IntLiteral(0),
+    };
+    let code = cg.generate_statement_with_context(&stmt, None, &mut ctx, None);
+    assert!(code.contains("unsafe"));
+    assert!(code.contains("ERRNO"));
+}
+
+// ============================================================================
+// Statement codegen: Global array index assignment
+// ============================================================================
+
+#[test]
+fn stmt_array_index_assignment_global_wraps_unsafe() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_global("g_table".to_string());
+    let stmt = HirStatement::ArrayIndexAssignment {
+        array: Box::new(HirExpression::Variable("g_table".to_string())),
+        index: Box::new(HirExpression::IntLiteral(0)),
+        value: HirExpression::IntLiteral(42),
+    };
+    let code = cg.generate_statement_with_context(&stmt, None, &mut ctx, None);
+    assert!(code.contains("unsafe"));
+    assert!(code.contains("g_table"));
+}
+
+// ============================================================================
+// Statement codegen: VLA (Variable-length array) declaration
+// ============================================================================
+
+#[test]
+fn stmt_vla_declaration() {
+    let cg = CodeGenerator::new();
+    let stmt = HirStatement::VariableDeclaration {
+        name: "arr".to_string(),
+        var_type: HirType::Array {
+            element_type: Box::new(HirType::Int),
+            size: None,
+        },
+        initializer: Some(HirExpression::Variable("n".to_string())),
+    };
+    let code = cg.generate_statement(&stmt);
+    assert!(code.contains("vec!"));
+    assert!(code.contains("0i32"));
+}
+
+#[test]
+fn stmt_vla_declaration_float() {
+    let cg = CodeGenerator::new();
+    let stmt = HirStatement::VariableDeclaration {
+        name: "arr".to_string(),
+        var_type: HirType::Array {
+            element_type: Box::new(HirType::Float),
+            size: None,
+        },
+        initializer: Some(HirExpression::Variable("n".to_string())),
+    };
+    let code = cg.generate_statement(&stmt);
+    assert!(code.contains("vec!"));
+    assert!(code.contains("0.0f32"));
+}
+
+#[test]
+fn stmt_vla_declaration_double() {
+    let cg = CodeGenerator::new();
+    let stmt = HirStatement::VariableDeclaration {
+        name: "arr".to_string(),
+        var_type: HirType::Array {
+            element_type: Box::new(HirType::Double),
+            size: None,
+        },
+        initializer: Some(HirExpression::Variable("n".to_string())),
+    };
+    let code = cg.generate_statement(&stmt);
+    assert!(code.contains("vec!"));
+    assert!(code.contains("0.0f64"));
+}
+
+#[test]
+fn stmt_vla_declaration_unsigned_int() {
+    let cg = CodeGenerator::new();
+    let stmt = HirStatement::VariableDeclaration {
+        name: "arr".to_string(),
+        var_type: HirType::Array {
+            element_type: Box::new(HirType::UnsignedInt),
+            size: None,
+        },
+        initializer: Some(HirExpression::Variable("n".to_string())),
+    };
+    let code = cg.generate_statement(&stmt);
+    assert!(code.contains("vec!"));
+    assert!(code.contains("0u32"));
+}
+
+#[test]
+fn stmt_vla_declaration_char() {
+    let cg = CodeGenerator::new();
+    let stmt = HirStatement::VariableDeclaration {
+        name: "arr".to_string(),
+        var_type: HirType::Array {
+            element_type: Box::new(HirType::Char),
+            size: None,
+        },
+        initializer: Some(HirExpression::Variable("n".to_string())),
+    };
+    let code = cg.generate_statement(&stmt);
+    assert!(code.contains("vec!"));
+    assert!(code.contains("0u8"));
+}
+
+#[test]
+fn stmt_vla_declaration_signed_char() {
+    let cg = CodeGenerator::new();
+    let stmt = HirStatement::VariableDeclaration {
+        name: "arr".to_string(),
+        var_type: HirType::Array {
+            element_type: Box::new(HirType::SignedChar),
+            size: None,
+        },
+        initializer: Some(HirExpression::Variable("n".to_string())),
+    };
+    let code = cg.generate_statement(&stmt);
+    assert!(code.contains("vec!"));
+    assert!(code.contains("0i8"));
+}
+
+// ============================================================================
+// Expression codegen: Realloc in expression context
+// ============================================================================
+
+#[test]
+fn expr_realloc_expression() {
+    let cg = CodeGenerator::new();
+    let expr = HirExpression::Realloc {
+        pointer: Box::new(HirExpression::Variable("ptr".to_string())),
+        new_size: Box::new(HirExpression::IntLiteral(100)),
+    };
+    // In expression context, realloc returns the pointer unchanged
+    let code = cg.generate_expression(&expr);
+    assert!(code.contains("ptr"));
+}
+
+// ============================================================================
+// Expression codegen: Sizeof
+// ============================================================================
+
+#[test]
+fn expr_sizeof_int() {
+    let cg = CodeGenerator::new();
+    let expr = HirExpression::Sizeof {
+        type_name: "int".to_string(),
+    };
+    let code = cg.generate_expression(&expr);
+    assert!(code.contains("size_of"));
+    assert!(code.contains("i32"));
+}
+
+#[test]
+fn expr_sizeof_double() {
+    let cg = CodeGenerator::new();
+    let expr = HirExpression::Sizeof {
+        type_name: "double".to_string(),
+    };
+    let code = cg.generate_expression(&expr);
+    assert!(code.contains("size_of"));
+    assert!(code.contains("f64"));
+}
+
+// ============================================================================
+// Helper: statement_deref_modifies_variable
+// ============================================================================
+
+#[test]
+fn statement_deref_modifies_deref_assignment() {
+    let cg = CodeGenerator::new();
+    let stmt = HirStatement::DerefAssignment {
+        target: HirExpression::Variable("ptr".to_string()),
+        value: HirExpression::IntLiteral(42),
+    };
+    assert!(cg.statement_deref_modifies_variable(&stmt, "ptr"));
+    assert!(!cg.statement_deref_modifies_variable(&stmt, "other"));
+}
+
+#[test]
+fn statement_deref_modifies_array_index_assignment() {
+    let cg = CodeGenerator::new();
+    let stmt = HirStatement::ArrayIndexAssignment {
+        array: Box::new(HirExpression::Variable("arr".to_string())),
+        index: Box::new(HirExpression::IntLiteral(0)),
+        value: HirExpression::IntLiteral(1),
+    };
+    assert!(cg.statement_deref_modifies_variable(&stmt, "arr"));
+    assert!(!cg.statement_deref_modifies_variable(&stmt, "other"));
+}
+
+#[test]
+fn statement_deref_modifies_regular_assignment_false() {
+    let cg = CodeGenerator::new();
+    let stmt = HirStatement::Assignment {
+        target: "ptr".to_string(),
+        value: HirExpression::IntLiteral(0),
+    };
+    // Regular assignment does NOT count as deref modification
+    assert!(!cg.statement_deref_modifies_variable(&stmt, "ptr"));
+}
+
+#[test]
+fn statement_deref_modifies_in_if_block() {
+    let cg = CodeGenerator::new();
+    let stmt = HirStatement::If {
+        condition: HirExpression::BinaryOp {
+            op: decy_hir::BinaryOperator::GreaterThan,
+            left: Box::new(HirExpression::Variable("x".to_string())),
+            right: Box::new(HirExpression::IntLiteral(0)),
+        },
+        then_block: vec![HirStatement::DerefAssignment {
+            target: HirExpression::Variable("ptr".to_string()),
+            value: HirExpression::IntLiteral(1),
+        }],
+        else_block: None,
+    };
+    assert!(cg.statement_deref_modifies_variable(&stmt, "ptr"));
+}
+
+#[test]
+fn statement_deref_modifies_in_while_body() {
+    let cg = CodeGenerator::new();
+    let stmt = HirStatement::While {
+        condition: HirExpression::BinaryOp {
+            op: decy_hir::BinaryOperator::LessThan,
+            left: Box::new(HirExpression::Variable("i".to_string())),
+            right: Box::new(HirExpression::IntLiteral(10)),
+        },
+        body: vec![HirStatement::DerefAssignment {
+            target: HirExpression::Variable("ptr".to_string()),
+            value: HirExpression::IntLiteral(99),
+        }],
+    };
+    assert!(cg.statement_deref_modifies_variable(&stmt, "ptr"));
+}
+
+#[test]
+fn statement_deref_modifies_break_false() {
+    let cg = CodeGenerator::new();
+    assert!(!cg.statement_deref_modifies_variable(&HirStatement::Break, "ptr"));
+}
+
+// ============================================================================
+// Helper: expression_compares_to_null
+// ============================================================================
+
+#[test]
+fn expression_compares_to_null_eq_zero() {
+    let cg = CodeGenerator::new();
+    let expr = HirExpression::BinaryOp {
+        op: decy_hir::BinaryOperator::Equal,
+        left: Box::new(HirExpression::Variable("ptr".to_string())),
+        right: Box::new(HirExpression::IntLiteral(0)),
+    };
+    assert!(cg.expression_compares_to_null(&expr, "ptr"));
+}
+
+#[test]
+fn expression_compares_to_null_ne_null() {
+    let cg = CodeGenerator::new();
+    let expr = HirExpression::BinaryOp {
+        op: decy_hir::BinaryOperator::NotEqual,
+        left: Box::new(HirExpression::Variable("ptr".to_string())),
+        right: Box::new(HirExpression::NullLiteral),
+    };
+    assert!(cg.expression_compares_to_null(&expr, "ptr"));
+}
+
+#[test]
+fn expression_compares_to_null_different_var() {
+    let cg = CodeGenerator::new();
+    let expr = HirExpression::BinaryOp {
+        op: decy_hir::BinaryOperator::Equal,
+        left: Box::new(HirExpression::Variable("other".to_string())),
+        right: Box::new(HirExpression::IntLiteral(0)),
+    };
+    assert!(!cg.expression_compares_to_null(&expr, "ptr"));
+}
+
+// ============================================================================
+// Expression codegen: Ternary
+// ============================================================================
+
+#[test]
+fn expr_ternary_basic() {
+    let cg = CodeGenerator::new();
+    let expr = HirExpression::Ternary {
+        condition: Box::new(HirExpression::BinaryOp {
+            op: decy_hir::BinaryOperator::GreaterThan,
+            left: Box::new(HirExpression::Variable("x".to_string())),
+            right: Box::new(HirExpression::IntLiteral(0)),
+        }),
+        then_expr: Box::new(HirExpression::IntLiteral(1)),
+        else_expr: Box::new(HirExpression::IntLiteral(0)),
+    };
+    let code = cg.generate_expression(&expr);
+    assert!(code.contains("if"));
+    assert!(code.contains("1"));
+    assert!(code.contains("0"));
+}
+
+// ============================================================================
+// Expression codegen: Boolean expressions
+// ============================================================================
+
+#[test]
+fn expr_is_not_null() {
+    let cg = CodeGenerator::new();
+    let expr = HirExpression::IsNotNull(Box::new(HirExpression::Variable("ptr".to_string())));
+    let code = cg.generate_expression(&expr);
+    assert!(code.contains("is_null") || code.contains("ptr"));
+}
+
+#[test]
+fn expr_null_literal() {
+    let cg = CodeGenerator::new();
+    let expr = HirExpression::NullLiteral;
+    let code = cg.generate_expression(&expr);
+    assert!(
+        code.contains("null")
+            || code.contains("None")
+            || code.contains("ptr::null")
+            || code.contains("std::ptr::null()")
+    );
+}
+
+// ============================================================================
+// Expression codegen: AddressOf, Dereference
+// ============================================================================
+
+#[test]
+fn expr_address_of() {
+    let cg = CodeGenerator::new();
+    let expr = HirExpression::AddressOf(Box::new(HirExpression::Variable("x".to_string())));
+    let code = cg.generate_expression(&expr);
+    assert!(code.contains("&"));
+    assert!(code.contains("x"));
+}
+
+#[test]
+fn expr_dereference() {
+    let cg = CodeGenerator::new();
+    let expr = HirExpression::Dereference(Box::new(HirExpression::Variable("ptr".to_string())));
+    let code = cg.generate_expression(&expr);
+    assert!(code.contains("*"));
+    assert!(code.contains("ptr"));
+}
+
+// ============================================================================
+// Expression codegen: Field access
+// ============================================================================
+
+#[test]
+fn expr_field_access() {
+    let cg = CodeGenerator::new();
+    let expr = HirExpression::FieldAccess {
+        object: Box::new(HirExpression::Variable("point".to_string())),
+        field: "x".to_string(),
+    };
+    let code = cg.generate_expression(&expr);
+    assert_eq!(code, "point.x");
+}
+
+#[test]
+fn expr_pointer_field_access() {
+    let cg = CodeGenerator::new();
+    let expr = HirExpression::PointerFieldAccess {
+        pointer: Box::new(HirExpression::Variable("node".to_string())),
+        field: "next".to_string(),
+    };
+    let code = cg.generate_expression(&expr);
+    assert!(code.contains("node"));
+    assert!(code.contains("next"));
+}
+
+// ============================================================================
+// Expression codegen: Array index
+// ============================================================================
+
+#[test]
+fn expr_array_index() {
+    let cg = CodeGenerator::new();
+    let expr = HirExpression::ArrayIndex {
+        array: Box::new(HirExpression::Variable("arr".to_string())),
+        index: Box::new(HirExpression::Variable("i".to_string())),
+    };
+    let code = cg.generate_expression(&expr);
+    assert!(code.contains("arr"));
+    assert!(code.contains("i"));
+    assert!(code.contains("as usize"));
+}
+
+// ============================================================================
+// TypeContext: variable type tracking
+// ============================================================================
+
+#[test]
+fn type_context_add_and_get_variable() {
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("x".to_string(), HirType::Int);
+    assert_eq!(ctx.get_type("x"), Some(&HirType::Int));
+    assert!(ctx.get_type("y").is_none());
+}
+
+#[test]
+fn type_context_is_pointer() {
+    let mut ctx = TypeContext::new();
+    ctx.add_variable(
+        "ptr".to_string(),
+        HirType::Pointer(Box::new(HirType::Int)),
+    );
+    ctx.add_variable("val".to_string(), HirType::Int);
+    assert!(ctx.is_pointer("ptr"));
+    assert!(!ctx.is_pointer("val"));
+    assert!(!ctx.is_pointer("unknown"));
+}
+
+#[test]
+fn type_context_renamed_local() {
+    let mut ctx = TypeContext::new();
+    ctx.add_global("g_val".to_string());
+    ctx.add_renamed_local("g_val".to_string(), "g_val_local".to_string());
+    // Renamed locals should be accessible
+    let renamed = ctx.get_renamed_local("g_val");
+    assert_eq!(renamed, Some(&"g_val_local".to_string()));
+}
+
+// ============================================================================
+// Expression codegen: Unary operations
+// ============================================================================
+
+#[test]
+fn expr_unary_negate() {
+    let cg = CodeGenerator::new();
+    let expr = HirExpression::UnaryOp {
+        op: decy_hir::UnaryOperator::Minus,
+        operand: Box::new(HirExpression::Variable("x".to_string())),
+    };
+    let code = cg.generate_expression(&expr);
+    assert!(code.contains("-"));
+    assert!(code.contains("x"));
+}
+
+#[test]
+fn expr_unary_not() {
+    let cg = CodeGenerator::new();
+    let expr = HirExpression::UnaryOp {
+        op: decy_hir::UnaryOperator::LogicalNot,
+        operand: Box::new(HirExpression::Variable("flag".to_string())),
+    };
+    let code = cg.generate_expression(&expr);
+    assert!(code.contains("flag"));
+}
+
+#[test]
+fn expr_unary_bitwise_not() {
+    let cg = CodeGenerator::new();
+    let expr = HirExpression::UnaryOp {
+        op: decy_hir::UnaryOperator::BitwiseNot,
+        operand: Box::new(HirExpression::Variable("mask".to_string())),
+    };
+    let code = cg.generate_expression(&expr);
+    assert!(code.contains("!"));
+    assert!(code.contains("mask"));
+}
+
+// ============================================================================
+// Statement codegen: FieldAssignment with reserved keyword
+// ============================================================================
+
+#[test]
+fn stmt_field_assignment_reserved_keyword() {
+    let cg = CodeGenerator::new();
+    let stmt = HirStatement::FieldAssignment {
+        object: HirExpression::Variable("obj".to_string()),
+        field: "type".to_string(),
+        value: HirExpression::IntLiteral(1),
+    };
+    let code = cg.generate_statement(&stmt);
+    // "type" is a Rust keyword, should be escaped
+    assert!(code.contains("r#type") || code.contains("type_"));
+}
