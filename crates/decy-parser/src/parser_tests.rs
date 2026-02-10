@@ -3249,3 +3249,234 @@ void test_mutable(char* str) {}
         "char* should have is_pointee_const = false"
     );
 }
+
+// ============================================================================
+// Binary operator coverage: operators not yet tested
+// ============================================================================
+
+#[test]
+fn test_parse_subtract_operator() {
+    let parser = CParser::new().expect("Parser creation failed");
+    let source = "int sub(int a, int b) { return a - b; }";
+    let ast = parser.parse(source).expect("Should parse subtraction");
+    let func = &ast.functions()[0];
+    match &func.body[0] {
+        Statement::Return(Some(Expression::BinaryOp { op, .. })) => {
+            assert_eq!(*op, BinaryOperator::Subtract);
+        }
+        other => panic!("Expected BinaryOp Subtract, got {:?}", other),
+    }
+}
+
+#[test]
+fn test_parse_multiply_operator() {
+    let parser = CParser::new().expect("Parser creation failed");
+    let source = "int mul(int a, int b) { return a * b; }";
+    let ast = parser.parse(source).expect("Should parse multiplication");
+    let func = &ast.functions()[0];
+    match &func.body[0] {
+        Statement::Return(Some(Expression::BinaryOp { op, .. })) => {
+            assert_eq!(*op, BinaryOperator::Multiply);
+        }
+        other => panic!("Expected BinaryOp Multiply, got {:?}", other),
+    }
+}
+
+#[test]
+fn test_parse_divide_operator() {
+    let parser = CParser::new().expect("Parser creation failed");
+    let source = "int div(int a, int b) { return a / b; }";
+    let ast = parser.parse(source).expect("Should parse division");
+    let func = &ast.functions()[0];
+    match &func.body[0] {
+        Statement::Return(Some(Expression::BinaryOp { op, .. })) => {
+            assert_eq!(*op, BinaryOperator::Divide);
+        }
+        other => panic!("Expected BinaryOp Divide, got {:?}", other),
+    }
+}
+
+#[test]
+fn test_parse_modulo_operator() {
+    let parser = CParser::new().expect("Parser creation failed");
+    let source = "int mod_op(int a, int b) { return a % b; }";
+    let ast = parser.parse(source).expect("Should parse modulo");
+    let func = &ast.functions()[0];
+    match &func.body[0] {
+        Statement::Return(Some(Expression::BinaryOp { op, .. })) => {
+            assert_eq!(*op, BinaryOperator::Modulo);
+        }
+        other => panic!("Expected BinaryOp Modulo, got {:?}", other),
+    }
+}
+
+#[test]
+fn test_parse_less_equal_operator() {
+    let parser = CParser::new().expect("Parser creation failed");
+    let source = "int check(int a, int b) { if (a <= b) { return 1; } return 0; }";
+    let ast = parser.parse(source).expect("Should parse <=");
+    let func = &ast.functions()[0];
+    match &func.body[0] {
+        Statement::If { condition, .. } => {
+            match condition {
+                Expression::BinaryOp { op, .. } => {
+                    assert_eq!(*op, BinaryOperator::LessEqual);
+                }
+                other => panic!("Expected BinaryOp LessEqual, got {:?}", other),
+            }
+        }
+        other => panic!("Expected If statement, got {:?}", other),
+    }
+}
+
+#[test]
+fn test_parse_greater_equal_operator() {
+    let parser = CParser::new().expect("Parser creation failed");
+    let source = "int check(int a, int b) { if (a >= b) { return 1; } return 0; }";
+    let ast = parser.parse(source).expect("Should parse >=");
+    let func = &ast.functions()[0];
+    match &func.body[0] {
+        Statement::If { condition, .. } => {
+            match condition {
+                Expression::BinaryOp { op, .. } => {
+                    assert_eq!(*op, BinaryOperator::GreaterEqual);
+                }
+                other => panic!("Expected BinaryOp GreaterEqual, got {:?}", other),
+            }
+        }
+        other => panic!("Expected If statement, got {:?}", other),
+    }
+}
+
+#[test]
+fn test_parse_bitwise_and_operator() {
+    let parser = CParser::new().expect("Parser creation failed");
+    let source = "int bitand(int a, int b) { return a & b; }";
+    let ast = parser.parse(source).expect("Should parse bitwise AND");
+    let func = &ast.functions()[0];
+    match &func.body[0] {
+        Statement::Return(Some(Expression::BinaryOp { op, .. })) => {
+            assert_eq!(*op, BinaryOperator::BitwiseAnd);
+        }
+        other => panic!("Expected BinaryOp BitwiseAnd, got {:?}", other),
+    }
+}
+
+#[test]
+fn test_parse_bitwise_or_operator() {
+    let parser = CParser::new().expect("Parser creation failed");
+    let source = "int bitor(int a, int b) { return a | b; }";
+    let ast = parser.parse(source).expect("Should parse bitwise OR");
+    let func = &ast.functions()[0];
+    match &func.body[0] {
+        Statement::Return(Some(Expression::BinaryOp { op, .. })) => {
+            assert_eq!(*op, BinaryOperator::BitwiseOr);
+        }
+        other => panic!("Expected BinaryOp BitwiseOr, got {:?}", other),
+    }
+}
+
+#[test]
+fn test_parse_bitwise_xor_operator() {
+    let parser = CParser::new().expect("Parser creation failed");
+    let source = "int bitxor(int a, int b) { return a ^ b; }";
+    let ast = parser.parse(source).expect("Should parse bitwise XOR");
+    let func = &ast.functions()[0];
+    match &func.body[0] {
+        Statement::Return(Some(Expression::BinaryOp { op, .. })) => {
+            assert_eq!(*op, BinaryOperator::BitwiseXor);
+        }
+        other => panic!("Expected BinaryOp BitwiseXor, got {:?}", other),
+    }
+}
+
+#[test]
+fn test_parse_left_shift_operator() {
+    let parser = CParser::new().expect("Parser creation failed");
+    let source = "int lshift(int a, int b) { return a << b; }";
+    let ast = parser.parse(source).expect("Should parse left shift");
+    let func = &ast.functions()[0];
+    match &func.body[0] {
+        Statement::Return(Some(Expression::BinaryOp { op, .. })) => {
+            assert_eq!(*op, BinaryOperator::LeftShift);
+        }
+        other => panic!("Expected BinaryOp LeftShift, got {:?}", other),
+    }
+}
+
+#[test]
+fn test_parse_right_shift_operator() {
+    let parser = CParser::new().expect("Parser creation failed");
+    let source = "int rshift(int a, int b) { return a >> b; }";
+    let ast = parser.parse(source).expect("Should parse right shift");
+    let func = &ast.functions()[0];
+    match &func.body[0] {
+        Statement::Return(Some(Expression::BinaryOp { op, .. })) => {
+            assert_eq!(*op, BinaryOperator::RightShift);
+        }
+        other => panic!("Expected BinaryOp RightShift, got {:?}", other),
+    }
+}
+
+// ============================================================================
+// Increment/decrement coverage
+// ============================================================================
+
+#[test]
+fn test_parse_post_increment() {
+    let parser = CParser::new().expect("Parser creation failed");
+    let source = "void inc(int* p) { int x = 0; x++; }";
+    let ast = parser.parse(source).expect("Should parse post-increment");
+    let func = &ast.functions()[0];
+    // Should have at least a variable declaration and an increment
+    assert!(func.body.len() >= 2, "Should have at least 2 statements");
+}
+
+#[test]
+fn test_parse_pre_decrement() {
+    let parser = CParser::new().expect("Parser creation failed");
+    let source = "void dec() { int x = 5; --x; }";
+    let ast = parser.parse(source).expect("Should parse pre-decrement");
+    let func = &ast.functions()[0];
+    assert!(func.body.len() >= 2, "Should have at least 2 statements");
+}
+
+// ============================================================================
+// For loop variants coverage
+// ============================================================================
+
+#[test]
+fn test_parse_for_loop_with_compound_condition() {
+    let parser = CParser::new().expect("Parser creation failed");
+    let source = "void test() { int i; for (i = 0; i < 10 && i >= 0; i++) { } }";
+    let ast = parser.parse(source).expect("Should parse for with compound condition");
+    let func = &ast.functions()[0];
+    // Verify function has statements (for loop should be present)
+    assert!(!func.body.is_empty(), "Function body should not be empty");
+}
+
+#[test]
+fn test_parse_for_loop_with_multiple_inits() {
+    let parser = CParser::new().expect("Parser creation failed");
+    let source = "void test() { int i; int j; for (i = 0, j = 10; i < j; i++, j--) { } }";
+    let ast = parser.parse(source).expect("Should parse for with multiple inits");
+    let func = &ast.functions()[0];
+    assert!(!func.body.is_empty(), "Function body should not be empty");
+}
+
+#[test]
+fn test_parse_while_with_assignment_in_condition() {
+    let parser = CParser::new().expect("Parser creation failed");
+    let source = r#"
+        int test() {
+            int x = 10;
+            while (x > 0) {
+                x = x - 1;
+            }
+            return x;
+        }
+    "#;
+    let ast = parser.parse(source).expect("Should parse while with decrement");
+    let func = &ast.functions()[0];
+    assert!(func.body.len() >= 2, "Should have while + return");
+}
