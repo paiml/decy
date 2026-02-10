@@ -7413,3 +7413,7 @@ mod expr_stmt_deep_tests;
 #[cfg(test)]
 #[path = "expr_codegen_deep2_tests.rs"]
 mod expr_codegen_deep2_tests;
+
+#[cfg(test)]
+#[path = "expr_target_deep_tests.rs"]
+mod expr_target_deep_tests;
