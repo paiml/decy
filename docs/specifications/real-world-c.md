@@ -96,12 +96,46 @@ Current approach: attempt safe Rust, fail on complex patterns, produce broken ou
 
 **Toyota Way — Kaizen (改善)**: Continuous improvement. Start with working (unsafe) code, iteratively reduce unsafe blocks. Each iteration must preserve correctness (verified by Strategy 1).
 
-### Approach (Future)
+### Approach
 
-1. **Phase 1**: Emit raw pointer operations as `unsafe { ... }` blocks
-2. **Phase 2**: Apply ownership inference to classify pointers
-3. **Phase 3**: Replace classified pointers with safe equivalents
-4. **Phase 4**: Verify compilation after each refinement pass
+Four-phase refinement pipeline. Each phase produces compilable Rust (verified by S1).
+
+**Phase 1: Stdlib Function Mapping** (In Progress)
+
+Map C standard library functions to safe Rust equivalents:
+
+| C Function | Rust Equivalent | Safety Level |
+|------------|----------------|-------------|
+| `memcpy(dst, src, n)` | `dst[..n].copy_from_slice(&src[..n])` | Safe |
+| `memset(ptr, val, n)` | `slice.fill(val)` | Safe |
+| `strcpy(dst, src)` | `dst.clone_from(src)` or `String::from()` | Safe |
+| `strcmp(a, b)` | `a.cmp(b)` or `a == b` | Safe |
+| `strlen(s)` | `s.len()` | Safe |
+| `malloc(n)` | `Box::new()` / `Vec::with_capacity()` | Safe (already implemented) |
+| `free(ptr)` | Drop (RAII) | Safe (already implemented) |
+| `printf(fmt, ...)` | `println!()` / `print!()` | Safe (already implemented) |
+| `qsort(base, n, sz, cmp)` | `slice.sort_by()` | Safe |
+
+**Phase 2: Unsafe Fallback Codegen**
+
+For patterns not yet supported by ownership inference, emit correct `unsafe` blocks:
+
+```rust
+// C: *ptr = value;
+// Phase 2 output (correct but unsafe):
+unsafe { *ptr = value; }
+
+// Phase 3 output (after ownership inference):
+*ptr = value;  // if ptr: &mut T
+```
+
+**Phase 3: Ownership-Driven Refinement**
+
+Apply `decy-ownership` inference to replace unsafe patterns with safe equivalents. Already implemented for malloc/free → Box/Vec, pointer parameters → &T/&mut T.
+
+**Phase 4: Compilation Verification**
+
+Verify output compiles at every intermediate stage using S1 (`verify_compilation`).
 
 ### Falsifiable Predictions
 
@@ -179,7 +213,7 @@ The transpiler must preserve C program semantics. Differential testing compiles 
 |----------|----------|--------|-----------|
 | S2: for(;;) fix | P0 | **Done** | Correctness bug — panics on legal C99 |
 | S1: Compile verification | P1 | **Done** | Foundation for all other strategies |
-| S3: Progressive unsafe | P2 | Future | Requires S1 as prerequisite |
+| S3: Progressive unsafe | P2 | **In Progress** | Stdlib mapping + unsafe fallback |
 | S4: Mutation testing | P3 | Future | Requires S1 + S3 |
 | S5: Differential testing | P3 | Future | Requires S1 + working codegen |
 
@@ -218,10 +252,29 @@ Post-implementation workspace coverage: **96.70% line coverage** (target: 95%)
 
 ### Test Corpus
 
-- **Total tests**: 1700+ (unit, integration, falsification)
-- **Falsification tests**: 150 (130 passing, 9 remaining falsified)
+- **Total tests**: 11,798 passing across workspace
+- **Falsification tests**: 2,150 total (92 falsified, 95.7% pass rate)
 - **Codegen deep tests**: 172 (targeting uncovered statement/expression/helper paths)
 - **Inference branch tests**: 17 (via DataflowGraph test helpers for defensive branches)
+
+### Falsification Analysis (Popperian Methodology)
+
+92 falsified tests categorized by root cause:
+
+| Category | Count | % | Priority | Fix Strategy |
+|----------|-------|---|----------|-------------|
+| C++ features (out of scope) | 21 | 22.8% | N/A | Mark out-of-scope |
+| Stdlib functions missing | 21 | 22.8% | P1 | S3 Phase 1: stdlib mapping |
+| Preprocessor/macro expressions | 16 | 17.4% | P1 | Constant folding in HIR |
+| C11/C99 advanced features | 10 | 10.9% | P2 | VLA, designated initializers |
+| Platform/system features | 7 | 7.6% | P3 | setjmp, signals, TLS |
+| Control flow (goto) | 5 | 5.4% | P2 | goto → labeled blocks |
+| Pointer/type system | 5 | 5.4% | P2 | Triple pointer, flexible arrays |
+| Static analysis gaps | 3 | 3.3% | P3 | Double-free, UAF detection |
+| GCC extensions | 3 | 3.3% | P4 | Packed structs, nested functions |
+| Test input errors | 1 | 1.1% | P0 | Fix invalid C in tests |
+
+**Key insight**: Fixing stdlib mapping (21) + constant folding (16) + removing C++ (21) reduces falsifications from 92 to 34 (63% reduction).
 
 ## Quality Gates
 
