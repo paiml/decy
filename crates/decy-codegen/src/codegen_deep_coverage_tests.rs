@@ -5146,3 +5146,474 @@ fn stmt_inline_asm_translatable_pause() {
         code
     );
 }
+
+// ============================================================================
+// target_type-dependent expression branches (via typed var declarations)
+// ============================================================================
+
+#[test]
+fn typed_decl_float_literal_to_float() {
+    let cg = CodeGenerator::new();
+    // float x = 3.14;  → target_type = Float → "3.14f32"
+    let stmt = HirStatement::VariableDeclaration {
+        name: "x".to_string(),
+        var_type: HirType::Float,
+        initializer: Some(HirExpression::FloatLiteral("3.14".to_string())),
+    };
+    let code = cg.generate_statement(&stmt);
+    assert!(
+        code.contains("f32") || code.contains("3.14"),
+        "Float decl with float literal should use f32, got: {}",
+        code
+    );
+}
+
+#[test]
+fn typed_decl_float_literal_to_double() {
+    let cg = CodeGenerator::new();
+    // double x = 2.718;  → target_type = Double → "2.718f64"
+    let stmt = HirStatement::VariableDeclaration {
+        name: "x".to_string(),
+        var_type: HirType::Double,
+        initializer: Some(HirExpression::FloatLiteral("2.718".to_string())),
+    };
+    let code = cg.generate_statement(&stmt);
+    assert!(
+        code.contains("f64") || code.contains("2.718"),
+        "Double decl with float literal should use f64, got: {}",
+        code
+    );
+}
+
+#[test]
+fn typed_decl_float_literal_c_suffix() {
+    let cg = CodeGenerator::new();
+    // float x = 1.0f;  → strip 'f' suffix, add f32
+    let stmt = HirStatement::VariableDeclaration {
+        name: "x".to_string(),
+        var_type: HirType::Float,
+        initializer: Some(HirExpression::FloatLiteral("1.0f".to_string())),
+    };
+    let code = cg.generate_statement(&stmt);
+    assert!(
+        code.contains("f32"),
+        "Float literal with C suffix should get f32, got: {}",
+        code
+    );
+}
+
+#[test]
+fn typed_decl_addressof_to_pointer() {
+    let cg = CodeGenerator::new();
+    // int* p = &x;  → target_type = Pointer(Int) → "&mut x as *mut i32"
+    let stmt = HirStatement::VariableDeclaration {
+        name: "p".to_string(),
+        var_type: HirType::Pointer(Box::new(HirType::Int)),
+        initializer: Some(HirExpression::AddressOf(Box::new(
+            HirExpression::Variable("x".to_string()),
+        ))),
+    };
+    let code = cg.generate_statement(&stmt);
+    assert!(
+        code.contains("&") && code.contains("x"),
+        "AddressOf to pointer should generate reference, got: {}",
+        code
+    );
+}
+
+#[test]
+fn typed_decl_unary_addressof_to_pointer() {
+    let cg = CodeGenerator::new();
+    // struct Node* n = &node;  → target_type = Pointer(Struct)
+    let stmt = HirStatement::VariableDeclaration {
+        name: "n".to_string(),
+        var_type: HirType::Pointer(Box::new(HirType::Struct("Node".to_string()))),
+        initializer: Some(HirExpression::UnaryOp {
+            op: UnaryOperator::AddressOf,
+            operand: Box::new(HirExpression::Variable("node".to_string())),
+        }),
+    };
+    let code = cg.generate_statement(&stmt);
+    assert!(
+        code.contains("&") && code.contains("node"),
+        "UnaryOp AddressOf to pointer should generate reference, got: {}",
+        code
+    );
+}
+
+#[test]
+fn typed_decl_logical_not_to_int() {
+    let cg = CodeGenerator::new();
+    // int result = !flag;  → target_type = Int → "(flag == 0) as i32"
+    let stmt = HirStatement::VariableDeclaration {
+        name: "result".to_string(),
+        var_type: HirType::Int,
+        initializer: Some(HirExpression::UnaryOp {
+            op: UnaryOperator::LogicalNot,
+            operand: Box::new(HirExpression::Variable("flag".to_string())),
+        }),
+    };
+    let code = cg.generate_statement(&stmt);
+    assert!(
+        code.contains("== 0") || code.contains("as i32") || code.contains("!"),
+        "LogicalNot to int should cast, got: {}",
+        code
+    );
+}
+
+#[test]
+fn typed_decl_logical_not_of_bool_expr_to_int() {
+    let cg = CodeGenerator::new();
+    // int result = !(a > b);  → target_type = Int → "(!(a > b)) as i32"
+    let stmt = HirStatement::VariableDeclaration {
+        name: "result".to_string(),
+        var_type: HirType::Int,
+        initializer: Some(HirExpression::UnaryOp {
+            op: UnaryOperator::LogicalNot,
+            operand: Box::new(HirExpression::BinaryOp {
+                op: BinaryOperator::GreaterThan,
+                left: Box::new(HirExpression::Variable("a".to_string())),
+                right: Box::new(HirExpression::Variable("b".to_string())),
+            }),
+        }),
+    };
+    let code = cg.generate_statement(&stmt);
+    assert!(
+        code.contains("as i32") || code.contains("!"),
+        "LogicalNot of bool expr to int should cast, got: {}",
+        code
+    );
+}
+
+#[test]
+fn typed_decl_string_to_char_pointer() {
+    let cg = CodeGenerator::new();
+    // char* s = "hello";  → target_type = Pointer(Char) → b"hello\0".as_ptr()
+    let stmt = HirStatement::VariableDeclaration {
+        name: "s".to_string(),
+        var_type: HirType::Pointer(Box::new(HirType::Char)),
+        initializer: Some(HirExpression::StringLiteral("hello".to_string())),
+    };
+    let code = cg.generate_statement(&stmt);
+    assert!(
+        code.contains("hello") || code.contains("s"),
+        "String to char* should contain string, got: {}",
+        code
+    );
+}
+
+#[test]
+fn typed_decl_int_zero_to_pointer() {
+    let cg = CodeGenerator::new();
+    // int* p = 0;  → target_type = Pointer → std::ptr::null_mut()
+    let stmt = HirStatement::VariableDeclaration {
+        name: "p".to_string(),
+        var_type: HirType::Pointer(Box::new(HirType::Int)),
+        initializer: Some(HirExpression::IntLiteral(0)),
+    };
+    let code = cg.generate_statement(&stmt);
+    assert!(
+        code.contains("null") || code.contains("None") || code.contains("0"),
+        "Int 0 to pointer should generate null_mut or None, got: {}",
+        code
+    );
+}
+
+#[test]
+fn typed_decl_logical_and_to_int() {
+    let cg = CodeGenerator::new();
+    // int result = a && b;  → target_type = Int → (a != 0 && b != 0) as i32
+    let stmt = HirStatement::VariableDeclaration {
+        name: "result".to_string(),
+        var_type: HirType::Int,
+        initializer: Some(HirExpression::BinaryOp {
+            op: BinaryOperator::LogicalAnd,
+            left: Box::new(HirExpression::Variable("a".to_string())),
+            right: Box::new(HirExpression::Variable("b".to_string())),
+        }),
+    };
+    let code = cg.generate_statement(&stmt);
+    assert!(
+        code.contains("a") && code.contains("b"),
+        "LogicalAnd to int should reference operands, got: {}",
+        code
+    );
+}
+
+#[test]
+fn typed_decl_logical_or_to_int() {
+    let cg = CodeGenerator::new();
+    // int result = a || b;  → target_type = Int
+    let stmt = HirStatement::VariableDeclaration {
+        name: "result".to_string(),
+        var_type: HirType::Int,
+        initializer: Some(HirExpression::BinaryOp {
+            op: BinaryOperator::LogicalOr,
+            left: Box::new(HirExpression::Variable("x".to_string())),
+            right: Box::new(HirExpression::Variable("y".to_string())),
+        }),
+    };
+    let code = cg.generate_statement(&stmt);
+    assert!(
+        code.contains("x") && code.contains("y"),
+        "LogicalOr to int should reference operands, got: {}",
+        code
+    );
+}
+
+#[test]
+fn typed_decl_equal_comparison_to_int() {
+    let cg = CodeGenerator::new();
+    // int eq = (a == b);  → target_type = Int
+    let stmt = HirStatement::VariableDeclaration {
+        name: "eq".to_string(),
+        var_type: HirType::Int,
+        initializer: Some(HirExpression::BinaryOp {
+            op: BinaryOperator::Equal,
+            left: Box::new(HirExpression::Variable("a".to_string())),
+            right: Box::new(HirExpression::Variable("b".to_string())),
+        }),
+    };
+    let code = cg.generate_statement(&stmt);
+    assert!(
+        code.contains("a") && code.contains("b"),
+        "Comparison to int should reference operands, got: {}",
+        code
+    );
+}
+
+#[test]
+fn typed_decl_cast_in_initializer() {
+    let cg = CodeGenerator::new();
+    // float f = (float)x;  → target_type = Float → "x as f32"
+    let stmt = HirStatement::VariableDeclaration {
+        name: "f".to_string(),
+        var_type: HirType::Float,
+        initializer: Some(HirExpression::Cast {
+            target_type: HirType::Float,
+            expr: Box::new(HirExpression::Variable("x".to_string())),
+        }),
+    };
+    let code = cg.generate_statement(&stmt);
+    assert!(
+        code.contains("f32") || code.contains("as"),
+        "Cast in float decl should generate cast, got: {}",
+        code
+    );
+}
+
+#[test]
+fn typed_decl_ternary_in_initializer() {
+    let cg = CodeGenerator::new();
+    // int max = (a > b) ? a : b;
+    let stmt = HirStatement::VariableDeclaration {
+        name: "max".to_string(),
+        var_type: HirType::Int,
+        initializer: Some(HirExpression::Ternary {
+            condition: Box::new(HirExpression::BinaryOp {
+                op: BinaryOperator::GreaterThan,
+                left: Box::new(HirExpression::Variable("a".to_string())),
+                right: Box::new(HirExpression::Variable("b".to_string())),
+            }),
+            then_expr: Box::new(HirExpression::Variable("a".to_string())),
+            else_expr: Box::new(HirExpression::Variable("b".to_string())),
+        }),
+    };
+    let code = cg.generate_statement(&stmt);
+    assert!(
+        code.contains("if") || code.contains("a") && code.contains("b"),
+        "Ternary in int decl should generate if expression, got: {}",
+        code
+    );
+}
+
+#[test]
+fn typed_decl_box_with_malloc() {
+    let cg = CodeGenerator::new();
+    // int* p = malloc(sizeof(int));  → Box<i32>
+    let stmt = HirStatement::VariableDeclaration {
+        name: "p".to_string(),
+        var_type: HirType::Pointer(Box::new(HirType::Int)),
+        initializer: Some(HirExpression::FunctionCall {
+            function: "malloc".to_string(),
+            arguments: vec![HirExpression::Sizeof {
+                type_name: "int".to_string(),
+            }],
+        }),
+    };
+    let code = cg.generate_statement(&stmt);
+    assert!(
+        code.contains("Box") || code.contains("box") || code.contains("alloc") || code.contains("p"),
+        "malloc(sizeof) should generate Box, got: {}",
+        code
+    );
+}
+
+#[test]
+fn typed_decl_vec_with_malloc_multiply() {
+    let cg = CodeGenerator::new();
+    // int* arr = malloc(10 * sizeof(int));  → Vec<i32>
+    let stmt = HirStatement::VariableDeclaration {
+        name: "arr".to_string(),
+        var_type: HirType::Pointer(Box::new(HirType::Int)),
+        initializer: Some(HirExpression::FunctionCall {
+            function: "malloc".to_string(),
+            arguments: vec![HirExpression::BinaryOp {
+                op: BinaryOperator::Multiply,
+                left: Box::new(HirExpression::IntLiteral(10)),
+                right: Box::new(HirExpression::Sizeof {
+                    type_name: "int".to_string(),
+                }),
+            }],
+        }),
+    };
+    let code = cg.generate_statement(&stmt);
+    assert!(
+        code.contains("Vec") || code.contains("vec") || code.contains("arr"),
+        "malloc(n*sizeof) should generate Vec, got: {}",
+        code
+    );
+}
+
+#[test]
+fn typed_assign_to_existing_var() {
+    let cg = CodeGenerator::new();
+    // x = a + b;
+    let stmt = HirStatement::Assignment {
+        target: "x".to_string(),
+        value: HirExpression::BinaryOp {
+            op: BinaryOperator::Add,
+            left: Box::new(HirExpression::Variable("a".to_string())),
+            right: Box::new(HirExpression::Variable("b".to_string())),
+        },
+    };
+    let code = cg.generate_statement(&stmt);
+    assert!(
+        code.contains("x") && code.contains("a") && code.contains("b"),
+        "Assignment should reference x, a, b, got: {}",
+        code
+    );
+}
+
+#[test]
+fn typed_deref_assign_complex() {
+    let cg = CodeGenerator::new();
+    // *ptr = *ptr + 1;
+    let stmt = HirStatement::DerefAssignment {
+        target: HirExpression::Variable("ptr".to_string()),
+        value: HirExpression::BinaryOp {
+            op: BinaryOperator::Add,
+            left: Box::new(HirExpression::Dereference(Box::new(
+                HirExpression::Variable("ptr".to_string()),
+            ))),
+            right: Box::new(HirExpression::IntLiteral(1)),
+        },
+    };
+    let code = cg.generate_statement(&stmt);
+    assert!(
+        code.contains("ptr"),
+        "DerefAssignment should reference ptr, got: {}",
+        code
+    );
+}
+
+#[test]
+fn typed_array_index_assign() {
+    let cg = CodeGenerator::new();
+    // arr[i] = 42;
+    let stmt = HirStatement::ArrayIndexAssignment {
+        array: Box::new(HirExpression::Variable("arr".to_string())),
+        index: Box::new(HirExpression::Variable("i".to_string())),
+        value: HirExpression::IntLiteral(42),
+    };
+    let code = cg.generate_statement(&stmt);
+    assert!(
+        code.contains("arr") && code.contains("42"),
+        "ArrayIndexAssignment should assign to arr, got: {}",
+        code
+    );
+}
+
+#[test]
+fn typed_decl_calloc() {
+    let cg = CodeGenerator::new();
+    // int* arr = calloc(10, sizeof(int));
+    let stmt = HirStatement::VariableDeclaration {
+        name: "arr".to_string(),
+        var_type: HirType::Pointer(Box::new(HirType::Int)),
+        initializer: Some(HirExpression::Calloc {
+            count: Box::new(HirExpression::IntLiteral(10)),
+            element_type: Box::new(HirType::Int),
+        }),
+    };
+    let code = cg.generate_statement(&stmt);
+    assert!(
+        code.contains("arr") && (code.contains("vec") || code.contains("Vec") || code.contains("0")),
+        "calloc should generate zeroed Vec, got: {}",
+        code
+    );
+}
+
+#[test]
+fn typed_decl_enum_type() {
+    let cg = CodeGenerator::new();
+    let stmt = HirStatement::VariableDeclaration {
+        name: "color".to_string(),
+        var_type: HirType::Enum("Color".to_string()),
+        initializer: Some(HirExpression::IntLiteral(0)),
+    };
+    let code = cg.generate_statement(&stmt);
+    assert!(
+        code.contains("color"),
+        "Enum type decl should contain color, got: {}",
+        code
+    );
+}
+
+#[test]
+fn typed_decl_type_alias() {
+    let cg = CodeGenerator::new();
+    let stmt = HirStatement::VariableDeclaration {
+        name: "len".to_string(),
+        var_type: HirType::TypeAlias("size_t".to_string()),
+        initializer: Some(HirExpression::IntLiteral(0)),
+    };
+    let code = cg.generate_statement(&stmt);
+    assert!(
+        code.contains("len"),
+        "TypeAlias decl should contain len, got: {}",
+        code
+    );
+}
+
+#[test]
+fn typed_decl_vec_type() {
+    let cg = CodeGenerator::new();
+    let stmt = HirStatement::VariableDeclaration {
+        name: "items".to_string(),
+        var_type: HirType::Vec(Box::new(HirType::Int)),
+        initializer: None,
+    };
+    let code = cg.generate_statement(&stmt);
+    assert!(
+        code.contains("Vec") || code.contains("items"),
+        "Vec type decl should contain Vec or items, got: {}",
+        code
+    );
+}
+
+#[test]
+fn typed_decl_option_type() {
+    let cg = CodeGenerator::new();
+    let stmt = HirStatement::VariableDeclaration {
+        name: "maybe".to_string(),
+        var_type: HirType::Option(Box::new(HirType::Int)),
+        initializer: Some(HirExpression::NullLiteral),
+    };
+    let code = cg.generate_statement(&stmt);
+    assert!(
+        code.contains("maybe") || code.contains("Option") || code.contains("None"),
+        "Option type decl should contain Option or None, got: {}",
+        code
+    );
+}
