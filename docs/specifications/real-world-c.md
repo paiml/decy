@@ -255,7 +255,7 @@ The transpiler must preserve C program semantics. Differential testing compiles 
 
 ### Coverage Results
 
-Post-implementation workspace coverage: **96.70% line coverage** (target: 95%)
+Post-implementation workspace coverage: **96.75% line coverage** (target: 95%)
 
 | Crate | Coverage | Notes |
 |-------|----------|-------|
@@ -270,9 +270,10 @@ Post-implementation workspace coverage: **96.70% line coverage** (target: 95%)
 
 ### Test Corpus
 
-- **Total tests**: 11,839 passing across workspace
+- **Total tests**: 11,893 passing across workspace
 - **Falsification tests**: 2,150 total (92 falsified, 95.7% pass rate)
-- **Codegen deep tests**: 172 (targeting uncovered statement/expression/helper paths)
+- **Codegen deep tests**: 214 (targeting uncovered statement/expression/helper/signature paths)
+- **Core pipeline tests**: 12 new (uninitialized globals, enum variants, function dedup)
 - **Inference branch tests**: 17 (via DataflowGraph test helpers for defensive branches)
 
 ### Falsification Analysis (Popperian Methodology)
