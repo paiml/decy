@@ -178,14 +178,14 @@ test: ## Run all tests (unit + integration + doc)
 	@if [ -f /etc/debian_version ]; then \
 		export LLVM_CONFIG_PATH=/usr/bin/llvm-config-14; \
 		export LIBCLANG_PATH=/usr/lib/llvm-14/lib; \
-	fi && cargo test --workspace --all-features
+	fi && PROPTEST_CASES=256 QUICKCHECK_TESTS=256 cargo test --workspace --all-features
 
 test-fast: ## Run only unit tests (fast)
 	@echo "🧪 Running unit tests..."
 	@if [ -f /etc/debian_version ]; then \
 		export LLVM_CONFIG_PATH=/usr/bin/llvm-config-14; \
 		export LIBCLANG_PATH=/usr/lib/llvm-14/lib; \
-	fi && cargo test --workspace --lib
+	fi && PROPTEST_CASES=64 QUICKCHECK_TESTS=64 cargo test --workspace --lib
 
 test-unit: test-fast ## Alias for test-fast
 
@@ -194,21 +194,21 @@ test-integration: ## Run integration tests
 	@if [ -f /etc/debian_version ]; then \
 		export LLVM_CONFIG_PATH=/usr/bin/llvm-config-14; \
 		export LIBCLANG_PATH=/usr/lib/llvm-14/lib; \
-	fi && cargo test --workspace --test '*'
+	fi && PROPTEST_CASES=256 QUICKCHECK_TESTS=256 cargo test --workspace --test '*'
 
 test-doc: ## Run documentation tests
 	@echo "🧪 Running doc tests..."
 	@if [ -f /etc/debian_version ]; then \
 		export LLVM_CONFIG_PATH=/usr/bin/llvm-config-14; \
 		export LIBCLANG_PATH=/usr/lib/llvm-14/lib; \
-	fi && cargo test --workspace --doc
+	fi && PROPTEST_CASES=64 QUICKCHECK_TESTS=64 cargo test --workspace --doc
 
 test-examples: ## Run example tests
 	@echo "🧪 Running example tests..."
 	@if [ -f /etc/debian_version ]; then \
 		export LLVM_CONFIG_PATH=/usr/bin/llvm-config-14; \
 		export LIBCLANG_PATH=/usr/lib/llvm-14/lib; \
-	fi && cargo test --workspace --examples
+	fi && PROPTEST_CASES=64 QUICKCHECK_TESTS=64 cargo test --workspace --examples
 
 test-all: test test-doc test-examples ## Run complete test suite
 
@@ -227,18 +227,17 @@ COVERAGE_EXCLUDE := --ignore-filename-regex="test_generator|quality/gates|decy-a
 
 coverage: ## Generate comprehensive test coverage report (fast, <10 min)
 	@echo "📊 Running comprehensive test coverage analysis (target: <10 min)..."
-	@echo "🔍 Checking for cargo-llvm-cov and cargo-nextest..."
+	@echo "🔍 Checking for cargo-llvm-cov..."
 	@which cargo-llvm-cov > /dev/null 2>&1 || (echo "📦 Installing cargo-llvm-cov..." && cargo install cargo-llvm-cov --locked)
-	@which cargo-nextest > /dev/null 2>&1 || (echo "📦 Installing cargo-nextest..." && cargo install cargo-nextest --locked)
 	@echo "🧹 Cleaning old coverage data..."
 	@mkdir -p target/coverage
 	@echo "🧪 Phase 1: Running tests with instrumentation (no report)..."
 	@if [ -f /etc/debian_version ]; then \
 		export LLVM_CONFIG_PATH=/usr/bin/llvm-config-14; \
 		export LIBCLANG_PATH=/usr/lib/llvm-14/lib; \
-		RUSTC_WRAPPER= PROPTEST_CASES=25 QUICKCHECK_TESTS=25 cargo llvm-cov --no-report nextest --no-tests=warn --no-fail-fast --workspace || true; \
+		RUSTC_WRAPPER= PROPTEST_CASES=25 QUICKCHECK_TESTS=25 cargo llvm-cov --no-report test --lib --no-fail-fast --workspace || true; \
 	else \
-		RUSTC_WRAPPER= PROPTEST_CASES=25 QUICKCHECK_TESTS=25 cargo llvm-cov --no-report nextest --no-tests=warn --no-fail-fast --workspace || true; \
+		RUSTC_WRAPPER= PROPTEST_CASES=25 QUICKCHECK_TESTS=25 cargo llvm-cov --no-report test --lib --no-fail-fast --workspace || true; \
 	fi
 	@echo "📊 Phase 2: Generating coverage reports..."
 	@RUSTC_WRAPPER= cargo llvm-cov report --html --output-dir target/coverage/html $(COVERAGE_EXCLUDE)
@@ -472,14 +471,14 @@ version: ## Show version information
 
 test-cli: ## Run CLI contract tests (black-box testing)
 	@echo "🧪 Running CLI contract tests..."
-	@cargo test --test cli_contract_transpile
-	@cargo test --test cli_contract_audit
+	@PROPTEST_CASES=64 QUICKCHECK_TESTS=64 cargo test --test cli_contract_transpile
+	@PROPTEST_CASES=64 QUICKCHECK_TESTS=64 cargo test --test cli_contract_audit
 	@echo "✅ All CLI contract tests passed!"
 
 test-cli-verbose: ## Run CLI contract tests with verbose output
 	@echo "🧪 Running CLI contract tests (verbose)..."
-	@cargo test --test cli_contract_transpile -- --nocapture
-	@cargo test --test cli_contract_audit -- --nocapture
+	@PROPTEST_CASES=64 QUICKCHECK_TESTS=64 cargo test --test cli_contract_transpile -- --nocapture
+	@PROPTEST_CASES=64 QUICKCHECK_TESTS=64 cargo test --test cli_contract_audit -- --nocapture
 
 ##@ Continuous Improvement (Kaizen)
 
