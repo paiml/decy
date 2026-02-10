@@ -10854,3 +10854,418 @@ fn pointer_subtraction_through_cast() {
         "(int)(end - start) should detect subtraction through cast"
     );
 }
+
+// ============================================================================
+// Batch 4: sizeof struct member (lines 2978-3011)
+// ============================================================================
+
+#[test]
+fn sizeof_member_access_with_struct_context() {
+    // Lines 2987-2995: sizeof(struct->field) with field type in ctx
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let s = HirStruct::new(
+        "Point".to_string(),
+        vec![
+            HirStructField::new("x".to_string(), HirType::Float),
+            HirStructField::new("y".to_string(), HirType::Float),
+        ],
+    );
+    ctx.add_struct(&s);
+    let expr = HirExpression::Sizeof { type_name: "Point y".to_string() };
+    let code = cg.generate_expression_with_context(&expr, &ctx);
+    assert!(
+        code.contains("size_of::<f32>()"),
+        "sizeof(Point.y) with struct ctx should resolve field type, got: {}",
+        code
+    );
+}
+
+#[test]
+fn sizeof_member_access_variable_in_ctx() {
+    // Lines 2996-3002: sizeof(var->field) where var is in ctx
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable(
+        "pt".to_string(),
+        HirType::Pointer(Box::new(HirType::Struct("Point".to_string()))),
+    );
+    let expr = HirExpression::Sizeof { type_name: "pt x".to_string() };
+    let code = cg.generate_expression_with_context(&expr, &ctx);
+    assert!(
+        code.contains("size_of_val"),
+        "sizeof(var->field) with var in ctx should use size_of_val, got: {}",
+        code
+    );
+}
+
+#[test]
+fn sizeof_member_access_no_ctx_fallback() {
+    // Lines 3004-3006: sizeof(unknown->field) fallback
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    let expr = HirExpression::Sizeof { type_name: "Unknown field".to_string() };
+    let code = cg.generate_expression_with_context(&expr, &ctx);
+    assert!(
+        code.contains("size_of"),
+        "sizeof with unknown struct should fallback, got: {}",
+        code
+    );
+}
+
+// ============================================================================
+// Batch 4: Pre/PostIncrement/Decrement deref non-pointer (lines 3327, 3361, 3390, 3422)
+// ============================================================================
+
+#[test]
+fn post_increment_deref_non_pointer_variable() {
+    // Line 3327: (*x)++ where x is NOT a raw pointer in ctx → fallback
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    let expr = HirExpression::PostIncrement {
+        operand: Box::new(HirExpression::Dereference(Box::new(
+            HirExpression::Variable("ref_val".to_string()),
+        ))),
+    };
+    let code = cg.generate_expression_with_context(&expr, &ctx);
+    assert!(
+        code.contains("__tmp"),
+        "(*ref_val)++ should use __tmp pattern, got: {}",
+        code
+    );
+}
+
+#[test]
+fn pre_increment_deref_non_pointer_variable() {
+    // Line 3361: ++(*x) where x is NOT a raw pointer in ctx
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    let expr = HirExpression::PreIncrement {
+        operand: Box::new(HirExpression::Dereference(Box::new(
+            HirExpression::Variable("val".to_string()),
+        ))),
+    };
+    let code = cg.generate_expression_with_context(&expr, &ctx);
+    assert!(
+        code.contains("+= 1"),
+        "++(*val) should have += 1, got: {}",
+        code
+    );
+}
+
+#[test]
+fn post_decrement_deref_non_pointer_variable() {
+    // Line 3390: (*x)-- where x is NOT a raw pointer in ctx
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    let expr = HirExpression::PostDecrement {
+        operand: Box::new(HirExpression::Dereference(Box::new(
+            HirExpression::Variable("cnt".to_string()),
+        ))),
+    };
+    let code = cg.generate_expression_with_context(&expr, &ctx);
+    assert!(
+        code.contains("-= 1") && code.contains("__tmp"),
+        "(*cnt)-- should use __tmp and -= 1, got: {}",
+        code
+    );
+}
+
+#[test]
+fn pre_decrement_deref_non_pointer_variable() {
+    // Line 3422: --(*x) where x is NOT a raw pointer in ctx
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    let expr = HirExpression::PreDecrement {
+        operand: Box::new(HirExpression::Dereference(Box::new(
+            HirExpression::Variable("cnt".to_string()),
+        ))),
+    };
+    let code = cg.generate_expression_with_context(&expr, &ctx);
+    assert!(
+        code.contains("-= 1"),
+        "--(*cnt) should have -= 1, got: {}",
+        code
+    );
+}
+
+// ============================================================================
+// Batch 4: DerefAssignment paths (lines 4713-4780)
+// ============================================================================
+
+#[test]
+fn deref_assign_string_iter_param() {
+    // Lines 4713-4717: *ptr = val where ptr is string iter param → slice indexing
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("s".to_string(), HirType::Vec(Box::new(HirType::Char)));
+    ctx.add_string_iter_param("s".to_string(), "s_idx".to_string());
+    let stmt = HirStatement::DerefAssignment {
+        target: HirExpression::Variable("s".to_string()),
+        value: HirExpression::IntLiteral(0),
+    };
+    let code = cg.generate_statement_with_context(&stmt, None, &mut ctx, None);
+    assert!(
+        code.contains("s[s_idx]"),
+        "Deref assign to string iter param should use slice index, got: {}",
+        code
+    );
+}
+
+#[test]
+fn deref_assign_raw_pointer_with_unsafe() {
+    // Lines 4742-4750: *ptr = val where ptr is raw pointer → unsafe
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable(
+        "ptr".to_string(),
+        HirType::Pointer(Box::new(HirType::Int)),
+    );
+    let stmt = HirStatement::DerefAssignment {
+        target: HirExpression::Variable("ptr".to_string()),
+        value: HirExpression::IntLiteral(42),
+    };
+    let code = cg.generate_statement_with_context(&stmt, None, &mut ctx, None);
+    assert!(
+        code.contains("unsafe"),
+        "*ptr = 42 with raw pointer should be unsafe, got: {}",
+        code
+    );
+}
+
+#[test]
+fn deref_assign_pointer_to_pointer_variable() {
+    // Lines 4760-4780: **ptr = val where ptr type is Pointer(Pointer(Int))
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable(
+        "pp".to_string(),
+        HirType::Pointer(Box::new(HirType::Pointer(Box::new(HirType::Int)))),
+    );
+    let stmt = HirStatement::DerefAssignment {
+        target: HirExpression::Dereference(Box::new(HirExpression::Variable("pp".to_string()))),
+        value: HirExpression::IntLiteral(42),
+    };
+    let code = cg.generate_statement_with_context(&stmt, None, &mut ctx, None);
+    assert!(
+        code.contains("unsafe"),
+        "Pointer-to-pointer deref assignment should be unsafe, got: {}",
+        code
+    );
+}
+
+// ============================================================================
+// Batch 4: PointerFieldAccess with raw pointer (lines 2862-2869)
+// ============================================================================
+
+#[test]
+fn pointer_field_access_with_raw_pointer_ctx() {
+    // Lines 2862-2868: ptr->field where ptr is raw pointer → unsafe
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable(
+        "node".to_string(),
+        HirType::Pointer(Box::new(HirType::Struct("Node".to_string()))),
+    );
+    let expr = HirExpression::PointerFieldAccess {
+        pointer: Box::new(HirExpression::Variable("node".to_string())),
+        field: "value".to_string(),
+    };
+    let code = cg.generate_expression_with_context(&expr, &ctx);
+    assert!(
+        code.contains("unsafe"),
+        "ptr->field with raw pointer should be unsafe, got: {}",
+        code
+    );
+}
+
+// ============================================================================
+// Batch 4: Switch with multiple cases (line 4672)
+// ============================================================================
+
+#[test]
+fn switch_multiple_cases_generates_match_arms() {
+    // Lines 4650-4672: Multiple switch cases
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let stmt = HirStatement::Switch {
+        condition: HirExpression::Variable("x".to_string()),
+        cases: vec![
+            SwitchCase {
+                value: Some(HirExpression::IntLiteral(1)),
+                body: vec![HirStatement::Return(Some(HirExpression::StringLiteral(
+                    "one".to_string(),
+                )))],
+            },
+            SwitchCase {
+                value: Some(HirExpression::IntLiteral(2)),
+                body: vec![HirStatement::Return(Some(HirExpression::StringLiteral(
+                    "two".to_string(),
+                )))],
+            },
+        ],
+        default_case: Some(vec![HirStatement::Return(Some(
+            HirExpression::StringLiteral("other".to_string()),
+        ))]),
+    };
+    let code = cg.generate_statement_with_context(&stmt, None, &mut ctx, None);
+    assert!(
+        code.contains("1 =>") && code.contains("2 =>") && code.contains("_ =>"),
+        "Switch should generate multiple match arms, got: {}",
+        code
+    );
+}
+
+// ============================================================================
+// Batch 4: VLA element types (lines 4044-4045)
+// ============================================================================
+
+#[test]
+fn vla_signed_char_element_type() {
+    // Line 4044: VLA with SignedChar → 0i8 default
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let stmt = HirStatement::VariableDeclaration {
+        name: "buf".to_string(),
+        var_type: HirType::Array {
+            element_type: Box::new(HirType::SignedChar),
+            size: None,
+        },
+        initializer: Some(HirExpression::Variable("n".to_string())),
+    };
+    let code = cg.generate_statement_with_context(&stmt, None, &mut ctx, None);
+    assert!(
+        code.contains("0i8"),
+        "VLA with SignedChar should use 0i8 default, got: {}",
+        code
+    );
+}
+
+#[test]
+fn vla_struct_element_type_default() {
+    // Line 4045: VLA with struct element → default_value_for_type
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let stmt = HirStatement::VariableDeclaration {
+        name: "pts".to_string(),
+        var_type: HirType::Array {
+            element_type: Box::new(HirType::Struct("Point".to_string())),
+            size: None,
+        },
+        initializer: Some(HirExpression::Variable("n".to_string())),
+    };
+    let code = cg.generate_statement_with_context(&stmt, None, &mut ctx, None);
+    assert!(
+        code.contains("Point::default()"),
+        "VLA with struct element should use default, got: {}",
+        code
+    );
+}
+
+// ============================================================================
+// Batch 4: Cast malloc with Vec target (line 3154)
+// ============================================================================
+
+#[test]
+fn cast_malloc_with_vec_target_type() {
+    // Lines 3146-3154: Cast wrapping malloc with Vec target type
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    let expr = HirExpression::Cast {
+        target_type: HirType::Pointer(Box::new(HirType::Int)),
+        expr: Box::new(HirExpression::Malloc {
+            size: Box::new(HirExpression::BinaryOp {
+                op: BinaryOperator::Multiply,
+                left: Box::new(HirExpression::IntLiteral(10)),
+                right: Box::new(HirExpression::IntLiteral(4)),
+            }),
+        }),
+    };
+    let code = cg.generate_expression_with_target_type(
+        &expr,
+        &ctx,
+        Some(&HirType::Vec(Box::new(HirType::Int))),
+    );
+    assert!(
+        code.contains("vec!") || code.contains("Vec"),
+        "Cast(malloc) with Vec target should generate Vec code, got: {}",
+        code
+    );
+}
+
+// ============================================================================
+// Batch 4: generate_signature and generate_function with pointer params
+// ============================================================================
+
+#[test]
+fn generate_signature_string_iter_param() {
+    // Lines 5173-5182: Char* param with pointer arithmetic → string iteration
+    let cg = CodeGenerator::new();
+    let func = HirFunction::new_with_body(
+        "count_chars".to_string(),
+        HirType::Int,
+        vec![HirParameter::new(
+            "s".to_string(),
+            HirType::Pointer(Box::new(HirType::Char)),
+        )],
+        vec![
+            HirStatement::Expression(HirExpression::PostIncrement {
+                operand: Box::new(HirExpression::Variable("s".to_string())),
+            }),
+            HirStatement::Return(Some(HirExpression::IntLiteral(0))),
+        ],
+    );
+    let code = cg.generate_signature(&func);
+    assert!(
+        code.contains("fn count_chars"),
+        "Should generate signature, got: {}",
+        code
+    );
+}
+
+#[test]
+fn generate_function_pointer_param_context() {
+    // Lines 6396-6420: generate_function with pointer param gets correct context
+    let cg = CodeGenerator::new();
+    let func = HirFunction::new_with_body(
+        "set_value".to_string(),
+        HirType::Void,
+        vec![HirParameter::new(
+            "ptr".to_string(),
+            HirType::Pointer(Box::new(HirType::Int)),
+        )],
+        vec![
+            HirStatement::DerefAssignment {
+                target: HirExpression::Variable("ptr".to_string()),
+                value: HirExpression::IntLiteral(42),
+            },
+        ],
+    );
+    let code = cg.generate_function(&func);
+    assert!(
+        code.contains("fn set_value"),
+        "Should generate function, got: {}",
+        code
+    );
+}
+
+#[test]
+fn generate_function_with_structs_single_pointer_param() {
+    // Lines 6510-6519: Non-array single pointer → Reference context
+    let cg = CodeGenerator::new();
+    let func = HirFunction::new_with_body(
+        "init_node".to_string(),
+        HirType::Void,
+        vec![HirParameter::new(
+            "node".to_string(),
+            HirType::Pointer(Box::new(HirType::Struct("Node".to_string()))),
+        )],
+        vec![HirStatement::Return(None)],
+    );
+    let code = cg.generate_function_with_structs(&func, &[]);
+    assert!(
+        code.contains("fn init_node"),
+        "Should generate function with structs, got: {}",
+        code
+    );
+}
