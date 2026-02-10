@@ -1791,7 +1791,6 @@ int ht_cr_test(void) {
 
 /// C1043: Bloom filter with multiple hash functions
 #[test]
-#[ignore = "FALSIFIED: transpiler panics with 'For loop must have condition' in HIR lowering for bloom filter FPR computation loop"]
 fn c1043_bloom_filter() {
     let c_code = r#"
 typedef unsigned long size_t;

@@ -891,7 +891,6 @@ fn test_parser_for_with_only_condition() {
 }
 
 #[test]
-#[ignore = "FALSIFIED: HIR panics with 'For loop must have condition' on for(;;) infinite loops"]
 fn test_parser_for_infinite_loop() {
     // for(;;) exercises the 0-children pre_body branch
     let code = assert_transpiles(r#"

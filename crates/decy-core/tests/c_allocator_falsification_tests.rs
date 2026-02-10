@@ -831,7 +831,6 @@ int alloc_tlsf_insert(alloc_tlsf_t *t, size_t size) {
 }
 
 #[test]
-#[ignore = "FALSIFIED: HIR panics 'For loop must have condition' on nested for inside if with hex constant comparison"]
 fn c1343_bitmap_allocator() {
     let c_code = r#"
 typedef unsigned long size_t;

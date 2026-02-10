@@ -1359,7 +1359,6 @@ int cache_obl_test(void) {
 
 /// C989: Bloom filter
 #[test]
-#[ignore = "FALSIFIED: transpiler panics with 'For loop must have condition' in HIR lowering for bloom filter hash loops"]
 fn c989_bloom_filter() {
     let c_code = r#"
 typedef unsigned int uint32_t;
@@ -1626,7 +1625,6 @@ int cache_cms_test(void) {
 
 /// C992: HyperLogLog cardinality estimator
 #[test]
-#[ignore = "FALSIFIED: transpiler panics with 'For loop must have condition' in HIR lowering for HyperLogLog power computation loop"]
 fn c992_hyperloglog() {
     let c_code = r#"
 typedef unsigned int uint32_t;
