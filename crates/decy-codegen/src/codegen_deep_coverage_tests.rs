@@ -24152,3 +24152,153 @@ fn expr_target_type_int_to_char_coercion() {
         code
     );
 }
+
+// =============================================================================
+// Batch 41: generate_statement_with_context — string literal and char* paths
+// =============================================================================
+
+#[test]
+fn stmt_context_char_ptr_string_literal_to_str() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    // char* s = "hello" → let mut s: &str = "hello";
+    let stmt = HirStatement::VariableDeclaration {
+        name: "s".to_string(),
+        var_type: HirType::Pointer(Box::new(HirType::Char)),
+        initializer: Some(HirExpression::StringLiteral("hello".to_string())),
+    };
+    let code = cg.generate_statement_with_context(&stmt, Some("test"), &mut ctx, None);
+    assert!(
+        code.contains("&str"),
+        "char* with string literal → &str: {}",
+        code
+    );
+    assert!(
+        code.contains("\"hello\""),
+        "Should keep string literal: {}",
+        code
+    );
+}
+
+#[test]
+fn stmt_context_vla_double_to_vec() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let stmt = HirStatement::VariableDeclaration {
+        name: "arr".to_string(),
+        var_type: HirType::Array {
+            element_type: Box::new(HirType::Double),
+            size: None,
+        },
+        initializer: Some(HirExpression::Variable("n".to_string())),
+    };
+    let code = cg.generate_statement_with_context(&stmt, Some("test"), &mut ctx, None);
+    assert!(
+        code.contains("vec![0.0f64;"),
+        "Double VLA should use 0.0f64: {}",
+        code
+    );
+}
+
+#[test]
+fn stmt_context_vla_unsigned_to_vec() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let stmt = HirStatement::VariableDeclaration {
+        name: "arr".to_string(),
+        var_type: HirType::Array {
+            element_type: Box::new(HirType::UnsignedInt),
+            size: None,
+        },
+        initializer: Some(HirExpression::Variable("n".to_string())),
+    };
+    let code = cg.generate_statement_with_context(&stmt, Some("test"), &mut ctx, None);
+    assert!(
+        code.contains("vec![0u32;"),
+        "UnsignedInt VLA should use 0u32: {}",
+        code
+    );
+}
+
+#[test]
+fn stmt_context_vla_signed_char_to_vec() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let stmt = HirStatement::VariableDeclaration {
+        name: "arr".to_string(),
+        var_type: HirType::Array {
+            element_type: Box::new(HirType::SignedChar),
+            size: None,
+        },
+        initializer: Some(HirExpression::Variable("n".to_string())),
+    };
+    let code = cg.generate_statement_with_context(&stmt, Some("test"), &mut ctx, None);
+    assert!(
+        code.contains("vec![0i8;"),
+        "SignedChar VLA should use 0i8: {}",
+        code
+    );
+}
+
+#[test]
+fn stmt_context_malloc_vec_with_capacity() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    // int* buf = (int*)malloc(n * sizeof(int)); → Vec::with_capacity(n)
+    let stmt = HirStatement::VariableDeclaration {
+        name: "buf".to_string(),
+        var_type: HirType::Pointer(Box::new(HirType::Int)),
+        initializer: Some(HirExpression::Cast {
+            target_type: HirType::Pointer(Box::new(HirType::Int)),
+            expr: Box::new(HirExpression::Malloc {
+                size: Box::new(HirExpression::BinaryOp {
+                    op: BinaryOperator::Multiply,
+                    left: Box::new(HirExpression::Variable("n".to_string())),
+                    right: Box::new(HirExpression::Sizeof { type_name: "int".to_string() }),
+                }),
+            }),
+        }),
+    };
+    let code = cg.generate_statement_with_context(&stmt, Some("test"), &mut ctx, None);
+    assert!(
+        code.contains("Vec"),
+        "Cast-wrapped malloc should still be detected as Vec: {}",
+        code
+    );
+}
+
+#[test]
+fn stmt_context_var_decl_no_init() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    // int x; → let mut x: i32 = 0i32;
+    let stmt = HirStatement::VariableDeclaration {
+        name: "x".to_string(),
+        var_type: HirType::Int,
+        initializer: None,
+    };
+    let code = cg.generate_statement_with_context(&stmt, Some("test"), &mut ctx, None);
+    assert!(
+        code.contains("0i32"),
+        "Uninitialized int should default to 0i32: {}",
+        code
+    );
+}
+
+#[test]
+fn stmt_context_var_decl_pointer_no_init() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    // int* p; → let mut p: *mut i32 = std::ptr::null_mut();
+    let stmt = HirStatement::VariableDeclaration {
+        name: "p".to_string(),
+        var_type: HirType::Pointer(Box::new(HirType::Int)),
+        initializer: None,
+    };
+    let code = cg.generate_statement_with_context(&stmt, Some("test"), &mut ctx, None);
+    assert!(
+        code.contains("null_mut()"),
+        "Uninitialized pointer should default to null_mut: {}",
+        code
+    );
+}
