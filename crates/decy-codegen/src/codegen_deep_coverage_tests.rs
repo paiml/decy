@@ -17185,3 +17185,675 @@ fn expr_target_malloc_hir_node_single() {
     let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
     assert!(result.contains("Box::new(0i32)"), "Got: {}", result);
 }
+
+// ============================================================================
+// BATCH 19: PostIncrement/PreIncrement/PreDecrement/PostDecrement HIR variants,
+// Realloc HIR, StringMethodCall, Cast, CompoundLiteral, Ternary, IsNotNull
+// ============================================================================
+
+// --- PostIncrement: string iteration → as_bytes()[0] + slice advance ---
+#[test]
+fn expr_target_post_increment_string_iter() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("key".to_string(), HirType::StringReference);
+    let expr = HirExpression::PostIncrement {
+        operand: Box::new(HirExpression::Variable("key".to_string())),
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(result.contains("as_bytes()[0]"), "Got: {}", result);
+    assert!(result.contains("&key[1..]"), "Got: {}", result);
+}
+
+// --- PostIncrement: dereference pointer (*p)++ → unsafe ---
+#[test]
+fn expr_target_post_increment_deref_pointer() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("p".to_string(), HirType::Pointer(Box::new(HirType::Int)));
+    let expr = HirExpression::PostIncrement {
+        operand: Box::new(HirExpression::Dereference(
+            Box::new(HirExpression::Variable("p".to_string())),
+        )),
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(result.contains("unsafe"), "Got: {}", result);
+    assert!(result.contains("*p += 1"), "Got: {}", result);
+}
+
+// --- PostIncrement: pointer type → wrapping_add ---
+#[test]
+fn expr_target_post_increment_hir_pointer() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("p".to_string(), HirType::Pointer(Box::new(HirType::Int)));
+    let expr = HirExpression::PostIncrement {
+        operand: Box::new(HirExpression::Variable("p".to_string())),
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(result.contains("wrapping_add(1)"), "Got: {}", result);
+}
+
+// --- PostIncrement: non-pointer → += 1 ---
+#[test]
+fn expr_target_post_increment_hir_int() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("i".to_string(), HirType::Int);
+    let expr = HirExpression::PostIncrement {
+        operand: Box::new(HirExpression::Variable("i".to_string())),
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(result.contains("+= 1"), "Got: {}", result);
+    assert!(result.contains("__tmp"), "Got: {}", result);
+}
+
+// --- PreIncrement: dereference pointer ++(*p) → unsafe ---
+#[test]
+fn expr_target_pre_increment_deref_pointer() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("p".to_string(), HirType::Pointer(Box::new(HirType::Int)));
+    let expr = HirExpression::PreIncrement {
+        operand: Box::new(HirExpression::Dereference(
+            Box::new(HirExpression::Variable("p".to_string())),
+        )),
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(result.contains("unsafe"), "Got: {}", result);
+    assert!(result.contains("*p += 1"), "Got: {}", result);
+}
+
+// --- PreIncrement: pointer type → wrapping_add ---
+#[test]
+fn expr_target_pre_increment_hir_pointer() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("p".to_string(), HirType::Pointer(Box::new(HirType::Int)));
+    let expr = HirExpression::PreIncrement {
+        operand: Box::new(HirExpression::Variable("p".to_string())),
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(result.contains("wrapping_add(1)"), "Got: {}", result);
+}
+
+// --- PreIncrement: non-pointer → += 1 ---
+#[test]
+fn expr_target_pre_increment_hir_int() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("i".to_string(), HirType::Int);
+    let expr = HirExpression::PreIncrement {
+        operand: Box::new(HirExpression::Variable("i".to_string())),
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(result.contains("+= 1"), "Got: {}", result);
+    assert!(!result.contains("__tmp"), "Got: {}", result);
+}
+
+// --- PostDecrement: dereference pointer (*p)-- → unsafe ---
+#[test]
+fn expr_target_post_decrement_deref_pointer() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("p".to_string(), HirType::Pointer(Box::new(HirType::Int)));
+    let expr = HirExpression::PostDecrement {
+        operand: Box::new(HirExpression::Dereference(
+            Box::new(HirExpression::Variable("p".to_string())),
+        )),
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(result.contains("unsafe"), "Got: {}", result);
+    assert!(result.contains("*p -= 1"), "Got: {}", result);
+}
+
+// --- PostDecrement: pointer → wrapping_sub ---
+#[test]
+fn expr_target_post_decrement_hir_pointer() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("p".to_string(), HirType::Pointer(Box::new(HirType::Int)));
+    let expr = HirExpression::PostDecrement {
+        operand: Box::new(HirExpression::Variable("p".to_string())),
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(result.contains("wrapping_sub(1)"), "Got: {}", result);
+}
+
+// --- PostDecrement: non-pointer → -= 1 ---
+#[test]
+fn expr_target_post_decrement_hir_int() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("i".to_string(), HirType::Int);
+    let expr = HirExpression::PostDecrement {
+        operand: Box::new(HirExpression::Variable("i".to_string())),
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(result.contains("-= 1"), "Got: {}", result);
+}
+
+// --- PreDecrement: dereference pointer --(*p) → unsafe ---
+#[test]
+fn expr_target_pre_decrement_deref_pointer() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("p".to_string(), HirType::Pointer(Box::new(HirType::Int)));
+    let expr = HirExpression::PreDecrement {
+        operand: Box::new(HirExpression::Dereference(
+            Box::new(HirExpression::Variable("p".to_string())),
+        )),
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(result.contains("unsafe"), "Got: {}", result);
+    assert!(result.contains("*p -= 1"), "Got: {}", result);
+}
+
+// --- PreDecrement: pointer → wrapping_sub ---
+#[test]
+fn expr_target_pre_decrement_hir_pointer() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("p".to_string(), HirType::Pointer(Box::new(HirType::Int)));
+    let expr = HirExpression::PreDecrement {
+        operand: Box::new(HirExpression::Variable("p".to_string())),
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(result.contains("wrapping_sub(1)"), "Got: {}", result);
+}
+
+// --- PreDecrement: non-pointer → -= 1 ---
+#[test]
+fn expr_target_pre_decrement_hir_int() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("i".to_string(), HirType::Int);
+    let expr = HirExpression::PreDecrement {
+        operand: Box::new(HirExpression::Variable("i".to_string())),
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(result.contains("-= 1"), "Got: {}", result);
+}
+
+// --- Realloc HIR: NULL pointer + multiply → vec ---
+#[test]
+fn expr_target_realloc_hir_null_multiply() {
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    let expr = HirExpression::Realloc {
+        pointer: Box::new(HirExpression::NullLiteral),
+        new_size: Box::new(HirExpression::BinaryOp {
+            op: BinaryOperator::Multiply,
+            left: Box::new(HirExpression::Variable("n".to_string())),
+            right: Box::new(HirExpression::Sizeof { type_name: "int".to_string() }),
+        }),
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(result.contains("vec![0i32;"), "Got: {}", result);
+}
+
+// --- Realloc HIR: NULL pointer no multiply → Vec::new ---
+#[test]
+fn expr_target_realloc_hir_null_no_multiply() {
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    let expr = HirExpression::Realloc {
+        pointer: Box::new(HirExpression::NullLiteral),
+        new_size: Box::new(HirExpression::IntLiteral(100)),
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(result.contains("Vec::new()"), "Got: {}", result);
+}
+
+// --- Realloc HIR: non-NULL pointer → passthrough ---
+#[test]
+fn expr_target_realloc_hir_non_null() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("buf".to_string(), HirType::Vec(Box::new(HirType::Int)));
+    let expr = HirExpression::Realloc {
+        pointer: Box::new(HirExpression::Variable("buf".to_string())),
+        new_size: Box::new(HirExpression::IntLiteral(200)),
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(result.contains("buf"), "Got: {}", result);
+}
+
+// --- StringMethodCall: len → .len() as i32 ---
+#[test]
+fn expr_target_string_method_call_len() {
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    let expr = HirExpression::StringMethodCall {
+        receiver: Box::new(HirExpression::Variable("s".to_string())),
+        method: "len".to_string(),
+        arguments: vec![],
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(result.contains(".len() as i32"), "Got: {}", result);
+}
+
+// --- StringMethodCall: other no-arg method ---
+#[test]
+fn expr_target_string_method_call_is_empty() {
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    let expr = HirExpression::StringMethodCall {
+        receiver: Box::new(HirExpression::Variable("s".to_string())),
+        method: "is_empty".to_string(),
+        arguments: vec![],
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(result.contains("s.is_empty()"), "Got: {}", result);
+}
+
+// --- StringMethodCall: clone_into → &mut prefix ---
+#[test]
+fn expr_target_string_method_call_clone_into() {
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    let expr = HirExpression::StringMethodCall {
+        receiver: Box::new(HirExpression::Variable("src".to_string())),
+        method: "clone_into".to_string(),
+        arguments: vec![HirExpression::Variable("dest".to_string())],
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(result.contains("clone_into(&mut dest)"), "Got: {}", result);
+}
+
+// --- StringMethodCall: method with args ---
+#[test]
+fn expr_target_string_method_call_with_args() {
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    let expr = HirExpression::StringMethodCall {
+        receiver: Box::new(HirExpression::Variable("s".to_string())),
+        method: "push_str".to_string(),
+        arguments: vec![HirExpression::StringLiteral("hello".to_string())],
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(result.contains("push_str("), "Got: {}", result);
+}
+
+// --- Cast: Vec target + malloc inner → unwrap cast, generate vec ---
+#[test]
+fn expr_target_cast_vec_target_malloc() {
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    let expr = HirExpression::Cast {
+        target_type: HirType::Pointer(Box::new(HirType::Int)),
+        expr: Box::new(HirExpression::FunctionCall {
+            function: "malloc".to_string(),
+            arguments: vec![HirExpression::BinaryOp {
+                op: BinaryOperator::Multiply,
+                left: Box::new(HirExpression::Variable("n".to_string())),
+                right: Box::new(HirExpression::Sizeof { type_name: "int".to_string() }),
+            }],
+        }),
+    };
+    let result = cg.generate_expression_with_target_type(
+        &expr, &ctx, Some(&HirType::Vec(Box::new(HirType::Int))),
+    );
+    assert!(result.contains("vec![0i32;"), "Got: {}", result);
+}
+
+// --- Cast: address-of + integer target → pointer as isize ---
+#[test]
+fn expr_target_cast_address_of_to_int() {
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    let expr = HirExpression::Cast {
+        target_type: HirType::Int,
+        expr: Box::new(HirExpression::AddressOf(
+            Box::new(HirExpression::Variable("x".to_string())),
+        )),
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(result.contains("as *const _"), "Got: {}", result);
+    assert!(result.contains("as isize"), "Got: {}", result);
+}
+
+// --- Cast: regular type → expr as type ---
+#[test]
+fn expr_target_cast_regular() {
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    let expr = HirExpression::Cast {
+        target_type: HirType::Float,
+        expr: Box::new(HirExpression::Variable("x".to_string())),
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(result.contains("x as f32"), "Got: {}", result);
+}
+
+// --- Cast: binary op wrapped in parens ---
+#[test]
+fn expr_target_cast_binary_op_parens() {
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    let expr = HirExpression::Cast {
+        target_type: HirType::Double,
+        expr: Box::new(HirExpression::BinaryOp {
+            op: BinaryOperator::Add,
+            left: Box::new(HirExpression::Variable("a".to_string())),
+            right: Box::new(HirExpression::Variable("b".to_string())),
+        }),
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(result.contains("(a + b) as f64"), "Got: {}", result);
+}
+
+// --- CompoundLiteral: struct with fields ---
+#[test]
+fn expr_target_compound_literal_struct() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let s = HirStruct::new("Point".to_string(), vec![
+        HirStructField::new("x".to_string(), HirType::Int),
+        HirStructField::new("y".to_string(), HirType::Int),
+    ]);
+    ctx.add_struct(&s);
+    let expr = HirExpression::CompoundLiteral {
+        literal_type: HirType::Struct("Point".to_string()),
+        initializers: vec![
+            HirExpression::IntLiteral(10),
+            HirExpression::IntLiteral(20),
+        ],
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(result.contains("Point"), "Got: {}", result);
+    assert!(result.contains("x: 10"), "Got: {}", result);
+    assert!(result.contains("y: 20"), "Got: {}", result);
+}
+
+// --- CompoundLiteral: struct partial init → ..Default::default() ---
+#[test]
+fn expr_target_compound_literal_struct_partial() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let s = HirStruct::new("Point".to_string(), vec![
+        HirStructField::new("x".to_string(), HirType::Int),
+        HirStructField::new("y".to_string(), HirType::Int),
+        HirStructField::new("z".to_string(), HirType::Int),
+    ]);
+    ctx.add_struct(&s);
+    let expr = HirExpression::CompoundLiteral {
+        literal_type: HirType::Struct("Point".to_string()),
+        initializers: vec![HirExpression::IntLiteral(10)],
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(result.contains("..Default::default()"), "Got: {}", result);
+}
+
+// --- CompoundLiteral: empty struct ---
+#[test]
+fn expr_target_compound_literal_empty_struct() {
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    let expr = HirExpression::CompoundLiteral {
+        literal_type: HirType::Struct("Empty".to_string()),
+        initializers: vec![],
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(result.contains("Empty {}"), "Got: {}", result);
+}
+
+// --- CompoundLiteral: array with elements ---
+#[test]
+fn expr_target_compound_literal_array() {
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    let expr = HirExpression::CompoundLiteral {
+        literal_type: HirType::Array {
+            element_type: Box::new(HirType::Int),
+            size: Some(3),
+        },
+        initializers: vec![
+            HirExpression::IntLiteral(1),
+            HirExpression::IntLiteral(2),
+            HirExpression::IntLiteral(3),
+        ],
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(result.contains("[1, 2, 3]"), "Got: {}", result);
+}
+
+// --- CompoundLiteral: array single init → repeat ---
+#[test]
+fn expr_target_compound_literal_array_single_init() {
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    let expr = HirExpression::CompoundLiteral {
+        literal_type: HirType::Array {
+            element_type: Box::new(HirType::Int),
+            size: Some(10),
+        },
+        initializers: vec![HirExpression::IntLiteral(0)],
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(result.contains("[0; 10]"), "Got: {}", result);
+}
+
+// --- CompoundLiteral: empty array with size → default fill ---
+#[test]
+fn expr_target_compound_literal_array_empty_sized() {
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    let expr = HirExpression::CompoundLiteral {
+        literal_type: HirType::Array {
+            element_type: Box::new(HirType::Int),
+            size: Some(5),
+        },
+        initializers: vec![],
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(result.contains("[0i32; 5]"), "Got: {}", result);
+}
+
+// --- CompoundLiteral: empty array no size → [] ---
+#[test]
+fn expr_target_compound_literal_array_empty_unsized() {
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    let expr = HirExpression::CompoundLiteral {
+        literal_type: HirType::Array {
+            element_type: Box::new(HirType::Int),
+            size: None,
+        },
+        initializers: vec![],
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert_eq!(result, "[]");
+}
+
+// --- CompoundLiteral: other type → comment ---
+#[test]
+fn expr_target_compound_literal_other_type() {
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    let expr = HirExpression::CompoundLiteral {
+        literal_type: HirType::Int,
+        initializers: vec![HirExpression::IntLiteral(42)],
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(result.contains("Compound literal"), "Got: {}", result);
+}
+
+// --- Ternary: boolean condition ---
+#[test]
+fn expr_target_ternary_bool_condition() {
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    let expr = HirExpression::Ternary {
+        condition: Box::new(HirExpression::BinaryOp {
+            op: BinaryOperator::GreaterThan,
+            left: Box::new(HirExpression::Variable("a".to_string())),
+            right: Box::new(HirExpression::Variable("b".to_string())),
+        }),
+        then_expr: Box::new(HirExpression::Variable("a".to_string())),
+        else_expr: Box::new(HirExpression::Variable("b".to_string())),
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(result.contains("if a > b"), "Got: {}", result);
+    assert!(result.contains("{ a }"), "Got: {}", result);
+    assert!(result.contains("{ b }"), "Got: {}", result);
+}
+
+// --- Ternary: non-boolean condition → != 0 ---
+#[test]
+fn expr_target_ternary_int_condition() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("flag".to_string(), HirType::Int);
+    let expr = HirExpression::Ternary {
+        condition: Box::new(HirExpression::Variable("flag".to_string())),
+        then_expr: Box::new(HirExpression::IntLiteral(1)),
+        else_expr: Box::new(HirExpression::IntLiteral(0)),
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(result.contains("!= 0"), "Got: {}", result);
+}
+
+// --- IsNotNull → if let Some ---
+#[test]
+fn expr_target_is_not_null() {
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    let expr = HirExpression::IsNotNull(
+        Box::new(HirExpression::Variable("ptr".to_string())),
+    );
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(result.contains("if let Some(_)"), "Got: {}", result);
+}
+
+// --- Calloc HIR: float type → 0.0f32 ---
+#[test]
+fn expr_target_calloc_hir_float() {
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    let expr = HirExpression::Calloc {
+        count: Box::new(HirExpression::IntLiteral(5)),
+        element_type: Box::new(HirType::Float),
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(result.contains("0.0f32"), "Got: {}", result);
+}
+
+// --- Calloc HIR: double → 0.0f64 ---
+#[test]
+fn expr_target_calloc_hir_double() {
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    let expr = HirExpression::Calloc {
+        count: Box::new(HirExpression::IntLiteral(5)),
+        element_type: Box::new(HirType::Double),
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(result.contains("0.0f64"), "Got: {}", result);
+}
+
+// --- Calloc HIR: char → 0u8 ---
+#[test]
+fn expr_target_calloc_hir_char() {
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    let expr = HirExpression::Calloc {
+        count: Box::new(HirExpression::IntLiteral(256)),
+        element_type: Box::new(HirType::Char),
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(result.contains("0u8"), "Got: {}", result);
+}
+
+// --- Calloc HIR: signed char → 0i8 ---
+#[test]
+fn expr_target_calloc_hir_signed_char() {
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    let expr = HirExpression::Calloc {
+        count: Box::new(HirExpression::IntLiteral(128)),
+        element_type: Box::new(HirType::SignedChar),
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(result.contains("0i8"), "Got: {}", result);
+}
+
+// --- SliceIndex → arr[i as usize] ---
+#[test]
+fn expr_target_slice_index() {
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    let expr = HirExpression::SliceIndex {
+        slice: Box::new(HirExpression::Variable("data".to_string())),
+        index: Box::new(HirExpression::Variable("i".to_string())),
+        element_type: HirType::Int,
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(result.contains("data[(i) as usize]"), "Got: {}", result);
+}
+
+// --- FieldAccess → object.field ---
+#[test]
+fn expr_target_field_access() {
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    let expr = HirExpression::FieldAccess {
+        object: Box::new(HirExpression::Variable("point".to_string())),
+        field: "x".to_string(),
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(result.contains("point.x"), "Got: {}", result);
+}
+
+// --- PointerFieldAccess: chained → no explicit deref ---
+#[test]
+fn expr_target_pointer_field_access_chained() {
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    let expr = HirExpression::PointerFieldAccess {
+        pointer: Box::new(HirExpression::PointerFieldAccess {
+            pointer: Box::new(HirExpression::Variable("a".to_string())),
+            field: "b".to_string(),
+        }),
+        field: "c".to_string(),
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    // Chained: a->b->c → (*a).b.c (no double deref)
+    assert!(result.contains(".c"), "Got: {}", result);
+    assert!(result.contains(".b"), "Got: {}", result);
+}
+
+// --- PointerFieldAccess: raw pointer → unsafe ---
+#[test]
+fn expr_target_pointer_field_access_raw_pointer_unsafe() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("node".to_string(), HirType::Pointer(Box::new(HirType::Struct("Node".to_string()))));
+    let expr = HirExpression::PointerFieldAccess {
+        pointer: Box::new(HirExpression::Variable("node".to_string())),
+        field: "data".to_string(),
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(result.contains("unsafe"), "Got: {}", result);
+    assert!(result.contains("(*node).data"), "Got: {}", result);
+}
+
+// --- CompoundLiteral: array partial init → pad with defaults ---
+#[test]
+fn expr_target_compound_literal_array_partial_init() {
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    let expr = HirExpression::CompoundLiteral {
+        literal_type: HirType::Array {
+            element_type: Box::new(HirType::Int),
+            size: Some(5),
+        },
+        initializers: vec![
+            HirExpression::IntLiteral(1),
+            HirExpression::IntLiteral(2),
+        ],
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    // Should pad remaining 3 elements with 0i32
+    assert!(result.contains("1, 2, 0i32, 0i32, 0i32"), "Got: {}", result);
+}
