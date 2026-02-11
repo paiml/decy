@@ -28982,3 +28982,442 @@ fn expr_context_compound_literal_array_unsized_with_elems() {
         code
     );
 }
+
+// =============================================================================
+// Batch 54: generate_struct derive variants, generate_enum, generate_typedef,
+//           generate_constant, generate_global_variable
+// =============================================================================
+
+#[test]
+fn struct_derive_default_no_float_no_large_copyable() {
+    // Small int-only struct → Debug, Clone, Copy, Default, PartialEq, Eq
+    let cg = CodeGenerator::new();
+    let s = decy_hir::HirStruct::new(
+        "Point".to_string(),
+        vec![
+            decy_hir::HirStructField::new("x".to_string(), HirType::Int),
+            decy_hir::HirStructField::new("y".to_string(), HirType::Int),
+        ],
+    );
+    let code = cg.generate_struct(&s);
+    assert!(
+        code.contains("Copy") && code.contains("Default") && code.contains("Eq"),
+        "Int-only struct → Copy+Default+Eq: {}",
+        code
+    );
+}
+
+#[test]
+fn struct_derive_float_no_large_copyable() {
+    // Float field struct → no Eq, has PartialEq, Copy, Default
+    let cg = CodeGenerator::new();
+    let s = decy_hir::HirStruct::new(
+        "Coord".to_string(),
+        vec![decy_hir::HirStructField::new(
+            "x".to_string(),
+            HirType::Float,
+        )],
+    );
+    let code = cg.generate_struct(&s);
+    assert!(
+        code.contains("Copy") && code.contains("Default") && code.contains("PartialEq")
+            && !code.contains(", Eq"),
+        "Float struct → Copy+Default+PartialEq, no Eq: {}",
+        code
+    );
+}
+
+#[test]
+fn struct_derive_large_array_no_default() {
+    // Large array field → no Default, has Copy, Eq
+    let cg = CodeGenerator::new();
+    let s = decy_hir::HirStruct::new(
+        "Buffer".to_string(),
+        vec![decy_hir::HirStructField::new(
+            "data".to_string(),
+            HirType::Array {
+                element_type: Box::new(HirType::Char),
+                size: Some(256),
+            },
+        )],
+    );
+    let code = cg.generate_struct(&s);
+    assert!(
+        !code.contains("Default") && code.contains("Copy") && code.contains("Eq"),
+        "Large array struct → no Default, has Copy+Eq: {}",
+        code
+    );
+}
+
+#[test]
+fn struct_derive_large_array_float() {
+    // Large array + float → no Default, no Eq
+    let cg = CodeGenerator::new();
+    let s = decy_hir::HirStruct::new(
+        "FloatBuf".to_string(),
+        vec![
+            decy_hir::HirStructField::new(
+                "data".to_string(),
+                HirType::Array {
+                    element_type: Box::new(HirType::Double),
+                    size: Some(100),
+                },
+            ),
+            decy_hir::HirStructField::new("scale".to_string(), HirType::Double),
+        ],
+    );
+    let code = cg.generate_struct(&s);
+    assert!(
+        !code.contains("Default") && !code.contains(", Eq"),
+        "Large array + float → no Default, no Eq: {}",
+        code
+    );
+}
+
+#[test]
+fn struct_derive_non_copy_vec_field() {
+    // Vec field → no Copy
+    let cg = CodeGenerator::new();
+    let s = decy_hir::HirStruct::new(
+        "List".to_string(),
+        vec![decy_hir::HirStructField::new(
+            "items".to_string(),
+            HirType::Vec(Box::new(HirType::Int)),
+        )],
+    );
+    let code = cg.generate_struct(&s);
+    assert!(
+        !code.contains("Copy") && code.contains("Default"),
+        "Vec field → no Copy, has Default: {}",
+        code
+    );
+}
+
+#[test]
+fn struct_derive_reference_field_lifetime() {
+    // Reference field → lifetime annotation <'a>
+    let cg = CodeGenerator::new();
+    let s = decy_hir::HirStruct::new(
+        "Ref".to_string(),
+        vec![decy_hir::HirStructField::new(
+            "data".to_string(),
+            HirType::Reference {
+                inner: Box::new(HirType::Int),
+                mutable: false,
+            },
+        )],
+    );
+    let code = cg.generate_struct(&s);
+    assert!(
+        code.contains("<'a>"),
+        "Reference field → struct<'a>: {}",
+        code
+    );
+}
+
+#[test]
+fn struct_flexible_array_member() {
+    // Array { size: None } → Vec<T>
+    let cg = CodeGenerator::new();
+    let s = decy_hir::HirStruct::new(
+        "FlexBuf".to_string(),
+        vec![
+            decy_hir::HirStructField::new("len".to_string(), HirType::Int),
+            decy_hir::HirStructField::new(
+                "data".to_string(),
+                HirType::Array {
+                    element_type: Box::new(HirType::Char),
+                    size: None,
+                },
+            ),
+        ],
+    );
+    let code = cg.generate_struct(&s);
+    assert!(
+        code.contains("Vec<u8>"),
+        "Flexible array member → Vec<u8>: {}",
+        code
+    );
+}
+
+#[test]
+fn struct_keyword_field_escape() {
+    // Field named "type" → r#type
+    let cg = CodeGenerator::new();
+    let s = decy_hir::HirStruct::new(
+        "Token".to_string(),
+        vec![decy_hir::HirStructField::new(
+            "type".to_string(),
+            HirType::Int,
+        )],
+    );
+    let code = cg.generate_struct(&s);
+    assert!(
+        code.contains("r#type"),
+        "Field 'type' → r#type: {}",
+        code
+    );
+}
+
+#[test]
+fn enum_with_explicit_values() {
+    let cg = CodeGenerator::new();
+    let e = decy_hir::HirEnum::new(
+        "Color".to_string(),
+        vec![
+            decy_hir::HirEnumVariant::new("RED".to_string(), Some(1)),
+            decy_hir::HirEnumVariant::new("GREEN".to_string(), None),
+            decy_hir::HirEnumVariant::new("BLUE".to_string(), Some(10)),
+        ],
+    );
+    let code = cg.generate_enum(&e);
+    assert!(
+        code.contains("type Color = i32")
+            && code.contains("RED: i32 = 1")
+            && code.contains("GREEN: i32 = 2")
+            && code.contains("BLUE: i32 = 10"),
+        "Enum with explicit values: {}",
+        code
+    );
+}
+
+#[test]
+fn enum_empty_name() {
+    // Anonymous enum → no type alias
+    let cg = CodeGenerator::new();
+    let e = decy_hir::HirEnum::new(
+        "".to_string(),
+        vec![decy_hir::HirEnumVariant::new("VALUE".to_string(), Some(42))],
+    );
+    let code = cg.generate_enum(&e);
+    assert!(
+        !code.contains("type  =") && code.contains("VALUE: i32 = 42"),
+        "Anonymous enum → no type alias: {}",
+        code
+    );
+}
+
+#[test]
+fn typedef_simple() {
+    let cg = CodeGenerator::new();
+    let td = decy_hir::HirTypedef::new("Integer".to_string(), HirType::Int);
+    let code = cg.generate_typedef(&td).unwrap();
+    assert!(
+        code.contains("pub type Integer = i32"),
+        "Simple typedef: {}",
+        code
+    );
+}
+
+#[test]
+fn typedef_array_assertion() {
+    // typedef char check[sizeof(int) == 4 ? 1 : -1] → const assertion
+    let cg = CodeGenerator::new();
+    let td = decy_hir::HirTypedef::new(
+        "check".to_string(),
+        HirType::Array {
+            element_type: Box::new(HirType::Char),
+            size: Some(1),
+        },
+    );
+    let code = cg.generate_typedef(&td).unwrap();
+    assert!(
+        code.contains("assert!"),
+        "Typedef assertion → const assert: {}",
+        code
+    );
+}
+
+#[test]
+fn typedef_array_fixed() {
+    // typedef int IntArray[10] → pub type IntArray = [i32; 10]
+    let cg = CodeGenerator::new();
+    let td = decy_hir::HirTypedef::new(
+        "IntArray".to_string(),
+        HirType::Array {
+            element_type: Box::new(HirType::Int),
+            size: Some(10),
+        },
+    );
+    let code = cg.generate_typedef(&td).unwrap();
+    assert!(
+        code.contains("pub type IntArray = [i32; 10]"),
+        "Fixed array typedef: {}",
+        code
+    );
+}
+
+#[test]
+fn typedef_size_t() {
+    let cg = CodeGenerator::new();
+    let td = decy_hir::HirTypedef::new("size_t".to_string(), HirType::UnsignedInt);
+    let code = cg.generate_typedef(&td).unwrap();
+    assert!(
+        code.contains("pub type size_t = usize"),
+        "size_t → usize: {}",
+        code
+    );
+}
+
+#[test]
+fn typedef_ssize_t() {
+    let cg = CodeGenerator::new();
+    let td = decy_hir::HirTypedef::new("ssize_t".to_string(), HirType::Int);
+    let code = cg.generate_typedef(&td).unwrap();
+    assert!(
+        code.contains("pub type ssize_t = isize"),
+        "ssize_t → isize: {}",
+        code
+    );
+}
+
+#[test]
+fn typedef_redundant_struct() {
+    // typedef struct Foo Foo → comment (redundant)
+    let cg = CodeGenerator::new();
+    let td = decy_hir::HirTypedef::new(
+        "Foo".to_string(),
+        HirType::Struct("Foo".to_string()),
+    );
+    let code = cg.generate_typedef(&td).unwrap();
+    assert!(
+        code.contains("redundant"),
+        "Redundant struct typedef → comment: {}",
+        code
+    );
+}
+
+#[test]
+fn constant_int() {
+    let cg = CodeGenerator::new();
+    let c = decy_hir::HirConstant::new(
+        "MAX".to_string(),
+        HirType::Int,
+        HirExpression::IntLiteral(100),
+    );
+    let code = cg.generate_constant(&c);
+    assert!(
+        code.contains("const MAX: i32 = 100"),
+        "Int constant: {}",
+        code
+    );
+}
+
+#[test]
+fn constant_string() {
+    // String constant: char* → &str
+    let cg = CodeGenerator::new();
+    let c = decy_hir::HirConstant::new(
+        "MSG".to_string(),
+        HirType::Pointer(Box::new(HirType::Char)),
+        HirExpression::StringLiteral("Hello".to_string()),
+    );
+    let code = cg.generate_constant(&c);
+    assert!(
+        code.contains("const MSG: &str") && code.contains("Hello"),
+        "String constant → &str: {}",
+        code
+    );
+}
+
+#[test]
+fn global_var_extern() {
+    let cg = CodeGenerator::new();
+    let g = decy_hir::HirConstant::new(
+        "counter".to_string(),
+        HirType::Int,
+        HirExpression::IntLiteral(0),
+    );
+    let code = cg.generate_global_variable(&g, false, true, false);
+    assert!(
+        code.contains("extern \"C\"") && code.contains("static counter: i32"),
+        "Extern global → extern C: {}",
+        code
+    );
+}
+
+#[test]
+fn global_var_const() {
+    let cg = CodeGenerator::new();
+    let g = decy_hir::HirConstant::new(
+        "PI".to_string(),
+        HirType::Double,
+        HirExpression::FloatLiteral("3.14".to_string()),
+    );
+    let code = cg.generate_global_variable(&g, true, false, true);
+    assert!(
+        code.contains("const PI: f64 = 3.14"),
+        "Const global → const: {}",
+        code
+    );
+}
+
+#[test]
+fn global_var_static_mut() {
+    let cg = CodeGenerator::new();
+    let g = decy_hir::HirConstant::new(
+        "count".to_string(),
+        HirType::Int,
+        HirExpression::IntLiteral(0),
+    );
+    let code = cg.generate_global_variable(&g, true, false, false);
+    assert!(
+        code.contains("static mut count: i32 = 0"),
+        "Static global → static mut: {}",
+        code
+    );
+}
+
+#[test]
+fn global_var_array_init() {
+    // Global array → [default; size]
+    let cg = CodeGenerator::new();
+    let g = decy_hir::HirConstant::new(
+        "table".to_string(),
+        HirType::Array {
+            element_type: Box::new(HirType::Int),
+            size: Some(256),
+        },
+        HirExpression::IntLiteral(0),
+    );
+    let code = cg.generate_global_variable(&g, true, false, false);
+    assert!(
+        code.contains("static mut table") && code.contains("[0i32; 256]"),
+        "Global array → [default; size]: {}",
+        code
+    );
+}
+
+#[test]
+fn global_var_null_pointer() {
+    // Global pointer = 0 → null_mut()
+    let cg = CodeGenerator::new();
+    let g = decy_hir::HirConstant::new(
+        "ptr".to_string(),
+        HirType::Pointer(Box::new(HirType::Int)),
+        HirExpression::IntLiteral(0),
+    );
+    let code = cg.generate_global_variable(&g, true, false, false);
+    assert!(
+        code.contains("null_mut()"),
+        "Global null pointer → null_mut(): {}",
+        code
+    );
+}
+
+#[test]
+fn global_var_const_char_ptr() {
+    // const char* global → &str
+    let cg = CodeGenerator::new();
+    let g = decy_hir::HirConstant::new(
+        "name".to_string(),
+        HirType::Pointer(Box::new(HirType::Char)),
+        HirExpression::StringLiteral("test".to_string()),
+    );
+    let code = cg.generate_global_variable(&g, true, false, true);
+    assert!(
+        code.contains("const name: &str"),
+        "Const char* global → &str: {}",
+        code
+    );
+}
