@@ -2656,3 +2656,28 @@ fn test_transform_slice_to_slice_type_non_pointer() {
     // Int param should stay as Int
     assert_eq!(transformed.parameters()[0].param_type(), &HirType::Int);
 }
+
+#[test]
+fn test_transform_inline_asm_passes_through() {
+    // InlineAsm statement should pass through unchanged (line 560)
+    let generator = BorrowGenerator::new();
+    let asm_stmt = HirStatement::InlineAsm {
+        text: "nop".to_string(),
+        translatable: false,
+    };
+    let func = HirFunction::new_with_body(
+        "asm_func".to_string(),
+        HirType::Void,
+        vec![],
+        vec![asm_stmt],
+    );
+
+    let inferences = HashMap::new();
+    let transformed = generator.transform_function(&func, &inferences);
+    match &transformed.body()[0] {
+        HirStatement::InlineAsm { text, .. } => {
+            assert_eq!(text, "nop");
+        }
+        other => panic!("Expected InlineAsm, got {:?}", other),
+    }
+}
