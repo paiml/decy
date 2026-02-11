@@ -23932,3 +23932,223 @@ fn stmt_context_global_var_rename() {
         code
     );
 }
+
+// =============================================================================
+// Batch 40: generate_expression_with_target_type deep Variable branches
+// =============================================================================
+// Targets lines 1140-1218: Box→raw, Reference(Array)→as_mut_ptr,
+// Reference(Vec)→as_mut_ptr, Reference(T)→cast, Vec→as_mut_ptr,
+// Array→as_mut_ptr, Array→void*, Pointer→Pointer passthrough,
+// int→char coercion.
+
+#[test]
+fn expr_target_type_box_to_raw_pointer() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("node".to_string(), HirType::Box(Box::new(HirType::Struct("Node".to_string()))));
+    let expr = HirExpression::Variable("node".to_string());
+    let target = HirType::Pointer(Box::new(HirType::Struct("Node".to_string())));
+    let code = cg.generate_expression_with_target_type(&expr, &ctx, Some(&target));
+    assert!(
+        code.contains("Box::into_raw"),
+        "Box to raw pointer should use Box::into_raw: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_target_type_ref_array_to_mut_ptr() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable(
+        "arr".to_string(),
+        HirType::Reference {
+            inner: Box::new(HirType::Array {
+                element_type: Box::new(HirType::Int),
+                size: Some(10),
+            }),
+            mutable: true,
+        },
+    );
+    let expr = HirExpression::Variable("arr".to_string());
+    let target = HirType::Pointer(Box::new(HirType::Int));
+    let code = cg.generate_expression_with_target_type(&expr, &ctx, Some(&target));
+    assert!(
+        code.contains(".as_mut_ptr()"),
+        "Mutable ref to array → as_mut_ptr(): {}",
+        code
+    );
+}
+
+#[test]
+fn expr_target_type_ref_array_to_const_ptr() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable(
+        "data".to_string(),
+        HirType::Reference {
+            inner: Box::new(HirType::Array {
+                element_type: Box::new(HirType::Int),
+                size: Some(5),
+            }),
+            mutable: false,
+        },
+    );
+    let expr = HirExpression::Variable("data".to_string());
+    let target = HirType::Pointer(Box::new(HirType::Int));
+    let code = cg.generate_expression_with_target_type(&expr, &ctx, Some(&target));
+    assert!(
+        code.contains(".as_ptr()"),
+        "Immutable ref to array → as_ptr(): {}",
+        code
+    );
+}
+
+#[test]
+fn expr_target_type_ref_vec_to_mut_ptr() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable(
+        "buf".to_string(),
+        HirType::Reference {
+            inner: Box::new(HirType::Vec(Box::new(HirType::Int))),
+            mutable: true,
+        },
+    );
+    let expr = HirExpression::Variable("buf".to_string());
+    let target = HirType::Pointer(Box::new(HirType::Int));
+    let code = cg.generate_expression_with_target_type(&expr, &ctx, Some(&target));
+    assert!(
+        code.contains(".as_mut_ptr()"),
+        "Mutable ref to Vec → as_mut_ptr(): {}",
+        code
+    );
+}
+
+#[test]
+fn expr_target_type_ref_single_to_mut_ptr() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable(
+        "x".to_string(),
+        HirType::Reference {
+            inner: Box::new(HirType::Int),
+            mutable: true,
+        },
+    );
+    let expr = HirExpression::Variable("x".to_string());
+    let target = HirType::Pointer(Box::new(HirType::Int));
+    let code = cg.generate_expression_with_target_type(&expr, &ctx, Some(&target));
+    assert!(
+        code.contains("as *mut _"),
+        "Mutable ref to pointer → cast: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_target_type_ref_single_immutable_to_ptr() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable(
+        "x".to_string(),
+        HirType::Reference {
+            inner: Box::new(HirType::Int),
+            mutable: false,
+        },
+    );
+    let expr = HirExpression::Variable("x".to_string());
+    let target = HirType::Pointer(Box::new(HirType::Int));
+    let code = cg.generate_expression_with_target_type(&expr, &ctx, Some(&target));
+    assert!(
+        code.contains("as *const _ as *mut _"),
+        "Immutable ref to pointer → double cast: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_target_type_vec_to_mut_ptr() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("buf".to_string(), HirType::Vec(Box::new(HirType::Int)));
+    let expr = HirExpression::Variable("buf".to_string());
+    let target = HirType::Pointer(Box::new(HirType::Int));
+    let code = cg.generate_expression_with_target_type(&expr, &ctx, Some(&target));
+    assert!(
+        code.contains(".as_mut_ptr()"),
+        "Vec to pointer → as_mut_ptr(): {}",
+        code
+    );
+}
+
+#[test]
+fn expr_target_type_array_to_mut_ptr() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable(
+        "arr".to_string(),
+        HirType::Array {
+            element_type: Box::new(HirType::Int),
+            size: Some(10),
+        },
+    );
+    let expr = HirExpression::Variable("arr".to_string());
+    let target = HirType::Pointer(Box::new(HirType::Int));
+    let code = cg.generate_expression_with_target_type(&expr, &ctx, Some(&target));
+    assert!(
+        code.contains(".as_mut_ptr()"),
+        "Array to pointer → as_mut_ptr(): {}",
+        code
+    );
+}
+
+#[test]
+fn expr_target_type_array_to_void_ptr() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable(
+        "data".to_string(),
+        HirType::Array {
+            element_type: Box::new(HirType::Char),
+            size: Some(256),
+        },
+    );
+    let expr = HirExpression::Variable("data".to_string());
+    let target = HirType::Pointer(Box::new(HirType::Void));
+    let code = cg.generate_expression_with_target_type(&expr, &ctx, Some(&target));
+    assert!(
+        code.contains("as_mut_ptr()") && code.contains("as *mut ()"),
+        "Array to void* → as_mut_ptr() as *mut (): {}",
+        code
+    );
+}
+
+#[test]
+fn expr_target_type_ptr_to_ptr_passthrough() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable(
+        "p".to_string(),
+        HirType::Pointer(Box::new(HirType::Int)),
+    );
+    let expr = HirExpression::Variable("p".to_string());
+    let target = HirType::Pointer(Box::new(HirType::Int));
+    let code = cg.generate_expression_with_target_type(&expr, &ctx, Some(&target));
+    assert_eq!(code, "p", "Raw pointer to raw pointer → passthrough: {}", code);
+}
+
+#[test]
+fn expr_target_type_int_to_char_coercion() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("c".to_string(), HirType::Int);
+    let expr = HirExpression::Variable("c".to_string());
+    let target = HirType::Char;
+    let code = cg.generate_expression_with_target_type(&expr, &ctx, Some(&target));
+    assert!(
+        code.contains("as u8"),
+        "Int to char → cast as u8: {}",
+        code
+    );
+}
