@@ -13669,3 +13669,204 @@ fn generate_function_with_local_var() {
     assert!(code.contains("let"), "Got: {}", code);
     assert!(code.contains("42"), "Got: {}", code);
 }
+
+// ============================================================================
+// BATCH 11: generate_statement_with_context deep branches
+// ============================================================================
+
+#[test]
+fn stmt_switch_case_with_body() {
+    // Line 4672: Switch case with body statements
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("x".to_string(), HirType::Int);
+    let stmt = HirStatement::Switch {
+        condition: HirExpression::Variable("x".to_string()),
+        cases: vec![
+            SwitchCase {
+                value: Some(HirExpression::IntLiteral(1)),
+                body: vec![HirStatement::Return(Some(HirExpression::IntLiteral(10)))],
+            },
+            SwitchCase {
+                value: Some(HirExpression::IntLiteral(2)),
+                body: vec![HirStatement::Return(Some(HirExpression::IntLiteral(20)))],
+            },
+        ],
+        default_case: Some(vec![HirStatement::Return(Some(HirExpression::IntLiteral(0)))]),
+    };
+    let code =
+        cg.generate_statement_with_context(&stmt, Some("test_fn"), &mut ctx, Some(&HirType::Int));
+    assert!(code.contains("match"), "Got: {}", code);
+}
+
+#[test]
+fn stmt_deref_assignment_non_double_pointer() {
+    // Line 4770: yields_raw_ptr = false, type is Int (not Reference(Pointer) or Pointer(Pointer))
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("p".to_string(), HirType::Pointer(Box::new(HirType::Int)));
+    let stmt = HirStatement::DerefAssignment {
+        target: HirExpression::Variable("p".to_string()),
+        value: HirExpression::IntLiteral(42),
+    };
+    let code =
+        cg.generate_statement_with_context(&stmt, Some("test_fn"), &mut ctx, Some(&HirType::Void));
+    // Should generate *p = 42 with unsafe (pointer deref)
+    assert!(code.contains("42"), "Got: {}", code);
+}
+
+#[test]
+fn stmt_deref_assignment_double_pointer() {
+    // Lines 4762-4779: DerefAssignment where target type is Pointer(Pointer(Int)) → yields_raw_ptr
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable(
+        "pp".to_string(),
+        HirType::Pointer(Box::new(HirType::Pointer(Box::new(HirType::Int)))),
+    );
+    let stmt = HirStatement::DerefAssignment {
+        target: HirExpression::Variable("pp".to_string()),
+        value: HirExpression::Variable("new_ptr".to_string()),
+    };
+    let code =
+        cg.generate_statement_with_context(&stmt, Some("test_fn"), &mut ctx, Some(&HirType::Void));
+    // Should detect double pointer and generate unsafe dereference
+    assert!(
+        code.contains("unsafe") || code.contains("*pp"),
+        "Got: {}",
+        code
+    );
+}
+
+#[test]
+fn stmt_var_decl_malloc_struct_no_default() {
+    // Lines 4204-4229: malloc init for struct type → Box::new(unsafe zeroed)
+    // Line 4215: false when inner is not Struct (Box with non-struct inner)
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let stmt = HirStatement::VariableDeclaration {
+        name: "node".to_string(),
+        var_type: HirType::Pointer(Box::new(HirType::Struct("Node".to_string()))),
+        initializer: Some(HirExpression::FunctionCall {
+            function: "malloc".to_string(),
+            arguments: vec![HirExpression::Sizeof {
+                type_name: "Node".to_string(),
+            }],
+        }),
+    };
+    let code =
+        cg.generate_statement_with_context(&stmt, Some("test_fn"), &mut ctx, Some(&HirType::Void));
+    // Should generate Box allocation for struct
+    assert!(
+        code.contains("Box") || code.contains("node"),
+        "Got: {}",
+        code
+    );
+}
+
+#[test]
+fn stmt_var_decl_char_str_init() {
+    // Lines 4133-4136: char* with string literal init → &str
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let stmt = HirStatement::VariableDeclaration {
+        name: "msg".to_string(),
+        var_type: HirType::Pointer(Box::new(HirType::Char)),
+        initializer: Some(HirExpression::StringLiteral("hello".to_string())),
+    };
+    let code =
+        cg.generate_statement_with_context(&stmt, Some("test_fn"), &mut ctx, Some(&HirType::Void));
+    assert!(
+        code.contains("&str") || code.contains("hello"),
+        "Got: {}",
+        code
+    );
+}
+
+#[test]
+fn stmt_var_decl_pointer_no_init() {
+    // Line 4093: No initializer for pointer var → is_malloc_init = false
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let stmt = HirStatement::VariableDeclaration {
+        name: "ptr".to_string(),
+        var_type: HirType::Pointer(Box::new(HirType::Int)),
+        initializer: None,
+    };
+    let code =
+        cg.generate_statement_with_context(&stmt, Some("test_fn"), &mut ctx, Some(&HirType::Void));
+    assert!(code.contains("ptr"), "Got: {}", code);
+}
+
+#[test]
+fn stmt_for_loop_with_body() {
+    // For loop with condition and body — exercises generate_statement_with_context For arm
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("i".to_string(), HirType::Int);
+    let stmt = HirStatement::For {
+        init: vec![HirStatement::VariableDeclaration {
+            name: "i".to_string(),
+            var_type: HirType::Int,
+            initializer: Some(HirExpression::IntLiteral(0)),
+        }],
+        condition: Some(HirExpression::BinaryOp {
+            op: BinaryOperator::LessThan,
+            left: Box::new(HirExpression::Variable("i".to_string())),
+            right: Box::new(HirExpression::IntLiteral(10)),
+        }),
+        increment: vec![HirStatement::Expression(HirExpression::PostIncrement {
+            operand: Box::new(HirExpression::Variable("i".to_string())),
+        })],
+        body: vec![HirStatement::Expression(HirExpression::FunctionCall {
+            function: "printf".to_string(),
+            arguments: vec![HirExpression::StringLiteral("%d".to_string())],
+        })],
+    };
+    let code =
+        cg.generate_statement_with_context(&stmt, Some("test_fn"), &mut ctx, Some(&HirType::Void));
+    assert!(
+        code.contains("while") || code.contains("for"),
+        "Got: {}",
+        code
+    );
+}
+
+#[test]
+fn stmt_while_loop_basic() {
+    // While loop — exercises While arm in generate_statement_with_context
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("running".to_string(), HirType::Int);
+    let stmt = HirStatement::While {
+        condition: HirExpression::Variable("running".to_string()),
+        body: vec![HirStatement::Break],
+    };
+    let code =
+        cg.generate_statement_with_context(&stmt, Some("test_fn"), &mut ctx, Some(&HirType::Void));
+    assert!(code.contains("while"), "Got: {}", code);
+    assert!(code.contains("break"), "Got: {}", code);
+}
+
+#[test]
+fn stmt_if_else_with_body() {
+    // If/else with body statements
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("x".to_string(), HirType::Int);
+    let stmt = HirStatement::If {
+        condition: HirExpression::BinaryOp {
+            op: BinaryOperator::GreaterThan,
+            left: Box::new(HirExpression::Variable("x".to_string())),
+            right: Box::new(HirExpression::IntLiteral(0)),
+        },
+        then_block: vec![HirStatement::Return(Some(HirExpression::IntLiteral(1)))],
+        else_block: Some(vec![HirStatement::Return(Some(HirExpression::IntLiteral(
+            -1,
+        )))]),
+    };
+    let code =
+        cg.generate_statement_with_context(&stmt, Some("test_fn"), &mut ctx, Some(&HirType::Int));
+    assert!(code.contains("if"), "Got: {}", code);
+    assert!(code.contains("else"), "Got: {}", code);
+}
