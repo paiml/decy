@@ -28668,3 +28668,317 @@ fn expr_context_field_access_keyword_escape() {
         code
     );
 }
+
+// =============================================================================
+// Batch 53: PostIncrement/PreIncrement/PostDecrement/PreDecrement variants
+//           + Ternary expression
+// =============================================================================
+
+#[test]
+fn expr_context_post_inc_string_ref() {
+    // *key++ where key is &str → string iteration pattern
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("key".to_string(), HirType::StringReference);
+    let expr = HirExpression::PostIncrement {
+        operand: Box::new(HirExpression::Variable("key".to_string())),
+    };
+    let code = cg.generate_expression_with_context(&expr, &mut ctx);
+    assert!(
+        code.contains("as_bytes()[0]") && code.contains("__tmp"),
+        "PostInc string ref → byte iteration: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_context_post_inc_deref_raw_ptr() {
+    // (*p)++ where p is raw pointer → unsafe block
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("p".to_string(), HirType::Pointer(Box::new(HirType::Int)));
+    let expr = HirExpression::PostIncrement {
+        operand: Box::new(HirExpression::Dereference(Box::new(
+            HirExpression::Variable("p".to_string()),
+        ))),
+    };
+    let code = cg.generate_expression_with_context(&expr, &mut ctx);
+    assert!(
+        code.contains("unsafe") && code.contains("*p += 1"),
+        "PostInc deref ptr → unsafe: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_context_post_inc_pointer_var() {
+    // ptr++ where ptr is pointer → wrapping_add
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("ptr".to_string(), HirType::Pointer(Box::new(HirType::Int)));
+    let expr = HirExpression::PostIncrement {
+        operand: Box::new(HirExpression::Variable("ptr".to_string())),
+    };
+    let code = cg.generate_expression_with_context(&expr, &mut ctx);
+    assert!(
+        code.contains("wrapping_add(1)"),
+        "PostInc pointer → wrapping_add: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_context_post_inc_regular() {
+    // x++ → { let __tmp = x; x += 1; __tmp }
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("x".to_string(), HirType::Int);
+    let expr = HirExpression::PostIncrement {
+        operand: Box::new(HirExpression::Variable("x".to_string())),
+    };
+    let code = cg.generate_expression_with_context(&expr, &mut ctx);
+    assert!(
+        code.contains("__tmp") && code.contains("+= 1"),
+        "PostInc regular → tmp + +=1: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_context_pre_inc_deref_raw_ptr() {
+    // ++(*p) where p is raw pointer → unsafe block
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("p".to_string(), HirType::Pointer(Box::new(HirType::Int)));
+    let expr = HirExpression::PreIncrement {
+        operand: Box::new(HirExpression::Dereference(Box::new(
+            HirExpression::Variable("p".to_string()),
+        ))),
+    };
+    let code = cg.generate_expression_with_context(&expr, &mut ctx);
+    assert!(
+        code.contains("unsafe") && code.contains("*p += 1"),
+        "PreInc deref ptr → unsafe: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_context_pre_inc_pointer_var() {
+    // ++ptr where ptr is pointer → wrapping_add
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("ptr".to_string(), HirType::Pointer(Box::new(HirType::Int)));
+    let expr = HirExpression::PreIncrement {
+        operand: Box::new(HirExpression::Variable("ptr".to_string())),
+    };
+    let code = cg.generate_expression_with_context(&expr, &mut ctx);
+    assert!(
+        code.contains("wrapping_add(1)"),
+        "PreInc pointer → wrapping_add: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_context_pre_inc_regular() {
+    // ++x → { x += 1; x }
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("x".to_string(), HirType::Int);
+    let expr = HirExpression::PreIncrement {
+        operand: Box::new(HirExpression::Variable("x".to_string())),
+    };
+    let code = cg.generate_expression_with_context(&expr, &mut ctx);
+    assert!(
+        code.contains("+= 1") && !code.contains("__tmp"),
+        "PreInc regular → += 1 no tmp: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_context_post_dec_deref_raw_ptr() {
+    // (*p)-- where p is raw pointer → unsafe block
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("p".to_string(), HirType::Pointer(Box::new(HirType::Int)));
+    let expr = HirExpression::PostDecrement {
+        operand: Box::new(HirExpression::Dereference(Box::new(
+            HirExpression::Variable("p".to_string()),
+        ))),
+    };
+    let code = cg.generate_expression_with_context(&expr, &mut ctx);
+    assert!(
+        code.contains("unsafe") && code.contains("*p -= 1"),
+        "PostDec deref ptr → unsafe: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_context_post_dec_pointer_var() {
+    // ptr-- where ptr is pointer → wrapping_sub
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("ptr".to_string(), HirType::Pointer(Box::new(HirType::Int)));
+    let expr = HirExpression::PostDecrement {
+        operand: Box::new(HirExpression::Variable("ptr".to_string())),
+    };
+    let code = cg.generate_expression_with_context(&expr, &mut ctx);
+    assert!(
+        code.contains("wrapping_sub(1)"),
+        "PostDec pointer → wrapping_sub: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_context_post_dec_regular() {
+    // x-- → { let __tmp = x; x -= 1; __tmp }
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("x".to_string(), HirType::Int);
+    let expr = HirExpression::PostDecrement {
+        operand: Box::new(HirExpression::Variable("x".to_string())),
+    };
+    let code = cg.generate_expression_with_context(&expr, &mut ctx);
+    assert!(
+        code.contains("__tmp") && code.contains("-= 1"),
+        "PostDec regular → tmp + -=1: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_context_pre_dec_deref_raw_ptr() {
+    // --(*p) where p is raw pointer → unsafe block
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("p".to_string(), HirType::Pointer(Box::new(HirType::Int)));
+    let expr = HirExpression::PreDecrement {
+        operand: Box::new(HirExpression::Dereference(Box::new(
+            HirExpression::Variable("p".to_string()),
+        ))),
+    };
+    let code = cg.generate_expression_with_context(&expr, &mut ctx);
+    assert!(
+        code.contains("unsafe") && code.contains("*p -= 1"),
+        "PreDec deref ptr → unsafe: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_context_pre_dec_pointer_var() {
+    // --ptr where ptr is pointer → wrapping_sub
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("ptr".to_string(), HirType::Pointer(Box::new(HirType::Int)));
+    let expr = HirExpression::PreDecrement {
+        operand: Box::new(HirExpression::Variable("ptr".to_string())),
+    };
+    let code = cg.generate_expression_with_context(&expr, &mut ctx);
+    assert!(
+        code.contains("wrapping_sub(1)"),
+        "PreDec pointer → wrapping_sub: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_context_pre_dec_regular() {
+    // --x → { x -= 1; x }
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("x".to_string(), HirType::Int);
+    let expr = HirExpression::PreDecrement {
+        operand: Box::new(HirExpression::Variable("x".to_string())),
+    };
+    let code = cg.generate_expression_with_context(&expr, &mut ctx);
+    assert!(
+        code.contains("-= 1") && !code.contains("__tmp"),
+        "PreDec regular → -= 1 no tmp: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_context_ternary_bool_condition() {
+    // (a > b) ? a : b → if a > b { a } else { b }
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let expr = HirExpression::Ternary {
+        condition: Box::new(HirExpression::BinaryOp {
+            op: decy_hir::BinaryOperator::GreaterThan,
+            left: Box::new(HirExpression::Variable("a".to_string())),
+            right: Box::new(HirExpression::Variable("b".to_string())),
+        }),
+        then_expr: Box::new(HirExpression::Variable("a".to_string())),
+        else_expr: Box::new(HirExpression::Variable("b".to_string())),
+    };
+    let code = cg.generate_expression_with_context(&expr, &mut ctx);
+    assert!(
+        code.contains("if a > b { a } else { b }"),
+        "Ternary bool cond → if/else: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_context_ternary_non_bool_condition() {
+    // x ? 1 : 0 → if x != 0 { 1 } else { 0 }
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let expr = HirExpression::Ternary {
+        condition: Box::new(HirExpression::Variable("x".to_string())),
+        then_expr: Box::new(HirExpression::IntLiteral(1)),
+        else_expr: Box::new(HirExpression::IntLiteral(0)),
+    };
+    let code = cg.generate_expression_with_context(&expr, &mut ctx);
+    assert!(
+        code.contains("!= 0") && code.contains("if") && code.contains("else"),
+        "Ternary non-bool cond → != 0: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_context_post_inc_string_literal() {
+    // StringLiteral type var ++ → string iteration
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("s".to_string(), HirType::StringLiteral);
+    let expr = HirExpression::PostIncrement {
+        operand: Box::new(HirExpression::Variable("s".to_string())),
+    };
+    let code = cg.generate_expression_with_context(&expr, &mut ctx);
+    assert!(
+        code.contains("as_bytes()[0]") && code.contains("u32"),
+        "PostInc StringLiteral → byte iteration with u32: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_context_compound_literal_array_unsized_with_elems() {
+    // (int[]){1, 2, 3} unsized → [1, 2, 3]
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let expr = HirExpression::CompoundLiteral {
+        literal_type: HirType::Array {
+            element_type: Box::new(HirType::Int),
+            size: None,
+        },
+        initializers: vec![
+            HirExpression::IntLiteral(10),
+            HirExpression::IntLiteral(20),
+        ],
+    };
+    let code = cg.generate_expression_with_context(&expr, &mut ctx);
+    assert!(
+        code.contains("[10, 20]"),
+        "Unsized array with elems → [10, 20]: {}",
+        code
+    );
+}
