@@ -16217,3 +16217,971 @@ fn expr_target_nested_binary_adds_parens() {
     let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
     assert!(result.contains("(a + b)"), "Got: {}", result);
 }
+
+// ============================================================================
+// BATCH 18: UnaryOp pointer variants + FunctionCall stdlib branches
+// ============================================================================
+
+// --- UnaryOp: pointer PostIncrement → wrapping_add ---
+#[test]
+fn expr_target_post_increment_pointer_wrapping_add() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("p".to_string(), HirType::Pointer(Box::new(HirType::Int)));
+    let expr = HirExpression::UnaryOp {
+        op: UnaryOperator::PostIncrement,
+        operand: Box::new(HirExpression::Variable("p".to_string())),
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(result.contains("wrapping_add(1)"), "Got: {}", result);
+}
+
+// --- UnaryOp: non-pointer PostIncrement → += 1 ---
+#[test]
+fn expr_target_post_increment_int_plus_equals() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("i".to_string(), HirType::Int);
+    let expr = HirExpression::UnaryOp {
+        op: UnaryOperator::PostIncrement,
+        operand: Box::new(HirExpression::Variable("i".to_string())),
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(result.contains("+= 1"), "Got: {}", result);
+    assert!(result.contains("__tmp"), "Got: {}", result);
+}
+
+// --- UnaryOp: pointer PostDecrement → wrapping_sub ---
+#[test]
+fn expr_target_post_decrement_pointer_wrapping_sub() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("p".to_string(), HirType::Pointer(Box::new(HirType::Int)));
+    let expr = HirExpression::UnaryOp {
+        op: UnaryOperator::PostDecrement,
+        operand: Box::new(HirExpression::Variable("p".to_string())),
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(result.contains("wrapping_sub(1)"), "Got: {}", result);
+}
+
+// --- UnaryOp: non-pointer PostDecrement → -= 1 ---
+#[test]
+fn expr_target_post_decrement_int_minus_equals() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("i".to_string(), HirType::Int);
+    let expr = HirExpression::UnaryOp {
+        op: UnaryOperator::PostDecrement,
+        operand: Box::new(HirExpression::Variable("i".to_string())),
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(result.contains("-= 1"), "Got: {}", result);
+}
+
+// --- UnaryOp: pointer PreIncrement → wrapping_add ---
+#[test]
+fn expr_target_pre_increment_pointer_wrapping_add() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("p".to_string(), HirType::Pointer(Box::new(HirType::Int)));
+    let expr = HirExpression::UnaryOp {
+        op: UnaryOperator::PreIncrement,
+        operand: Box::new(HirExpression::Variable("p".to_string())),
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(result.contains("wrapping_add(1)"), "Got: {}", result);
+}
+
+// --- UnaryOp: pointer PreDecrement → wrapping_sub ---
+#[test]
+fn expr_target_pre_decrement_pointer_wrapping_sub() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("p".to_string(), HirType::Pointer(Box::new(HirType::Int)));
+    let expr = HirExpression::UnaryOp {
+        op: UnaryOperator::PreDecrement,
+        operand: Box::new(HirExpression::Variable("p".to_string())),
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(result.contains("wrapping_sub(1)"), "Got: {}", result);
+}
+
+// --- UnaryOp: LogicalNot on boolean expr → !expr ---
+#[test]
+fn expr_target_logical_not_boolean_expr() {
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    let expr = HirExpression::UnaryOp {
+        op: UnaryOperator::LogicalNot,
+        operand: Box::new(HirExpression::BinaryOp {
+            op: BinaryOperator::Equal,
+            left: Box::new(HirExpression::Variable("x".to_string())),
+            right: Box::new(HirExpression::IntLiteral(0)),
+        }),
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(result.starts_with("!"), "Got: {}", result);
+    assert!(!result.contains("as i32"), "Got: {}", result);
+}
+
+// --- UnaryOp: LogicalNot on integer with Int target → (x == 0) as i32 ---
+#[test]
+fn expr_target_logical_not_integer_as_i32() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("x".to_string(), HirType::Int);
+    let expr = HirExpression::UnaryOp {
+        op: UnaryOperator::LogicalNot,
+        operand: Box::new(HirExpression::Variable("x".to_string())),
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, Some(&HirType::Int));
+    assert!(result.contains("== 0"), "Got: {}", result);
+    assert!(result.contains("as i32"), "Got: {}", result);
+}
+
+// --- UnaryOp: LogicalNot on integer without target → (x == 0) no cast ---
+#[test]
+fn expr_target_logical_not_integer_no_target() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("x".to_string(), HirType::Int);
+    let expr = HirExpression::UnaryOp {
+        op: UnaryOperator::LogicalNot,
+        operand: Box::new(HirExpression::Variable("x".to_string())),
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(result.contains("== 0"), "Got: {}", result);
+    assert!(!result.contains("as i32"), "Got: {}", result);
+}
+
+// --- UnaryOp: LogicalNot on boolean with Int target → (!expr) as i32 ---
+#[test]
+fn expr_target_logical_not_boolean_int_target() {
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    let expr = HirExpression::UnaryOp {
+        op: UnaryOperator::LogicalNot,
+        operand: Box::new(HirExpression::BinaryOp {
+            op: BinaryOperator::Equal,
+            left: Box::new(HirExpression::Variable("x".to_string())),
+            right: Box::new(HirExpression::IntLiteral(0)),
+        }),
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, Some(&HirType::Int));
+    assert!(result.contains("as i32"), "Got: {}", result);
+    assert!(result.starts_with("(!"), "Got: {}", result);
+}
+
+// --- FunctionCall: strlen with 1 arg → .len() as i32 ---
+#[test]
+fn expr_target_strlen_single_arg() {
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    let expr = HirExpression::FunctionCall {
+        function: "strlen".to_string(),
+        arguments: vec![HirExpression::Variable("s".to_string())],
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(result.contains(".len() as i32"), "Got: {}", result);
+}
+
+// --- FunctionCall: strcpy with &str source → .to_string() ---
+#[test]
+fn expr_target_strcpy_str_source() {
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    let expr = HirExpression::FunctionCall {
+        function: "strcpy".to_string(),
+        arguments: vec![
+            HirExpression::Variable("dest".to_string()),
+            HirExpression::Variable("src".to_string()),
+        ],
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(result.contains(".to_string()"), "Got: {}", result);
+}
+
+// --- FunctionCall: strcpy with raw pointer source → CStr ---
+#[test]
+fn expr_target_strcpy_raw_pointer_source() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("node".to_string(), HirType::Pointer(Box::new(HirType::Struct("Node".to_string()))));
+    let expr = HirExpression::FunctionCall {
+        function: "strcpy".to_string(),
+        arguments: vec![
+            HirExpression::Variable("dest".to_string()),
+            // (*node).name pattern triggers raw pointer detection
+            HirExpression::PointerFieldAccess {
+                pointer: Box::new(HirExpression::Variable("node".to_string())),
+                field: "name".to_string(),
+            },
+        ],
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    // PointerFieldAccess generates (*node).name which contains (*
+    assert!(result.contains("CStr") || result.contains("to_string"), "Got: {}", result);
+}
+
+// --- FunctionCall: malloc with Vec target + multiply pattern ---
+#[test]
+fn expr_target_malloc_vec_target_multiply() {
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    let expr = HirExpression::FunctionCall {
+        function: "malloc".to_string(),
+        arguments: vec![HirExpression::BinaryOp {
+            op: BinaryOperator::Multiply,
+            left: Box::new(HirExpression::Variable("n".to_string())),
+            right: Box::new(HirExpression::Sizeof { type_name: "int".to_string() }),
+        }],
+    };
+    let result = cg.generate_expression_with_target_type(
+        &expr, &ctx, Some(&HirType::Vec(Box::new(HirType::Int))),
+    );
+    assert!(result.contains("vec![0i32;"), "Got: {}", result);
+}
+
+// --- FunctionCall: malloc with Vec target no multiply → Vec::with_capacity ---
+#[test]
+fn expr_target_malloc_vec_target_no_multiply() {
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    let expr = HirExpression::FunctionCall {
+        function: "malloc".to_string(),
+        arguments: vec![HirExpression::Variable("size".to_string())],
+    };
+    let result = cg.generate_expression_with_target_type(
+        &expr, &ctx, Some(&HirType::Vec(Box::new(HirType::Int))),
+    );
+    assert!(result.contains("Vec::<i32>::with_capacity"), "Got: {}", result);
+}
+
+// --- FunctionCall: malloc with Pointer(Char) target → Box::leak byte buffer ---
+#[test]
+fn expr_target_malloc_pointer_char() {
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    let expr = HirExpression::FunctionCall {
+        function: "malloc".to_string(),
+        arguments: vec![HirExpression::IntLiteral(256)],
+    };
+    let result = cg.generate_expression_with_target_type(
+        &expr, &ctx, Some(&HirType::Pointer(Box::new(HirType::Char))),
+    );
+    assert!(result.contains("Box::leak"), "Got: {}", result);
+    assert!(result.contains("0u8"), "Got: {}", result);
+    assert!(result.contains("as_mut_ptr()"), "Got: {}", result);
+}
+
+// --- FunctionCall: malloc with Pointer(Struct) target → Box::into_raw ---
+#[test]
+fn expr_target_malloc_pointer_struct() {
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    let expr = HirExpression::FunctionCall {
+        function: "malloc".to_string(),
+        arguments: vec![HirExpression::Sizeof { type_name: "Node".to_string() }],
+    };
+    let result = cg.generate_expression_with_target_type(
+        &expr, &ctx, Some(&HirType::Pointer(Box::new(HirType::Struct("Node".to_string())))),
+    );
+    assert!(result.contains("Box::into_raw(Box::<Node>::default())"), "Got: {}", result);
+}
+
+// --- FunctionCall: malloc with Pointer(Int) target + multiply ---
+#[test]
+fn expr_target_malloc_pointer_int_multiply() {
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    let expr = HirExpression::FunctionCall {
+        function: "malloc".to_string(),
+        arguments: vec![HirExpression::BinaryOp {
+            op: BinaryOperator::Multiply,
+            left: Box::new(HirExpression::Variable("n".to_string())),
+            right: Box::new(HirExpression::Sizeof { type_name: "int".to_string() }),
+        }],
+    };
+    let result = cg.generate_expression_with_target_type(
+        &expr, &ctx, Some(&HirType::Pointer(Box::new(HirType::Int))),
+    );
+    assert!(result.contains("Box::leak"), "Got: {}", result);
+    assert!(result.contains("as *mut i32"), "Got: {}", result);
+}
+
+// --- FunctionCall: malloc with Pointer(Int) target no multiply ---
+#[test]
+fn expr_target_malloc_pointer_int_single() {
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    let expr = HirExpression::FunctionCall {
+        function: "malloc".to_string(),
+        arguments: vec![HirExpression::IntLiteral(4)],
+    };
+    let result = cg.generate_expression_with_target_type(
+        &expr, &ctx, Some(&HirType::Pointer(Box::new(HirType::Int))),
+    );
+    assert!(result.contains("Box::leak"), "Got: {}", result);
+    assert!(result.contains("as *mut i32"), "Got: {}", result);
+}
+
+// --- FunctionCall: malloc no target, multiply pattern ---
+#[test]
+fn expr_target_malloc_no_target_multiply() {
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    let expr = HirExpression::FunctionCall {
+        function: "malloc".to_string(),
+        arguments: vec![HirExpression::BinaryOp {
+            op: BinaryOperator::Multiply,
+            left: Box::new(HirExpression::Variable("n".to_string())),
+            right: Box::new(HirExpression::Sizeof { type_name: "int".to_string() }),
+        }],
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(result.contains("vec![0i32;"), "Got: {}", result);
+}
+
+// --- FunctionCall: malloc no target, no multiply → Vec::with_capacity ---
+#[test]
+fn expr_target_malloc_no_target_no_multiply() {
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    let expr = HirExpression::FunctionCall {
+        function: "malloc".to_string(),
+        arguments: vec![HirExpression::IntLiteral(100)],
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(result.contains("Vec::<u8>::with_capacity"), "Got: {}", result);
+}
+
+// --- FunctionCall: calloc with Vec target ---
+#[test]
+fn expr_target_calloc_vec_target() {
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    let expr = HirExpression::FunctionCall {
+        function: "calloc".to_string(),
+        arguments: vec![
+            HirExpression::Variable("n".to_string()),
+            HirExpression::Sizeof { type_name: "int".to_string() },
+        ],
+    };
+    let result = cg.generate_expression_with_target_type(
+        &expr, &ctx, Some(&HirType::Vec(Box::new(HirType::Int))),
+    );
+    assert!(result.contains("vec![0i32;"), "Got: {}", result);
+}
+
+// --- FunctionCall: calloc with Pointer target ---
+#[test]
+fn expr_target_calloc_pointer_target() {
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    let expr = HirExpression::FunctionCall {
+        function: "calloc".to_string(),
+        arguments: vec![
+            HirExpression::Variable("n".to_string()),
+            HirExpression::Sizeof { type_name: "int".to_string() },
+        ],
+    };
+    let result = cg.generate_expression_with_target_type(
+        &expr, &ctx, Some(&HirType::Pointer(Box::new(HirType::Int))),
+    );
+    assert!(result.contains("Box::leak"), "Got: {}", result);
+    assert!(result.contains("as *mut i32"), "Got: {}", result);
+}
+
+// --- FunctionCall: calloc no target ---
+#[test]
+fn expr_target_calloc_no_target() {
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    let expr = HirExpression::FunctionCall {
+        function: "calloc".to_string(),
+        arguments: vec![
+            HirExpression::IntLiteral(10),
+            HirExpression::Sizeof { type_name: "int".to_string() },
+        ],
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(result.contains("vec![0i32;"), "Got: {}", result);
+}
+
+// --- FunctionCall: realloc with Pointer target ---
+#[test]
+fn expr_target_realloc_pointer_target() {
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    let expr = HirExpression::FunctionCall {
+        function: "realloc".to_string(),
+        arguments: vec![
+            HirExpression::Variable("ptr".to_string()),
+            HirExpression::Variable("new_size".to_string()),
+        ],
+    };
+    let result = cg.generate_expression_with_target_type(
+        &expr, &ctx, Some(&HirType::Pointer(Box::new(HirType::Int))),
+    );
+    assert!(result.contains("realloc("), "Got: {}", result);
+    assert!(result.contains("as *mut ()"), "Got: {}", result);
+    assert!(result.contains("as *mut i32"), "Got: {}", result);
+}
+
+// --- FunctionCall: realloc without target ---
+#[test]
+fn expr_target_realloc_no_target() {
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    let expr = HirExpression::FunctionCall {
+        function: "realloc".to_string(),
+        arguments: vec![
+            HirExpression::Variable("ptr".to_string()),
+            HirExpression::Variable("new_size".to_string()),
+        ],
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(result.contains("realloc("), "Got: {}", result);
+    assert!(result.contains("as *mut ()"), "Got: {}", result);
+    assert!(!result.contains("as *mut i32"), "Got: {}", result);
+}
+
+// --- FunctionCall: free with 1 arg → drop ---
+#[test]
+fn expr_target_free_single_arg() {
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    let expr = HirExpression::FunctionCall {
+        function: "free".to_string(),
+        arguments: vec![HirExpression::Variable("ptr".to_string())],
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(result.contains("drop(ptr)"), "Got: {}", result);
+}
+
+// --- FunctionCall: fopen read mode → File::open ---
+#[test]
+fn expr_target_fopen_read_mode() {
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    let expr = HirExpression::FunctionCall {
+        function: "fopen".to_string(),
+        arguments: vec![
+            HirExpression::StringLiteral("data.txt".to_string()),
+            HirExpression::StringLiteral("r".to_string()),
+        ],
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(result.contains("File::open"), "Got: {}", result);
+}
+
+// --- FunctionCall: fopen write mode → File::create ---
+#[test]
+fn expr_target_fopen_write_mode() {
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    let expr = HirExpression::FunctionCall {
+        function: "fopen".to_string(),
+        arguments: vec![
+            HirExpression::StringLiteral("out.txt".to_string()),
+            HirExpression::StringLiteral("w".to_string()),
+        ],
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(result.contains("File::create"), "Got: {}", result);
+}
+
+// --- FunctionCall: fclose → drop ---
+#[test]
+fn expr_target_fclose_drop() {
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    let expr = HirExpression::FunctionCall {
+        function: "fclose".to_string(),
+        arguments: vec![HirExpression::Variable("fp".to_string())],
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(result.contains("drop(fp)"), "Got: {}", result);
+}
+
+// --- FunctionCall: fgetc → Read::read ---
+#[test]
+fn expr_target_fgetc_read() {
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    let expr = HirExpression::FunctionCall {
+        function: "fgetc".to_string(),
+        arguments: vec![HirExpression::Variable("fp".to_string())],
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(result.contains("std::io::Read"), "Got: {}", result);
+    assert!(result.contains("buf[0] as i32"), "Got: {}", result);
+}
+
+// --- FunctionCall: fputc → Write::write ---
+#[test]
+fn expr_target_fputc_write() {
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    let expr = HirExpression::FunctionCall {
+        function: "fputc".to_string(),
+        arguments: vec![
+            HirExpression::Variable("ch".to_string()),
+            HirExpression::Variable("fp".to_string()),
+        ],
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(result.contains("std::io::Write"), "Got: {}", result);
+    assert!(result.contains("as u8"), "Got: {}", result);
+}
+
+// --- FunctionCall: fprintf with 2 args (no extra format args) ---
+#[test]
+fn expr_target_fprintf_two_args() {
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    let expr = HirExpression::FunctionCall {
+        function: "fprintf".to_string(),
+        arguments: vec![
+            HirExpression::Variable("fp".to_string()),
+            HirExpression::StringLiteral("hello\\n".to_string()),
+        ],
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(result.contains("std::io::Write"), "Got: {}", result);
+    assert!(result.contains("write!"), "Got: {}", result);
+}
+
+// --- FunctionCall: fprintf with extra format args ---
+#[test]
+fn expr_target_fprintf_with_args() {
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    let expr = HirExpression::FunctionCall {
+        function: "fprintf".to_string(),
+        arguments: vec![
+            HirExpression::Variable("fp".to_string()),
+            HirExpression::StringLiteral("val=%d\\n".to_string()),
+            HirExpression::Variable("x".to_string()),
+        ],
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(result.contains("write!"), "Got: {}", result);
+}
+
+// --- FunctionCall: fread → Read::read ---
+#[test]
+fn expr_target_fread() {
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    let expr = HirExpression::FunctionCall {
+        function: "fread".to_string(),
+        arguments: vec![
+            HirExpression::Variable("buf".to_string()),
+            HirExpression::IntLiteral(1),
+            HirExpression::Variable("n".to_string()),
+            HirExpression::Variable("fp".to_string()),
+        ],
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(result.contains("std::io::Read"), "Got: {}", result);
+    assert!(result.contains("read(&mut buf)"), "Got: {}", result);
+}
+
+// --- FunctionCall: fwrite → Write::write ---
+#[test]
+fn expr_target_fwrite() {
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    let expr = HirExpression::FunctionCall {
+        function: "fwrite".to_string(),
+        arguments: vec![
+            HirExpression::Variable("data".to_string()),
+            HirExpression::IntLiteral(1),
+            HirExpression::Variable("n".to_string()),
+            HirExpression::Variable("fp".to_string()),
+        ],
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(result.contains("std::io::Write"), "Got: {}", result);
+    assert!(result.contains("write(&data)"), "Got: {}", result);
+}
+
+// --- FunctionCall: fputs → Write::write_all ---
+#[test]
+fn expr_target_fputs() {
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    let expr = HirExpression::FunctionCall {
+        function: "fputs".to_string(),
+        arguments: vec![
+            HirExpression::StringLiteral("hello".to_string()),
+            HirExpression::Variable("fp".to_string()),
+        ],
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(result.contains("std::io::Write"), "Got: {}", result);
+    assert!(result.contains("write_all"), "Got: {}", result);
+}
+
+// --- FunctionCall: atoi → parse::<i32> ---
+#[test]
+fn expr_target_atoi() {
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    let expr = HirExpression::FunctionCall {
+        function: "atoi".to_string(),
+        arguments: vec![HirExpression::Variable("s".to_string())],
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(result.contains("parse::<i32>()"), "Got: {}", result);
+}
+
+// --- FunctionCall: atof → parse::<f64> ---
+#[test]
+fn expr_target_atof() {
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    let expr = HirExpression::FunctionCall {
+        function: "atof".to_string(),
+        arguments: vec![HirExpression::Variable("s".to_string())],
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(result.contains("parse::<f64>()"), "Got: {}", result);
+}
+
+// --- FunctionCall: abs → .abs() ---
+#[test]
+fn expr_target_abs() {
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    let expr = HirExpression::FunctionCall {
+        function: "abs".to_string(),
+        arguments: vec![HirExpression::Variable("x".to_string())],
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(result.contains(".abs()"), "Got: {}", result);
+}
+
+// --- FunctionCall: exit → std::process::exit ---
+#[test]
+fn expr_target_exit() {
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    let expr = HirExpression::FunctionCall {
+        function: "exit".to_string(),
+        arguments: vec![HirExpression::IntLiteral(1)],
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(result.contains("std::process::exit(1)"), "Got: {}", result);
+}
+
+// --- FunctionCall: puts → println! ---
+#[test]
+fn expr_target_puts() {
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    let expr = HirExpression::FunctionCall {
+        function: "puts".to_string(),
+        arguments: vec![HirExpression::StringLiteral("hello".to_string())],
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(result.contains("println!"), "Got: {}", result);
+}
+
+// --- FunctionCall: snprintf with 3 args → format! ---
+#[test]
+fn expr_target_snprintf_no_extra_args() {
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    let expr = HirExpression::FunctionCall {
+        function: "snprintf".to_string(),
+        arguments: vec![
+            HirExpression::Variable("buf".to_string()),
+            HirExpression::IntLiteral(256),
+            HirExpression::StringLiteral("hello".to_string()),
+        ],
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(result.contains("format!"), "Got: {}", result);
+}
+
+// --- FunctionCall: snprintf with extra args ---
+#[test]
+fn expr_target_snprintf_with_args() {
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    let expr = HirExpression::FunctionCall {
+        function: "snprintf".to_string(),
+        arguments: vec![
+            HirExpression::Variable("buf".to_string()),
+            HirExpression::IntLiteral(256),
+            HirExpression::StringLiteral("x=%d".to_string()),
+            HirExpression::Variable("x".to_string()),
+        ],
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(result.contains("format!"), "Got: {}", result);
+}
+
+// --- FunctionCall: sprintf with 2 args → format! ---
+#[test]
+fn expr_target_sprintf_no_extra_args() {
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    let expr = HirExpression::FunctionCall {
+        function: "sprintf".to_string(),
+        arguments: vec![
+            HirExpression::Variable("buf".to_string()),
+            HirExpression::StringLiteral("hello".to_string()),
+        ],
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(result.contains("format!"), "Got: {}", result);
+}
+
+// --- FunctionCall: qsort → .sort_by ---
+#[test]
+fn expr_target_qsort() {
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    let expr = HirExpression::FunctionCall {
+        function: "qsort".to_string(),
+        arguments: vec![
+            HirExpression::Variable("arr".to_string()),
+            HirExpression::Variable("n".to_string()),
+            HirExpression::Sizeof { type_name: "int".to_string() },
+            HirExpression::Variable("compare".to_string()),
+        ],
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(result.contains("sort_by"), "Got: {}", result);
+    assert!(result.contains("compare"), "Got: {}", result);
+}
+
+// --- FunctionCall: fork → comment + 0 ---
+#[test]
+fn expr_target_fork() {
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    let expr = HirExpression::FunctionCall {
+        function: "fork".to_string(),
+        arguments: vec![],
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(result.contains("fork"), "Got: {}", result);
+}
+
+// --- FunctionCall: execl → Command::new ---
+#[test]
+fn expr_target_execl() {
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    let expr = HirExpression::FunctionCall {
+        function: "execl".to_string(),
+        arguments: vec![
+            HirExpression::StringLiteral("/bin/ls".to_string()),
+            HirExpression::StringLiteral("ls".to_string()),
+            HirExpression::NullLiteral,
+        ],
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(result.contains("Command::new"), "Got: {}", result);
+}
+
+// --- FunctionCall: WEXITSTATUS → .code() ---
+#[test]
+fn expr_target_wexitstatus() {
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    let expr = HirExpression::FunctionCall {
+        function: "WEXITSTATUS".to_string(),
+        arguments: vec![HirExpression::Variable("status".to_string())],
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(result.contains(".code()"), "Got: {}", result);
+}
+
+// --- FunctionCall: WIFEXITED → .success() ---
+#[test]
+fn expr_target_wifexited() {
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    let expr = HirExpression::FunctionCall {
+        function: "WIFEXITED".to_string(),
+        arguments: vec![HirExpression::Variable("status".to_string())],
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(result.contains(".success()"), "Got: {}", result);
+}
+
+// --- FunctionCall: printf with no args → print!("") ---
+#[test]
+fn expr_target_printf_no_args() {
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    let expr = HirExpression::FunctionCall {
+        function: "printf".to_string(),
+        arguments: vec![],
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(result.contains("print!"), "Got: {}", result);
+}
+
+// --- FunctionCall: printf with 1 arg → print!(fmt) ---
+#[test]
+fn expr_target_printf_single_arg() {
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    let expr = HirExpression::FunctionCall {
+        function: "printf".to_string(),
+        arguments: vec![HirExpression::StringLiteral("hello\\n".to_string())],
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(result.contains("print!"), "Got: {}", result);
+}
+
+// --- FunctionCall: default passthrough with keyword rename ---
+#[test]
+fn expr_target_func_call_keyword_rename_write() {
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    let expr = HirExpression::FunctionCall {
+        function: "write".to_string(),
+        arguments: vec![
+            HirExpression::IntLiteral(1),
+            HirExpression::Variable("buf".to_string()),
+            HirExpression::Variable("n".to_string()),
+        ],
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(result.contains("c_write("), "Got: {}", result);
+}
+
+// --- ArrayIndex: global array → unsafe wrapper ---
+#[test]
+fn expr_target_array_index_global_unsafe() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_global("TABLE".to_string());
+    ctx.add_variable("TABLE".to_string(), HirType::Array {
+        element_type: Box::new(HirType::Int),
+        size: Some(100),
+    });
+    let expr = HirExpression::ArrayIndex {
+        array: Box::new(HirExpression::Variable("TABLE".to_string())),
+        index: Box::new(HirExpression::IntLiteral(0)),
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(result.contains("unsafe"), "Got: {}", result);
+    assert!(result.contains("TABLE"), "Got: {}", result);
+}
+
+// --- ArrayIndex: raw pointer → unsafe { *ptr.add(i) } ---
+#[test]
+fn expr_target_array_index_raw_pointer_unsafe() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("arr".to_string(), HirType::Pointer(Box::new(HirType::Int)));
+    let expr = HirExpression::ArrayIndex {
+        array: Box::new(HirExpression::Variable("arr".to_string())),
+        index: Box::new(HirExpression::Variable("i".to_string())),
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(result.contains("unsafe"), "Got: {}", result);
+    assert!(result.contains(".add("), "Got: {}", result);
+}
+
+// --- ArrayIndex: regular array → arr[i as usize] ---
+#[test]
+fn expr_target_array_index_regular() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("arr".to_string(), HirType::Array {
+        element_type: Box::new(HirType::Int),
+        size: Some(10),
+    });
+    let expr = HirExpression::ArrayIndex {
+        array: Box::new(HirExpression::Variable("arr".to_string())),
+        index: Box::new(HirExpression::IntLiteral(5)),
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(result.contains("arr[(5) as usize]"), "Got: {}", result);
+    assert!(!result.contains("unsafe"), "Got: {}", result);
+}
+
+// --- Sizeof: known variable → size_of_val ---
+#[test]
+fn expr_target_sizeof_variable() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("x".to_string(), HirType::Int);
+    let expr = HirExpression::Sizeof { type_name: "x".to_string() };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(result.contains("size_of_val(&x)"), "Got: {}", result);
+}
+
+// --- NullLiteral → None ---
+#[test]
+fn expr_target_null_literal() {
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    let expr = HirExpression::NullLiteral;
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert_eq!(result, "None");
+}
+
+// --- Calloc HIR node → vec![default; count] ---
+#[test]
+fn expr_target_calloc_hir_node_int() {
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    let expr = HirExpression::Calloc {
+        count: Box::new(HirExpression::IntLiteral(10)),
+        element_type: Box::new(HirType::Int),
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(result.contains("vec![0i32; 10]"), "Got: {}", result);
+}
+
+// --- Calloc HIR node unsigned int ---
+#[test]
+fn expr_target_calloc_hir_node_unsigned_int() {
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    let expr = HirExpression::Calloc {
+        count: Box::new(HirExpression::IntLiteral(5)),
+        element_type: Box::new(HirType::UnsignedInt),
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(result.contains("vec![0u32; 5]"), "Got: {}", result);
+}
+
+// --- Malloc HIR node with multiply → Vec::with_capacity ---
+#[test]
+fn expr_target_malloc_hir_node_multiply() {
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    let expr = HirExpression::Malloc {
+        size: Box::new(HirExpression::BinaryOp {
+            op: BinaryOperator::Multiply,
+            left: Box::new(HirExpression::Variable("n".to_string())),
+            right: Box::new(HirExpression::Sizeof { type_name: "int".to_string() }),
+        }),
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(result.contains("Vec::with_capacity("), "Got: {}", result);
+}
+
+// --- Malloc HIR node without multiply → Box::new ---
+#[test]
+fn expr_target_malloc_hir_node_single() {
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    let expr = HirExpression::Malloc {
+        size: Box::new(HirExpression::IntLiteral(4)),
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(result.contains("Box::new(0i32)"), "Got: {}", result);
+}
