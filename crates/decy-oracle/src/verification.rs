@@ -627,4 +627,41 @@ mod tests {
         assert!(!config.run_tests);
         assert!(config.work_dir.is_some());
     }
+
+    #[test]
+    fn test_run_test_suite_empty_dir() {
+        let temp = tempfile::tempdir().unwrap();
+        let result = run_test_suite(temp.path(), "fn main() {}");
+        assert_eq!(result, TestResult::NoTests);
+    }
+
+    #[test]
+    fn test_run_test_suite_dir_with_files_no_script() {
+        let temp = tempfile::tempdir().unwrap();
+        std::fs::write(temp.path().join("test.rs"), "fn test() {}").unwrap();
+        let result = run_test_suite(temp.path(), "fn main() {}");
+        // Has files but no run_tests.sh -> NoTests
+        assert_eq!(result, TestResult::NoTests);
+    }
+
+    #[test]
+    fn test_verify_with_existing_empty_test_dir() {
+        let code = "fn add(a: i32, b: i32) -> i32 { a + b }";
+        let config = VerificationConfig::default();
+        let temp = tempfile::tempdir().unwrap();
+        let result = verify_fix_semantically(code, Some(temp.path()), &config);
+        // Compiles OK, empty test dir -> CompilesOnly
+        assert_eq!(result, VerificationResult::CompilesOnly);
+    }
+
+    #[test]
+    fn test_check_compilation_with_work_dir() {
+        let temp = tempfile::tempdir().unwrap();
+        let config = VerificationConfig {
+            work_dir: Some(temp.path().to_path_buf()),
+            ..Default::default()
+        };
+        let result = check_rust_compilation("fn valid() -> i32 { 42 }", &config);
+        assert!(result.is_ok());
+    }
 }

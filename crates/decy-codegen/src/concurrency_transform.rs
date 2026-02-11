@@ -230,4 +230,44 @@ mod tests {
         let expr = HirExpression::IntLiteral(42);
         assert_eq!(extract_variable_name(&expr), None);
     }
+
+    #[test]
+    fn test_lock_via_pointer_field_access() {
+        let stmt = HirStatement::Expression(HirExpression::FunctionCall {
+            function: "pthread_mutex_lock".to_string(),
+            arguments: vec![HirExpression::AddressOf(Box::new(
+                HirExpression::PointerFieldAccess {
+                    pointer: Box::new(HirExpression::Variable("ctx".to_string())),
+                    field: "lock".to_string(),
+                },
+            ))],
+        });
+        assert_eq!(is_pthread_lock(&stmt), Some("lock".to_string()));
+    }
+
+    #[test]
+    fn test_unlock_via_pointer_field_access() {
+        let stmt = HirStatement::Expression(HirExpression::FunctionCall {
+            function: "pthread_mutex_unlock".to_string(),
+            arguments: vec![HirExpression::AddressOf(Box::new(
+                HirExpression::PointerFieldAccess {
+                    pointer: Box::new(HirExpression::Variable("ctx".to_string())),
+                    field: "lock".to_string(),
+                },
+            ))],
+        });
+        assert_eq!(is_pthread_unlock(&stmt), Some("lock".to_string()));
+    }
+
+    #[test]
+    fn test_unmatched_lock_no_region() {
+        let func = HirFunction::new_with_body(
+            "test".to_string(),
+            HirType::Void,
+            vec![],
+            vec![lock_call("orphan")],
+        );
+        let regions = identify_lock_regions(&func);
+        assert!(regions.is_empty());
+    }
 }
