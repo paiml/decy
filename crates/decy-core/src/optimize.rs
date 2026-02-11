@@ -1279,4 +1279,103 @@ mod tests {
             other => panic!("Expected For with None condition, got {:?}", other),
         }
     }
+
+    #[test]
+    fn test_count_uses_in_if_no_else() {
+        // If with no else block — exercises the None path at line 369
+        let stmts = vec![HirStatement::If {
+            condition: HirExpression::Variable("x".to_string()),
+            then_block: vec![HirStatement::Return(Some(HirExpression::Variable(
+                "x".to_string(),
+            )))],
+            else_block: None,
+        }];
+        assert_eq!(count_uses("x", &stmts), 2); // condition + then
+    }
+
+    #[test]
+    fn test_count_uses_in_var_decl_stmt() {
+        // VariableDeclaration falls through to _ => 0
+        let stmts = vec![HirStatement::VariableDeclaration {
+            name: "y".to_string(),
+            var_type: HirType::Int,
+            initializer: Some(HirExpression::Variable("x".to_string())),
+        }];
+        // VariableDeclaration is handled by _ => 0, so x is NOT counted
+        assert_eq!(count_uses("x", &stmts), 0);
+    }
+
+    #[test]
+    fn test_count_uses_in_while_stmt() {
+        // While falls through to _ => 0
+        let stmts = vec![HirStatement::While {
+            condition: HirExpression::Variable("x".to_string()),
+            body: vec![HirStatement::Expression(HirExpression::Variable(
+                "x".to_string(),
+            ))],
+        }];
+        // While is handled by _ => 0
+        assert_eq!(count_uses("x", &stmts), 0);
+    }
+
+    #[test]
+    fn test_temp_elimination_name_mismatch() {
+        // let tmp = 42; return other; → NOT eliminated (different variable names)
+        let stmts = vec![
+            HirStatement::VariableDeclaration {
+                name: "tmp".to_string(),
+                var_type: HirType::Int,
+                initializer: Some(HirExpression::IntLiteral(42)),
+            },
+            HirStatement::Return(Some(HirExpression::Variable("other".to_string()))),
+        ];
+        let result = eliminate_temporaries(stmts);
+        assert_eq!(result.len(), 2); // NOT eliminated
+    }
+
+    #[test]
+    fn test_temp_elimination_no_initializer() {
+        // let x; return x; → NOT eliminated (no initializer)
+        let stmts = vec![
+            HirStatement::VariableDeclaration {
+                name: "x".to_string(),
+                var_type: HirType::Int,
+                initializer: None,
+            },
+            HirStatement::Return(Some(HirExpression::Variable("x".to_string()))),
+        ];
+        let result = eliminate_temporaries(stmts);
+        assert_eq!(result.len(), 2); // NOT eliminated (no initializer)
+    }
+
+    #[test]
+    fn test_dead_branch_nested_if_recurse() {
+        // if(x) { if(0) { dead } } → if(x) { }
+        let stmts = vec![HirStatement::If {
+            condition: HirExpression::Variable("x".to_string()),
+            then_block: vec![HirStatement::If {
+                condition: HirExpression::IntLiteral(0),
+                then_block: vec![HirStatement::Return(Some(HirExpression::IntLiteral(99)))],
+                else_block: None,
+            }],
+            else_block: None,
+        }];
+        let result = remove_dead_branches(stmts);
+        assert_eq!(result.len(), 1);
+        match &result[0] {
+            HirStatement::If { then_block, .. } => {
+                assert!(then_block.is_empty(), "Nested dead branch should be removed");
+            }
+            other => panic!("Expected If, got {:?}", other),
+        }
+    }
+
+    #[test]
+    fn test_is_allocation_expr_cast_non_alloc() {
+        // Cast wrapping non-allocation expression → false
+        assert!(!is_allocation_expr(&HirExpression::Cast {
+            target_type: HirType::Int,
+            expr: Box::new(HirExpression::IntLiteral(42)),
+        }));
+    }
 }

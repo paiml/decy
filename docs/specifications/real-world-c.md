@@ -3,7 +3,7 @@
 **Status**: Active (S1/S2 Implemented)
 **Created**: 2026-02-10
 **Updated**: 2026-02-11
-**Version**: 1.2
+**Version**: 1.3
 
 ## Problem Statement
 
@@ -255,30 +255,45 @@ The transpiler must preserve C program semantics. Differential testing compiles 
 
 ### Coverage Results
 
-Post-implementation workspace coverage: **97.97% region, 97.78% line** (target: 95% — EXCEEDED)
+Post-implementation workspace coverage: **98.07% line, 97.84% region** (target: 95% — EXCEEDED)
+
+678 uncovered lines remain across 35,123 total lines. Top uncovered files:
+
+| File | Uncovered | Coverage | Notes |
+|------|-----------|----------|-------|
+| parser.rs | 208 | 93.13% | FFI/clang-sys boundary code |
+| codegen/lib.rs | 149 | 96.30% | Deep pipeline paths, LLVM artifacts |
+| main.rs | 57 | 89.62% | CLI entry points (interactive) |
+| core/lib.rs | 50 | 97.80% | Pipeline orchestration |
+| array_slice.rs | 37 | 95.92% | Complex context setup |
+| optimize.rs | 24 | 97.23% | Constant folding edge cases |
+| dataset.rs | 15 | 96.13% | Error closures (infallible) |
+| retraining_pipeline.rs | 11 | 98.47% | Training loop internals |
 
 | Crate | Region | Line | Notes |
 |-------|--------|------|-------|
 | decy-parser | 93.13% | 91.99% | FFI/clang-sys boundary code (349 uncovered) |
 | decy-hir | 100% | 100% | Full coverage via integration tests |
 | decy-analyzer | 97.00% | — | Lock analysis, subprocess analysis, output params covered |
-| decy-ownership | 98.90% | — | Inference escape paths, InlineAsm passthrough covered |
-| decy-codegen | 96.88% | 96.30% | 1,176 deep coverage tests (35 batches) |
+| decy-ownership | 98.90% | — | Inference escape paths, InlineAsm passthrough, classifier integration covered |
+| decy-codegen | 96.88% | 96.30% | 1,176 deep coverage tests (35 batches) + box/concurrency/pattern edge cases |
 | decy-verify | 99.23% | 100% | lock_verify 100%, compile verification fully tested |
-| decy-core | 97.61% | 97.80% | Pipeline tests + uninitialized globals + enum/function dedup |
+| decy-core | 97.61% | 97.80% | Pipeline tests + uninitialized globals + enum/function dedup + metrics serialization |
 | decy-stdlib | 100% | 100% | Full coverage |
 | decy-llm | 97.63% | — | Render, validate, parse_response, context builder, verifier edge cases |
-| decy-oracle | 98.16% | — | Verification Default/stats, trace verifier, baseline edge cases |
+| decy-oracle | 98.16% | — | Verification Default/stats, trace verifier, baseline, golden trace, dataset export |
 
 ### Test Corpus
 
-- **Total tests**: 13,100+ passing across workspace
+- **Total tests**: 13,200+ passing across workspace
 - **Falsification tests**: 2,150 total (92 falsified, 95.7% pass rate)
-- **Codegen deep tests**: 1,176 across 35 batches (expression target type, annotated signatures, type coercions, null checks, pointer analysis, Vec/Box transforms, deref assigns, sizeof, global variables, format specifiers, strlen idioms, string iter func args, BinaryOp target_type paths, statement_modifies_variable, generate_function variants, Option/Box null checks, mixed arithmetic promotions, comma operator, assignment expressions, pointer subtraction detection, void* constraints, macro type inference, malloc statement paths, char-int coercion, NULL comparison detection, pointer arithmetic detection, strip_unsafe, malloc fallback, sizeof struct field, sizeof member access, LogicalNot int target, AddressOf call args, Vec init paths, transform_vec_statement, output params, format positions, array param slice, char array escape, string ref arrays, count param heuristic, Box default/zeroed init, Vec/Box null→false/true, *str++ deref elision, pointer field→null_mut, annotated non-slice ref, strlen→is_empty, pointer post-inc/dec wrapping_add/sub, (*p)++/-- unsafe, &str byte extract, Option→is_none/is_some, array→void* cast, global array assign unsafe, sizeof ctx field lookup, ptr-to-ptr deref unsafe, int→char as u8, macro generation (object/function-like, ternary, octal, hex, char, float, empty), typedef redundancy (struct/enum name match), constant char*→&str mapping, LogicalNot bool/int target type coercion, main signature return type elision, default_value_for_type (FunctionPointer, String, TypeAlias))
+- **Codegen deep tests**: 1,176 across 35 batches covering expression target type, annotated signatures, type coercions, null checks, pointer analysis, Vec/Box transforms, deref assigns, sizeof, global variables, format specifiers, strlen idioms, string iter func args, BinaryOp target_type paths, statement_modifies_variable, generate_function variants, Option/Box null checks, mixed arithmetic promotions, comma operator, assignment expressions, pointer subtraction detection, void* constraints, macro type inference, malloc statement paths, char-int coercion, NULL comparison detection, pointer arithmetic detection, strip_unsafe, malloc fallback, sizeof struct field, sizeof member access, LogicalNot int target, AddressOf call args, Vec init paths, transform_vec_statement, output params, format positions, array param slice, char array escape, string ref arrays, count param heuristic, Box default/zeroed init, Vec/Box null→false/true, *str++ deref elision, pointer field→null_mut, annotated non-slice ref, strlen→is_empty, pointer post-inc/dec wrapping_add/sub, (*p)++/-- unsafe, &str byte extract, Option→is_none/is_some, array→void* cast, global array assign unsafe, sizeof ctx field lookup, ptr-to-ptr deref unsafe, int→char as u8, macro generation (object/function-like, ternary, octal, hex, char, float, empty), typedef redundancy (struct/enum name match), constant char*→&str mapping, LogicalNot bool/int target type coercion, main signature return type elision, default_value_for_type (FunctionPointer, String, TypeAlias)
+- **Box/concurrency transform tests**: 22 (malloc→Box type preservation, Float/Double/Option/fallback defaults, PointerFieldAccess lock/unlock, orphan lock regions)
 - **LLM coverage tests**: 30 (render multi-function, validate edge cases, parse_response, context builder non-existent function paths, verifier compile/lint/run_tests, iteration context feedback, VerificationLoop format feedback)
 - **Oracle trace verifier tests**: 43 (compilation, wrapping, unsafe modes, stats tracking, batch verification, pass_rate zero, defaults, unsafe counting variants)
-- **Core pipeline tests**: 12 new (uninitialized globals, enum variants, function dedup)
+- **Core pipeline tests**: 12 (uninitialized globals, enum variants, function dedup) + 4 metrics tests (to_json, success/failure results, no-error markdown)
 - **Inference branch tests**: 17 (via DataflowGraph test helpers for defensive branches)
+- **Ownership tests**: Retraining pipeline ClassMetrics/TrainingMetrics fields, hybrid classifier trait defaults, classifier integration edge cases
 
 ### Falsification Analysis (Popperian Methodology)
 
@@ -310,21 +325,36 @@ All changes in this specification must pass:
 - No regressions in existing falsification tests
 - New tests for every falsifiable prediction marked as implemented
 
-## Coverage Gap Analysis (codegen/lib.rs)
+## Coverage Gap Analysis
 
-120 uncovered line starts remain in codegen/lib.rs (96.30% line coverage). Classification:
+678 uncovered lines remain workspace-wide at 98.07% line coverage. Classification:
 
-| Category | Count | % | Coverable? |
-|----------|-------|---|------------|
-| `?` error propagation on infallible functions | 3 | 2.5% | No — functions always return Ok |
-| `unreachable!()` / `panic!()` macros | 5 | 4.2% | No — would crash tests |
-| Dead code (early match shadows) | 4 | 3.3% | No — LogicalNot caught by earlier handler |
-| Closing braces (LLVM coverage artifact) | ~40 | 33.3% | No — coverage instrumentation artifact |
-| Deep integration paths (variable declaration, assignment, function body generation) | ~55 | 45.8% | Only via full pipeline tests with parser |
-| Edge case branches (realloc, string_iter, ptr arithmetic detection) | ~13 | 10.8% | Partially — requires complex context setup |
+### Asymptotic Coverage Categories
 
-**Key insight**: The remaining uncovered lines are at the coverage asymptote. Further gains require full-pipeline integration tests (C source → parser → HIR → codegen) rather than unit tests. The 120 remaining lines represent deep statement generation paths triggered by specific combinations of variable types, initializers, and function body structure that only occur when processing real C files through the complete transpilation pipeline.
+| Category | Lines | % of Uncovered | Coverable? |
+|----------|-------|----------------|------------|
+| FFI/clang-sys boundary (parser.rs) | ~208 | 30.7% | Only via live LLVM — unit-untestable |
+| CLI entry points (main.rs, repl.rs) | ~63 | 9.3% | Requires interactive I/O mocking |
+| Deep codegen integration paths | ~149 | 22.0% | Only via full C→parser→HIR→codegen pipeline |
+| Pipeline orchestration (core/lib.rs) | ~50 | 7.4% | Requires complex multi-stage setup |
+| LLVM coverage artifacts (closing braces) | ~80 | 11.8% | No — instrumentation artifact |
+| Error closures on infallible operations | ~30 | 4.4% | No — can't trigger serialization failures |
+| Complex context setup (array_slice, optimize) | ~61 | 9.0% | Partially — requires multi-variable dataflow |
+| Remaining edge cases | ~37 | 5.5% | Targeted tests possible |
 
-**Recommendation**: Future coverage improvements should focus on:
-1. Adding integration tests with small C files targeting specific patterns (malloc+realloc, string iteration, pointer-to-pointer)
-2. The ~13 edge case branches with complex context setup are the highest-ROI unit test targets
+### Codegen (149 uncovered)
+
+| Subcategory | Count | Coverable? |
+|-------------|-------|------------|
+| `?` error propagation on infallible functions | 3 | No |
+| `unreachable!()` / `panic!()` macros | 5 | No — would crash tests |
+| Dead code (early match shadows) | 4 | No — LogicalNot caught by earlier handler |
+| Closing braces (LLVM artifact) | ~40 | No |
+| Deep statement generation paths | ~55 | Only via full pipeline |
+| Edge case branches (realloc, string_iter) | ~13 | Partially |
+
+**Key insight**: The workspace is at the coverage asymptote. The remaining 678 uncovered lines fall into categories that are either untestable (FFI, LLVM artifacts, infallible error paths) or require full-pipeline integration tests. Further gains require:
+
+1. **Integration tests with real C files** targeting specific patterns (malloc+realloc, string iteration, pointer-to-pointer)
+2. **CLI contract tests** using `assert_cmd` for main.rs coverage
+3. **Parser integration tests** requiring live LLVM/Clang environment

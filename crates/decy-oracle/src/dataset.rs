@@ -803,4 +803,67 @@ mod tests {
         assert_eq!(example.source, "bootstrap");
         assert!(example.verified);
     }
+
+    #[test]
+    fn test_export_jsonl_write_error() {
+        let exporter = DatasetExporter::new();
+        // Write to a non-existent directory to trigger the fs::write error path
+        let result = exporter.export_jsonl("/nonexistent/dir/patterns.jsonl");
+        assert!(result.is_err());
+        let err = format!("{}", result.unwrap_err());
+        assert!(err.contains("Failed to write JSONL"));
+    }
+
+    #[test]
+    fn test_export_chatml_write_error() {
+        let exporter = DatasetExporter::new();
+        let result = exporter.export_chatml("/nonexistent/dir/patterns.chatml");
+        assert!(result.is_err());
+        let err = format!("{}", result.unwrap_err());
+        assert!(err.contains("Failed to write ChatML"));
+    }
+
+    #[test]
+    fn test_export_alpaca_write_error() {
+        let exporter = DatasetExporter::new();
+        let result = exporter.export_alpaca("/nonexistent/dir/patterns.alpaca");
+        assert!(result.is_err());
+        let err = format!("{}", result.unwrap_err());
+        assert!(err.contains("Failed to write Alpaca"));
+    }
+
+    #[test]
+    fn test_stats_verification_rate_nonzero() {
+        let mut exporter = DatasetExporter::empty();
+        exporter.add_example(TrainingExample {
+            error_code: "E0308".to_string(),
+            decision: "cast".to_string(),
+            fix_diff: "- a\n+ b".to_string(),
+            description: "test".to_string(),
+            source: "test".to_string(),
+            verified: true,
+            success_count: 1,
+            failure_count: 0,
+        });
+        exporter.add_example(TrainingExample {
+            error_code: "E0133".to_string(),
+            decision: "unsafe".to_string(),
+            fix_diff: "- c\n+ d".to_string(),
+            description: "test2".to_string(),
+            source: "test".to_string(),
+            verified: false,
+            success_count: 0,
+            failure_count: 1,
+        });
+        let stats = exporter.stats();
+        let md = stats.to_markdown();
+        // Should show 50.0% verification rate (1 verified out of 2)
+        assert!(md.contains("50.0%"));
+        // Should have multiple error codes
+        assert!(md.contains("E0308"));
+        assert!(md.contains("E0133"));
+        // Should show both decision types
+        assert!(md.contains("cast"));
+        assert!(md.contains("unsafe"));
+    }
 }

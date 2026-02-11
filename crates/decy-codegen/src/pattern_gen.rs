@@ -254,3 +254,73 @@ impl Default for PatternGenerator {
         Self::new()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_pattern_generator_default_impl() {
+        let gen = PatternGenerator::default();
+        // Non-if statement returns empty
+        let result = gen.transform_tag_check(&HirStatement::Break);
+        assert!(result.is_empty());
+    }
+
+    #[test]
+    fn test_capitalize_tag_value_single_underscore() {
+        // Single underscore → split gives ["", ""] → filter empties → parts empty → return as-is
+        let result = PatternGenerator::capitalize_tag_value("_");
+        assert_eq!(result, "_");
+    }
+
+    #[test]
+    fn test_capitalize_tag_value_empty() {
+        let result = PatternGenerator::capitalize_tag_value("");
+        assert_eq!(result, "");
+    }
+
+    #[test]
+    fn test_generate_block_body_single_return() {
+        let gen = PatternGenerator::new();
+        // Build tag check with else block containing a single Return(Some(...))
+        let condition = HirExpression::BinaryOp {
+            left: Box::new(HirExpression::FieldAccess {
+                object: Box::new(HirExpression::Variable("v".to_string())),
+                field: "tag".to_string(),
+            }),
+            op: BinaryOperator::Equal,
+            right: Box::new(HirExpression::Variable("INT".to_string())),
+        };
+
+        let stmt = HirStatement::If {
+            condition,
+            then_block: vec![],
+            else_block: Some(vec![HirStatement::Return(Some(
+                HirExpression::IntLiteral(-1),
+            ))]),
+        };
+
+        let result = gen.transform_tag_check(&stmt);
+        // Else block with single return → "/* return value */"
+        assert!(result.contains("_ => /* return value */"));
+    }
+
+    #[test]
+    fn test_find_union_field_in_non_field_access() {
+        // Test find_union_field_in_expr with non-FieldAccess expression
+        let result = PatternGenerator::find_union_field_in_expr(&HirExpression::IntLiteral(42));
+        assert!(result.is_none());
+    }
+
+    #[test]
+    fn test_find_union_field_single_field_access() {
+        // FieldAccess where inner is not another FieldAccess with "data"
+        let expr = HirExpression::FieldAccess {
+            object: Box::new(HirExpression::Variable("v".to_string())),
+            field: "value".to_string(),
+        };
+        let result = PatternGenerator::find_union_field_in_expr(&expr);
+        assert!(result.is_none());
+    }
+}
