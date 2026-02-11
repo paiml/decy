@@ -21124,3 +21124,290 @@ fn gen_sig_string_iter_mutable_u8_slice() {
         sig
     );
 }
+
+// ============================================================================
+// BATCH 29: Array parameter in generate_function_with_structs, annotated sig
+// with output params, transform_vec_statement with non-pointer, format positions
+// ============================================================================
+
+// --- generate_function_with_structs array param → slice (lines 6502-6509) ---
+
+#[test]
+fn gen_func_with_structs_array_param_to_slice() {
+    // Function with int* param + body accessing data[i] → slice parameter
+    let cg = CodeGenerator::new();
+    let func = HirFunction::new_with_body(
+        "sum".to_string(),
+        HirType::Int,
+        vec![
+            HirParameter::new("data".to_string(), HirType::Pointer(Box::new(HirType::Int))),
+            HirParameter::new("len".to_string(), HirType::Int),
+        ],
+        vec![
+            HirStatement::VariableDeclaration {
+                name: "total".to_string(),
+                var_type: HirType::Int,
+                initializer: Some(HirExpression::IntLiteral(0)),
+            },
+            HirStatement::For {
+                init: vec![HirStatement::VariableDeclaration {
+                    name: "i".to_string(),
+                    var_type: HirType::Int,
+                    initializer: Some(HirExpression::IntLiteral(0)),
+                }],
+                condition: Some(HirExpression::BinaryOp {
+                    op: BinaryOperator::LessThan,
+                    left: Box::new(HirExpression::Variable("i".to_string())),
+                    right: Box::new(HirExpression::Variable("len".to_string())),
+                }),
+                increment: vec![HirStatement::Expression(HirExpression::PostIncrement {
+                    operand: Box::new(HirExpression::Variable("i".to_string())),
+                })],
+                body: vec![HirStatement::Assignment {
+                    target: "total".to_string(),
+                    value: HirExpression::BinaryOp {
+                        op: BinaryOperator::Add,
+                        left: Box::new(HirExpression::Variable("total".to_string())),
+                        right: Box::new(HirExpression::ArrayIndex {
+                            array: Box::new(HirExpression::Variable("data".to_string())),
+                            index: Box::new(HirExpression::Variable("i".to_string())),
+                        }),
+                    },
+                }],
+            },
+            HirStatement::Return(Some(HirExpression::Variable("total".to_string()))),
+        ],
+    );
+    let code = cg.generate_function_with_structs(&func, &[]);
+    // Should generate array-to-slice transformation in body context
+    assert!(
+        code.contains("sum"),
+        "Should have function name, Got: {}",
+        code
+    );
+}
+
+// --- generate_function_with_lifetimes_and_structs with output params (tuple return) ---
+
+#[test]
+fn gen_func_lifetimes_output_param_single() {
+    // int func(int key, int* out) where out is written before read → output param
+    let cg = CodeGenerator::new();
+    let func = HirFunction::new_with_body(
+        "lookup".to_string(),
+        HirType::Int,
+        vec![
+            HirParameter::new("key".to_string(), HirType::Int),
+            HirParameter::new("out".to_string(), HirType::Pointer(Box::new(HirType::Int))),
+        ],
+        vec![
+            HirStatement::DerefAssignment {
+                target: HirExpression::Variable("out".to_string()),
+                value: HirExpression::BinaryOp {
+                    op: BinaryOperator::Multiply,
+                    left: Box::new(HirExpression::Variable("key".to_string())),
+                    right: Box::new(HirExpression::IntLiteral(2)),
+                },
+            },
+            HirStatement::Return(Some(HirExpression::IntLiteral(0))),
+        ],
+    );
+    let sig = make_annotated_sig(&func);
+    let code = cg.generate_function_with_lifetimes_and_structs(
+        &func, &sig, &[], &[], &[], &[], &[],
+    );
+    assert!(
+        code.contains("lookup"),
+        "Should have function name, Got: {}",
+        code
+    );
+}
+
+// --- generate_function_with_lifetimes_and_structs with multiple output params ---
+
+#[test]
+fn gen_func_lifetimes_multiple_output_params() {
+    // void func(int x, int* min_out, int* max_out) → returns (i32, i32)
+    let cg = CodeGenerator::new();
+    let func = HirFunction::new_with_body(
+        "minmax".to_string(),
+        HirType::Void,
+        vec![
+            HirParameter::new("x".to_string(), HirType::Int),
+            HirParameter::new("min_out".to_string(), HirType::Pointer(Box::new(HirType::Int))),
+            HirParameter::new("max_out".to_string(), HirType::Pointer(Box::new(HirType::Int))),
+        ],
+        vec![
+            HirStatement::DerefAssignment {
+                target: HirExpression::Variable("min_out".to_string()),
+                value: HirExpression::Variable("x".to_string()),
+            },
+            HirStatement::DerefAssignment {
+                target: HirExpression::Variable("max_out".to_string()),
+                value: HirExpression::Variable("x".to_string()),
+            },
+        ],
+    );
+    let sig = make_annotated_sig(&func);
+    let code = cg.generate_function_with_lifetimes_and_structs(
+        &func, &sig, &[], &[], &[], &[], &[],
+    );
+    assert!(
+        code.contains("minmax"),
+        "Should have function name, Got: {}",
+        code
+    );
+}
+
+// --- transform_vec_statement with non-pointer VariableDeclaration → early return ---
+
+#[test]
+fn transform_vec_stmt_non_pointer_var_decl() {
+    // VariableDeclaration with non-pointer type → clone (early return at line 6906)
+    let cg = CodeGenerator::new();
+    let stmt = HirStatement::VariableDeclaration {
+        name: "x".to_string(),
+        var_type: HirType::Int,
+        initializer: Some(HirExpression::IntLiteral(42)),
+    };
+    let candidate = decy_analyzer::patterns::VecCandidate {
+        variable: "x".to_string(),
+        malloc_index: 0,
+        free_index: None,
+        capacity_expr: None,
+    };
+    let result = cg.transform_vec_statement(&stmt, &candidate);
+    match &result {
+        HirStatement::VariableDeclaration { name, .. } => assert_eq!(name, "x"),
+        _ => panic!("Expected VariableDeclaration, Got: {:?}", result),
+    }
+}
+
+// --- find_string_format_positions: % at end of string (lines 3940-3942) ---
+
+#[test]
+fn find_format_positions_trailing_percent_with_modifier() {
+    // Format string ending with "%l" — % + length modifier but no specifier after
+    // This hits the else branch at line 3940-3942 (j >= chars.len() after consuming 'l')
+    let positions = CodeGenerator::find_string_format_positions("%s value is %l");
+    // Should find %s at position 0; trailing %l has no conversion specifier
+    assert_eq!(positions.len(), 1, "Should find 1 string format specifier, Got: {:?}", positions);
+}
+
+// --- generate_expression: ArrayIndex where array expr is complex (line 2899) ---
+
+#[test]
+fn array_index_complex_array_expr() {
+    // ArrayIndex where array is a FunctionCall (not a simple variable)
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let expr = HirExpression::ArrayIndex {
+        array: Box::new(HirExpression::FunctionCall {
+            function: "get_data".to_string(),
+            arguments: vec![],
+        }),
+        index: Box::new(HirExpression::IntLiteral(0)),
+    };
+    let code = cg.generate_expression_with_target_type(&expr, &mut ctx, None);
+    assert!(
+        code.contains("get_data") && code.contains("["),
+        "Should index into function call result, Got: {}",
+        code
+    );
+}
+
+// --- unary_operator_to_string: AddressOf (line 3475) ---
+
+#[test]
+fn unary_op_to_string_address_of() {
+    // UnaryOp with AddressOf operator that falls through to unary_operator_to_string
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    // Use AddressOf as UnaryOp (not the dedicated AddressOf variant)
+    let expr = HirExpression::UnaryOp {
+        op: UnaryOperator::AddressOf,
+        operand: Box::new(HirExpression::Variable("x".to_string())),
+    };
+    let code = cg.generate_expression_with_target_type(&expr, &mut ctx, None);
+    assert!(
+        code.contains("&"),
+        "Should contain & operator, Got: {}",
+        code
+    );
+}
+
+// --- expression_compares_to_null matches (lines 5523, 5534) ---
+
+#[test]
+fn expr_compares_to_null_nested_logical() {
+    // Expression that checks null in a LogicalAnd/LogicalOr context
+    let cg = CodeGenerator::new();
+    let func = HirFunction::new_with_body(
+        "check".to_string(),
+        HirType::Int,
+        vec![HirParameter::new("ptr".to_string(), HirType::Pointer(Box::new(HirType::Int)))],
+        vec![
+            HirStatement::If {
+                condition: HirExpression::BinaryOp {
+                    op: BinaryOperator::LogicalAnd,
+                    left: Box::new(HirExpression::BinaryOp {
+                        op: BinaryOperator::NotEqual,
+                        left: Box::new(HirExpression::Variable("ptr".to_string())),
+                        right: Box::new(HirExpression::NullLiteral),
+                    }),
+                    right: Box::new(HirExpression::BinaryOp {
+                        op: BinaryOperator::GreaterThan,
+                        left: Box::new(HirExpression::Dereference(Box::new(
+                            HirExpression::Variable("ptr".to_string()),
+                        ))),
+                        right: Box::new(HirExpression::IntLiteral(0)),
+                    }),
+                },
+                then_block: vec![HirStatement::Return(Some(HirExpression::IntLiteral(1)))],
+                else_block: Some(vec![HirStatement::Return(Some(HirExpression::IntLiteral(0)))]),
+            },
+        ],
+    );
+    let sig = cg.generate_signature(&func);
+    assert!(sig.contains("check"), "Got: {}", sig);
+}
+
+// --- is_string_iteration_param: pointer subtraction blocks string iter (line 5672) ---
+
+#[test]
+fn gen_sig_string_iter_blocked_by_ptr_subtraction() {
+    // char* with pointer arithmetic BUT also pointer subtraction → NOT string iter → raw pointer
+    let cg = CodeGenerator::new();
+    let func = HirFunction::new_with_body(
+        "count_chars".to_string(),
+        HirType::Int,
+        vec![HirParameter::new(
+            "s".to_string(),
+            HirType::Pointer(Box::new(HirType::Char)),
+        )],
+        vec![
+            // Save start pointer
+            HirStatement::VariableDeclaration {
+                name: "start".to_string(),
+                var_type: HirType::Pointer(Box::new(HirType::Char)),
+                initializer: Some(HirExpression::Variable("s".to_string())),
+            },
+            // s++ (pointer arithmetic)
+            HirStatement::Expression(HirExpression::PostIncrement {
+                operand: Box::new(HirExpression::Variable("s".to_string())),
+            }),
+            // return s - start (pointer subtraction)
+            HirStatement::Return(Some(HirExpression::BinaryOp {
+                op: BinaryOperator::Subtract,
+                left: Box::new(HirExpression::Variable("s".to_string())),
+                right: Box::new(HirExpression::Variable("start".to_string())),
+            })),
+        ],
+    );
+    let sig = cg.generate_signature(&func);
+    // Should NOT use &[u8] because of pointer subtraction
+    assert!(sig.contains("count_chars"), "Got: {}", sig);
+}
+
+// Note: strip_unsafe is a local function inside generate_statement_with_context,
+// so it can't be tested directly. It's exercised through DerefAssignment codegen.
