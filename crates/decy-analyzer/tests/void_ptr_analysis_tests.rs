@@ -704,3 +704,149 @@ fn test_type_constraint_clone_eq() {
     let c3 = TypeConstraint::Mutable;
     assert_ne!(c1, c3);
 }
+
+// ============================================================================
+// COVERAGE: Default trait, statement default arm, expression default arm
+// ============================================================================
+
+#[test]
+fn test_void_ptr_analyzer_default() {
+    let analyzer = VoidPtrAnalyzer::default();
+    let func = create_function("empty", vec![], vec![]);
+    let patterns = analyzer.analyze(&func);
+    assert!(patterns.is_empty());
+}
+
+#[test]
+fn test_analyze_statement_default_arm() {
+    // Break and Continue hit the `_ => {}` default arm (line 193)
+    let func = create_function(
+        "process",
+        vec![void_ptr_param("data")],
+        vec![
+            HirStatement::Break,
+            HirStatement::Continue,
+            HirStatement::Return(None),
+        ],
+    );
+
+    let analyzer = VoidPtrAnalyzer::new();
+    let patterns = analyzer.analyze(&func);
+    assert!(!patterns.is_empty());
+    assert!(
+        patterns[0].inferred_types.is_empty(),
+        "Break/Continue/Return(None) don't produce type inferences"
+    );
+}
+
+#[test]
+fn test_binop_non_comparison_default_arm() {
+    // BinaryOp with Add (not comparison) hits `_ => {}` at line 232
+    let func = create_function(
+        "process",
+        vec![void_ptr_param("data")],
+        vec![HirStatement::Expression(HirExpression::BinaryOp {
+            op: decy_hir::BinaryOperator::Add,
+            left: Box::new(HirExpression::Variable("data".to_string())),
+            right: Box::new(HirExpression::IntLiteral(1)),
+        })],
+    );
+
+    let analyzer = VoidPtrAnalyzer::new();
+    let patterns = analyzer.analyze(&func);
+    assert!(!patterns.is_empty());
+    assert!(
+        !patterns[0]
+            .constraints
+            .contains(&TypeConstraint::PartialOrd),
+        "Add should not infer PartialOrd"
+    );
+    assert!(
+        !patterns[0].constraints.contains(&TypeConstraint::PartialEq),
+        "Add should not infer PartialEq"
+    );
+}
+
+#[test]
+fn test_cast_to_non_pointer_type() {
+    // Cast to non-pointer type (e.g., int) → skips inner type extraction
+    let func = create_function(
+        "process",
+        vec![void_ptr_param("data")],
+        vec![HirStatement::VariableDeclaration {
+            name: "x".to_string(),
+            var_type: HirType::Int,
+            initializer: Some(HirExpression::Cast {
+                expr: Box::new(HirExpression::Variable("data".to_string())),
+                target_type: HirType::Int, // Not Pointer(...)
+            }),
+        }],
+    );
+
+    let analyzer = VoidPtrAnalyzer::new();
+    let patterns = analyzer.analyze(&func);
+    assert!(!patterns.is_empty());
+    assert!(
+        patterns[0].inferred_types.is_empty(),
+        "Cast to non-pointer type should not add inferred type"
+    );
+}
+
+#[test]
+fn test_duplicate_cast_type_not_added_twice() {
+    // Two casts to same type → only one entry in inferred_types
+    let func = create_function(
+        "process",
+        vec![void_ptr_param("data")],
+        vec![
+            HirStatement::VariableDeclaration {
+                name: "a".to_string(),
+                var_type: HirType::Pointer(Box::new(HirType::Int)),
+                initializer: Some(HirExpression::Cast {
+                    expr: Box::new(HirExpression::Variable("data".to_string())),
+                    target_type: HirType::Pointer(Box::new(HirType::Int)),
+                }),
+            },
+            HirStatement::VariableDeclaration {
+                name: "b".to_string(),
+                var_type: HirType::Pointer(Box::new(HirType::Int)),
+                initializer: Some(HirExpression::Cast {
+                    expr: Box::new(HirExpression::Variable("data".to_string())),
+                    target_type: HirType::Pointer(Box::new(HirType::Int)),
+                }),
+            },
+        ],
+    );
+
+    let analyzer = VoidPtrAnalyzer::new();
+    let patterns = analyzer.analyze(&func);
+    assert!(!patterns.is_empty());
+    assert_eq!(
+        patterns[0].inferred_types.len(),
+        1,
+        "Duplicate type should not be added twice"
+    );
+}
+
+#[test]
+fn test_expr_uses_param_default_arm() {
+    // Non-Variable, non-Cast, non-Dereference expression → false
+    // This tests the `_ => false` at line 255 in expr_uses_param
+    let func = create_function(
+        "process",
+        vec![void_ptr_param("data")],
+        vec![HirStatement::DerefAssignment {
+            target: HirExpression::IntLiteral(0), // Not a param reference
+            value: HirExpression::IntLiteral(42),
+        }],
+    );
+
+    let analyzer = VoidPtrAnalyzer::new();
+    let patterns = analyzer.analyze(&func);
+    assert!(!patterns.is_empty());
+    // IntLiteral as target → expr_uses_param returns false → no Mutable constraint
+    assert!(
+        !patterns[0].constraints.contains(&TypeConstraint::Mutable),
+        "Non-param target should not add Mutable constraint"
+    );
+}
