@@ -23574,3 +23574,361 @@ fn expr_target_type_variable_vec_target() {
     let code = cg.generate_expression_with_target_type(&expr, &ctx, Some(&target));
     assert_eq!(code, "data", "Variable with Vec target returns directly: {}", code);
 }
+
+// =============================================================================
+// Batch 39: generate_struct derive combination + field type coverage
+// =============================================================================
+// Targets lines 7002-7139: derive macro combinations for has_large_array,
+// has_float_fields, can_derive_copy, plus flexible array member and
+// reference field paths.
+
+#[test]
+fn generate_struct_large_array_no_float_no_copy() {
+    // has_large_array=true, has_float=false, copy=false → Debug, Clone, PartialEq, Eq (no Default, no Copy)
+    let cg = CodeGenerator::new();
+    let s = decy_hir::HirStruct::new(
+        "BigBuf".to_string(),
+        vec![
+            decy_hir::HirStructField::new(
+                "data".to_string(),
+                HirType::Array {
+                    element_type: Box::new(HirType::Int),
+                    size: Some(64), // > 32, triggers large array
+                },
+            ),
+            decy_hir::HirStructField::new(
+                "name".to_string(),
+                HirType::OwnedString, // Not Copy
+            ),
+        ],
+    );
+    let code = cg.generate_struct(&s);
+    assert!(code.contains("PartialEq"), "Should have PartialEq: {}", code);
+    assert!(code.contains("Eq"), "Should have Eq: {}", code);
+    assert!(!code.contains("Default"), "Large array should skip Default: {}", code);
+    assert!(!code.contains("Copy"), "OwnedString is not Copy: {}", code);
+}
+
+#[test]
+fn generate_struct_large_array_no_float_copy() {
+    // has_large_array=true, has_float=false, copy=true → Debug, Clone, Copy, PartialEq, Eq (no Default)
+    let cg = CodeGenerator::new();
+    let s = decy_hir::HirStruct::new(
+        "BigArr".to_string(),
+        vec![decy_hir::HirStructField::new(
+            "data".to_string(),
+            HirType::Array {
+                element_type: Box::new(HirType::Int),
+                size: Some(64),
+            },
+        )],
+    );
+    let code = cg.generate_struct(&s);
+    assert!(code.contains("Copy"), "All-int array is Copy: {}", code);
+    assert!(!code.contains("Default"), "Large array skips Default: {}", code);
+    assert!(code.contains("Eq"), "No floats, should have Eq: {}", code);
+}
+
+#[test]
+fn generate_struct_large_array_with_float() {
+    // has_large_array=true, has_float=true, copy=true → no Default, no Eq, yes Copy
+    // Note: has_float_fields checks top-level field type, not array element type
+    let cg = CodeGenerator::new();
+    let s = decy_hir::HirStruct::new(
+        "BigFloat".to_string(),
+        vec![
+            decy_hir::HirStructField::new(
+                "vals".to_string(),
+                HirType::Array {
+                    element_type: Box::new(HirType::Int),
+                    size: Some(100), // > 32, triggers large array
+                },
+            ),
+            decy_hir::HirStructField::new(
+                "scale".to_string(),
+                HirType::Float, // Top-level float triggers has_float_fields
+            ),
+        ],
+    );
+    let code = cg.generate_struct(&s);
+    assert!(!code.contains("Default"), "Large array skips Default: {}", code);
+    assert!(code.contains("PartialEq"), "Should have PartialEq: {}", code);
+    assert!(code.contains("Copy"), "Int+Float are Copy: {}", code);
+    // Should NOT have standalone Eq (float doesn't implement Eq)
+    // "PartialEq" contains "Eq" so we check specifically for ", Eq" or "Eq," as standalone
+    assert!(
+        !code.contains(", Eq)") && !code.contains(", Eq,"),
+        "Float struct should not have standalone Eq: {}",
+        code
+    );
+}
+
+#[test]
+fn generate_struct_with_float_no_large_array_copy() {
+    // has_large_array=false, has_float=true, copy=true → Default, Copy, PartialEq (no Eq)
+    let cg = CodeGenerator::new();
+    let s = decy_hir::HirStruct::new(
+        "Vec2".to_string(),
+        vec![
+            decy_hir::HirStructField::new("x".to_string(), HirType::Float),
+            decy_hir::HirStructField::new("y".to_string(), HirType::Float),
+        ],
+    );
+    let code = cg.generate_struct(&s);
+    assert!(code.contains("Default"), "No large array, should have Default: {}", code);
+    assert!(code.contains("Copy"), "All-float is Copy: {}", code);
+    assert!(code.contains("PartialEq"), "Should have PartialEq: {}", code);
+    // Eq is NOT in the derive (floats don't implement Eq)
+    // Be careful: "PartialEq, Eq" shouldn't appear
+    assert!(
+        !code.contains("Eq)") || code.contains("PartialEq)"),
+        "Should not have Eq after PartialEq for float struct: {}",
+        code
+    );
+}
+
+#[test]
+fn generate_struct_with_float_no_large_array_no_copy() {
+    // has_large_array=false, has_float=true, copy=false → Default, PartialEq (no Copy, no Eq)
+    let cg = CodeGenerator::new();
+    let s = decy_hir::HirStruct::new(
+        "MixedFloat".to_string(),
+        vec![
+            decy_hir::HirStructField::new("val".to_string(), HirType::Double),
+            decy_hir::HirStructField::new(
+                "name".to_string(),
+                HirType::OwnedString, // Not Copy
+            ),
+        ],
+    );
+    let code = cg.generate_struct(&s);
+    assert!(code.contains("Default"), "Should have Default: {}", code);
+    assert!(!code.contains("Copy"), "OwnedString blocks Copy: {}", code);
+    assert!(code.contains("PartialEq"), "Should have PartialEq: {}", code);
+}
+
+#[test]
+fn generate_struct_simple_copy_default() {
+    // has_large_array=false, has_float=false, copy=true → Default, Copy, PartialEq, Eq
+    let cg = CodeGenerator::new();
+    let s = decy_hir::HirStruct::new(
+        "Point".to_string(),
+        vec![
+            decy_hir::HirStructField::new("x".to_string(), HirType::Int),
+            decy_hir::HirStructField::new("y".to_string(), HirType::Int),
+        ],
+    );
+    let code = cg.generate_struct(&s);
+    assert!(code.contains("Default"), "Should have Default: {}", code);
+    assert!(code.contains("Copy"), "All-int is Copy: {}", code);
+    assert!(code.contains("Eq"), "No floats, should have Eq: {}", code);
+}
+
+#[test]
+fn generate_struct_no_copy_no_float_no_large() {
+    // has_large_array=false, has_float=false, copy=false → Default, PartialEq, Eq (no Copy)
+    let cg = CodeGenerator::new();
+    let s = decy_hir::HirStruct::new(
+        "Config".to_string(),
+        vec![
+            decy_hir::HirStructField::new("count".to_string(), HirType::Int),
+            decy_hir::HirStructField::new(
+                "buffer".to_string(),
+                HirType::Vec(Box::new(HirType::Int)), // Not Copy
+            ),
+        ],
+    );
+    let code = cg.generate_struct(&s);
+    assert!(code.contains("Default"), "Should have Default: {}", code);
+    assert!(!code.contains("Copy"), "Vec blocks Copy: {}", code);
+    assert!(code.contains("Eq"), "No floats, should have Eq: {}", code);
+}
+
+#[test]
+fn generate_struct_flexible_array_member() {
+    // Array with size: None → Vec<T>
+    let cg = CodeGenerator::new();
+    let s = decy_hir::HirStruct::new(
+        "DynBuf".to_string(),
+        vec![
+            decy_hir::HirStructField::new("len".to_string(), HirType::Int),
+            decy_hir::HirStructField::new(
+                "data".to_string(),
+                HirType::Array {
+                    element_type: Box::new(HirType::Char),
+                    size: None, // Flexible array member
+                },
+            ),
+        ],
+    );
+    let code = cg.generate_struct(&s);
+    assert!(
+        code.contains("Vec<u8>"),
+        "Flexible array member should become Vec<T>: {}",
+        code
+    );
+}
+
+#[test]
+fn generate_struct_with_reference_field() {
+    // Reference field → needs lifetime annotation
+    let cg = CodeGenerator::new();
+    let s = decy_hir::HirStruct::new(
+        "Borrowed".to_string(),
+        vec![decy_hir::HirStructField::new(
+            "data".to_string(),
+            HirType::Reference {
+                inner: Box::new(HirType::Int),
+                mutable: false,
+            },
+        )],
+    );
+    let code = cg.generate_struct(&s);
+    assert!(
+        code.contains("<'a>"),
+        "Reference field should trigger lifetime param: {}",
+        code
+    );
+}
+
+#[test]
+fn generate_struct_keyword_field_name() {
+    // Field named with Rust keyword → escaped
+    let cg = CodeGenerator::new();
+    let s = decy_hir::HirStruct::new(
+        "Obj".to_string(),
+        vec![
+            decy_hir::HirStructField::new("r#type".to_string(), HirType::Int),
+        ],
+    );
+    let code = cg.generate_struct(&s);
+    assert!(code.contains("pub r#type: i32"), "Should escape keyword: {}", code);
+}
+
+// =============================================================================
+// Batch 39b: generate_statement_with_context — VLA and malloc paths
+// =============================================================================
+
+#[test]
+fn stmt_context_vla_to_vec() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    // C99 VLA: int arr[n]; → let mut arr = vec![0i32; n];
+    let stmt = HirStatement::VariableDeclaration {
+        name: "arr".to_string(),
+        var_type: HirType::Array {
+            element_type: Box::new(HirType::Int),
+            size: None, // VLA marker
+        },
+        initializer: Some(HirExpression::Variable("n".to_string())),
+    };
+    let code = cg.generate_statement_with_context(&stmt, Some("test"), &mut ctx, None);
+    assert!(
+        code.contains("vec![0i32;") && code.contains("n"),
+        "VLA should become vec![default; size]: {}",
+        code
+    );
+}
+
+#[test]
+fn stmt_context_vla_float_to_vec() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let stmt = HirStatement::VariableDeclaration {
+        name: "buf".to_string(),
+        var_type: HirType::Array {
+            element_type: Box::new(HirType::Float),
+            size: None,
+        },
+        initializer: Some(HirExpression::Variable("len".to_string())),
+    };
+    let code = cg.generate_statement_with_context(&stmt, Some("test"), &mut ctx, None);
+    assert!(
+        code.contains("vec![0.0f32;"),
+        "Float VLA should use 0.0f32: {}",
+        code
+    );
+}
+
+#[test]
+fn stmt_context_vla_char_to_vec() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let stmt = HirStatement::VariableDeclaration {
+        name: "cbuf".to_string(),
+        var_type: HirType::Array {
+            element_type: Box::new(HirType::Char),
+            size: None,
+        },
+        initializer: Some(HirExpression::Variable("sz".to_string())),
+    };
+    let code = cg.generate_statement_with_context(&stmt, Some("test"), &mut ctx, None);
+    assert!(
+        code.contains("vec![0u8;"),
+        "Char VLA should use 0u8: {}",
+        code
+    );
+}
+
+#[test]
+fn stmt_context_malloc_struct_to_box() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    // malloc(sizeof(Node)) → Box::new(Node::default())
+    let stmt = HirStatement::VariableDeclaration {
+        name: "node".to_string(),
+        var_type: HirType::Pointer(Box::new(HirType::Struct("Node".to_string()))),
+        initializer: Some(HirExpression::Malloc {
+            size: Box::new(HirExpression::Sizeof { type_name: "Node".to_string() }),
+        }),
+    };
+    let code = cg.generate_statement_with_context(&stmt, Some("test"), &mut ctx, None);
+    assert!(
+        code.contains("Box") && code.contains("Node"),
+        "Struct malloc should use Box: {}",
+        code
+    );
+}
+
+#[test]
+fn stmt_context_malloc_array_to_vec() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    // malloc(n * sizeof(int)) → Vec::with_capacity(n)
+    let stmt = HirStatement::VariableDeclaration {
+        name: "buf".to_string(),
+        var_type: HirType::Pointer(Box::new(HirType::Int)),
+        initializer: Some(HirExpression::Malloc {
+            size: Box::new(HirExpression::BinaryOp {
+                op: BinaryOperator::Multiply,
+                left: Box::new(HirExpression::Variable("n".to_string())),
+                right: Box::new(HirExpression::Sizeof { type_name: "int".to_string() }),
+            }),
+        }),
+    };
+    let code = cg.generate_statement_with_context(&stmt, Some("test"), &mut ctx, None);
+    assert!(
+        code.contains("Vec") || code.contains("vec"),
+        "Array malloc should use Vec: {}",
+        code
+    );
+}
+
+#[test]
+fn stmt_context_global_var_rename() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_global("count".to_string()); // Register as global
+    // Local var with same name as global → renamed to count_local
+    let stmt = HirStatement::VariableDeclaration {
+        name: "count".to_string(),
+        var_type: HirType::Int,
+        initializer: Some(HirExpression::IntLiteral(0)),
+    };
+    let code = cg.generate_statement_with_context(&stmt, Some("test"), &mut ctx, None);
+    assert!(
+        code.contains("count_local"),
+        "Should rename local shadowing global: {}",
+        code
+    );
+}
