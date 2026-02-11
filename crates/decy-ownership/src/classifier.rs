@@ -901,6 +901,152 @@ mod tests {
     // Integration tests
     // ========================================================================
 
+    // ========================================================================
+    // Additional coverage: rule branches and edge cases
+    // ========================================================================
+
+    #[test]
+    fn rule_based_slice_mut() {
+        // Rule 4 inner: non-const + writes + array_decay + size_param → SliceMut
+        let classifier = RuleBasedClassifier::new();
+        let features = OwnershipFeaturesBuilder::default()
+            .const_qualified(false)
+            .write_count(3)
+            .array_decay(true)
+            .has_size_param(true)
+            .pointer_depth(1)
+            .build();
+
+        let pred = classifier.classify(&features);
+        assert!(matches!(pred.prediction, InferredOwnership::SliceMut));
+    }
+
+    #[test]
+    fn rule_based_rule5_non_const_slice_mut() {
+        // Rule 5: array_decay + size_param, non-const → SliceMut
+        // This hits Rule 5 when Rule 3/4 don't match
+        let classifier = RuleBasedClassifier::new();
+        let features = OwnershipFeaturesBuilder::default()
+            .const_qualified(false)
+            .write_count(0)
+            .array_decay(true)
+            .has_size_param(true)
+            .pointer_depth(1)
+            .build();
+
+        let pred = classifier.classify(&features);
+        assert!(matches!(pred.prediction, InferredOwnership::SliceMut));
+    }
+
+    #[test]
+    fn rule_based_stack_allocation_falls_through() {
+        // Stack allocation without other features → RawPointer
+        let classifier = RuleBasedClassifier::new();
+        let features = OwnershipFeaturesBuilder::default()
+            .allocation_site(AllocationKind::Stack)
+            .pointer_depth(1)
+            .build();
+
+        let pred = classifier.classify(&features);
+        assert!(matches!(pred.prediction, InferredOwnership::RawPointer));
+    }
+
+    #[test]
+    fn rule_based_with_custom_weights() {
+        let weights = RuleWeights {
+            malloc_free: 0.99,
+            array_alloc: 0.98,
+            const_qual: 0.97,
+            write_ops: 0.96,
+            size_param: 0.95,
+        };
+        let classifier = RuleBasedClassifier::with_weights(weights);
+        let features = OwnershipFeaturesBuilder::default()
+            .allocation_site(AllocationKind::Malloc)
+            .deallocation_count(1)
+            .pointer_depth(1)
+            .build();
+
+        let pred = classifier.classify(&features);
+        assert!(matches!(pred.prediction, InferredOwnership::Owned));
+        assert!((pred.confidence - 0.99).abs() < 0.001);
+    }
+
+    #[test]
+    fn metrics_macro_f1() {
+        let mut metrics = EvaluationMetrics::default();
+        metrics.true_positives.insert("Owned".to_string(), 80);
+        metrics.false_positives.insert("Owned".to_string(), 20);
+        metrics.false_negatives.insert("Owned".to_string(), 20);
+
+        metrics.true_positives.insert("Borrowed".to_string(), 90);
+        metrics.false_positives.insert("Borrowed".to_string(), 10);
+        metrics.false_negatives.insert("Borrowed".to_string(), 10);
+
+        let f1 = metrics.macro_f1();
+        assert!(f1 > 0.0);
+        assert!(f1 <= 1.0);
+    }
+
+    #[test]
+    fn metrics_macro_f1_empty() {
+        let metrics = EvaluationMetrics::default();
+        assert!((metrics.macro_f1() - 0.0).abs() < 0.001);
+    }
+
+    #[test]
+    fn metrics_f1_zero_precision_recall() {
+        let metrics = EvaluationMetrics::default();
+        // No TP, no FP, no FN for "Unknown" → precision=0, recall=0, f1=0
+        assert!((metrics.f1_score("Unknown") - 0.0).abs() < 0.001);
+    }
+
+    #[test]
+    fn metrics_precision_no_predictions() {
+        let metrics = EvaluationMetrics::default();
+        // No TP and no FP → 0.0
+        assert!((metrics.precision("Unknown") - 0.0).abs() < 0.001);
+    }
+
+    #[test]
+    fn metrics_recall_no_positives() {
+        let metrics = EvaluationMetrics::default();
+        // No TP and no FN → 0.0
+        assert!((metrics.recall("Unknown") - 0.0).abs() < 0.001);
+    }
+
+    #[test]
+    fn ensemble_classify_multiple() {
+        // Two classifiers voting on same features
+        let mut ensemble = EnsembleClassifier::new("dual");
+        ensemble.add_classifier(RuleBasedClassifier::new(), 1.0);
+        ensemble.add_classifier(RuleBasedClassifier::new(), 1.0);
+
+        let features = OwnershipFeaturesBuilder::default()
+            .const_qualified(true)
+            .pointer_depth(1)
+            .build();
+
+        let pred = ensemble.classify(&features);
+        assert!(matches!(pred.prediction, InferredOwnership::Borrowed));
+        assert!(pred.confidence > 0.0);
+    }
+
+    #[test]
+    fn ensemble_zero_weight_classifiers() {
+        let mut ensemble = EnsembleClassifier::new("zero_weight");
+        ensemble.add_classifier(RuleBasedClassifier::new(), 0.0);
+
+        let features = OwnershipFeaturesBuilder::default()
+            .allocation_site(AllocationKind::Malloc)
+            .deallocation_count(1)
+            .build();
+
+        let pred = ensemble.classify(&features);
+        // Zero total weight → confidence 0.0
+        assert!((pred.confidence - 0.0).abs() < 0.001);
+    }
+
     #[test]
     fn full_training_pipeline() {
         // Create synthetic dataset
