@@ -171,12 +171,17 @@ confidence_threshold = 0.9
     // FROM_ENV TESTS - Use mutex to serialize access to env vars
     // ============================================================================
 
-    // Mutex to serialize env var tests that would otherwise race
+    // Mutex to serialize env var tests that would otherwise race.
+    // Use unwrap_or_else to recover from poisoned mutex.
     static ENV_MUTEX: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
+    fn lock_env() -> std::sync::MutexGuard<'static, ()> {
+        ENV_MUTEX.lock().unwrap_or_else(|e| e.into_inner())
+    }
 
     #[test]
     fn test_from_env_default_when_no_env_vars() {
-        let _lock = ENV_MUTEX.lock().unwrap();
+        let _lock = lock_env();
         // Clear relevant env vars if set
         std::env::remove_var("DECY_ORACLE_PATTERNS");
         std::env::remove_var("DECY_ORACLE_THRESHOLD");
@@ -190,7 +195,7 @@ confidence_threshold = 0.9
 
     #[test]
     fn test_from_env_patterns_path() {
-        let _lock = ENV_MUTEX.lock().unwrap();
+        let _lock = lock_env();
         std::env::set_var("DECY_ORACLE_PATTERNS", "/custom/test/path.apr");
         let config = OracleConfig::from_env();
         assert_eq!(config.patterns_path, PathBuf::from("/custom/test/path.apr"));
@@ -199,7 +204,7 @@ confidence_threshold = 0.9
 
     #[test]
     fn test_from_env_threshold() {
-        let _lock = ENV_MUTEX.lock().unwrap();
+        let _lock = lock_env();
         std::env::set_var("DECY_ORACLE_THRESHOLD", "0.85");
         let config = OracleConfig::from_env();
         assert!(
@@ -212,7 +217,7 @@ confidence_threshold = 0.9
 
     #[test]
     fn test_from_env_threshold_invalid_uses_default() {
-        let _lock = ENV_MUTEX.lock().unwrap();
+        let _lock = lock_env();
         std::env::set_var("DECY_ORACLE_THRESHOLD", "not_a_number");
         let config = OracleConfig::from_env();
         // Should use default when parse fails
@@ -220,12 +225,9 @@ confidence_threshold = 0.9
         std::env::remove_var("DECY_ORACLE_THRESHOLD");
     }
 
-    // Note: These tests are flaky when run in parallel due to env var races.
-    // Run with: cargo test -p decy-oracle -- --test-threads=1
     #[test]
-    #[ignore = "flaky: env var race condition, run with --test-threads=1"]
     fn test_from_env_auto_fix_true() {
-        let _lock = ENV_MUTEX.lock().unwrap();
+        let _lock = lock_env();
         std::env::set_var("DECY_ORACLE_AUTO_FIX", "true");
         let config = OracleConfig::from_env();
         assert!(config.auto_fix);
@@ -233,9 +235,8 @@ confidence_threshold = 0.9
     }
 
     #[test]
-    #[ignore = "flaky: env var race condition, run with --test-threads=1"]
     fn test_from_env_auto_fix_true_uppercase() {
-        let _lock = ENV_MUTEX.lock().unwrap();
+        let _lock = lock_env();
         std::env::set_var("DECY_ORACLE_AUTO_FIX", "TRUE");
         let config = OracleConfig::from_env();
         assert!(config.auto_fix);
@@ -243,9 +244,8 @@ confidence_threshold = 0.9
     }
 
     #[test]
-    #[ignore = "flaky: env var race condition, run with --test-threads=1"]
     fn test_from_env_auto_fix_false() {
-        let _lock = ENV_MUTEX.lock().unwrap();
+        let _lock = lock_env();
         std::env::set_var("DECY_ORACLE_AUTO_FIX", "false");
         let config = OracleConfig::from_env();
         assert!(!config.auto_fix);
@@ -253,9 +253,8 @@ confidence_threshold = 0.9
     }
 
     #[test]
-    #[ignore = "flaky: env var race condition, run with --test-threads=1"]
     fn test_from_env_auto_fix_any_other_value_is_false() {
-        let _lock = ENV_MUTEX.lock().unwrap();
+        let _lock = lock_env();
         std::env::set_var("DECY_ORACLE_AUTO_FIX", "yes");
         let config = OracleConfig::from_env();
         assert!(!config.auto_fix); // "yes" != "true"
