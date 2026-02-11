@@ -32713,3 +32713,353 @@ fn expr_is_not_null_generates_if_let_some() {
         code
     );
 }
+
+// =============================================================================
+// BATCH 59: default_value_for_type, is_malloc_expression, is_malloc_array_pattern,
+//           is_boolean_expression, get_string_deref_var, escape_rust_keyword,
+//           more expression coverage: PostIncrement/Deref on &str
+// =============================================================================
+
+// --- default_value_for_type (comprehensive) ---
+
+#[test]
+fn default_value_all_basic_types() {
+    assert_eq!(CodeGenerator::default_value_for_type(&HirType::Void), "()");
+    assert_eq!(CodeGenerator::default_value_for_type(&HirType::Int), "0i32");
+    assert_eq!(CodeGenerator::default_value_for_type(&HirType::UnsignedInt), "0u32");
+    assert_eq!(CodeGenerator::default_value_for_type(&HirType::Float), "0.0f32");
+    assert_eq!(CodeGenerator::default_value_for_type(&HirType::Double), "0.0f64");
+    assert_eq!(CodeGenerator::default_value_for_type(&HirType::Char), "0u8");
+    assert_eq!(CodeGenerator::default_value_for_type(&HirType::SignedChar), "0i8");
+}
+
+#[test]
+fn default_value_composite_types() {
+    assert_eq!(CodeGenerator::default_value_for_type(&HirType::Pointer(Box::new(HirType::Int))), "std::ptr::null_mut()");
+    assert_eq!(CodeGenerator::default_value_for_type(&HirType::Box(Box::new(HirType::Int))), "Box::new(0i32)");
+    assert_eq!(CodeGenerator::default_value_for_type(&HirType::Vec(Box::new(HirType::Int))), "Vec::new()");
+    assert_eq!(CodeGenerator::default_value_for_type(&HirType::Option(Box::new(HirType::Int))), "None");
+    assert_eq!(CodeGenerator::default_value_for_type(&HirType::Struct("Node".to_string())), "Node::default()");
+    assert_eq!(CodeGenerator::default_value_for_type(&HirType::Enum("Color".to_string())), "Color::default()");
+}
+
+#[test]
+fn default_value_array_and_funcptr() {
+    assert_eq!(
+        CodeGenerator::default_value_for_type(&HirType::Array {
+            element_type: Box::new(HirType::Int),
+            size: Some(10),
+        }),
+        "[0i32; 10]"
+    );
+    assert_eq!(
+        CodeGenerator::default_value_for_type(&HirType::FunctionPointer {
+            param_types: vec![HirType::Int],
+            return_type: Box::new(HirType::Void),
+        }),
+        "None"
+    );
+}
+
+#[test]
+fn default_value_string_types() {
+    assert_eq!(CodeGenerator::default_value_for_type(&HirType::StringLiteral), "\"\"");
+    assert_eq!(CodeGenerator::default_value_for_type(&HirType::OwnedString), "String::new()");
+    assert_eq!(CodeGenerator::default_value_for_type(&HirType::StringReference), "\"\"");
+}
+
+#[test]
+fn default_value_type_aliases() {
+    assert_eq!(CodeGenerator::default_value_for_type(&HirType::TypeAlias("size_t".to_string())), "0usize");
+    assert_eq!(CodeGenerator::default_value_for_type(&HirType::TypeAlias("ssize_t".to_string())), "0isize");
+    assert_eq!(CodeGenerator::default_value_for_type(&HirType::TypeAlias("ptrdiff_t".to_string())), "0isize");
+    assert_eq!(CodeGenerator::default_value_for_type(&HirType::TypeAlias("MyAlias".to_string())), "0");
+}
+
+// --- is_malloc_expression ---
+
+#[test]
+fn is_malloc_expression_malloc_call() {
+    let expr = HirExpression::FunctionCall {
+        function: "malloc".to_string(),
+        arguments: vec![HirExpression::IntLiteral(100)],
+    };
+    assert!(CodeGenerator::is_malloc_expression(&expr));
+}
+
+#[test]
+fn is_malloc_expression_calloc_call() {
+    let expr = HirExpression::FunctionCall {
+        function: "calloc".to_string(),
+        arguments: vec![HirExpression::IntLiteral(10), HirExpression::IntLiteral(4)],
+    };
+    assert!(CodeGenerator::is_malloc_expression(&expr));
+}
+
+#[test]
+fn is_malloc_expression_cast_wrapping() {
+    // (int*)malloc(size) — Cast wrapping malloc
+    let malloc = HirExpression::FunctionCall {
+        function: "malloc".to_string(),
+        arguments: vec![HirExpression::IntLiteral(100)],
+    };
+    let expr = HirExpression::Cast {
+        expr: Box::new(malloc),
+        target_type: HirType::Pointer(Box::new(HirType::Int)),
+    };
+    assert!(CodeGenerator::is_malloc_expression(&expr));
+}
+
+#[test]
+fn is_malloc_expression_not_malloc() {
+    let expr = HirExpression::FunctionCall {
+        function: "free".to_string(),
+        arguments: vec![HirExpression::Variable("ptr".to_string())],
+    };
+    assert!(!CodeGenerator::is_malloc_expression(&expr));
+}
+
+// --- is_malloc_array_pattern ---
+
+#[test]
+fn is_malloc_array_pattern_multiply() {
+    let expr = HirExpression::FunctionCall {
+        function: "malloc".to_string(),
+        arguments: vec![HirExpression::BinaryOp {
+            op: BinaryOperator::Multiply,
+            left: Box::new(HirExpression::IntLiteral(10)),
+            right: Box::new(HirExpression::Sizeof {
+                type_name: "int".to_string(),
+            }),
+        }],
+    };
+    assert!(CodeGenerator::is_malloc_array_pattern(&expr));
+}
+
+#[test]
+fn is_malloc_array_pattern_no_multiply() {
+    let expr = HirExpression::FunctionCall {
+        function: "malloc".to_string(),
+        arguments: vec![HirExpression::IntLiteral(100)],
+    };
+    assert!(!CodeGenerator::is_malloc_array_pattern(&expr));
+}
+
+// --- is_boolean_expression ---
+
+#[test]
+fn is_boolean_expr_comparison() {
+    let expr = HirExpression::BinaryOp {
+        op: BinaryOperator::Equal,
+        left: Box::new(HirExpression::Variable("a".to_string())),
+        right: Box::new(HirExpression::IntLiteral(0)),
+    };
+    assert!(CodeGenerator::is_boolean_expression(&expr));
+}
+
+#[test]
+fn is_boolean_expr_logical_not() {
+    let expr = HirExpression::UnaryOp {
+        op: decy_hir::UnaryOperator::LogicalNot,
+        operand: Box::new(HirExpression::Variable("x".to_string())),
+    };
+    assert!(CodeGenerator::is_boolean_expression(&expr));
+}
+
+#[test]
+fn is_boolean_expr_arithmetic() {
+    let expr = HirExpression::BinaryOp {
+        op: BinaryOperator::Add,
+        left: Box::new(HirExpression::Variable("a".to_string())),
+        right: Box::new(HirExpression::Variable("b".to_string())),
+    };
+    assert!(!CodeGenerator::is_boolean_expression(&expr));
+}
+
+#[test]
+fn is_boolean_expr_variable() {
+    let expr = HirExpression::Variable("x".to_string());
+    assert!(!CodeGenerator::is_boolean_expression(&expr));
+}
+
+// --- get_string_deref_var ---
+
+#[test]
+fn get_string_deref_var_direct() {
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("s".to_string(), HirType::StringReference);
+    let expr = HirExpression::Dereference(Box::new(HirExpression::Variable("s".to_string())));
+    let result = CodeGenerator::get_string_deref_var(&expr, &ctx);
+    assert_eq!(result, Some("s".to_string()));
+}
+
+#[test]
+fn get_string_deref_var_with_compare_zero() {
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("s".to_string(), HirType::StringReference);
+    // *s != 0 → should detect s
+    let deref = HirExpression::Dereference(Box::new(HirExpression::Variable("s".to_string())));
+    let expr = HirExpression::BinaryOp {
+        op: BinaryOperator::NotEqual,
+        left: Box::new(deref),
+        right: Box::new(HirExpression::IntLiteral(0)),
+    };
+    let result = CodeGenerator::get_string_deref_var(&expr, &ctx);
+    assert_eq!(result, Some("s".to_string()));
+}
+
+#[test]
+fn get_string_deref_var_zero_on_left() {
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("s".to_string(), HirType::StringReference);
+    // 0 == *s → should detect s
+    let deref = HirExpression::Dereference(Box::new(HirExpression::Variable("s".to_string())));
+    let expr = HirExpression::BinaryOp {
+        op: BinaryOperator::Equal,
+        left: Box::new(HirExpression::IntLiteral(0)),
+        right: Box::new(deref),
+    };
+    let result = CodeGenerator::get_string_deref_var(&expr, &ctx);
+    assert_eq!(result, Some("s".to_string()));
+}
+
+#[test]
+fn get_string_deref_var_non_string() {
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("p".to_string(), HirType::Pointer(Box::new(HirType::Int)));
+    let expr = HirExpression::Dereference(Box::new(HirExpression::Variable("p".to_string())));
+    let result = CodeGenerator::get_string_deref_var(&expr, &ctx);
+    assert_eq!(result, None);
+}
+
+// --- binary_operator_to_string ---
+
+#[test]
+fn binop_to_string_all_variants() {
+    assert_eq!(CodeGenerator::binary_operator_to_string(&BinaryOperator::Add), "+");
+    assert_eq!(CodeGenerator::binary_operator_to_string(&BinaryOperator::Subtract), "-");
+    assert_eq!(CodeGenerator::binary_operator_to_string(&BinaryOperator::Multiply), "*");
+    assert_eq!(CodeGenerator::binary_operator_to_string(&BinaryOperator::Divide), "/");
+    assert_eq!(CodeGenerator::binary_operator_to_string(&BinaryOperator::Modulo), "%");
+    assert_eq!(CodeGenerator::binary_operator_to_string(&BinaryOperator::Equal), "==");
+    assert_eq!(CodeGenerator::binary_operator_to_string(&BinaryOperator::NotEqual), "!=");
+    assert_eq!(CodeGenerator::binary_operator_to_string(&BinaryOperator::LessThan), "<");
+    assert_eq!(CodeGenerator::binary_operator_to_string(&BinaryOperator::GreaterThan), ">");
+    assert_eq!(CodeGenerator::binary_operator_to_string(&BinaryOperator::LessEqual), "<=");
+    assert_eq!(CodeGenerator::binary_operator_to_string(&BinaryOperator::GreaterEqual), ">=");
+    assert_eq!(CodeGenerator::binary_operator_to_string(&BinaryOperator::LogicalAnd), "&&");
+    assert_eq!(CodeGenerator::binary_operator_to_string(&BinaryOperator::LogicalOr), "||");
+    assert_eq!(CodeGenerator::binary_operator_to_string(&BinaryOperator::BitwiseAnd), "&");
+    assert_eq!(CodeGenerator::binary_operator_to_string(&BinaryOperator::BitwiseOr), "|");
+    assert_eq!(CodeGenerator::binary_operator_to_string(&BinaryOperator::BitwiseXor), "^");
+    assert_eq!(CodeGenerator::binary_operator_to_string(&BinaryOperator::LeftShift), "<<");
+    assert_eq!(CodeGenerator::binary_operator_to_string(&BinaryOperator::RightShift), ">>");
+    assert_eq!(CodeGenerator::binary_operator_to_string(&BinaryOperator::Assign), "=");
+    assert_eq!(CodeGenerator::binary_operator_to_string(&BinaryOperator::Comma), ",");
+}
+
+// --- Expressions: Dereference on PostIncrement &str ---
+
+#[test]
+fn expr_deref_post_increment_str() {
+    // *str++ where str is &str → PostIncrement handles byte value, no extra deref
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("s".to_string(), HirType::StringReference);
+    let post_inc = HirExpression::PostIncrement {
+        operand: Box::new(HirExpression::Variable("s".to_string())),
+    };
+    let expr = HirExpression::Dereference(Box::new(post_inc));
+    let code = cg.generate_expression_with_context(&expr, &ctx);
+    // Should NOT add extra dereference since PostIncrement on &str already returns byte
+    assert!(
+        !code.contains("**"),
+        "Deref(PostInc &str) → no double deref: {}",
+        code
+    );
+}
+
+// --- Expressions: BinaryOp shift operators ---
+
+#[test]
+fn expr_binop_left_shift() {
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    let expr = HirExpression::BinaryOp {
+        op: BinaryOperator::LeftShift,
+        left: Box::new(HirExpression::Variable("x".to_string())),
+        right: Box::new(HirExpression::IntLiteral(2)),
+    };
+    let code = cg.generate_expression_with_context(&expr, &ctx);
+    assert!(code.contains("<<"), "Left shift: {}", code);
+}
+
+#[test]
+fn expr_binop_right_shift() {
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    let expr = HirExpression::BinaryOp {
+        op: BinaryOperator::RightShift,
+        left: Box::new(HirExpression::Variable("x".to_string())),
+        right: Box::new(HirExpression::IntLiteral(1)),
+    };
+    let code = cg.generate_expression_with_context(&expr, &ctx);
+    assert!(code.contains(">>"), "Right shift: {}", code);
+}
+
+// --- Expression: Ternary with non-bool condition ---
+
+#[test]
+fn expr_ternary_int_condition() {
+    // n ? a : b where n is int → if (n != 0) { a } else { b }
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("n".to_string(), HirType::Int);
+    let expr = HirExpression::Ternary {
+        condition: Box::new(HirExpression::Variable("n".to_string())),
+        then_expr: Box::new(HirExpression::IntLiteral(1)),
+        else_expr: Box::new(HirExpression::IntLiteral(0)),
+    };
+    let code = cg.generate_expression_with_context(&expr, &ctx);
+    assert!(
+        code.contains("if") && (code.contains("!= 0") || code.contains("n")),
+        "Ternary int condition: {}",
+        code
+    );
+}
+
+// --- Expression: Malloc HIR variant ---
+
+#[test]
+fn expr_malloc_hir_variant() {
+    // HirExpression::Malloc (separate from FunctionCall)
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    let expr = HirExpression::Malloc {
+        size: Box::new(HirExpression::IntLiteral(100)),
+    };
+    let code = cg.generate_expression_with_context(&expr, &ctx);
+    assert!(
+        code.contains("vec!") || code.contains("Vec") || code.contains("Box"),
+        "Malloc HIR → alloc: {}",
+        code
+    );
+}
+
+// --- Expression: Calloc HIR variant ---
+
+#[test]
+fn expr_calloc_hir_variant() {
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    let expr = HirExpression::Calloc {
+        count: Box::new(HirExpression::IntLiteral(10)),
+        element_type: Box::new(HirType::Int),
+    };
+    let code = cg.generate_expression_with_context(&expr, &ctx);
+    assert!(
+        code.contains("vec!") || code.contains("Vec"),
+        "Calloc HIR → alloc: {}",
+        code
+    );
+}
