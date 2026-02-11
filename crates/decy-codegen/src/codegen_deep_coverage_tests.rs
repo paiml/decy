@@ -29421,3 +29421,365 @@ fn global_var_const_char_ptr() {
         code
     );
 }
+
+// =============================================================================
+// Batch 55: Statement-level branches: VLA, Return main, Realloc assignment,
+//           While string deref, If pointer cond, For(;;), global/errno assign
+// =============================================================================
+
+#[test]
+fn stmt_context_vla_int_declaration() {
+    // int arr[n] → let mut arr = vec![0i32; n]
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("n".to_string(), HirType::Int);
+    let stmt = HirStatement::VariableDeclaration {
+        name: "arr".to_string(),
+        var_type: HirType::Array {
+            element_type: Box::new(HirType::Int),
+            size: None,
+        },
+        initializer: Some(HirExpression::Variable("n".to_string())),
+    };
+    let code = cg.generate_statement_with_context(&stmt, None, &mut ctx, None);
+    assert!(
+        code.contains("vec![0i32;") && code.contains("n"),
+        "VLA int → vec![0i32; n]: {}",
+        code
+    );
+}
+
+#[test]
+fn stmt_context_vla_char_declaration() {
+    // char buf[n] → let mut buf = vec![0u8; n]
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let stmt = HirStatement::VariableDeclaration {
+        name: "buf".to_string(),
+        var_type: HirType::Array {
+            element_type: Box::new(HirType::Char),
+            size: None,
+        },
+        initializer: Some(HirExpression::Variable("size".to_string())),
+    };
+    let code = cg.generate_statement_with_context(&stmt, None, &mut ctx, None);
+    assert!(
+        code.contains("vec![0u8;"),
+        "VLA char → vec![0u8; size]: {}",
+        code
+    );
+}
+
+#[test]
+fn stmt_context_return_main_int() {
+    // return 1 in main → std::process::exit(1)
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let stmt = HirStatement::Return(Some(HirExpression::IntLiteral(1)));
+    let code = cg.generate_statement_with_context(&stmt, Some("main"), &mut ctx, None);
+    assert!(
+        code.contains("std::process::exit(1)"),
+        "Return in main → exit: {}",
+        code
+    );
+}
+
+#[test]
+fn stmt_context_return_main_void() {
+    // return in main with no value → exit(0)
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let stmt = HirStatement::Return(None);
+    let code = cg.generate_statement_with_context(&stmt, Some("main"), &mut ctx, None);
+    assert!(
+        code.contains("std::process::exit(0)"),
+        "Return void in main → exit(0): {}",
+        code
+    );
+}
+
+#[test]
+fn stmt_context_return_main_char_cast() {
+    // return char_expr in main → exit(char as i32)
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("c".to_string(), HirType::Char);
+    let stmt = HirStatement::Return(Some(HirExpression::Variable("c".to_string())));
+    let code = cg.generate_statement_with_context(&stmt, Some("main"), &mut ctx, None);
+    assert!(
+        code.contains("as i32"),
+        "Return char in main → as i32 cast: {}",
+        code
+    );
+}
+
+#[test]
+fn stmt_context_return_non_main() {
+    // return x in non-main → return x
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let stmt = HirStatement::Return(Some(HirExpression::Variable("result".to_string())));
+    let code = cg.generate_statement_with_context(&stmt, Some("foo"), &mut ctx, None);
+    assert!(
+        code.contains("return result;"),
+        "Return in non-main: {}",
+        code
+    );
+}
+
+#[test]
+fn stmt_context_return_void_non_main() {
+    // return; → return;
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let stmt = HirStatement::Return(None);
+    let code = cg.generate_statement_with_context(&stmt, Some("foo"), &mut ctx, None);
+    assert_eq!(code, "return;");
+}
+
+#[test]
+fn stmt_context_assign_realloc_zero_size() {
+    // buf = realloc(buf, 0) → buf.clear()
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("buf".to_string(), HirType::Vec(Box::new(HirType::Int)));
+    let stmt = HirStatement::Assignment {
+        target: "buf".to_string(),
+        value: HirExpression::Realloc {
+            pointer: Box::new(HirExpression::Variable("buf".to_string())),
+            new_size: Box::new(HirExpression::IntLiteral(0)),
+        },
+    };
+    let code = cg.generate_statement_with_context(&stmt, None, &mut ctx, None);
+    assert!(
+        code.contains("buf.clear()"),
+        "realloc(buf,0) → clear: {}",
+        code
+    );
+}
+
+#[test]
+fn stmt_context_assign_realloc_resize() {
+    // buf = realloc(buf, n * sizeof(int)) → buf.resize(n, 0i32)
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("buf".to_string(), HirType::Vec(Box::new(HirType::Int)));
+    let stmt = HirStatement::Assignment {
+        target: "buf".to_string(),
+        value: HirExpression::Realloc {
+            pointer: Box::new(HirExpression::Variable("buf".to_string())),
+            new_size: Box::new(HirExpression::BinaryOp {
+                op: decy_hir::BinaryOperator::Multiply,
+                left: Box::new(HirExpression::Variable("n".to_string())),
+                right: Box::new(HirExpression::Sizeof {
+                    type_name: "int".to_string(),
+                }),
+            }),
+        },
+    };
+    let code = cg.generate_statement_with_context(&stmt, None, &mut ctx, None);
+    assert!(
+        code.contains("buf.resize(n,"),
+        "realloc resize → buf.resize: {}",
+        code
+    );
+}
+
+#[test]
+fn stmt_context_assign_realloc_simple_size() {
+    // buf = realloc(buf, size) where size is not n*sizeof → resize with as usize
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("buf".to_string(), HirType::Vec(Box::new(HirType::Int)));
+    let stmt = HirStatement::Assignment {
+        target: "buf".to_string(),
+        value: HirExpression::Realloc {
+            pointer: Box::new(HirExpression::Variable("buf".to_string())),
+            new_size: Box::new(HirExpression::Variable("new_size".to_string())),
+        },
+    };
+    let code = cg.generate_statement_with_context(&stmt, None, &mut ctx, None);
+    assert!(
+        code.contains("resize") && code.contains("as usize"),
+        "realloc simple size → resize as usize: {}",
+        code
+    );
+}
+
+#[test]
+fn stmt_context_assign_errno() {
+    // errno = value → unsafe { ERRNO = value; }
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let stmt = HirStatement::Assignment {
+        target: "errno".to_string(),
+        value: HirExpression::IntLiteral(22),
+    };
+    let code = cg.generate_statement_with_context(&stmt, None, &mut ctx, None);
+    assert!(
+        code.contains("unsafe") && code.contains("ERRNO"),
+        "errno assign → unsafe ERRNO: {}",
+        code
+    );
+}
+
+#[test]
+fn stmt_context_assign_global() {
+    // global = value → unsafe { global = value; }
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("count".to_string(), HirType::Int);
+    ctx.add_global("count".to_string());
+    let stmt = HirStatement::Assignment {
+        target: "count".to_string(),
+        value: HirExpression::IntLiteral(42),
+    };
+    let code = cg.generate_statement_with_context(&stmt, None, &mut ctx, None);
+    assert!(
+        code.contains("unsafe") && code.contains("count = 42"),
+        "Global assign → unsafe: {}",
+        code
+    );
+}
+
+#[test]
+fn stmt_context_if_raw_pointer_null_check() {
+    // if (ptr) → if !ptr.is_null()
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable(
+        "ptr".to_string(),
+        HirType::Pointer(Box::new(HirType::Int)),
+    );
+    let stmt = HirStatement::If {
+        condition: HirExpression::Variable("ptr".to_string()),
+        then_block: vec![HirStatement::Break],
+        else_block: None,
+    };
+    let code = cg.generate_statement_with_context(&stmt, None, &mut ctx, None);
+    assert!(
+        code.contains("!ptr.is_null()"),
+        "If pointer → !ptr.is_null(): {}",
+        code
+    );
+}
+
+#[test]
+fn stmt_context_if_non_bool_condition() {
+    // if (x) → if (x) != 0
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("x".to_string(), HirType::Int);
+    let stmt = HirStatement::If {
+        condition: HirExpression::Variable("x".to_string()),
+        then_block: vec![HirStatement::Break],
+        else_block: None,
+    };
+    let code = cg.generate_statement_with_context(&stmt, None, &mut ctx, None);
+    assert!(
+        code.contains("!= 0"),
+        "If non-bool → != 0: {}",
+        code
+    );
+}
+
+#[test]
+fn stmt_context_for_infinite_loop() {
+    // for(;;) → loop {}
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let stmt = HirStatement::For {
+        init: vec![],
+        condition: None,
+        increment: vec![],
+        body: vec![HirStatement::Break],
+    };
+    let code = cg.generate_statement_with_context(&stmt, None, &mut ctx, None);
+    assert!(
+        code.contains("loop {"),
+        "for(;;) → loop: {}",
+        code
+    );
+}
+
+#[test]
+fn stmt_context_for_with_condition() {
+    // for(;cond;) → while cond {}
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let stmt = HirStatement::For {
+        init: vec![],
+        condition: Some(HirExpression::BinaryOp {
+            op: decy_hir::BinaryOperator::LessThan,
+            left: Box::new(HirExpression::Variable("i".to_string())),
+            right: Box::new(HirExpression::Variable("n".to_string())),
+        }),
+        increment: vec![],
+        body: vec![HirStatement::Break],
+    };
+    let code = cg.generate_statement_with_context(&stmt, None, &mut ctx, None);
+    assert!(
+        code.contains("while i < n"),
+        "for with cond → while: {}",
+        code
+    );
+}
+
+#[test]
+fn stmt_context_char_array_string_init() {
+    // char str[N] = "hello" → let mut str: [u8; N] = *b"hello\0"
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let stmt = HirStatement::VariableDeclaration {
+        name: "buf".to_string(),
+        var_type: HirType::Array {
+            element_type: Box::new(HirType::Char),
+            size: Some(10),
+        },
+        initializer: Some(HirExpression::StringLiteral("hello".to_string())),
+    };
+    let code = cg.generate_statement_with_context(&stmt, None, &mut ctx, None);
+    assert!(
+        code.contains("*b\"hello\\0\""),
+        "char array string init → *b\"hello\\0\": {}",
+        code
+    );
+}
+
+#[test]
+fn stmt_context_char_ptr_string_literal() {
+    // char* s = "hello" → let mut s: &str = "hello"
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let stmt = HirStatement::VariableDeclaration {
+        name: "s".to_string(),
+        var_type: HirType::Pointer(Box::new(HirType::Char)),
+        initializer: Some(HirExpression::StringLiteral("hello".to_string())),
+    };
+    let code = cg.generate_statement_with_context(&stmt, None, &mut ctx, None);
+    assert!(
+        code.contains("&str") && code.contains("\"hello\""),
+        "char* string literal → &str: {}",
+        code
+    );
+}
+
+#[test]
+fn stmt_context_var_decl_rename_global_shadow() {
+    // Local var that shadows global → rename to _local
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("count".to_string(), HirType::Int);
+    ctx.add_global("count".to_string());
+    let stmt = HirStatement::VariableDeclaration {
+        name: "count".to_string(),
+        var_type: HirType::Int,
+        initializer: Some(HirExpression::IntLiteral(0)),
+    };
+    let code = cg.generate_statement_with_context(&stmt, None, &mut ctx, None);
+    assert!(
+        code.contains("count_local"),
+        "Local shadowing global → renamed _local: {}",
+        code
+    );
+}
