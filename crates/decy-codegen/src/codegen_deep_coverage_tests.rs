@@ -13294,3 +13294,217 @@ fn logical_not_unary_op_integer_target_type() {
     let result = cg.generate_expression_with_target_type(&expr, &ctx, Some(&HirType::Int));
     assert!(result.contains("== 0) as i32"), "Got: {}", result);
 }
+
+// ============================================================================
+// BATCH 9: statement_modifies_variable coverage (lines 5764-5798)
+// ============================================================================
+
+#[test]
+fn stmt_modifies_array_index_assignment_match() {
+    // Line 5766-5770: ArrayIndexAssignment where array is Variable matching var_name
+    let cg = CodeGenerator::new();
+    let stmt = HirStatement::ArrayIndexAssignment {
+        array: Box::new(HirExpression::Variable("arr".to_string())),
+        index: Box::new(HirExpression::IntLiteral(0)),
+        value: HirExpression::IntLiteral(42),
+    };
+    assert!(cg.statement_modifies_variable(&stmt, "arr"));
+}
+
+#[test]
+fn stmt_modifies_array_index_assignment_no_match() {
+    // Line 5768-5770: ArrayIndexAssignment where var_name differs
+    let cg = CodeGenerator::new();
+    let stmt = HirStatement::ArrayIndexAssignment {
+        array: Box::new(HirExpression::Variable("arr".to_string())),
+        index: Box::new(HirExpression::IntLiteral(0)),
+        value: HirExpression::IntLiteral(42),
+    };
+    assert!(!cg.statement_modifies_variable(&stmt, "other"));
+}
+
+#[test]
+fn stmt_modifies_array_index_assignment_non_variable_array() {
+    // Line 5771: ArrayIndexAssignment where array is NOT a Variable → false
+    let cg = CodeGenerator::new();
+    let stmt = HirStatement::ArrayIndexAssignment {
+        array: Box::new(HirExpression::Dereference(Box::new(
+            HirExpression::Variable("ptr".to_string()),
+        ))),
+        index: Box::new(HirExpression::IntLiteral(0)),
+        value: HirExpression::IntLiteral(42),
+    };
+    assert!(!cg.statement_modifies_variable(&stmt, "ptr"));
+}
+
+#[test]
+fn stmt_modifies_deref_assignment_match() {
+    // Line 5773-5777: DerefAssignment where target is Variable matching var_name
+    let cg = CodeGenerator::new();
+    let stmt = HirStatement::DerefAssignment {
+        target: HirExpression::Variable("ptr".to_string()),
+        value: HirExpression::IntLiteral(99),
+    };
+    assert!(cg.statement_modifies_variable(&stmt, "ptr"));
+}
+
+#[test]
+fn stmt_modifies_deref_assignment_no_match() {
+    // Line 5775-5777: DerefAssignment where var_name differs
+    let cg = CodeGenerator::new();
+    let stmt = HirStatement::DerefAssignment {
+        target: HirExpression::Variable("ptr".to_string()),
+        value: HirExpression::IntLiteral(99),
+    };
+    assert!(!cg.statement_modifies_variable(&stmt, "other"));
+}
+
+#[test]
+fn stmt_modifies_deref_assignment_non_variable_target() {
+    // Line 5778: DerefAssignment where target is NOT a Variable → false
+    let cg = CodeGenerator::new();
+    let stmt = HirStatement::DerefAssignment {
+        target: HirExpression::Dereference(Box::new(HirExpression::Variable(
+            "ptr".to_string(),
+        ))),
+        value: HirExpression::IntLiteral(99),
+    };
+    assert!(!cg.statement_modifies_variable(&stmt, "ptr"));
+}
+
+#[test]
+fn stmt_modifies_if_then_block_only() {
+    // Line 5785-5787: If where then_block modifies variable
+    let cg = CodeGenerator::new();
+    let stmt = HirStatement::If {
+        condition: HirExpression::Variable("cond".to_string()),
+        then_block: vec![HirStatement::ArrayIndexAssignment {
+            array: Box::new(HirExpression::Variable("arr".to_string())),
+            index: Box::new(HirExpression::IntLiteral(0)),
+            value: HirExpression::IntLiteral(1),
+        }],
+        else_block: None,
+    };
+    assert!(cg.statement_modifies_variable(&stmt, "arr"));
+}
+
+#[test]
+fn stmt_modifies_if_else_block_only() {
+    // Line 5788-5791: If where only else_block modifies variable
+    let cg = CodeGenerator::new();
+    let stmt = HirStatement::If {
+        condition: HirExpression::Variable("cond".to_string()),
+        then_block: vec![],
+        else_block: Some(vec![HirStatement::DerefAssignment {
+            target: HirExpression::Variable("ptr".to_string()),
+            value: HirExpression::IntLiteral(1),
+        }]),
+    };
+    assert!(cg.statement_modifies_variable(&stmt, "ptr"));
+}
+
+#[test]
+fn stmt_modifies_if_neither_block() {
+    // Line 5785-5791: If where neither block modifies variable
+    let cg = CodeGenerator::new();
+    let stmt = HirStatement::If {
+        condition: HirExpression::Variable("cond".to_string()),
+        then_block: vec![HirStatement::Expression(HirExpression::IntLiteral(1))],
+        else_block: Some(vec![HirStatement::Expression(HirExpression::IntLiteral(
+            2,
+        ))]),
+    };
+    assert!(!cg.statement_modifies_variable(&stmt, "arr"));
+}
+
+#[test]
+fn stmt_modifies_while_body_match() {
+    // Line 5793-5795: While where body modifies variable
+    let cg = CodeGenerator::new();
+    let stmt = HirStatement::While {
+        condition: HirExpression::Variable("running".to_string()),
+        body: vec![HirStatement::ArrayIndexAssignment {
+            array: Box::new(HirExpression::Variable("buf".to_string())),
+            index: Box::new(HirExpression::IntLiteral(0)),
+            value: HirExpression::IntLiteral(0),
+        }],
+    };
+    assert!(cg.statement_modifies_variable(&stmt, "buf"));
+}
+
+#[test]
+fn stmt_modifies_for_body_match() {
+    // Line 5793-5795: For where body modifies variable
+    let cg = CodeGenerator::new();
+    let stmt = HirStatement::For {
+        init: vec![],
+        condition: None,
+        increment: vec![],
+        body: vec![HirStatement::DerefAssignment {
+            target: HirExpression::Variable("data".to_string()),
+            value: HirExpression::IntLiteral(0),
+        }],
+    };
+    assert!(cg.statement_modifies_variable(&stmt, "data"));
+}
+
+#[test]
+fn stmt_modifies_for_body_no_match() {
+    // Line 5793-5795: For where body does NOT modify variable
+    let cg = CodeGenerator::new();
+    let stmt = HirStatement::For {
+        init: vec![],
+        condition: None,
+        increment: vec![],
+        body: vec![HirStatement::Expression(HirExpression::IntLiteral(0))],
+    };
+    assert!(!cg.statement_modifies_variable(&stmt, "arr"));
+}
+
+#[test]
+fn stmt_modifies_catch_all_return() {
+    // Line 5796: catch-all arm returns false for Return statement
+    let cg = CodeGenerator::new();
+    let stmt = HirStatement::Return(Some(HirExpression::Variable("arr".to_string())));
+    assert!(!cg.statement_modifies_variable(&stmt, "arr"));
+}
+
+#[test]
+fn stmt_modifies_catch_all_expression() {
+    // Line 5796: catch-all arm returns false for Expression statement
+    let cg = CodeGenerator::new();
+    let stmt = HirStatement::Expression(HirExpression::Variable("arr".to_string()));
+    assert!(!cg.statement_modifies_variable(&stmt, "arr"));
+}
+
+#[test]
+fn stmt_modifies_catch_all_var_decl() {
+    // Line 5796: catch-all for VariableDeclaration
+    let cg = CodeGenerator::new();
+    let stmt = HirStatement::VariableDeclaration {
+        name: "arr".to_string(),
+        var_type: HirType::Int,
+        initializer: Some(HirExpression::IntLiteral(0)),
+    };
+    assert!(!cg.statement_modifies_variable(&stmt, "arr"));
+}
+
+#[test]
+fn stmt_modifies_nested_if_in_while() {
+    // Recursion: While body contains If that modifies variable
+    let cg = CodeGenerator::new();
+    let inner_if = HirStatement::If {
+        condition: HirExpression::Variable("flag".to_string()),
+        then_block: vec![HirStatement::ArrayIndexAssignment {
+            array: Box::new(HirExpression::Variable("arr".to_string())),
+            index: Box::new(HirExpression::IntLiteral(0)),
+            value: HirExpression::IntLiteral(1),
+        }],
+        else_block: None,
+    };
+    let stmt = HirStatement::While {
+        condition: HirExpression::Variable("running".to_string()),
+        body: vec![inner_if],
+    };
+    assert!(cg.statement_modifies_variable(&stmt, "arr"));
+}
