@@ -1645,3 +1645,169 @@ fn deep_transpile_many_globals_many_types() {
     assert!(rust.contains("g_int"), "Should contain g_int");
     assert!(rust.contains("Config"), "Should contain Config struct");
 }
+
+// ============================================================================
+// Global array variable defaults (lines 1200-1217 in lib.rs)
+// ============================================================================
+
+#[test]
+fn deep_transpile_with_includes_global_char_array() {
+    let c_code = r#"
+        char g_buffer[256];
+
+        int main() {
+            g_buffer[0] = 'A';
+            return 0;
+        }
+    "#;
+    let result = transpile_with_includes(c_code, None);
+    assert!(result.is_ok(), "Global char array: {:?}", result.err());
+    let rust = result.unwrap();
+    assert!(rust.contains("g_buffer"), "Should contain g_buffer, Got: {}", rust);
+}
+
+#[test]
+fn deep_transpile_with_includes_global_int_array() {
+    let c_code = r#"
+        int g_scores[10];
+
+        int main() {
+            g_scores[0] = 100;
+            return 0;
+        }
+    "#;
+    let result = transpile_with_includes(c_code, None);
+    assert!(result.is_ok(), "Global int array: {:?}", result.err());
+    let rust = result.unwrap();
+    assert!(rust.contains("g_scores"), "Should contain g_scores, Got: {}", rust);
+}
+
+#[test]
+fn deep_transpile_with_includes_global_float_array() {
+    let c_code = r#"
+        float g_weights[5];
+        double g_values[3];
+
+        int main() {
+            g_weights[0] = 1.0f;
+            g_values[0] = 2.0;
+            return 0;
+        }
+    "#;
+    let result = transpile_with_includes(c_code, None);
+    assert!(result.is_ok(), "Global float/double arrays: {:?}", result.err());
+    let rust = result.unwrap();
+    assert!(rust.contains("g_weights"), "Should contain g_weights, Got: {}", rust);
+    assert!(rust.contains("g_values"), "Should contain g_values, Got: {}", rust);
+}
+
+#[test]
+fn deep_transpile_with_includes_global_pointer_array() {
+    let c_code = r#"
+        int *g_ptrs[4];
+        unsigned int g_flags[8];
+
+        int main() {
+            g_flags[0] = 1;
+            return 0;
+        }
+    "#;
+    let result = transpile_with_includes(c_code, None);
+    assert!(result.is_ok(), "Global pointer/uint arrays: {:?}", result.err());
+    let rust = result.unwrap();
+    assert!(
+        rust.contains("g_ptrs") || rust.contains("g_flags"),
+        "Should contain globals, Got: {}",
+        rust
+    );
+}
+
+#[test]
+fn deep_transpile_with_includes_global_struct_array() {
+    let c_code = r#"
+        struct Point {
+            int x;
+            int y;
+        };
+
+        struct Point g_points[3];
+
+        int main() {
+            g_points[0].x = 1;
+            g_points[0].y = 2;
+            return 0;
+        }
+    "#;
+    let result = transpile_with_includes(c_code, None);
+    assert!(result.is_ok(), "Global struct array: {:?}", result.err());
+    let rust = result.unwrap();
+    assert!(rust.contains("g_points"), "Should contain g_points, Got: {}", rust);
+}
+
+// ============================================================================
+// Extern variable filter (line 953) and struct dedup (line 1063)
+// ============================================================================
+
+#[test]
+fn deep_transpile_with_includes_extern_global() {
+    let c_code = r#"
+        extern int max_value;
+        int local_value = 5;
+
+        int main() {
+            return local_value;
+        }
+    "#;
+    let result = transpile_with_includes(c_code, None);
+    assert!(result.is_ok(), "Extern global: {:?}", result.err());
+    let rust = result.unwrap();
+    assert!(rust.contains("local_value"), "Should contain local_value, Got: {}", rust);
+}
+
+#[test]
+fn deep_transpile_with_includes_duplicate_struct() {
+    let c_code = r#"
+        struct Config {
+            int value;
+        };
+
+        struct Config g_cfg;
+
+        struct Config create_config() {
+            struct Config c;
+            c.value = 0;
+            return c;
+        }
+
+        int main() {
+            struct Config c = create_config();
+            return c.value;
+        }
+    "#;
+    let result = transpile_with_includes(c_code, None);
+    assert!(result.is_ok(), "Duplicate struct usage: {:?}", result.err());
+}
+
+// ============================================================================
+// const_struct_literal closure paths (lines 1109, 1119, 1121, 1133)
+// ============================================================================
+
+#[test]
+fn deep_transpile_with_includes_struct_with_unsigned_field() {
+    let c_code = r#"
+        struct Counter {
+            unsigned int count;
+            signed char flags;
+            int data[4];
+        };
+
+        struct Counter g_counter;
+
+        int main() {
+            g_counter.count = 0;
+            return 0;
+        }
+    "#;
+    let result = transpile_with_includes(c_code, None);
+    assert!(result.is_ok(), "Struct with unsigned/signed fields: {:?}", result.err());
+}
