@@ -481,6 +481,83 @@ mod tests {
         assert!((metrics.average_iterations() - 1.75).abs() < 0.001);
     }
 
+    // ========================================================================
+    // Additional coverage: uncovered paths
+    // ========================================================================
+
+    #[test]
+    fn baseline_metrics_includes_target() {
+        // Rate below target but CI includes target
+        let close = BaselineMetrics::new(840, 1000);
+        assert!(close.includes_target(), "CI should include 85% target");
+
+        // Rate way above target — CI doesn't include target (lower bound > target)
+        let high = BaselineMetrics::new(990, 1000);
+        assert!(
+            !high.includes_target(),
+            "99% rate CI lower bound should be above 85%"
+        );
+    }
+
+    #[test]
+    fn baseline_metrics_to_markdown_failed() {
+        // significantly_below_target → "FAILED" status
+        let metrics = BaselineMetrics::new(500, 1000);
+        let md = metrics.to_markdown();
+        assert!(md.contains("FAILED"));
+    }
+
+    #[test]
+    fn baseline_metrics_to_markdown_pending() {
+        // includes_target but !meets_target → "PENDING" status
+        let metrics = BaselineMetrics::new(840, 1000);
+        assert!(!metrics.meets_target());
+        assert!(metrics.includes_target());
+        let md = metrics.to_markdown();
+        assert!(md.contains("PENDING"));
+    }
+
+    #[test]
+    fn wilson_score_90_confidence() {
+        let (lower, upper) = wilson_score_interval(85, 100, 0.90);
+        // 90% CI should be narrower than 95%
+        let (lower_95, upper_95) = wilson_score_interval(85, 100, 0.95);
+        assert!((upper - lower) < (upper_95 - lower_95));
+    }
+
+    #[test]
+    fn wilson_score_99_confidence() {
+        let (lower, upper) = wilson_score_interval(85, 100, 0.99);
+        // 99% CI should be wider than 95%
+        let (lower_95, upper_95) = wilson_score_interval(85, 100, 0.95);
+        assert!((upper - lower) > (upper_95 - lower_95));
+    }
+
+    #[test]
+    fn wilson_score_non_standard_confidence() {
+        // Non-standard confidence → defaults to 1.96 (same as 95%)
+        let (lower, upper) = wilson_score_interval(85, 100, 0.80);
+        let (lower_95, upper_95) = wilson_score_interval(85, 100, 0.95);
+        assert!((lower - lower_95).abs() < 0.001);
+        assert!((upper - upper_95).abs() < 0.001);
+    }
+
+    #[test]
+    fn file_measurement_success_after_one_iteration() {
+        // iterations == 1 → first_try_success is true
+        let m = FileMeasurement::success_after("test.c", 1, vec![]);
+        assert!(m.first_try_success);
+        assert!(m.eventual_success);
+        assert_eq!(m.iterations, 1);
+    }
+
+    #[test]
+    fn baseline_metrics_with_iterations_zero_eventual() {
+        // No eventual successes → average_iterations = 0.0
+        let metrics = BaselineMetrics::with_iterations(0, 0, 0, 100);
+        assert_eq!(metrics.average_iterations(), 0.0);
+    }
+
     #[test]
     fn aggregate_all_failures() {
         let measurements = vec![
