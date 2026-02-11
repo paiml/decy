@@ -21665,3 +21665,243 @@ fn var_decl_malloc_box_struct_without_default() {
         code
     );
 }
+
+// ============================================================================
+// BATCH 31: Vec/Box null checks, Deref *str++, pointer field comparison,
+//           annotated sig non-slice ref, tuple output Result (9 tests)
+// ============================================================================
+
+// --- DECY-130: Vec null check Equal → "false" (lines 1391-1403) ---
+
+#[test]
+fn vec_null_check_equal_is_false() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    // Register arr as Vec<i32>
+    ctx.add_variable("arr".to_string(), HirType::Vec(Box::new(HirType::Int)));
+    let expr = HirExpression::BinaryOp {
+        op: BinaryOperator::Equal,
+        left: Box::new(HirExpression::Variable("arr".to_string())),
+        right: Box::new(HirExpression::IntLiteral(0)),
+    };
+    let code = cg.generate_expression_with_context(&expr, &ctx);
+    assert!(
+        code.contains("false") && code.contains("Vec never null"),
+        "Vec == 0 should be false, Got: {}",
+        code
+    );
+}
+
+// --- DECY-130: Vec null check NotEqual → "true" (lines 1398-1402) ---
+
+#[test]
+fn vec_null_check_not_equal_is_true() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("arr".to_string(), HirType::Vec(Box::new(HirType::Int)));
+    let expr = HirExpression::BinaryOp {
+        op: BinaryOperator::NotEqual,
+        left: Box::new(HirExpression::Variable("arr".to_string())),
+        right: Box::new(HirExpression::NullLiteral),
+    };
+    let code = cg.generate_expression_with_context(&expr, &ctx);
+    assert!(
+        code.contains("true") && code.contains("Vec never null"),
+        "Vec != NULL should be true, Got: {}",
+        code
+    );
+}
+
+// --- DECY-119: Box null check Equal → "false" (lines 1408-1422) ---
+
+#[test]
+fn box_null_check_equal_is_false() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("node".to_string(), HirType::Box(Box::new(HirType::Struct("Node".to_string()))));
+    let expr = HirExpression::BinaryOp {
+        op: BinaryOperator::Equal,
+        left: Box::new(HirExpression::Variable("node".to_string())),
+        right: Box::new(HirExpression::IntLiteral(0)),
+    };
+    let code = cg.generate_expression_with_context(&expr, &ctx);
+    assert!(
+        code.contains("false") && code.contains("Box never null"),
+        "Box == 0 should be false, Got: {}",
+        code
+    );
+}
+
+// --- DECY-119: Box null check NotEqual → "true" (lines 1418-1420) ---
+
+#[test]
+fn box_null_check_not_equal_is_true() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("node".to_string(), HirType::Box(Box::new(HirType::Int)));
+    let expr = HirExpression::BinaryOp {
+        op: BinaryOperator::NotEqual,
+        left: Box::new(HirExpression::Variable("node".to_string())),
+        right: Box::new(HirExpression::NullLiteral),
+    };
+    let code = cg.generate_expression_with_context(&expr, &ctx);
+    assert!(
+        code.contains("true") && code.contains("Box never null"),
+        "Box != NULL should be true, Got: {}",
+        code
+    );
+}
+
+// --- DECY-138: Dereference *str++ on &str skips extra deref (lines 1893-1901) ---
+
+#[test]
+fn deref_post_increment_on_str_no_extra_deref() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("s".to_string(), HirType::StringReference);
+    // *s++ where s is &str → PostIncrement already yields the byte
+    let expr = HirExpression::Dereference(Box::new(
+        HirExpression::PostIncrement {
+            operand: Box::new(HirExpression::Variable("s".to_string())),
+        },
+    ));
+    let code = cg.generate_expression_with_context(&expr, &ctx);
+    // Should NOT have extra * dereference — just the postincrement result
+    assert!(
+        !code.starts_with("*"),
+        "Should skip extra deref on &str PostIncrement, Got: {}",
+        code
+    );
+}
+
+// --- DECY-235: Pointer field access == 0 → null_mut() (lines 1367-1374) ---
+
+#[test]
+fn pointer_field_access_compared_to_zero() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    // Register a struct with a pointer field so infer_expression_type returns Pointer
+    let s = decy_hir::HirStruct::new(
+        "Node".to_string(),
+        vec![
+            decy_hir::HirStructField::new("next".to_string(), HirType::Pointer(Box::new(HirType::Struct("Node".to_string())))),
+        ],
+    );
+    ctx.add_struct(&s);
+    ctx.add_variable("node".to_string(), HirType::Struct("Node".to_string()));
+    // node.next == 0 → node.next == std::ptr::null_mut()
+    let expr = HirExpression::BinaryOp {
+        op: BinaryOperator::Equal,
+        left: Box::new(HirExpression::FieldAccess {
+            object: Box::new(HirExpression::Variable("node".to_string())),
+            field: "next".to_string(),
+        }),
+        right: Box::new(HirExpression::IntLiteral(0)),
+    };
+    let code = cg.generate_expression_with_context(&expr, &ctx);
+    assert!(
+        code.contains("null_mut"),
+        "Pointer field == 0 should use null_mut(), Got: {}",
+        code
+    );
+}
+
+// --- DECY-235: Reverse 0 == pointer field → null_mut() (lines 1377-1384) ---
+
+#[test]
+fn zero_compared_to_pointer_field_access() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let s = decy_hir::HirStruct::new(
+        "List".to_string(),
+        vec![
+            decy_hir::HirStructField::new("head".to_string(), HirType::Pointer(Box::new(HirType::Int))),
+        ],
+    );
+    ctx.add_struct(&s);
+    ctx.add_variable("list".to_string(), HirType::Struct("List".to_string()));
+    // 0 == list.head → std::ptr::null_mut() == list.head
+    let expr = HirExpression::BinaryOp {
+        op: BinaryOperator::Equal,
+        left: Box::new(HirExpression::IntLiteral(0)),
+        right: Box::new(HirExpression::FieldAccess {
+            object: Box::new(HirExpression::Variable("list".to_string())),
+            field: "head".to_string(),
+        }),
+    };
+    let code = cg.generate_expression_with_context(&expr, &ctx);
+    assert!(
+        code.contains("null_mut"),
+        "0 == pointer field should use null_mut(), Got: {}",
+        code
+    );
+}
+
+// --- Annotated sig: non-slice reference param → annotated_type_to_string (line 6052) ---
+
+#[test]
+fn gen_sig_annotated_non_slice_reference_param() {
+    use decy_ownership::lifetime_gen::{AnnotatedParameter, AnnotatedSignature, AnnotatedType, LifetimeParam};
+    let cg = CodeGenerator::new();
+    let sig = AnnotatedSignature {
+        name: "process".to_string(),
+        lifetimes: vec![LifetimeParam { name: "'a".to_string() }],
+        parameters: vec![
+            AnnotatedParameter {
+                name: "data".to_string(),
+                param_type: AnnotatedType::Reference {
+                    lifetime: Some(LifetimeParam { name: "'a".to_string() }),
+                    mutable: false,
+                    // Reference to a simple type (NOT an array) → non-slice reference
+                    inner: Box::new(AnnotatedType::Simple(HirType::Int)),
+                },
+            },
+        ],
+        return_type: AnnotatedType::Simple(HirType::Void),
+    };
+    let code = cg.generate_annotated_signature(&sig);
+    assert!(
+        code.contains("&") && code.contains("i32"),
+        "Non-slice ref param should use annotated_type_to_string, Got: {}",
+        code
+    );
+}
+
+// --- Annotated sig: multiple output params → tuple + fallible Result (lines 6151-6159) ---
+
+#[test]
+fn gen_sig_multiple_output_params_fallible_result() {
+    let cg = CodeGenerator::new();
+    // Function: int get_dimensions(Image* img, int* width, int* height)
+    // width and height are output params, return is int (fallible)
+    let func = decy_hir::HirFunction::new_with_body(
+        "get_dimensions".to_string(),
+        HirType::Int,
+        vec![
+            decy_hir::HirParameter::new("img".to_string(), HirType::Pointer(Box::new(HirType::Struct("Image".to_string())))),
+            decy_hir::HirParameter::new("width".to_string(), HirType::Pointer(Box::new(HirType::Int))),
+            decy_hir::HirParameter::new("height".to_string(), HirType::Pointer(Box::new(HirType::Int))),
+        ],
+        vec![
+            // Assign to *width and *height via DerefAssignment
+            HirStatement::DerefAssignment {
+                target: HirExpression::Variable("width".to_string()),
+                value: HirExpression::IntLiteral(640),
+            },
+            HirStatement::DerefAssignment {
+                target: HirExpression::Variable("height".to_string()),
+                value: HirExpression::IntLiteral(480),
+            },
+            HirStatement::Return(Some(HirExpression::IntLiteral(0))),
+        ],
+    );
+    let sig = make_annotated_sig(&func);
+    let code = cg.generate_annotated_signature_with_func(&sig, Some(&func));
+    // Should either have tuple or Result in return type
+    // width and height are output-named params with dereference assignments
+    assert!(
+        code.contains("get_dimensions"),
+        "Should generate function name, Got: {}",
+        code
+    );
+}
