@@ -22823,3 +22823,240 @@ fn default_value_for_type_alias_unknown() {
     let result = CodeGenerator::default_value_for_type(&HirType::TypeAlias("custom_t".to_string()));
     assert_eq!(result, "0", "Unknown TypeAlias default should be 0");
 }
+
+// ============================================================================
+// BATCH 36: generate_expression_with_target_type uncovered branches
+// ============================================================================
+
+// --- LogicalNot with target Int: bool operand → (!expr) as i32 (line 1061-1064) ---
+
+#[test]
+fn logical_not_bool_to_int_target() {
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    // !(x > 5) with target type Int → (!(...)) as i32
+    let expr = HirExpression::UnaryOp {
+        op: UnaryOperator::LogicalNot,
+        operand: Box::new(HirExpression::BinaryOp {
+            op: BinaryOperator::GreaterThan,
+            left: Box::new(HirExpression::Variable("x".to_string())),
+            right: Box::new(HirExpression::IntLiteral(5)),
+        }),
+    };
+    let code = cg.generate_expression_with_target_type(&expr, &ctx, Some(&HirType::Int));
+    assert!(
+        code.contains("as i32"),
+        "LogicalNot of bool to int should cast: {}",
+        code
+    );
+}
+
+// --- LogicalNot with target Int: int operand → (expr == 0) as i32 (line 1065-1067) ---
+
+#[test]
+fn logical_not_int_to_int_target() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("n".to_string(), HirType::Int);
+    // !n with target type Int → (n == 0) as i32
+    let expr = HirExpression::UnaryOp {
+        op: UnaryOperator::LogicalNot,
+        operand: Box::new(HirExpression::Variable("n".to_string())),
+    };
+    let code = cg.generate_expression_with_target_type(&expr, &ctx, Some(&HirType::Int));
+    assert!(
+        code.contains("== 0") && code.contains("as i32"),
+        "LogicalNot of int to int should use (n == 0) as i32: {}",
+        code
+    );
+}
+
+// --- StringLiteral to char pointer (line 1082-1094) ---
+
+#[test]
+fn string_literal_to_char_pointer_target() {
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    let expr = HirExpression::StringLiteral("hello".to_string());
+    let target = HirType::Pointer(Box::new(HirType::Char));
+    let code = cg.generate_expression_with_target_type(&expr, &ctx, Some(&target));
+    assert!(
+        code.contains("as_ptr()") && code.contains("as *mut u8"),
+        "String to char* should convert: {}",
+        code
+    );
+}
+
+#[test]
+fn string_literal_with_escapes_to_char_pointer() {
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    let expr = HirExpression::StringLiteral("say \"hi\"".to_string());
+    let target = HirType::Pointer(Box::new(HirType::Char));
+    let code = cg.generate_expression_with_target_type(&expr, &ctx, Some(&target));
+    assert!(
+        code.contains("as_ptr()"),
+        "Escaped string to char* should convert: {}",
+        code
+    );
+}
+
+#[test]
+fn string_literal_no_target_type() {
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    let expr = HirExpression::StringLiteral("test".to_string());
+    let code = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert_eq!(code, "\"test\"");
+}
+
+#[test]
+fn string_literal_to_non_char_pointer() {
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    let expr = HirExpression::StringLiteral("data".to_string());
+    let target = HirType::Pointer(Box::new(HirType::Int));
+    let code = cg.generate_expression_with_target_type(&expr, &ctx, Some(&target));
+    // Non-char pointer target: should NOT convert to byte string
+    assert_eq!(code, "\"data\"");
+}
+
+// --- For loop with None condition → loop {} (line 4584-4591) ---
+
+#[test]
+fn for_infinite_loop_generates_loop() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    // for(;;) { break; } → loop { break; }
+    let stmt = HirStatement::For {
+        init: vec![],
+        condition: None,
+        increment: vec![],
+        body: vec![HirStatement::Break],
+    };
+    let code = cg.generate_statement_with_context(&stmt, None, &mut ctx, None);
+    assert!(
+        code.contains("loop {"),
+        "for(;;) should generate loop: {}",
+        code
+    );
+    assert!(code.contains("break;"));
+}
+
+#[test]
+fn for_infinite_loop_with_init_and_increment() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    // for(int i = 0; ; i++) → let mut i = 0; loop { ... i += 1; }
+    let stmt = HirStatement::For {
+        init: vec![HirStatement::VariableDeclaration {
+            name: "i".to_string(),
+            var_type: HirType::Int,
+            initializer: Some(HirExpression::IntLiteral(0)),
+        }],
+        condition: None,
+        increment: vec![HirStatement::Expression(HirExpression::UnaryOp {
+            op: UnaryOperator::PostIncrement,
+            operand: Box::new(HirExpression::Variable("i".to_string())),
+        })],
+        body: vec![HirStatement::Break],
+    };
+    let code = cg.generate_statement_with_context(&stmt, None, &mut ctx, None);
+    assert!(code.contains("loop {"), "Should generate loop: {}", code);
+}
+
+// --- Return in main: char cast (line 4318-4321) ---
+
+#[test]
+fn return_char_in_main_casts_to_i32() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("c".to_string(), HirType::Char);
+    let stmt = HirStatement::Return(Some(HirExpression::Variable("c".to_string())));
+    let code = cg.generate_statement_with_context(&stmt, Some("main"), &mut ctx, Some(&HirType::Int));
+    assert!(
+        code.contains("std::process::exit") && code.contains("as i32"),
+        "Return char in main should cast: {}",
+        code
+    );
+}
+
+// --- Return None in main → std::process::exit(0) (line 4325-4326) ---
+
+#[test]
+fn return_none_in_main_exits_zero() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let stmt = HirStatement::Return(None);
+    let code = cg.generate_statement_with_context(&stmt, Some("main"), &mut ctx, Some(&HirType::Int));
+    assert_eq!(code, "std::process::exit(0);");
+}
+
+// --- Return int in main → std::process::exit(N) no cast (line 4322-4323) ---
+
+#[test]
+fn return_int_in_main_no_cast() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let stmt = HirStatement::Return(Some(HirExpression::IntLiteral(1)));
+    let code = cg.generate_statement_with_context(&stmt, Some("main"), &mut ctx, Some(&HirType::Int));
+    assert!(
+        code.contains("std::process::exit(1)"),
+        "Return int in main: {}",
+        code
+    );
+    assert!(!code.contains("as i32"), "Int return should not cast: {}", code);
+}
+
+// --- FloatLiteral with Float target type (line 996-1015) ---
+
+#[test]
+fn float_literal_target_float_typed_expr() {
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    let expr = HirExpression::FloatLiteral("1.5".to_string());
+    let code = cg.generate_expression_with_target_type(&expr, &ctx, Some(&HirType::Float));
+    assert!(
+        code.contains("f32") || code.contains("1.5"),
+        "Float literal with Float target: {}",
+        code
+    );
+}
+
+#[test]
+fn float_literal_target_double_typed_expr() {
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    let expr = HirExpression::FloatLiteral("2.718".to_string());
+    let code = cg.generate_expression_with_target_type(&expr, &ctx, Some(&HirType::Double));
+    assert!(
+        code.contains("f64") || code.contains("2.718"),
+        "Float literal with Double target: {}",
+        code
+    );
+}
+
+#[test]
+fn float_literal_no_target_typed_expr() {
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    let expr = HirExpression::FloatLiteral("3.14".to_string());
+    let code = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(code.contains("3.14"), "Float literal no target: {}", code);
+}
+
+// --- Variable char to int coercion (line 1273-1279) ---
+
+#[test]
+fn variable_char_to_int_target() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("c".to_string(), HirType::Char);
+    let expr = HirExpression::Variable("c".to_string());
+    let code = cg.generate_expression_with_target_type(&expr, &ctx, Some(&HirType::Int));
+    assert!(
+        code.contains("as i32"),
+        "Char variable to Int should cast: {}",
+        code
+    );
+}
