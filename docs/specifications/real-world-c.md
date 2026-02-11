@@ -263,7 +263,7 @@ Post-implementation workspace coverage: **97.44% region, 97.60% line** (target: 
 | decy-hir | 100% | 100% | Full coverage via integration tests |
 | decy-analyzer | 97.00% | — | Lock analysis, subprocess analysis at 90-96% |
 | decy-ownership | 98.90% | — | 17 inference branch tests added via graph helpers |
-| decy-codegen | 96.84% | 96.30% | 1,119 deep coverage tests (30 batches) |
+| decy-codegen | 96.85% | 96.30% | 1,148 deep coverage tests (33 batches) |
 | decy-verify | 99.23% | 98.92% | Compile verification fully tested |
 | decy-core | 97.61% | 97.80% | Pipeline tests + uninitialized globals + enum/function dedup |
 | decy-stdlib | 100% | 100% | Full coverage |
@@ -272,9 +272,9 @@ Post-implementation workspace coverage: **97.44% region, 97.60% line** (target: 
 
 ### Test Corpus
 
-- **Total tests**: 12,900+ passing across workspace
+- **Total tests**: 13,000+ passing across workspace
 - **Falsification tests**: 2,150 total (92 falsified, 95.7% pass rate)
-- **Codegen deep tests**: 1,119 across 30 batches (expression target type, annotated signatures, type coercions, null checks, pointer analysis, Vec/Box transforms, deref assigns, sizeof, global variables, format specifiers, strlen idioms, string iter func args, BinaryOp target_type paths, statement_modifies_variable, generate_function variants, Option/Box null checks, mixed arithmetic promotions, comma operator, assignment expressions, pointer subtraction detection, void* constraints, macro type inference, malloc statement paths, char-int coercion, NULL comparison detection, pointer arithmetic detection, strip_unsafe, malloc fallback, sizeof struct field, sizeof member access, LogicalNot int target, AddressOf call args, Vec init paths, transform_vec_statement, output params, format positions, array param slice, char array escape, string ref arrays, count param heuristic, Box default/zeroed init)
+- **Codegen deep tests**: 1,148 across 33 batches (expression target type, annotated signatures, type coercions, null checks, pointer analysis, Vec/Box transforms, deref assigns, sizeof, global variables, format specifiers, strlen idioms, string iter func args, BinaryOp target_type paths, statement_modifies_variable, generate_function variants, Option/Box null checks, mixed arithmetic promotions, comma operator, assignment expressions, pointer subtraction detection, void* constraints, macro type inference, malloc statement paths, char-int coercion, NULL comparison detection, pointer arithmetic detection, strip_unsafe, malloc fallback, sizeof struct field, sizeof member access, LogicalNot int target, AddressOf call args, Vec init paths, transform_vec_statement, output params, format positions, array param slice, char array escape, string ref arrays, count param heuristic, Box default/zeroed init, Vec/Box null→false/true, *str++ deref elision, pointer field→null_mut, annotated non-slice ref, strlen→is_empty, pointer post-inc/dec wrapping_add/sub, (*p)++/-- unsafe, &str byte extract, Option→is_none/is_some, array→void* cast, global array assign unsafe, sizeof ctx field lookup, ptr-to-ptr deref unsafe, int→char as u8)
 - **LLM coverage tests**: 30 (render multi-function, validate edge cases, parse_response, context builder non-existent function paths, verifier compile/lint/run_tests, iteration context feedback, VerificationLoop format feedback)
 - **Oracle trace verifier tests**: 43 (compilation, wrapping, unsafe modes, stats tracking, batch verification, pass_rate zero, defaults, unsafe counting variants)
 - **Core pipeline tests**: 12 new (uninitialized globals, enum variants, function dedup)
