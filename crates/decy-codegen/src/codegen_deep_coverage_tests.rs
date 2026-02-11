@@ -13870,3 +13870,285 @@ fn stmt_if_else_with_body() {
     assert!(code.contains("if"), "Got: {}", code);
     assert!(code.contains("else"), "Got: {}", code);
 }
+
+// ============================================================================
+// BATCH 12: generate_annotated_signature_with_func coverage
+// ============================================================================
+
+#[test]
+fn annotated_sig_simple_no_params_void() {
+    use decy_ownership::lifetime_gen::{AnnotatedSignature, AnnotatedType};
+    let cg = CodeGenerator::new();
+    let sig = AnnotatedSignature {
+        name: "do_stuff".to_string(),
+        lifetimes: vec![],
+        parameters: vec![],
+        return_type: AnnotatedType::Simple(HirType::Void),
+    };
+    let result = cg.generate_annotated_signature_with_func(&sig, None);
+    assert_eq!(result, "fn do_stuff()");
+}
+
+#[test]
+fn annotated_sig_with_return_type() {
+    use decy_ownership::lifetime_gen::{AnnotatedSignature, AnnotatedType};
+    let cg = CodeGenerator::new();
+    let sig = AnnotatedSignature {
+        name: "get_value".to_string(),
+        lifetimes: vec![],
+        parameters: vec![],
+        return_type: AnnotatedType::Simple(HirType::Int),
+    };
+    let result = cg.generate_annotated_signature_with_func(&sig, None);
+    assert_eq!(result, "fn get_value() -> i32");
+}
+
+#[test]
+fn annotated_sig_with_simple_params() {
+    use decy_ownership::lifetime_gen::{AnnotatedParameter, AnnotatedSignature, AnnotatedType};
+    let cg = CodeGenerator::new();
+    let sig = AnnotatedSignature {
+        name: "add".to_string(),
+        lifetimes: vec![],
+        parameters: vec![
+            AnnotatedParameter {
+                name: "a".to_string(),
+                param_type: AnnotatedType::Simple(HirType::Int),
+            },
+            AnnotatedParameter {
+                name: "b".to_string(),
+                param_type: AnnotatedType::Simple(HirType::Int),
+            },
+        ],
+        return_type: AnnotatedType::Simple(HirType::Int),
+    };
+    let result = cg.generate_annotated_signature_with_func(&sig, None);
+    assert!(result.contains("mut a: i32"), "Got: {}", result);
+    assert!(result.contains("mut b: i32"), "Got: {}", result);
+    assert!(result.contains("-> i32"), "Got: {}", result);
+}
+
+#[test]
+fn annotated_sig_keyword_rename_write() {
+    use decy_ownership::lifetime_gen::{AnnotatedSignature, AnnotatedType};
+    let cg = CodeGenerator::new();
+    let sig = AnnotatedSignature {
+        name: "write".to_string(),
+        lifetimes: vec![],
+        parameters: vec![],
+        return_type: AnnotatedType::Simple(HirType::Void),
+    };
+    let result = cg.generate_annotated_signature_with_func(&sig, None);
+    assert!(result.contains("fn c_write"), "Got: {}", result);
+}
+
+#[test]
+fn annotated_sig_keyword_rename_read() {
+    use decy_ownership::lifetime_gen::{AnnotatedSignature, AnnotatedType};
+    let cg = CodeGenerator::new();
+    let sig = AnnotatedSignature {
+        name: "read".to_string(),
+        lifetimes: vec![],
+        parameters: vec![],
+        return_type: AnnotatedType::Simple(HirType::Void),
+    };
+    let result = cg.generate_annotated_signature_with_func(&sig, None);
+    assert!(result.contains("fn c_read"), "Got: {}", result);
+}
+
+#[test]
+fn annotated_sig_pointer_param_becomes_mut_ref() {
+    use decy_ownership::lifetime_gen::{AnnotatedParameter, AnnotatedSignature, AnnotatedType};
+    let cg = CodeGenerator::new();
+    let sig = AnnotatedSignature {
+        name: "increment".to_string(),
+        lifetimes: vec![],
+        parameters: vec![AnnotatedParameter {
+            name: "val".to_string(),
+            param_type: AnnotatedType::Simple(HirType::Pointer(Box::new(HirType::Int))),
+        }],
+        return_type: AnnotatedType::Simple(HirType::Void),
+    };
+    // Without func, pointer becomes &mut T
+    let result = cg.generate_annotated_signature_with_func(&sig, None);
+    assert!(result.contains("&mut i32"), "Got: {}", result);
+}
+
+#[test]
+fn annotated_sig_void_pointer_stays_raw() {
+    use decy_ownership::lifetime_gen::{AnnotatedParameter, AnnotatedSignature, AnnotatedType};
+    let cg = CodeGenerator::new();
+    let sig = AnnotatedSignature {
+        name: "generic_fn".to_string(),
+        lifetimes: vec![],
+        parameters: vec![AnnotatedParameter {
+            name: "data".to_string(),
+            param_type: AnnotatedType::Simple(HirType::Pointer(Box::new(HirType::Void))),
+        }],
+        return_type: AnnotatedType::Simple(HirType::Void),
+    };
+    let result = cg.generate_annotated_signature_with_func(&sig, None);
+    assert!(result.contains("*mut ()"), "Got: {}", result);
+}
+
+#[test]
+fn annotated_sig_main_no_return_type_via_func() {
+    use decy_ownership::lifetime_gen::{AnnotatedSignature, AnnotatedType};
+    let cg = CodeGenerator::new();
+    let sig = AnnotatedSignature {
+        name: "main".to_string(),
+        lifetimes: vec![],
+        parameters: vec![],
+        return_type: AnnotatedType::Simple(HirType::Int),
+    };
+    // Test the _with_func variant specifically
+    let func = HirFunction::new_with_body(
+        "main".to_string(),
+        HirType::Int,
+        vec![],
+        vec![HirStatement::Return(Some(HirExpression::IntLiteral(0)))],
+    );
+    let result = cg.generate_annotated_signature_with_func(&sig, Some(&func));
+    // main with i32 return should NOT include -> i32
+    assert_eq!(result, "fn main()");
+}
+
+#[test]
+fn annotated_sig_with_lifetime_and_reference_param() {
+    use decy_ownership::lifetime_gen::{
+        AnnotatedParameter, AnnotatedSignature, AnnotatedType, LifetimeParam,
+    };
+    let cg = CodeGenerator::new();
+    let sig = AnnotatedSignature {
+        name: "borrow".to_string(),
+        lifetimes: vec![LifetimeParam::standard(0)],
+        parameters: vec![AnnotatedParameter {
+            name: "data".to_string(),
+            param_type: AnnotatedType::Reference {
+                inner: Box::new(AnnotatedType::Simple(HirType::Int)),
+                mutable: false,
+                lifetime: Some(LifetimeParam::standard(0)),
+            },
+        }],
+        return_type: AnnotatedType::Simple(HirType::Void),
+    };
+    let result = cg.generate_annotated_signature_with_func(&sig, None);
+    assert!(result.contains("<'a>"), "Got: {}", result);
+    assert!(result.contains("&'a i32"), "Got: {}", result);
+}
+
+#[test]
+fn annotated_sig_slice_param_no_lifetime() {
+    use decy_ownership::lifetime_gen::{
+        AnnotatedParameter, AnnotatedSignature, AnnotatedType, LifetimeParam,
+    };
+    let cg = CodeGenerator::new();
+    // Slice = Reference to Array with size=None — should NOT get lifetime param
+    let sig = AnnotatedSignature {
+        name: "process".to_string(),
+        lifetimes: vec![LifetimeParam::standard(0)],
+        parameters: vec![AnnotatedParameter {
+            name: "arr".to_string(),
+            param_type: AnnotatedType::Reference {
+                inner: Box::new(AnnotatedType::Simple(HirType::Array {
+                    element_type: Box::new(HirType::Int),
+                    size: None,
+                })),
+                mutable: false,
+                lifetime: Some(LifetimeParam::standard(0)),
+            },
+        }],
+        return_type: AnnotatedType::Simple(HirType::Void),
+    };
+    let result = cg.generate_annotated_signature_with_func(&sig, None);
+    // Slice params should NOT produce lifetime parameter <'a>
+    assert!(!result.contains("<'a>"), "Got: {}", result);
+    assert!(result.contains("&[i32]"), "Got: {}", result);
+}
+
+#[test]
+fn annotated_sig_mutable_slice_param() {
+    use decy_ownership::lifetime_gen::{AnnotatedParameter, AnnotatedSignature, AnnotatedType};
+    let cg = CodeGenerator::new();
+    let sig = AnnotatedSignature {
+        name: "fill".to_string(),
+        lifetimes: vec![],
+        parameters: vec![AnnotatedParameter {
+            name: "buf".to_string(),
+            param_type: AnnotatedType::Reference {
+                inner: Box::new(AnnotatedType::Simple(HirType::Array {
+                    element_type: Box::new(HirType::Int),
+                    size: None,
+                })),
+                mutable: true,
+                lifetime: None,
+            },
+        }],
+        return_type: AnnotatedType::Simple(HirType::Void),
+    };
+    let result = cg.generate_annotated_signature_with_func(&sig, None);
+    assert!(result.contains("&mut [i32]"), "Got: {}", result);
+}
+
+#[test]
+fn annotated_sig_unsized_array_param() {
+    use decy_ownership::lifetime_gen::{AnnotatedParameter, AnnotatedSignature, AnnotatedType};
+    let cg = CodeGenerator::new();
+    // C's void func(char arr[]) → AnnotatedType::Simple(Array { size: None })
+    let sig = AnnotatedSignature {
+        name: "parse".to_string(),
+        lifetimes: vec![],
+        parameters: vec![AnnotatedParameter {
+            name: "buf".to_string(),
+            param_type: AnnotatedType::Simple(HirType::Array {
+                element_type: Box::new(HirType::Char),
+                size: None,
+            }),
+        }],
+        return_type: AnnotatedType::Simple(HirType::Void),
+    };
+    let result = cg.generate_annotated_signature_with_func(&sig, None);
+    assert!(result.contains("&mut [u8]"), "Got: {}", result);
+}
+
+#[test]
+fn annotated_sig_output_param_with_input() {
+    use decy_ownership::lifetime_gen::{AnnotatedParameter, AnnotatedSignature, AnnotatedType};
+    let cg = CodeGenerator::new();
+
+    // Function: void compute(int input, int* result)
+    // With a function body that DerefAssigns to result
+    let func = HirFunction::new_with_body(
+        "compute".to_string(),
+        HirType::Void,
+        vec![
+            HirParameter::new("input".to_string(), HirType::Int),
+            HirParameter::new("result".to_string(), HirType::Pointer(Box::new(HirType::Int))),
+        ],
+        vec![HirStatement::DerefAssignment {
+            target: HirExpression::Variable("result".to_string()),
+            value: HirExpression::Variable("input".to_string()),
+        }],
+    );
+
+    let sig = AnnotatedSignature {
+        name: "compute".to_string(),
+        lifetimes: vec![],
+        parameters: vec![
+            AnnotatedParameter {
+                name: "input".to_string(),
+                param_type: AnnotatedType::Simple(HirType::Int),
+            },
+            AnnotatedParameter {
+                name: "result".to_string(),
+                param_type: AnnotatedType::Simple(HirType::Pointer(Box::new(HirType::Int))),
+            },
+        ],
+        return_type: AnnotatedType::Simple(HirType::Void),
+    };
+    let result = cg.generate_annotated_signature_with_func(&sig, Some(&func));
+    // "result" is output param (name contains "result", has input params)
+    // Should be removed from params and appear as return type
+    assert!(result.contains("-> i32"), "Got: {}", result);
+    assert!(!result.contains("result"), "Got: {}", result);
+}

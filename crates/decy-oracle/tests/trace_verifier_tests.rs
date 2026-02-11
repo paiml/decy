@@ -631,3 +631,95 @@ fn main() {
         err
     );
 }
+
+// ============================================================================
+// STATS: ZERO DIVISION EDGE CASE
+// ============================================================================
+
+#[test]
+fn test_verifier_stats_pass_rate_zero_total() {
+    let stats = VerifierStats {
+        total_verified: 0,
+        passed: 0,
+        failed: 0,
+        total_unsafe_blocks: 0,
+        avg_verification_time_ms: 0.0,
+    };
+
+    // Should return 0.0, not panic on division by zero
+    assert!((stats.pass_rate() - 0.0).abs() < 0.001);
+}
+
+// ============================================================================
+// DEFAULT TRAIT IMPLEMENTATIONS
+// ============================================================================
+
+#[test]
+fn test_verifier_default_trait() {
+    let verifier = TraceVerifier::default();
+    assert_eq!(verifier.config().level, VerificationLevel::Standard);
+    assert!(!verifier.config().allow_unsafe);
+}
+
+#[test]
+fn test_verifier_config_default_trait() {
+    let config = VerifierConfig::default();
+    assert_eq!(config.level, VerificationLevel::Standard);
+    assert!(!config.allow_unsafe);
+    assert_eq!(config.max_clippy_warnings, 0);
+    assert_eq!(config.timeout_secs, 30);
+}
+
+#[test]
+fn test_verification_level_default_trait() {
+    let level = VerificationLevel::default();
+    assert_eq!(level, VerificationLevel::Standard);
+}
+
+// ============================================================================
+// UNSAFE COUNTING EDGE CASES
+// ============================================================================
+
+#[test]
+fn test_count_unsafe_no_space_variant() {
+    let verifier = TraceVerifier::new();
+    // "unsafe{" without space — also counted
+    let code = "unsafe{ let ptr = std::ptr::null::<i32>(); }";
+    assert_eq!(verifier.count_unsafe_blocks(code), 1);
+}
+
+#[test]
+fn test_count_unsafe_mixed_variants() {
+    let verifier = TraceVerifier::new();
+    let code = "unsafe { a(); } unsafe{ b(); }";
+    assert_eq!(verifier.count_unsafe_blocks(code), 2);
+}
+
+// ============================================================================
+// VERIFY SAFETY EDGE CASES
+// ============================================================================
+
+#[test]
+fn test_verify_safety_safe_code_passes() {
+    let verifier = TraceVerifier::new();
+    let result = verifier.verify_safety("fn safe() { let x = 1; }");
+    assert!(result.is_ok());
+}
+
+// ============================================================================
+// VERIFY BATCH/FILTER EMPTY INPUT
+// ============================================================================
+
+#[test]
+fn test_verify_batch_empty() {
+    let verifier = TraceVerifier::new();
+    let results = verifier.verify_batch(&[]);
+    assert!(results.is_empty());
+}
+
+#[test]
+fn test_filter_valid_empty() {
+    let verifier = TraceVerifier::new();
+    let valid = verifier.filter_valid(&[]);
+    assert!(valid.is_empty());
+}
