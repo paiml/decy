@@ -565,4 +565,66 @@ mod tests {
         assert_eq!(result.confidence_weight(), 0.0);
         assert!(!result.allows_promotion());
     }
+
+    #[test]
+    fn test_verification_stats_default() {
+        let stats = VerificationStats::default();
+        assert_eq!(stats.total_evaluated, 0);
+        assert_eq!(stats.fully_verified, 0);
+        assert_eq!(stats.compiles_only, 0);
+        assert_eq!(stats.behavior_changed, 0);
+        assert_eq!(stats.compile_failed, 0);
+        assert_eq!(stats.promotion_rate(), 0.0);
+    }
+
+    #[test]
+    fn test_verification_result_debug_clone() {
+        let result = VerificationResult::BehaviorChanged(vec!["test1".into(), "test2".into()]);
+        let cloned = result.clone();
+        assert_eq!(result, cloned);
+        let debug = format!("{:?}", result);
+        assert!(debug.contains("BehaviorChanged"));
+    }
+
+    #[test]
+    fn test_test_result_debug_clone() {
+        let result = TestResult::SomeFailed(vec!["failure1".into()]);
+        let cloned = result.clone();
+        assert_eq!(result, cloned);
+        let debug = format!("{:?}", result);
+        assert!(debug.contains("SomeFailed"));
+    }
+
+    #[test]
+    fn test_verification_stats_all_behavior_changed() {
+        let mut stats = VerificationStats::new();
+        stats.record(&VerificationResult::BehaviorChanged(vec!["fail".into()]));
+        stats.record(&VerificationResult::BehaviorChanged(vec!["fail".into()]));
+        assert_eq!(stats.behavior_changed, 2);
+        assert_eq!(stats.promotion_rate(), 0.0);
+        assert_eq!(stats.full_verification_rate(), 0.0);
+        assert_eq!(stats.average_confidence(), 0.0);
+    }
+
+    #[test]
+    fn test_verification_stats_mixed_confidence() {
+        let mut stats = VerificationStats::new();
+        stats.record(&VerificationResult::FullyVerified); // 1.0
+        stats.record(&VerificationResult::CompileFailed("err".into())); // 0.0
+        // Average: (1.0 + 0.0) / 2 = 0.5
+        assert!((stats.average_confidence() - 0.5).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_verification_config_custom() {
+        let config = VerificationConfig {
+            compile_timeout_secs: 30,
+            test_timeout_secs: 60,
+            run_tests: false,
+            work_dir: Some(std::path::PathBuf::from("/tmp")),
+        };
+        assert_eq!(config.compile_timeout_secs, 30);
+        assert!(!config.run_tests);
+        assert!(config.work_dir.is_some());
+    }
 }

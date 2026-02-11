@@ -3137,3 +3137,70 @@ fn test_reasoning_free_node_owning() {
         inferences["f"].reason
     );
 }
+
+#[test]
+fn test_owning_pointer_escapes_confidence_boost() {
+    // An owning pointer (Allocation) with an Assignment node triggers escapes_function=true
+    // which boosts confidence (lines 253-255)
+    let graph = DataflowGraph::new()
+        .with_node(
+            "ptr",
+            PointerNode {
+                name: "ptr".to_string(),
+                def_index: 0,
+                kind: NodeKind::Allocation,
+            },
+        )
+        .with_node(
+            "ptr",
+            PointerNode {
+                name: "ptr".to_string(),
+                def_index: 1,
+                kind: NodeKind::Assignment {
+                    source: "other".to_string(),
+                },
+            },
+        );
+
+    let inferencer = OwnershipInferencer::new();
+    let inferences = inferencer.infer(&graph);
+
+    assert!(inferences.contains_key("ptr"));
+    assert_eq!(inferences["ptr"].kind, OwnershipKind::Owning);
+    // Owning + escapes should have boosted confidence (0.9 + 0.05 = 0.95)
+    assert!(
+        (inferences["ptr"].confidence - 0.95).abs() < 0.01,
+        "Expected confidence ~0.95 for owning+escapes, got: {}",
+        inferences["ptr"].confidence
+    );
+}
+
+#[test]
+fn test_immutable_borrow_escapes_confidence_reduction() {
+    // A borrow (Assignment) that escapes (also has an Assignment node) reduces confidence
+    // (lines 256-258)
+    let graph = DataflowGraph::new()
+        .with_node(
+            "ref",
+            PointerNode {
+                name: "ref".to_string(),
+                def_index: 0,
+                kind: NodeKind::Assignment {
+                    source: "ptr".to_string(),
+                },
+            },
+        );
+
+    let inferencer = OwnershipInferencer::new();
+    let inferences = inferencer.infer(&graph);
+
+    assert!(inferences.contains_key("ref"));
+    // Assignment with no mutation → ImmutableBorrow
+    assert_eq!(inferences["ref"].kind, OwnershipKind::ImmutableBorrow);
+    // ImmutableBorrow base=0.8, escapes → 0.8 - 0.05 = 0.75
+    assert!(
+        (inferences["ref"].confidence - 0.75).abs() < 0.01,
+        "Expected confidence ~0.75 for borrow+escapes, got: {}",
+        inferences["ref"].confidence
+    );
+}
