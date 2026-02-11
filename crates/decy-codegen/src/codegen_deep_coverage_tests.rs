@@ -27881,3 +27881,790 @@ fn expr_context_string_func_ptr_field_access() {
         code
     );
 }
+
+// =============================================================================
+// Batch 52: PointerFieldAccess/ArrayIndex/Sizeof/Calloc/Malloc/Realloc/
+//           StringMethodCall/Cast/CompoundLiteral expression branches
+// =============================================================================
+
+#[test]
+fn expr_context_ptr_field_chain() {
+    // ptr->field1->field2 — chained PointerFieldAccess should chain with .
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let expr = HirExpression::PointerFieldAccess {
+        pointer: Box::new(HirExpression::PointerFieldAccess {
+            pointer: Box::new(HirExpression::Variable("node".to_string())),
+            field: "next".to_string(),
+        }),
+        field: "data".to_string(),
+    };
+    let code = cg.generate_expression_with_context(&expr, &mut ctx);
+    // Outer access chains on inner — should produce something like (*node).next.data
+    assert!(
+        code.contains(".data"),
+        "Chained ptr field access → .field: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_context_ptr_field_raw_pointer_var() {
+    // ptr->field where ptr is raw pointer → unsafe { (*ptr).field }
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable(
+        "node".to_string(),
+        HirType::Pointer(Box::new(HirType::Struct("Node".to_string()))),
+    );
+    let expr = HirExpression::PointerFieldAccess {
+        pointer: Box::new(HirExpression::Variable("node".to_string())),
+        field: "value".to_string(),
+    };
+    let code = cg.generate_expression_with_context(&expr, &mut ctx);
+    assert!(
+        code.contains("unsafe") && code.contains("(*node).value"),
+        "Raw ptr field → unsafe deref: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_context_ptr_field_non_pointer_var() {
+    // ptr->field where ptr is NOT raw pointer → (*ptr).field without unsafe
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable(
+        "node".to_string(),
+        HirType::Struct("Node".to_string()),
+    );
+    let expr = HirExpression::PointerFieldAccess {
+        pointer: Box::new(HirExpression::Variable("node".to_string())),
+        field: "value".to_string(),
+    };
+    let code = cg.generate_expression_with_context(&expr, &mut ctx);
+    assert!(
+        code.contains("(*node).value") && !code.contains("unsafe"),
+        "Non-ptr field → no unsafe: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_context_array_index_global() {
+    // global_array[i] → unsafe { global_array[i] }
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable(
+        "table".to_string(),
+        HirType::Array {
+            element_type: Box::new(HirType::Int),
+            size: Some(256),
+        },
+    );
+    ctx.add_global("table".to_string());
+    let expr = HirExpression::ArrayIndex {
+        array: Box::new(HirExpression::Variable("table".to_string())),
+        index: Box::new(HirExpression::Variable("i".to_string())),
+    };
+    let code = cg.generate_expression_with_context(&expr, &mut ctx);
+    assert!(
+        code.contains("unsafe"),
+        "Global array index → unsafe: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_context_array_index_raw_pointer() {
+    // ptr[i] where ptr is raw pointer → unsafe { *ptr.add(i as usize) }
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable(
+        "data".to_string(),
+        HirType::Pointer(Box::new(HirType::Int)),
+    );
+    let expr = HirExpression::ArrayIndex {
+        array: Box::new(HirExpression::Variable("data".to_string())),
+        index: Box::new(HirExpression::IntLiteral(5)),
+    };
+    let code = cg.generate_expression_with_context(&expr, &mut ctx);
+    assert!(
+        code.contains("unsafe") && code.contains(".add("),
+        "Raw ptr index → unsafe ptr.add: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_context_array_index_regular() {
+    // arr[i] regular → arr[(i) as usize]
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable(
+        "arr".to_string(),
+        HirType::Array {
+            element_type: Box::new(HirType::Int),
+            size: Some(10),
+        },
+    );
+    let expr = HirExpression::ArrayIndex {
+        array: Box::new(HirExpression::Variable("arr".to_string())),
+        index: Box::new(HirExpression::Variable("i".to_string())),
+    };
+    let code = cg.generate_expression_with_context(&expr, &mut ctx);
+    assert!(
+        code.contains("arr[(i) as usize]") && !code.contains("unsafe"),
+        "Regular array index → no unsafe: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_context_sizeof_type() {
+    // sizeof(int) → std::mem::size_of::<i32>() as i32
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let expr = HirExpression::Sizeof {
+        type_name: "int".to_string(),
+    };
+    let code = cg.generate_expression_with_context(&expr, &mut ctx);
+    assert!(
+        code.contains("size_of::<i32>()"),
+        "sizeof(int) → size_of::<i32>(): {}",
+        code
+    );
+}
+
+#[test]
+fn expr_context_sizeof_variable() {
+    // sizeof(x) where x is known variable → size_of_val(&x)
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("x".to_string(), HirType::Int);
+    let expr = HirExpression::Sizeof {
+        type_name: "x".to_string(),
+    };
+    let code = cg.generate_expression_with_context(&expr, &mut ctx);
+    assert!(
+        code.contains("size_of_val(&x)"),
+        "sizeof(variable) → size_of_val: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_context_sizeof_struct_field() {
+    // sizeof with struct field pattern "MyStruct field" → size_of field type
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_struct(&decy_hir::HirStruct::new(
+        "MyStruct".to_string(),
+        vec![decy_hir::HirStructField::new(
+            "field".to_string(),
+            HirType::Double,
+        )],
+    ));
+    let expr = HirExpression::Sizeof {
+        type_name: "struct MyStruct field".to_string(),
+    };
+    let code = cg.generate_expression_with_context(&expr, &mut ctx);
+    assert!(
+        code.contains("size_of::<f64>()"),
+        "sizeof struct field → size_of field type: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_context_sizeof_member_access_var() {
+    // sizeof "record name" where record is a known variable → size_of_val
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable(
+        "record".to_string(),
+        HirType::Struct("Record".to_string()),
+    );
+    let expr = HirExpression::Sizeof {
+        type_name: "record name".to_string(),
+    };
+    let code = cg.generate_expression_with_context(&expr, &mut ctx);
+    assert!(
+        code.contains("size_of_val"),
+        "sizeof member access (var) → size_of_val: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_context_calloc_int() {
+    // calloc(n, sizeof(int)) → vec![0i32; n]
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let expr = HirExpression::Calloc {
+        count: Box::new(HirExpression::Variable("n".to_string())),
+        element_type: Box::new(HirType::Int),
+    };
+    let code = cg.generate_expression_with_context(&expr, &mut ctx);
+    assert!(
+        code.contains("vec![0i32; n]"),
+        "calloc int → vec![0i32; n]: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_context_calloc_unsigned_int() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let expr = HirExpression::Calloc {
+        count: Box::new(HirExpression::IntLiteral(10)),
+        element_type: Box::new(HirType::UnsignedInt),
+    };
+    let code = cg.generate_expression_with_context(&expr, &mut ctx);
+    assert!(
+        code.contains("0u32"),
+        "calloc unsigned → 0u32: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_context_calloc_float() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let expr = HirExpression::Calloc {
+        count: Box::new(HirExpression::IntLiteral(5)),
+        element_type: Box::new(HirType::Float),
+    };
+    let code = cg.generate_expression_with_context(&expr, &mut ctx);
+    assert!(
+        code.contains("0.0f32"),
+        "calloc float → 0.0f32: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_context_calloc_double() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let expr = HirExpression::Calloc {
+        count: Box::new(HirExpression::IntLiteral(5)),
+        element_type: Box::new(HirType::Double),
+    };
+    let code = cg.generate_expression_with_context(&expr, &mut ctx);
+    assert!(
+        code.contains("0.0f64"),
+        "calloc double → 0.0f64: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_context_calloc_char() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let expr = HirExpression::Calloc {
+        count: Box::new(HirExpression::IntLiteral(256)),
+        element_type: Box::new(HirType::Char),
+    };
+    let code = cg.generate_expression_with_context(&expr, &mut ctx);
+    assert!(
+        code.contains("0u8"),
+        "calloc char → 0u8: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_context_calloc_signed_char() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let expr = HirExpression::Calloc {
+        count: Box::new(HirExpression::IntLiteral(256)),
+        element_type: Box::new(HirType::SignedChar),
+    };
+    let code = cg.generate_expression_with_context(&expr, &mut ctx);
+    assert!(
+        code.contains("0i8"),
+        "calloc signed char → 0i8: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_context_malloc_array_pattern() {
+    // malloc(n * sizeof(T)) → Vec::with_capacity(n)
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let expr = HirExpression::Malloc {
+        size: Box::new(HirExpression::BinaryOp {
+            op: decy_hir::BinaryOperator::Multiply,
+            left: Box::new(HirExpression::Variable("n".to_string())),
+            right: Box::new(HirExpression::Sizeof {
+                type_name: "int".to_string(),
+            }),
+        }),
+    };
+    let code = cg.generate_expression_with_context(&expr, &mut ctx);
+    assert!(
+        code.contains("Vec::with_capacity(n)"),
+        "malloc(n*sizeof) → Vec::with_capacity: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_context_malloc_single() {
+    // malloc(sizeof(int)) → Box::new(0i32)
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let expr = HirExpression::Malloc {
+        size: Box::new(HirExpression::Sizeof {
+            type_name: "int".to_string(),
+        }),
+    };
+    let code = cg.generate_expression_with_context(&expr, &mut ctx);
+    assert!(
+        code.contains("Box::new(0i32)"),
+        "malloc(sizeof) → Box::new: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_context_realloc_null() {
+    // realloc(NULL, n * sizeof(T)) → vec![0i32; n]
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let expr = HirExpression::Realloc {
+        pointer: Box::new(HirExpression::NullLiteral),
+        new_size: Box::new(HirExpression::BinaryOp {
+            op: decy_hir::BinaryOperator::Multiply,
+            left: Box::new(HirExpression::Variable("n".to_string())),
+            right: Box::new(HirExpression::Sizeof {
+                type_name: "int".to_string(),
+            }),
+        }),
+    };
+    let code = cg.generate_expression_with_context(&expr, &mut ctx);
+    assert!(
+        code.contains("vec![0i32; n]"),
+        "realloc(NULL, n*sizeof) → vec!: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_context_realloc_null_simple() {
+    // realloc(NULL, size) without multiply → Vec::new()
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let expr = HirExpression::Realloc {
+        pointer: Box::new(HirExpression::NullLiteral),
+        new_size: Box::new(HirExpression::IntLiteral(100)),
+    };
+    let code = cg.generate_expression_with_context(&expr, &mut ctx);
+    assert!(
+        code.contains("Vec::new()"),
+        "realloc(NULL, size) → Vec::new(): {}",
+        code
+    );
+}
+
+#[test]
+fn expr_context_realloc_non_null() {
+    // realloc(ptr, size) where ptr is not NULL → passthrough
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let expr = HirExpression::Realloc {
+        pointer: Box::new(HirExpression::Variable("buf".to_string())),
+        new_size: Box::new(HirExpression::IntLiteral(200)),
+    };
+    let code = cg.generate_expression_with_context(&expr, &mut ctx);
+    assert!(
+        code.contains("buf"),
+        "realloc(ptr, size) → passthrough ptr: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_context_string_method_len() {
+    // receiver.len() → receiver.len() as i32
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let expr = HirExpression::StringMethodCall {
+        receiver: Box::new(HirExpression::Variable("s".to_string())),
+        method: "len".to_string(),
+        arguments: vec![],
+    };
+    let code = cg.generate_expression_with_context(&expr, &mut ctx);
+    assert!(
+        code.contains("s.len() as i32"),
+        "String .len() → as i32: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_context_string_method_no_args() {
+    // receiver.is_empty() → receiver.is_empty()
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let expr = HirExpression::StringMethodCall {
+        receiver: Box::new(HirExpression::Variable("s".to_string())),
+        method: "is_empty".to_string(),
+        arguments: vec![],
+    };
+    let code = cg.generate_expression_with_context(&expr, &mut ctx);
+    assert!(
+        code.contains("s.is_empty()"),
+        "String method no args: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_context_string_method_clone_into() {
+    // receiver.clone_into(dest) → receiver.clone_into(&mut dest)
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let expr = HirExpression::StringMethodCall {
+        receiver: Box::new(HirExpression::Variable("src".to_string())),
+        method: "clone_into".to_string(),
+        arguments: vec![HirExpression::Variable("dest".to_string())],
+    };
+    let code = cg.generate_expression_with_context(&expr, &mut ctx);
+    assert!(
+        code.contains("&mut dest"),
+        "clone_into → &mut dest: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_context_string_method_with_args() {
+    // receiver.push_str(arg) → receiver.push_str(arg)
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let expr = HirExpression::StringMethodCall {
+        receiver: Box::new(HirExpression::Variable("s".to_string())),
+        method: "push_str".to_string(),
+        arguments: vec![HirExpression::StringLiteral("hello".to_string())],
+    };
+    let code = cg.generate_expression_with_context(&expr, &mut ctx);
+    assert!(
+        code.contains("s.push_str("),
+        "String method with args: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_context_cast_simple() {
+    // (float)x → x as f32
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let expr = HirExpression::Cast {
+        target_type: HirType::Float,
+        expr: Box::new(HirExpression::Variable("x".to_string())),
+    };
+    let code = cg.generate_expression_with_context(&expr, &mut ctx);
+    assert!(
+        code.contains("x as f32"),
+        "Cast float → as f32: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_context_cast_binop_parens() {
+    // (int)(a + b) → (a + b) as i32
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let expr = HirExpression::Cast {
+        target_type: HirType::Int,
+        expr: Box::new(HirExpression::BinaryOp {
+            op: decy_hir::BinaryOperator::Add,
+            left: Box::new(HirExpression::Variable("a".to_string())),
+            right: Box::new(HirExpression::Variable("b".to_string())),
+        }),
+    };
+    let code = cg.generate_expression_with_context(&expr, &mut ctx);
+    assert!(
+        code.contains("(a + b) as i32"),
+        "Cast binop → parens: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_context_cast_address_of_to_int() {
+    // (long)&x → &x as *const _ as isize as i64
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let expr = HirExpression::Cast {
+        target_type: HirType::Int,
+        expr: Box::new(HirExpression::AddressOf(Box::new(
+            HirExpression::Variable("x".to_string()),
+        ))),
+    };
+    let code = cg.generate_expression_with_context(&expr, &mut ctx);
+    assert!(
+        code.contains("*const _") && code.contains("isize"),
+        "Address-of to int → ptr cast chain: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_context_compound_literal_empty_struct() {
+    // (struct Point){} → Point {}
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let expr = HirExpression::CompoundLiteral {
+        literal_type: HirType::Struct("Point".to_string()),
+        initializers: vec![],
+    };
+    let code = cg.generate_expression_with_context(&expr, &mut ctx);
+    assert!(
+        code.contains("Point {}"),
+        "Empty compound struct → Point {{}}: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_context_compound_literal_struct_with_fields() {
+    // (struct Point){10, 20} with known fields → Point { x: 10, y: 20 }
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_struct(&decy_hir::HirStruct::new(
+        "Point".to_string(),
+        vec![
+            decy_hir::HirStructField::new("x".to_string(), HirType::Int),
+            decy_hir::HirStructField::new("y".to_string(), HirType::Int),
+        ],
+    ));
+    let expr = HirExpression::CompoundLiteral {
+        literal_type: HirType::Struct("Point".to_string()),
+        initializers: vec![
+            HirExpression::IntLiteral(10),
+            HirExpression::IntLiteral(20),
+        ],
+    };
+    let code = cg.generate_expression_with_context(&expr, &mut ctx);
+    assert!(
+        code.contains("x: 10") && code.contains("y: 20"),
+        "Compound struct with fields: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_context_compound_literal_struct_partial_init() {
+    // (struct Point){10} with 2 fields → Point { x: 10, ..Default::default() }
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_struct(&decy_hir::HirStruct::new(
+        "Point".to_string(),
+        vec![
+            decy_hir::HirStructField::new("x".to_string(), HirType::Int),
+            decy_hir::HirStructField::new("y".to_string(), HirType::Int),
+        ],
+    ));
+    let expr = HirExpression::CompoundLiteral {
+        literal_type: HirType::Struct("Point".to_string()),
+        initializers: vec![HirExpression::IntLiteral(10)],
+    };
+    let code = cg.generate_expression_with_context(&expr, &mut ctx);
+    assert!(
+        code.contains("Default::default()"),
+        "Partial struct init → ..Default::default(): {}",
+        code
+    );
+}
+
+#[test]
+fn expr_context_compound_literal_array_empty_sized() {
+    // (int[4]){} → [0i32; 4]
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let expr = HirExpression::CompoundLiteral {
+        literal_type: HirType::Array {
+            element_type: Box::new(HirType::Int),
+            size: Some(4),
+        },
+        initializers: vec![],
+    };
+    let code = cg.generate_expression_with_context(&expr, &mut ctx);
+    assert!(
+        code.contains("[0i32; 4]"),
+        "Empty sized array → [0i32; 4]: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_context_compound_literal_array_empty_unsized() {
+    // (int[]){} → []
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let expr = HirExpression::CompoundLiteral {
+        literal_type: HirType::Array {
+            element_type: Box::new(HirType::Int),
+            size: None,
+        },
+        initializers: vec![],
+    };
+    let code = cg.generate_expression_with_context(&expr, &mut ctx);
+    assert!(
+        code == "[]",
+        "Empty unsized array → []: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_context_compound_literal_array_single_repeat() {
+    // (int[4]){0} → [0; 4]
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let expr = HirExpression::CompoundLiteral {
+        literal_type: HirType::Array {
+            element_type: Box::new(HirType::Int),
+            size: Some(4),
+        },
+        initializers: vec![HirExpression::IntLiteral(0)],
+    };
+    let code = cg.generate_expression_with_context(&expr, &mut ctx);
+    assert!(
+        code.contains("[0; 4]"),
+        "Single init repeat → [0; 4]: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_context_compound_literal_array_partial() {
+    // (int[4]){1, 2} → [1, 2, 0i32, 0i32] (padded with defaults)
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let expr = HirExpression::CompoundLiteral {
+        literal_type: HirType::Array {
+            element_type: Box::new(HirType::Int),
+            size: Some(4),
+        },
+        initializers: vec![
+            HirExpression::IntLiteral(1),
+            HirExpression::IntLiteral(2),
+        ],
+    };
+    let code = cg.generate_expression_with_context(&expr, &mut ctx);
+    assert!(
+        code.contains("1") && code.contains("2") && code.contains("0i32"),
+        "Partial array init → padded: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_context_compound_literal_array_full() {
+    // (int[3]){1, 2, 3} → [1, 2, 3]
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let expr = HirExpression::CompoundLiteral {
+        literal_type: HirType::Array {
+            element_type: Box::new(HirType::Int),
+            size: Some(3),
+        },
+        initializers: vec![
+            HirExpression::IntLiteral(1),
+            HirExpression::IntLiteral(2),
+            HirExpression::IntLiteral(3),
+        ],
+    };
+    let code = cg.generate_expression_with_context(&expr, &mut ctx);
+    assert!(
+        code.contains("[1, 2, 3]"),
+        "Full array init → [1, 2, 3]: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_context_compound_literal_other_type() {
+    // Compound literal with non-struct, non-array type → comment
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let expr = HirExpression::CompoundLiteral {
+        literal_type: HirType::Int,
+        initializers: vec![HirExpression::IntLiteral(42)],
+    };
+    let code = cg.generate_expression_with_context(&expr, &mut ctx);
+    assert!(
+        code.contains("Compound literal"),
+        "Non-struct/array compound → comment: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_context_is_not_null() {
+    // IsNotNull(p) → if let Some(_) = p
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let expr = HirExpression::IsNotNull(Box::new(HirExpression::Variable("p".to_string())));
+    let code = cg.generate_expression_with_context(&expr, &mut ctx);
+    assert!(
+        code.contains("if let Some(_) = p"),
+        "IsNotNull → if let Some: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_context_null_literal() {
+    // NullLiteral → None
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let code = cg.generate_expression_with_context(&HirExpression::NullLiteral, &mut ctx);
+    assert_eq!(code, "None");
+}
+
+#[test]
+fn expr_context_slice_index() {
+    // SliceIndex → safe indexing with as usize
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let expr = HirExpression::SliceIndex {
+        slice: Box::new(HirExpression::Variable("data".to_string())),
+        index: Box::new(HirExpression::Variable("i".to_string())),
+        element_type: HirType::Int,
+    };
+    let code = cg.generate_expression_with_context(&expr, &mut ctx);
+    assert!(
+        code.contains("data[(i) as usize]"),
+        "SliceIndex → safe indexing: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_context_field_access_keyword_escape() {
+    // obj.type → obj.r#type (keyword escaping)
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let expr = HirExpression::FieldAccess {
+        object: Box::new(HirExpression::Variable("obj".to_string())),
+        field: "type".to_string(),
+    };
+    let code = cg.generate_expression_with_context(&expr, &mut ctx);
+    assert!(
+        code.contains("r#type"),
+        "Field access keyword escape → r#type: {}",
+        code
+    );
+}
