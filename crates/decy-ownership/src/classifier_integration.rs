@@ -406,4 +406,199 @@ mod tests {
             OwnershipKind::MutableBorrow
         );
     }
+
+    #[test]
+    fn test_inferred_to_ownership_kind_shared() {
+        assert_eq!(
+            inferred_to_ownership_kind(&InferredOwnership::Shared, "x"),
+            OwnershipKind::Unknown
+        );
+    }
+
+    #[test]
+    fn test_inferred_to_ownership_kind_raw_pointer() {
+        assert_eq!(
+            inferred_to_ownership_kind(&InferredOwnership::RawPointer, "x"),
+            OwnershipKind::Unknown
+        );
+    }
+
+    #[test]
+    fn test_is_const_type_non_reference() {
+        // Non-Reference types return false (line 216 default arm)
+        assert!(!is_const_type(&HirType::Int));
+        assert!(!is_const_type(&HirType::Pointer(Box::new(HirType::Int))));
+    }
+
+    #[test]
+    fn test_is_const_type_mutable_reference() {
+        assert!(!is_const_type(&HirType::Reference {
+            inner: Box::new(HirType::Int),
+            mutable: true,
+        }));
+    }
+
+    #[test]
+    fn test_is_const_type_immutable_reference() {
+        assert!(is_const_type(&HirType::Reference {
+            inner: Box::new(HirType::Int),
+            mutable: false,
+        }));
+    }
+
+    #[test]
+    fn test_calculate_pointer_depth_reference() {
+        // Reference type contributes depth (line 202)
+        assert_eq!(
+            calculate_pointer_depth(&HirType::Reference {
+                inner: Box::new(HirType::Int),
+                mutable: false,
+            }),
+            1
+        );
+    }
+
+    #[test]
+    fn test_has_size_parameter_with_ptr_suffix() {
+        // var_name "data_ptr" → base_name "data" → looks for "data_len"
+        let func = HirFunction::new_with_body(
+            "test".to_string(),
+            HirType::Void,
+            vec![
+                HirParameter::new(
+                    "data_ptr".to_string(),
+                    HirType::Pointer(Box::new(HirType::Int)),
+                ),
+                HirParameter::new("data_len".to_string(), HirType::Int),
+            ],
+            vec![],
+        );
+
+        assert!(has_size_parameter("data_ptr", &func));
+    }
+
+    #[test]
+    fn test_has_size_parameter_with_arr_suffix() {
+        // var_name "items_arr" → base_name "items" → looks for "items_size"
+        let func = HirFunction::new_with_body(
+            "test".to_string(),
+            HirType::Void,
+            vec![
+                HirParameter::new(
+                    "items_arr".to_string(),
+                    HirType::Pointer(Box::new(HirType::Int)),
+                ),
+                HirParameter::new("items_size".to_string(), HirType::Int),
+            ],
+            vec![],
+        );
+
+        assert!(has_size_parameter("items_arr", &func));
+    }
+
+    #[test]
+    fn test_has_size_parameter_no_suffix_with_concatenated_name() {
+        // var_name "buf" → base_name "buf" → looks for "buflen" or "bufsize"
+        let func = HirFunction::new_with_body(
+            "test".to_string(),
+            HirType::Void,
+            vec![
+                HirParameter::new(
+                    "buf".to_string(),
+                    HirType::Pointer(Box::new(HirType::Int)),
+                ),
+                HirParameter::new("buflen".to_string(), HirType::Int),
+            ],
+            vec![],
+        );
+
+        assert!(has_size_parameter("buf", &func));
+    }
+
+    #[test]
+    fn test_has_size_parameter_no_match() {
+        // No size parameter at all
+        let func = HirFunction::new_with_body(
+            "test".to_string(),
+            HirType::Void,
+            vec![
+                HirParameter::new(
+                    "data".to_string(),
+                    HirType::Pointer(Box::new(HirType::Int)),
+                ),
+                HirParameter::new("flags".to_string(), HirType::Int),
+            ],
+            vec![],
+        );
+
+        assert!(!has_size_parameter("data", &func));
+    }
+
+    #[test]
+    fn test_classify_function_variables_no_pointer_params() {
+        // Function with no pointer parameters → empty result
+        let classifier = RuleBasedClassifier::new();
+
+        let func = HirFunction::new_with_body(
+            "add".to_string(),
+            HirType::Int,
+            vec![
+                HirParameter::new("a".to_string(), HirType::Int),
+                HirParameter::new("b".to_string(), HirType::Int),
+            ],
+            vec![],
+        );
+
+        let analyzer = DataflowAnalyzer::new();
+        let graph = analyzer.analyze(&func);
+
+        let inferences = classify_function_variables(&classifier, &graph, &func);
+        assert!(
+            inferences.is_empty(),
+            "No pointer params → no inferences"
+        );
+    }
+
+    #[test]
+    fn test_extract_features_for_nonexistent_variable() {
+        // Variable not in params → no pointer depth, no const qualification
+        let func = HirFunction::new_with_body(
+            "test".to_string(),
+            HirType::Void,
+            vec![HirParameter::new(
+                "data".to_string(),
+                HirType::Pointer(Box::new(HirType::Int)),
+            )],
+            vec![],
+        );
+
+        let analyzer = DataflowAnalyzer::new();
+        let graph = analyzer.analyze(&func);
+
+        let features = extract_features_for_variable("other", &graph, &func);
+        assert_eq!(features.pointer_depth, 0, "Non-param should have 0 depth");
+    }
+
+    #[test]
+    fn test_extract_features_const_reference_param() {
+        // Const reference parameter should be const-qualified
+        let func = HirFunction::new_with_body(
+            "test".to_string(),
+            HirType::Void,
+            vec![HirParameter::new(
+                "data".to_string(),
+                HirType::Reference {
+                    inner: Box::new(HirType::Int),
+                    mutable: false,
+                },
+            )],
+            vec![],
+        );
+
+        let analyzer = DataflowAnalyzer::new();
+        let graph = analyzer.analyze(&func);
+
+        let features = extract_features_for_variable("data", &graph, &func);
+        assert!(features.is_const, "Const ref should be const-qualified");
+    }
 }
