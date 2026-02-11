@@ -738,4 +738,115 @@ mod tests {
         let decision = policy.evaluate(&stats);
         assert!(matches!(decision, RetirementDecision::Archive(_)));
     }
+
+    // ============================================================================
+    // COVERAGE: ManualDeprecation Display, with_config, config(), Retire branches
+    // ============================================================================
+
+    #[test]
+    fn test_manual_deprecation_display() {
+        let reason = RetirementReason::ManualDeprecation {
+            reason: "API changed".to_string(),
+        };
+        let display = format!("{}", reason);
+        assert!(
+            display.contains("Manually deprecated"),
+            "Got: {}",
+            display
+        );
+        assert!(display.contains("API changed"), "Got: {}", display);
+    }
+
+    #[test]
+    fn test_policy_with_config() {
+        let config = RetirementConfig {
+            min_usage_threshold: 10,
+            min_success_rate: 0.5,
+            evaluation_window_days: 60,
+            supersede_improvement_threshold: 0.2,
+            archive_instead_of_delete: false,
+        };
+        let policy = PatternRetirementPolicy::with_config(config);
+        assert_eq!(policy.config().min_usage_threshold, 10);
+        assert_eq!(policy.config().evaluation_window_days, 60);
+        assert!(!policy.config().archive_instead_of_delete);
+    }
+
+    #[test]
+    fn test_policy_config_accessor() {
+        let policy = PatternRetirementPolicy::new();
+        let config = policy.config();
+        assert_eq!(config.min_usage_threshold, 5);
+        assert!((config.min_success_rate - 0.3).abs() < 0.01);
+        assert!(config.archive_instead_of_delete);
+    }
+
+    #[test]
+    fn test_policy_default_impl() {
+        let policy = PatternRetirementPolicy::default();
+        assert_eq!(policy.config().min_usage_threshold, 5);
+    }
+
+    #[test]
+    fn test_evaluate_low_usage_retire_not_archive() {
+        let config = RetirementConfig {
+            archive_instead_of_delete: false,
+            ..Default::default()
+        };
+        let policy = PatternRetirementPolicy::with_config(config);
+        let stats = PatternStats::new("pat-1", "E0382");
+        // 0 uses in window < threshold 5 → Retire (not Archive)
+        let decision = policy.evaluate(&stats);
+        assert!(
+            matches!(decision, RetirementDecision::Retire(RetirementReason::LowUsage { .. })),
+            "Expected Retire(LowUsage), got: {:?}",
+            decision
+        );
+    }
+
+    #[test]
+    fn test_evaluate_high_failure_retire_not_archive() {
+        let config = RetirementConfig {
+            archive_instead_of_delete: false,
+            ..Default::default()
+        };
+        let policy = PatternRetirementPolicy::with_config(config);
+        let mut stats = PatternStats::new("pat-1", "E0382");
+        // Need >= 5 total uses and success_rate < 0.3
+        for _ in 0..5 {
+            stats.record_use(true);
+        }
+        stats.uses_in_window = 10; // above threshold
+        stats.successes = 1;
+        stats.failures = 9;
+        stats.total_uses = 10;
+        let decision = policy.evaluate(&stats);
+        assert!(
+            matches!(decision, RetirementDecision::Retire(RetirementReason::HighFailureRate { .. })),
+            "Expected Retire(HighFailureRate), got: {:?}",
+            decision
+        );
+    }
+
+    #[test]
+    fn test_sweep_result_manual_deprecation() {
+        let mut result = RetirementSweepResult::default();
+        let decision = RetirementDecision::Retire(RetirementReason::ManualDeprecation {
+            reason: "Obsolete".to_string(),
+        });
+        result.record("pat-1", &decision);
+        assert_eq!(result.total_evaluated, 1);
+        assert_eq!(result.retired_ids.len(), 1);
+        assert_eq!(result.retired_ids[0], "pat-1");
+        // ManualDeprecation doesn't increment specific counters
+        assert_eq!(result.retired_low_usage, 0);
+        assert_eq!(result.retired_high_failure, 0);
+        assert_eq!(result.retired_superseded, 0);
+    }
+
+    #[test]
+    fn test_sweep_result_retirement_rate_zero() {
+        let result = RetirementSweepResult::default();
+        assert_eq!(result.retirement_rate(), 0.0);
+    }
 }
