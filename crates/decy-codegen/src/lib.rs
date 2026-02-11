@@ -7534,3 +7534,7 @@ mod codegen_remaining_tests;
 #[cfg(test)]
 #[path = "codegen_deep_coverage_tests.rs"]
 mod codegen_deep_coverage_tests;
+
+#[cfg(test)]
+#[path = "type_context_coverage_tests.rs"]
+mod type_context_coverage_tests;
