@@ -414,3 +414,220 @@ fn test_verify_batch_filters_invalid() {
     let valid_traces = verifier.filter_valid(&traces);
     assert_eq!(valid_traces.len(), 2);
 }
+
+// ============================================================================
+// TRACE VERIFICATION: MAIN WRAPPING TESTS
+// ============================================================================
+
+#[test]
+fn test_verify_trace_wraps_code_without_fn_main() {
+    // verify_trace wraps code not containing "fn main" in main() block
+    let mut verifier = TraceVerifier::new();
+
+    let trace = GoldenTrace::new(
+        "int x = 42;".to_string(),
+        "let x: i32 = 42;".to_string(),
+        TraceTier::P0,
+        "test.c",
+    );
+
+    let result = verifier.verify_trace(&trace);
+    // Should pass because code is wrapped in fn main() { ... }
+    assert!(result.passed, "Errors: {:?}", result.errors);
+}
+
+#[test]
+fn test_verify_trace_no_wrap_when_has_fn_main() {
+    // verify_trace uses code as-is when it contains "fn main"
+    let mut verifier = TraceVerifier::new();
+
+    let trace = GoldenTrace::new(
+        "int main() { return 0; }".to_string(),
+        "fn main() { let _x: i32 = 0; }".to_string(),
+        TraceTier::P0,
+        "test.c",
+    );
+
+    let result = verifier.verify_trace(&trace);
+    assert!(result.passed, "Errors: {:?}", result.errors);
+}
+
+// ============================================================================
+// TRACE VERIFICATION: UNSAFE BLOCK COUNTING
+// ============================================================================
+
+#[test]
+fn test_verify_trace_unsafe_rejected_in_strict_mode() {
+    let config = VerifierConfig {
+        level: VerificationLevel::Strict,
+        allow_unsafe: false,
+        max_clippy_warnings: 0,
+        timeout_secs: 30,
+    };
+    let mut verifier = TraceVerifier::with_config(config);
+
+    let trace = GoldenTrace::new(
+        "int* p = NULL;".to_string(),
+        "fn main() { unsafe { let _p: *const i32 = std::ptr::null(); } }".to_string(),
+        TraceTier::P1,
+        "test.c",
+    );
+
+    let result = verifier.verify_trace(&trace);
+    assert!(!result.passed);
+    assert!(result.unsafe_count > 0);
+    assert!(result.errors.iter().any(|e| e.contains("unsafe")));
+}
+
+#[test]
+fn test_verify_trace_unsafe_allowed_in_permissive_config() {
+    let config = VerifierConfig {
+        level: VerificationLevel::Minimal,
+        allow_unsafe: true,
+        max_clippy_warnings: 10,
+        timeout_secs: 30,
+    };
+    let mut verifier = TraceVerifier::with_config(config);
+
+    let trace = GoldenTrace::new(
+        "int* p = NULL;".to_string(),
+        "fn main() { unsafe { let _p: *const i32 = std::ptr::null(); } }".to_string(),
+        TraceTier::P1,
+        "test.c",
+    );
+
+    let result = verifier.verify_trace(&trace);
+    assert!(result.passed, "Errors: {:?}", result.errors);
+    assert!(result.unsafe_count > 0);
+}
+
+// ============================================================================
+// STATS TRACKING TESTS
+// ============================================================================
+
+#[test]
+fn test_verifier_stats_increments_on_pass() {
+    let mut verifier = TraceVerifier::new();
+
+    let trace = GoldenTrace::new(
+        "int x = 1;".to_string(),
+        "let _x: i32 = 1;".to_string(),
+        TraceTier::P0,
+        "test.c",
+    );
+
+    verifier.verify_trace(&trace);
+
+    let stats = verifier.stats();
+    assert_eq!(stats.total_verified, 1);
+    assert_eq!(stats.passed, 1);
+    assert_eq!(stats.failed, 0);
+}
+
+#[test]
+fn test_verifier_stats_increments_on_fail() {
+    let mut verifier = TraceVerifier::new();
+
+    let trace = GoldenTrace::new(
+        "int x;".to_string(),
+        "let x: i32 = \"bad\";".to_string(),
+        TraceTier::P0,
+        "test.c",
+    );
+
+    verifier.verify_trace(&trace);
+
+    let stats = verifier.stats();
+    assert_eq!(stats.total_verified, 1);
+    assert_eq!(stats.passed, 0);
+    assert_eq!(stats.failed, 1);
+}
+
+#[test]
+fn test_verifier_stats_tracks_unsafe_blocks() {
+    let config = VerifierConfig {
+        level: VerificationLevel::Minimal,
+        allow_unsafe: true,
+        max_clippy_warnings: 10,
+        timeout_secs: 30,
+    };
+    let mut verifier = TraceVerifier::with_config(config);
+
+    let trace = GoldenTrace::new(
+        "int* p;".to_string(),
+        "fn main() { unsafe { let _p: *const i32 = std::ptr::null(); } }".to_string(),
+        TraceTier::P1,
+        "test.c",
+    );
+
+    verifier.verify_trace(&trace);
+
+    let stats = verifier.stats();
+    assert!(stats.total_unsafe_blocks > 0);
+}
+
+#[test]
+fn test_verifier_stats_avg_time_multiple_traces() {
+    let mut verifier = TraceVerifier::new();
+
+    // Verify multiple traces to test average time calculation
+    for i in 0..3 {
+        let trace = GoldenTrace::new(
+            format!("int x{} = {};", i, i),
+            format!("let _x{}: i32 = {};", i, i),
+            TraceTier::P0,
+            "test.c",
+        );
+        verifier.verify_trace(&trace);
+    }
+
+    let stats = verifier.stats();
+    assert_eq!(stats.total_verified, 3);
+    assert_eq!(stats.passed, 3);
+    assert!(stats.avg_verification_time_ms > 0.0);
+}
+
+// ============================================================================
+// COMPILATION: ADDITIONAL PATH COVERAGE
+// ============================================================================
+
+#[test]
+fn test_verify_compilation_with_complex_valid_code() {
+    let verifier = TraceVerifier::new();
+    let rust_code = r#"
+fn main() {
+    let mut v: Vec<i32> = Vec::new();
+    v.push(1);
+    v.push(2);
+    let sum: i32 = v.iter().sum();
+    println!("Sum: {}", sum);
+}
+"#;
+
+    let result = verifier.verify_compilation(rust_code);
+    assert!(result.is_ok());
+}
+
+#[test]
+fn test_verify_compilation_lifetime_error() {
+    let verifier = TraceVerifier::new();
+    let rust_code = r#"
+fn main() {
+    let r;
+    {
+        let x = 5;
+        r = &x;
+    }
+    println!("{}", r);
+}
+"#;
+
+    let result = verifier.verify_compilation(rust_code);
+    assert!(result.is_err());
+    let err = result.unwrap_err();
+    assert!(
+        err.contains("error") || err.contains("borrow"),
+        "Got: {}",
+        err
+    );
+}

@@ -252,3 +252,119 @@ fn test_json_roundtrip() {
     assert_eq!(deserialized.functions[0].ownership.len(), 2);
     assert_eq!(deserialized.functions[0].lifetimes.len(), 2);
 }
+
+// ============================================================================
+// TEST 11: add_ownership on non-existent function (silent no-op)
+// ============================================================================
+
+#[test]
+fn test_add_ownership_nonexistent_function() {
+    let mut builder = ContextBuilder::new();
+    builder.add_function("real_func", "void real_func()");
+
+    // Add ownership to function that doesn't exist — should be silent no-op
+    builder.add_ownership("nonexistent", "ptr", "owning", 0.9, "Should be ignored");
+
+    let context = builder.build();
+    assert_eq!(context.functions.len(), 1);
+    assert!(context.functions[0].ownership.is_empty());
+}
+
+// ============================================================================
+// TEST 12: add_lifetime on non-existent function (silent no-op)
+// ============================================================================
+
+#[test]
+fn test_add_lifetime_nonexistent_function() {
+    let mut builder = ContextBuilder::new();
+    builder.add_function("real_func", "void real_func()");
+
+    // Add lifetime to function that doesn't exist — should be silent no-op
+    builder.add_lifetime("nonexistent", "ptr", 0, true);
+
+    let context = builder.build();
+    assert_eq!(context.functions.len(), 1);
+    assert!(context.functions[0].lifetimes.is_empty());
+}
+
+// ============================================================================
+// TEST 13: add_lock_mapping on non-existent function (silent no-op)
+// ============================================================================
+
+#[test]
+fn test_add_lock_mapping_nonexistent_function() {
+    let mut builder = ContextBuilder::new();
+    builder.add_function("real_func", "void real_func()");
+
+    // Add lock mapping to function that doesn't exist
+    builder.add_lock_mapping("nonexistent", "mutex", vec!["data".to_string()]);
+
+    let context = builder.build();
+    assert_eq!(context.functions.len(), 1);
+    assert!(context.functions[0].lock_mappings.is_empty());
+}
+
+// ============================================================================
+// TEST 14: Multiple ownership entries for same variable (last wins)
+// ============================================================================
+
+#[test]
+fn test_add_ownership_overwrites_same_variable() {
+    let mut builder = ContextBuilder::new();
+    builder
+        .add_function("func", "void func(int* ptr)")
+        .add_ownership("func", "ptr", "owning", 0.5, "First inference")
+        .add_ownership("func", "ptr", "mutable_borrow", 0.95, "Refined inference");
+
+    let context = builder.build();
+    let func = &context.functions[0];
+
+    // HashMap insert overwrites — last value wins
+    assert_eq!(func.ownership.len(), 1);
+    assert_eq!(func.ownership["ptr"].kind, "mutable_borrow");
+    assert!((func.ownership["ptr"].confidence - 0.95).abs() < 0.01);
+}
+
+// ============================================================================
+// TEST 15: Multiple lifetimes for same variable (both stored)
+// ============================================================================
+
+#[test]
+fn test_add_multiple_lifetimes_same_variable() {
+    let mut builder = ContextBuilder::new();
+    builder
+        .add_function("func", "void func(int* ptr)")
+        .add_lifetime("func", "ptr", 0, false)
+        .add_lifetime("func", "ptr", 1, true);
+
+    let context = builder.build();
+    let func = &context.functions[0];
+
+    // Vec push stores both — no dedup
+    assert_eq!(func.lifetimes.len(), 2);
+    assert_eq!(func.lifetimes[0].scope_depth, 0);
+    assert!(!func.lifetimes[0].escapes);
+    assert_eq!(func.lifetimes[1].scope_depth, 1);
+    assert!(func.lifetimes[1].escapes);
+}
+
+// ============================================================================
+// TEST 16: Builder chaining returns self
+// ============================================================================
+
+#[test]
+fn test_builder_chaining() {
+    let mut builder = ContextBuilder::new();
+    let result = builder
+        .add_function("f1", "void f1()")
+        .add_function("f2", "void f2()")
+        .add_ownership("f1", "x", "owning", 0.9, "test")
+        .add_lifetime("f1", "x", 0, false)
+        .add_lock_mapping("f2", "mtx", vec!["data".to_string()])
+        .build();
+
+    assert_eq!(result.functions.len(), 2);
+    assert!(!result.functions[0].ownership.is_empty());
+    assert!(!result.functions[0].lifetimes.is_empty());
+    assert!(!result.functions[1].lock_mappings.is_empty());
+}
