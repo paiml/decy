@@ -20561,3 +20561,198 @@ fn int_literal_zero_pointer_target() {
     let result = cg.generate_expression_with_target_type(&expr, &ctx, Some(&target));
     assert_eq!(result, "std::ptr::null_mut()");
 }
+
+// ============================================================================
+// BATCH 27: detect_vec_return, generate_signature Vec return,
+//           printf format fallback, is_boolean_expression
+// ============================================================================
+
+// --- detect_vec_return: function returning malloc (line 5256-5290) ---
+#[test]
+fn detect_vec_return_malloc_pattern() {
+    let cg = CodeGenerator::new();
+    let func = HirFunction::new_with_body(
+        "alloc_arr".to_string(),
+        HirType::Pointer(Box::new(HirType::Int)),
+        vec![HirParameter::new("n".to_string(), HirType::Int)],
+        vec![
+            HirStatement::VariableDeclaration {
+                name: "buf".to_string(),
+                var_type: HirType::Pointer(Box::new(HirType::Int)),
+                initializer: Some(HirExpression::Malloc {
+                    size: Box::new(HirExpression::BinaryOp {
+                        op: BinaryOperator::Multiply,
+                        left: Box::new(HirExpression::Variable("n".to_string())),
+                        right: Box::new(HirExpression::Sizeof { type_name: "int".to_string() }),
+                    }),
+                }),
+            },
+            HirStatement::Return(Some(HirExpression::Variable("buf".to_string()))),
+        ],
+    );
+    let result = cg.detect_vec_return(&func);
+    assert!(result.is_some(), "Should detect Vec return pattern");
+    assert_eq!(result.unwrap(), HirType::Int);
+}
+
+// --- detect_vec_return: no malloc → None ---
+#[test]
+fn detect_vec_return_no_malloc() {
+    let cg = CodeGenerator::new();
+    let func = HirFunction::new_with_body(
+        "get_ref".to_string(),
+        HirType::Pointer(Box::new(HirType::Int)),
+        vec![],
+        vec![
+            HirStatement::Return(Some(HirExpression::Variable("global".to_string()))),
+        ],
+    );
+    let result = cg.detect_vec_return(&func);
+    assert!(result.is_none(), "No malloc → no Vec return");
+}
+
+// --- detect_vec_return: non-pointer return → None ---
+#[test]
+fn detect_vec_return_non_pointer() {
+    let cg = CodeGenerator::new();
+    let func = HirFunction::new_with_body(
+        "get_int".to_string(),
+        HirType::Int,
+        vec![],
+        vec![HirStatement::Return(Some(HirExpression::IntLiteral(42)))],
+    );
+    let result = cg.detect_vec_return(&func);
+    assert!(result.is_none(), "Int return → no Vec");
+}
+
+// --- detect_vec_return: direct malloc return ---
+#[test]
+fn detect_vec_return_direct_malloc() {
+    let cg = CodeGenerator::new();
+    let func = HirFunction::new_with_body(
+        "alloc_direct".to_string(),
+        HirType::Pointer(Box::new(HirType::Float)),
+        vec![],
+        vec![
+            HirStatement::Return(Some(HirExpression::Malloc {
+                size: Box::new(HirExpression::BinaryOp {
+                    op: BinaryOperator::Multiply,
+                    left: Box::new(HirExpression::IntLiteral(100)),
+                    right: Box::new(HirExpression::Sizeof { type_name: "float".to_string() }),
+                }),
+            })),
+        ],
+    );
+    let result = cg.detect_vec_return(&func);
+    assert!(result.is_some(), "Direct malloc return");
+    assert_eq!(result.unwrap(), HirType::Float);
+}
+
+// --- generate_signature with Vec return (line 5235-5237) ---
+#[test]
+fn generate_signature_vec_return() {
+    let cg = CodeGenerator::new();
+    let func = HirFunction::new_with_body(
+        "make_array".to_string(),
+        HirType::Pointer(Box::new(HirType::Int)),
+        vec![HirParameter::new("count".to_string(), HirType::Int)],
+        vec![
+            HirStatement::VariableDeclaration {
+                name: "arr".to_string(),
+                var_type: HirType::Pointer(Box::new(HirType::Int)),
+                initializer: Some(HirExpression::Malloc {
+                    size: Box::new(HirExpression::BinaryOp {
+                        op: BinaryOperator::Multiply,
+                        left: Box::new(HirExpression::Variable("count".to_string())),
+                        right: Box::new(HirExpression::Sizeof { type_name: "int".to_string() }),
+                    }),
+                }),
+            },
+            HirStatement::Return(Some(HirExpression::Variable("arr".to_string()))),
+        ],
+    );
+    let sig = cg.generate_signature(&func);
+    assert!(sig.contains("Vec<i32>"), "Should have Vec<i32> return, Got: {}", sig);
+}
+
+// --- is_boolean_expression: BinaryOp comparison (line 1062) ---
+#[test]
+fn is_boolean_expression_comparison() {
+    let expr = HirExpression::BinaryOp {
+        op: BinaryOperator::GreaterThan,
+        left: Box::new(HirExpression::Variable("a".to_string())),
+        right: Box::new(HirExpression::Variable("b".to_string())),
+    };
+    assert!(CodeGenerator::is_boolean_expression(&expr));
+}
+
+// --- is_boolean_expression: Variable (not bool) ---
+#[test]
+fn is_boolean_expression_variable_false() {
+    let expr = HirExpression::Variable("x".to_string());
+    assert!(!CodeGenerator::is_boolean_expression(&expr));
+}
+
+// --- is_boolean_expression: LogicalAnd ---
+#[test]
+fn is_boolean_expression_logical_and() {
+    let expr = HirExpression::BinaryOp {
+        op: BinaryOperator::LogicalAnd,
+        left: Box::new(HirExpression::Variable("a".to_string())),
+        right: Box::new(HirExpression::Variable("b".to_string())),
+    };
+    assert!(CodeGenerator::is_boolean_expression(&expr));
+}
+
+// --- is_boolean_expression: FunctionCall (not bool) ---
+#[test]
+fn is_boolean_expression_function_call_false() {
+    let expr = HirExpression::FunctionCall {
+        function: "get_val".to_string(),
+        arguments: vec![],
+    };
+    assert!(!CodeGenerator::is_boolean_expression(&expr));
+}
+
+// --- LogicalNot with BinaryOp inner → parens (line 1055-1056) ---
+#[test]
+fn logical_not_binary_op_gets_parens() {
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    let expr = HirExpression::UnaryOp {
+        op: UnaryOperator::LogicalNot,
+        operand: Box::new(HirExpression::BinaryOp {
+            op: BinaryOperator::LogicalAnd,
+            left: Box::new(HirExpression::Variable("a".to_string())),
+            right: Box::new(HirExpression::Variable("b".to_string())),
+        }),
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, Some(&HirType::Int));
+    // BinaryOp inner should get parens: (!(a && b)) as i32
+    assert!(result.contains("!("), "Got: {}", result);
+}
+
+// --- generate_function_with_lifetimes_and_structs: Vec return (line 6734-6738) ---
+#[test]
+fn gen_func_lifetimes_vec_return() {
+    let cg = CodeGenerator::new();
+    let func = HirFunction::new_with_body(
+        "create_list".to_string(),
+        HirType::Pointer(Box::new(HirType::Int)),
+        vec![HirParameter::new("size".to_string(), HirType::Int)],
+        vec![
+            HirStatement::Return(Some(HirExpression::Malloc {
+                size: Box::new(HirExpression::BinaryOp {
+                    op: BinaryOperator::Multiply,
+                    left: Box::new(HirExpression::Variable("size".to_string())),
+                    right: Box::new(HirExpression::Sizeof { type_name: "int".to_string() }),
+                }),
+            })),
+        ],
+    );
+    let sig = make_annotated_sig(&func);
+    let code = cg.generate_function_with_lifetimes_and_structs(
+        &func, &sig, &[], &[], &[], &[], &[],
+    );
+    assert!(code.contains("Vec"), "Should have Vec in output, Got: {}", code);
+}
