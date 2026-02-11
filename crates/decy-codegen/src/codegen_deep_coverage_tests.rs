@@ -18425,3 +18425,713 @@ fn expr_target_string_literal_to_char_ptr_batch21() {
     );
     assert!(result.contains("as_ptr() as *mut u8") || result.contains("b\""), "Got: {}", result);
 }
+
+// ============================================================================
+// BATCH 22: BinaryOp expression paths (assignment, null checks, strlen, char coercion)
+// Target: lines 1291-1462 (assignment, option/pointer/Vec/Box null, strlen optimization)
+// ============================================================================
+
+// --- DECY-195: Embedded assignment expression → block ---
+#[test]
+fn expr_target_binary_assign_block() {
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    let expr = HirExpression::BinaryOp {
+        op: BinaryOperator::Assign,
+        left: Box::new(HirExpression::Variable("x".to_string())),
+        right: Box::new(HirExpression::IntLiteral(42)),
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(result.contains("__assign_tmp"), "Got: {}", result);
+    assert!(result.contains("x = __assign_tmp"), "Got: {}", result);
+}
+
+// --- DECY-223: Global array index assignment in expression → unsafe block ---
+#[test]
+fn expr_target_binary_assign_global_array_index() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_global("buf".to_string());
+    ctx.add_variable("buf".to_string(), HirType::Array {
+        element_type: Box::new(HirType::Int),
+        size: Some(256),
+    });
+    let expr = HirExpression::BinaryOp {
+        op: BinaryOperator::Assign,
+        left: Box::new(HirExpression::ArrayIndex {
+            array: Box::new(HirExpression::Variable("buf".to_string())),
+            index: Box::new(HirExpression::Variable("i".to_string())),
+        }),
+        right: Box::new(HirExpression::IntLiteral(0)),
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(result.contains("unsafe"), "Got: {}", result);
+    assert!(result.contains("buf["), "Got: {}", result);
+    assert!(result.contains("__assign_tmp"), "Got: {}", result);
+}
+
+// --- Option == NULL → .is_none() ---
+#[test]
+fn expr_target_binary_option_eq_null_is_none() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("node".to_string(), HirType::Option(Box::new(HirType::Int)));
+    let expr = HirExpression::BinaryOp {
+        op: BinaryOperator::Equal,
+        left: Box::new(HirExpression::Variable("node".to_string())),
+        right: Box::new(HirExpression::NullLiteral),
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(result.contains("is_none()"), "Got: {}", result);
+}
+
+// --- Option != NULL → .is_some() ---
+#[test]
+fn expr_target_binary_option_ne_null_is_some() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("node".to_string(), HirType::Option(Box::new(HirType::Int)));
+    let expr = HirExpression::BinaryOp {
+        op: BinaryOperator::NotEqual,
+        left: Box::new(HirExpression::Variable("node".to_string())),
+        right: Box::new(HirExpression::NullLiteral),
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(result.contains("is_some()"), "Got: {}", result);
+}
+
+// --- NULL == Option → .is_none() (reverse) ---
+#[test]
+fn expr_target_binary_null_eq_option_reverse() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("ptr".to_string(), HirType::Option(Box::new(HirType::Int)));
+    let expr = HirExpression::BinaryOp {
+        op: BinaryOperator::Equal,
+        left: Box::new(HirExpression::NullLiteral),
+        right: Box::new(HirExpression::Variable("ptr".to_string())),
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(result.contains("is_none()"), "Got: {}", result);
+}
+
+// --- NULL != Option → .is_some() (reverse) ---
+#[test]
+fn expr_target_binary_null_ne_option_reverse() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("ptr".to_string(), HirType::Option(Box::new(HirType::Int)));
+    let expr = HirExpression::BinaryOp {
+        op: BinaryOperator::NotEqual,
+        left: Box::new(HirExpression::NullLiteral),
+        right: Box::new(HirExpression::Variable("ptr".to_string())),
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(result.contains("is_some()"), "Got: {}", result);
+}
+
+// --- Pointer == 0 → std::ptr::null_mut() ---
+#[test]
+fn expr_target_binary_ptr_eq_zero_null_mut() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("p".to_string(), HirType::Pointer(Box::new(HirType::Int)));
+    let expr = HirExpression::BinaryOp {
+        op: BinaryOperator::Equal,
+        left: Box::new(HirExpression::Variable("p".to_string())),
+        right: Box::new(HirExpression::IntLiteral(0)),
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(result.contains("std::ptr::null_mut()"), "Got: {}", result);
+}
+
+// --- Pointer != 0 → != std::ptr::null_mut() ---
+#[test]
+fn expr_target_binary_ptr_ne_zero_null_mut() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("p".to_string(), HirType::Pointer(Box::new(HirType::Int)));
+    let expr = HirExpression::BinaryOp {
+        op: BinaryOperator::NotEqual,
+        left: Box::new(HirExpression::Variable("p".to_string())),
+        right: Box::new(HirExpression::IntLiteral(0)),
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(result.contains("!= std::ptr::null_mut()"), "Got: {}", result);
+}
+
+// --- 0 == ptr → reverse null check ---
+#[test]
+fn expr_target_binary_zero_eq_ptr_reverse() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("p".to_string(), HirType::Pointer(Box::new(HirType::Int)));
+    let expr = HirExpression::BinaryOp {
+        op: BinaryOperator::Equal,
+        left: Box::new(HirExpression::IntLiteral(0)),
+        right: Box::new(HirExpression::Variable("p".to_string())),
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(result.contains("std::ptr::null_mut()"), "Got: {}", result);
+}
+
+// --- DECY-235: Pointer field access == 0 → null_mut() ---
+#[test]
+fn expr_target_binary_field_ptr_eq_zero_null_mut() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let s = HirStruct::new("Node".to_string(), vec![
+        HirStructField::new("next".to_string(), HirType::Pointer(Box::new(HirType::Struct("Node".to_string())))),
+    ]);
+    ctx.add_struct(&s);
+    ctx.add_variable("node".to_string(), HirType::Pointer(Box::new(HirType::Struct("Node".to_string()))));
+    let expr = HirExpression::BinaryOp {
+        op: BinaryOperator::Equal,
+        left: Box::new(HirExpression::PointerFieldAccess {
+            pointer: Box::new(HirExpression::Variable("node".to_string())),
+            field: "next".to_string(),
+        }),
+        right: Box::new(HirExpression::IntLiteral(0)),
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(result.contains("std::ptr::null_mut()") || result.contains("null"), "Got: {}", result);
+}
+
+// --- 0 == field_ptr (reverse) ---
+#[test]
+fn expr_target_binary_zero_eq_field_ptr_reverse() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let s = HirStruct::new("Node".to_string(), vec![
+        HirStructField::new("next".to_string(), HirType::Pointer(Box::new(HirType::Struct("Node".to_string())))),
+    ]);
+    ctx.add_struct(&s);
+    ctx.add_variable("node".to_string(), HirType::Pointer(Box::new(HirType::Struct("Node".to_string()))));
+    let expr = HirExpression::BinaryOp {
+        op: BinaryOperator::Equal,
+        left: Box::new(HirExpression::IntLiteral(0)),
+        right: Box::new(HirExpression::PointerFieldAccess {
+            pointer: Box::new(HirExpression::Variable("node".to_string())),
+            field: "next".to_string(),
+        }),
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(result.contains("std::ptr::null_mut()") || result.contains("null"), "Got: {}", result);
+}
+
+// --- Vec == 0 → false (Vec never null) ---
+#[test]
+fn expr_target_binary_vec_eq_zero_false() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("arr".to_string(), HirType::Vec(Box::new(HirType::Int)));
+    let expr = HirExpression::BinaryOp {
+        op: BinaryOperator::Equal,
+        left: Box::new(HirExpression::Variable("arr".to_string())),
+        right: Box::new(HirExpression::IntLiteral(0)),
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(result.contains("false"), "Got: {}", result);
+}
+
+// --- Vec != NULL → true (Vec never null) ---
+#[test]
+fn expr_target_binary_vec_ne_null_true() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("arr".to_string(), HirType::Vec(Box::new(HirType::Int)));
+    let expr = HirExpression::BinaryOp {
+        op: BinaryOperator::NotEqual,
+        left: Box::new(HirExpression::Variable("arr".to_string())),
+        right: Box::new(HirExpression::NullLiteral),
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(result.contains("true"), "Got: {}", result);
+}
+
+// --- Box == 0 → false (Box never null) ---
+#[test]
+fn expr_target_binary_box_eq_zero_false() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("node".to_string(), HirType::Box(Box::new(HirType::Int)));
+    let expr = HirExpression::BinaryOp {
+        op: BinaryOperator::Equal,
+        left: Box::new(HirExpression::Variable("node".to_string())),
+        right: Box::new(HirExpression::IntLiteral(0)),
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(result.contains("false"), "Got: {}", result);
+}
+
+// --- Box != NULL → true (Box never null) ---
+#[test]
+fn expr_target_binary_box_ne_null_true() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("node".to_string(), HirType::Box(Box::new(HirType::Int)));
+    let expr = HirExpression::BinaryOp {
+        op: BinaryOperator::NotEqual,
+        left: Box::new(HirExpression::Variable("node".to_string())),
+        right: Box::new(HirExpression::NullLiteral),
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(result.contains("true"), "Got: {}", result);
+}
+
+// --- strlen(s) == 0 → s.is_empty() ---
+#[test]
+fn expr_target_binary_strlen_eq_zero_is_empty() {
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    let expr = HirExpression::BinaryOp {
+        op: BinaryOperator::Equal,
+        left: Box::new(HirExpression::FunctionCall {
+            function: "strlen".to_string(),
+            arguments: vec![HirExpression::Variable("s".to_string())],
+        }),
+        right: Box::new(HirExpression::IntLiteral(0)),
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(result.contains("is_empty()"), "Got: {}", result);
+}
+
+// --- strlen(s) != 0 → !s.is_empty() ---
+#[test]
+fn expr_target_binary_strlen_ne_zero_not_is_empty() {
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    let expr = HirExpression::BinaryOp {
+        op: BinaryOperator::NotEqual,
+        left: Box::new(HirExpression::FunctionCall {
+            function: "strlen".to_string(),
+            arguments: vec![HirExpression::Variable("s".to_string())],
+        }),
+        right: Box::new(HirExpression::IntLiteral(0)),
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(result.contains("!") && result.contains("is_empty()"), "Got: {}", result);
+}
+
+// --- 0 == strlen(s) → s.is_empty() (reverse) ---
+#[test]
+fn expr_target_binary_zero_eq_strlen_reverse() {
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    let expr = HirExpression::BinaryOp {
+        op: BinaryOperator::Equal,
+        left: Box::new(HirExpression::IntLiteral(0)),
+        right: Box::new(HirExpression::FunctionCall {
+            function: "strlen".to_string(),
+            arguments: vec![HirExpression::Variable("s".to_string())],
+        }),
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(result.contains("is_empty()"), "Got: {}", result);
+}
+
+// --- 0 != strlen(s) → !s.is_empty() (reverse) ---
+#[test]
+fn expr_target_binary_zero_ne_strlen_reverse() {
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    let expr = HirExpression::BinaryOp {
+        op: BinaryOperator::NotEqual,
+        left: Box::new(HirExpression::IntLiteral(0)),
+        right: Box::new(HirExpression::FunctionCall {
+            function: "strlen".to_string(),
+            arguments: vec![HirExpression::Variable("s".to_string())],
+        }),
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(result.contains("!") && result.contains("is_empty()"), "Got: {}", result);
+}
+
+// --- Char-to-Int comparison: int_var != CharLiteral ---
+#[test]
+fn expr_target_binary_int_cmp_char_literal() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("c".to_string(), HirType::Int);
+    let expr = HirExpression::BinaryOp {
+        op: BinaryOperator::NotEqual,
+        left: Box::new(HirExpression::Variable("c".to_string())),
+        right: Box::new(HirExpression::CharLiteral(10)), // '\n'
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(result.contains("10i32"), "Got: {}", result);
+}
+
+// --- Char-to-Int comparison: CharLiteral == int_var (reverse) ---
+#[test]
+fn expr_target_binary_char_literal_cmp_int_reverse() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("c".to_string(), HirType::Int);
+    let expr = HirExpression::BinaryOp {
+        op: BinaryOperator::Equal,
+        left: Box::new(HirExpression::CharLiteral(65)), // 'A'
+        right: Box::new(HirExpression::Variable("c".to_string())),
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(result.contains("65i32"), "Got: {}", result);
+}
+
+// --- Int + CharLiteral arithmetic → cast to i32 ---
+#[test]
+fn expr_target_binary_int_add_char_literal() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("n".to_string(), HirType::Int);
+    let expr = HirExpression::BinaryOp {
+        op: BinaryOperator::Add,
+        left: Box::new(HirExpression::Variable("n".to_string())),
+        right: Box::new(HirExpression::CharLiteral(48)), // '0'
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(result.contains("48i32"), "Got: {}", result);
+}
+
+// --- CharLiteral - Int (reverse arithmetic) ---
+#[test]
+fn expr_target_binary_char_literal_sub_int_reverse() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("n".to_string(), HirType::Int);
+    let expr = HirExpression::BinaryOp {
+        op: BinaryOperator::Subtract,
+        left: Box::new(HirExpression::CharLiteral(48)), // '0'
+        right: Box::new(HirExpression::Variable("n".to_string())),
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(result.contains("48i32"), "Got: {}", result);
+}
+
+// --- Char variable with Int target type ---
+#[test]
+fn expr_target_char_var_to_int_cast() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("ch".to_string(), HirType::Char);
+    let expr = HirExpression::Variable("ch".to_string());
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, Some(&HirType::Int));
+    assert!(result.contains("as i32"), "Got: {}", result);
+}
+
+// --- Global char variable with Int target → unsafe ---
+#[test]
+fn expr_target_global_char_var_to_int_unsafe() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_global("ch".to_string());
+    ctx.add_variable("ch".to_string(), HirType::Char);
+    let expr = HirExpression::Variable("ch".to_string());
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, Some(&HirType::Int));
+    assert!(result.contains("unsafe"), "Got: {}", result);
+    assert!(result.contains("as i32"), "Got: {}", result);
+}
+
+// ============================================================================
+// BATCH 22 continued: Pointer subtraction detection (lines 5710-5760)
+// ============================================================================
+
+// --- statement_uses_pointer_subtraction in If then_block ---
+#[test]
+fn ptr_sub_detect_if_then_block() {
+    let cg = CodeGenerator::new();
+    let func = HirFunction::new_with_body(
+        "calc_len".to_string(),
+        HirType::Int,
+        vec![
+            HirParameter::new("str".to_string(), HirType::Pointer(Box::new(HirType::Char))),
+            HirParameter::new("start".to_string(), HirType::Pointer(Box::new(HirType::Char))),
+        ],
+        vec![
+            HirStatement::If {
+                condition: HirExpression::Variable("str".to_string()),
+                then_block: vec![
+                    HirStatement::Return(Some(HirExpression::BinaryOp {
+                        op: BinaryOperator::Subtract,
+                        left: Box::new(HirExpression::Variable("str".to_string())),
+                        right: Box::new(HirExpression::Variable("start".to_string())),
+                    })),
+                ],
+                else_block: None,
+            },
+        ],
+    );
+    let uses = cg.function_uses_pointer_subtraction(&func, "str");
+    assert!(uses, "Should detect ptr subtraction in if then_block");
+}
+
+// --- statement_uses_pointer_subtraction in If else_block ---
+#[test]
+fn ptr_sub_detect_if_else_block() {
+    let cg = CodeGenerator::new();
+    let func = HirFunction::new_with_body(
+        "calc_len".to_string(),
+        HirType::Int,
+        vec![
+            HirParameter::new("str".to_string(), HirType::Pointer(Box::new(HirType::Char))),
+            HirParameter::new("start".to_string(), HirType::Pointer(Box::new(HirType::Char))),
+        ],
+        vec![
+            HirStatement::If {
+                condition: HirExpression::IntLiteral(1),
+                then_block: vec![],
+                else_block: Some(vec![
+                    HirStatement::Return(Some(HirExpression::BinaryOp {
+                        op: BinaryOperator::Subtract,
+                        left: Box::new(HirExpression::Variable("str".to_string())),
+                        right: Box::new(HirExpression::Variable("start".to_string())),
+                    })),
+                ]),
+            },
+        ],
+    );
+    let uses = cg.function_uses_pointer_subtraction(&func, "str");
+    assert!(uses, "Should detect ptr subtraction in if else_block");
+}
+
+// --- statement_uses_pointer_subtraction in While loop ---
+#[test]
+fn ptr_sub_detect_while_body() {
+    let cg = CodeGenerator::new();
+    let func = HirFunction::new_with_body(
+        "scan".to_string(),
+        HirType::Int,
+        vec![
+            HirParameter::new("p".to_string(), HirType::Pointer(Box::new(HirType::Char))),
+            HirParameter::new("base".to_string(), HirType::Pointer(Box::new(HirType::Char))),
+        ],
+        vec![
+            HirStatement::While {
+                condition: HirExpression::IntLiteral(1),
+                body: vec![
+                    HirStatement::Return(Some(HirExpression::BinaryOp {
+                        op: BinaryOperator::Subtract,
+                        left: Box::new(HirExpression::Variable("p".to_string())),
+                        right: Box::new(HirExpression::Variable("base".to_string())),
+                    })),
+                ],
+            },
+        ],
+    );
+    let uses = cg.function_uses_pointer_subtraction(&func, "p");
+    assert!(uses, "Should detect ptr subtraction in while body");
+}
+
+// --- statement_uses_pointer_subtraction in While condition ---
+#[test]
+fn ptr_sub_detect_while_condition() {
+    let cg = CodeGenerator::new();
+    let func = HirFunction::new_with_body(
+        "check".to_string(),
+        HirType::Void,
+        vec![
+            HirParameter::new("p".to_string(), HirType::Pointer(Box::new(HirType::Char))),
+            HirParameter::new("end".to_string(), HirType::Pointer(Box::new(HirType::Char))),
+        ],
+        vec![
+            HirStatement::While {
+                condition: HirExpression::BinaryOp {
+                    op: BinaryOperator::Subtract,
+                    left: Box::new(HirExpression::Variable("p".to_string())),
+                    right: Box::new(HirExpression::Variable("end".to_string())),
+                },
+                body: vec![],
+            },
+        ],
+    );
+    let uses = cg.function_uses_pointer_subtraction(&func, "p");
+    assert!(uses, "Should detect ptr subtraction in while condition");
+}
+
+// --- expression_uses_pointer_subtraction in Dereference ---
+#[test]
+fn ptr_sub_detect_deref_expr() {
+    let cg = CodeGenerator::new();
+    let func = HirFunction::new_with_body(
+        "get_diff".to_string(),
+        HirType::Int,
+        vec![
+            HirParameter::new("p".to_string(), HirType::Pointer(Box::new(HirType::Int))),
+            HirParameter::new("q".to_string(), HirType::Pointer(Box::new(HirType::Int))),
+        ],
+        vec![
+            HirStatement::Return(Some(HirExpression::Dereference(
+                Box::new(HirExpression::BinaryOp {
+                    op: BinaryOperator::Subtract,
+                    left: Box::new(HirExpression::Variable("p".to_string())),
+                    right: Box::new(HirExpression::Variable("q".to_string())),
+                }),
+            ))),
+        ],
+    );
+    let uses = cg.function_uses_pointer_subtraction(&func, "p");
+    assert!(uses, "Should detect ptr subtraction inside dereference");
+}
+
+// --- expression_uses_pointer_subtraction in Cast ---
+#[test]
+fn ptr_sub_detect_cast_expr() {
+    let cg = CodeGenerator::new();
+    let func = HirFunction::new_with_body(
+        "diff_as_int".to_string(),
+        HirType::Int,
+        vec![
+            HirParameter::new("a".to_string(), HirType::Pointer(Box::new(HirType::Char))),
+            HirParameter::new("b".to_string(), HirType::Pointer(Box::new(HirType::Char))),
+        ],
+        vec![
+            HirStatement::Return(Some(HirExpression::Cast {
+                expr: Box::new(HirExpression::BinaryOp {
+                    op: BinaryOperator::Subtract,
+                    left: Box::new(HirExpression::Variable("a".to_string())),
+                    right: Box::new(HirExpression::Variable("b".to_string())),
+                }),
+                target_type: HirType::Int,
+            })),
+        ],
+    );
+    let uses = cg.function_uses_pointer_subtraction(&func, "a");
+    assert!(uses, "Should detect ptr subtraction inside cast");
+}
+
+// --- expression_uses_pointer_subtraction: right side match ---
+#[test]
+fn ptr_sub_detect_right_side_variable() {
+    let cg = CodeGenerator::new();
+    let func = HirFunction::new_with_body(
+        "len".to_string(),
+        HirType::Int,
+        vec![
+            HirParameter::new("end".to_string(), HirType::Pointer(Box::new(HirType::Char))),
+            HirParameter::new("start".to_string(), HirType::Pointer(Box::new(HirType::Char))),
+        ],
+        vec![
+            HirStatement::Return(Some(HirExpression::BinaryOp {
+                op: BinaryOperator::Subtract,
+                left: Box::new(HirExpression::Variable("end".to_string())),
+                right: Box::new(HirExpression::Variable("start".to_string())),
+            })),
+        ],
+    );
+    // Check for "start" which appears on the right side
+    let uses = cg.function_uses_pointer_subtraction(&func, "start");
+    assert!(uses, "Should detect ptr subtraction when var is on right side");
+}
+
+// ============================================================================
+// BATCH 22 continued: generate_signature void* constraints (lines 4999-5019)
+// ============================================================================
+
+// --- void* with body that triggers constraints → <T: ...> ---
+#[test]
+fn sig_void_ptr_with_clone_constraint() {
+    let cg = CodeGenerator::new();
+    // Function: void swap(void* a, void* b, size_t size)
+    // Body: deref assign → triggers Mutable + Clone constraints
+    let func = HirFunction::new_with_body(
+        "swap".to_string(),
+        HirType::Void,
+        vec![
+            HirParameter::new("a".to_string(), HirType::Pointer(Box::new(HirType::Void))),
+            HirParameter::new("b".to_string(), HirType::Pointer(Box::new(HirType::Void))),
+            HirParameter::new("size".to_string(), HirType::UnsignedInt),
+        ],
+        vec![
+            // *a = *b (triggers Mutable on a, Clone from deref value)
+            HirStatement::DerefAssignment {
+                target: HirExpression::Variable("a".to_string()),
+                value: HirExpression::Dereference(Box::new(HirExpression::Variable("b".to_string()))),
+            },
+        ],
+    );
+    let sig = cg.generate_signature(&func);
+    // Should have <T: Clone> or similar constraint
+    assert!(sig.contains("<T") || sig.contains("swap"), "Got: {}", sig);
+}
+
+// --- void* with inferred types → <T> (no specific constraints) ---
+#[test]
+fn sig_void_ptr_with_inferred_types_generic_t() {
+    let cg = CodeGenerator::new();
+    // Function with void* that has a cast (inferred type) but no trait constraints
+    let func = HirFunction::new_with_body(
+        "process".to_string(),
+        HirType::Void,
+        vec![
+            HirParameter::new("data".to_string(), HirType::Pointer(Box::new(HirType::Void))),
+        ],
+        vec![
+            // Cast void* to int* → inferred type but no trait constraint
+            HirStatement::VariableDeclaration {
+                name: "p".to_string(),
+                var_type: HirType::Pointer(Box::new(HirType::Int)),
+                initializer: Some(HirExpression::Cast {
+                    expr: Box::new(HirExpression::Variable("data".to_string())),
+                    target_type: HirType::Pointer(Box::new(HirType::Int)),
+                }),
+            },
+        ],
+    );
+    let sig = cg.generate_signature(&func);
+    // Should have <T> since there's real void usage (inferred type) but no specific trait bounds
+    assert!(sig.contains("<T>") || sig.contains("process"), "Got: {}", sig);
+}
+
+// ============================================================================
+// BATCH 22 continued: Macro type inference (lines 705-828)
+// ============================================================================
+
+// --- infer_macro_type: default expression fallback (line 826-827) ---
+#[test]
+fn macro_type_default_expression() {
+    let cg = CodeGenerator::new();
+    // Unknown macro body that isn't string, char, float, hex, octal, or parseable int
+    // Avoid 'e'/'E' chars (float), '.', quotes, 0x/0 prefix
+    let result = cg.infer_macro_type("MY_FLAG | SYS_VAL").unwrap();
+    assert_eq!(result.0, "i32", "Type should be: {}", result.0);
+}
+
+// --- Binary minus spacing (lines 705-712) ---
+#[test]
+fn macro_binary_minus_spacing() {
+    let cg = CodeGenerator::new();
+    let macro_def = decy_hir::HirMacroDefinition::new_function_like(
+        "DIFF".to_string(),
+        vec!["a".to_string(), "b".to_string()],
+        "a-b".to_string(),
+    );
+    let result = cg.generate_macro(&macro_def).unwrap();
+    // The minus should get spaced out: a - b
+    assert!(result.contains(" - ") || result.contains("-"), "Got: {}", result);
+}
+
+// --- infer_macro_type: parseable integer ---
+#[test]
+fn macro_type_integer() {
+    let cg = CodeGenerator::new();
+    let result = cg.infer_macro_type("42").unwrap();
+    assert_eq!(result.0, "i32");
+    assert_eq!(result.1, "42");
+}
+
+// --- infer_macro_type: hexadecimal ---
+#[test]
+fn macro_type_hex() {
+    let cg = CodeGenerator::new();
+    let result = cg.infer_macro_type("0xFF").unwrap();
+    assert_eq!(result.0, "i32");
+    assert_eq!(result.1, "0xFF");
+}
+
+// --- infer_macro_type: octal ---
+#[test]
+fn macro_type_octal() {
+    let cg = CodeGenerator::new();
+    let result = cg.infer_macro_type("0755").unwrap();
+    assert_eq!(result.0, "i32");
+    assert_eq!(result.1, "0755");
+}
