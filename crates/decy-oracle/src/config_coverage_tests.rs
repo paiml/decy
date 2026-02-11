@@ -9,8 +9,13 @@ use std::io::Write;
 use std::path::PathBuf;
 use tempfile::NamedTempFile;
 
-// Mutex for serializing env var tests to prevent race conditions
+// Mutex for serializing env var tests to prevent race conditions.
+// Use unwrap_or_else to recover from poison (a prior test panicking).
 static ENV_MUTEX: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
+fn lock_env() -> std::sync::MutexGuard<'static, ()> {
+    ENV_MUTEX.lock().unwrap_or_else(|e| e.into_inner())
+}
 
 // ============================================================================
 // FROM_ENV: AUTO_FIX BRANCH COVERAGE (replaces ignored tests)
@@ -18,7 +23,7 @@ static ENV_MUTEX: std::sync::Mutex<()> = std::sync::Mutex::new(());
 
 #[test]
 fn config_coverage_from_env_auto_fix_true_lowercase() {
-    let _lock = ENV_MUTEX.lock().unwrap();
+    let _lock = lock_env();
     // Clean slate
     std::env::remove_var("DECY_ORACLE_PATTERNS");
     std::env::remove_var("DECY_ORACLE_THRESHOLD");
@@ -33,7 +38,7 @@ fn config_coverage_from_env_auto_fix_true_lowercase() {
 
 #[test]
 fn config_coverage_from_env_auto_fix_true_uppercase() {
-    let _lock = ENV_MUTEX.lock().unwrap();
+    let _lock = lock_env();
     std::env::remove_var("DECY_ORACLE_PATTERNS");
     std::env::remove_var("DECY_ORACLE_THRESHOLD");
     std::env::remove_var("DECY_ORACLE_AUTO_FIX");
@@ -47,7 +52,7 @@ fn config_coverage_from_env_auto_fix_true_uppercase() {
 
 #[test]
 fn config_coverage_from_env_auto_fix_true_mixed_case() {
-    let _lock = ENV_MUTEX.lock().unwrap();
+    let _lock = lock_env();
     std::env::remove_var("DECY_ORACLE_PATTERNS");
     std::env::remove_var("DECY_ORACLE_THRESHOLD");
     std::env::remove_var("DECY_ORACLE_AUTO_FIX");
@@ -61,7 +66,7 @@ fn config_coverage_from_env_auto_fix_true_mixed_case() {
 
 #[test]
 fn config_coverage_from_env_auto_fix_false_explicit() {
-    let _lock = ENV_MUTEX.lock().unwrap();
+    let _lock = lock_env();
     std::env::remove_var("DECY_ORACLE_PATTERNS");
     std::env::remove_var("DECY_ORACLE_THRESHOLD");
     std::env::remove_var("DECY_ORACLE_AUTO_FIX");
@@ -75,7 +80,7 @@ fn config_coverage_from_env_auto_fix_false_explicit() {
 
 #[test]
 fn config_coverage_from_env_auto_fix_arbitrary_string_is_false() {
-    let _lock = ENV_MUTEX.lock().unwrap();
+    let _lock = lock_env();
     std::env::remove_var("DECY_ORACLE_PATTERNS");
     std::env::remove_var("DECY_ORACLE_THRESHOLD");
     std::env::remove_var("DECY_ORACLE_AUTO_FIX");
@@ -89,7 +94,7 @@ fn config_coverage_from_env_auto_fix_arbitrary_string_is_false() {
 
 #[test]
 fn config_coverage_from_env_auto_fix_empty_string_is_false() {
-    let _lock = ENV_MUTEX.lock().unwrap();
+    let _lock = lock_env();
     std::env::remove_var("DECY_ORACLE_PATTERNS");
     std::env::remove_var("DECY_ORACLE_THRESHOLD");
     std::env::remove_var("DECY_ORACLE_AUTO_FIX");
@@ -107,7 +112,7 @@ fn config_coverage_from_env_auto_fix_empty_string_is_false() {
 
 #[test]
 fn config_coverage_from_env_all_vars_set() {
-    let _lock = ENV_MUTEX.lock().unwrap();
+    let _lock = lock_env();
     std::env::set_var("DECY_ORACLE_PATTERNS", "/tmp/test_oracle.apr");
     std::env::set_var("DECY_ORACLE_THRESHOLD", "0.95");
     std::env::set_var("DECY_ORACLE_AUTO_FIX", "true");
@@ -131,7 +136,7 @@ fn config_coverage_from_env_all_vars_set() {
 
 #[test]
 fn config_coverage_from_env_threshold_zero() {
-    let _lock = ENV_MUTEX.lock().unwrap();
+    let _lock = lock_env();
     std::env::remove_var("DECY_ORACLE_PATTERNS");
     std::env::remove_var("DECY_ORACLE_AUTO_FIX");
 
@@ -148,7 +153,7 @@ fn config_coverage_from_env_threshold_zero() {
 
 #[test]
 fn config_coverage_from_env_threshold_one() {
-    let _lock = ENV_MUTEX.lock().unwrap();
+    let _lock = lock_env();
     std::env::remove_var("DECY_ORACLE_PATTERNS");
     std::env::remove_var("DECY_ORACLE_AUTO_FIX");
 
@@ -165,7 +170,7 @@ fn config_coverage_from_env_threshold_one() {
 
 #[test]
 fn config_coverage_from_env_threshold_negative_parses() {
-    let _lock = ENV_MUTEX.lock().unwrap();
+    let _lock = lock_env();
     std::env::remove_var("DECY_ORACLE_PATTERNS");
     std::env::remove_var("DECY_ORACLE_AUTO_FIX");
 
@@ -182,7 +187,7 @@ fn config_coverage_from_env_threshold_negative_parses() {
 
 #[test]
 fn config_coverage_from_env_threshold_empty_string_uses_default() {
-    let _lock = ENV_MUTEX.lock().unwrap();
+    let _lock = lock_env();
     std::env::remove_var("DECY_ORACLE_PATTERNS");
     std::env::remove_var("DECY_ORACLE_AUTO_FIX");
 
@@ -200,7 +205,7 @@ fn config_coverage_from_env_threshold_empty_string_uses_default() {
 
 #[test]
 fn config_coverage_from_env_patterns_relative_path() {
-    let _lock = ENV_MUTEX.lock().unwrap();
+    let _lock = lock_env();
     std::env::remove_var("DECY_ORACLE_THRESHOLD");
     std::env::remove_var("DECY_ORACLE_AUTO_FIX");
 
@@ -213,7 +218,7 @@ fn config_coverage_from_env_patterns_relative_path() {
 
 #[test]
 fn config_coverage_from_env_patterns_empty_string() {
-    let _lock = ENV_MUTEX.lock().unwrap();
+    let _lock = lock_env();
     std::env::remove_var("DECY_ORACLE_THRESHOLD");
     std::env::remove_var("DECY_ORACLE_AUTO_FIX");
 
@@ -539,7 +544,7 @@ fn config_coverage_field_mutation() {
 
 #[test]
 fn config_coverage_from_env_patterns_absolute_path() {
-    let _lock = ENV_MUTEX.lock().unwrap();
+    let _lock = lock_env();
     std::env::remove_var("DECY_ORACLE_THRESHOLD");
     std::env::remove_var("DECY_ORACLE_AUTO_FIX");
 
@@ -556,7 +561,7 @@ fn config_coverage_from_env_patterns_absolute_path() {
 
 #[test]
 fn config_coverage_from_env_patterns_with_spaces() {
-    let _lock = ENV_MUTEX.lock().unwrap();
+    let _lock = lock_env();
     std::env::remove_var("DECY_ORACLE_THRESHOLD");
     std::env::remove_var("DECY_ORACLE_AUTO_FIX");
 
@@ -674,7 +679,7 @@ max_retries = 999999
 
 #[test]
 fn config_coverage_env_overrides_are_independent_of_file() {
-    let _lock = ENV_MUTEX.lock().unwrap();
+    let _lock = lock_env();
     // Set env var
     std::env::set_var("DECY_ORACLE_PATTERNS", "/env/path.apr");
     std::env::remove_var("DECY_ORACLE_THRESHOLD");

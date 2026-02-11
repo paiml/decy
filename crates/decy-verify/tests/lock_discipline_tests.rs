@@ -6,7 +6,7 @@
 //! - Lock discipline violation reporting
 
 use decy_analyzer::lock_analysis::LockAnalyzer;
-use decy_hir::{HirExpression, HirFunction, HirStatement, HirType};
+use decy_hir::{HirExpression, HirFunction, HirStatement, HirType, UnaryOperator};
 use decy_verify::lock_verify::LockDisciplineChecker;
 
 /// Helper: Create pthread_mutex_lock call
@@ -348,4 +348,236 @@ fn test_report_all_violation_types() {
     );
     assert!(report.lock_violations > 0, "Should detect unmatched lock");
     assert!(!report.is_clean(), "Should not be clean with violations");
+}
+
+// ============================================================================
+// EDGE CASES: EMPTY, BREAK, CONTINUE, RETURN(NONE)
+// ============================================================================
+
+#[test]
+fn test_deadlock_risk_empty_functions_list() {
+    // Edge case: empty slice → early return (line 253-254)
+    let analyzer = LockAnalyzer::new();
+    let checker = LockDisciplineChecker::new(&analyzer);
+    let warnings = checker.check_deadlock_risk(&[]);
+    assert!(warnings.is_empty(), "Empty functions list cannot deadlock");
+}
+
+#[test]
+fn test_collect_accessed_vars_default_arm() {
+    // Break, Continue, Return(None) outside lock region trigger default arm (line 202)
+    let func = HirFunction::new_with_body(
+        "test".to_string(),
+        HirType::Void,
+        vec![],
+        vec![
+            lock_call("lock"),
+            HirStatement::Assignment {
+                target: "data".to_string(),
+                value: HirExpression::IntLiteral(42),
+            },
+            unlock_call("lock"),
+            HirStatement::Break,
+            HirStatement::Continue,
+            HirStatement::Return(None),
+        ],
+    );
+
+    let analyzer = LockAnalyzer::new();
+    let checker = LockDisciplineChecker::new(&analyzer);
+    let violations = checker.check_unprotected_access(&func);
+    assert!(
+        violations.is_empty(),
+        "Break/Continue/Return(None) don't access data"
+    );
+}
+
+// ============================================================================
+// EXPRESSION VARIANTS IN collect_vars_from_expr
+// ============================================================================
+
+#[test]
+fn test_unprotected_access_through_unary_op() {
+    // UnaryOp accessing protected data outside lock (lines 220-221)
+    let func = HirFunction::new_with_body(
+        "test".to_string(),
+        HirType::Void,
+        vec![],
+        vec![
+            lock_call("lock"),
+            HirStatement::Assignment {
+                target: "data".to_string(),
+                value: HirExpression::IntLiteral(42),
+            },
+            unlock_call("lock"),
+            HirStatement::Expression(HirExpression::UnaryOp {
+                op: UnaryOperator::Minus,
+                operand: Box::new(HirExpression::Variable("data".to_string())),
+            }),
+        ],
+    );
+
+    let analyzer = LockAnalyzer::new();
+    let checker = LockDisciplineChecker::new(&analyzer);
+    let violations = checker.check_unprotected_access(&func);
+    assert!(
+        !violations.is_empty(),
+        "Should detect unprotected access through UnaryOp"
+    );
+}
+
+#[test]
+fn test_unprotected_access_through_function_call_args() {
+    // FunctionCall with protected data in args (lines 224-226)
+    let func = HirFunction::new_with_body(
+        "test".to_string(),
+        HirType::Void,
+        vec![],
+        vec![
+            lock_call("lock"),
+            HirStatement::Assignment {
+                target: "data".to_string(),
+                value: HirExpression::IntLiteral(42),
+            },
+            unlock_call("lock"),
+            HirStatement::Expression(HirExpression::FunctionCall {
+                function: "printf".to_string(),
+                arguments: vec![HirExpression::Variable("data".to_string())],
+            }),
+        ],
+    );
+
+    let analyzer = LockAnalyzer::new();
+    let checker = LockDisciplineChecker::new(&analyzer);
+    let violations = checker.check_unprotected_access(&func);
+    assert!(
+        !violations.is_empty(),
+        "Should detect unprotected access through function call args"
+    );
+}
+
+#[test]
+fn test_unprotected_access_through_cast() {
+    // Cast expression accessing protected data (lines 238-240)
+    let func = HirFunction::new_with_body(
+        "test".to_string(),
+        HirType::Void,
+        vec![],
+        vec![
+            lock_call("lock"),
+            HirStatement::Assignment {
+                target: "data".to_string(),
+                value: HirExpression::IntLiteral(42),
+            },
+            unlock_call("lock"),
+            HirStatement::Expression(HirExpression::Cast {
+                expr: Box::new(HirExpression::Variable("data".to_string())),
+                target_type: HirType::Float,
+            }),
+        ],
+    );
+
+    let analyzer = LockAnalyzer::new();
+    let checker = LockDisciplineChecker::new(&analyzer);
+    let violations = checker.check_unprotected_access(&func);
+    assert!(
+        !violations.is_empty(),
+        "Should detect unprotected access through cast"
+    );
+}
+
+#[test]
+fn test_unprotected_return_with_protected_data() {
+    // Return(Some(expr)) accessing protected data (lines 199-200)
+    let func = HirFunction::new_with_body(
+        "test".to_string(),
+        HirType::Int,
+        vec![],
+        vec![
+            lock_call("lock"),
+            HirStatement::Assignment {
+                target: "data".to_string(),
+                value: HirExpression::IntLiteral(42),
+            },
+            unlock_call("lock"),
+            HirStatement::Return(Some(HirExpression::Variable("data".to_string()))),
+        ],
+    );
+
+    let analyzer = LockAnalyzer::new();
+    let checker = LockDisciplineChecker::new(&analyzer);
+    let violations = checker.check_unprotected_access(&func);
+    assert!(
+        !violations.is_empty(),
+        "Should detect unprotected access in return"
+    );
+}
+
+// ============================================================================
+// LOCK ORDERING EDGE CASES
+// ============================================================================
+
+#[test]
+fn test_lock_with_non_addressof_arg_not_tracked() {
+    // pthread_mutex_lock(lock) instead of pthread_mutex_lock(&lock)
+    // The ordering extractor should skip non-AddressOf args
+    let func = HirFunction::new_with_body(
+        "test".to_string(),
+        HirType::Void,
+        vec![],
+        vec![HirStatement::Expression(HirExpression::FunctionCall {
+            function: "pthread_mutex_lock".to_string(),
+            arguments: vec![HirExpression::Variable("lock".to_string())],
+        })],
+    );
+
+    let analyzer = LockAnalyzer::new();
+    let checker = LockDisciplineChecker::new(&analyzer);
+    let warnings = checker.check_deadlock_risk(&[func]);
+    assert!(
+        warnings.is_empty(),
+        "Non-AddressOf lock args shouldn't produce ordering"
+    );
+}
+
+#[test]
+fn test_three_lock_ordering_conflict() {
+    // func1: lock(A) → lock(B) → lock(C)
+    // func2: lock(C) → lock(A) → lock(B)
+    // Conflict: A before C in func1, C before A in func2
+    let func1 = HirFunction::new_with_body(
+        "thread1".to_string(),
+        HirType::Void,
+        vec![],
+        vec![
+            lock_call("lockA"),
+            lock_call("lockB"),
+            lock_call("lockC"),
+            unlock_call("lockC"),
+            unlock_call("lockB"),
+            unlock_call("lockA"),
+        ],
+    );
+
+    let func2 = HirFunction::new_with_body(
+        "thread2".to_string(),
+        HirType::Void,
+        vec![],
+        vec![
+            lock_call("lockC"),
+            lock_call("lockA"),
+            lock_call("lockB"),
+            unlock_call("lockB"),
+            unlock_call("lockA"),
+            unlock_call("lockC"),
+        ],
+    );
+
+    let analyzer = LockAnalyzer::new();
+    let checker = LockDisciplineChecker::new(&analyzer);
+    let warnings = checker.check_deadlock_risk(&[func1, func2]);
+    assert!(
+        !warnings.is_empty(),
+        "Should detect deadlock with 3-lock ordering conflict"
+    );
 }
