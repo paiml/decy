@@ -39,10 +39,10 @@ fn transpile_c(c_code: &str) -> String {
 
 /// Helper to check if generated Rust compiles
 fn compiles(rust_code: &str) -> Result<(), String> {
-    let mut temp_file = NamedTempFile::with_suffix(".rs").expect("Failed to create temp file");
-    temp_file
-        .write_all(rust_code.as_bytes())
-        .expect("Failed to write Rust code");
+    let dir = tempfile::tempdir().expect("Failed to create temp dir");
+    let src_path = dir.path().join("test.rs");
+    std::fs::write(&src_path, rust_code).expect("Failed to write Rust code");
+    let out_path = dir.path().join("output");
 
     let output = Command::new("rustc")
         .args([
@@ -52,9 +52,9 @@ fn compiles(rust_code: &str) -> Result<(), String> {
             "-A",
             "warnings",
             "-o",
-            "/tmp/decy_char_coercion_test",
         ])
-        .arg(temp_file.path())
+        .arg(&out_path)
+        .arg(&src_path)
         .output()
         .expect("Failed to run rustc");
 
