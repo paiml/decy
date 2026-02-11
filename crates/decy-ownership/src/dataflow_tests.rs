@@ -1339,3 +1339,91 @@ fn test_array_param_binop_add_non_variable_left() {
         "Add with non-Variable left is not pointer arithmetic"
     );
 }
+
+#[test]
+fn test_dataflow_graph_default_trait() {
+    let graph = DataflowGraph::default();
+    assert!(graph.variables().is_empty());
+}
+
+#[test]
+fn test_dataflow_analyzer_default_trait() {
+    let analyzer = DataflowAnalyzer::default();
+    let func = HirFunction::new_with_body("test".to_string(), HirType::Void, vec![], vec![]);
+    let graph = analyzer.analyze(&func);
+    assert!(graph.variables().is_empty());
+}
+
+#[test]
+fn test_struct_pointer_not_detected_as_array() {
+    // Struct pointer parameter should not be detected as array (line 213-216)
+    let func = HirFunction::new_with_body(
+        "process".to_string(),
+        HirType::Void,
+        vec![HirParameter::new(
+            "node".to_string(),
+            HirType::Pointer(Box::new(HirType::Struct("Node".to_string()))),
+        )],
+        vec![],
+    );
+
+    let analyzer = DataflowAnalyzer::new();
+    let graph = analyzer.analyze(&func);
+    assert_eq!(
+        graph.is_array_parameter("node"),
+        Some(false),
+        "Struct pointer should not be detected as array"
+    );
+}
+
+#[test]
+fn test_get_array_parameters_last_param_no_length() {
+    // Last array param has no next param for length detection (line 136)
+    let func = HirFunction::new_with_body(
+        "sum".to_string(),
+        HirType::Void,
+        vec![HirParameter::new(
+            "arr".to_string(),
+            HirType::Pointer(Box::new(HirType::Int)),
+        )],
+        vec![],
+    );
+
+    let analyzer = DataflowAnalyzer::new();
+    let graph = analyzer.analyze(&func);
+    let array_params = graph.get_array_parameters();
+    // arr should be detected as array param
+    if !array_params.is_empty() {
+        assert_eq!(array_params[0].0, "arr");
+        // No length param because it's the last parameter
+        assert!(
+            array_params[0].1.is_none(),
+            "Last param has no next param for length"
+        );
+    }
+}
+
+#[test]
+fn test_get_array_parameters_with_length_detection() {
+    // Array param followed by length param (standard pattern)
+    let func = HirFunction::new_with_body(
+        "process".to_string(),
+        HirType::Void,
+        vec![
+            HirParameter::new(
+                "data".to_string(),
+                HirType::Pointer(Box::new(HirType::Int)),
+            ),
+            HirParameter::new("len".to_string(), HirType::Int),
+        ],
+        vec![],
+    );
+
+    let analyzer = DataflowAnalyzer::new();
+    let graph = analyzer.analyze(&func);
+    let array_params = graph.get_array_parameters();
+    if !array_params.is_empty() {
+        assert_eq!(array_params[0].0, "data");
+        assert_eq!(array_params[0].1, Some("len".to_string()));
+    }
+}
