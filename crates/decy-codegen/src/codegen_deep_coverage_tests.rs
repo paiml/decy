@@ -15538,3 +15538,339 @@ fn stmt_ctx_uninitialized_variable() {
     assert!(result.contains("let mut x: i32"), "Got: {}", result);
     assert!(result.contains("0i32"), "Got: {}", result);
 }
+
+// ============================================================================
+// BATCH 16: ArrayIndexAssignment, FieldAssignment, Free, Expression, InlineAsm
+// ============================================================================
+
+#[test]
+fn stmt_ctx_array_index_assign_raw_pointer_unsafe() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable(
+        "arr".to_string(),
+        HirType::Pointer(Box::new(HirType::Int)),
+    );
+    let stmt = HirStatement::ArrayIndexAssignment {
+        array: Box::new(HirExpression::Variable("arr".to_string())),
+        index: Box::new(HirExpression::IntLiteral(3)),
+        value: HirExpression::IntLiteral(42),
+    };
+    let result = cg.generate_statement_with_context(&stmt, None, &mut ctx, None);
+    assert!(result.contains("unsafe"), "Got: {}", result);
+    assert!(result.contains(".add("), "Got: {}", result);
+}
+
+#[test]
+fn stmt_ctx_array_index_assign_global_array() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_global("TABLE".to_string());
+    ctx.add_variable(
+        "TABLE".to_string(),
+        HirType::Array {
+            element_type: Box::new(HirType::Int),
+            size: Some(10),
+        },
+    );
+    let stmt = HirStatement::ArrayIndexAssignment {
+        array: Box::new(HirExpression::Variable("TABLE".to_string())),
+        index: Box::new(HirExpression::IntLiteral(0)),
+        value: HirExpression::IntLiteral(99),
+    };
+    let result = cg.generate_statement_with_context(&stmt, None, &mut ctx, None);
+    assert!(result.contains("unsafe"), "Got: {}", result);
+    assert!(result.contains("TABLE"), "Got: {}", result);
+}
+
+#[test]
+fn stmt_ctx_array_index_assign_regular() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable(
+        "data".to_string(),
+        HirType::Vec(Box::new(HirType::Int)),
+    );
+    let stmt = HirStatement::ArrayIndexAssignment {
+        array: Box::new(HirExpression::Variable("data".to_string())),
+        index: Box::new(HirExpression::Variable("i".to_string())),
+        value: HirExpression::IntLiteral(0),
+    };
+    let result = cg.generate_statement_with_context(&stmt, None, &mut ctx, None);
+    assert!(result.contains("data[(i) as usize] = 0"), "Got: {}", result);
+}
+
+#[test]
+fn stmt_ctx_field_assign_regular() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("p".to_string(), HirType::Struct("Point".to_string()));
+    let stmt = HirStatement::FieldAssignment {
+        object: HirExpression::Variable("p".to_string()),
+        field: "x".to_string(),
+        value: HirExpression::IntLiteral(10),
+    };
+    let result = cg.generate_statement_with_context(&stmt, None, &mut ctx, None);
+    assert!(result.contains("p.x = 10"), "Got: {}", result);
+}
+
+#[test]
+fn stmt_ctx_field_assign_raw_pointer_wraps_unsafe() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable(
+        "node".to_string(),
+        HirType::Pointer(Box::new(HirType::Struct("Node".to_string()))),
+    );
+    let stmt = HirStatement::FieldAssignment {
+        object: HirExpression::Variable("node".to_string()),
+        field: "value".to_string(),
+        value: HirExpression::IntLiteral(42),
+    };
+    let result = cg.generate_statement_with_context(&stmt, None, &mut ctx, None);
+    assert!(result.contains("unsafe"), "Got: {}", result);
+    assert!(result.contains("(*node).value"), "Got: {}", result);
+}
+
+#[test]
+fn stmt_ctx_field_assign_global_struct_wraps_unsafe() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_global("CONFIG".to_string());
+    ctx.add_variable("CONFIG".to_string(), HirType::Struct("Config".to_string()));
+    let stmt = HirStatement::FieldAssignment {
+        object: HirExpression::Variable("CONFIG".to_string()),
+        field: "timeout".to_string(),
+        value: HirExpression::IntLiteral(30),
+    };
+    let result = cg.generate_statement_with_context(&stmt, None, &mut ctx, None);
+    assert!(result.contains("unsafe"), "Got: {}", result);
+    assert!(result.contains("CONFIG.timeout"), "Got: {}", result);
+}
+
+#[test]
+fn stmt_ctx_field_assign_keyword_field_escaping() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("s".to_string(), HirType::Struct("S".to_string()));
+    let stmt = HirStatement::FieldAssignment {
+        object: HirExpression::Variable("s".to_string()),
+        field: "type".to_string(),
+        value: HirExpression::IntLiteral(1),
+    };
+    let result = cg.generate_statement_with_context(&stmt, None, &mut ctx, None);
+    assert!(result.contains("r#type"), "Got: {}", result);
+}
+
+#[test]
+fn stmt_ctx_free_variable() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let stmt = HirStatement::Free {
+        pointer: HirExpression::Variable("buf".to_string()),
+    };
+    let result = cg.generate_statement_with_context(&stmt, None, &mut ctx, None);
+    assert!(result.contains("RAII"), "Got: {}", result);
+    assert!(result.contains("buf"), "Got: {}", result);
+}
+
+#[test]
+fn stmt_ctx_free_expression() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let stmt = HirStatement::Free {
+        pointer: HirExpression::FieldAccess {
+            object: Box::new(HirExpression::Variable("s".to_string())),
+            field: "data".to_string(),
+        },
+    };
+    let result = cg.generate_statement_with_context(&stmt, None, &mut ctx, None);
+    assert!(result.contains("RAII"), "Got: {}", result);
+}
+
+#[test]
+fn stmt_ctx_expression_function_call() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let stmt = HirStatement::Expression(HirExpression::FunctionCall {
+        function: "do_work".to_string(),
+        arguments: vec![HirExpression::IntLiteral(1)],
+    });
+    let result = cg.generate_statement_with_context(&stmt, None, &mut ctx, None);
+    assert!(result.contains("do_work(1)"), "Got: {}", result);
+    assert!(result.ends_with(';'), "Got: {}", result);
+}
+
+#[test]
+fn stmt_ctx_inline_asm_non_translatable() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let stmt = HirStatement::InlineAsm {
+        text: "nop".to_string(),
+        translatable: false,
+    };
+    let result = cg.generate_statement_with_context(&stmt, None, &mut ctx, None);
+    assert!(result.contains("manual review"), "Got: {}", result);
+    assert!(result.contains("nop"), "Got: {}", result);
+    assert!(!result.contains("translatable"), "Got: {}", result);
+}
+
+#[test]
+fn stmt_ctx_inline_asm_translatable() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let stmt = HirStatement::InlineAsm {
+        text: "mfence".to_string(),
+        translatable: true,
+    };
+    let result = cg.generate_statement_with_context(&stmt, None, &mut ctx, None);
+    assert!(result.contains("manual review"), "Got: {}", result);
+    assert!(result.contains("translatable"), "Got: {}", result);
+    assert!(result.contains("mfence"), "Got: {}", result);
+}
+
+#[test]
+fn stmt_ctx_deref_assign_double_pointer_unsafe() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    // Reference to pointer → dereferencing yields raw pointer → needs unsafe
+    ctx.add_variable(
+        "pp".to_string(),
+        HirType::Reference {
+            inner: Box::new(HirType::Pointer(Box::new(HirType::Int))),
+            mutable: true,
+        },
+    );
+    let stmt = HirStatement::DerefAssignment {
+        target: HirExpression::Dereference(Box::new(HirExpression::Variable("pp".to_string()))),
+        value: HirExpression::IntLiteral(42),
+    };
+    let result = cg.generate_statement_with_context(&stmt, None, &mut ctx, None);
+    assert!(result.contains("unsafe"), "Got: {}", result);
+}
+
+// ============================================================================
+// BATCH 16b: generate_signature — main, output_param, keyword rename
+// ============================================================================
+
+#[test]
+fn gen_sig_main_function_no_return_type() {
+    let cg = CodeGenerator::new();
+    let func = HirFunction::new("main".to_string(), HirType::Int, vec![]);
+    let result = cg.generate_signature(&func);
+    assert_eq!(result, "fn main()");
+    assert!(!result.contains("-> i32"), "Got: {}", result);
+}
+
+#[test]
+fn gen_sig_keyword_write_becomes_c_write() {
+    let cg = CodeGenerator::new();
+    let func = HirFunction::new("write".to_string(), HirType::Void, vec![]);
+    let result = cg.generate_signature(&func);
+    assert!(result.contains("fn c_write"), "Got: {}", result);
+}
+
+#[test]
+fn gen_sig_keyword_read_becomes_c_read() {
+    let cg = CodeGenerator::new();
+    let func = HirFunction::new("read".to_string(), HirType::Int, vec![]);
+    let result = cg.generate_signature(&func);
+    assert!(result.contains("fn c_read"), "Got: {}", result);
+}
+
+#[test]
+fn gen_sig_keyword_type_becomes_c_type() {
+    let cg = CodeGenerator::new();
+    let func = HirFunction::new("type".to_string(), HirType::Void, vec![]);
+    let result = cg.generate_signature(&func);
+    assert!(result.contains("fn c_type"), "Got: {}", result);
+}
+
+#[test]
+fn gen_sig_keyword_match_becomes_c_match() {
+    let cg = CodeGenerator::new();
+    let func = HirFunction::new("match".to_string(), HirType::Void, vec![]);
+    let result = cg.generate_signature(&func);
+    assert!(result.contains("fn c_match"), "Got: {}", result);
+}
+
+#[test]
+fn gen_sig_with_return_type() {
+    let cg = CodeGenerator::new();
+    let func = HirFunction::new(
+        "compute".to_string(),
+        HirType::Double,
+        vec![HirParameter::new("x".to_string(), HirType::Int)],
+    );
+    let result = cg.generate_signature(&func);
+    assert!(result.contains("fn compute"), "Got: {}", result);
+    assert!(result.contains("-> f64"), "Got: {}", result);
+}
+
+#[test]
+fn gen_sig_void_no_return_type() {
+    let cg = CodeGenerator::new();
+    let func = HirFunction::new("process".to_string(), HirType::Void, vec![]);
+    let result = cg.generate_signature(&func);
+    assert!(result.contains("fn process()"), "Got: {}", result);
+    assert!(!result.contains("->"), "Got: {}", result);
+}
+
+// ============================================================================
+// BATCH 16c: generate_function_with_lifetimes_and_structs — globals, string iter
+// ============================================================================
+
+#[test]
+fn gen_func_lifetimes_structs_with_globals() {
+    use decy_ownership::lifetime_gen::{AnnotatedSignature, AnnotatedType};
+    let cg = CodeGenerator::new();
+    let func = HirFunction::new_with_body(
+        "inc_global".to_string(),
+        HirType::Void,
+        vec![],
+        vec![HirStatement::Assignment {
+            target: "COUNTER".to_string(),
+            value: HirExpression::BinaryOp {
+                op: BinaryOperator::Add,
+                left: Box::new(HirExpression::Variable("COUNTER".to_string())),
+                right: Box::new(HirExpression::IntLiteral(1)),
+            },
+        }],
+    );
+    let sig = AnnotatedSignature {
+        name: "inc_global".to_string(),
+        lifetimes: vec![],
+        parameters: vec![],
+        return_type: AnnotatedType::Simple(HirType::Void),
+    };
+    let globals = vec![("COUNTER".to_string(), HirType::Int)];
+    let result = cg.generate_function_with_lifetimes_and_structs(
+        &func, &sig, &[], &[], &[], &[], &globals,
+    );
+    assert!(result.contains("fn inc_global"), "Got: {}", result);
+    assert!(result.contains("unsafe"), "Got: {}", result);
+    assert!(result.contains("COUNTER"), "Got: {}", result);
+}
+
+#[test]
+fn gen_func_lifetimes_structs_empty_body_stub() {
+    use decy_ownership::lifetime_gen::{AnnotatedSignature, AnnotatedType};
+    let cg = CodeGenerator::new();
+    let func = HirFunction::new("stub_fn".to_string(), HirType::Int, vec![]);
+    let sig = AnnotatedSignature {
+        name: "stub_fn".to_string(),
+        lifetimes: vec![],
+        parameters: vec![],
+        return_type: AnnotatedType::Simple(HirType::Int),
+    };
+    let result = cg.generate_function_with_lifetimes_and_structs(
+        &func, &sig, &[], &[], &[], &[], &[],
+    );
+    assert!(result.contains("fn stub_fn"), "Got: {}", result);
+    // Empty body should have a return value stub
+    assert!(
+        result.contains("0i32") || result.contains("return"),
+        "Got: {}",
+        result
+    );
+}
