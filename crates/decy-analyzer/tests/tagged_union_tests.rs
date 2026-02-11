@@ -154,6 +154,61 @@ fn test_empty_union() {
     assert!(analyzer.analyze_struct(&struct_def).is_none());
 }
 
+// ============================================================================
+// ADDITIONAL COVERAGE TESTS
+// ============================================================================
+
+#[test]
+fn test_tagged_union_analyzer_default() {
+    let analyzer = TaggedUnionAnalyzer::default();
+    let struct_def = HirStruct::new(
+        "Value".to_string(),
+        vec![
+            HirStructField::new("tag".to_string(), HirType::Enum("Tag".to_string())),
+            HirStructField::new(
+                "data".to_string(),
+                HirType::Union(vec![("i".to_string(), HirType::Int)]),
+            ),
+        ],
+    );
+    assert!(analyzer.analyze_struct(&struct_def).is_some());
+}
+
+#[test]
+fn test_variant_info_debug_clone() {
+    use decy_analyzer::tagged_union_analysis::VariantInfo;
+    let v = VariantInfo {
+        name: "i".to_string(),
+        payload_type: HirType::Int,
+    };
+    let cloned = v.clone();
+    assert_eq!(v, cloned);
+    let debug = format!("{:?}", v);
+    assert!(debug.contains("VariantInfo"));
+}
+
+#[test]
+fn test_tagged_union_info_debug_clone() {
+    use decy_analyzer::tagged_union_analysis::TaggedUnionInfo;
+    let info = TaggedUnionInfo {
+        struct_name: "Value".to_string(),
+        tag_field_name: "tag".to_string(),
+        union_field_name: "data".to_string(),
+        variants: vec![],
+    };
+    let cloned = info.clone();
+    assert_eq!(info, cloned);
+    let debug = format!("{:?}", info);
+    assert!(debug.contains("TaggedUnionInfo"));
+}
+
+#[test]
+fn test_no_fields_struct() {
+    let struct_def = HirStruct::new("Empty".to_string(), vec![]);
+    let analyzer = TaggedUnionAnalyzer::new();
+    assert!(analyzer.analyze_struct(&struct_def).is_none());
+}
+
 #[test]
 fn test_realistic_json_value() {
     // enum ValueType { TYPE_NULL, TYPE_INT, TYPE_FLOAT, TYPE_STRING };
