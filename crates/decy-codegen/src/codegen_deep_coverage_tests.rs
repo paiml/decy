@@ -32257,3 +32257,459 @@ fn expr_strlen_call() {
         code
     );
 }
+
+// =============================================================================
+// BATCH 58: waitpid/WEXITSTATUS/WIFEXITED/WIFSIGNALED/WTERMSIG, atoi/atof/abs,
+//           exit/puts/snprintf/sprintf/qsort, default function call handler
+// =============================================================================
+
+#[test]
+fn expr_waitpid_call() {
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    let expr = HirExpression::FunctionCall {
+        function: "waitpid".to_string(),
+        arguments: vec![],
+    };
+    let code = cg.generate_expression_with_context(&expr, &ctx);
+    assert!(
+        code.contains("wait"),
+        "waitpid → wait: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_wait_call() {
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    let expr = HirExpression::FunctionCall {
+        function: "wait".to_string(),
+        arguments: vec![],
+    };
+    let code = cg.generate_expression_with_context(&expr, &ctx);
+    assert!(
+        code.contains("wait"),
+        "wait → wait: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_wexitstatus_call() {
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    let expr = HirExpression::FunctionCall {
+        function: "WEXITSTATUS".to_string(),
+        arguments: vec![HirExpression::Variable("status".to_string())],
+    };
+    let code = cg.generate_expression_with_context(&expr, &ctx);
+    assert!(
+        code.contains(".code()"),
+        "WEXITSTATUS → .code(): {}",
+        code
+    );
+}
+
+#[test]
+fn expr_wifexited_call() {
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    let expr = HirExpression::FunctionCall {
+        function: "WIFEXITED".to_string(),
+        arguments: vec![HirExpression::Variable("status".to_string())],
+    };
+    let code = cg.generate_expression_with_context(&expr, &ctx);
+    assert!(
+        code.contains(".success()"),
+        "WIFEXITED → .success(): {}",
+        code
+    );
+}
+
+#[test]
+fn expr_wifsignaled_call() {
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    let expr = HirExpression::FunctionCall {
+        function: "WIFSIGNALED".to_string(),
+        arguments: vec![HirExpression::Variable("status".to_string())],
+    };
+    let code = cg.generate_expression_with_context(&expr, &ctx);
+    assert!(
+        code.contains(".signal().is_some()"),
+        "WIFSIGNALED → .signal().is_some(): {}",
+        code
+    );
+}
+
+#[test]
+fn expr_wtermsig_call() {
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    let expr = HirExpression::FunctionCall {
+        function: "WTERMSIG".to_string(),
+        arguments: vec![HirExpression::Variable("status".to_string())],
+    };
+    let code = cg.generate_expression_with_context(&expr, &ctx);
+    assert!(
+        code.contains(".signal().unwrap_or(0)"),
+        "WTERMSIG → .signal().unwrap_or(0): {}",
+        code
+    );
+}
+
+#[test]
+fn expr_atoi_call() {
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    let expr = HirExpression::FunctionCall {
+        function: "atoi".to_string(),
+        arguments: vec![HirExpression::Variable("s".to_string())],
+    };
+    let code = cg.generate_expression_with_context(&expr, &ctx);
+    assert!(
+        code.contains("parse::<i32>"),
+        "atoi → parse::<i32>: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_atof_parse_f64() {
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    let expr = HirExpression::FunctionCall {
+        function: "atof".to_string(),
+        arguments: vec![HirExpression::Variable("s".to_string())],
+    };
+    let code = cg.generate_expression_with_context(&expr, &ctx);
+    assert!(
+        code.contains("parse::<f64>"),
+        "atof → parse::<f64>: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_abs_call() {
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    let expr = HirExpression::FunctionCall {
+        function: "abs".to_string(),
+        arguments: vec![HirExpression::Variable("x".to_string())],
+    };
+    let code = cg.generate_expression_with_context(&expr, &ctx);
+    assert!(
+        code.contains(".abs()"),
+        "abs → .abs(): {}",
+        code
+    );
+}
+
+#[test]
+fn expr_exit_call() {
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    let expr = HirExpression::FunctionCall {
+        function: "exit".to_string(),
+        arguments: vec![HirExpression::IntLiteral(1)],
+    };
+    let code = cg.generate_expression_with_context(&expr, &ctx);
+    assert!(
+        code.contains("std::process::exit(1)"),
+        "exit → process::exit: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_puts_call() {
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    let expr = HirExpression::FunctionCall {
+        function: "puts".to_string(),
+        arguments: vec![HirExpression::StringLiteral("hello".to_string())],
+    };
+    let code = cg.generate_expression_with_context(&expr, &ctx);
+    assert!(
+        code.contains("println!"),
+        "puts → println!: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_snprintf_no_extra_args() {
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    let expr = HirExpression::FunctionCall {
+        function: "snprintf".to_string(),
+        arguments: vec![
+            HirExpression::Variable("buf".to_string()),
+            HirExpression::IntLiteral(100),
+            HirExpression::StringLiteral("hello".to_string()),
+        ],
+    };
+    let code = cg.generate_expression_with_context(&expr, &ctx);
+    assert!(
+        code.contains("format!"),
+        "snprintf → format!: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_snprintf_with_args() {
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    let expr = HirExpression::FunctionCall {
+        function: "snprintf".to_string(),
+        arguments: vec![
+            HirExpression::Variable("buf".to_string()),
+            HirExpression::IntLiteral(100),
+            HirExpression::StringLiteral("%d".to_string()),
+            HirExpression::Variable("x".to_string()),
+        ],
+    };
+    let code = cg.generate_expression_with_context(&expr, &ctx);
+    assert!(
+        code.contains("format!") && code.contains("x"),
+        "snprintf with args → format!: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_sprintf_no_extra_args() {
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    let expr = HirExpression::FunctionCall {
+        function: "sprintf".to_string(),
+        arguments: vec![
+            HirExpression::Variable("buf".to_string()),
+            HirExpression::StringLiteral("hello".to_string()),
+        ],
+    };
+    let code = cg.generate_expression_with_context(&expr, &ctx);
+    assert!(
+        code.contains("format!"),
+        "sprintf → format!: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_sprintf_with_args() {
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    let expr = HirExpression::FunctionCall {
+        function: "sprintf".to_string(),
+        arguments: vec![
+            HirExpression::Variable("buf".to_string()),
+            HirExpression::StringLiteral("%d".to_string()),
+            HirExpression::Variable("n".to_string()),
+        ],
+    };
+    let code = cg.generate_expression_with_context(&expr, &ctx);
+    assert!(
+        code.contains("format!") && code.contains("n"),
+        "sprintf with args → format!: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_qsort_call() {
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    let expr = HirExpression::FunctionCall {
+        function: "qsort".to_string(),
+        arguments: vec![
+            HirExpression::Variable("arr".to_string()),
+            HirExpression::IntLiteral(10),
+            HirExpression::Sizeof {
+                type_name: "int".to_string(),
+            },
+            HirExpression::Variable("compare".to_string()),
+        ],
+    };
+    let code = cg.generate_expression_with_context(&expr, &ctx);
+    assert!(
+        code.contains("sort_by") && code.contains("compare"),
+        "qsort → sort_by: {}",
+        code
+    );
+}
+
+// --- Default function call handler ---
+
+#[test]
+fn expr_default_func_call_address_of_arg() {
+    // foo(&x) → foo(&mut x) (default &mut for AddressOf args)
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    let expr = HirExpression::FunctionCall {
+        function: "update".to_string(),
+        arguments: vec![HirExpression::AddressOf(Box::new(
+            HirExpression::Variable("value".to_string()),
+        ))],
+    };
+    let code = cg.generate_expression_with_context(&expr, &ctx);
+    assert!(
+        code.contains("&mut value"),
+        "AddressOf arg → &mut: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_default_func_call_unary_address_of_arg() {
+    // foo(&x) via UnaryOp::AddressOf
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    let expr = HirExpression::FunctionCall {
+        function: "update".to_string(),
+        arguments: vec![HirExpression::UnaryOp {
+            op: decy_hir::UnaryOperator::AddressOf,
+            operand: Box::new(HirExpression::Variable("value".to_string())),
+        }],
+    };
+    let code = cg.generate_expression_with_context(&expr, &ctx);
+    assert!(
+        code.contains("&mut value"),
+        "UnaryOp AddressOf arg → &mut: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_default_func_call_slice_mapping() {
+    // func(arr, len) where arr is slice param → func(&arr) with len skipped
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_slice_func_args("process".to_string(), vec![(0, 1)]);
+    let expr = HirExpression::FunctionCall {
+        function: "process".to_string(),
+        arguments: vec![
+            HirExpression::Variable("arr".to_string()),
+            HirExpression::Variable("len".to_string()),
+        ],
+    };
+    let code = cg.generate_expression_with_context(&expr, &ctx);
+    assert!(
+        code.contains("&arr") && !code.contains("len"),
+        "Slice mapping → &arr, skip len: {}",
+        code
+    );
+}
+
+// --- BinaryOp: pointer field access comparison with 0 ---
+
+#[test]
+fn expr_binop_pointer_field_compare_zero() {
+    // (*ptr).field == 0 where field is pointer type → null_mut comparison
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    // Set up struct with pointer field
+    ctx.add_struct(&decy_hir::HirStruct::new(
+        "Node".to_string(),
+        vec![decy_hir::HirStructField::new(
+            "next".to_string(),
+            HirType::Pointer(Box::new(HirType::Struct("Node".to_string()))),
+        )],
+    ));
+    ctx.add_variable("node".to_string(), HirType::Struct("Node".to_string()));
+    let field_access = HirExpression::FieldAccess {
+        object: Box::new(HirExpression::Variable("node".to_string())),
+        field: "next".to_string(),
+    };
+    let expr = HirExpression::BinaryOp {
+        op: BinaryOperator::Equal,
+        left: Box::new(field_access),
+        right: Box::new(HirExpression::IntLiteral(0)),
+    };
+    let code = cg.generate_expression_with_context(&expr, &ctx);
+    assert!(
+        code.contains("null_mut") || code.contains("== 0"),
+        "Pointer field == 0: {}",
+        code
+    );
+}
+
+// --- AddressOf: deref inner ---
+
+#[test]
+fn expr_address_of_dereference_inner() {
+    // &(*x) → &(*x)
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    let expr = HirExpression::AddressOf(Box::new(HirExpression::Dereference(Box::new(
+        HirExpression::Variable("x".to_string()),
+    ))));
+    let code = cg.generate_expression_with_context(&expr, &ctx);
+    assert!(
+        code.contains("&("),
+        "AddressOf deref → &(): {}",
+        code
+    );
+}
+
+// --- BinaryOp: nested binary ops with parens ---
+
+#[test]
+fn expr_binop_nested_parens() {
+    // (a + b) * (c - d) → properly parenthesized
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    let left = HirExpression::BinaryOp {
+        op: BinaryOperator::Add,
+        left: Box::new(HirExpression::Variable("a".to_string())),
+        right: Box::new(HirExpression::Variable("b".to_string())),
+    };
+    let right = HirExpression::BinaryOp {
+        op: BinaryOperator::Subtract,
+        left: Box::new(HirExpression::Variable("c".to_string())),
+        right: Box::new(HirExpression::Variable("d".to_string())),
+    };
+    let expr = HirExpression::BinaryOp {
+        op: BinaryOperator::Multiply,
+        left: Box::new(left),
+        right: Box::new(right),
+    };
+    let code = cg.generate_expression_with_context(&expr, &ctx);
+    assert!(
+        code.contains("(a + b)") && code.contains("(c - d)"),
+        "Nested binops → parens: {}",
+        code
+    );
+}
+
+// --- Expression: NullLiteral ---
+
+#[test]
+fn expr_null_literal_generates_none() {
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    let code = cg.generate_expression_with_context(&HirExpression::NullLiteral, &ctx);
+    assert!(
+        code.contains("None"),
+        "NullLiteral → None: {}",
+        code
+    );
+}
+
+// --- Expression: IsNotNull ---
+
+#[test]
+fn expr_is_not_null_generates_if_let_some() {
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    let expr = HirExpression::IsNotNull(Box::new(HirExpression::Variable("p".to_string())));
+    let code = cg.generate_expression_with_context(&expr, &ctx);
+    assert!(
+        code.contains("if let Some"),
+        "IsNotNull → if let Some: {}",
+        code
+    );
+}
