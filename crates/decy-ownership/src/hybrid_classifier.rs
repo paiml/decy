@@ -1264,6 +1264,35 @@ mod tests {
     // Default implementation
     // ========================================================================
 
+    /// Custom model that does NOT override name() - uses default "unknown"
+    struct AnonymousModel;
+
+    impl OwnershipModel for AnonymousModel {
+        fn predict(&self, _features: &OwnershipFeatures) -> OwnershipPrediction {
+            OwnershipPrediction {
+                kind: InferredOwnership::Owned,
+                confidence: 0.5,
+                fallback: None,
+            }
+        }
+        // Note: does NOT override name() — uses default "unknown"
+    }
+
+    #[test]
+    fn ownership_model_default_name() {
+        let model = AnonymousModel;
+        assert_eq!(model.name(), "unknown");
+    }
+
+    #[test]
+    fn ownership_model_default_predict_batch() {
+        let model = AnonymousModel;
+        let features = vec![OwnershipFeatures::default(); 2];
+        let predictions = model.predict_batch(&features);
+        assert_eq!(predictions.len(), 2);
+        assert_eq!(predictions[0].kind, InferredOwnership::Owned);
+    }
+
     #[test]
     fn hybrid_classifier_default_impl() {
         let classifier = HybridClassifier::default();
