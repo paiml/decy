@@ -24513,3 +24513,208 @@ fn expr_target_type_variable_local_int_to_float() {
         code
     );
 }
+
+// =============================================================================
+// Batch 43: generate_statement_with_context — control flow and realloc
+// =============================================================================
+
+#[test]
+fn stmt_context_if_pointer_condition() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("p".to_string(), HirType::Pointer(Box::new(HirType::Int)));
+    let stmt = HirStatement::If {
+        condition: HirExpression::Variable("p".to_string()),
+        then_block: vec![HirStatement::Return(Some(HirExpression::IntLiteral(1)))],
+        else_block: None,
+    };
+    let code = cg.generate_statement_with_context(&stmt, Some("test"), &mut ctx, None);
+    assert!(
+        code.contains("is_null"),
+        "Pointer condition should use is_null: {}",
+        code
+    );
+}
+
+#[test]
+fn stmt_context_if_int_condition() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("flag".to_string(), HirType::Int);
+    let stmt = HirStatement::If {
+        condition: HirExpression::Variable("flag".to_string()),
+        then_block: vec![HirStatement::Return(Some(HirExpression::IntLiteral(1)))],
+        else_block: Some(vec![HirStatement::Return(Some(HirExpression::IntLiteral(0)))]),
+    };
+    let code = cg.generate_statement_with_context(&stmt, Some("test"), &mut ctx, None);
+    assert!(
+        code.contains("!= 0"),
+        "Int condition should use != 0: {}",
+        code
+    );
+    assert!(
+        code.contains("} else {"),
+        "Should have else block: {}",
+        code
+    );
+}
+
+#[test]
+fn stmt_context_if_bool_condition() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let stmt = HirStatement::If {
+        condition: HirExpression::BinaryOp {
+            op: BinaryOperator::LessThan,
+            left: Box::new(HirExpression::Variable("x".to_string())),
+            right: Box::new(HirExpression::IntLiteral(10)),
+        },
+        then_block: vec![HirStatement::Break],
+        else_block: None,
+    };
+    let code = cg.generate_statement_with_context(&stmt, Some("test"), &mut ctx, None);
+    assert!(
+        code.contains("if x < 10"),
+        "Bool condition should pass through: {}",
+        code
+    );
+    assert!(
+        code.contains("break;"),
+        "Should contain break: {}",
+        code
+    );
+}
+
+#[test]
+fn stmt_context_while_pointer_condition() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("node".to_string(), HirType::Pointer(Box::new(HirType::Struct("Node".to_string()))));
+    let stmt = HirStatement::While {
+        condition: HirExpression::Variable("node".to_string()),
+        body: vec![HirStatement::Continue],
+    };
+    let code = cg.generate_statement_with_context(&stmt, Some("test"), &mut ctx, None);
+    assert!(
+        code.contains("is_null"),
+        "While pointer condition → is_null: {}",
+        code
+    );
+    assert!(
+        code.contains("continue;"),
+        "Should contain continue: {}",
+        code
+    );
+}
+
+#[test]
+fn stmt_context_while_bool_condition() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let stmt = HirStatement::While {
+        condition: HirExpression::BinaryOp {
+            op: BinaryOperator::GreaterThan,
+            left: Box::new(HirExpression::Variable("i".to_string())),
+            right: Box::new(HirExpression::IntLiteral(0)),
+        },
+        body: vec![],
+    };
+    let code = cg.generate_statement_with_context(&stmt, Some("test"), &mut ctx, None);
+    assert!(
+        code.contains("while i > 0"),
+        "Bool while condition passes through: {}",
+        code
+    );
+}
+
+#[test]
+fn stmt_context_realloc_zero_clears() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("buf".to_string(), HirType::Vec(Box::new(HirType::Int)));
+    // realloc(buf, 0) → buf.clear()
+    let stmt = HirStatement::Assignment {
+        target: "buf".to_string(),
+        value: HirExpression::Realloc {
+            pointer: Box::new(HirExpression::Variable("buf".to_string())),
+            new_size: Box::new(HirExpression::IntLiteral(0)),
+        },
+    };
+    let code = cg.generate_statement_with_context(&stmt, Some("test"), &mut ctx, None);
+    assert!(
+        code.contains(".clear()"),
+        "realloc(ptr, 0) should clear: {}",
+        code
+    );
+}
+
+#[test]
+fn stmt_context_realloc_resize() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("buf".to_string(), HirType::Vec(Box::new(HirType::Int)));
+    // realloc(buf, n * sizeof(int)) → buf.resize(n, 0i32)
+    let stmt = HirStatement::Assignment {
+        target: "buf".to_string(),
+        value: HirExpression::Realloc {
+            pointer: Box::new(HirExpression::Variable("buf".to_string())),
+            new_size: Box::new(HirExpression::BinaryOp {
+                op: BinaryOperator::Multiply,
+                left: Box::new(HirExpression::Variable("n".to_string())),
+                right: Box::new(HirExpression::Sizeof { type_name: "int".to_string() }),
+            }),
+        },
+    };
+    let code = cg.generate_statement_with_context(&stmt, Some("test"), &mut ctx, None);
+    assert!(
+        code.contains(".resize("),
+        "realloc should use resize: {}",
+        code
+    );
+    assert!(
+        code.contains("0i32"),
+        "Should use default value for element type: {}",
+        code
+    );
+}
+
+#[test]
+fn stmt_context_realloc_fallback() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("buf".to_string(), HirType::Vec(Box::new(HirType::Int)));
+    // realloc(buf, 42) → buf.resize(42 as usize, 0i32) (fallback path)
+    let stmt = HirStatement::Assignment {
+        target: "buf".to_string(),
+        value: HirExpression::Realloc {
+            pointer: Box::new(HirExpression::Variable("buf".to_string())),
+            new_size: Box::new(HirExpression::IntLiteral(42)),
+        },
+    };
+    let code = cg.generate_statement_with_context(&stmt, Some("test"), &mut ctx, None);
+    assert!(
+        code.contains(".resize(42 as usize"),
+        "realloc fallback should resize with as usize: {}",
+        code
+    );
+}
+
+#[test]
+fn stmt_context_break_and_continue() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let break_code = cg.generate_statement_with_context(
+        &HirStatement::Break,
+        Some("test"),
+        &mut ctx,
+        None,
+    );
+    assert_eq!(break_code, "break;");
+    let continue_code = cg.generate_statement_with_context(
+        &HirStatement::Continue,
+        Some("test"),
+        &mut ctx,
+        None,
+    );
+    assert_eq!(continue_code, "continue;");
+}
