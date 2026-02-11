@@ -735,6 +735,62 @@ mod tests {
     }
 
     #[test]
+    fn test_export_format_all_variants() {
+        let formats = [
+            ExportFormat::Jsonl,
+            ExportFormat::ChatML,
+            ExportFormat::Alpaca,
+            ExportFormat::Parquet,
+        ];
+        for fmt in &formats {
+            let debug = format!("{:?}", fmt);
+            assert!(!debug.is_empty());
+        }
+        assert_ne!(ExportFormat::Jsonl, ExportFormat::ChatML);
+        assert_ne!(ExportFormat::Alpaca, ExportFormat::Parquet);
+    }
+
+    #[test]
+    fn test_add_example_and_access() {
+        let mut exporter = DatasetExporter::empty();
+        let example = TrainingExample {
+            error_code: "E0308".to_string(),
+            decision: "type_coercion".to_string(),
+            fix_diff: "- old\n+ new".to_string(),
+            description: "Type mismatch fix".to_string(),
+            source: "test".to_string(),
+            verified: false,
+            success_count: 5,
+            failure_count: 2,
+        };
+        exporter.add_example(example);
+
+        let examples = exporter.examples();
+        assert_eq!(examples.len(), 1);
+        assert_eq!(examples[0].success_count, 5);
+        assert!(!examples[0].verified);
+    }
+
+    #[test]
+    fn test_stats_unverified_examples() {
+        let mut exporter = DatasetExporter::empty();
+        exporter.add_example(TrainingExample {
+            error_code: "E0308".to_string(),
+            decision: "cast".to_string(),
+            fix_diff: "- a\n+ b".to_string(),
+            description: "test".to_string(),
+            source: "training".to_string(),
+            verified: false,
+            success_count: 0,
+            failure_count: 0,
+        });
+        let stats = exporter.stats();
+        assert_eq!(stats.total, 1);
+        assert_eq!(stats.verified, 0);
+        assert!(stats.by_source.contains_key("training"));
+    }
+
+    #[test]
     fn test_training_example_from_bootstrap() {
         use crate::bootstrap::get_bootstrap_patterns;
 

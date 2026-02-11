@@ -849,4 +849,31 @@ mod tests {
         let result = RetirementSweepResult::default();
         assert_eq!(result.retirement_rate(), 0.0);
     }
+
+    #[test]
+    fn test_sweep_result_record_superseded() {
+        let mut result = RetirementSweepResult::default();
+        let decision = RetirementDecision::Archive(RetirementReason::Superseded {
+            better_pattern_id: "pat-new".to_string(),
+            improvement: 0.15,
+        });
+        result.record("pat-old", &decision);
+        assert_eq!(result.total_evaluated, 1);
+        assert_eq!(result.retired_superseded, 1);
+        assert_eq!(result.archived, 1);
+        assert_eq!(result.retired_ids.len(), 1);
+    }
+
+    #[test]
+    fn test_sweep_result_record_archive_low_usage() {
+        let mut result = RetirementSweepResult::default();
+        let decision = RetirementDecision::Archive(RetirementReason::LowUsage {
+            uses: 1,
+            threshold: 5,
+            window_days: 30,
+        });
+        result.record("pat-stale", &decision);
+        assert_eq!(result.retired_low_usage, 1);
+        assert_eq!(result.archived, 1);
+    }
 }

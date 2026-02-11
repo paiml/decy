@@ -580,6 +580,37 @@ mod tests {
     }
 
     #[test]
+    fn test_inferred_to_ownership_kind_vec() {
+        // Vec maps to Owning (line 182)
+        assert_eq!(
+            inferred_to_ownership_kind(&InferredOwnership::Vec, "arr"),
+            OwnershipKind::Owning
+        );
+    }
+
+    #[test]
+    fn test_inferred_to_ownership_kind_slice() {
+        // Slice maps to ArrayPointer (lines 183-187)
+        match inferred_to_ownership_kind(&InferredOwnership::Slice, "buf") {
+            OwnershipKind::ArrayPointer { base_array, .. } => {
+                assert_eq!(base_array, "buf");
+            }
+            other => panic!("Expected ArrayPointer, got {:?}", other),
+        }
+    }
+
+    #[test]
+    fn test_inferred_to_ownership_kind_slice_mut() {
+        // SliceMut maps to ArrayPointer (lines 188-192)
+        match inferred_to_ownership_kind(&InferredOwnership::SliceMut, "data") {
+            OwnershipKind::ArrayPointer { base_array, .. } => {
+                assert_eq!(base_array, "data");
+            }
+            other => panic!("Expected ArrayPointer, got {:?}", other),
+        }
+    }
+
+    #[test]
     fn test_extract_features_const_reference_param() {
         // Const reference parameter should be const-qualified
         let func = HirFunction::new_with_body(

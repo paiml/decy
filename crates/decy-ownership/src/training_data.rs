@@ -773,6 +773,117 @@ mod tests {
     }
 
     #[test]
+    fn training_dataset_samples_accessor() {
+        let mut dataset = TrainingDataset::new("test", "1.0.0");
+        let features = OwnershipFeaturesBuilder::default().build();
+        let sample = TrainingSample::new(features, InferredOwnership::Owned, "test.c", 1);
+        dataset.add(LabeledSample::new(
+            sample,
+            DataSource::Synthetic {
+                template: "test".to_string(),
+            },
+            "int* p;",
+            "let p: Box<i32>;",
+        ));
+
+        let samples = dataset.samples();
+        assert_eq!(samples.len(), 1);
+        assert!(samples[0].c_code.contains("int*"));
+    }
+
+    #[test]
+    fn training_dataset_samples_by_source() {
+        let mut dataset = TrainingDataset::new("test", "1.0.0");
+
+        let features = OwnershipFeaturesBuilder::default().build();
+        let sample = TrainingSample::new(features.clone(), InferredOwnership::Owned, "test.c", 1);
+        dataset.add(LabeledSample::new(
+            sample,
+            DataSource::Synthetic {
+                template: "test".to_string(),
+            },
+            "",
+            "",
+        ));
+
+        let sample2 = TrainingSample::new(features, InferredOwnership::Borrowed, "test.c", 2);
+        dataset.add(LabeledSample::new(
+            sample2,
+            DataSource::RustPort {
+                project: "curl".to_string(),
+            },
+            "",
+            "",
+        ));
+
+        assert_eq!(dataset.samples_by_source("Synthetic").len(), 1);
+        assert_eq!(dataset.samples_by_source("RustPort").len(), 1);
+        assert_eq!(dataset.samples_by_source("HumanAnnotated").len(), 0);
+    }
+
+    #[test]
+    fn training_dataset_samples_by_label() {
+        let mut dataset = TrainingDataset::new("test", "1.0.0");
+
+        let features = OwnershipFeaturesBuilder::default().build();
+        let sample = TrainingSample::new(features.clone(), InferredOwnership::Owned, "test.c", 1);
+        dataset.add(LabeledSample::new(
+            sample,
+            DataSource::Synthetic {
+                template: "test".to_string(),
+            },
+            "",
+            "",
+        ));
+
+        let sample2 = TrainingSample::new(features, InferredOwnership::Borrowed, "test.c", 2);
+        dataset.add(LabeledSample::new(
+            sample2,
+            DataSource::Synthetic {
+                template: "test".to_string(),
+            },
+            "",
+            "",
+        ));
+
+        assert_eq!(dataset.samples_by_label(InferredOwnership::Owned).len(), 1);
+        assert_eq!(
+            dataset.samples_by_label(InferredOwnership::Borrowed).len(),
+            1
+        );
+        assert_eq!(dataset.samples_by_label(InferredOwnership::Vec).len(), 0);
+    }
+
+    #[test]
+    fn training_dataset_merge() {
+        let mut dataset1 = TrainingDataset::new("test1", "1.0.0");
+        let features = OwnershipFeaturesBuilder::default().build();
+        let sample = TrainingSample::new(features.clone(), InferredOwnership::Owned, "test.c", 1);
+        dataset1.add(LabeledSample::new(
+            sample,
+            DataSource::Synthetic {
+                template: "test".to_string(),
+            },
+            "",
+            "",
+        ));
+
+        let mut dataset2 = TrainingDataset::new("test2", "1.0.0");
+        let sample2 = TrainingSample::new(features, InferredOwnership::Borrowed, "test.c", 2);
+        dataset2.add(LabeledSample::new(
+            sample2,
+            DataSource::Synthetic {
+                template: "test".to_string(),
+            },
+            "",
+            "",
+        ));
+
+        dataset1.merge(dataset2);
+        assert_eq!(dataset1.len(), 2);
+    }
+
+    #[test]
     fn training_dataset_stats() {
         let mut dataset = TrainingDataset::new("test", "1.0.0");
 
