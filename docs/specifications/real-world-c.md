@@ -3,7 +3,7 @@
 **Status**: Active (S1/S2 Implemented)
 **Created**: 2026-02-10
 **Updated**: 2026-02-11
-**Version**: 1.4
+**Version**: 1.5
 
 ## Problem Statement
 
@@ -255,9 +255,9 @@ The transpiler must preserve C program semantics. Differential testing compiles 
 
 ### Coverage Results
 
-Post-implementation workspace coverage: **98.09% line, 97.86% region** (target: 95% — EXCEEDED)
+Post-implementation workspace coverage: **98.16% line, 97.94% region** (target: 95% — EXCEEDED)
 
-662 uncovered lines remain across 34,716 total lines. Top uncovered files:
+671 uncovered lines remain across 36,471 total lines. Top uncovered files:
 
 | File | Uncovered | Coverage | Notes |
 |------|-----------|----------|-------|
@@ -266,7 +266,7 @@ Post-implementation workspace coverage: **98.09% line, 97.86% region** (target: 
 | main.rs | 57 | 89.62% | CLI entry points (interactive) |
 | core/lib.rs | 50 | 97.80% | Pipeline orchestration |
 | array_slice.rs | 37 | 95.92% | Complex context setup |
-| retraining_pipeline.rs | 11 | 98.53% | Training loop internals |
+| retraining_pipeline.rs | 10 | 98.77% | Training loop internals |
 | dataset.rs | 15 | 96.58% | Error closures (infallible) |
 
 | Crate | Region | Line | Notes |
@@ -274,7 +274,7 @@ Post-implementation workspace coverage: **98.09% line, 97.86% region** (target: 
 | decy-parser | 91.99% | 93.13% | FFI/clang-sys boundary code (349 uncovered) |
 | decy-hir | 100% | 100% | Full coverage via integration tests |
 | decy-analyzer | 97.00% | — | Lock analysis, subprocess analysis, output params covered |
-| decy-ownership | 99.46%+ | — | hybrid_classifier 99.71%, model_versioning 99.46%, active_learning 99.77% |
+| decy-ownership | 99.46%+ | — | hybrid_classifier 99.71%, model_versioning 99.46%, active_learning 99.77%, classifier edge cases, retraining metrics |
 | decy-codegen | 96.88% | 96.30% | 1,176 deep coverage tests (35 batches) + TypeContext helpers + box/concurrency/pattern |
 | decy-verify | 99.23% | 100% | lock_verify 100%, compile verification fully tested |
 | decy-core | 97.61% | 97.80% | Pipeline tests + uninitialized globals + enum/function dedup + metrics serialization |
@@ -292,7 +292,7 @@ Post-implementation workspace coverage: **98.09% line, 97.86% region** (target: 
 - **Oracle trace verifier tests**: 45 (compilation valid/invalid/empty, verify_trace valid/invalid/unsafe/fn_main, verify_batch/filter_valid, verify_safety allow/deny, stats accumulation, VerifierConfig, VerificationLevel Display, pass_rate, count_unsafe variants)
 - **Core pipeline tests**: 12 (uninitialized globals, enum variants, function dedup) + 4 metrics tests (to_json, success/failure results, no-error markdown)
 - **Inference branch tests**: 17 (via DataflowGraph test helpers for defensive branches)
-- **Ownership tests**: Retraining pipeline ClassMetrics/TrainingMetrics fields, hybrid classifier trait defaults, classifier integration edge cases
+- **Ownership tests**: Retraining pipeline ClassMetrics/TrainingMetrics fields + f1 zero-division + invalid day fallback + timezone edge cases, hybrid classifier trait defaults, classifier integration edge cases + evaluator mismatches + precision/recall/f1 zero cases + macro_f1 + multi-alternative predictions
 
 ### Falsification Analysis (Popperian Methodology)
 
@@ -319,14 +319,14 @@ All changes in this specification must pass:
 
 - `cargo build --workspace` — clean compile
 - `cargo clippy --workspace -- -D warnings` — zero warnings
-- `cargo test --workspace` — all tests pass (13,100+)
+- `cargo test --workspace` — all tests pass (13,500+)
 - Line coverage >= 95% (`cargo llvm-cov --workspace`)
 - No regressions in existing falsification tests
 - New tests for every falsifiable prediction marked as implemented
 
 ## Coverage Gap Analysis
 
-662 uncovered lines remain workspace-wide at 98.09% line coverage. Classification:
+671 uncovered lines remain workspace-wide at 98.16% line coverage. Classification:
 
 ### Asymptotic Coverage Categories
 
