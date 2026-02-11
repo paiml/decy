@@ -26260,3 +26260,311 @@ fn sig_annotated_non_void_return_type() {
         code
     );
 }
+
+// =============================================================================
+// Batch 48: Mixed arithmetic, chained comparisons, signed/unsigned,
+//           bitwise with bool, arithmetic result casting
+// =============================================================================
+
+#[test]
+fn expr_target_binary_int_add_float() {
+    // DECY-204: int + float → cast int to f32
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("i".to_string(), HirType::Int);
+    ctx.add_variable("f".to_string(), HirType::Float);
+    let expr = HirExpression::BinaryOp {
+        op: BinaryOperator::Add,
+        left: Box::new(HirExpression::Variable("i".to_string())),
+        right: Box::new(HirExpression::Variable("f".to_string())),
+    };
+    let code = cg.generate_expression_with_target_type(&expr, &mut ctx, None);
+    assert!(
+        code.contains("as f32"),
+        "Int + Float → int cast to f32: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_target_binary_double_sub_int() {
+    // double - int → cast int to f64
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("d".to_string(), HirType::Double);
+    ctx.add_variable("n".to_string(), HirType::Int);
+    let expr = HirExpression::BinaryOp {
+        op: BinaryOperator::Subtract,
+        left: Box::new(HirExpression::Variable("d".to_string())),
+        right: Box::new(HirExpression::Variable("n".to_string())),
+    };
+    let code = cg.generate_expression_with_target_type(&expr, &mut ctx, None);
+    assert!(
+        code.contains("as f64"),
+        "Double - Int → int cast to f64: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_target_binary_float_mul_double() {
+    // float * double → cast float to f64
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("f".to_string(), HirType::Float);
+    ctx.add_variable("d".to_string(), HirType::Double);
+    let expr = HirExpression::BinaryOp {
+        op: BinaryOperator::Multiply,
+        left: Box::new(HirExpression::Variable("f".to_string())),
+        right: Box::new(HirExpression::Variable("d".to_string())),
+    };
+    let code = cg.generate_expression_with_target_type(&expr, &mut ctx, None);
+    assert!(
+        code.contains("as f64"),
+        "Float * Double → float cast to f64: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_target_binary_chained_comparison() {
+    // DECY-206: (x < y) < z → cast comparison to i32
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let expr = HirExpression::BinaryOp {
+        op: BinaryOperator::LessThan,
+        left: Box::new(HirExpression::BinaryOp {
+            op: BinaryOperator::LessThan,
+            left: Box::new(HirExpression::Variable("x".to_string())),
+            right: Box::new(HirExpression::Variable("y".to_string())),
+        }),
+        right: Box::new(HirExpression::Variable("z".to_string())),
+    };
+    let code = cg.generate_expression_with_target_type(&expr, &mut ctx, None);
+    assert!(
+        code.contains("as i32"),
+        "Chained comparison casts to i32: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_target_binary_chained_comparison_with_int_target() {
+    // Chained comparison with int target → final result also cast
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let expr = HirExpression::BinaryOp {
+        op: BinaryOperator::GreaterThan,
+        left: Box::new(HirExpression::Variable("a".to_string())),
+        right: Box::new(HirExpression::BinaryOp {
+            op: BinaryOperator::Equal,
+            left: Box::new(HirExpression::Variable("b".to_string())),
+            right: Box::new(HirExpression::IntLiteral(1)),
+        }),
+    };
+    let code = cg.generate_expression_with_target_type(&expr, &mut ctx, Some(&HirType::Int));
+    assert!(
+        code.contains("as i32"),
+        "Chained comparison with int target: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_target_binary_signed_unsigned_comparison() {
+    // DECY-251: int vs unsigned int comparison → cast both to i64
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("signed_val".to_string(), HirType::Int);
+    ctx.add_variable("unsigned_val".to_string(), HirType::UnsignedInt);
+    let expr = HirExpression::BinaryOp {
+        op: BinaryOperator::LessThan,
+        left: Box::new(HirExpression::Variable("signed_val".to_string())),
+        right: Box::new(HirExpression::Variable("unsigned_val".to_string())),
+    };
+    let code = cg.generate_expression_with_target_type(&expr, &mut ctx, None);
+    assert!(
+        code.contains("as i64"),
+        "Signed/unsigned comparison → i64 cast: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_target_binary_signed_unsigned_with_int_target() {
+    // Signed/unsigned comparison with int target → also cast result to i32
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("a".to_string(), HirType::UnsignedInt);
+    ctx.add_variable("b".to_string(), HirType::Int);
+    let expr = HirExpression::BinaryOp {
+        op: BinaryOperator::NotEqual,
+        left: Box::new(HirExpression::Variable("a".to_string())),
+        right: Box::new(HirExpression::Variable("b".to_string())),
+    };
+    let code = cg.generate_expression_with_target_type(&expr, &mut ctx, Some(&HirType::Int));
+    assert!(
+        code.contains("as i64") && code.contains("as i32"),
+        "Signed/unsigned + int target: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_target_binary_comparison_returns_bool_cast_to_int() {
+    // DECY-191: Comparison with int target → cast to i32
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let expr = HirExpression::BinaryOp {
+        op: BinaryOperator::GreaterThan,
+        left: Box::new(HirExpression::Variable("x".to_string())),
+        right: Box::new(HirExpression::IntLiteral(0)),
+    };
+    let code = cg.generate_expression_with_target_type(&expr, &mut ctx, Some(&HirType::Int));
+    assert!(
+        code.contains("as i32"),
+        "Comparison → int → as i32: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_target_binary_int_div_to_float_target() {
+    // DECY-204: int / int with float target → cast result to f32
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("a".to_string(), HirType::Int);
+    ctx.add_variable("b".to_string(), HirType::Int);
+    let expr = HirExpression::BinaryOp {
+        op: BinaryOperator::Divide,
+        left: Box::new(HirExpression::Variable("a".to_string())),
+        right: Box::new(HirExpression::Variable("b".to_string())),
+    };
+    let code = cg.generate_expression_with_target_type(&expr, &mut ctx, Some(&HirType::Float));
+    assert!(
+        code.contains("as f32"),
+        "Int/Int with float target → as f32: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_target_binary_int_mod_to_double_target() {
+    // int % int with double target → cast result to f64
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("x".to_string(), HirType::Int);
+    ctx.add_variable("y".to_string(), HirType::Int);
+    let expr = HirExpression::BinaryOp {
+        op: BinaryOperator::Modulo,
+        left: Box::new(HirExpression::Variable("x".to_string())),
+        right: Box::new(HirExpression::Variable("y".to_string())),
+    };
+    let code = cg.generate_expression_with_target_type(&expr, &mut ctx, Some(&HirType::Double));
+    assert!(
+        code.contains("as f64"),
+        "Int%Int with double target → as f64: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_target_binary_bitwise_and_with_bool() {
+    // DECY-252: x & (y == 1) → cast bool to i32
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let expr = HirExpression::BinaryOp {
+        op: BinaryOperator::BitwiseAnd,
+        left: Box::new(HirExpression::Variable("flags".to_string())),
+        right: Box::new(HirExpression::BinaryOp {
+            op: BinaryOperator::Equal,
+            left: Box::new(HirExpression::Variable("mode".to_string())),
+            right: Box::new(HirExpression::IntLiteral(1)),
+        }),
+    };
+    let code = cg.generate_expression_with_target_type(&expr, &mut ctx, None);
+    assert!(
+        code.contains("as i32"),
+        "Bitwise AND with bool operand → cast: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_target_binary_bitwise_or_bool_and_unsigned() {
+    // DECY-252: unsigned | (x != 0) → cast both
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("mask".to_string(), HirType::UnsignedInt);
+    let expr = HirExpression::BinaryOp {
+        op: BinaryOperator::BitwiseOr,
+        left: Box::new(HirExpression::Variable("mask".to_string())),
+        right: Box::new(HirExpression::BinaryOp {
+            op: BinaryOperator::NotEqual,
+            left: Box::new(HirExpression::Variable("x".to_string())),
+            right: Box::new(HirExpression::IntLiteral(0)),
+        }),
+    };
+    let code = cg.generate_expression_with_target_type(&expr, &mut ctx, None);
+    assert!(
+        code.contains("as i32"),
+        "Bitwise OR with unsigned + bool: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_target_binary_nested_parens() {
+    // Nested binary ops get parenthesized
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let expr = HirExpression::BinaryOp {
+        op: BinaryOperator::Multiply,
+        left: Box::new(HirExpression::BinaryOp {
+            op: BinaryOperator::Add,
+            left: Box::new(HirExpression::Variable("a".to_string())),
+            right: Box::new(HirExpression::Variable("b".to_string())),
+        }),
+        right: Box::new(HirExpression::BinaryOp {
+            op: BinaryOperator::Subtract,
+            left: Box::new(HirExpression::Variable("c".to_string())),
+            right: Box::new(HirExpression::Variable("d".to_string())),
+        }),
+    };
+    let code = cg.generate_expression_with_target_type(&expr, &mut ctx, None);
+    assert!(
+        code.contains("(a + b)") && code.contains("(c - d)"),
+        "Nested ops get parens: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_target_binary_ptr_field_access_cmp_zero() {
+    // DECY-235: ptr->field == 0 where field is pointer → null_mut comparison
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("node".to_string(), HirType::Pointer(Box::new(HirType::Struct("Node".to_string()))));
+    // Register struct type for field type inference
+    ctx.add_struct(&decy_hir::HirStruct::new(
+        "Node".to_string(),
+        vec![decy_hir::HirStructField::new(
+            "next".to_string(),
+            HirType::Pointer(Box::new(HirType::Struct("Node".to_string()))),
+        )],
+    ));
+    let expr = HirExpression::BinaryOp {
+        op: BinaryOperator::Equal,
+        left: Box::new(HirExpression::PointerFieldAccess {
+            pointer: Box::new(HirExpression::Variable("node".to_string())),
+            field: "next".to_string(),
+        }),
+        right: Box::new(HirExpression::IntLiteral(0)),
+    };
+    let code = cg.generate_expression_with_target_type(&expr, &mut ctx, None);
+    assert!(
+        code.contains("null_mut()"),
+        "Ptr field == 0 → null_mut: {}",
+        code
+    );
+}
