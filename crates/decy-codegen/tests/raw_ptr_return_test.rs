@@ -43,6 +43,9 @@ fn compiles(rust_code: &str) -> Result<(), String> {
         .write_all(rust_code.as_bytes())
         .expect("Failed to write Rust code");
 
+    let out_dir = tempfile::tempdir().expect("Failed to create temp dir");
+    let out_path = out_dir.path().join("test_raw_ptr");
+
     let output = Command::new("rustc")
         .args([
             "--crate-type=lib",
@@ -51,8 +54,8 @@ fn compiles(rust_code: &str) -> Result<(), String> {
             "-A",
             "warnings",
             "-o",
-            "/tmp/decy_raw_ptr_test",
         ])
+        .arg(&out_path)
         .arg(temp_file.path())
         .output()
         .expect("Failed to run rustc");
