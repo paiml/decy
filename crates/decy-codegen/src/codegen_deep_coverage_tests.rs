@@ -27203,3 +27203,681 @@ fn expr_context_realloc_with_ptr_target() {
         code
     );
 }
+
+// =============================================================================
+// Batch 51: Remaining stdlib FunctionCall transforms + default call handler
+// =============================================================================
+
+#[test]
+fn expr_context_wifsignaled_with_arg() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let expr = HirExpression::FunctionCall {
+        function: "WIFSIGNALED".to_string(),
+        arguments: vec![HirExpression::Variable("status".to_string())],
+    };
+    let code = cg.generate_expression_with_context(&expr, &mut ctx);
+    assert!(
+        code.contains("signal().is_some()"),
+        "WIFSIGNALED → signal().is_some(): {}",
+        code
+    );
+}
+
+#[test]
+fn expr_context_wifsignaled_no_arg() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let expr = HirExpression::FunctionCall {
+        function: "WIFSIGNALED".to_string(),
+        arguments: vec![],
+    };
+    let code = cg.generate_expression_with_context(&expr, &mut ctx);
+    assert!(
+        code.contains("WIFSIGNALED requires"),
+        "WIFSIGNALED no arg → comment: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_context_wtermsig_with_arg() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let expr = HirExpression::FunctionCall {
+        function: "WTERMSIG".to_string(),
+        arguments: vec![HirExpression::Variable("status".to_string())],
+    };
+    let code = cg.generate_expression_with_context(&expr, &mut ctx);
+    assert!(
+        code.contains("signal().unwrap_or(0)"),
+        "WTERMSIG → signal().unwrap_or(0): {}",
+        code
+    );
+}
+
+#[test]
+fn expr_context_wtermsig_no_arg() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let expr = HirExpression::FunctionCall {
+        function: "WTERMSIG".to_string(),
+        arguments: vec![],
+    };
+    let code = cg.generate_expression_with_context(&expr, &mut ctx);
+    assert!(
+        code.contains("WTERMSIG requires"),
+        "WTERMSIG no arg → comment: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_context_atoi_with_arg() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let expr = HirExpression::FunctionCall {
+        function: "atoi".to_string(),
+        arguments: vec![HirExpression::Variable("s".to_string())],
+    };
+    let code = cg.generate_expression_with_context(&expr, &mut ctx);
+    assert!(
+        code.contains("parse::<i32>().unwrap_or(0)"),
+        "atoi → parse::<i32>(): {}",
+        code
+    );
+}
+
+#[test]
+fn expr_context_atoi_wrong_args() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let expr = HirExpression::FunctionCall {
+        function: "atoi".to_string(),
+        arguments: vec![],
+    };
+    let code = cg.generate_expression_with_context(&expr, &mut ctx);
+    assert!(
+        code.contains("atoi requires"),
+        "atoi wrong args → comment: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_context_atof_with_arg() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let expr = HirExpression::FunctionCall {
+        function: "atof".to_string(),
+        arguments: vec![HirExpression::Variable("s".to_string())],
+    };
+    let code = cg.generate_expression_with_context(&expr, &mut ctx);
+    assert!(
+        code.contains("parse::<f64>().unwrap_or(0.0)"),
+        "atof → parse::<f64>(): {}",
+        code
+    );
+}
+
+#[test]
+fn expr_context_atof_wrong_args() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let expr = HirExpression::FunctionCall {
+        function: "atof".to_string(),
+        arguments: vec![],
+    };
+    let code = cg.generate_expression_with_context(&expr, &mut ctx);
+    assert!(
+        code.contains("atof requires"),
+        "atof wrong args → comment: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_context_abs_with_arg() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let expr = HirExpression::FunctionCall {
+        function: "abs".to_string(),
+        arguments: vec![HirExpression::Variable("x".to_string())],
+    };
+    let code = cg.generate_expression_with_context(&expr, &mut ctx);
+    assert!(
+        code.contains(".abs()"),
+        "abs → .abs(): {}",
+        code
+    );
+}
+
+#[test]
+fn expr_context_abs_wrong_args() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let expr = HirExpression::FunctionCall {
+        function: "abs".to_string(),
+        arguments: vec![],
+    };
+    let code = cg.generate_expression_with_context(&expr, &mut ctx);
+    assert!(
+        code.contains("abs requires"),
+        "abs wrong args → comment: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_context_exit_with_arg() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let expr = HirExpression::FunctionCall {
+        function: "exit".to_string(),
+        arguments: vec![HirExpression::IntLiteral(1)],
+    };
+    let code = cg.generate_expression_with_context(&expr, &mut ctx);
+    assert!(
+        code.contains("std::process::exit(1)"),
+        "exit(1) → std::process::exit(1): {}",
+        code
+    );
+}
+
+#[test]
+fn expr_context_exit_no_arg() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let expr = HirExpression::FunctionCall {
+        function: "exit".to_string(),
+        arguments: vec![],
+    };
+    let code = cg.generate_expression_with_context(&expr, &mut ctx);
+    assert!(
+        code.contains("std::process::exit(1)"),
+        "exit no arg → exit(1): {}",
+        code
+    );
+}
+
+#[test]
+fn expr_context_puts_with_arg() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let expr = HirExpression::FunctionCall {
+        function: "puts".to_string(),
+        arguments: vec![HirExpression::Variable("msg".to_string())],
+    };
+    let code = cg.generate_expression_with_context(&expr, &mut ctx);
+    assert!(
+        code.contains("println!"),
+        "puts → println!: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_context_puts_no_arg() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let expr = HirExpression::FunctionCall {
+        function: "puts".to_string(),
+        arguments: vec![],
+    };
+    let code = cg.generate_expression_with_context(&expr, &mut ctx);
+    assert!(
+        code.contains("println!()"),
+        "puts no arg → println!(): {}",
+        code
+    );
+}
+
+#[test]
+fn expr_context_snprintf_fmt_only() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let expr = HirExpression::FunctionCall {
+        function: "snprintf".to_string(),
+        arguments: vec![
+            HirExpression::Variable("buf".to_string()),
+            HirExpression::IntLiteral(256),
+            HirExpression::StringLiteral("hello".to_string()),
+        ],
+    };
+    let code = cg.generate_expression_with_context(&expr, &mut ctx);
+    assert!(
+        code.contains("format!"),
+        "snprintf fmt only → format!: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_context_snprintf_with_args() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let expr = HirExpression::FunctionCall {
+        function: "snprintf".to_string(),
+        arguments: vec![
+            HirExpression::Variable("buf".to_string()),
+            HirExpression::IntLiteral(256),
+            HirExpression::StringLiteral("val=%d".to_string()),
+            HirExpression::Variable("x".to_string()),
+        ],
+    };
+    let code = cg.generate_expression_with_context(&expr, &mut ctx);
+    assert!(
+        code.contains("format!") && code.contains("x"),
+        "snprintf with args → format! with args: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_context_snprintf_too_few_args() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let expr = HirExpression::FunctionCall {
+        function: "snprintf".to_string(),
+        arguments: vec![HirExpression::Variable("buf".to_string())],
+    };
+    let code = cg.generate_expression_with_context(&expr, &mut ctx);
+    assert!(
+        code.contains("snprintf requires"),
+        "snprintf too few args → comment: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_context_sprintf_fmt_only() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let expr = HirExpression::FunctionCall {
+        function: "sprintf".to_string(),
+        arguments: vec![
+            HirExpression::Variable("buf".to_string()),
+            HirExpression::StringLiteral("hello".to_string()),
+        ],
+    };
+    let code = cg.generate_expression_with_context(&expr, &mut ctx);
+    assert!(
+        code.contains("format!"),
+        "sprintf fmt only → format!: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_context_sprintf_with_args() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let expr = HirExpression::FunctionCall {
+        function: "sprintf".to_string(),
+        arguments: vec![
+            HirExpression::Variable("buf".to_string()),
+            HirExpression::StringLiteral("x=%d".to_string()),
+            HirExpression::Variable("val".to_string()),
+        ],
+    };
+    let code = cg.generate_expression_with_context(&expr, &mut ctx);
+    assert!(
+        code.contains("format!") && code.contains("val"),
+        "sprintf with args → format! with args: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_context_sprintf_too_few_args() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let expr = HirExpression::FunctionCall {
+        function: "sprintf".to_string(),
+        arguments: vec![],
+    };
+    let code = cg.generate_expression_with_context(&expr, &mut ctx);
+    assert!(
+        code.contains("sprintf requires"),
+        "sprintf too few args → comment: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_context_qsort_with_args() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let expr = HirExpression::FunctionCall {
+        function: "qsort".to_string(),
+        arguments: vec![
+            HirExpression::Variable("arr".to_string()),
+            HirExpression::Variable("n".to_string()),
+            HirExpression::FunctionCall {
+                function: "sizeof".to_string(),
+                arguments: vec![HirExpression::Variable("int".to_string())],
+            },
+            HirExpression::Variable("compare".to_string()),
+        ],
+    };
+    let code = cg.generate_expression_with_context(&expr, &mut ctx);
+    assert!(
+        code.contains("sort_by") && code.contains("compare"),
+        "qsort → sort_by: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_context_qsort_wrong_args() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let expr = HirExpression::FunctionCall {
+        function: "qsort".to_string(),
+        arguments: vec![HirExpression::Variable("arr".to_string())],
+    };
+    let code = cg.generate_expression_with_context(&expr, &mut ctx);
+    assert!(
+        code.contains("qsort requires"),
+        "qsort wrong args → comment: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_context_default_address_of_to_mut_ref() {
+    // AddressOf argument → &mut when param expects &mut (default)
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let expr = HirExpression::FunctionCall {
+        function: "custom_func".to_string(),
+        arguments: vec![HirExpression::AddressOf(Box::new(
+            HirExpression::Variable("x".to_string()),
+        ))],
+    };
+    let code = cg.generate_expression_with_context(&expr, &mut ctx);
+    assert!(
+        code.contains("&mut x"),
+        "AddressOf → &mut by default: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_context_default_address_of_unary_op() {
+    // UnaryOp::AddressOf argument → &mut
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let expr = HirExpression::FunctionCall {
+        function: "custom_func".to_string(),
+        arguments: vec![HirExpression::UnaryOp {
+            op: decy_hir::UnaryOperator::AddressOf,
+            operand: Box::new(HirExpression::Variable("y".to_string())),
+        }],
+    };
+    let code = cg.generate_expression_with_context(&expr, &mut ctx);
+    assert!(
+        code.contains("&mut y"),
+        "UnaryOp AddressOf → &mut: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_context_default_raw_ptr_param_array_arg() {
+    // Raw pointer param + array arg → .as_mut_ptr()
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable(
+        "data".to_string(),
+        HirType::Array {
+            element_type: Box::new(HirType::Int),
+            size: Some(10),
+        },
+    );
+    ctx.add_function(
+        "process".to_string(),
+        vec![HirType::Pointer(Box::new(HirType::Int))],
+    );
+    let expr = HirExpression::FunctionCall {
+        function: "process".to_string(),
+        arguments: vec![HirExpression::Variable("data".to_string())],
+    };
+    let code = cg.generate_expression_with_context(&expr, &mut ctx);
+    assert!(
+        code.contains("data.as_mut_ptr()"),
+        "Raw ptr param + array → .as_mut_ptr(): {}",
+        code
+    );
+}
+
+#[test]
+fn expr_context_default_raw_ptr_param_string_arg() {
+    // Raw pointer param + string literal → .as_ptr() as *mut u8
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_function(
+        "process".to_string(),
+        vec![HirType::Pointer(Box::new(HirType::Char))],
+    );
+    let expr = HirExpression::FunctionCall {
+        function: "process".to_string(),
+        arguments: vec![HirExpression::StringLiteral("hello".to_string())],
+    };
+    let code = cg.generate_expression_with_context(&expr, &mut ctx);
+    assert!(
+        code.contains(".as_ptr()") && code.contains("*mut u8"),
+        "Raw ptr param + string → .as_ptr() as *mut u8: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_context_default_ref_param_pointer_var() {
+    // Reference param + pointer variable → unsafe { &mut *ptr }
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable(
+        "ptr".to_string(),
+        HirType::Pointer(Box::new(HirType::Int)),
+    );
+    ctx.add_function(
+        "process".to_string(),
+        vec![HirType::Reference {
+            inner: Box::new(HirType::Int),
+            mutable: true,
+        }],
+    );
+    let expr = HirExpression::FunctionCall {
+        function: "process".to_string(),
+        arguments: vec![HirExpression::Variable("ptr".to_string())],
+    };
+    let code = cg.generate_expression_with_context(&expr, &mut ctx);
+    assert!(
+        code.contains("unsafe") && code.contains("&mut *ptr"),
+        "Ref param + pointer → unsafe {{ &mut *ptr }}: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_context_default_slice_param_fixed_array() {
+    // Unsized array param + fixed-size array arg → &mut prefix
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable(
+        "buf".to_string(),
+        HirType::Array {
+            element_type: Box::new(HirType::Char),
+            size: Some(256),
+        },
+    );
+    ctx.add_function(
+        "fill".to_string(),
+        vec![HirType::Array {
+            element_type: Box::new(HirType::Char),
+            size: None,
+        }],
+    );
+    let expr = HirExpression::FunctionCall {
+        function: "fill".to_string(),
+        arguments: vec![HirExpression::Variable("buf".to_string())],
+    };
+    let code = cg.generate_expression_with_context(&expr, &mut ctx);
+    assert!(
+        code.contains("&mut buf"),
+        "Slice param + fixed array → &mut buf: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_context_default_int_param_char_literal() {
+    // Int param + CharLiteral → cast as i32
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_function("putchar".to_string(), vec![HirType::Int]);
+    let expr = HirExpression::FunctionCall {
+        function: "putchar".to_string(),
+        arguments: vec![HirExpression::CharLiteral(b' ' as i8)],
+    };
+    let code = cg.generate_expression_with_context(&expr, &mut ctx);
+    assert!(
+        code.contains("32i32") || code.contains("32"),
+        "Int param + char → i32 cast: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_context_default_func_rename_write() {
+    // write → c_write to avoid Rust macro conflict
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let expr = HirExpression::FunctionCall {
+        function: "write".to_string(),
+        arguments: vec![
+            HirExpression::Variable("fd".to_string()),
+            HirExpression::Variable("buf".to_string()),
+            HirExpression::Variable("len".to_string()),
+        ],
+    };
+    let code = cg.generate_expression_with_context(&expr, &mut ctx);
+    assert!(
+        code.contains("c_write("),
+        "write → c_write: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_context_default_func_rename_read() {
+    // read → c_read
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let expr = HirExpression::FunctionCall {
+        function: "read".to_string(),
+        arguments: vec![
+            HirExpression::Variable("fd".to_string()),
+            HirExpression::Variable("buf".to_string()),
+            HirExpression::Variable("len".to_string()),
+        ],
+    };
+    let code = cg.generate_expression_with_context(&expr, &mut ctx);
+    assert!(
+        code.contains("c_read("),
+        "read → c_read: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_context_default_func_rename_type() {
+    // type → c_type
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let expr = HirExpression::FunctionCall {
+        function: "type".to_string(),
+        arguments: vec![HirExpression::Variable("x".to_string())],
+    };
+    let code = cg.generate_expression_with_context(&expr, &mut ctx);
+    assert!(
+        code.contains("c_type("),
+        "type → c_type: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_context_default_func_rename_match() {
+    // match → c_match
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let expr = HirExpression::FunctionCall {
+        function: "match".to_string(),
+        arguments: vec![HirExpression::Variable("pat".to_string())],
+    };
+    let code = cg.generate_expression_with_context(&expr, &mut ctx);
+    assert!(
+        code.contains("c_match("),
+        "match → c_match: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_context_default_func_rename_self() {
+    // self → c_self
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let expr = HirExpression::FunctionCall {
+        function: "self".to_string(),
+        arguments: vec![],
+    };
+    let code = cg.generate_expression_with_context(&expr, &mut ctx);
+    assert!(
+        code.contains("c_self("),
+        "self → c_self: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_context_default_func_rename_in() {
+    // in → c_in
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let expr = HirExpression::FunctionCall {
+        function: "in".to_string(),
+        arguments: vec![HirExpression::Variable("x".to_string())],
+    };
+    let code = cg.generate_expression_with_context(&expr, &mut ctx);
+    assert!(
+        code.contains("c_in("),
+        "in → c_in: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_context_string_func_ptr_field_access() {
+    // strcmp with PointerFieldAccess arg → CStr conversion
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let expr = HirExpression::FunctionCall {
+        function: "strcmp".to_string(),
+        arguments: vec![
+            HirExpression::PointerFieldAccess {
+                pointer: Box::new(HirExpression::Variable("entry".to_string())),
+                field: "key".to_string(),
+            },
+            HirExpression::StringLiteral("target".to_string()),
+        ],
+    };
+    let code = cg.generate_expression_with_context(&expr, &mut ctx);
+    assert!(
+        code.contains("CStr::from_ptr") || code.contains("unsafe"),
+        "strcmp with ptr field → CStr conversion: {}",
+        code
+    );
+}
