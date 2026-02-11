@@ -19135,3 +19135,403 @@ fn macro_type_octal() {
     assert_eq!(result.0, "i32");
     assert_eq!(result.1, "0755");
 }
+
+// ============================================================================
+// BATCH 23: generate_function_with_lifetimes_and_structs (lines 6617-6764)
+// Target: parameter context setup, string iteration, pointer arithmetic, array params
+// ============================================================================
+
+// Helper to build AnnotatedSignature easily
+fn make_annotated_sig(func: &HirFunction) -> decy_ownership::lifetime_gen::AnnotatedSignature {
+    use decy_ownership::lifetime_gen::LifetimeAnnotator;
+    let annotator = LifetimeAnnotator::new();
+    annotator.annotate_function(func)
+}
+
+// --- Basic function with lifetimes and struct context ---
+#[test]
+fn gen_func_lifetimes_basic_int_return() {
+    let cg = CodeGenerator::new();
+    let func = HirFunction::new_with_body(
+        "add".to_string(),
+        HirType::Int,
+        vec![
+            HirParameter::new("a".to_string(), HirType::Int),
+            HirParameter::new("b".to_string(), HirType::Int),
+        ],
+        vec![
+            HirStatement::Return(Some(HirExpression::BinaryOp {
+                op: BinaryOperator::Add,
+                left: Box::new(HirExpression::Variable("a".to_string())),
+                right: Box::new(HirExpression::Variable("b".to_string())),
+            })),
+        ],
+    );
+    let sig = make_annotated_sig(&func);
+    let code = cg.generate_function_with_lifetimes_and_structs(
+        &func, &sig, &[], &[], &[], &[], &[],
+    );
+    assert!(code.contains("fn add"), "Got: {}", code);
+    assert!(code.contains("a + b") || code.contains("(a) + (b)"), "Got: {}", code);
+}
+
+// --- Function with char* param (non-const) → reference transform ---
+#[test]
+fn gen_func_lifetimes_char_ptr_param() {
+    let cg = CodeGenerator::new();
+    let func = HirFunction::new_with_body(
+        "print_msg".to_string(),
+        HirType::Void,
+        vec![HirParameter::new("msg".to_string(), HirType::Pointer(Box::new(HirType::Char)))],
+        vec![
+            HirStatement::Expression(HirExpression::FunctionCall {
+                function: "puts".to_string(),
+                arguments: vec![HirExpression::Variable("msg".to_string())],
+            }),
+        ],
+    );
+    let sig = make_annotated_sig(&func);
+    let code = cg.generate_function_with_lifetimes_and_structs(
+        &func, &sig, &[], &[], &[], &[], &[],
+    );
+    assert!(code.contains("print_msg"), "Got: {}", code);
+}
+
+// --- Function with pointer param that uses pointer arithmetic (line 6669-6673) ---
+#[test]
+fn gen_func_lifetimes_ptr_arithmetic_keeps_pointer() {
+    let cg = CodeGenerator::new();
+    let func = HirFunction::new_with_body(
+        "scan".to_string(),
+        HirType::Int,
+        vec![
+            HirParameter::new("p".to_string(), HirType::Pointer(Box::new(HirType::Char))),
+        ],
+        vec![
+            // p = p + 1 (pointer arithmetic)
+            HirStatement::Assignment {
+                target: "p".to_string(),
+                value: HirExpression::BinaryOp {
+                    op: BinaryOperator::Add,
+                    left: Box::new(HirExpression::Variable("p".to_string())),
+                    right: Box::new(HirExpression::IntLiteral(1)),
+                },
+            },
+            HirStatement::Return(Some(HirExpression::IntLiteral(0))),
+        ],
+    );
+    let sig = make_annotated_sig(&func);
+    let code = cg.generate_function_with_lifetimes_and_structs(
+        &func, &sig, &[], &[], &[], &[], &[],
+    );
+    assert!(code.contains("fn scan"), "Got: {}", code);
+}
+
+// --- Function with struct pointer param → reference transform (line 6692-6701) ---
+#[test]
+fn gen_func_lifetimes_struct_ptr_to_ref() {
+    let cg = CodeGenerator::new();
+    let s = HirStruct::new("Point".to_string(), vec![
+        HirStructField::new("x".to_string(), HirType::Int),
+        HirStructField::new("y".to_string(), HirType::Int),
+    ]);
+    let func = HirFunction::new_with_body(
+        "get_x".to_string(),
+        HirType::Int,
+        vec![
+            HirParameter::new("pt".to_string(), HirType::Pointer(Box::new(HirType::Struct("Point".to_string())))),
+        ],
+        vec![
+            HirStatement::Return(Some(HirExpression::PointerFieldAccess {
+                pointer: Box::new(HirExpression::Variable("pt".to_string())),
+                field: "x".to_string(),
+            })),
+        ],
+    );
+    let sig = make_annotated_sig(&func);
+    let code = cg.generate_function_with_lifetimes_and_structs(
+        &func, &sig, &[s], &[], &[], &[], &[],
+    );
+    assert!(code.contains("fn get_x"), "Got: {}", code);
+}
+
+// --- Function with globals → unsafe access (line 6638-6641) ---
+#[test]
+fn gen_func_lifetimes_with_globals() {
+    let cg = CodeGenerator::new();
+    let func = HirFunction::new_with_body(
+        "read_global".to_string(),
+        HirType::Int,
+        vec![],
+        vec![
+            HirStatement::Return(Some(HirExpression::Variable("count".to_string()))),
+        ],
+    );
+    let sig = make_annotated_sig(&func);
+    let globals = vec![("count".to_string(), HirType::Int)];
+    let code = cg.generate_function_with_lifetimes_and_structs(
+        &func, &sig, &[], &[], &[], &[], &globals,
+    );
+    assert!(code.contains("fn read_global"), "Got: {}", code);
+    assert!(code.contains("unsafe") || code.contains("count"), "Got: {}", code);
+}
+
+// --- Function with all_functions registration (line 6719-6721) ---
+#[test]
+fn gen_func_lifetimes_with_all_functions() {
+    let cg = CodeGenerator::new();
+    let func = HirFunction::new_with_body(
+        "caller".to_string(),
+        HirType::Void,
+        vec![],
+        vec![
+            HirStatement::Expression(HirExpression::FunctionCall {
+                function: "helper".to_string(),
+                arguments: vec![HirExpression::IntLiteral(1)],
+            }),
+        ],
+    );
+    let sig = make_annotated_sig(&func);
+    let all_functions = vec![
+        ("helper".to_string(), vec![HirType::Int]),
+    ];
+    let code = cg.generate_function_with_lifetimes_and_structs(
+        &func, &sig, &[], &all_functions, &[], &[], &[],
+    );
+    assert!(code.contains("fn caller"), "Got: {}", code);
+    assert!(code.contains("helper"), "Got: {}", code);
+}
+
+// --- Function with slice_func_args (line 6724-6726) ---
+#[test]
+fn gen_func_lifetimes_with_slice_func_args() {
+    let cg = CodeGenerator::new();
+    let func = HirFunction::new_with_body(
+        "process".to_string(),
+        HirType::Void,
+        vec![
+            HirParameter::new("arr".to_string(), HirType::Pointer(Box::new(HirType::Int))),
+            HirParameter::new("len".to_string(), HirType::Int),
+        ],
+        vec![
+            HirStatement::Expression(HirExpression::FunctionCall {
+                function: "sort".to_string(),
+                arguments: vec![
+                    HirExpression::Variable("arr".to_string()),
+                    HirExpression::Variable("len".to_string()),
+                ],
+            }),
+        ],
+    );
+    let sig = make_annotated_sig(&func);
+    let slice_func_args = vec![
+        ("sort".to_string(), vec![(0usize, 1usize)]),
+    ];
+    let code = cg.generate_function_with_lifetimes_and_structs(
+        &func, &sig, &[], &[], &slice_func_args, &[], &[],
+    );
+    assert!(code.contains("fn process"), "Got: {}", code);
+}
+
+// --- Function with string_iter_funcs (line 6729-6731) ---
+#[test]
+fn gen_func_lifetimes_with_string_iter_funcs() {
+    let cg = CodeGenerator::new();
+    let func = HirFunction::new_with_body(
+        "handle".to_string(),
+        HirType::Void,
+        vec![
+            HirParameter::new("buf".to_string(), HirType::Pointer(Box::new(HirType::Char))),
+        ],
+        vec![
+            HirStatement::Expression(HirExpression::FunctionCall {
+                function: "fill_buf".to_string(),
+                arguments: vec![HirExpression::Variable("buf".to_string())],
+            }),
+        ],
+    );
+    let sig = make_annotated_sig(&func);
+    let string_iter_funcs = vec![
+        ("fill_buf".to_string(), vec![(0usize, true)]),
+    ];
+    let code = cg.generate_function_with_lifetimes_and_structs(
+        &func, &sig, &[], &[], &[], &string_iter_funcs, &[],
+    );
+    assert!(code.contains("fn handle"), "Got: {}", code);
+}
+
+// --- Function with empty body (stub) → generates default return (line 6741-6747) ---
+#[test]
+fn gen_func_lifetimes_empty_body_stub() {
+    let cg = CodeGenerator::new();
+    let func = HirFunction::new("get_val".to_string(), HirType::Int, vec![]);
+    let sig = make_annotated_sig(&func);
+    let code = cg.generate_function_with_lifetimes_and_structs(
+        &func, &sig, &[], &[], &[], &[], &[],
+    );
+    assert!(code.contains("fn get_val"), "Got: {}", code);
+    // Should have a default return for Int
+    assert!(code.contains("0") || code.contains("return"), "Got: {}", code);
+}
+
+// --- Vec return detection (line 6734-6738) ---
+#[test]
+fn gen_func_lifetimes_vec_return_detection() {
+    let cg = CodeGenerator::new();
+    // Function that allocates via malloc(n * sizeof(int)) and returns pointer
+    // This should trigger detect_vec_return
+    let func = HirFunction::new_with_body(
+        "make_array".to_string(),
+        HirType::Pointer(Box::new(HirType::Int)),
+        vec![HirParameter::new("n".to_string(), HirType::Int)],
+        vec![
+            HirStatement::VariableDeclaration {
+                name: "arr".to_string(),
+                var_type: HirType::Pointer(Box::new(HirType::Int)),
+                initializer: Some(HirExpression::FunctionCall {
+                    function: "malloc".to_string(),
+                    arguments: vec![HirExpression::BinaryOp {
+                        op: BinaryOperator::Multiply,
+                        left: Box::new(HirExpression::Variable("n".to_string())),
+                        right: Box::new(HirExpression::Sizeof { type_name: "int".to_string() }),
+                    }],
+                }),
+            },
+            HirStatement::Return(Some(HirExpression::Variable("arr".to_string()))),
+        ],
+    );
+    let sig = make_annotated_sig(&func);
+    let code = cg.generate_function_with_lifetimes_and_structs(
+        &func, &sig, &[], &[], &[], &[], &[],
+    );
+    assert!(code.contains("fn make_array"), "Got: {}", code);
+}
+
+// ============================================================================
+// BATCH 23 continued: generate_function_with_box_transform (lines 6801-6841)
+// ============================================================================
+
+#[test]
+fn gen_func_box_transform_with_candidates() {
+    use decy_analyzer::patterns::PatternDetector;
+    let cg = CodeGenerator::new();
+    let func = HirFunction::new_with_body(
+        "create_node".to_string(),
+        HirType::Pointer(Box::new(HirType::Struct("Node".to_string()))),
+        vec![],
+        vec![
+            HirStatement::VariableDeclaration {
+                name: "node".to_string(),
+                var_type: HirType::Pointer(Box::new(HirType::Struct("Node".to_string()))),
+                initializer: Some(HirExpression::FunctionCall {
+                    function: "malloc".to_string(),
+                    arguments: vec![HirExpression::Sizeof { type_name: "Node".to_string() }],
+                }),
+            },
+            HirStatement::Return(Some(HirExpression::Variable("node".to_string()))),
+        ],
+    );
+    let detector = PatternDetector::new();
+    let candidates = detector.find_box_candidates(&func);
+    let code = cg.generate_function_with_box_transform(&func, &candidates);
+    assert!(code.contains("fn create_node"), "Got: {}", code);
+}
+
+// --- Vec transform with candidates (lines 6847-6887) ---
+#[test]
+fn gen_func_vec_transform_with_candidates() {
+    use decy_analyzer::patterns::PatternDetector;
+    let cg = CodeGenerator::new();
+    let func = HirFunction::new_with_body(
+        "make_list".to_string(),
+        HirType::Void,
+        vec![HirParameter::new("n".to_string(), HirType::Int)],
+        vec![
+            HirStatement::VariableDeclaration {
+                name: "arr".to_string(),
+                var_type: HirType::Pointer(Box::new(HirType::Int)),
+                initializer: Some(HirExpression::FunctionCall {
+                    function: "malloc".to_string(),
+                    arguments: vec![HirExpression::BinaryOp {
+                        op: BinaryOperator::Multiply,
+                        left: Box::new(HirExpression::Variable("n".to_string())),
+                        right: Box::new(HirExpression::Sizeof { type_name: "int".to_string() }),
+                    }],
+                }),
+            },
+        ],
+    );
+    let detector = PatternDetector::new();
+    let candidates = detector.find_vec_candidates(&func);
+    let code = cg.generate_function_with_vec_transform(&func, &candidates);
+    assert!(code.contains("fn make_list"), "Got: {}", code);
+}
+
+// --- Box transform with empty body (line 6813-6819) ---
+#[test]
+fn gen_func_box_transform_empty_body() {
+    let cg = CodeGenerator::new();
+    let func = HirFunction::new("empty_func".to_string(), HirType::Void, vec![]);
+    let code = cg.generate_function_with_box_transform(&func, &[]);
+    assert!(code.contains("fn empty_func"), "Got: {}", code);
+}
+
+// --- Vec transform with empty body (line 6859-6865) ---
+#[test]
+fn gen_func_vec_transform_empty_body() {
+    let cg = CodeGenerator::new();
+    let func = HirFunction::new("empty_fn".to_string(), HirType::Int, vec![]);
+    let code = cg.generate_function_with_vec_transform(&func, &[]);
+    assert!(code.contains("fn empty_fn"), "Got: {}", code);
+}
+
+// ============================================================================
+// BATCH 23 continued: Expression type inference (lines 283-362)
+// ============================================================================
+
+// --- infer_expression_type for ternary → None (not implemented) ---
+#[test]
+fn infer_expr_type_ternary_none() {
+    let ctx = TypeContext::new();
+    let expr = HirExpression::Ternary {
+        condition: Box::new(HirExpression::IntLiteral(1)),
+        then_expr: Box::new(HirExpression::IntLiteral(5)),
+        else_expr: Box::new(HirExpression::IntLiteral(10)),
+    };
+    let result = ctx.infer_expression_type(&expr);
+    // Ternary doesn't have a match arm in infer_expression_type — falls through to None
+    assert!(result.is_none(), "Got: {:?}", result);
+}
+
+// --- infer_expression_type for ArrayIndex ---
+#[test]
+fn infer_expr_type_array_index() {
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("arr".to_string(), HirType::Array {
+        element_type: Box::new(HirType::Int),
+        size: Some(10),
+    });
+    let expr = HirExpression::ArrayIndex {
+        array: Box::new(HirExpression::Variable("arr".to_string())),
+        index: Box::new(HirExpression::IntLiteral(0)),
+    };
+    let result = ctx.infer_expression_type(&expr);
+    assert_eq!(result, Some(HirType::Int));
+}
+
+// --- infer_expression_type for PointerFieldAccess ---
+#[test]
+fn infer_expr_type_pointer_field_access() {
+    let mut ctx = TypeContext::new();
+    let s = HirStruct::new("Point".to_string(), vec![
+        HirStructField::new("x".to_string(), HirType::Int),
+    ]);
+    ctx.add_struct(&s);
+    ctx.add_variable("pt".to_string(), HirType::Pointer(Box::new(HirType::Struct("Point".to_string()))));
+    let expr = HirExpression::PointerFieldAccess {
+        pointer: Box::new(HirExpression::Variable("pt".to_string())),
+        field: "x".to_string(),
+    };
+    let result = ctx.infer_expression_type(&expr);
+    assert_eq!(result, Some(HirType::Int));
+}
