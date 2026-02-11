@@ -1364,4 +1364,91 @@ mod tests {
             ExecutionSummary::Degraded { .. }
         ));
     }
+
+    // ========================================================================
+    // Additional edge case coverage
+    // ========================================================================
+
+    #[test]
+    fn schedule_description_invalid_day_fallback() {
+        // The constructor clamps day_of_week to 0-6, but direct struct construction
+        // can produce values >= 7 triggering the "Unknown" fallback
+        let schedule = RetrainingSchedule {
+            day_of_week: 7,
+            hour: 12,
+            minute: 30,
+            timezone_offset: 0,
+        };
+        assert!(schedule.description().contains("Unknown"));
+    }
+
+    #[test]
+    fn schedule_description_high_invalid_day() {
+        let schedule = RetrainingSchedule {
+            day_of_week: 255,
+            hour: 0,
+            minute: 0,
+            timezone_offset: 0,
+        };
+        assert!(schedule.description().contains("Unknown"));
+    }
+
+    #[test]
+    fn schedule_description_negative_tz_direct() {
+        let schedule = RetrainingSchedule {
+            day_of_week: 1,
+            hour: 8,
+            minute: 0,
+            timezone_offset: -5,
+        };
+        let desc = schedule.description();
+        assert!(desc.contains("Monday"));
+        assert!(desc.contains("UTC-5"));
+    }
+
+    #[test]
+    fn schedule_description_positive_tz_direct() {
+        let schedule = RetrainingSchedule {
+            day_of_week: 5,
+            hour: 14,
+            minute: 30,
+            timezone_offset: 9,
+        };
+        let desc = schedule.description();
+        assert!(desc.contains("Friday"));
+        assert!(desc.contains("UTC+9"));
+        assert!(desc.contains("14:30"));
+    }
+
+    #[test]
+    fn schedule_all_valid_days_not_unknown() {
+        for day in 0..=6u8 {
+            let schedule = RetrainingSchedule {
+                day_of_week: day,
+                hour: 0,
+                minute: 0,
+                timezone_offset: 0,
+            };
+            let desc = schedule.description();
+            assert!(!desc.contains("Unknown"), "Day {} should not be Unknown", day);
+        }
+    }
+
+    #[test]
+    fn training_metrics_both_zero_yields_zero_f1() {
+        let metrics = TrainingMetrics::new(0.0, 0.0);
+        assert!((metrics.f1_score - 0.0).abs() < f64::EPSILON);
+    }
+
+    #[test]
+    fn training_metrics_precision_only_yields_zero_f1() {
+        let metrics = TrainingMetrics::new(0.99, 0.0);
+        assert!((metrics.f1_score - 0.0).abs() < f64::EPSILON);
+    }
+
+    #[test]
+    fn training_metrics_recall_only_yields_zero_f1() {
+        let metrics = TrainingMetrics::new(0.0, 0.99);
+        assert!((metrics.f1_score - 0.0).abs() < f64::EPSILON);
+    }
 }
