@@ -663,4 +663,44 @@ mod tests {
         assert_eq!(metrics.failures(), 0);
         assert!(metrics.error_histogram().is_empty());
     }
+
+    #[test]
+    fn test_compile_metrics_to_json() {
+        let mut metrics = CompileMetrics::new();
+        metrics.record_success();
+        metrics.record_failure("E0308: test");
+        let json = metrics.to_json();
+        assert!(json.contains("\"total_attempts\": 2"));
+        assert!(json.contains("\"successes\": 1"));
+        assert!(json.contains("\"failures\": 1"));
+        assert!(json.contains("E0308"));
+    }
+
+    #[test]
+    fn test_transpilation_result_success() {
+        let result = TranspilationResult::success("fn main() {}".to_string());
+        assert!(result.compiles);
+        assert!(result.errors.is_empty());
+        assert_eq!(result.warnings, 0);
+    }
+
+    #[test]
+    fn test_transpilation_result_failure() {
+        let result = TranspilationResult::failure(
+            "fn main() {}".to_string(),
+            vec!["E0308: mismatched types".to_string()],
+        );
+        assert!(!result.compiles);
+        assert_eq!(result.errors.len(), 1);
+    }
+
+    #[test]
+    fn test_compile_metrics_to_markdown_no_errors() {
+        let metrics = CompileMetrics::new();
+        let md = metrics.to_markdown();
+        assert!(md.contains("0.0%"));
+        assert!(md.contains("FAIL")); // 0% < 80%
+        // Should NOT contain error breakdown section
+        assert!(!md.contains("Error Breakdown"));
+    }
 }

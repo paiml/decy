@@ -254,6 +254,57 @@ mod tests {
     }
 
     #[test]
+    fn test_default_value_float_double() {
+        let transformer = BoxTransformer::new();
+        assert_eq!(
+            transformer.default_value_for_type(&HirType::Float),
+            HirExpression::IntLiteral(0)
+        );
+        assert_eq!(
+            transformer.default_value_for_type(&HirType::Double),
+            HirExpression::IntLiteral(0)
+        );
+    }
+
+    #[test]
+    fn test_default_value_option() {
+        let transformer = BoxTransformer::new();
+        assert_eq!(
+            transformer.default_value_for_type(&HirType::Option(Box::new(HirType::Int))),
+            HirExpression::NullLiteral
+        );
+    }
+
+    #[test]
+    fn test_default_value_fallback_types() {
+        let transformer = BoxTransformer::new();
+        // Struct falls through to the catch-all arm
+        assert_eq!(
+            transformer.default_value_for_type(&HirType::Struct("Foo".to_string())),
+            HirExpression::IntLiteral(0)
+        );
+        // Vec also falls through
+        assert_eq!(
+            transformer.default_value_for_type(&HirType::Vec(Box::new(HirType::Int))),
+            HirExpression::IntLiteral(0)
+        );
+    }
+
+    #[test]
+    fn test_box_transformer_default_trait() {
+        let transformer = BoxTransformer::default();
+        let malloc_expr = HirExpression::FunctionCall {
+            function: "malloc".to_string(),
+            arguments: vec![HirExpression::IntLiteral(64)],
+        };
+        let result = transformer.transform_malloc_to_box(&malloc_expr, &HirType::Int);
+        match result {
+            HirExpression::FunctionCall { function, .. } => assert_eq!(function, "Box::new"),
+            _ => panic!("Expected FunctionCall"),
+        }
+    }
+
+    #[test]
     fn test_transform_generates_box_type() {
         let transformer = BoxTransformer::new();
         let candidate = BoxCandidate {

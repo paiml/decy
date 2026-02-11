@@ -1214,6 +1214,44 @@ mod tests {
     }
 
     #[test]
+    fn class_metrics_fields() {
+        let cm = ClassMetrics {
+            precision: 0.95,
+            recall: 0.90,
+            support: 100,
+        };
+        assert!((cm.precision - 0.95).abs() < 0.001);
+        assert!((cm.recall - 0.90).abs() < 0.001);
+        assert_eq!(cm.support, 100);
+    }
+
+    #[test]
+    fn training_metrics_with_class_metrics() {
+        let mut metrics = TrainingMetrics::new(0.90, 0.85);
+        metrics.class_metrics.insert(
+            "Owned".to_string(),
+            ClassMetrics {
+                precision: 0.92,
+                recall: 0.88,
+                support: 50,
+            },
+        );
+        assert_eq!(metrics.class_metrics.len(), 1);
+        assert_eq!(metrics.class_metrics["Owned"].support, 50);
+    }
+
+    #[test]
+    fn training_metrics_custom_fields() {
+        let mut metrics = TrainingMetrics::new(0.90, 0.85);
+        metrics.training_loss = 0.15;
+        metrics.validation_loss = 0.20;
+        metrics.training_duration_secs = 45.0;
+        assert!((metrics.training_loss - 0.15).abs() < 0.001);
+        assert!((metrics.validation_loss - 0.20).abs() < 0.001);
+        assert!((metrics.training_duration_secs - 45.0).abs() < 0.001);
+    }
+
+    #[test]
     fn data_split_small_input() {
         // Only 1 sample
         let samples = make_samples(1);
