@@ -276,6 +276,50 @@ impl TraceVerifier {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::golden_trace::{GoldenTrace, TraceTier};
+
+    fn make_trace(rust_code: &str) -> GoldenTrace {
+        GoldenTrace::new(
+            "int x = 0;".to_string(),
+            rust_code.to_string(),
+            TraceTier::P0,
+            "test.c",
+        )
+    }
+
+    // ========================================================================
+    // VerificationLevel tests
+    // ========================================================================
+
+    #[test]
+    fn verification_level_display() {
+        assert_eq!(VerificationLevel::Minimal.to_string(), "minimal");
+        assert_eq!(VerificationLevel::Standard.to_string(), "standard");
+        assert_eq!(VerificationLevel::Strict.to_string(), "strict");
+    }
+
+    #[test]
+    fn verification_level_default() {
+        let level = VerificationLevel::default();
+        assert_eq!(level, VerificationLevel::Standard);
+    }
+
+    // ========================================================================
+    // VerifierConfig tests
+    // ========================================================================
+
+    #[test]
+    fn verifier_config_default() {
+        let config = VerifierConfig::default();
+        assert_eq!(config.level, VerificationLevel::Standard);
+        assert!(!config.allow_unsafe);
+        assert_eq!(config.max_clippy_warnings, 0);
+        assert_eq!(config.timeout_secs, 30);
+    }
+
+    // ========================================================================
+    // VerificationResult tests
+    // ========================================================================
 
     #[test]
     fn test_verifier_default() {
@@ -300,5 +344,306 @@ mod tests {
             compilation_time_ms: 0,
         };
         assert!(result.is_clean());
+    }
+
+    #[test]
+    fn result_is_not_clean_with_errors() {
+        let result = VerificationResult {
+            passed: false,
+            errors: vec!["err".to_string()],
+            warnings: vec![],
+            unsafe_count: 0,
+            compilation_time_ms: 0,
+        };
+        assert!(!result.is_clean());
+    }
+
+    #[test]
+    fn result_is_not_clean_with_warnings() {
+        let result = VerificationResult {
+            passed: true,
+            errors: vec![],
+            warnings: vec!["warn".to_string()],
+            unsafe_count: 0,
+            compilation_time_ms: 0,
+        };
+        assert!(!result.is_clean());
+    }
+
+    // ========================================================================
+    // VerifierStats tests
+    // ========================================================================
+
+    #[test]
+    fn stats_pass_rate_empty() {
+        let stats = VerifierStats::default();
+        assert!((stats.pass_rate() - 0.0).abs() < f64::EPSILON);
+    }
+
+    #[test]
+    fn stats_pass_rate_all_passed() {
+        let stats = VerifierStats {
+            total_verified: 10,
+            passed: 10,
+            failed: 0,
+            total_unsafe_blocks: 0,
+            avg_verification_time_ms: 5.0,
+        };
+        assert!((stats.pass_rate() - 1.0).abs() < f64::EPSILON);
+    }
+
+    #[test]
+    fn stats_pass_rate_mixed() {
+        let stats = VerifierStats {
+            total_verified: 4,
+            passed: 3,
+            failed: 1,
+            total_unsafe_blocks: 1,
+            avg_verification_time_ms: 10.0,
+        };
+        assert!((stats.pass_rate() - 0.75).abs() < 0.01);
+    }
+
+    // ========================================================================
+    // TraceVerifier construction tests
+    // ========================================================================
+
+    #[test]
+    fn verifier_with_config() {
+        let config = VerifierConfig {
+            level: VerificationLevel::Strict,
+            allow_unsafe: true,
+            max_clippy_warnings: 5,
+            timeout_secs: 60,
+        };
+        let verifier = TraceVerifier::with_config(config);
+        assert_eq!(verifier.config().level, VerificationLevel::Strict);
+        assert!(verifier.config().allow_unsafe);
+        assert_eq!(verifier.config().max_clippy_warnings, 5);
+    }
+
+    #[test]
+    fn verifier_default_trait() {
+        let verifier = TraceVerifier::default();
+        assert_eq!(verifier.config().level, VerificationLevel::Standard);
+    }
+
+    #[test]
+    fn verifier_initial_stats() {
+        let verifier = TraceVerifier::new();
+        let stats = verifier.stats();
+        assert_eq!(stats.total_verified, 0);
+        assert_eq!(stats.passed, 0);
+        assert_eq!(stats.failed, 0);
+    }
+
+    // ========================================================================
+    // count_unsafe_blocks tests
+    // ========================================================================
+
+    #[test]
+    fn count_unsafe_no_unsafe() {
+        let verifier = TraceVerifier::new();
+        assert_eq!(verifier.count_unsafe_blocks("fn main() { let x = 1; }"), 0);
+    }
+
+    #[test]
+    fn count_unsafe_multiple() {
+        let verifier = TraceVerifier::new();
+        let code = "unsafe { ptr::read(p) }; unsafe { ptr::write(p, v) }";
+        assert_eq!(verifier.count_unsafe_blocks(code), 2);
+    }
+
+    #[test]
+    fn count_unsafe_no_space() {
+        let verifier = TraceVerifier::new();
+        let code = "unsafe{ ptr::read(p) }";
+        assert_eq!(verifier.count_unsafe_blocks(code), 1);
+    }
+
+    // ========================================================================
+    // verify_safety tests
+    // ========================================================================
+
+    #[test]
+    fn verify_safety_no_unsafe_allowed() {
+        let verifier = TraceVerifier::new(); // allow_unsafe = false
+        let result = verifier.verify_safety("unsafe { ptr::read(p) }");
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("unsafe block"));
+    }
+
+    #[test]
+    fn verify_safety_safe_code() {
+        let verifier = TraceVerifier::new();
+        let result = verifier.verify_safety("fn main() { let x = 1; }");
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn verify_safety_unsafe_allowed() {
+        let config = VerifierConfig {
+            allow_unsafe: true,
+            ..Default::default()
+        };
+        let verifier = TraceVerifier::with_config(config);
+        let result = verifier.verify_safety("unsafe { ptr::read(p) }");
+        assert!(result.is_ok());
+    }
+
+    // ========================================================================
+    // verify_compilation tests
+    // ========================================================================
+
+    #[test]
+    fn verify_compilation_valid_code() {
+        let verifier = TraceVerifier::new();
+        let result = verifier.verify_compilation("fn main() {}");
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn verify_compilation_invalid_code() {
+        let verifier = TraceVerifier::new();
+        let result = verifier.verify_compilation("fn main() { let x: i32 = \"bad\"; }");
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn verify_compilation_empty() {
+        let verifier = TraceVerifier::new();
+        // Empty file with rustc --emit=metadata may fail (no crate type)
+        // Just verify it returns a result without panicking
+        let _result = verifier.verify_compilation("");
+    }
+
+    // ========================================================================
+    // verify_trace tests
+    // ========================================================================
+
+    #[test]
+    fn verify_trace_valid_code() {
+        let mut verifier = TraceVerifier::new();
+        let trace = make_trace("let x: i32 = 42;");
+        let result = verifier.verify_trace(&trace);
+        assert!(result.passed);
+        assert!(result.errors.is_empty());
+        assert_eq!(result.unsafe_count, 0);
+        assert_eq!(verifier.stats().total_verified, 1);
+        assert_eq!(verifier.stats().passed, 1);
+    }
+
+    #[test]
+    fn verify_trace_with_fn_main() {
+        let mut verifier = TraceVerifier::new();
+        let trace = make_trace("fn main() { println!(\"hello\"); }");
+        let result = verifier.verify_trace(&trace);
+        // Contains fn main, so it won't be wrapped
+        assert!(result.passed);
+    }
+
+    #[test]
+    fn verify_trace_invalid_code() {
+        let mut verifier = TraceVerifier::new();
+        let trace = make_trace("let x: i32 = \"bad\";");
+        let result = verifier.verify_trace(&trace);
+        assert!(!result.passed);
+        assert!(!result.errors.is_empty());
+        assert_eq!(verifier.stats().total_verified, 1);
+        assert_eq!(verifier.stats().failed, 1);
+    }
+
+    #[test]
+    fn verify_trace_with_unsafe() {
+        let mut verifier = TraceVerifier::new(); // allow_unsafe = false
+        let trace = make_trace("unsafe { std::ptr::null::<i32>(); }");
+        let result = verifier.verify_trace(&trace);
+        assert!(!result.passed);
+        assert!(result.unsafe_count > 0);
+    }
+
+    #[test]
+    fn verify_trace_stats_accumulate() {
+        let mut verifier = TraceVerifier::new();
+        let trace1 = make_trace("let x: i32 = 1;");
+        let trace2 = make_trace("let y: i32 = 2;");
+        verifier.verify_trace(&trace1);
+        verifier.verify_trace(&trace2);
+        assert_eq!(verifier.stats().total_verified, 2);
+        assert_eq!(verifier.stats().passed, 2);
+    }
+
+    // ========================================================================
+    // verify_batch tests
+    // ========================================================================
+
+    #[test]
+    fn verify_batch_all_valid() {
+        let verifier = TraceVerifier::new();
+        let traces = vec![
+            make_trace("let x: i32 = 1;"),
+            make_trace("let y: i32 = 2;"),
+        ];
+        let results = verifier.verify_batch(&traces);
+        assert_eq!(results.len(), 2);
+        assert!(results.iter().all(|r| r.passed));
+    }
+
+    #[test]
+    fn verify_batch_mixed() {
+        let verifier = TraceVerifier::new();
+        let traces = vec![
+            make_trace("let x: i32 = 1;"),
+            make_trace("let y: i32 = \"bad\";"),
+        ];
+        let results = verifier.verify_batch(&traces);
+        assert_eq!(results.len(), 2);
+        assert!(results[0].passed);
+        assert!(!results[1].passed);
+    }
+
+    #[test]
+    fn verify_batch_empty() {
+        let verifier = TraceVerifier::new();
+        let results = verifier.verify_batch(&[]);
+        assert!(results.is_empty());
+    }
+
+    // ========================================================================
+    // filter_valid tests
+    // ========================================================================
+
+    #[test]
+    fn filter_valid_all_valid() {
+        let verifier = TraceVerifier::new();
+        let traces = vec![
+            make_trace("let x: i32 = 1;"),
+            make_trace("let y: i32 = 2;"),
+        ];
+        let valid = verifier.filter_valid(&traces);
+        assert_eq!(valid.len(), 2);
+    }
+
+    #[test]
+    fn filter_valid_mixed() {
+        let verifier = TraceVerifier::new();
+        let traces = vec![
+            make_trace("let x: i32 = 1;"),
+            make_trace("let y: i32 = \"bad\";"),
+            make_trace("let z: i32 = 3;"),
+        ];
+        let valid = verifier.filter_valid(&traces);
+        assert_eq!(valid.len(), 2);
+    }
+
+    #[test]
+    fn filter_valid_none_valid() {
+        let verifier = TraceVerifier::new();
+        let traces = vec![
+            make_trace("let y: i32 = \"bad\";"),
+            make_trace("let z: bool = 42u8;"),
+        ];
+        let valid = verifier.filter_valid(&traces);
+        assert!(valid.is_empty());
     }
 }
