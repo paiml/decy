@@ -22337,3 +22337,353 @@ fn int_variable_to_char_target_type_as_u8() {
         code
     );
 }
+
+// ============================================================================
+// BATCH 34: Macro generation, typedef redundancy, constant char*, LogicalNot bool
+// (lines 507, 545, 575, 7248, 7308, 2009-2010)
+// ============================================================================
+
+// --- generate_macro: object-like macro with integer body (line 507 infer_macro_type) ---
+
+#[test]
+fn generate_macro_object_like_integer() {
+    let cg = CodeGenerator::new();
+    let macro_def = decy_hir::HirMacroDefinition::new_object_like(
+        "MAX_SIZE".to_string(),
+        "1024".to_string(),
+    );
+    let result = cg.generate_macro(&macro_def).unwrap();
+    assert!(
+        result.contains("const MAX_SIZE: i32 = 1024"),
+        "Object-like integer macro should become const, Got: {}",
+        result
+    );
+}
+
+// --- generate_macro: object-like macro with string body ---
+
+#[test]
+fn generate_macro_object_like_string() {
+    let cg = CodeGenerator::new();
+    let macro_def = decy_hir::HirMacroDefinition::new_object_like(
+        "VERSION".to_string(),
+        "\"1.0.0\"".to_string(),
+    );
+    let result = cg.generate_macro(&macro_def).unwrap();
+    assert!(
+        result.contains("const VERSION: &str"),
+        "Object-like string macro should become &str const, Got: {}",
+        result
+    );
+}
+
+// --- generate_macro: object-like macro with empty body ---
+
+#[test]
+fn generate_macro_object_like_empty_body() {
+    let cg = CodeGenerator::new();
+    let macro_def = decy_hir::HirMacroDefinition::new_object_like(
+        "GUARD_H".to_string(),
+        "".to_string(),
+    );
+    let result = cg.generate_macro(&macro_def).unwrap();
+    assert!(
+        result.contains("// Empty macro: GUARD_H"),
+        "Empty macro should become comment, Got: {}",
+        result
+    );
+}
+
+// --- generate_macro: object-like macro with float body ---
+
+#[test]
+fn generate_macro_object_like_float() {
+    let cg = CodeGenerator::new();
+    let macro_def = decy_hir::HirMacroDefinition::new_object_like(
+        "PI".to_string(),
+        "3.14159".to_string(),
+    );
+    let result = cg.generate_macro(&macro_def).unwrap();
+    assert!(
+        result.contains("const PI: f64 = 3.14159"),
+        "Float macro should become f64 const, Got: {}",
+        result
+    );
+}
+
+// --- generate_macro: object-like macro with hex body ---
+
+#[test]
+fn generate_macro_object_like_hex() {
+    let cg = CodeGenerator::new();
+    let macro_def = decy_hir::HirMacroDefinition::new_object_like(
+        "FLAGS".to_string(),
+        "0xFF".to_string(),
+    );
+    let result = cg.generate_macro(&macro_def).unwrap();
+    assert!(
+        result.contains("const FLAGS: i32 = 0xFF"),
+        "Hex macro should become i32 const, Got: {}",
+        result
+    );
+}
+
+// --- generate_macro: object-like macro with char body ---
+
+#[test]
+fn generate_macro_object_like_char() {
+    let cg = CodeGenerator::new();
+    let macro_def = decy_hir::HirMacroDefinition::new_object_like(
+        "NEWLINE".to_string(),
+        "'\\n'".to_string(),
+    );
+    let result = cg.generate_macro(&macro_def).unwrap();
+    assert!(
+        result.contains("const NEWLINE: char"),
+        "Char macro should become char const, Got: {}",
+        result
+    );
+}
+
+// --- generate_macro: function-like macro without ternary (line 545 transform_macro_body) ---
+
+#[test]
+fn generate_macro_function_like_simple() {
+    let cg = CodeGenerator::new();
+    let macro_def = decy_hir::HirMacroDefinition::new_function_like(
+        "SQR".to_string(),
+        vec!["x".to_string()],
+        "((x) * (x))".to_string(),
+    );
+    let result = cg.generate_macro(&macro_def).unwrap();
+    assert!(
+        result.contains("#[inline]"),
+        "Function-like macro should have #[inline], Got: {}",
+        result
+    );
+    assert!(
+        result.contains("fn sqr"),
+        "Function-like macro name should be snake_case, Got: {}",
+        result
+    );
+    assert!(
+        result.contains("x: i32"),
+        "Parameter should be typed i32, Got: {}",
+        result
+    );
+}
+
+// --- generate_macro: function-like macro with ternary (line 575 transform_ternary) ---
+
+#[test]
+fn generate_macro_function_like_ternary() {
+    let cg = CodeGenerator::new();
+    let macro_def = decy_hir::HirMacroDefinition::new_function_like(
+        "MAX".to_string(),
+        vec!["a".to_string(), "b".to_string()],
+        "(a) > (b) ? (a) : (b)".to_string(),
+    );
+    let result = cg.generate_macro(&macro_def).unwrap();
+    assert!(
+        result.contains("if"),
+        "Ternary macro should become if-else, Got: {}",
+        result
+    );
+    assert!(
+        result.contains("else"),
+        "Ternary macro should have else branch, Got: {}",
+        result
+    );
+    assert!(
+        result.contains("a: i32") && result.contains("b: i32"),
+        "Both params should be typed, Got: {}",
+        result
+    );
+}
+
+// --- generate_typedef: struct name == typedef name (line 7248 redundant) ---
+
+#[test]
+fn generate_typedef_redundant_struct() {
+    let cg = CodeGenerator::new();
+    let typedef = decy_hir::HirTypedef::new(
+        "Node".to_string(),
+        HirType::Struct("Node".to_string()),
+    );
+    let result = cg.generate_typedef(&typedef).unwrap();
+    assert!(
+        result.contains("// type Node = Node; (redundant in Rust)"),
+        "Redundant struct typedef should become comment, Got: {}",
+        result
+    );
+}
+
+// --- generate_typedef: enum name == typedef name (line 7248 redundant via Enum) ---
+
+#[test]
+fn generate_typedef_redundant_enum() {
+    let cg = CodeGenerator::new();
+    let typedef = decy_hir::HirTypedef::new(
+        "Color".to_string(),
+        HirType::Enum("Color".to_string()),
+    );
+    let result = cg.generate_typedef(&typedef).unwrap();
+    assert!(
+        result.contains("// type Color = Color; (redundant in Rust)"),
+        "Redundant enum typedef should become comment, Got: {}",
+        result
+    );
+}
+
+// --- generate_constant: Pointer(Char) → &str (line 7308) ---
+
+#[test]
+fn generate_constant_char_pointer_becomes_str() {
+    let cg = CodeGenerator::new();
+    let constant = decy_hir::HirConstant::new(
+        "MSG".to_string(),
+        HirType::Pointer(Box::new(HirType::Char)),
+        HirExpression::StringLiteral("Hello".to_string()),
+    );
+    let result = cg.generate_constant(&constant);
+    assert!(
+        result.contains("const MSG: &str"),
+        "Pointer(Char) constant should use &str type, Got: {}",
+        result
+    );
+    assert!(
+        result.contains("\"Hello\""),
+        "Should contain string value, Got: {}",
+        result
+    );
+}
+
+// --- generate_constant: Int type stays i32 ---
+
+#[test]
+fn generate_constant_int_type() {
+    let cg = CodeGenerator::new();
+    let constant = decy_hir::HirConstant::new(
+        "MAX".to_string(),
+        HirType::Int,
+        HirExpression::IntLiteral(100),
+    );
+    let result = cg.generate_constant(&constant);
+    assert!(
+        result.contains("const MAX: i32 = 100"),
+        "Int constant should use i32, Got: {}",
+        result
+    );
+}
+
+// --- LogicalNot on boolean expression → !expr (lines 2009-2010) ---
+
+#[test]
+fn logical_not_on_boolean_expression_negates() {
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    // BinaryOp Equal is boolean => is_boolean_expression returns true
+    let expr = HirExpression::UnaryOp {
+        op: decy_hir::UnaryOperator::LogicalNot,
+        operand: Box::new(HirExpression::BinaryOp {
+            op: decy_hir::BinaryOperator::Equal,
+            left: Box::new(HirExpression::Variable("x".to_string())),
+            right: Box::new(HirExpression::IntLiteral(0)),
+        }),
+    };
+    let code = cg.generate_expression_with_context(&expr, &ctx);
+    assert!(
+        code.contains("!") && !code.contains("as i32"),
+        "LogicalNot on boolean expr should just negate, not cast to i32, Got: {}",
+        code
+    );
+}
+
+// --- LogicalNot on non-boolean without target type → (x == 0) (line 1076) ---
+
+#[test]
+fn logical_not_on_integer_without_target_eq_zero() {
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    // Variable is not boolean => !x → (x == 0) without as i32 when no target type
+    let expr = HirExpression::UnaryOp {
+        op: decy_hir::UnaryOperator::LogicalNot,
+        operand: Box::new(HirExpression::Variable("flags".to_string())),
+    };
+    let code = cg.generate_expression_with_context(&expr, &ctx);
+    assert!(
+        code.contains("== 0"),
+        "LogicalNot on integer should produce (x == 0), Got: {}",
+        code
+    );
+}
+
+// --- LogicalNot on non-boolean WITH int target → (x == 0) as i32 (line 1067) ---
+
+#[test]
+fn logical_not_on_integer_with_int_target_casts_i32() {
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    // With target_type=Int, !int_expr → (x == 0) as i32
+    let expr = HirExpression::UnaryOp {
+        op: decy_hir::UnaryOperator::LogicalNot,
+        operand: Box::new(HirExpression::Variable("flags".to_string())),
+    };
+    let code = cg.generate_expression_with_target_type(&expr, &ctx, Some(&HirType::Int));
+    assert!(
+        code.contains("== 0") && code.contains("as i32"),
+        "LogicalNot on integer with Int target should produce (x == 0) as i32, Got: {}",
+        code
+    );
+}
+
+// --- LogicalNot on boolean WITH int target → (!expr) as i32 (line 1064) ---
+
+#[test]
+fn logical_not_on_boolean_with_int_target_casts_i32() {
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    // With target_type=Int, !bool_expr → (!expr) as i32
+    let expr = HirExpression::UnaryOp {
+        op: decy_hir::UnaryOperator::LogicalNot,
+        operand: Box::new(HirExpression::BinaryOp {
+            op: decy_hir::BinaryOperator::Equal,
+            left: Box::new(HirExpression::Variable("x".to_string())),
+            right: Box::new(HirExpression::IntLiteral(0)),
+        }),
+    };
+    let code = cg.generate_expression_with_target_type(&expr, &ctx, Some(&HirType::Int));
+    assert!(
+        code.contains("as i32"),
+        "LogicalNot on boolean with Int target should cast to i32, Got: {}",
+        code
+    );
+}
+
+// --- LogicalNot on LogicalAnd (boolean chain) ---
+
+#[test]
+fn logical_not_on_logical_and_boolean() {
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    // LogicalAnd produces bool, so LogicalNot should just negate
+    let expr = HirExpression::UnaryOp {
+        op: decy_hir::UnaryOperator::LogicalNot,
+        operand: Box::new(HirExpression::BinaryOp {
+            op: decy_hir::BinaryOperator::LogicalAnd,
+            left: Box::new(HirExpression::Variable("a".to_string())),
+            right: Box::new(HirExpression::Variable("b".to_string())),
+        }),
+    };
+    let code = cg.generate_expression_with_context(&expr, &ctx);
+    assert!(
+        code.starts_with("!") || code.contains("!("),
+        "LogicalNot on LogicalAnd should just negate, Got: {}",
+        code
+    );
+    assert!(
+        !code.contains("as i32"),
+        "Should not cast boolean negation to i32, Got: {}",
+        code
+    );
+}
