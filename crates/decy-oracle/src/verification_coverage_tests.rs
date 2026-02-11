@@ -239,7 +239,8 @@ fn test_compilation_valid_empty_function() {
 
 #[test]
 fn test_compilation_invalid_undeclared_variable() {
-    let code = "pub fn bad() -> i32 { undefined_var }";
+    // Use a clear type error that always fails compilation
+    let code = "pub fn bad() -> i32 { let x: i32 = \"not_an_int\"; x }";
     let config = VerificationConfig::default();
     let result = check_rust_compilation(code, &config);
     assert!(result.is_err());
