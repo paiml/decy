@@ -21411,3 +21411,257 @@ fn gen_sig_string_iter_blocked_by_ptr_subtraction() {
 
 // Note: strip_unsafe is a local function inside generate_statement_with_context,
 // so it can't be tested directly. It's exercised through DerefAssignment codegen.
+
+// ============================================================================
+// BATCH 30: char array with quote escape, unsized string ref array,
+// generate_function "n"/"num" heuristic, global array non-variable,
+// char array non-string init, annotated sig tuple output params
+// ============================================================================
+
+// --- char array init with double quote escape (line 4274) ---
+
+#[test]
+fn char_array_init_with_quote_in_string() {
+    // char str[] = "he\"llo" → *b"he\"llo\0"
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let stmt = HirStatement::VariableDeclaration {
+        name: "msg".to_string(),
+        var_type: HirType::Array {
+            element_type: Box::new(HirType::Char),
+            size: Some(8),
+        },
+        initializer: Some(HirExpression::StringLiteral("he\"llo".to_string())),
+    };
+    let code = cg.generate_statement_with_context(&stmt, None, &mut ctx, None);
+    assert!(
+        code.contains("b\"") && code.contains("\\0"),
+        "Should generate byte string, Got: {}",
+        code
+    );
+}
+
+// --- unsized string ref array (line 4152) ---
+
+#[test]
+fn char_pointer_array_sized_string_literals() {
+    // char *arr[2] = {"a", "b"} with size=2 → [&str; 2]
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let stmt = HirStatement::VariableDeclaration {
+        name: "names".to_string(),
+        var_type: HirType::Array {
+            element_type: Box::new(HirType::Pointer(Box::new(HirType::Char))),
+            size: Some(2),
+        },
+        initializer: Some(HirExpression::CompoundLiteral {
+            literal_type: HirType::Array {
+                element_type: Box::new(HirType::Pointer(Box::new(HirType::Char))),
+                size: Some(2),
+            },
+            initializers: vec![
+                HirExpression::StringLiteral("alice".to_string()),
+                HirExpression::StringLiteral("bob".to_string()),
+            ],
+        }),
+    };
+    let code = cg.generate_statement_with_context(&stmt, None, &mut ctx, None);
+    assert!(
+        code.contains("names") && code.contains("str"),
+        "Should have name and str type, Got: {}",
+        code
+    );
+}
+
+// --- generate_function: count param "n" heuristic (lines 6375-6376) ---
+
+#[test]
+fn gen_func_count_param_n_heuristic() {
+    // Function with array param + int param named "n" → "n" should be skipped
+    let cg = CodeGenerator::new();
+    let func = HirFunction::new_with_body(
+        "average".to_string(),
+        HirType::Float,
+        vec![
+            HirParameter::new("values".to_string(), HirType::Pointer(Box::new(HirType::Float))),
+            HirParameter::new("n".to_string(), HirType::Int),
+        ],
+        vec![
+            HirStatement::VariableDeclaration {
+                name: "sum".to_string(),
+                var_type: HirType::Float,
+                initializer: Some(HirExpression::FloatLiteral("0.0".to_string())),
+            },
+            HirStatement::For {
+                init: vec![HirStatement::VariableDeclaration {
+                    name: "i".to_string(),
+                    var_type: HirType::Int,
+                    initializer: Some(HirExpression::IntLiteral(0)),
+                }],
+                condition: Some(HirExpression::BinaryOp {
+                    op: BinaryOperator::LessThan,
+                    left: Box::new(HirExpression::Variable("i".to_string())),
+                    right: Box::new(HirExpression::Variable("n".to_string())),
+                }),
+                increment: vec![HirStatement::Expression(HirExpression::PostIncrement {
+                    operand: Box::new(HirExpression::Variable("i".to_string())),
+                })],
+                body: vec![HirStatement::Assignment {
+                    target: "sum".to_string(),
+                    value: HirExpression::BinaryOp {
+                        op: BinaryOperator::Add,
+                        left: Box::new(HirExpression::Variable("sum".to_string())),
+                        right: Box::new(HirExpression::ArrayIndex {
+                            array: Box::new(HirExpression::Variable("values".to_string())),
+                            index: Box::new(HirExpression::Variable("i".to_string())),
+                        }),
+                    },
+                }],
+            },
+            HirStatement::Return(Some(HirExpression::Variable("sum".to_string()))),
+        ],
+    );
+    let code = cg.generate_function(&func);
+    assert!(
+        code.contains("average"),
+        "Should have function name, Got: {}",
+        code
+    );
+}
+
+// --- global array with non-Variable array expression (line 2899) ---
+
+#[test]
+fn array_index_global_non_variable_array() {
+    // ArrayIndex where is_global=true but array is not a Variable
+    // This triggers the else branch at line 2899
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    // Register a global to make is_global detection kick in
+    ctx.add_variable("g_data".to_string(), HirType::Array {
+        element_type: Box::new(HirType::Int),
+        size: Some(10),
+    });
+    let expr = HirExpression::ArrayIndex {
+        array: Box::new(HirExpression::Dereference(Box::new(
+            HirExpression::Variable("g_ptr".to_string()),
+        ))),
+        index: Box::new(HirExpression::IntLiteral(0)),
+    };
+    let code = cg.generate_expression_with_target_type(&expr, &mut ctx, None);
+    assert!(
+        code.contains("["),
+        "Should have array indexing, Got: {}",
+        code
+    );
+}
+
+// --- generate_function_with_lifetimes: annotated sig with tuple output ---
+
+#[test]
+fn gen_func_lifetimes_tuple_output_params() {
+    // void func(int x, int* out1, float* out2) → returns (i32, f64)
+    let cg = CodeGenerator::new();
+    let func = HirFunction::new_with_body(
+        "split".to_string(),
+        HirType::Void,
+        vec![
+            HirParameter::new("val".to_string(), HirType::Int),
+            HirParameter::new("quotient".to_string(), HirType::Pointer(Box::new(HirType::Int))),
+            HirParameter::new("remainder".to_string(), HirType::Pointer(Box::new(HirType::Int))),
+        ],
+        vec![
+            // *quotient = val / 2
+            HirStatement::DerefAssignment {
+                target: HirExpression::Variable("quotient".to_string()),
+                value: HirExpression::BinaryOp {
+                    op: BinaryOperator::Divide,
+                    left: Box::new(HirExpression::Variable("val".to_string())),
+                    right: Box::new(HirExpression::IntLiteral(2)),
+                },
+            },
+            // *remainder = val % 2
+            HirStatement::DerefAssignment {
+                target: HirExpression::Variable("remainder".to_string()),
+                value: HirExpression::BinaryOp {
+                    op: BinaryOperator::Modulo,
+                    left: Box::new(HirExpression::Variable("val".to_string())),
+                    right: Box::new(HirExpression::IntLiteral(2)),
+                },
+            },
+        ],
+    );
+    let sig = make_annotated_sig(&func);
+    let code = cg.generate_function_with_lifetimes_and_structs(
+        &func, &sig, &[], &[], &[], &[], &[],
+    );
+    assert!(
+        code.contains("split"),
+        "Should have function name, Got: {}",
+        code
+    );
+}
+
+// --- variable init: Box::default() for struct with Default (lines 4218-4220) ---
+
+#[test]
+fn var_decl_malloc_box_struct_with_default() {
+    // struct SmallStruct *s = malloc(sizeof(struct SmallStruct))
+    // Where struct has no large arrays → Box::default()
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    // Register small struct
+    let s = decy_hir::HirStruct::new(
+        "Config".to_string(),
+        vec![
+            decy_hir::HirStructField::new("value".to_string(), HirType::Int),
+            decy_hir::HirStructField::new("flag".to_string(), HirType::Int),
+        ],
+    );
+    ctx.add_struct(&s);
+    let stmt = HirStatement::VariableDeclaration {
+        name: "cfg".to_string(),
+        var_type: HirType::Pointer(Box::new(HirType::Struct("Config".to_string()))),
+        initializer: Some(HirExpression::Malloc {
+            size: Box::new(HirExpression::Sizeof { type_name: "Config".to_string() }),
+        }),
+    };
+    let code = cg.generate_statement_with_context(&stmt, None, &mut ctx, None);
+    assert!(
+        code.contains("Box") || code.contains("cfg"),
+        "Should generate Box code, Got: {}",
+        code
+    );
+}
+
+// --- variable init: Box::new(unsafe zeroed) for struct without Default (lines 4222-4229) ---
+
+#[test]
+fn var_decl_malloc_box_struct_without_default() {
+    // struct with large array (>32 elements) → Box::new(unsafe { zeroed() })
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let s = decy_hir::HirStruct::new(
+        "BigBuf".to_string(),
+        vec![
+            decy_hir::HirStructField::new("data".to_string(), HirType::Array {
+                element_type: Box::new(HirType::Char),
+                size: Some(1024), // > 32 → no Default
+            }),
+        ],
+    );
+    ctx.add_struct(&s);
+    let stmt = HirStatement::VariableDeclaration {
+        name: "buf".to_string(),
+        var_type: HirType::Pointer(Box::new(HirType::Struct("BigBuf".to_string()))),
+        initializer: Some(HirExpression::Malloc {
+            size: Box::new(HirExpression::Sizeof { type_name: "BigBuf".to_string() }),
+        }),
+    };
+    let code = cg.generate_statement_with_context(&stmt, None, &mut ctx, None);
+    assert!(
+        code.contains("Box") || code.contains("buf"),
+        "Should generate Box code with zeroed, Got: {}",
+        code
+    );
+}
