@@ -343,3 +343,32 @@ fn test_exec_with_variable_args() {
     assert_eq!(patterns[0].args.len(), 1);
     assert_eq!(patterns[0].args[0], "-c");
 }
+
+#[test]
+fn test_subprocess_detector_default() {
+    let detector = SubprocessDetector::default();
+    let func = create_test_function("empty", vec![]);
+    let patterns = detector.detect(&func);
+    assert!(patterns.is_empty());
+}
+
+#[test]
+fn test_empty_function_body() {
+    let detector = SubprocessDetector::new();
+    let func = create_test_function("empty", vec![]);
+    assert!(detector.detect(&func).is_empty());
+}
+
+#[test]
+fn test_break_continue_return_ignored() {
+    let detector = SubprocessDetector::new();
+    let func = create_test_function(
+        "control_flow",
+        vec![
+            HirStatement::Break,
+            HirStatement::Continue,
+            HirStatement::Return(None),
+        ],
+    );
+    assert!(detector.detect(&func).is_empty());
+}

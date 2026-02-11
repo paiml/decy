@@ -410,3 +410,42 @@ fn test_double_pointer_output() {
     assert_eq!(output_params[0].name, "obj");
     assert_eq!(output_params[0].kind, ParameterKind::Output);
 }
+
+#[test]
+fn test_output_param_detector_default() {
+    let detector = OutputParamDetector::default();
+    let func = create_test_function("empty", vec![], HirType::Void, vec![]);
+    let params = detector.detect(&func);
+    assert!(params.is_empty());
+}
+
+#[test]
+fn test_detect_no_parameters() {
+    let func = create_test_function(
+        "noop",
+        vec![],
+        HirType::Void,
+        vec![HirStatement::Return(None)],
+    );
+    let detector = OutputParamDetector::new();
+    assert!(detector.detect(&func).is_empty());
+}
+
+#[test]
+fn test_detect_non_pointer_only_params() {
+    let func = create_test_function(
+        "add",
+        vec![
+            HirParameter::new("a".to_string(), HirType::Int),
+            HirParameter::new("b".to_string(), HirType::Int),
+        ],
+        HirType::Int,
+        vec![HirStatement::Return(Some(HirExpression::BinaryOp {
+            op: decy_hir::BinaryOperator::Add,
+            left: Box::new(HirExpression::Variable("a".to_string())),
+            right: Box::new(HirExpression::Variable("b".to_string())),
+        }))],
+    );
+    let detector = OutputParamDetector::new();
+    assert!(detector.detect(&func).is_empty());
+}
