@@ -26568,3 +26568,257 @@ fn expr_target_binary_ptr_field_access_cmp_zero() {
         code
     );
 }
+
+// =============================================================================
+// Batch 49: UnaryOp pointer variants, Dereference unsafe, FunctionCall transforms
+// =============================================================================
+
+#[test]
+fn expr_context_post_inc_pointer() {
+    // DECY-253: ptr++ → wrapping_add for pointers
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("ptr".to_string(), HirType::Pointer(Box::new(HirType::Int)));
+    let expr = HirExpression::UnaryOp {
+        op: decy_hir::UnaryOperator::PostIncrement,
+        operand: Box::new(HirExpression::Variable("ptr".to_string())),
+    };
+    let code = cg.generate_expression_with_context(&expr, &mut ctx);
+    assert!(
+        code.contains("wrapping_add"),
+        "Pointer post-inc → wrapping_add: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_context_post_inc_int() {
+    // int++ → { let tmp = x; x += 1; tmp }
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("i".to_string(), HirType::Int);
+    let expr = HirExpression::UnaryOp {
+        op: decy_hir::UnaryOperator::PostIncrement,
+        operand: Box::new(HirExpression::Variable("i".to_string())),
+    };
+    let code = cg.generate_expression_with_context(&expr, &mut ctx);
+    assert!(
+        code.contains("+= 1") && code.contains("__tmp"),
+        "Int post-inc: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_context_post_dec_pointer() {
+    // ptr-- → wrapping_sub for pointers
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("cur".to_string(), HirType::Pointer(Box::new(HirType::Char)));
+    let expr = HirExpression::UnaryOp {
+        op: decy_hir::UnaryOperator::PostDecrement,
+        operand: Box::new(HirExpression::Variable("cur".to_string())),
+    };
+    let code = cg.generate_expression_with_context(&expr, &mut ctx);
+    assert!(
+        code.contains("wrapping_sub"),
+        "Pointer post-dec → wrapping_sub: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_context_pre_inc_pointer() {
+    // ++ptr → wrapping_add for pointers
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("p".to_string(), HirType::Pointer(Box::new(HirType::Int)));
+    let expr = HirExpression::UnaryOp {
+        op: decy_hir::UnaryOperator::PreIncrement,
+        operand: Box::new(HirExpression::Variable("p".to_string())),
+    };
+    let code = cg.generate_expression_with_context(&expr, &mut ctx);
+    assert!(
+        code.contains("wrapping_add"),
+        "Pointer pre-inc → wrapping_add: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_context_pre_dec_pointer() {
+    // --ptr → wrapping_sub for pointers
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("p".to_string(), HirType::Pointer(Box::new(HirType::Int)));
+    let expr = HirExpression::UnaryOp {
+        op: decy_hir::UnaryOperator::PreDecrement,
+        operand: Box::new(HirExpression::Variable("p".to_string())),
+    };
+    let code = cg.generate_expression_with_context(&expr, &mut ctx);
+    assert!(
+        code.contains("wrapping_sub"),
+        "Pointer pre-dec → wrapping_sub: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_context_deref_raw_pointer_unsafe() {
+    // DECY-041/226: *ptr where ptr is raw pointer → unsafe { *ptr }
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("ptr".to_string(), HirType::Pointer(Box::new(HirType::Int)));
+    let expr = HirExpression::Dereference(Box::new(HirExpression::Variable("ptr".to_string())));
+    let code = cg.generate_expression_with_context(&expr, &mut ctx);
+    assert!(
+        code.contains("unsafe") && code.contains("*ptr"),
+        "Deref raw pointer → unsafe: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_context_deref_ptr_arithmetic_unsafe() {
+    // DECY-226: *(ptr + n) → unsafe deref of pointer arithmetic
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("arr".to_string(), HirType::Pointer(Box::new(HirType::Int)));
+    let expr = HirExpression::Dereference(Box::new(HirExpression::BinaryOp {
+        op: BinaryOperator::Add,
+        left: Box::new(HirExpression::Variable("arr".to_string())),
+        right: Box::new(HirExpression::IntLiteral(1)),
+    }));
+    let code = cg.generate_expression_with_context(&expr, &mut ctx);
+    assert!(
+        code.contains("unsafe"),
+        "Deref ptr arithmetic → unsafe: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_context_deref_non_pointer() {
+    // *val where val is not a pointer → no unsafe
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("val".to_string(), HirType::Int);
+    let expr = HirExpression::Dereference(Box::new(HirExpression::Variable("val".to_string())));
+    let code = cg.generate_expression_with_context(&expr, &mut ctx);
+    assert!(!code.contains("unsafe"), "Non-pointer deref no unsafe: {}", code);
+    assert!(code.contains("*val"), "Simple deref: {}", code);
+}
+
+#[test]
+fn expr_context_strlen_call() {
+    // strlen(s) → s.len() as i32
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let expr = HirExpression::FunctionCall {
+        function: "strlen".to_string(),
+        arguments: vec![HirExpression::Variable("s".to_string())],
+    };
+    let code = cg.generate_expression_with_context(&expr, &mut ctx);
+    assert!(
+        code.contains(".len()") && code.contains("as i32"),
+        "strlen → .len() as i32: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_context_strcpy_str_source() {
+    // strcpy(dest, src) with simple var → .to_string()
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let expr = HirExpression::FunctionCall {
+        function: "strcpy".to_string(),
+        arguments: vec![
+            HirExpression::Variable("dest".to_string()),
+            HirExpression::Variable("src".to_string()),
+        ],
+    };
+    let code = cg.generate_expression_with_context(&expr, &mut ctx);
+    assert!(
+        code.contains("to_string()"),
+        "strcpy with &str source: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_context_logical_not_bool_expr() {
+    // !comparison → boolean negation
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let expr = HirExpression::UnaryOp {
+        op: decy_hir::UnaryOperator::LogicalNot,
+        operand: Box::new(HirExpression::BinaryOp {
+            op: BinaryOperator::Equal,
+            left: Box::new(HirExpression::Variable("x".to_string())),
+            right: Box::new(HirExpression::IntLiteral(0)),
+        }),
+    };
+    let code = cg.generate_expression_with_context(&expr, &mut ctx);
+    assert!(
+        code.contains("!"),
+        "Logical NOT on boolean: {}",
+        code
+    );
+    assert!(
+        !code.contains("as i32"),
+        "Bool NOT should not cast to i32 (in context, not target): {}",
+        code
+    );
+}
+
+#[test]
+fn expr_context_logical_not_int() {
+    // !int_var → (x == 0) as i32
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let expr = HirExpression::UnaryOp {
+        op: decy_hir::UnaryOperator::LogicalNot,
+        operand: Box::new(HirExpression::Variable("flags".to_string())),
+    };
+    let code = cg.generate_expression_with_context(&expr, &mut ctx);
+    assert!(
+        code.contains("== 0"),
+        "Logical NOT int → (x == 0): {}",
+        code
+    );
+}
+
+#[test]
+fn expr_context_unary_negate() {
+    // -x → prefix operator
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let expr = HirExpression::UnaryOp {
+        op: decy_hir::UnaryOperator::Minus,
+        operand: Box::new(HirExpression::Variable("x".to_string())),
+    };
+    let code = cg.generate_expression_with_context(&expr, &mut ctx);
+    assert!(
+        code.contains("-x"),
+        "Unary negate: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_context_unary_bitwise_not() {
+    // ~x → prefix operator
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let expr = HirExpression::UnaryOp {
+        op: decy_hir::UnaryOperator::BitwiseNot,
+        operand: Box::new(HirExpression::Variable("mask".to_string())),
+    };
+    let code = cg.generate_expression_with_context(&expr, &mut ctx);
+    assert!(
+        code.contains("!mask"),
+        "Bitwise NOT: {}",
+        code
+    );
+}
