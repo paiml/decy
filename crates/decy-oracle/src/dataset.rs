@@ -689,6 +689,52 @@ mod tests {
     }
 
     #[test]
+    fn test_dataset_exporter_default() {
+        let exporter = DatasetExporter::default();
+        assert!(!exporter.is_empty());
+    }
+
+    #[test]
+    fn test_export_parquet_no_feature() {
+        let exporter = DatasetExporter::empty();
+        let temp_dir = tempfile::tempdir().unwrap();
+        let path = temp_dir.path().join("test.parquet");
+
+        let result = exporter.export_parquet(&path);
+        // Without 'dataset' feature, should return error
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_stats_empty_dataset() {
+        let exporter = DatasetExporter::empty();
+        let stats = exporter.stats();
+
+        assert_eq!(stats.total, 0);
+        assert_eq!(stats.verified, 0);
+        assert!(stats.by_error_code.is_empty());
+    }
+
+    #[test]
+    fn test_stats_markdown_empty() {
+        let exporter = DatasetExporter::empty();
+        let stats = exporter.stats();
+        let md = stats.to_markdown();
+
+        assert!(md.contains("Total examples"));
+        assert!(md.contains("0"));
+    }
+
+    #[test]
+    fn test_export_format_debug_clone() {
+        let fmt = ExportFormat::Jsonl;
+        let cloned = fmt;
+        assert_eq!(fmt, cloned);
+        let debug = format!("{:?}", fmt);
+        assert!(debug.contains("Jsonl"));
+    }
+
+    #[test]
     fn test_training_example_from_bootstrap() {
         use crate::bootstrap::get_bootstrap_patterns;
 
