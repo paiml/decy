@@ -15874,3 +15874,346 @@ fn gen_func_lifetimes_structs_empty_body_stub() {
         result
     );
 }
+
+// ============================================================================
+// BATCH 17: Deep binary op expression branches
+// ============================================================================
+
+#[test]
+fn expr_target_chained_comparison_left_bool() {
+    // (x < y) < z → ((x < y) as i32) < z
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("x".to_string(), HirType::Int);
+    ctx.add_variable("y".to_string(), HirType::Int);
+    ctx.add_variable("z".to_string(), HirType::Int);
+    let expr = HirExpression::BinaryOp {
+        op: BinaryOperator::LessThan,
+        left: Box::new(HirExpression::BinaryOp {
+            op: BinaryOperator::LessThan,
+            left: Box::new(HirExpression::Variable("x".to_string())),
+            right: Box::new(HirExpression::Variable("y".to_string())),
+        }),
+        right: Box::new(HirExpression::Variable("z".to_string())),
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(result.contains("as i32"), "Got: {}", result);
+}
+
+#[test]
+fn expr_target_chained_comparison_right_bool() {
+    // x < (y > z) → x < ((y > z) as i32)
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("x".to_string(), HirType::Int);
+    ctx.add_variable("y".to_string(), HirType::Int);
+    ctx.add_variable("z".to_string(), HirType::Int);
+    let expr = HirExpression::BinaryOp {
+        op: BinaryOperator::LessThan,
+        left: Box::new(HirExpression::Variable("x".to_string())),
+        right: Box::new(HirExpression::BinaryOp {
+            op: BinaryOperator::GreaterThan,
+            left: Box::new(HirExpression::Variable("y".to_string())),
+            right: Box::new(HirExpression::Variable("z".to_string())),
+        }),
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(result.contains("as i32"), "Got: {}", result);
+}
+
+#[test]
+fn expr_target_chained_comparison_int_target() {
+    // (x < y) < z with Int target → casts to i32
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("a".to_string(), HirType::Int);
+    ctx.add_variable("b".to_string(), HirType::Int);
+    ctx.add_variable("c".to_string(), HirType::Int);
+    let expr = HirExpression::BinaryOp {
+        op: BinaryOperator::LessThan,
+        left: Box::new(HirExpression::BinaryOp {
+            op: BinaryOperator::GreaterEqual,
+            left: Box::new(HirExpression::Variable("a".to_string())),
+            right: Box::new(HirExpression::Variable("b".to_string())),
+        }),
+        right: Box::new(HirExpression::Variable("c".to_string())),
+    };
+    let target = HirType::Int;
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, Some(&target));
+    // Should have double cast: inner comparison to i32, and outer result to i32
+    assert!(result.contains("as i32"), "Got: {}", result);
+}
+
+#[test]
+fn expr_target_signed_unsigned_comparison() {
+    // signed < unsigned → both cast to i64
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("s".to_string(), HirType::Int);
+    ctx.add_variable("u".to_string(), HirType::UnsignedInt);
+    let expr = HirExpression::BinaryOp {
+        op: BinaryOperator::LessThan,
+        left: Box::new(HirExpression::Variable("s".to_string())),
+        right: Box::new(HirExpression::Variable("u".to_string())),
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(result.contains("as i64"), "Got: {}", result);
+}
+
+#[test]
+fn expr_target_unsigned_signed_comparison_int_target() {
+    // unsigned > signed with Int target → both cast to i64, result to i32
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("u".to_string(), HirType::UnsignedInt);
+    ctx.add_variable("s".to_string(), HirType::Int);
+    let expr = HirExpression::BinaryOp {
+        op: BinaryOperator::GreaterThan,
+        left: Box::new(HirExpression::Variable("u".to_string())),
+        right: Box::new(HirExpression::Variable("s".to_string())),
+    };
+    let target = HirType::Int;
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, Some(&target));
+    assert!(result.contains("as i64"), "Got: {}", result);
+    assert!(result.contains("as i32"), "Got: {}", result);
+}
+
+#[test]
+fn expr_target_bitwise_and_bool_left_operand() {
+    // (x == 1) & y → cast bool to i32
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("x".to_string(), HirType::Int);
+    ctx.add_variable("y".to_string(), HirType::Int);
+    let expr = HirExpression::BinaryOp {
+        op: BinaryOperator::BitwiseAnd,
+        left: Box::new(HirExpression::BinaryOp {
+            op: BinaryOperator::Equal,
+            left: Box::new(HirExpression::Variable("x".to_string())),
+            right: Box::new(HirExpression::IntLiteral(1)),
+        }),
+        right: Box::new(HirExpression::Variable("y".to_string())),
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(result.contains("as i32"), "Got: {}", result);
+    assert!(result.contains("&"), "Got: {}", result);
+}
+
+#[test]
+fn expr_target_bitwise_or_bool_with_unsigned() {
+    // x | (y == 0) where x is unsigned → cast both, result to u32
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("x".to_string(), HirType::UnsignedInt);
+    ctx.add_variable("y".to_string(), HirType::Int);
+    let expr = HirExpression::BinaryOp {
+        op: BinaryOperator::BitwiseOr,
+        left: Box::new(HirExpression::Variable("x".to_string())),
+        right: Box::new(HirExpression::BinaryOp {
+            op: BinaryOperator::Equal,
+            left: Box::new(HirExpression::Variable("y".to_string())),
+            right: Box::new(HirExpression::IntLiteral(0)),
+        }),
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(result.contains("as u32"), "Got: {}", result);
+}
+
+#[test]
+fn expr_target_comparison_to_int_target() {
+    // x > y with Int target → (x > y) as i32
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("a".to_string(), HirType::Int);
+    ctx.add_variable("b".to_string(), HirType::Int);
+    let expr = HirExpression::BinaryOp {
+        op: BinaryOperator::GreaterThan,
+        left: Box::new(HirExpression::Variable("a".to_string())),
+        right: Box::new(HirExpression::Variable("b".to_string())),
+    };
+    let target = HirType::Int;
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, Some(&target));
+    assert!(result.contains("as i32"), "Got: {}", result);
+}
+
+#[test]
+fn expr_target_int_arithmetic_to_float_target() {
+    // int + int with Float target → cast to f32
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("a".to_string(), HirType::Int);
+    ctx.add_variable("b".to_string(), HirType::Int);
+    let expr = HirExpression::BinaryOp {
+        op: BinaryOperator::Add,
+        left: Box::new(HirExpression::Variable("a".to_string())),
+        right: Box::new(HirExpression::Variable("b".to_string())),
+    };
+    let target = HirType::Float;
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, Some(&target));
+    assert!(result.contains("as f32"), "Got: {}", result);
+}
+
+#[test]
+fn expr_target_int_arithmetic_to_double_target() {
+    // int * int with Double target → cast to f64
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("x".to_string(), HirType::Int);
+    ctx.add_variable("y".to_string(), HirType::Int);
+    let expr = HirExpression::BinaryOp {
+        op: BinaryOperator::Multiply,
+        left: Box::new(HirExpression::Variable("x".to_string())),
+        right: Box::new(HirExpression::Variable("y".to_string())),
+    };
+    let target = HirType::Double;
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, Some(&target));
+    assert!(result.contains("as f64"), "Got: {}", result);
+}
+
+#[test]
+fn expr_target_pointer_add_wrapping() {
+    // ptr + n → ptr.wrapping_add(n as usize)
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable(
+        "ptr".to_string(),
+        HirType::Pointer(Box::new(HirType::Int)),
+    );
+    let expr = HirExpression::BinaryOp {
+        op: BinaryOperator::Add,
+        left: Box::new(HirExpression::Variable("ptr".to_string())),
+        right: Box::new(HirExpression::IntLiteral(3)),
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(result.contains("wrapping_add"), "Got: {}", result);
+}
+
+#[test]
+fn expr_target_pointer_sub_int_wrapping() {
+    // ptr - n → ptr.wrapping_sub(n as usize)
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable(
+        "ptr".to_string(),
+        HirType::Pointer(Box::new(HirType::Int)),
+    );
+    let expr = HirExpression::BinaryOp {
+        op: BinaryOperator::Subtract,
+        left: Box::new(HirExpression::Variable("ptr".to_string())),
+        right: Box::new(HirExpression::IntLiteral(1)),
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(result.contains("wrapping_sub"), "Got: {}", result);
+}
+
+#[test]
+fn expr_target_pointer_sub_pointer_offset_from() {
+    // ptr1 - ptr2 → unsafe { ptr1.offset_from(ptr2) as i32 }
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable(
+        "p1".to_string(),
+        HirType::Pointer(Box::new(HirType::Int)),
+    );
+    ctx.add_variable(
+        "p2".to_string(),
+        HirType::Pointer(Box::new(HirType::Int)),
+    );
+    let expr = HirExpression::BinaryOp {
+        op: BinaryOperator::Subtract,
+        left: Box::new(HirExpression::Variable("p1".to_string())),
+        right: Box::new(HirExpression::Variable("p2".to_string())),
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(result.contains("offset_from"), "Got: {}", result);
+    assert!(result.contains("unsafe"), "Got: {}", result);
+}
+
+#[test]
+fn expr_target_pointer_sub_non_pointer_var() {
+    // ptr - offset_var (where offset_var is int, not pointer)
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable(
+        "ptr".to_string(),
+        HirType::Pointer(Box::new(HirType::Char)),
+    );
+    ctx.add_variable("offset".to_string(), HirType::Int);
+    let expr = HirExpression::BinaryOp {
+        op: BinaryOperator::Subtract,
+        left: Box::new(HirExpression::Variable("ptr".to_string())),
+        right: Box::new(HirExpression::Variable("offset".to_string())),
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(result.contains("wrapping_sub"), "Got: {}", result);
+}
+
+#[test]
+fn expr_target_dereference_raw_pointer_unsafe() {
+    // *ptr → unsafe { *ptr }
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable(
+        "ptr".to_string(),
+        HirType::Pointer(Box::new(HirType::Int)),
+    );
+    let expr = HirExpression::Dereference(Box::new(HirExpression::Variable("ptr".to_string())));
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(result.contains("unsafe"), "Got: {}", result);
+    assert!(result.contains("*ptr"), "Got: {}", result);
+}
+
+#[test]
+fn expr_target_dereference_non_pointer_no_unsafe() {
+    // *ref → *ref (no unsafe for references)
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable(
+        "r".to_string(),
+        HirType::Reference {
+            inner: Box::new(HirType::Int),
+            mutable: false,
+        },
+    );
+    let expr = HirExpression::Dereference(Box::new(HirExpression::Variable("r".to_string())));
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(!result.contains("unsafe"), "Got: {}", result);
+    assert!(result.contains("*r"), "Got: {}", result);
+}
+
+#[test]
+fn expr_target_dereference_pointer_arithmetic_unsafe() {
+    // *(ptr + n) → unsafe { *ptr.wrapping_add(...) }
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable(
+        "arr".to_string(),
+        HirType::Pointer(Box::new(HirType::Int)),
+    );
+    let expr = HirExpression::Dereference(Box::new(HirExpression::BinaryOp {
+        op: BinaryOperator::Add,
+        left: Box::new(HirExpression::Variable("arr".to_string())),
+        right: Box::new(HirExpression::IntLiteral(2)),
+    }));
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(result.contains("unsafe"), "Got: {}", result);
+    assert!(result.contains("wrapping_add"), "Got: {}", result);
+}
+
+#[test]
+fn expr_target_nested_binary_adds_parens() {
+    // (a + b) * c → parenthesized
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    let expr = HirExpression::BinaryOp {
+        op: BinaryOperator::Multiply,
+        left: Box::new(HirExpression::BinaryOp {
+            op: BinaryOperator::Add,
+            left: Box::new(HirExpression::Variable("a".to_string())),
+            right: Box::new(HirExpression::Variable("b".to_string())),
+        }),
+        right: Box::new(HirExpression::Variable("c".to_string())),
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(result.contains("(a + b)"), "Got: {}", result);
+}
