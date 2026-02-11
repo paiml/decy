@@ -14620,3 +14620,252 @@ fn expr_target_variable_ref_vec_to_pointer() {
     let result = cg.generate_expression_with_target_type(&expr, &ctx, Some(&target));
     assert!(result.contains("as_mut_ptr"), "Got: {}", result);
 }
+
+// ============================================================================
+// BATCH 14: generate_expression_with_target_type — deeper branches
+// ============================================================================
+
+#[test]
+fn expr_target_option_eq_null_is_none() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("p".to_string(), HirType::Option(Box::new(HirType::Int)));
+    let expr = HirExpression::BinaryOp {
+        op: BinaryOperator::Equal,
+        left: Box::new(HirExpression::Variable("p".to_string())),
+        right: Box::new(HirExpression::NullLiteral),
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(result.contains("is_none"), "Got: {}", result);
+}
+
+#[test]
+fn expr_target_option_ne_null_is_some() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("p".to_string(), HirType::Option(Box::new(HirType::Int)));
+    let expr = HirExpression::BinaryOp {
+        op: BinaryOperator::NotEqual,
+        left: Box::new(HirExpression::Variable("p".to_string())),
+        right: Box::new(HirExpression::NullLiteral),
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(result.contains("is_some"), "Got: {}", result);
+}
+
+#[test]
+fn expr_target_null_eq_option_reversed() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("p".to_string(), HirType::Option(Box::new(HirType::Int)));
+    let expr = HirExpression::BinaryOp {
+        op: BinaryOperator::Equal,
+        left: Box::new(HirExpression::NullLiteral),
+        right: Box::new(HirExpression::Variable("p".to_string())),
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(result.contains("is_none"), "Got: {}", result);
+}
+
+#[test]
+fn expr_target_box_eq_null_always_false() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("b".to_string(), HirType::Box(Box::new(HirType::Int)));
+    let expr = HirExpression::BinaryOp {
+        op: BinaryOperator::Equal,
+        left: Box::new(HirExpression::Variable("b".to_string())),
+        right: Box::new(HirExpression::NullLiteral),
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(result.contains("false"), "Got: {}", result);
+}
+
+#[test]
+fn expr_target_box_ne_null_always_true() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("b".to_string(), HirType::Box(Box::new(HirType::Int)));
+    let expr = HirExpression::BinaryOp {
+        op: BinaryOperator::NotEqual,
+        left: Box::new(HirExpression::Variable("b".to_string())),
+        right: Box::new(HirExpression::NullLiteral),
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(result.contains("true"), "Got: {}", result);
+}
+
+#[test]
+fn expr_target_strlen_eq_zero_is_empty() {
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    let expr = HirExpression::BinaryOp {
+        op: BinaryOperator::Equal,
+        left: Box::new(HirExpression::FunctionCall {
+            function: "strlen".to_string(),
+            arguments: vec![HirExpression::Variable("s".to_string())],
+        }),
+        right: Box::new(HirExpression::IntLiteral(0)),
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(result.contains("is_empty"), "Got: {}", result);
+}
+
+#[test]
+fn expr_target_zero_ne_strlen_not_is_empty() {
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    let expr = HirExpression::BinaryOp {
+        op: BinaryOperator::NotEqual,
+        left: Box::new(HirExpression::IntLiteral(0)),
+        right: Box::new(HirExpression::FunctionCall {
+            function: "strlen".to_string(),
+            arguments: vec![HirExpression::Variable("s".to_string())],
+        }),
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(result.contains("is_empty"), "Got: {}", result);
+}
+
+#[test]
+fn expr_target_comma_operator() {
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    let expr = HirExpression::BinaryOp {
+        op: BinaryOperator::Comma,
+        left: Box::new(HirExpression::Variable("a".to_string())),
+        right: Box::new(HirExpression::Variable("b".to_string())),
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(result.contains("{ a; b }"), "Got: {}", result);
+}
+
+#[test]
+fn expr_target_int_comparison_with_char_literal() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("c".to_string(), HirType::Int);
+    let expr = HirExpression::BinaryOp {
+        op: BinaryOperator::NotEqual,
+        left: Box::new(HirExpression::Variable("c".to_string())),
+        right: Box::new(HirExpression::CharLiteral(b'\n' as i8)),
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(result.contains("10i32"), "Got: {}", result);
+}
+
+#[test]
+fn expr_target_char_add_int_arithmetic() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("n".to_string(), HirType::Int);
+    let expr = HirExpression::BinaryOp {
+        op: BinaryOperator::Add,
+        left: Box::new(HirExpression::Variable("n".to_string())),
+        right: Box::new(HirExpression::CharLiteral(b'0' as i8)),
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(result.contains("48i32"), "Got: {}", result);
+}
+
+#[test]
+fn expr_target_logical_and_with_int_target() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("a".to_string(), HirType::Int);
+    ctx.add_variable("b".to_string(), HirType::Int);
+    let expr = HirExpression::BinaryOp {
+        op: BinaryOperator::LogicalAnd,
+        left: Box::new(HirExpression::Variable("a".to_string())),
+        right: Box::new(HirExpression::Variable("b".to_string())),
+    };
+    let target = HirType::Int;
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, Some(&target));
+    assert!(result.contains("as i32"), "Got: {}", result);
+    assert!(result.contains("!= 0"), "Got: {}", result);
+}
+
+#[test]
+fn expr_target_mixed_int_float_arithmetic() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("n".to_string(), HirType::Int);
+    ctx.add_variable("f".to_string(), HirType::Float);
+    let expr = HirExpression::BinaryOp {
+        op: BinaryOperator::Add,
+        left: Box::new(HirExpression::Variable("n".to_string())),
+        right: Box::new(HirExpression::Variable("f".to_string())),
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(result.contains("as f32"), "Got: {}", result);
+}
+
+#[test]
+fn expr_target_mixed_int_double_arithmetic() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("n".to_string(), HirType::Int);
+    ctx.add_variable("d".to_string(), HirType::Double);
+    let expr = HirExpression::BinaryOp {
+        op: BinaryOperator::Multiply,
+        left: Box::new(HirExpression::Variable("n".to_string())),
+        right: Box::new(HirExpression::Variable("d".to_string())),
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(result.contains("as f64"), "Got: {}", result);
+}
+
+#[test]
+fn expr_target_mixed_float_double_arithmetic() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("f".to_string(), HirType::Float);
+    ctx.add_variable("d".to_string(), HirType::Double);
+    let expr = HirExpression::BinaryOp {
+        op: BinaryOperator::Add,
+        left: Box::new(HirExpression::Variable("f".to_string())),
+        right: Box::new(HirExpression::Variable("d".to_string())),
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(result.contains("as f64"), "Got: {}", result);
+}
+
+#[test]
+fn expr_target_char_subtract_with_int_target() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("a".to_string(), HirType::Char);
+    ctx.add_variable("b".to_string(), HirType::Char);
+    let expr = HirExpression::BinaryOp {
+        op: BinaryOperator::Subtract,
+        left: Box::new(HirExpression::Variable("a".to_string())),
+        right: Box::new(HirExpression::Variable("b".to_string())),
+    };
+    let target = HirType::Int;
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, Some(&target));
+    assert!(result.contains("as i32"), "Got: {}", result);
+}
+
+#[test]
+fn expr_target_global_variable_wrapped_unsafe() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_global("G_VAL".to_string());
+    let expr = HirExpression::Variable("G_VAL".to_string());
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(result.contains("unsafe"), "Got: {}", result);
+    assert!(result.contains("G_VAL"), "Got: {}", result);
+}
+
+#[test]
+fn expr_target_global_int_to_float_unsafe() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_global("G_COUNT".to_string());
+    ctx.add_variable("G_COUNT".to_string(), HirType::Int);
+    let expr = HirExpression::Variable("G_COUNT".to_string());
+    let target = HirType::Float;
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, Some(&target));
+    assert!(result.contains("unsafe"), "Got: {}", result);
+    assert!(result.contains("as f32"), "Got: {}", result);
+}
