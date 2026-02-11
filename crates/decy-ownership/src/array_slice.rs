@@ -1271,4 +1271,162 @@ mod tests {
         let result = ArrayParameterTransformer::transform_expression(&expr, &map);
         assert!(matches!(result, HirExpression::Variable(ref n) if n == "arr"));
     }
+
+    // ============================================================================
+    // TRANSFORM METHOD INTEGRATION TESTS (covers lines 49-136)
+    // ============================================================================
+
+    #[test]
+    fn test_transform_array_param_to_immutable_slice() {
+        // void process(int* arr, int len) { return len; }
+        // → fn process(arr: &[i32]) { return arr.len(); }
+        let func = HirFunction::new_with_body(
+            "process".to_string(),
+            HirType::Void,
+            vec![
+                HirParameter::new(
+                    "arr".to_string(),
+                    HirType::Pointer(Box::new(HirType::Int)),
+                ),
+                HirParameter::new("len".to_string(), HirType::Int),
+            ],
+            vec![HirStatement::Return(Some(HirExpression::Variable(
+                "len".to_string(),
+            )))],
+        );
+
+        let dfg = crate::dataflow::DataflowAnalyzer::new().analyze(&func);
+
+        let transformer = ArrayParameterTransformer::new();
+        let result = transformer.transform(&func, &dfg);
+
+        // arr parameter should be transformed to a slice
+        assert_eq!(result.parameters().len(), 1, "len param should be removed");
+        assert_eq!(result.parameters()[0].name(), "arr");
+        match result.parameters()[0].param_type() {
+            HirType::Reference { inner, mutable } => {
+                assert!(!mutable, "Should be immutable slice (not modified)");
+                assert!(matches!(**inner, HirType::Array { ref element_type, size: None }
+                    if matches!(**element_type, HirType::Int)));
+            }
+            other => panic!("Expected Reference, got {:?}", other),
+        }
+
+        // Body should have len replaced with arr.len()
+        match &result.body()[0] {
+            HirStatement::Return(Some(HirExpression::StringMethodCall {
+                method, ..
+            })) => {
+                assert_eq!(method, "len");
+            }
+            other => panic!("Expected Return with .len() call, got {:?}", other),
+        }
+    }
+
+    #[test]
+    fn test_transform_mutable_array_param_to_mut_slice() {
+        // void modify(int* data, int size) { data[0] = 42; }
+        // → fn modify(data: &mut [i32]) { data[0] = 42; }
+        let func = HirFunction::new_with_body(
+            "modify".to_string(),
+            HirType::Void,
+            vec![
+                HirParameter::new(
+                    "data".to_string(),
+                    HirType::Pointer(Box::new(HirType::Int)),
+                ),
+                HirParameter::new("size".to_string(), HirType::Int),
+            ],
+            vec![HirStatement::ArrayIndexAssignment {
+                array: Box::new(HirExpression::Variable("data".to_string())),
+                index: Box::new(HirExpression::IntLiteral(0)),
+                value: HirExpression::IntLiteral(42),
+            }],
+        );
+
+        let dfg = crate::dataflow::DataflowAnalyzer::new().analyze(&func);
+        let transformer = ArrayParameterTransformer::new();
+        let result = transformer.transform(&func, &dfg);
+
+        // data param should be &mut [i32] (it's modified via array index assignment)
+        assert_eq!(result.parameters().len(), 1, "size param should be removed");
+        assert_eq!(result.parameters()[0].name(), "data");
+        match result.parameters()[0].param_type() {
+            HirType::Reference { mutable, .. } => {
+                assert!(mutable, "Should be mutable slice (data is modified)");
+            }
+            other => panic!("Expected Reference, got {:?}", other),
+        }
+    }
+
+    #[test]
+    fn test_transform_skips_pointer_arithmetic_params() {
+        // void walk(int* arr, int len) { arr = arr + 1; }
+        // Pointer arithmetic → keep as raw pointer, don't transform
+        let func = HirFunction::new_with_body(
+            "walk".to_string(),
+            HirType::Void,
+            vec![
+                HirParameter::new(
+                    "arr".to_string(),
+                    HirType::Pointer(Box::new(HirType::Int)),
+                ),
+                HirParameter::new("len".to_string(), HirType::Int),
+            ],
+            vec![HirStatement::Assignment {
+                target: "arr".to_string(),
+                value: HirExpression::BinaryOp {
+                    op: BinaryOperator::Add,
+                    left: Box::new(HirExpression::Variable("arr".to_string())),
+                    right: Box::new(HirExpression::IntLiteral(1)),
+                },
+            }],
+        );
+
+        let dfg = crate::dataflow::DataflowAnalyzer::new().analyze(&func);
+        let transformer = ArrayParameterTransformer::new();
+        let result = transformer.transform(&func, &dfg);
+
+        // Both params should be kept (no transformation due to pointer arithmetic)
+        assert_eq!(
+            result.parameters().len(),
+            2,
+            "Both params should be kept when pointer arithmetic is used"
+        );
+        assert_eq!(result.parameters()[0].name(), "arr");
+        assert_eq!(result.parameters()[1].name(), "len");
+        // arr should still be a raw pointer, not a slice
+        assert!(
+            matches!(result.parameters()[0].param_type(), HirType::Pointer(_)),
+            "arr should remain as Pointer type"
+        );
+    }
+
+    #[test]
+    fn test_transform_no_array_params_returns_unchanged() {
+        // void add(int a, int b) { return a + b; }
+        // No array params → function returned unchanged
+        let func = HirFunction::new_with_body(
+            "add".to_string(),
+            HirType::Int,
+            vec![
+                HirParameter::new("a".to_string(), HirType::Int),
+                HirParameter::new("b".to_string(), HirType::Int),
+            ],
+            vec![HirStatement::Return(Some(HirExpression::BinaryOp {
+                op: BinaryOperator::Add,
+                left: Box::new(HirExpression::Variable("a".to_string())),
+                right: Box::new(HirExpression::Variable("b".to_string())),
+            }))],
+        );
+
+        let dfg = crate::dataflow::DataflowAnalyzer::new().analyze(&func);
+        let transformer = ArrayParameterTransformer::new();
+        let result = transformer.transform(&func, &dfg);
+
+        // Should return unchanged (no array params)
+        assert_eq!(result.parameters().len(), 2);
+        assert_eq!(result.parameters()[0].name(), "a");
+        assert_eq!(result.parameters()[1].name(), "b");
+    }
 }
