@@ -22687,3 +22687,139 @@ fn logical_not_on_logical_and_boolean() {
         code
     );
 }
+
+// ============================================================================
+// BATCH 35: Constant non-char pointer, main signature, octal macro, default values
+// ============================================================================
+
+// --- generate_constant: Pointer(Int) → *mut i32 not &str (line 7308 false branch) ---
+
+#[test]
+fn generate_constant_non_char_pointer_maps_normally() {
+    let cg = CodeGenerator::new();
+    let constant = decy_hir::HirConstant::new(
+        "PTR".to_string(),
+        HirType::Pointer(Box::new(HirType::Int)),
+        HirExpression::IntLiteral(0),
+    );
+    let result = cg.generate_constant(&constant);
+    assert!(
+        !result.contains("&str"),
+        "Non-char pointer constant should not use &str, Got: {}",
+        result
+    );
+    assert!(
+        result.contains("const PTR"),
+        "Should have const declaration, Got: {}",
+        result
+    );
+}
+
+// --- generate_signature: main function with Int return → no return type (line 5217) ---
+
+#[test]
+fn generate_signature_main_function_no_return_type() {
+    let cg = CodeGenerator::new();
+    let func = HirFunction::new("main".to_string(), HirType::Int, vec![]);
+    let sig = cg.generate_signature(&func);
+    assert!(
+        sig.contains("fn main()"),
+        "main signature should not have return type, Got: {}",
+        sig
+    );
+    assert!(
+        !sig.contains("-> i32"),
+        "main should not return i32, Got: {}",
+        sig
+    );
+}
+
+// --- generate_signature: non-main function with Int return → has return type ---
+
+#[test]
+fn generate_signature_non_main_has_return_type() {
+    let cg = CodeGenerator::new();
+    let func = HirFunction::new("add".to_string(), HirType::Int, vec![]);
+    let sig = cg.generate_signature(&func);
+    assert!(
+        sig.contains("-> i32"),
+        "Non-main function should have return type, Got: {}",
+        sig
+    );
+}
+
+// --- generate_macro: object-like macro with octal value (line 816-818) ---
+
+#[test]
+fn generate_macro_object_like_octal() {
+    let cg = CodeGenerator::new();
+    let macro_def = decy_hir::HirMacroDefinition::new_object_like(
+        "PERMS".to_string(),
+        "0755".to_string(),
+    );
+    let result = cg.generate_macro(&macro_def).unwrap();
+    assert!(
+        result.contains("const PERMS: i32 = 0755"),
+        "Octal macro should become i32 const, Got: {}",
+        result
+    );
+}
+
+// --- default_value_for_type: FunctionPointer → None (line 3674-3677) ---
+
+#[test]
+fn default_value_for_function_pointer_is_none() {
+    let result = CodeGenerator::default_value_for_type(&HirType::FunctionPointer {
+        return_type: Box::new(HirType::Void),
+        param_types: vec![HirType::Int],
+    });
+    assert_eq!(result, "None", "FunctionPointer default should be None");
+}
+
+// --- default_value_for_type: StringLiteral → empty string (line 3679-3682) ---
+
+#[test]
+fn default_value_for_string_literal_is_empty() {
+    let result = CodeGenerator::default_value_for_type(&HirType::StringLiteral);
+    assert_eq!(result, "\"\"", "StringLiteral default should be empty string");
+}
+
+// --- default_value_for_type: OwnedString → String::new() (line 3683-3686) ---
+
+#[test]
+fn default_value_for_owned_string_is_string_new() {
+    let result = CodeGenerator::default_value_for_type(&HirType::OwnedString);
+    assert_eq!(result, "String::new()", "OwnedString default should be String::new()");
+}
+
+// --- default_value_for_type: StringReference → empty string (line 3687-3690) ---
+
+#[test]
+fn default_value_for_string_reference_is_empty() {
+    let result = CodeGenerator::default_value_for_type(&HirType::StringReference);
+    assert_eq!(result, "\"\"", "StringReference default should be empty string");
+}
+
+// --- default_value_for_type: TypeAlias size_t → 0usize (line 3697-3700) ---
+
+#[test]
+fn default_value_for_type_alias_size_t() {
+    let result = CodeGenerator::default_value_for_type(&HirType::TypeAlias("size_t".to_string()));
+    assert_eq!(result, "0usize", "size_t default should be 0usize");
+}
+
+// --- default_value_for_type: TypeAlias ssize_t → 0isize (line 3701) ---
+
+#[test]
+fn default_value_for_type_alias_ssize_t() {
+    let result = CodeGenerator::default_value_for_type(&HirType::TypeAlias("ssize_t".to_string()));
+    assert_eq!(result, "0isize", "ssize_t default should be 0isize");
+}
+
+// --- default_value_for_type: TypeAlias unknown → 0 (line 3702) ---
+
+#[test]
+fn default_value_for_type_alias_unknown() {
+    let result = CodeGenerator::default_value_for_type(&HirType::TypeAlias("custom_t".to_string()));
+    assert_eq!(result, "0", "Unknown TypeAlias default should be 0");
+}
