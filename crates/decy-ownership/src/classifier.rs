@@ -1070,4 +1070,114 @@ mod tests {
         // Should have high accuracy on synthetic data
         assert!(metrics.accuracy() > 0.8);
     }
+
+    // ========================================================================
+    // Additional edge case coverage
+    // ========================================================================
+
+    #[test]
+    fn evaluator_with_mismatched_predictions() {
+        // Force mismatches to exercise false positive/negative paths
+        let owned_features = OwnershipFeatures {
+            allocation_site: AllocationKind::Malloc,
+            deallocation_count: 1,
+            ..Default::default()
+        };
+        // Label says Borrowed, but features look like Owned → mismatch
+        let samples = vec![TrainingSample::new(
+            owned_features,
+            InferredOwnership::Borrowed,
+            "test.c",
+            1,
+        )];
+
+        let evaluator = ClassifierEvaluator::new(samples);
+        let classifier = RuleBasedClassifier::new();
+        let metrics = evaluator.evaluate(&classifier);
+
+        // Should have 0 correct (features match Owned, label says Borrowed)
+        assert_eq!(metrics.total_samples, 1);
+        // The prediction (Owned) != label (Borrowed), so false positive + false negative
+        assert!(!metrics.false_positives.is_empty() || !metrics.false_negatives.is_empty());
+    }
+
+    #[test]
+    fn metrics_precision_both_tp_fp_zero() {
+        let metrics = EvaluationMetrics::default();
+        // No entries → both tp and fp are 0 → division guard returns 0.0
+        assert!((metrics.precision("Owned") - 0.0).abs() < f64::EPSILON);
+    }
+
+    #[test]
+    fn metrics_recall_both_tp_fn_zero() {
+        let metrics = EvaluationMetrics::default();
+        assert!((metrics.recall("Owned") - 0.0).abs() < f64::EPSILON);
+    }
+
+    #[test]
+    fn metrics_f1_both_precision_recall_zero() {
+        let metrics = EvaluationMetrics::default();
+        assert!((metrics.f1_score("Owned") - 0.0).abs() < f64::EPSILON);
+    }
+
+    #[test]
+    fn metrics_macro_f1_empty_classes() {
+        let metrics = EvaluationMetrics::default();
+        // No classes → returns 0.0
+        assert!((metrics.macro_f1() - 0.0).abs() < f64::EPSILON);
+    }
+
+    #[test]
+    fn metrics_macro_f1_with_classes() {
+        let mut metrics = EvaluationMetrics::default();
+        metrics.true_positives.insert("Owned".to_string(), 10);
+        metrics.false_positives.insert("Owned".to_string(), 2);
+        metrics.false_negatives.insert("Owned".to_string(), 1);
+        metrics.true_positives.insert("Borrowed".to_string(), 5);
+        metrics.false_positives.insert("Borrowed".to_string(), 1);
+        metrics.false_negatives.insert("Borrowed".to_string(), 3);
+
+        let f1 = metrics.macro_f1();
+        assert!(f1 > 0.0 && f1 <= 1.0);
+    }
+
+    #[test]
+    fn prediction_with_multiple_alternatives() {
+        let pred = ClassifierPrediction::new(InferredOwnership::Owned, 0.9)
+            .with_alternative(InferredOwnership::Borrowed, 0.5)
+            .with_alternative(InferredOwnership::Vec, 0.3);
+        assert_eq!(pred.alternatives.len(), 2);
+        assert_eq!(pred.alternatives[0].0, InferredOwnership::Borrowed);
+        assert_eq!(pred.alternatives[1].0, InferredOwnership::Vec);
+    }
+
+    #[test]
+    fn evaluator_multiple_mismatches() {
+        // Multiple samples with various mismatches
+        let owned_features = OwnershipFeatures {
+            allocation_site: AllocationKind::Malloc,
+            deallocation_count: 1,
+            ..Default::default()
+        };
+        let borrow_features = OwnershipFeatures {
+            is_const: true,
+            ..Default::default()
+        };
+
+        let samples = vec![
+            // Correctly classified (Owned features, Owned label)
+            TrainingSample::new(owned_features.clone(), InferredOwnership::Owned, "a.c", 1),
+            // Misclassified (Borrowed features, but labeled Owned)
+            TrainingSample::new(borrow_features, InferredOwnership::Owned, "b.c", 2),
+        ];
+
+        let evaluator = ClassifierEvaluator::new(samples);
+        let classifier = RuleBasedClassifier::new();
+        let metrics = evaluator.evaluate(&classifier);
+
+        assert_eq!(metrics.total_samples, 2);
+        // At least one should be correct
+        assert!(metrics.correct >= 1);
+        assert!(metrics.accuracy() >= 0.5);
+    }
 }
