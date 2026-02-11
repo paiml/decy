@@ -22117,3 +22117,223 @@ fn strcmp_pointer_field_access_cstr_conversion() {
         code
     );
 }
+
+// ============================================================================
+// BATCH 33: Option null cmp, array→void*, global array assign, sizeof field ctx,
+//           deref-assign ptr-to-ptr, pointer field raw deref (10 tests)
+// ============================================================================
+
+// --- Option == NULL → is_none() (lines 1324-1331) ---
+
+#[test]
+fn option_equal_null_becomes_is_none() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("p".to_string(), HirType::Option(Box::new(HirType::Int)));
+    let expr = HirExpression::BinaryOp {
+        op: BinaryOperator::Equal,
+        left: Box::new(HirExpression::Variable("p".to_string())),
+        right: Box::new(HirExpression::NullLiteral),
+    };
+    let code = cg.generate_expression_with_context(&expr, &ctx);
+    assert!(
+        code.contains("is_none"),
+        "Option == NULL should become is_none(), Got: {}",
+        code
+    );
+}
+
+// --- Option != NULL → is_some() (line 1328) ---
+
+#[test]
+fn option_not_equal_null_becomes_is_some() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("node".to_string(), HirType::Option(Box::new(HirType::Struct("Node".to_string()))));
+    let expr = HirExpression::BinaryOp {
+        op: BinaryOperator::NotEqual,
+        left: Box::new(HirExpression::Variable("node".to_string())),
+        right: Box::new(HirExpression::NullLiteral),
+    };
+    let code = cg.generate_expression_with_context(&expr, &ctx);
+    assert!(
+        code.contains("is_some"),
+        "Option != NULL should become is_some(), Got: {}",
+        code
+    );
+}
+
+// --- NULL == Option → is_none() (lines 1335-1339) ---
+
+#[test]
+fn null_equal_option_becomes_is_none() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("ptr".to_string(), HirType::Option(Box::new(HirType::Int)));
+    let expr = HirExpression::BinaryOp {
+        op: BinaryOperator::Equal,
+        left: Box::new(HirExpression::NullLiteral),
+        right: Box::new(HirExpression::Variable("ptr".to_string())),
+    };
+    let code = cg.generate_expression_with_context(&expr, &ctx);
+    assert!(
+        code.contains("is_none"),
+        "NULL == Option should become is_none(), Got: {}",
+        code
+    );
+}
+
+// --- NULL != Option → is_some() (line 1338) ---
+
+#[test]
+fn null_not_equal_option_becomes_is_some() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("val".to_string(), HirType::Option(Box::new(HirType::Double)));
+    let expr = HirExpression::BinaryOp {
+        op: BinaryOperator::NotEqual,
+        left: Box::new(HirExpression::NullLiteral),
+        right: Box::new(HirExpression::Variable("val".to_string())),
+    };
+    let code = cg.generate_expression_with_context(&expr, &ctx);
+    assert!(
+        code.contains("is_some"),
+        "NULL != Option should become is_some(), Got: {}",
+        code
+    );
+}
+
+// --- DECY-244: Array to void pointer → as_mut_ptr() as *mut () (lines 1204-1206) ---
+
+#[test]
+fn array_to_void_pointer_cast() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("buf".to_string(), HirType::Array {
+        element_type: Box::new(HirType::Char),
+        size: Some(256),
+    });
+    // In context where target type is Pointer(Void): buf should become buf.as_mut_ptr() as *mut ()
+    let expr = HirExpression::Variable("buf".to_string());
+    let code = cg.generate_expression_with_target_type(
+        &expr,
+        &ctx,
+        Some(&HirType::Pointer(Box::new(HirType::Void))),
+    );
+    assert!(
+        code.contains("as_mut_ptr") && code.contains("*mut ()"),
+        "Array to void ptr should use as_mut_ptr() as *mut (), Got: {}",
+        code
+    );
+}
+
+// --- Global array index assignment → unsafe wrapper (lines 1300-1308) ---
+
+#[test]
+fn global_array_index_assignment_in_expr_context() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("table".to_string(), HirType::Array {
+        element_type: Box::new(HirType::Int),
+        size: Some(100),
+    });
+    ctx.add_global("table".to_string());
+    // table[i] = 42 as expression (assignment expression)
+    let expr = HirExpression::BinaryOp {
+        op: BinaryOperator::Assign,
+        left: Box::new(HirExpression::ArrayIndex {
+            array: Box::new(HirExpression::Variable("table".to_string())),
+            index: Box::new(HirExpression::Variable("i".to_string())),
+        }),
+        right: Box::new(HirExpression::IntLiteral(42)),
+    };
+    let code = cg.generate_expression_with_context(&expr, &ctx);
+    assert!(
+        code.contains("unsafe"),
+        "Global array index assignment should be wrapped in unsafe, Got: {}",
+        code
+    );
+}
+
+// --- DECY-248: sizeof member access with struct field from ctx (lines 2987-2995) ---
+
+#[test]
+fn sizeof_member_access_field_type_from_ctx() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let s = decy_hir::HirStruct::new(
+        "Record".to_string(),
+        vec![
+            decy_hir::HirStructField::new("data".to_string(), HirType::Int),
+            decy_hir::HirStructField::new("name".to_string(), HirType::Pointer(Box::new(HirType::Char))),
+        ],
+    );
+    ctx.add_struct(&s);
+    // sizeof(Record data) — member access pattern → looks up field type
+    let expr = HirExpression::Sizeof { type_name: "Record.data".to_string() };
+    let code = cg.generate_expression_with_context(&expr, &ctx);
+    assert!(
+        code.contains("size_of"),
+        "sizeof member access should use size_of, Got: {}",
+        code
+    );
+}
+
+// --- DerefAssignment on pointer-to-pointer → double deref unsafe (lines 4767-4770) ---
+
+#[test]
+fn deref_assign_pointer_to_pointer_unsafe() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    // **pp = value
+    ctx.add_variable("pp".to_string(), HirType::Pointer(Box::new(HirType::Pointer(Box::new(HirType::Int)))));
+    let stmt = HirStatement::DerefAssignment {
+        target: HirExpression::Dereference(Box::new(HirExpression::Variable("pp".to_string()))),
+        value: HirExpression::IntLiteral(99),
+    };
+    let code = cg.generate_statement_with_context(&stmt, None, &mut ctx, None);
+    assert!(
+        code.contains("unsafe"),
+        "Deref assignment on ptr-to-ptr should use unsafe, Got: {}",
+        code
+    );
+}
+
+// --- DECY-129: PointerFieldAccess on raw pointer → unsafe deref (lines 2862-2867) ---
+
+#[test]
+fn pointer_field_access_raw_pointer_unsafe() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("node".to_string(), HirType::Pointer(Box::new(HirType::Struct("Node".to_string()))));
+    let expr = HirExpression::PointerFieldAccess {
+        pointer: Box::new(HirExpression::Variable("node".to_string())),
+        field: "data".to_string(),
+    };
+    let code = cg.generate_expression_with_context(&expr, &ctx);
+    assert!(
+        code.contains("unsafe"),
+        "PointerFieldAccess on raw ptr should use unsafe, Got: {}",
+        code
+    );
+}
+
+// --- DECY-198: Int variable to char target type → as u8 (line 1225-1228) ---
+
+#[test]
+fn int_variable_to_char_target_type_as_u8() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("c".to_string(), HirType::Int);
+    let expr = HirExpression::Variable("c".to_string());
+    let code = cg.generate_expression_with_target_type(
+        &expr,
+        &ctx,
+        Some(&HirType::Char),
+    );
+    assert!(
+        code.contains("as u8"),
+        "Int variable with Char target should cast as u8, Got: {}",
+        code
+    );
+}
