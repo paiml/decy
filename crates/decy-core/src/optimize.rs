@@ -1378,4 +1378,147 @@ mod tests {
             expr: Box::new(HirExpression::IntLiteral(42)),
         }));
     }
+
+    // ============================================================================
+    // Additional coverage: fold_constants_stmt VariableDeclaration with foldable init
+    // ============================================================================
+
+    #[test]
+    fn test_fold_constants_stmt_var_decl_with_foldable_init() {
+        // let x = 2 + 3; → let x = 5;
+        let stmt = HirStatement::VariableDeclaration {
+            name: "x".to_string(),
+            var_type: HirType::Int,
+            initializer: Some(HirExpression::BinaryOp {
+                op: BinaryOperator::Add,
+                left: Box::new(HirExpression::IntLiteral(2)),
+                right: Box::new(HirExpression::IntLiteral(3)),
+            }),
+        };
+        match fold_constants_stmt(stmt) {
+            HirStatement::VariableDeclaration {
+                name,
+                initializer: Some(HirExpression::IntLiteral(5)),
+                ..
+            } => {
+                assert_eq!(name, "x");
+            }
+            other => panic!("Expected VarDecl with folded init=5, got {:?}", other),
+        }
+    }
+
+    #[test]
+    fn test_fold_constants_stmt_for_with_foldable_increment() {
+        // for(i=0; i<10; i = i + (1+1)) { break; }
+        // increment should fold: i = i + 2
+        let stmt = HirStatement::For {
+            init: vec![HirStatement::VariableDeclaration {
+                name: "i".to_string(),
+                var_type: HirType::Int,
+                initializer: Some(HirExpression::BinaryOp {
+                    op: BinaryOperator::Multiply,
+                    left: Box::new(HirExpression::IntLiteral(2)),
+                    right: Box::new(HirExpression::IntLiteral(0)),
+                }),
+            }],
+            condition: Some(HirExpression::Variable("i".to_string())),
+            increment: vec![HirStatement::Assignment {
+                target: "i".to_string(),
+                value: HirExpression::BinaryOp {
+                    op: BinaryOperator::Add,
+                    left: Box::new(HirExpression::Variable("i".to_string())),
+                    right: Box::new(HirExpression::BinaryOp {
+                        op: BinaryOperator::Add,
+                        left: Box::new(HirExpression::IntLiteral(1)),
+                        right: Box::new(HirExpression::IntLiteral(1)),
+                    }),
+                },
+            }],
+            body: vec![HirStatement::Break],
+        };
+        match fold_constants_stmt(stmt) {
+            HirStatement::For {
+                init,
+                increment,
+                ..
+            } => {
+                // init: let i = 0 (2*0 folded)
+                match &init[0] {
+                    HirStatement::VariableDeclaration {
+                        initializer: Some(HirExpression::IntLiteral(0)),
+                        ..
+                    } => {}
+                    other => panic!("Expected init folded to 0, got {:?}", other),
+                }
+                // increment: i = i + 2 (1+1 folded to 2)
+                match &increment[0] {
+                    HirStatement::Assignment { value, .. } => {
+                        // The right-hand side of the add should be folded to 2
+                        match value {
+                            HirExpression::BinaryOp { right, .. } => {
+                                assert_eq!(**right, HirExpression::IntLiteral(2));
+                            }
+                            other => panic!("Expected BinaryOp, got {:?}", other),
+                        }
+                    }
+                    other => panic!("Expected Assignment, got {:?}", other),
+                }
+            }
+            other => panic!("Expected For, got {:?}", other),
+        }
+    }
+
+    #[test]
+    fn test_count_uses_in_stmt_with_while() {
+        // While statements fall through to _ => 0 in count_uses_in_stmt
+        let stmt = HirStatement::While {
+            condition: HirExpression::Variable("x".to_string()),
+            body: vec![HirStatement::Assignment {
+                target: "y".to_string(),
+                value: HirExpression::Variable("x".to_string()),
+            }],
+        };
+        // While is not handled by count_uses_in_stmt — returns 0
+        assert_eq!(count_uses_in_stmt("x", &stmt), 0);
+    }
+
+    #[test]
+    fn test_count_uses_in_stmt_if_with_else() {
+        let stmt = HirStatement::If {
+            condition: HirExpression::Variable("x".to_string()),
+            then_block: vec![HirStatement::Return(Some(HirExpression::Variable(
+                "x".to_string(),
+            )))],
+            else_block: Some(vec![HirStatement::Expression(
+                HirExpression::Variable("x".to_string()),
+            )]),
+        };
+        // condition(1) + then_block(1) + else_block(1) = 3
+        assert_eq!(count_uses_in_stmt("x", &stmt), 3);
+    }
+
+    #[test]
+    fn test_count_uses_in_expr_function_call() {
+        let expr = HirExpression::FunctionCall {
+            function: "foo".to_string(),
+            arguments: vec![
+                HirExpression::Variable("x".to_string()),
+                HirExpression::Variable("y".to_string()),
+                HirExpression::Variable("x".to_string()),
+            ],
+        };
+        assert_eq!(count_uses_in_expr("x", &expr), 2);
+        assert_eq!(count_uses_in_expr("y", &expr), 1);
+        assert_eq!(count_uses_in_expr("z", &expr), 0);
+    }
+
+    #[test]
+    fn test_count_uses_in_expr_unary_op_negation() {
+        let expr = HirExpression::UnaryOp {
+            op: decy_hir::UnaryOperator::Minus,
+            operand: Box::new(HirExpression::Variable("x".to_string())),
+        };
+        assert_eq!(count_uses_in_expr("x", &expr), 1);
+        assert_eq!(count_uses_in_expr("y", &expr), 0);
+    }
 }
