@@ -24718,3 +24718,134 @@ fn stmt_context_break_and_continue() {
     );
     assert_eq!(continue_code, "continue;");
 }
+
+// =============================================================================
+// Batch 44: For loop, errno, global assignment, return with target type
+// =============================================================================
+
+#[test]
+fn stmt_context_for_loop_with_condition() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    // for (int i = 0; i < 10; i++) → let mut i = 0i32; while i < 10 { ... i += 1; }
+    let stmt = HirStatement::For {
+        init: vec![HirStatement::VariableDeclaration {
+            name: "i".to_string(),
+            var_type: HirType::Int,
+            initializer: Some(HirExpression::IntLiteral(0)),
+        }],
+        condition: Some(HirExpression::BinaryOp {
+            op: BinaryOperator::LessThan,
+            left: Box::new(HirExpression::Variable("i".to_string())),
+            right: Box::new(HirExpression::IntLiteral(10)),
+        }),
+        increment: vec![HirStatement::Expression(HirExpression::UnaryOp {
+            op: decy_hir::UnaryOperator::PostIncrement,
+            operand: Box::new(HirExpression::Variable("i".to_string())),
+        })],
+        body: vec![HirStatement::Break],
+    };
+    let code = cg.generate_statement_with_context(&stmt, Some("test"), &mut ctx, None);
+    assert!(
+        code.contains("let mut i") && code.contains("while"),
+        "For loop should generate init + while: {}",
+        code
+    );
+}
+
+#[test]
+fn stmt_context_for_loop_infinite() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    // for (;;) → loop {}
+    let stmt = HirStatement::For {
+        init: vec![],
+        condition: None,
+        increment: vec![],
+        body: vec![HirStatement::Break],
+    };
+    let code = cg.generate_statement_with_context(&stmt, Some("test"), &mut ctx, None);
+    assert!(
+        code.contains("loop {"),
+        "for(;;) should generate loop: {}",
+        code
+    );
+}
+
+#[test]
+fn stmt_context_errno_assignment() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    // errno = 0 → unsafe { ERRNO = 0; }
+    let stmt = HirStatement::Assignment {
+        target: "errno".to_string(),
+        value: HirExpression::IntLiteral(0),
+    };
+    let code = cg.generate_statement_with_context(&stmt, Some("test"), &mut ctx, None);
+    assert!(
+        code.contains("unsafe") && code.contains("ERRNO"),
+        "errno assignment → unsafe ERRNO: {}",
+        code
+    );
+}
+
+#[test]
+fn stmt_context_global_assignment() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_global("count".to_string());
+    let stmt = HirStatement::Assignment {
+        target: "count".to_string(),
+        value: HirExpression::IntLiteral(42),
+    };
+    let code = cg.generate_statement_with_context(&stmt, Some("test"), &mut ctx, None);
+    assert!(
+        code.contains("unsafe") && code.contains("count = 42"),
+        "Global assignment should be unsafe: {}",
+        code
+    );
+}
+
+#[test]
+fn stmt_context_local_assignment() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let stmt = HirStatement::Assignment {
+        target: "x".to_string(),
+        value: HirExpression::IntLiteral(7),
+    };
+    let code = cg.generate_statement_with_context(&stmt, Some("test"), &mut ctx, None);
+    assert_eq!(code, "x = 7;", "Local assignment: {}", code);
+}
+
+#[test]
+fn stmt_context_return_with_target_type() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    // Return in a function with i32 return type
+    let stmt = HirStatement::Return(Some(HirExpression::IntLiteral(0)));
+    let code = cg.generate_statement_with_context(
+        &stmt,
+        Some("main"),
+        &mut ctx,
+        Some(&HirType::Int),
+    );
+    assert!(
+        code.contains("return") || code.contains("0"),
+        "Return with int: {}",
+        code
+    );
+}
+
+#[test]
+fn stmt_context_return_void() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let stmt = HirStatement::Return(None);
+    let code = cg.generate_statement_with_context(&stmt, Some("test"), &mut ctx, None);
+    assert!(
+        code.contains("return"),
+        "Void return: {}",
+        code
+    );
+}
