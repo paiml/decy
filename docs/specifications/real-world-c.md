@@ -255,28 +255,28 @@ The transpiler must preserve C program semantics. Differential testing compiles 
 
 ### Coverage Results
 
-Post-implementation workspace coverage: **97.77% line coverage** (target: 95%)
+Post-implementation workspace coverage: **97.47% line coverage** (target: 95%)
 
 | Crate | Coverage | Notes |
 |-------|----------|-------|
-| decy-parser | 93.10% | FFI/clang-sys boundary code |
+| decy-parser | 93.13% | FFI/clang-sys boundary code |
 | decy-hir | 97.50% | Well-covered via falsification + unit tests |
 | decy-analyzer | 97.00% | Lock analysis, subprocess analysis at 90-96% |
 | decy-ownership | 98.90% | 17 inference branch tests added via graph helpers |
-| decy-codegen | 96.49% | 775 deep coverage tests (type inference, var-to-ptr, null checks, pointer analysis, transforms, generate_function variants, statement_modifies_variable) |
-| decy-verify | 99.23% | Compile verification fully tested |
+| decy-codegen | 94.86% | 834 deep coverage tests (expression target type, annotated signatures, type coercions, null checks, pointer analysis, transforms, generate_function variants, statement_modifies_variable) |
+| decy-verify | 98.92% | Compile verification fully tested |
 | decy-core | 97.61% | Pipeline tests + uninitialized globals + enum/function dedup |
 | decy-stdlib | 100.00% | Complete coverage |
-| decy-llm | 94.77% | Render, validate, parse_response, context builder edge cases |
-| decy-oracle | 98.38% | Trace verifier: wrapping, unsafe modes, stats tracking |
+| decy-llm | 97.63% | Render, validate, parse_response, context builder, verifier/iteration framework edge cases |
+| decy-oracle | 97.99% | Trace verifier: wrapping, unsafe modes, stats tracking, batch verification |
 
 ### Test Corpus
 
-- **Total tests**: 12,454 passing across workspace
+- **Total tests**: 12,559 passing across workspace
 - **Falsification tests**: 2,150 total (92 falsified, 95.7% pass rate)
-- **Codegen deep tests**: 775 (type inference, var-to-ptr conversions, null checks, pointer analysis, Vec/Box transforms, deref assigns, sizeof, global variables, format specifiers, strlen idioms, string iter func args, BinaryOp target_type paths, statement_modifies_variable, generate_function variants)
-- **LLM coverage tests**: 24 (render multi-function, validate edge cases, parse_response, context builder non-existent function paths)
-- **Oracle trace verifier tests**: 34 (compilation, wrapping, unsafe modes, stats tracking, batch verification)
+- **Codegen deep tests**: 834 (expression target type paths, annotated signature generation, type inference, var-to-ptr conversions, null checks, pointer analysis, Vec/Box transforms, deref assigns, sizeof, global variables, format specifiers, strlen idioms, string iter func args, BinaryOp target_type paths, statement_modifies_variable, generate_function variants, Option/Box null checks, mixed arithmetic promotions, comma operator)
+- **LLM coverage tests**: 30 (render multi-function, validate edge cases, parse_response, context builder non-existent function paths, verifier compile/lint/run_tests, iteration context feedback, VerificationLoop format feedback)
+- **Oracle trace verifier tests**: 43 (compilation, wrapping, unsafe modes, stats tracking, batch verification, pass_rate zero, defaults, unsafe counting variants)
 - **Core pipeline tests**: 12 new (uninitialized globals, enum variants, function dedup)
 - **Inference branch tests**: 17 (via DataflowGraph test helpers for defensive branches)
 
