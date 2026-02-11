@@ -213,3 +213,133 @@ fn test_no_subprocess_pattern() {
 
     assert!(patterns.is_empty(), "Should not detect subprocess pattern");
 }
+
+// ============================================================================
+// TEST 7: Fork in while loop (line 90-91: While { body, .. })
+// ============================================================================
+
+#[test]
+fn test_detect_fork_in_while_loop() {
+    let func = create_test_function(
+        "loop_fork",
+        vec![HirStatement::While {
+            condition: HirExpression::BinaryOp {
+                op: BinaryOperator::LessThan,
+                left: Box::new(HirExpression::Variable("i".to_string())),
+                right: Box::new(HirExpression::IntLiteral(10)),
+            },
+            body: vec![HirStatement::Expression(HirExpression::FunctionCall {
+                function: "fork".to_string(),
+                arguments: vec![],
+            })],
+        }],
+    );
+
+    let detector = SubprocessDetector::new();
+    let patterns = detector.detect(&func);
+    assert!(!patterns.is_empty(), "Should detect fork in while loop");
+    assert!(patterns[0].has_fork);
+}
+
+// ============================================================================
+// TEST 8: Exec in for loop (line 90-91: For { body, .. })
+// ============================================================================
+
+#[test]
+fn test_detect_exec_in_for_loop() {
+    let func = create_test_function(
+        "loop_exec",
+        vec![HirStatement::For {
+            init: vec![],
+            condition: Some(HirExpression::BinaryOp {
+                op: BinaryOperator::LessThan,
+                left: Box::new(HirExpression::Variable("i".to_string())),
+                right: Box::new(HirExpression::IntLiteral(5)),
+            }),
+            increment: vec![],
+            body: vec![HirStatement::Expression(HirExpression::FunctionCall {
+                function: "execvp".to_string(),
+                arguments: vec![HirExpression::StringLiteral("ls".to_string())],
+            })],
+        }],
+    );
+
+    let detector = SubprocessDetector::new();
+    let patterns = detector.detect(&func);
+    assert!(!patterns.is_empty(), "Should detect exec in for loop");
+    assert!(patterns[0].has_exec);
+    assert_eq!(patterns[0].command.as_deref(), Some("ls"));
+}
+
+// ============================================================================
+// TEST 9: Default statement arm (line 93: _ => {})
+// ============================================================================
+
+#[test]
+fn test_unrelated_statements_ignored() {
+    let func = create_test_function(
+        "mixed_stmts",
+        vec![
+            HirStatement::Return(Some(HirExpression::IntLiteral(0))),
+            HirStatement::Break,
+            HirStatement::Continue,
+            HirStatement::Expression(HirExpression::FunctionCall {
+                function: "fork".to_string(),
+                arguments: vec![],
+            }),
+        ],
+    );
+
+    let detector = SubprocessDetector::new();
+    let patterns = detector.detect(&func);
+    assert!(!patterns.is_empty(), "Should detect fork despite other statements");
+    assert!(patterns[0].has_fork);
+}
+
+// ============================================================================
+// TEST 10: Non-function-call expression (line 112: else branch)
+// ============================================================================
+
+#[test]
+fn test_non_function_call_expression_ignored() {
+    let func = create_test_function(
+        "assignment_only",
+        vec![HirStatement::Expression(HirExpression::BinaryOp {
+            op: BinaryOperator::Add,
+            left: Box::new(HirExpression::Variable("x".to_string())),
+            right: Box::new(HirExpression::IntLiteral(1)),
+        })],
+    );
+
+    let detector = SubprocessDetector::new();
+    let patterns = detector.detect(&func);
+    assert!(patterns.is_empty(), "Should not detect pattern for non-function-call");
+}
+
+// ============================================================================
+// TEST 11: Exec with non-string-literal args (line 123-129 branch)
+// ============================================================================
+
+#[test]
+fn test_exec_with_variable_args() {
+    let func = create_test_function(
+        "exec_var_args",
+        vec![HirStatement::Expression(HirExpression::FunctionCall {
+            function: "execl".to_string(),
+            arguments: vec![
+                HirExpression::StringLiteral("/bin/sh".to_string()),
+                HirExpression::Variable("cmd".to_string()), // Non-string
+                HirExpression::StringLiteral("-c".to_string()),
+            ],
+        })],
+    );
+
+    let detector = SubprocessDetector::new();
+    let patterns = detector.detect(&func);
+    assert!(!patterns.is_empty());
+    assert!(patterns[0].has_exec);
+    assert_eq!(patterns[0].command.as_deref(), Some("/bin/sh"));
+    // Only string literal args are extracted, variable "cmd" is skipped
+    assert_eq!(patterns[0].args.len(), 1);
+    assert_eq!(patterns[0].args[0], "-c");
+}
