@@ -3,7 +3,7 @@
 **Status**: Active (S1/S2 Implemented)
 **Created**: 2026-02-10
 **Updated**: 2026-02-12
-**Version**: 1.8
+**Version**: 1.9
 
 ## Problem Statement
 
@@ -284,9 +284,9 @@ Post-implementation workspace coverage: **98.16% line, 97.94% region** (target: 
 
 ### Test Corpus
 
-- **Total tests**: 13,560+ passing across workspace (408 test binaries)
+- **Total tests**: 13,680+ passing across workspace (408 test binaries)
 - **Falsification tests**: 2,150 total (92 falsified, 95.7% pass rate)
-- **Codegen deep tests**: 1,340 across 49 batches covering expression target type, annotated signatures, type coercions, null checks, pointer analysis, Vec/Box transforms, deref assigns, sizeof, global variables, format specifiers, strlen idioms, string iter func args, BinaryOp target_type paths, statement_modifies_variable, generate_function variants, Option/Box null checks, mixed arithmetic promotions, comma operator, assignment expressions, pointer subtraction detection, void* constraints, macro type inference, malloc statement paths, char-int coercion, NULL comparison detection, pointer arithmetic detection, strip_unsafe, malloc fallback, sizeof struct field, sizeof member access, LogicalNot int target, AddressOf call args, Vec init paths, transform_vec_statement, output params, format positions, array param slice, char array escape, string ref arrays, count param heuristic, Box default/zeroed init, Vec/Box null→false/true, *str++ deref elision, pointer field→null_mut, annotated non-slice ref, strlen→is_empty, pointer post-inc/dec wrapping_add/sub, (*p)++/-- unsafe, &str byte extract, Option→is_none/is_some, array→void* cast, global array assign unsafe, sizeof ctx field lookup, ptr-to-ptr deref unsafe, int→char as u8, macro generation (object/function-like, ternary, octal, hex, char, float, empty), typedef redundancy (struct/enum name match), constant char*→&str mapping, LogicalNot bool/int target type coercion, main signature return type elision, default_value_for_type (FunctionPointer, String, TypeAlias), generate_function method paths (array+length param, empty body, struct pointer, Vec/calloc return), IntLiteral→Option/Pointer, FloatLiteral f32/f64/no-decimal, AddressOf/UnaryOp with pointer target, LogicalNot bool→int/int→int with/without target, StringLiteral→char*, CharLiteral null/printable/nonprintable, Variable→stderr/stdout/errno/ERANGE/Vec, Box→raw pointer, Reference(Array/Vec/T)→as_mut_ptr/as_ptr/cast, Vec/Array→as_mut_ptr, Array→void*, Pointer→Pointer passthrough, int→char coercion, struct derive combos (8 combinations: large_array × float × copy), flexible array member, reference field lifetime, VLA→vec (int/float/char/double/unsigned/signed_char), malloc struct→Box, malloc array→Vec, char* string literal→&str, cast-wrapped malloc, uninitialized var defaults, global var rename, output param detection (single/fallible), keyword rename (all 6), global int→float/double unsafe
+- **Codegen deep tests**: 1,462 across 54 batches covering expression target type, annotated signatures, type coercions, null checks, pointer analysis, Vec/Box transforms, deref assigns, sizeof, global variables, format specifiers, strlen idioms, string iter func args, BinaryOp target_type paths, statement_modifies_variable, generate_function variants, Option/Box null checks, mixed arithmetic promotions, comma operator, assignment expressions, pointer subtraction detection, void* constraints, macro type inference, malloc statement paths, char-int coercion, NULL comparison detection, pointer arithmetic detection, strip_unsafe, malloc fallback, sizeof struct field, sizeof member access, LogicalNot int target, AddressOf call args, Vec init paths, transform_vec_statement, output params, format positions, array param slice, char array escape, string ref arrays, count param heuristic, Box default/zeroed init, Vec/Box null→false/true, *str++ deref elision, pointer field→null_mut, annotated non-slice ref, strlen→is_empty, pointer post-inc/dec wrapping_add/sub, (*p)++/-- unsafe, &str byte extract, Option→is_none/is_some, array→void* cast, global array assign unsafe, sizeof ctx field lookup, ptr-to-ptr deref unsafe, int→char as u8, macro generation (object/function-like, ternary, octal, hex, char, float, empty), typedef redundancy (struct/enum name match), constant char*→&str mapping, LogicalNot bool/int target type coercion, main signature return type elision, default_value_for_type (FunctionPointer, String, TypeAlias), generate_function method paths (array+length param, empty body, struct pointer, Vec/calloc return), IntLiteral→Option/Pointer, FloatLiteral f32/f64/no-decimal, AddressOf/UnaryOp with pointer target, LogicalNot bool→int/int→int with/without target, StringLiteral→char*, CharLiteral null/printable/nonprintable, Variable→stderr/stdout/errno/ERANGE/Vec, Box→raw pointer, Reference(Array/Vec/T)→as_mut_ptr/as_ptr/cast, Vec/Array→as_mut_ptr, Array→void*, Pointer→Pointer passthrough, int→char coercion, struct derive combos (8 combinations: large_array × float × copy), flexible array member, reference field lifetime, VLA→vec (int/float/char/double/unsigned/signed_char), malloc struct→Box, malloc array→Vec, char* string literal→&str, cast-wrapped malloc, uninitialized var defaults, global var rename, output param detection (single/fallible), keyword rename (all 6), global int→float/double unsafe
 - **Box/concurrency transform tests**: 22 (malloc→Box type preservation, Float/Double/Option/fallback defaults, PointerFieldAccess lock/unlock, orphan lock regions)
 - **LLM coverage tests**: 174 (render with ownership/instructions/empty, validate braces/parens/empty/fn, parse_response JSON/markdown/error, extract_reasoning, context builder add_ownership/add_lifetime/add_lock_mapping/to_json/chaining/serde, nonexistent function paths, verifier compile/lint/run_tests, iteration context feedback, VerificationLoop format feedback, CompilationMetrics histogram/reset/serialize)
 - **Oracle trace verifier tests**: 45 (compilation valid/invalid/empty, verify_trace valid/invalid/unsafe/fn_main, verify_batch/filter_valid, verify_safety allow/deny, stats accumulation, VerifierConfig, VerificationLevel Display, pass_rate, count_unsafe variants)
@@ -319,14 +319,14 @@ All changes in this specification must pass:
 
 - `cargo build --workspace` — clean compile
 - `cargo clippy --workspace -- -D warnings` — zero warnings
-- `cargo test --workspace` — all tests pass (13,560+)
+- `cargo test --workspace` — all tests pass (13,680+)
 - Line coverage >= 95% (`cargo llvm-cov --workspace`)
 - No regressions in existing falsification tests
 - New tests for every falsifiable prediction marked as implemented
 
 ## Coverage Gap Analysis
 
-671 uncovered lines remain workspace-wide at 98.16% line coverage. Classification:
+656 uncovered lines remain workspace-wide at 98.13% line coverage (97.89% region). Classification:
 
 ### Asymptotic Coverage Categories
 
