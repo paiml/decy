@@ -14152,3 +14152,471 @@ fn annotated_sig_output_param_with_input() {
     assert!(result.contains("-> i32"), "Got: {}", result);
     assert!(!result.contains("result"), "Got: {}", result);
 }
+
+// ============================================================================
+// BATCH 13: generate_expression_with_target_type coverage
+// ============================================================================
+
+#[test]
+fn expr_target_int_literal_zero_option_target() {
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    let expr = HirExpression::IntLiteral(0);
+    let target = HirType::Option(Box::new(HirType::Int));
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, Some(&target));
+    assert_eq!(result, "None");
+}
+
+#[test]
+fn expr_target_int_literal_zero_pointer_target() {
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    let expr = HirExpression::IntLiteral(0);
+    let target = HirType::Pointer(Box::new(HirType::Int));
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, Some(&target));
+    assert_eq!(result, "std::ptr::null_mut()");
+}
+
+#[test]
+fn expr_target_int_literal_nonzero_with_pointer_target() {
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    // Non-zero int with pointer target should NOT become null_mut
+    let expr = HirExpression::IntLiteral(42);
+    let target = HirType::Pointer(Box::new(HirType::Int));
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, Some(&target));
+    assert_eq!(result, "42");
+}
+
+#[test]
+fn expr_target_float_literal_float_target() {
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    let expr = HirExpression::FloatLiteral("3.14".to_string());
+    let target = HirType::Float;
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, Some(&target));
+    assert_eq!(result, "3.14f32");
+}
+
+#[test]
+fn expr_target_float_literal_double_target() {
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    let expr = HirExpression::FloatLiteral("2.718".to_string());
+    let target = HirType::Double;
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, Some(&target));
+    assert_eq!(result, "2.718f64");
+}
+
+#[test]
+fn expr_target_float_literal_c_suffix_stripped() {
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    // C float literal with 'f' suffix: 3.14f
+    let expr = HirExpression::FloatLiteral("3.14f".to_string());
+    let target = HirType::Float;
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, Some(&target));
+    assert_eq!(result, "3.14f32");
+}
+
+#[test]
+fn expr_target_float_literal_no_decimal_no_target() {
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    // Float literal without decimal point, no target type → default f64
+    let expr = HirExpression::FloatLiteral("42".to_string());
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert_eq!(result, "42.0f64");
+}
+
+#[test]
+fn expr_target_float_literal_with_exponent_no_target() {
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    // Float with exponent but no decimal
+    let expr = HirExpression::FloatLiteral("1e10".to_string());
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert_eq!(result, "1e10f64");
+}
+
+#[test]
+fn expr_target_address_of_with_pointer_target() {
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    let expr = HirExpression::AddressOf(Box::new(HirExpression::Variable("x".to_string())));
+    let target = HirType::Pointer(Box::new(HirType::Int));
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, Some(&target));
+    assert!(result.contains("&mut x as *mut i32"), "Got: {}", result);
+}
+
+#[test]
+fn expr_target_address_of_dereference() {
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    // &(*ptr) → &(deref)
+    let expr = HirExpression::AddressOf(Box::new(HirExpression::Dereference(Box::new(
+        HirExpression::Variable("ptr".to_string()),
+    ))));
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(result.contains("&("), "Got: {}", result);
+}
+
+#[test]
+fn expr_target_unary_address_of_with_pointer_target() {
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    let expr = HirExpression::UnaryOp {
+        op: UnaryOperator::AddressOf,
+        operand: Box::new(HirExpression::Variable("y".to_string())),
+    };
+    let target = HirType::Pointer(Box::new(HirType::Int));
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, Some(&target));
+    assert!(result.contains("&mut y as *mut i32"), "Got: {}", result);
+}
+
+#[test]
+fn expr_target_logical_not_bool_to_int() {
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    // !true_expr assigned to int → (!expr) as i32
+    let expr = HirExpression::UnaryOp {
+        op: UnaryOperator::LogicalNot,
+        operand: Box::new(HirExpression::BinaryOp {
+            op: BinaryOperator::Equal,
+            left: Box::new(HirExpression::Variable("x".to_string())),
+            right: Box::new(HirExpression::IntLiteral(0)),
+        }),
+    };
+    let target = HirType::Int;
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, Some(&target));
+    assert!(result.contains("as i32"), "Got: {}", result);
+}
+
+#[test]
+fn expr_target_logical_not_int_to_int() {
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    // !int_expr assigned to int → (int == 0) as i32
+    let expr = HirExpression::UnaryOp {
+        op: UnaryOperator::LogicalNot,
+        operand: Box::new(HirExpression::Variable("x".to_string())),
+    };
+    let target = HirType::Int;
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, Some(&target));
+    assert!(result.contains("== 0") && result.contains("as i32"), "Got: {}", result);
+}
+
+#[test]
+fn expr_target_logical_not_no_target() {
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    // !int_expr with no target → (int == 0)
+    let expr = HirExpression::UnaryOp {
+        op: UnaryOperator::LogicalNot,
+        operand: Box::new(HirExpression::Variable("x".to_string())),
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(result.contains("== 0"), "Got: {}", result);
+    assert!(!result.contains("as i32"), "Should not cast: {}", result);
+}
+
+#[test]
+fn expr_target_string_literal_to_pointer_char() {
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    let expr = HirExpression::StringLiteral("hello".to_string());
+    let target = HirType::Pointer(Box::new(HirType::Char));
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, Some(&target));
+    assert!(result.contains("b\"hello\\0\""), "Got: {}", result);
+    assert!(result.contains("as_ptr"), "Got: {}", result);
+    assert!(result.contains("*mut u8"), "Got: {}", result);
+}
+
+#[test]
+fn expr_target_variable_with_vec_target() {
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    let expr = HirExpression::Variable("data".to_string());
+    let target = HirType::Vec(Box::new(HirType::Int));
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, Some(&target));
+    assert_eq!(result, "data");
+}
+
+#[test]
+fn expr_target_variable_box_to_pointer() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("node".to_string(), HirType::Box(Box::new(HirType::Int)));
+    let expr = HirExpression::Variable("node".to_string());
+    let target = HirType::Pointer(Box::new(HirType::Int));
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, Some(&target));
+    assert!(result.contains("Box::into_raw"), "Got: {}", result);
+}
+
+#[test]
+fn expr_target_variable_char_to_int() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("c".to_string(), HirType::Char);
+    let expr = HirExpression::Variable("c".to_string());
+    let target = HirType::Int;
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, Some(&target));
+    assert!(result.contains("as i32"), "Got: {}", result);
+}
+
+#[test]
+fn expr_target_variable_int_to_float() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("n".to_string(), HirType::Int);
+    let expr = HirExpression::Variable("n".to_string());
+    let target = HirType::Float;
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, Some(&target));
+    assert!(result.contains("as f32"), "Got: {}", result);
+}
+
+#[test]
+fn expr_target_variable_int_to_double() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("n".to_string(), HirType::Int);
+    let expr = HirExpression::Variable("n".to_string());
+    let target = HirType::Double;
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, Some(&target));
+    assert!(result.contains("as f64"), "Got: {}", result);
+}
+
+#[test]
+fn expr_target_variable_float_to_int() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("f".to_string(), HirType::Float);
+    let expr = HirExpression::Variable("f".to_string());
+    let target = HirType::Int;
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, Some(&target));
+    assert!(result.contains("as i32"), "Got: {}", result);
+}
+
+#[test]
+fn expr_target_variable_double_to_unsigned_int() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("d".to_string(), HirType::Double);
+    let expr = HirExpression::Variable("d".to_string());
+    let target = HirType::UnsignedInt;
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, Some(&target));
+    assert!(result.contains("as u32"), "Got: {}", result);
+}
+
+#[test]
+fn expr_target_variable_vec_to_pointer() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("buf".to_string(), HirType::Vec(Box::new(HirType::Int)));
+    let expr = HirExpression::Variable("buf".to_string());
+    let target = HirType::Pointer(Box::new(HirType::Int));
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, Some(&target));
+    assert!(result.contains("as_mut_ptr"), "Got: {}", result);
+}
+
+#[test]
+fn expr_target_variable_array_to_pointer() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable(
+        "arr".to_string(),
+        HirType::Array {
+            element_type: Box::new(HirType::Int),
+            size: Some(10),
+        },
+    );
+    let expr = HirExpression::Variable("arr".to_string());
+    let target = HirType::Pointer(Box::new(HirType::Int));
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, Some(&target));
+    assert!(result.contains("as_mut_ptr"), "Got: {}", result);
+}
+
+#[test]
+fn expr_target_variable_pointer_to_pointer() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("p".to_string(), HirType::Pointer(Box::new(HirType::Int)));
+    let expr = HirExpression::Variable("p".to_string());
+    let target = HirType::Pointer(Box::new(HirType::Int));
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, Some(&target));
+    // Raw pointer stays as raw pointer — just return variable
+    assert_eq!(result, "p");
+}
+
+#[test]
+fn expr_target_variable_ref_to_pointer() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable(
+        "r".to_string(),
+        HirType::Reference {
+            inner: Box::new(HirType::Int),
+            mutable: true,
+        },
+    );
+    let expr = HirExpression::Variable("r".to_string());
+    let target = HirType::Pointer(Box::new(HirType::Int));
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, Some(&target));
+    assert!(result.contains("as *mut _"), "Got: {}", result);
+}
+
+#[test]
+fn expr_target_variable_immutable_ref_to_pointer() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable(
+        "r".to_string(),
+        HirType::Reference {
+            inner: Box::new(HirType::Int),
+            mutable: false,
+        },
+    );
+    let expr = HirExpression::Variable("r".to_string());
+    let target = HirType::Pointer(Box::new(HirType::Int));
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, Some(&target));
+    assert!(
+        result.contains("as *const _ as *mut _"),
+        "Got: {}",
+        result
+    );
+}
+
+#[test]
+fn expr_target_variable_mutable_slice_ref_to_pointer() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable(
+        "s".to_string(),
+        HirType::Reference {
+            inner: Box::new(HirType::Array {
+                element_type: Box::new(HirType::Int),
+                size: None,
+            }),
+            mutable: true,
+        },
+    );
+    let expr = HirExpression::Variable("s".to_string());
+    let target = HirType::Pointer(Box::new(HirType::Int));
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, Some(&target));
+    assert!(result.contains("as_mut_ptr"), "Got: {}", result);
+}
+
+#[test]
+fn expr_target_variable_immutable_slice_ref_to_pointer() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable(
+        "s".to_string(),
+        HirType::Reference {
+            inner: Box::new(HirType::Array {
+                element_type: Box::new(HirType::Int),
+                size: None,
+            }),
+            mutable: false,
+        },
+    );
+    let expr = HirExpression::Variable("s".to_string());
+    let target = HirType::Pointer(Box::new(HirType::Int));
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, Some(&target));
+    assert!(result.contains("as_ptr"), "Got: {}", result);
+}
+
+#[test]
+fn expr_target_variable_array_to_void_pointer() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable(
+        "arr".to_string(),
+        HirType::Array {
+            element_type: Box::new(HirType::Int),
+            size: Some(10),
+        },
+    );
+    let expr = HirExpression::Variable("arr".to_string());
+    let target = HirType::Pointer(Box::new(HirType::Void));
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, Some(&target));
+    assert!(result.contains("as *mut ()"), "Got: {}", result);
+}
+
+#[test]
+fn expr_target_variable_stderr() {
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    let expr = HirExpression::Variable("stderr".to_string());
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert_eq!(result, "std::io::stderr()");
+}
+
+#[test]
+fn expr_target_variable_errno_constants() {
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    let expr = HirExpression::Variable("ERANGE".to_string());
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert_eq!(result, "34i32");
+}
+
+#[test]
+fn expr_target_char_literal_null() {
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    let expr = HirExpression::CharLiteral(0i8);
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert_eq!(result, "0u8");
+}
+
+#[test]
+fn expr_target_char_literal_printable() {
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    let expr = HirExpression::CharLiteral(b'a' as i8);
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert_eq!(result, "b'a'");
+}
+
+#[test]
+fn expr_target_char_literal_non_printable() {
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    let expr = HirExpression::CharLiteral(1i8);
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert_eq!(result, "1u8");
+}
+
+#[test]
+fn expr_target_binary_assign_embedded() {
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    // Embedded assignment: (x = 5) → { let __assign_tmp = 5; x = __assign_tmp; __assign_tmp }
+    let expr = HirExpression::BinaryOp {
+        op: BinaryOperator::Assign,
+        left: Box::new(HirExpression::Variable("x".to_string())),
+        right: Box::new(HirExpression::IntLiteral(5)),
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(result.contains("__assign_tmp"), "Got: {}", result);
+    assert!(result.contains("x = __assign_tmp"), "Got: {}", result);
+}
+
+#[test]
+fn expr_target_variable_ref_vec_to_pointer() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    // Reference to Vec (used internally by BorrowGenerator)
+    ctx.add_variable(
+        "data".to_string(),
+        HirType::Reference {
+            inner: Box::new(HirType::Vec(Box::new(HirType::Int))),
+            mutable: true,
+        },
+    );
+    let expr = HirExpression::Variable("data".to_string());
+    let target = HirType::Pointer(Box::new(HirType::Int));
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, Some(&target));
+    assert!(result.contains("as_mut_ptr"), "Got: {}", result);
+}
