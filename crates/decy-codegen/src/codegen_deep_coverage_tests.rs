@@ -18233,3 +18233,195 @@ fn expr_target_fopen_append_mode() {
     let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
     assert!(result.contains("File::create"), "Got: {}", result);
 }
+
+// ============================================================================
+// BATCH 21: malloc FunctionCall in statement context, Malloc HIR in statement,
+// char pointer string literal init, literal targets, address-of targets
+// ============================================================================
+
+// --- Statement: FunctionCall malloc with struct pointer → Box::default (struct has default) ---
+#[test]
+fn stmt_ctx_func_call_malloc_struct_box_default() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let s = HirStruct::new("Node".to_string(), vec![
+        HirStructField::new("val".to_string(), HirType::Int),
+        HirStructField::new("next".to_string(), HirType::Pointer(Box::new(HirType::Struct("Node".to_string())))),
+    ]);
+    ctx.add_struct(&s);
+    let stmt = HirStatement::VariableDeclaration {
+        name: "node".to_string(),
+        var_type: HirType::Pointer(Box::new(HirType::Struct("Node".to_string()))),
+        initializer: Some(HirExpression::FunctionCall {
+            function: "malloc".to_string(),
+            arguments: vec![HirExpression::Sizeof { type_name: "Node".to_string() }],
+        }),
+    };
+    let result = cg.generate_statement_with_context(&stmt, None, &mut ctx, None);
+    assert!(result.contains("Box::default()"), "Got: {}", result);
+}
+
+// --- Statement: FunctionCall malloc with struct pointer (large array → no default) ---
+#[test]
+fn stmt_ctx_func_call_malloc_struct_box_zeroed() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let s = HirStruct::new("BigStruct".to_string(), vec![
+        HirStructField::new("data".to_string(), HirType::Array {
+            element_type: Box::new(HirType::Int),
+            size: Some(100), // > 32, so no Default
+        }),
+    ]);
+    ctx.add_struct(&s);
+    let stmt = HirStatement::VariableDeclaration {
+        name: "big".to_string(),
+        var_type: HirType::Pointer(Box::new(HirType::Struct("BigStruct".to_string()))),
+        initializer: Some(HirExpression::FunctionCall {
+            function: "malloc".to_string(),
+            arguments: vec![HirExpression::Sizeof { type_name: "BigStruct".to_string() }],
+        }),
+    };
+    let result = cg.generate_statement_with_context(&stmt, None, &mut ctx, None);
+    assert!(result.contains("zeroed"), "Got: {}", result);
+}
+
+// --- Statement: FunctionCall malloc with int pointer + multiply → Vec ---
+#[test]
+fn stmt_ctx_func_call_malloc_vec_multiply() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let stmt = HirStatement::VariableDeclaration {
+        name: "arr".to_string(),
+        var_type: HirType::Pointer(Box::new(HirType::Int)),
+        initializer: Some(HirExpression::FunctionCall {
+            function: "malloc".to_string(),
+            arguments: vec![HirExpression::BinaryOp {
+                op: BinaryOperator::Multiply,
+                left: Box::new(HirExpression::Variable("n".to_string())),
+                right: Box::new(HirExpression::Sizeof { type_name: "int".to_string() }),
+            }],
+        }),
+    };
+    let result = cg.generate_statement_with_context(&stmt, None, &mut ctx, None);
+    assert!(result.contains("Vec<i32>") || result.contains("vec!["), "Got: {}", result);
+}
+
+// --- Statement: Malloc HIR with Box type → Box::new(default) ---
+#[test]
+fn stmt_ctx_malloc_hir_box_type() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let stmt = HirStatement::VariableDeclaration {
+        name: "p".to_string(),
+        var_type: HirType::Box(Box::new(HirType::Int)),
+        initializer: Some(HirExpression::Malloc {
+            size: Box::new(HirExpression::IntLiteral(4)),
+        }),
+    };
+    let result = cg.generate_statement_with_context(&stmt, None, &mut ctx, None);
+    assert!(result.contains("Box::new("), "Got: {}", result);
+}
+
+// --- Statement: Malloc HIR with Vec type + multiply → Vec::with_capacity ---
+#[test]
+fn stmt_ctx_malloc_hir_vec_multiply() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let stmt = HirStatement::VariableDeclaration {
+        name: "v".to_string(),
+        var_type: HirType::Vec(Box::new(HirType::Int)),
+        initializer: Some(HirExpression::Malloc {
+            size: Box::new(HirExpression::BinaryOp {
+                op: BinaryOperator::Multiply,
+                left: Box::new(HirExpression::Variable("n".to_string())),
+                right: Box::new(HirExpression::Sizeof { type_name: "int".to_string() }),
+            }),
+        }),
+    };
+    let result = cg.generate_statement_with_context(&stmt, None, &mut ctx, None);
+    assert!(result.contains("Vec::with_capacity("), "Got: {}", result);
+}
+
+// --- Statement: Malloc HIR with Vec type no multiply → Vec::new ---
+#[test]
+fn stmt_ctx_malloc_hir_vec_no_multiply() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let stmt = HirStatement::VariableDeclaration {
+        name: "v".to_string(),
+        var_type: HirType::Vec(Box::new(HirType::Int)),
+        initializer: Some(HirExpression::Malloc {
+            size: Box::new(HirExpression::IntLiteral(100)),
+        }),
+    };
+    let result = cg.generate_statement_with_context(&stmt, None, &mut ctx, None);
+    assert!(result.contains("Vec::new()"), "Got: {}", result);
+}
+
+// --- Statement: Malloc HIR with other type → Box::new(0i32) ---
+#[test]
+fn stmt_ctx_malloc_hir_other_type() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let stmt = HirStatement::VariableDeclaration {
+        name: "x".to_string(),
+        var_type: HirType::Int,
+        initializer: Some(HirExpression::Malloc {
+            size: Box::new(HirExpression::IntLiteral(4)),
+        }),
+    };
+    let result = cg.generate_statement_with_context(&stmt, None, &mut ctx, None);
+    assert!(result.contains("Box::new(0i32)"), "Got: {}", result);
+}
+
+// --- Statement: char* with string literal → &str ---
+#[test]
+fn stmt_ctx_char_ptr_string_literal_to_str() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let stmt = HirStatement::VariableDeclaration {
+        name: "msg".to_string(),
+        var_type: HirType::Pointer(Box::new(HirType::Char)),
+        initializer: Some(HirExpression::StringLiteral("hello".to_string())),
+    };
+    let result = cg.generate_statement_with_context(&stmt, None, &mut ctx, None);
+    assert!(result.contains("&str"), "Got: {}", result);
+}
+
+// --- Statement: char* array with string literals → [&str; N] ---
+#[test]
+fn stmt_ctx_char_ptr_array_string_literals() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let stmt = HirStatement::VariableDeclaration {
+        name: "names".to_string(),
+        var_type: HirType::Array {
+            element_type: Box::new(HirType::Pointer(Box::new(HirType::Char))),
+            size: Some(2),
+        },
+        initializer: Some(HirExpression::CompoundLiteral {
+            literal_type: HirType::Array {
+                element_type: Box::new(HirType::Pointer(Box::new(HirType::Char))),
+                size: Some(2),
+            },
+            initializers: vec![
+                HirExpression::StringLiteral("alice".to_string()),
+                HirExpression::StringLiteral("bob".to_string()),
+            ],
+        }),
+    };
+    let result = cg.generate_statement_with_context(&stmt, None, &mut ctx, None);
+    assert!(result.contains("[&str; 2]"), "Got: {}", result);
+}
+
+// --- StringLiteral with Pointer(Char) target → byte string pointer ---
+#[test]
+fn expr_target_string_literal_to_char_ptr_batch21() {
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    let expr = HirExpression::StringLiteral("world".to_string());
+    let result = cg.generate_expression_with_target_type(
+        &expr, &ctx, Some(&HirType::Pointer(Box::new(HirType::Char))),
+    );
+    assert!(result.contains("as_ptr() as *mut u8") || result.contains("b\""), "Got: {}", result);
+}
