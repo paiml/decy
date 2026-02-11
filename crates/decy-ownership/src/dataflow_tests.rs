@@ -1,7 +1,7 @@
 //! Tests for dataflow analysis module.
 
 use crate::dataflow::*;
-use decy_hir::{HirExpression, HirFunction, HirParameter, HirStatement, HirType};
+use decy_hir::{BinaryOperator, HirExpression, HirFunction, HirParameter, HirStatement, HirType};
 
 #[test]
 fn test_build_dataflow_graph() {
@@ -1160,4 +1160,182 @@ fn test_dataflow_analyzer_default() {
     let func = HirFunction::new_with_body("empty".to_string(), HirType::Void, vec![], vec![]);
     let graph = analyzer.analyze(&func);
     assert!(graph.variables().is_empty());
+}
+
+// ============================================================================
+// COVERAGE: pointer arithmetic with VariableDeclaration(None) initializer
+// ============================================================================
+
+#[test]
+fn test_array_param_with_var_decl_no_initializer() {
+    // VariableDeclaration with None initializer in body → statement_has_pointer_arithmetic
+    // hits the `if let Some(expr) = initializer` branch returning false (line 335-336)
+    let func = HirFunction::new_with_body(
+        "test".to_string(),
+        HirType::Void,
+        vec![
+            HirParameter::new("arr".to_string(), HirType::Pointer(Box::new(HirType::Int))),
+            HirParameter::new("len".to_string(), HirType::Int),
+        ],
+        vec![
+            // VariableDeclaration with no initializer
+            HirStatement::VariableDeclaration {
+                name: "temp".to_string(),
+                var_type: HirType::Int,
+                initializer: None,
+            },
+            // Array indexing to trigger detection
+            HirStatement::ArrayIndexAssignment {
+                array: Box::new(HirExpression::Variable("arr".to_string())),
+                index: Box::new(HirExpression::IntLiteral(0)),
+                value: HirExpression::IntLiteral(42),
+            },
+        ],
+    );
+
+    let analyzer = DataflowAnalyzer::new();
+    let graph = analyzer.analyze(&func);
+    assert_eq!(
+        graph.is_array_parameter("arr"),
+        Some(true),
+        "Should detect arr as array param despite uninitialized var decl"
+    );
+}
+
+// ============================================================================
+// COVERAGE: expression_has_pointer_arithmetic default arm (non-BinaryOp)
+// ============================================================================
+
+#[test]
+fn test_array_param_with_non_binop_expr_in_body() {
+    // Assignment with non-BinaryOp expression → expression_has_pointer_arithmetic
+    // hits `_ => false` (line 376) for Variable, FunctionCall, etc.
+    let func = HirFunction::new_with_body(
+        "test".to_string(),
+        HirType::Void,
+        vec![
+            HirParameter::new("arr".to_string(), HirType::Pointer(Box::new(HirType::Int))),
+            HirParameter::new("size".to_string(), HirType::Int),
+        ],
+        vec![
+            // Assignment with Variable expr (not BinaryOp)
+            HirStatement::Assignment {
+                target: "result".to_string(),
+                value: HirExpression::Variable("arr".to_string()),
+            },
+            // Assignment with FunctionCall (not BinaryOp)
+            HirStatement::Assignment {
+                target: "val".to_string(),
+                value: HirExpression::FunctionCall {
+                    function: "get".to_string(),
+                    arguments: vec![HirExpression::Variable("arr".to_string())],
+                },
+            },
+        ],
+    );
+
+    let analyzer = DataflowAnalyzer::new();
+    let graph = analyzer.analyze(&func);
+    assert_eq!(
+        graph.is_array_parameter("arr"),
+        Some(true),
+        "Non-BinaryOp exprs should not count as pointer arithmetic"
+    );
+}
+
+// ============================================================================
+// COVERAGE: pointer arithmetic with non-Add/Subtract BinaryOp
+// ============================================================================
+
+#[test]
+fn test_array_param_with_multiply_binop_not_pointer_arithmetic() {
+    // BinaryOp with Multiply (not Add/Subtract) → not pointer arithmetic
+    let func = HirFunction::new_with_body(
+        "test".to_string(),
+        HirType::Void,
+        vec![
+            HirParameter::new("arr".to_string(), HirType::Pointer(Box::new(HirType::Int))),
+            HirParameter::new("len".to_string(), HirType::Int),
+        ],
+        vec![HirStatement::Assignment {
+            target: "result".to_string(),
+            value: HirExpression::BinaryOp {
+                op: BinaryOperator::Multiply,
+                left: Box::new(HirExpression::Variable("arr".to_string())),
+                right: Box::new(HirExpression::IntLiteral(2)),
+            },
+        }],
+    );
+
+    let analyzer = DataflowAnalyzer::new();
+    let graph = analyzer.analyze(&func);
+    assert_eq!(
+        graph.is_array_parameter("arr"),
+        Some(true),
+        "Multiply is not pointer arithmetic"
+    );
+}
+
+// ============================================================================
+// COVERAGE: statement_has_array_indexing default arm
+// ============================================================================
+
+#[test]
+fn test_array_param_with_break_continue_in_body() {
+    // Break and Continue statements hit the `_ => false` default arm
+    // in statement_has_array_indexing (line 314)
+    let func = HirFunction::new_with_body(
+        "test".to_string(),
+        HirType::Void,
+        vec![
+            HirParameter::new("arr".to_string(), HirType::Pointer(Box::new(HirType::Int))),
+            HirParameter::new("n".to_string(), HirType::Int),
+        ],
+        vec![
+            HirStatement::Break,
+            HirStatement::Continue,
+            HirStatement::Return(None),
+        ],
+    );
+
+    let analyzer = DataflowAnalyzer::new();
+    let graph = analyzer.analyze(&func);
+    // No array indexing or pointer arithmetic → should still detect as array
+    // because of parameter naming pattern (arr, n)
+    let result = graph.is_array_parameter("arr");
+    assert!(result.is_some());
+}
+
+// ============================================================================
+// COVERAGE: pointer arithmetic Add with non-Variable left operand
+// ============================================================================
+
+#[test]
+fn test_array_param_binop_add_non_variable_left() {
+    // BinaryOp Add but left is IntLiteral, not Variable → not pointer arithmetic
+    // hits line 370-372 where left is not Variable
+    let func = HirFunction::new_with_body(
+        "test".to_string(),
+        HirType::Void,
+        vec![
+            HirParameter::new("arr".to_string(), HirType::Pointer(Box::new(HirType::Int))),
+            HirParameter::new("count".to_string(), HirType::Int),
+        ],
+        vec![HirStatement::Assignment {
+            target: "x".to_string(),
+            value: HirExpression::BinaryOp {
+                op: BinaryOperator::Add,
+                left: Box::new(HirExpression::IntLiteral(1)),
+                right: Box::new(HirExpression::Variable("arr".to_string())),
+            },
+        }],
+    );
+
+    let analyzer = DataflowAnalyzer::new();
+    let graph = analyzer.analyze(&func);
+    assert_eq!(
+        graph.is_array_parameter("arr"),
+        Some(true),
+        "Add with non-Variable left is not pointer arithmetic"
+    );
 }
