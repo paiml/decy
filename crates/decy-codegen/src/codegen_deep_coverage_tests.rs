@@ -26822,3 +26822,384 @@ fn expr_context_unary_bitwise_not() {
         code
     );
 }
+
+// =============================================================================
+// Batch 50: Stdlib FunctionCall transformations (calloc, realloc, fopen, fclose,
+//           fgetc, fputc, fputs, fread, fwrite, fprintf, fork, exec, wait)
+// =============================================================================
+
+#[test]
+fn expr_context_calloc_default() {
+    // calloc(n, size) → vec![0i32; n]
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let expr = HirExpression::FunctionCall {
+        function: "calloc".to_string(),
+        arguments: vec![
+            HirExpression::IntLiteral(10),
+            HirExpression::Sizeof { type_name: "int".to_string() },
+        ],
+    };
+    let code = cg.generate_expression_with_context(&expr, &mut ctx);
+    assert!(
+        code.contains("vec![0i32") && code.contains("as usize"),
+        "calloc → vec!: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_context_calloc_with_vec_target() {
+    // calloc with Vec<T> target → correct element type
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let expr = HirExpression::FunctionCall {
+        function: "calloc".to_string(),
+        arguments: vec![
+            HirExpression::IntLiteral(5),
+            HirExpression::Sizeof { type_name: "double".to_string() },
+        ],
+    };
+    let code = cg.generate_expression_with_target_type(
+        &expr,
+        &mut ctx,
+        Some(&HirType::Vec(Box::new(HirType::Double))),
+    );
+    assert!(
+        code.contains("0.0f64") || code.contains("0f64"),
+        "calloc Vec<f64> → correct default: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_context_calloc_with_ptr_target() {
+    // calloc with *mut T target → Box::leak
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let expr = HirExpression::FunctionCall {
+        function: "calloc".to_string(),
+        arguments: vec![
+            HirExpression::IntLiteral(20),
+            HirExpression::Sizeof { type_name: "int".to_string() },
+        ],
+    };
+    let code = cg.generate_expression_with_target_type(
+        &expr,
+        &mut ctx,
+        Some(&HirType::Pointer(Box::new(HirType::Int))),
+    );
+    assert!(
+        code.contains("Box::leak"),
+        "calloc *mut T → Box::leak: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_context_fopen_read() {
+    // fopen("file", "r") → File::open().ok()
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let expr = HirExpression::FunctionCall {
+        function: "fopen".to_string(),
+        arguments: vec![
+            HirExpression::StringLiteral("data.txt".to_string()),
+            HirExpression::StringLiteral("r".to_string()),
+        ],
+    };
+    let code = cg.generate_expression_with_context(&expr, &mut ctx);
+    assert!(
+        code.contains("File::open") && code.contains(".ok()"),
+        "fopen read → File::open: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_context_fopen_write() {
+    // fopen("file", "w") → File::create().ok()
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let expr = HirExpression::FunctionCall {
+        function: "fopen".to_string(),
+        arguments: vec![
+            HirExpression::StringLiteral("out.txt".to_string()),
+            HirExpression::StringLiteral("w".to_string()),
+        ],
+    };
+    let code = cg.generate_expression_with_context(&expr, &mut ctx);
+    assert!(
+        code.contains("File::create") && code.contains(".ok()"),
+        "fopen write → File::create: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_context_fclose() {
+    // fclose(f) → drop(f)
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let expr = HirExpression::FunctionCall {
+        function: "fclose".to_string(),
+        arguments: vec![HirExpression::Variable("fp".to_string())],
+    };
+    let code = cg.generate_expression_with_context(&expr, &mut ctx);
+    assert!(
+        code.contains("drop(fp)"),
+        "fclose → drop: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_context_fgetc() {
+    // fgetc(f) → read byte
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let expr = HirExpression::FunctionCall {
+        function: "fgetc".to_string(),
+        arguments: vec![HirExpression::Variable("f".to_string())],
+    };
+    let code = cg.generate_expression_with_context(&expr, &mut ctx);
+    assert!(
+        code.contains("Read") && code.contains(".read("),
+        "fgetc → read byte: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_context_fputc() {
+    // fputc(c, f) → write byte
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let expr = HirExpression::FunctionCall {
+        function: "fputc".to_string(),
+        arguments: vec![
+            HirExpression::Variable("ch".to_string()),
+            HirExpression::Variable("f".to_string()),
+        ],
+    };
+    let code = cg.generate_expression_with_context(&expr, &mut ctx);
+    assert!(
+        code.contains("Write") && code.contains(".write("),
+        "fputc → write byte: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_context_fputs() {
+    // fputs(str, file) → write_all
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let expr = HirExpression::FunctionCall {
+        function: "fputs".to_string(),
+        arguments: vec![
+            HirExpression::Variable("line".to_string()),
+            HirExpression::Variable("fp".to_string()),
+        ],
+    };
+    let code = cg.generate_expression_with_context(&expr, &mut ctx);
+    assert!(
+        code.contains("write_all") && code.contains("as_bytes()"),
+        "fputs → write_all: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_context_fread() {
+    // fread(buf, size, count, file) → file.read(&mut buf)
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let expr = HirExpression::FunctionCall {
+        function: "fread".to_string(),
+        arguments: vec![
+            HirExpression::Variable("buffer".to_string()),
+            HirExpression::IntLiteral(1),
+            HirExpression::IntLiteral(256),
+            HirExpression::Variable("fp".to_string()),
+        ],
+    };
+    let code = cg.generate_expression_with_context(&expr, &mut ctx);
+    assert!(
+        code.contains("Read") && code.contains(".read("),
+        "fread → read: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_context_fwrite() {
+    // fwrite(data, size, count, file) → file.write(&data)
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let expr = HirExpression::FunctionCall {
+        function: "fwrite".to_string(),
+        arguments: vec![
+            HirExpression::Variable("data".to_string()),
+            HirExpression::IntLiteral(1),
+            HirExpression::IntLiteral(100),
+            HirExpression::Variable("out".to_string()),
+        ],
+    };
+    let code = cg.generate_expression_with_context(&expr, &mut ctx);
+    assert!(
+        code.contains("Write") && code.contains(".write("),
+        "fwrite → write: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_context_fprintf_simple() {
+    // fprintf(f, "hello") → write!(f, "hello")
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let expr = HirExpression::FunctionCall {
+        function: "fprintf".to_string(),
+        arguments: vec![
+            HirExpression::Variable("stderr".to_string()),
+            HirExpression::StringLiteral("error\\n".to_string()),
+        ],
+    };
+    let code = cg.generate_expression_with_context(&expr, &mut ctx);
+    assert!(
+        code.contains("write!"),
+        "fprintf → write!: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_context_free_call() {
+    // free(ptr) → drop(ptr)
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let expr = HirExpression::FunctionCall {
+        function: "free".to_string(),
+        arguments: vec![HirExpression::Variable("buf".to_string())],
+    };
+    let code = cg.generate_expression_with_context(&expr, &mut ctx);
+    assert!(
+        code.contains("drop(buf)"),
+        "free → drop: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_context_fork() {
+    // fork() → comment + 0
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let expr = HirExpression::FunctionCall {
+        function: "fork".to_string(),
+        arguments: vec![],
+    };
+    let code = cg.generate_expression_with_context(&expr, &mut ctx);
+    assert!(
+        code.contains("fork") && code.contains("0"),
+        "fork → comment: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_context_execl() {
+    // execl("/bin/ls", ...) → Command::new(...)
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let expr = HirExpression::FunctionCall {
+        function: "execl".to_string(),
+        arguments: vec![
+            HirExpression::StringLiteral("/bin/ls".to_string()),
+            HirExpression::StringLiteral("ls".to_string()),
+            HirExpression::NullLiteral,
+        ],
+    };
+    let code = cg.generate_expression_with_context(&expr, &mut ctx);
+    assert!(
+        code.contains("Command::new"),
+        "execl → Command::new: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_context_waitpid() {
+    // waitpid → child.wait()
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let expr = HirExpression::FunctionCall {
+        function: "waitpid".to_string(),
+        arguments: vec![HirExpression::IntLiteral(-1)],
+    };
+    let code = cg.generate_expression_with_context(&expr, &mut ctx);
+    assert!(
+        code.contains("wait()"),
+        "waitpid → wait: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_context_wexitstatus() {
+    // WEXITSTATUS(status) → status.code().unwrap_or(-1)
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let expr = HirExpression::FunctionCall {
+        function: "WEXITSTATUS".to_string(),
+        arguments: vec![HirExpression::Variable("status".to_string())],
+    };
+    let code = cg.generate_expression_with_context(&expr, &mut ctx);
+    assert!(
+        code.contains(".code()") && code.contains("unwrap_or(-1)"),
+        "WEXITSTATUS → .code(): {}",
+        code
+    );
+}
+
+#[test]
+fn expr_context_wifexited() {
+    // WIFEXITED(status) → status.success()
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let expr = HirExpression::FunctionCall {
+        function: "WIFEXITED".to_string(),
+        arguments: vec![HirExpression::Variable("status".to_string())],
+    };
+    let code = cg.generate_expression_with_context(&expr, &mut ctx);
+    assert!(
+        code.contains(".success()"),
+        "WIFEXITED → .success(): {}",
+        code
+    );
+}
+
+#[test]
+fn expr_context_realloc_with_ptr_target() {
+    // realloc(ptr, size) with pointer target → cast return type
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let expr = HirExpression::FunctionCall {
+        function: "realloc".to_string(),
+        arguments: vec![
+            HirExpression::Variable("buf".to_string()),
+            HirExpression::IntLiteral(256),
+        ],
+    };
+    let code = cg.generate_expression_with_target_type(
+        &expr,
+        &mut ctx,
+        Some(&HirType::Pointer(Box::new(HirType::Int))),
+    );
+    assert!(
+        code.contains("realloc") && code.contains("as *mut"),
+        "realloc with ptr target → cast: {}",
+        code
+    );
+}
