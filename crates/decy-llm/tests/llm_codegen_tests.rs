@@ -373,3 +373,46 @@ fn test_render_prompt_includes_json_context() {
     assert!(rendered.contains("```json"), "Got: {}", rendered);
     assert!(rendered.contains("test_fn"), "Got: {}", rendered);
 }
+
+// ============================================================================
+// TEST 22: Validate unbalanced braces (lines 224-227)
+// ============================================================================
+
+#[test]
+fn test_validate_unbalanced_braces() {
+    let codegen = LlmCodegen::new("test-model");
+    let result = codegen.validate_code("fn foo() { { }"); // 2 open, 1 close
+    assert!(result.is_err());
+    let err = format!("{}", result.unwrap_err());
+    assert!(err.contains("braces"), "Got: {}", err);
+}
+
+// ============================================================================
+// TEST 23: Parse response with empty code block (lines 191-192)
+// ============================================================================
+
+#[test]
+fn test_parse_response_empty_code_block() {
+    let codegen = LlmCodegen::new("test-model");
+    // Code block with empty content between markers
+    let response = "```rust\n\n```\nSome reasoning";
+    let result = codegen.parse_response(response);
+    // Should fail since code is empty
+    assert!(result.is_err(), "Should fail on empty code block");
+}
+
+// ============================================================================
+// TEST 24: Parse response with no closing fence (extract_reasoning fallback)
+// ============================================================================
+
+#[test]
+fn test_parse_response_reasoning_fallback() {
+    let codegen = LlmCodegen::new("test-model");
+    // Response with code block but nothing after last ```
+    let response = "```rust\nfn main() {}\n```";
+    let result = codegen.parse_response(response);
+    assert!(result.is_ok());
+    let generated = result.unwrap();
+    // Reasoning should be the fallback since there's nothing after last ```
+    assert_eq!(generated.reasoning, "Generated from C source");
+}

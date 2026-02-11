@@ -13508,3 +13508,164 @@ fn stmt_modifies_nested_if_in_while() {
     };
     assert!(cg.statement_modifies_variable(&stmt, "arr"));
 }
+
+// ============================================================================
+// BATCH 10: generate_function coverage (lines 6345-6465)
+// ============================================================================
+
+#[test]
+fn generate_function_empty_body_void_return() {
+    // Line 6438-6444: Empty body with void return → no return statement
+    let cg = CodeGenerator::new();
+    let func = HirFunction::new(
+        "noop".to_string(),
+        HirType::Void,
+        vec![],
+    );
+    let code = cg.generate_function(&func);
+    assert!(code.contains("fn noop()"), "Got: {}", code);
+    assert!(code.contains('{'), "Got: {}", code);
+    assert!(code.contains('}'), "Got: {}", code);
+}
+
+#[test]
+fn generate_function_empty_body_int_return() {
+    // Line 6438-6443: Empty body with int return → generates return stub
+    let cg = CodeGenerator::new();
+    let func = HirFunction::new(
+        "get_zero".to_string(),
+        HirType::Int,
+        vec![],
+    );
+    let code = cg.generate_function(&func);
+    assert!(code.contains("fn get_zero()"), "Got: {}", code);
+    assert!(code.contains("-> i32"), "Got: {}", code);
+}
+
+#[test]
+fn generate_function_with_simple_body() {
+    // Lines 6445-6460: Body with statements
+    let cg = CodeGenerator::new();
+    let func = HirFunction::new_with_body(
+        "add".to_string(),
+        HirType::Int,
+        vec![
+            HirParameter::new("a".to_string(), HirType::Int),
+            HirParameter::new("b".to_string(), HirType::Int),
+        ],
+        vec![HirStatement::Return(Some(HirExpression::BinaryOp {
+            op: BinaryOperator::Add,
+            left: Box::new(HirExpression::Variable("a".to_string())),
+            right: Box::new(HirExpression::Variable("b".to_string())),
+        }))],
+    );
+    let code = cg.generate_function(&func);
+    assert!(code.contains("fn add("), "Got: {}", code);
+    assert!(code.contains("a + b"), "Got: {}", code);
+}
+
+#[test]
+fn generate_function_with_pointer_param() {
+    // Lines 6396-6428: Pointer param → context update for reference transformation
+    // Note: Single pointer output param with deref assignment gets detected as output param
+    // and removed from signature (DECY-084). Test with TWO pointer params to exercise
+    // the pointer-to-reference context update path.
+    let cg = CodeGenerator::new();
+    let func = HirFunction::new_with_body(
+        "copy_val".to_string(),
+        HirType::Void,
+        vec![
+            HirParameter::new(
+                "src".to_string(),
+                HirType::Pointer(Box::new(HirType::Int)),
+            ),
+            HirParameter::new(
+                "dst".to_string(),
+                HirType::Pointer(Box::new(HirType::Int)),
+            ),
+        ],
+        vec![HirStatement::DerefAssignment {
+            target: HirExpression::Variable("dst".to_string()),
+            value: HirExpression::Dereference(Box::new(HirExpression::Variable(
+                "src".to_string(),
+            ))),
+        }],
+    );
+    let code = cg.generate_function(&func);
+    assert!(code.contains("fn copy_val("), "Got: {}", code);
+    // At least one param should appear in signature
+    assert!(
+        code.contains("src") || code.contains("dst"),
+        "Got: {}",
+        code
+    );
+}
+
+#[test]
+fn generate_function_with_structs_basic() {
+    // Lines 6471-6541: generate_function_with_structs
+    let cg = CodeGenerator::new();
+    let func = HirFunction::new_with_body(
+        "get_x".to_string(),
+        HirType::Int,
+        vec![HirParameter::new(
+            "p".to_string(),
+            HirType::Pointer(Box::new(HirType::Struct("Point".to_string()))),
+        )],
+        vec![HirStatement::Return(Some(HirExpression::FieldAccess {
+            object: Box::new(HirExpression::Variable("p".to_string())),
+            field: "x".to_string(),
+        }))],
+    );
+    let structs = vec![HirStruct::new(
+        "Point".to_string(),
+        vec![
+            HirStructField::new("x".to_string(), HirType::Int),
+            HirStructField::new("y".to_string(), HirType::Int),
+        ],
+    )];
+    let code = cg.generate_function_with_structs(&func, &structs);
+    assert!(code.contains("fn get_x("), "Got: {}", code);
+    assert!(code.contains("-> i32"), "Got: {}", code);
+}
+
+#[test]
+fn generate_function_main_no_return_type() {
+    // Line 5217-5219: main function with Int return → no -> i32 in signature
+    let cg = CodeGenerator::new();
+    let func = HirFunction::new_with_body(
+        "main".to_string(),
+        HirType::Int,
+        vec![],
+        vec![HirStatement::Return(Some(HirExpression::IntLiteral(0)))],
+    );
+    let code = cg.generate_function(&func);
+    assert!(code.contains("fn main()"), "Got: {}", code);
+    assert!(
+        !code.contains("-> i32"),
+        "main should not have return type. Got: {}",
+        code
+    );
+}
+
+#[test]
+fn generate_function_with_local_var() {
+    // Test variable declaration and usage in body
+    let cg = CodeGenerator::new();
+    let func = HirFunction::new_with_body(
+        "example".to_string(),
+        HirType::Int,
+        vec![],
+        vec![
+            HirStatement::VariableDeclaration {
+                name: "x".to_string(),
+                var_type: HirType::Int,
+                initializer: Some(HirExpression::IntLiteral(42)),
+            },
+            HirStatement::Return(Some(HirExpression::Variable("x".to_string()))),
+        ],
+    );
+    let code = cg.generate_function(&func);
+    assert!(code.contains("let"), "Got: {}", code);
+    assert!(code.contains("42"), "Got: {}", code);
+}
