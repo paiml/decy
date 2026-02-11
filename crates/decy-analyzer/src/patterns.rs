@@ -249,6 +249,59 @@ mod tests {
     use decy_hir::{HirParameter, HirType};
 
     #[test]
+    fn test_pattern_detector_default() {
+        let detector = PatternDetector::default();
+        let func = HirFunction::new_with_body(
+            "test".to_string(),
+            HirType::Void,
+            vec![],
+            vec![],
+        );
+        assert!(detector.find_box_candidates(&func).is_empty());
+        assert!(detector.find_vec_candidates(&func).is_empty());
+    }
+
+    #[test]
+    fn test_vardecl_without_initializer() {
+        let func = HirFunction::new_with_body(
+            "test".to_string(),
+            HirType::Void,
+            vec![],
+            vec![HirStatement::VariableDeclaration {
+                name: "ptr".to_string(),
+                var_type: HirType::Pointer(Box::new(HirType::Int)),
+                initializer: None,
+            }],
+        );
+        let detector = PatternDetector::new();
+        assert!(detector.find_box_candidates(&func).is_empty());
+        assert!(detector.find_vec_candidates(&func).is_empty());
+    }
+
+    #[test]
+    fn test_vec_malloc_with_empty_arguments() {
+        // malloc() with no arguments — should not be detected
+        let func = HirFunction::new_with_body(
+            "test".to_string(),
+            HirType::Void,
+            vec![],
+            vec![HirStatement::VariableDeclaration {
+                name: "ptr".to_string(),
+                var_type: HirType::Pointer(Box::new(HirType::Int)),
+                initializer: Some(HirExpression::FunctionCall {
+                    function: "malloc".to_string(),
+                    arguments: vec![],
+                }),
+            }],
+        );
+        let detector = PatternDetector::new();
+        // box candidates: malloc with no args is still a malloc call
+        assert_eq!(detector.find_box_candidates(&func).len(), 1);
+        // vec candidates: needs args[0] to check for multiply pattern
+        assert!(detector.find_vec_candidates(&func).is_empty());
+    }
+
+    #[test]
     fn test_detect_malloc_in_variable_declaration() {
         let func = HirFunction::new_with_body(
             "test".to_string(),
