@@ -255,7 +255,7 @@ The transpiler must preserve C program semantics. Differential testing compiles 
 
 ### Coverage Results
 
-Post-implementation workspace coverage: **97.43% region, 97.59% line** (target: 95% — EXCEEDED)
+Post-implementation workspace coverage: **97.44% region, 97.60% line** (target: 95% — EXCEEDED)
 
 | Crate | Region | Line | Notes |
 |-------|--------|------|-------|
@@ -263,7 +263,7 @@ Post-implementation workspace coverage: **97.43% region, 97.59% line** (target: 
 | decy-hir | 100% | 100% | Full coverage via integration tests |
 | decy-analyzer | 97.00% | — | Lock analysis, subprocess analysis at 90-96% |
 | decy-ownership | 98.90% | — | 17 inference branch tests added via graph helpers |
-| decy-codegen | 96.77% | 96.25% | 1,110 deep coverage tests (29 batches) |
+| decy-codegen | 96.84% | 96.30% | 1,119 deep coverage tests (30 batches) |
 | decy-verify | 99.23% | 98.92% | Compile verification fully tested |
 | decy-core | 97.61% | 97.80% | Pipeline tests + uninitialized globals + enum/function dedup |
 | decy-stdlib | 100% | 100% | Full coverage |
@@ -274,7 +274,7 @@ Post-implementation workspace coverage: **97.43% region, 97.59% line** (target: 
 
 - **Total tests**: 12,900+ passing across workspace
 - **Falsification tests**: 2,150 total (92 falsified, 95.7% pass rate)
-- **Codegen deep tests**: 1,110 across 29 batches (expression target type, annotated signatures, type coercions, null checks, pointer analysis, Vec/Box transforms, deref assigns, sizeof, global variables, format specifiers, strlen idioms, string iter func args, BinaryOp target_type paths, statement_modifies_variable, generate_function variants, Option/Box null checks, mixed arithmetic promotions, comma operator, assignment expressions, pointer subtraction detection, void* constraints, macro type inference, malloc statement paths, char-int coercion, NULL comparison detection, pointer arithmetic detection, strip_unsafe, malloc fallback, sizeof struct field, sizeof member access, LogicalNot int target, AddressOf call args, Vec init paths, transform_vec_statement, output params, format positions, array param slice)
+- **Codegen deep tests**: 1,119 across 30 batches (expression target type, annotated signatures, type coercions, null checks, pointer analysis, Vec/Box transforms, deref assigns, sizeof, global variables, format specifiers, strlen idioms, string iter func args, BinaryOp target_type paths, statement_modifies_variable, generate_function variants, Option/Box null checks, mixed arithmetic promotions, comma operator, assignment expressions, pointer subtraction detection, void* constraints, macro type inference, malloc statement paths, char-int coercion, NULL comparison detection, pointer arithmetic detection, strip_unsafe, malloc fallback, sizeof struct field, sizeof member access, LogicalNot int target, AddressOf call args, Vec init paths, transform_vec_statement, output params, format positions, array param slice, char array escape, string ref arrays, count param heuristic, Box default/zeroed init)
 - **LLM coverage tests**: 30 (render multi-function, validate edge cases, parse_response, context builder non-existent function paths, verifier compile/lint/run_tests, iteration context feedback, VerificationLoop format feedback)
 - **Oracle trace verifier tests**: 43 (compilation, wrapping, unsafe modes, stats tracking, batch verification, pass_rate zero, defaults, unsafe counting variants)
 - **Core pipeline tests**: 12 new (uninitialized globals, enum variants, function dedup)
