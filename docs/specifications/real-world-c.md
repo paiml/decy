@@ -255,20 +255,20 @@ The transpiler must preserve C program semantics. Differential testing compiles 
 
 ### Coverage Results
 
-Post-implementation workspace coverage: **97.49% region, 97.64% line** (target: 95% — EXCEEDED)
+Post-implementation workspace coverage: **97.97% region, 97.78% line** (target: 95% — EXCEEDED)
 
 | Crate | Region | Line | Notes |
 |-------|--------|------|-------|
-| decy-parser | 93.13% | — | FFI/clang-sys boundary code |
+| decy-parser | 93.13% | 91.99% | FFI/clang-sys boundary code (349 uncovered) |
 | decy-hir | 100% | 100% | Full coverage via integration tests |
-| decy-analyzer | 97.00% | — | Lock analysis, subprocess analysis at 90-96% |
-| decy-ownership | 98.90% | — | 17 inference branch tests added via graph helpers |
+| decy-analyzer | 97.00% | — | Lock analysis, subprocess analysis, output params covered |
+| decy-ownership | 98.90% | — | Inference escape paths, InlineAsm passthrough covered |
 | decy-codegen | 96.88% | 96.30% | 1,176 deep coverage tests (35 batches) |
-| decy-verify | 99.23% | 98.92% | Compile verification fully tested |
+| decy-verify | 99.23% | 100% | lock_verify 100%, compile verification fully tested |
 | decy-core | 97.61% | 97.80% | Pipeline tests + uninitialized globals + enum/function dedup |
 | decy-stdlib | 100% | 100% | Full coverage |
 | decy-llm | 97.63% | — | Render, validate, parse_response, context builder, verifier edge cases |
-| decy-oracle | 97.99% | — | Trace verifier: wrapping, unsafe modes, stats tracking, batch verification |
+| decy-oracle | 98.16% | — | Verification Default/stats, trace verifier, baseline edge cases |
 
 ### Test Corpus
 

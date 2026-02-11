@@ -981,4 +981,11 @@ mod tests {
         assert_eq!(mgr.rollback_history().len(), 1);
         assert_eq!(mgr.rollback_history()[0].reason, "Test rollback");
     }
+
+    #[test]
+    fn version_manager_default_trait() {
+        let mgr = ModelVersionManager::default();
+        assert!(mgr.active_version().is_none());
+        assert_eq!(mgr.version_count(), 0);
+    }
 }
