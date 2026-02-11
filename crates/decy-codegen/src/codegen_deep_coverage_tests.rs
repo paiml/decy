@@ -21905,3 +21905,215 @@ fn gen_sig_multiple_output_params_fallible_result() {
         code
     );
 }
+
+// ============================================================================
+// BATCH 32: strlen==0→is_empty, PostDecrement pointer, PostIncrement pointer,
+//           (*p)++/(*p)--, string ref postincrement, strcmp ptr field (10 tests)
+// ============================================================================
+
+// --- DECY-199: strlen(s) == 0 → s.is_empty() (lines 1429-1444) ---
+
+#[test]
+fn strlen_equal_zero_becomes_is_empty() {
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    // strlen(s) == 0 → s.is_empty()
+    let expr = HirExpression::BinaryOp {
+        op: BinaryOperator::Equal,
+        left: Box::new(HirExpression::FunctionCall {
+            function: "strlen".to_string(),
+            arguments: vec![HirExpression::Variable("s".to_string())],
+        }),
+        right: Box::new(HirExpression::IntLiteral(0)),
+    };
+    let code = cg.generate_expression_with_context(&expr, &ctx);
+    assert!(
+        code.contains(".is_empty()"),
+        "strlen(s) == 0 should become s.is_empty(), Got: {}",
+        code
+    );
+}
+
+// --- DECY-199: strlen(s) != 0 → !s.is_empty() (line 1440) ---
+
+#[test]
+fn strlen_not_equal_zero_becomes_not_is_empty() {
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    let expr = HirExpression::BinaryOp {
+        op: BinaryOperator::NotEqual,
+        left: Box::new(HirExpression::FunctionCall {
+            function: "strlen".to_string(),
+            arguments: vec![HirExpression::Variable("s".to_string())],
+        }),
+        right: Box::new(HirExpression::IntLiteral(0)),
+    };
+    let code = cg.generate_expression_with_context(&expr, &ctx);
+    assert!(
+        code.contains("!s.is_empty()"),
+        "strlen(s) != 0 should become !s.is_empty(), Got: {}",
+        code
+    );
+}
+
+// --- DECY-199: 0 == strlen(s) → s.is_empty() (lines 1447-1462) ---
+
+#[test]
+fn zero_equal_strlen_becomes_is_empty() {
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    let expr = HirExpression::BinaryOp {
+        op: BinaryOperator::Equal,
+        left: Box::new(HirExpression::IntLiteral(0)),
+        right: Box::new(HirExpression::FunctionCall {
+            function: "strlen".to_string(),
+            arguments: vec![HirExpression::Variable("msg".to_string())],
+        }),
+    };
+    let code = cg.generate_expression_with_context(&expr, &ctx);
+    assert!(
+        code.contains(".is_empty()"),
+        "0 == strlen(msg) should become msg.is_empty(), Got: {}",
+        code
+    );
+}
+
+// --- DECY-253: PostDecrement on pointer → wrapping_sub (lines 1958-1965) ---
+
+#[test]
+fn post_decrement_pointer_uses_wrapping_sub() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("ptr".to_string(), HirType::Pointer(Box::new(HirType::Int)));
+    let expr = HirExpression::UnaryOp {
+        op: decy_hir::UnaryOperator::PostDecrement,
+        operand: Box::new(HirExpression::Variable("ptr".to_string())),
+    };
+    let code = cg.generate_expression_with_context(&expr, &ctx);
+    assert!(
+        code.contains("wrapping_sub(1)"),
+        "Pointer post-decrement should use wrapping_sub, Got: {}",
+        code
+    );
+}
+
+// --- DECY-253: PostIncrement on pointer → wrapping_add (lines 1940-1947) ---
+
+#[test]
+fn post_increment_pointer_uses_wrapping_add() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("ptr".to_string(), HirType::Pointer(Box::new(HirType::Char)));
+    let expr = HirExpression::UnaryOp {
+        op: decy_hir::UnaryOperator::PostIncrement,
+        operand: Box::new(HirExpression::Variable("ptr".to_string())),
+    };
+    let code = cg.generate_expression_with_context(&expr, &ctx);
+    assert!(
+        code.contains("wrapping_add(1)"),
+        "Pointer post-increment should use wrapping_add, Got: {}",
+        code
+    );
+}
+
+// --- DECY-255: (*p)++ on pointer → unsafe deref increment (lines 3318-3328) ---
+
+#[test]
+fn post_increment_deref_pointer_unsafe() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("p".to_string(), HirType::Pointer(Box::new(HirType::Int)));
+    // (*p)++ → deref of pointer, then increment
+    let expr = HirExpression::PostIncrement {
+        operand: Box::new(HirExpression::Dereference(
+            Box::new(HirExpression::Variable("p".to_string())),
+        )),
+    };
+    let code = cg.generate_expression_with_context(&expr, &ctx);
+    assert!(
+        code.contains("unsafe") && code.contains("*p"),
+        "(*p)++ should use unsafe deref, Got: {}",
+        code
+    );
+}
+
+// --- DECY-255: (*p)-- on pointer → unsafe deref decrement (lines 3382-3388) ---
+
+#[test]
+fn post_decrement_deref_pointer_unsafe() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("p".to_string(), HirType::Pointer(Box::new(HirType::Int)));
+    let expr = HirExpression::PostDecrement {
+        operand: Box::new(HirExpression::Dereference(
+            Box::new(HirExpression::Variable("p".to_string())),
+        )),
+    };
+    let code = cg.generate_expression_with_context(&expr, &ctx);
+    assert!(
+        code.contains("unsafe") && code.contains("*p") && code.contains("-= 1"),
+        "(*p)-- should use unsafe deref with -= 1, Got: {}",
+        code
+    );
+}
+
+// --- DECY-138: PostIncrement on &str → byte extraction + slice advance (lines 3304-3312) ---
+
+#[test]
+fn post_increment_string_ref_byte_extraction() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("key".to_string(), HirType::StringReference);
+    let expr = HirExpression::PostIncrement {
+        operand: Box::new(HirExpression::Variable("key".to_string())),
+    };
+    let code = cg.generate_expression_with_context(&expr, &ctx);
+    assert!(
+        code.contains("as_bytes()") && code.contains("&key[1..]"),
+        "PostIncrement on &str should extract byte and advance slice, Got: {}",
+        code
+    );
+}
+
+// --- DECY-253: PostDecrement on pointer in statement context (lines 3395-3399) ---
+
+#[test]
+fn post_decrement_pointer_statement_wrapping_sub() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("end".to_string(), HirType::Pointer(Box::new(HirType::Char)));
+    let expr = HirExpression::PostDecrement {
+        operand: Box::new(HirExpression::Variable("end".to_string())),
+    };
+    let code = cg.generate_expression_with_context(&expr, &ctx);
+    assert!(
+        code.contains("wrapping_sub(1)"),
+        "Pointer PostDecrement should use wrapping_sub, Got: {}",
+        code
+    );
+}
+
+// --- DECY-140: PointerFieldAccess arg in strcmp → CStr conversion (lines 2803-2812) ---
+
+#[test]
+fn strcmp_pointer_field_access_cstr_conversion() {
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    // strcmp(entry->key, "test") where entry->key is char*
+    let expr = HirExpression::FunctionCall {
+        function: "strcmp".to_string(),
+        arguments: vec![
+            HirExpression::PointerFieldAccess {
+                pointer: Box::new(HirExpression::Variable("entry".to_string())),
+                field: "key".to_string(),
+            },
+            HirExpression::StringLiteral("test".to_string()),
+        ],
+    };
+    let code = cg.generate_expression_with_context(&expr, &ctx);
+    assert!(
+        code.contains("CStr") || code.contains("strcmp"),
+        "strcmp with pointer field access should generate CStr or strcmp, Got: {}",
+        code
+    );
+}
