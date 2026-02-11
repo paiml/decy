@@ -2,8 +2,8 @@
 
 **Status**: Active (S1/S2 Implemented)
 **Created**: 2026-02-10
-**Updated**: 2026-02-10
-**Version**: 1.1
+**Updated**: 2026-02-11
+**Version**: 1.2
 
 ## Problem Statement
 
@@ -255,7 +255,7 @@ The transpiler must preserve C program semantics. Differential testing compiles 
 
 ### Coverage Results
 
-Post-implementation workspace coverage: **97.44% region, 97.60% line** (target: 95% — EXCEEDED)
+Post-implementation workspace coverage: **97.49% region, 97.64% line** (target: 95% — EXCEEDED)
 
 | Crate | Region | Line | Notes |
 |-------|--------|------|-------|
@@ -263,7 +263,7 @@ Post-implementation workspace coverage: **97.44% region, 97.60% line** (target: 
 | decy-hir | 100% | 100% | Full coverage via integration tests |
 | decy-analyzer | 97.00% | — | Lock analysis, subprocess analysis at 90-96% |
 | decy-ownership | 98.90% | — | 17 inference branch tests added via graph helpers |
-| decy-codegen | 96.85% | 96.30% | 1,148 deep coverage tests (33 batches) |
+| decy-codegen | 96.88% | 96.30% | 1,176 deep coverage tests (35 batches) |
 | decy-verify | 99.23% | 98.92% | Compile verification fully tested |
 | decy-core | 97.61% | 97.80% | Pipeline tests + uninitialized globals + enum/function dedup |
 | decy-stdlib | 100% | 100% | Full coverage |
@@ -272,9 +272,9 @@ Post-implementation workspace coverage: **97.44% region, 97.60% line** (target: 
 
 ### Test Corpus
 
-- **Total tests**: 13,000+ passing across workspace
+- **Total tests**: 13,100+ passing across workspace
 - **Falsification tests**: 2,150 total (92 falsified, 95.7% pass rate)
-- **Codegen deep tests**: 1,148 across 33 batches (expression target type, annotated signatures, type coercions, null checks, pointer analysis, Vec/Box transforms, deref assigns, sizeof, global variables, format specifiers, strlen idioms, string iter func args, BinaryOp target_type paths, statement_modifies_variable, generate_function variants, Option/Box null checks, mixed arithmetic promotions, comma operator, assignment expressions, pointer subtraction detection, void* constraints, macro type inference, malloc statement paths, char-int coercion, NULL comparison detection, pointer arithmetic detection, strip_unsafe, malloc fallback, sizeof struct field, sizeof member access, LogicalNot int target, AddressOf call args, Vec init paths, transform_vec_statement, output params, format positions, array param slice, char array escape, string ref arrays, count param heuristic, Box default/zeroed init, Vec/Box null→false/true, *str++ deref elision, pointer field→null_mut, annotated non-slice ref, strlen→is_empty, pointer post-inc/dec wrapping_add/sub, (*p)++/-- unsafe, &str byte extract, Option→is_none/is_some, array→void* cast, global array assign unsafe, sizeof ctx field lookup, ptr-to-ptr deref unsafe, int→char as u8)
+- **Codegen deep tests**: 1,176 across 35 batches (expression target type, annotated signatures, type coercions, null checks, pointer analysis, Vec/Box transforms, deref assigns, sizeof, global variables, format specifiers, strlen idioms, string iter func args, BinaryOp target_type paths, statement_modifies_variable, generate_function variants, Option/Box null checks, mixed arithmetic promotions, comma operator, assignment expressions, pointer subtraction detection, void* constraints, macro type inference, malloc statement paths, char-int coercion, NULL comparison detection, pointer arithmetic detection, strip_unsafe, malloc fallback, sizeof struct field, sizeof member access, LogicalNot int target, AddressOf call args, Vec init paths, transform_vec_statement, output params, format positions, array param slice, char array escape, string ref arrays, count param heuristic, Box default/zeroed init, Vec/Box null→false/true, *str++ deref elision, pointer field→null_mut, annotated non-slice ref, strlen→is_empty, pointer post-inc/dec wrapping_add/sub, (*p)++/-- unsafe, &str byte extract, Option→is_none/is_some, array→void* cast, global array assign unsafe, sizeof ctx field lookup, ptr-to-ptr deref unsafe, int→char as u8, macro generation (object/function-like, ternary, octal, hex, char, float, empty), typedef redundancy (struct/enum name match), constant char*→&str mapping, LogicalNot bool/int target type coercion, main signature return type elision, default_value_for_type (FunctionPointer, String, TypeAlias))
 - **LLM coverage tests**: 30 (render multi-function, validate edge cases, parse_response, context builder non-existent function paths, verifier compile/lint/run_tests, iteration context feedback, VerificationLoop format feedback)
 - **Oracle trace verifier tests**: 43 (compilation, wrapping, unsafe modes, stats tracking, batch verification, pass_rate zero, defaults, unsafe counting variants)
 - **Core pipeline tests**: 12 new (uninitialized globals, enum variants, function dedup)
@@ -305,7 +305,26 @@ All changes in this specification must pass:
 
 - `cargo build --workspace` — clean compile
 - `cargo clippy --workspace -- -D warnings` — zero warnings
-- `cargo test --workspace` — all tests pass (12,850+)
+- `cargo test --workspace` — all tests pass (13,100+)
 - Line coverage >= 95% (`cargo llvm-cov --workspace`)
 - No regressions in existing falsification tests
 - New tests for every falsifiable prediction marked as implemented
+
+## Coverage Gap Analysis (codegen/lib.rs)
+
+120 uncovered line starts remain in codegen/lib.rs (96.30% line coverage). Classification:
+
+| Category | Count | % | Coverable? |
+|----------|-------|---|------------|
+| `?` error propagation on infallible functions | 3 | 2.5% | No — functions always return Ok |
+| `unreachable!()` / `panic!()` macros | 5 | 4.2% | No — would crash tests |
+| Dead code (early match shadows) | 4 | 3.3% | No — LogicalNot caught by earlier handler |
+| Closing braces (LLVM coverage artifact) | ~40 | 33.3% | No — coverage instrumentation artifact |
+| Deep integration paths (variable declaration, assignment, function body generation) | ~55 | 45.8% | Only via full pipeline tests with parser |
+| Edge case branches (realloc, string_iter, ptr arithmetic detection) | ~13 | 10.8% | Partially — requires complex context setup |
+
+**Key insight**: The remaining uncovered lines are at the coverage asymptote. Further gains require full-pipeline integration tests (C source → parser → HIR → codegen) rather than unit tests. The 120 remaining lines represent deep statement generation paths triggered by specific combinations of variable types, initializers, and function body structure that only occur when processing real C files through the complete transpilation pipeline.
+
+**Recommendation**: Future coverage improvements should focus on:
+1. Adding integration tests with small C files targeting specific patterns (malloc+realloc, string iteration, pointer-to-pointer)
+2. The ~13 edge case branches with complex context setup are the highest-ROI unit test targets
