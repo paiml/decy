@@ -255,26 +255,26 @@ The transpiler must preserve C program semantics. Differential testing compiles 
 
 ### Coverage Results
 
-Post-implementation workspace coverage: **97.47% line coverage** (target: 95%)
+Post-implementation workspace coverage: **92.16% line coverage** (libs only, target: 95%)
 
-| Crate | Coverage | Notes |
-|-------|----------|-------|
-| decy-parser | 93.13% | FFI/clang-sys boundary code |
-| decy-hir | 97.50% | Well-covered via falsification + unit tests |
-| decy-analyzer | 97.00% | Lock analysis, subprocess analysis at 90-96% |
-| decy-ownership | 98.90% | 17 inference branch tests added via graph helpers |
-| decy-codegen | 94.86% | 834 deep coverage tests (expression target type, annotated signatures, type coercions, null checks, pointer analysis, transforms, generate_function variants, statement_modifies_variable) |
-| decy-verify | 98.92% | Compile verification fully tested |
-| decy-core | 97.61% | Pipeline tests + uninitialized globals + enum/function dedup |
-| decy-stdlib | 100.00% | Complete coverage |
-| decy-llm | 97.63% | Render, validate, parse_response, context builder, verifier/iteration framework edge cases |
-| decy-oracle | 97.99% | Trace verifier: wrapping, unsafe modes, stats tracking, batch verification |
+| Crate | Region | Line | Notes |
+|-------|--------|------|-------|
+| decy-parser | 93.13% | — | FFI/clang-sys boundary code |
+| decy-hir | 58.26% | 63.56% | AST conversion (from_ast) paths need more coverage |
+| decy-analyzer | 97.00% | — | Lock analysis, subprocess analysis at 90-96% |
+| decy-ownership | 98.90% | — | 17 inference branch tests added via graph helpers |
+| decy-codegen | 94.36% | 93.74% | 1039 deep coverage tests (22 batches) |
+| decy-verify | 99.23% | 98.92% | Compile verification fully tested |
+| decy-core | 89.79% | 89.97% | Pipeline tests + uninitialized globals + enum/function dedup |
+| decy-stdlib | 99.72% | 99.69% | Near-complete coverage |
+| decy-llm | 97.63% | — | Render, validate, parse_response, context builder, verifier edge cases |
+| decy-oracle | 97.99% | — | Trace verifier: wrapping, unsafe modes, stats tracking, batch verification |
 
 ### Test Corpus
 
-- **Total tests**: 12,559 passing across workspace
+- **Total tests**: 12,810+ passing across workspace
 - **Falsification tests**: 2,150 total (92 falsified, 95.7% pass rate)
-- **Codegen deep tests**: 834 (expression target type paths, annotated signature generation, type inference, var-to-ptr conversions, null checks, pointer analysis, Vec/Box transforms, deref assigns, sizeof, global variables, format specifiers, strlen idioms, string iter func args, BinaryOp target_type paths, statement_modifies_variable, generate_function variants, Option/Box null checks, mixed arithmetic promotions, comma operator)
+- **Codegen deep tests**: 1,039 across 22 batches (expression target type, annotated signatures, type coercions, null checks, pointer analysis, Vec/Box transforms, deref assigns, sizeof, global variables, format specifiers, strlen idioms, string iter func args, BinaryOp target_type paths, statement_modifies_variable, generate_function variants, Option/Box null checks, mixed arithmetic promotions, comma operator, assignment expressions, pointer subtraction detection, void* constraints, macro type inference, malloc statement paths, char-int coercion)
 - **LLM coverage tests**: 30 (render multi-function, validate edge cases, parse_response, context builder non-existent function paths, verifier compile/lint/run_tests, iteration context feedback, VerificationLoop format feedback)
 - **Oracle trace verifier tests**: 43 (compilation, wrapping, unsafe modes, stats tracking, batch verification, pass_rate zero, defaults, unsafe counting variants)
 - **Core pipeline tests**: 12 new (uninitialized globals, enum variants, function dedup)
@@ -305,7 +305,7 @@ All changes in this specification must pass:
 
 - `cargo build --workspace` — clean compile
 - `cargo clippy --workspace -- -D warnings` — zero warnings
-- `cargo test --workspace` — all tests pass (1700+)
+- `cargo test --workspace` — all tests pass (12,800+)
 - Line coverage >= 95% (`cargo llvm-cov --workspace`)
 - No regressions in existing falsification tests
 - New tests for every falsifiable prediction marked as implemented
