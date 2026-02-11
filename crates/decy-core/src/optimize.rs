@@ -1145,4 +1145,138 @@ mod tests {
         let optimized = optimize_function(&func);
         assert!(optimized.body().is_empty());
     }
+
+    // ============================================================================
+    // Additional coverage: fold_constants_stmt direct paths
+    // ============================================================================
+
+    #[test]
+    fn test_fold_constants_stmt_while() {
+        // while(2+3) { x = 1+1; }
+        let stmt = HirStatement::While {
+            condition: HirExpression::BinaryOp {
+                op: BinaryOperator::Add,
+                left: Box::new(HirExpression::IntLiteral(2)),
+                right: Box::new(HirExpression::IntLiteral(3)),
+            },
+            body: vec![HirStatement::Assignment {
+                target: "x".to_string(),
+                value: HirExpression::BinaryOp {
+                    op: BinaryOperator::Add,
+                    left: Box::new(HirExpression::IntLiteral(1)),
+                    right: Box::new(HirExpression::IntLiteral(1)),
+                },
+            }],
+        };
+        match fold_constants_stmt(stmt) {
+            HirStatement::While { condition, body } => {
+                assert_eq!(condition, HirExpression::IntLiteral(5));
+                match &body[0] {
+                    HirStatement::Assignment { value, .. } => {
+                        assert_eq!(*value, HirExpression::IntLiteral(2));
+                    }
+                    other => panic!("Expected Assignment, got {:?}", other),
+                }
+            }
+            other => panic!("Expected While, got {:?}", other),
+        }
+    }
+
+    #[test]
+    fn test_fold_constants_stmt_return_some() {
+        let stmt = HirStatement::Return(Some(HirExpression::BinaryOp {
+            op: BinaryOperator::Add,
+            left: Box::new(HirExpression::IntLiteral(10)),
+            right: Box::new(HirExpression::IntLiteral(20)),
+        }));
+        match fold_constants_stmt(stmt) {
+            HirStatement::Return(Some(HirExpression::IntLiteral(30))) => {}
+            other => panic!("Expected Return(Some(30)), got {:?}", other),
+        }
+    }
+
+    #[test]
+    fn test_fold_constants_stmt_return_none() {
+        let stmt = HirStatement::Return(None);
+        assert_eq!(fold_constants_stmt(stmt), HirStatement::Return(None));
+    }
+
+    #[test]
+    fn test_fold_constants_stmt_var_decl_none_init() {
+        let stmt = HirStatement::VariableDeclaration {
+            name: "x".to_string(),
+            var_type: HirType::Int,
+            initializer: None,
+        };
+        match fold_constants_stmt(stmt) {
+            HirStatement::VariableDeclaration { initializer: None, .. } => {}
+            other => panic!("Expected VarDecl with None init, got {:?}", other),
+        }
+    }
+
+    #[test]
+    fn test_fold_constants_stmt_if_with_else() {
+        let stmt = HirStatement::If {
+            condition: HirExpression::BinaryOp {
+                op: BinaryOperator::Add,
+                left: Box::new(HirExpression::IntLiteral(1)),
+                right: Box::new(HirExpression::IntLiteral(2)),
+            },
+            then_block: vec![HirStatement::Return(Some(HirExpression::BinaryOp {
+                op: BinaryOperator::Multiply,
+                left: Box::new(HirExpression::IntLiteral(3)),
+                right: Box::new(HirExpression::IntLiteral(4)),
+            }))],
+            else_block: Some(vec![HirStatement::Return(Some(HirExpression::BinaryOp {
+                op: BinaryOperator::Subtract,
+                left: Box::new(HirExpression::IntLiteral(10)),
+                right: Box::new(HirExpression::IntLiteral(5)),
+            }))]),
+        };
+        match fold_constants_stmt(stmt) {
+            HirStatement::If {
+                condition,
+                then_block,
+                else_block,
+            } => {
+                assert_eq!(condition, HirExpression::IntLiteral(3));
+                match &then_block[0] {
+                    HirStatement::Return(Some(HirExpression::IntLiteral(12))) => {}
+                    other => panic!("Expected Return(12), got {:?}", other),
+                }
+                let else_stmts = else_block.unwrap();
+                match &else_stmts[0] {
+                    HirStatement::Return(Some(HirExpression::IntLiteral(5))) => {}
+                    other => panic!("Expected Return(5), got {:?}", other),
+                }
+            }
+            other => panic!("Expected If, got {:?}", other),
+        }
+    }
+
+    #[test]
+    fn test_is_allocation_expr_function_call_realloc() {
+        assert!(is_allocation_expr(&HirExpression::FunctionCall {
+            function: "realloc".to_string(),
+            arguments: vec![
+                HirExpression::Variable("p".to_string()),
+                HirExpression::IntLiteral(128),
+            ],
+        }));
+    }
+
+    #[test]
+    fn test_fold_constants_stmt_for_none_condition() {
+        // for(;;) → condition is None
+        let stmt = HirStatement::For {
+            init: vec![],
+            condition: None,
+            increment: vec![],
+            body: vec![HirStatement::Break],
+        };
+        match fold_constants_stmt(stmt) {
+            HirStatement::For { condition: None, .. } => {}
+            other => panic!("Expected For with None condition, got {:?}", other),
+        }
+    }
 }

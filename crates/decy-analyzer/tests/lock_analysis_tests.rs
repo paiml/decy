@@ -685,6 +685,241 @@ fn test_literal_expressions_in_locked_region() {
 // INTEGRATION TEST
 // ============================================================================
 
+// ============================================================================
+// UNCOVERED PATH TESTS (DECY-COVERAGE)
+// ============================================================================
+
+#[test]
+fn test_expression_statement_in_locked_region() {
+    // Covers HirStatement::Expression path (line 232) with a function call
+    let func = HirFunction::new_with_body(
+        "test".to_string(),
+        HirType::Void,
+        vec![],
+        vec![
+            lock_call("lock"),
+            HirStatement::Expression(HirExpression::FunctionCall {
+                function: "process".to_string(),
+                arguments: vec![
+                    HirExpression::Variable("data".to_string()),
+                    HirExpression::Variable("buf".to_string()),
+                ],
+            }),
+            unlock_call("lock"),
+        ],
+    );
+
+    let analyzer = LockAnalyzer::new();
+    let mapping = analyzer.analyze_lock_data_mapping(&func);
+
+    assert!(mapping.is_protected_by("data", "lock"));
+    assert!(mapping.is_protected_by("buf", "lock"));
+}
+
+#[test]
+fn test_address_of_expression_in_locked_region() {
+    // Covers HirExpression::AddressOf path (line 281)
+    let func = HirFunction::new_with_body(
+        "test".to_string(),
+        HirType::Void,
+        vec![],
+        vec![
+            lock_call("lock"),
+            HirStatement::Expression(HirExpression::FunctionCall {
+                function: "send".to_string(),
+                arguments: vec![HirExpression::AddressOf(Box::new(
+                    HirExpression::Variable("data".to_string()),
+                ))],
+            }),
+            unlock_call("lock"),
+        ],
+    );
+
+    let analyzer = LockAnalyzer::new();
+    let mapping = analyzer.analyze_lock_data_mapping(&func);
+
+    assert!(mapping.is_protected_by("data", "lock"));
+}
+
+#[test]
+fn test_get_protected_data_unknown_lock() {
+    // Covers get_protected_data returning default (line 44-48)
+    let mapping = decy_analyzer::lock_analysis::LockDataMapping::new();
+    let data = mapping.get_protected_data("nonexistent_lock");
+    assert!(data.is_empty());
+}
+
+#[test]
+fn test_is_protected_by_unknown_lock() {
+    // Covers is_protected_by returning false for unknown lock
+    let mapping = decy_analyzer::lock_analysis::LockDataMapping::new();
+    assert!(!mapping.is_protected_by("data", "unknown_lock"));
+}
+
+#[test]
+fn test_lock_call_with_non_addressof_arg() {
+    // Non-AddressOf argument to pthread_mutex_lock → returns None
+    let func = HirFunction::new_with_body(
+        "test".to_string(),
+        HirType::Void,
+        vec![],
+        vec![
+            HirStatement::Expression(HirExpression::FunctionCall {
+                function: "pthread_mutex_lock".to_string(),
+                arguments: vec![HirExpression::Variable("lock".to_string())],
+            }),
+            HirStatement::Assignment {
+                target: "data".to_string(),
+                value: HirExpression::IntLiteral(1),
+            },
+            HirStatement::Expression(HirExpression::FunctionCall {
+                function: "pthread_mutex_unlock".to_string(),
+                arguments: vec![HirExpression::Variable("lock".to_string())],
+            }),
+        ],
+    );
+
+    let analyzer = LockAnalyzer::new();
+    let regions = analyzer.find_lock_regions(&func);
+    // Neither lock nor unlock is recognized → no regions
+    assert!(regions.is_empty());
+}
+
+#[test]
+fn test_lock_call_with_non_variable_inside_addressof() {
+    // AddressOf(IntLiteral) instead of AddressOf(Variable) → returns None
+    let func = HirFunction::new_with_body(
+        "test".to_string(),
+        HirType::Void,
+        vec![],
+        vec![
+            HirStatement::Expression(HirExpression::FunctionCall {
+                function: "pthread_mutex_lock".to_string(),
+                arguments: vec![HirExpression::AddressOf(Box::new(
+                    HirExpression::IntLiteral(0),
+                ))],
+            }),
+            HirStatement::Assignment {
+                target: "data".to_string(),
+                value: HirExpression::IntLiteral(1),
+            },
+        ],
+    );
+
+    let analyzer = LockAnalyzer::new();
+    let regions = analyzer.find_lock_regions(&func);
+    assert!(regions.is_empty());
+}
+
+#[test]
+fn test_lock_call_with_no_arguments() {
+    // pthread_mutex_lock with no arguments → returns None
+    let func = HirFunction::new_with_body(
+        "test".to_string(),
+        HirType::Void,
+        vec![],
+        vec![HirStatement::Expression(HirExpression::FunctionCall {
+            function: "pthread_mutex_lock".to_string(),
+            arguments: vec![],
+        })],
+    );
+
+    let analyzer = LockAnalyzer::new();
+    let regions = analyzer.find_lock_regions(&func);
+    assert!(regions.is_empty());
+}
+
+#[test]
+fn test_lock_analyzer_default() {
+    let analyzer = decy_analyzer::lock_analysis::LockAnalyzer::default();
+    let func = HirFunction::new_with_body(
+        "test".to_string(),
+        HirType::Void,
+        vec![],
+        vec![],
+    );
+    let regions = analyzer.find_lock_regions(&func);
+    assert!(regions.is_empty());
+}
+
+#[test]
+fn test_lock_data_mapping_default() {
+    let mapping = decy_analyzer::lock_analysis::LockDataMapping::default();
+    assert!(mapping.get_locks().is_empty());
+}
+
+#[test]
+fn test_non_lock_function_call_not_treated_as_lock() {
+    // A non-pthread function call should not be treated as lock/unlock
+    let func = HirFunction::new_with_body(
+        "test".to_string(),
+        HirType::Void,
+        vec![],
+        vec![
+            HirStatement::Expression(HirExpression::FunctionCall {
+                function: "some_other_function".to_string(),
+                arguments: vec![HirExpression::AddressOf(Box::new(
+                    HirExpression::Variable("lock".to_string()),
+                ))],
+            }),
+        ],
+    );
+
+    let analyzer = LockAnalyzer::new();
+    let regions = analyzer.find_lock_regions(&func);
+    assert!(regions.is_empty());
+}
+
+#[test]
+fn test_if_without_else_in_locked_region() {
+    // If statement with no else block in locked region
+    let func = HirFunction::new_with_body(
+        "test".to_string(),
+        HirType::Void,
+        vec![],
+        vec![
+            lock_call("lock"),
+            HirStatement::If {
+                condition: HirExpression::Variable("flag".to_string()),
+                then_block: vec![HirStatement::Assignment {
+                    target: "data".to_string(),
+                    value: HirExpression::IntLiteral(1),
+                }],
+                else_block: None,
+            },
+            unlock_call("lock"),
+        ],
+    );
+
+    let analyzer = LockAnalyzer::new();
+    let mapping = analyzer.analyze_lock_data_mapping(&func);
+
+    assert!(mapping.is_protected_by("flag", "lock"));
+    assert!(mapping.is_protected_by("data", "lock"));
+}
+
+#[test]
+fn test_discipline_no_violations() {
+    // Properly matched lock/unlock → no violations
+    let func = HirFunction::new_with_body(
+        "test".to_string(),
+        HirType::Void,
+        vec![],
+        vec![
+            lock_call("lock"),
+            HirStatement::Assignment {
+                target: "data".to_string(),
+                value: HirExpression::IntLiteral(1),
+            },
+            unlock_call("lock"),
+        ],
+    );
+
+    let analyzer = LockAnalyzer::new();
+    let violations = analyzer.check_lock_discipline(&func);
+    assert!(violations.is_empty());
+}
+
 #[test]
 fn test_end_to_end_lock_data_mapping() {
     let func = HirFunction::new_with_body(
