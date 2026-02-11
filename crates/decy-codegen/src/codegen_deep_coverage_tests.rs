@@ -25978,3 +25978,285 @@ fn expr_target_variable_immut_ref_to_ptr_single() {
         code
     );
 }
+
+// =============================================================================
+// Batch 47: Annotated signature param transformations + deep statement paths
+// =============================================================================
+
+#[test]
+fn sig_annotated_regular_char_ptr_param() {
+    // Regular (non-const) char* → stays as pointer or reference (not &str)
+    let func = HirFunction::new_with_body(
+        "greet".to_string(),
+        HirType::Void,
+        vec![HirParameter::new("name".to_string(), HirType::Pointer(Box::new(HirType::Char)))],
+        vec![],
+    );
+    let sig = make_annotated_sig(&func);
+    let cg = CodeGenerator::new();
+    let code = cg.generate_annotated_signature_with_func(&sig, Some(&func));
+    // Non-const char* should become &mut u8 (not &str)
+    assert!(
+        !code.contains("&str"),
+        "Non-const char* should not become &str: {}",
+        code
+    );
+}
+
+#[test]
+fn sig_annotated_void_ptr_stays_raw() {
+    // DECY-168: void* → *mut ()
+    let func = HirFunction::new_with_body(
+        "process".to_string(),
+        HirType::Void,
+        vec![HirParameter::new(
+            "data".to_string(),
+            HirType::Pointer(Box::new(HirType::Void)),
+        )],
+        vec![],
+    );
+    let sig = make_annotated_sig(&func);
+    let cg = CodeGenerator::new();
+    let code = cg.generate_annotated_signature_with_func(&sig, Some(&func));
+    assert!(
+        code.contains("*mut ()"),
+        "void* stays as *mut (): {}",
+        code
+    );
+}
+
+#[test]
+fn sig_annotated_ptr_arithmetic_stays_raw() {
+    // DECY-123: Pointer used in arithmetic → stays raw pointer
+    let func = HirFunction::new_with_body(
+        "traverse".to_string(),
+        HirType::Void,
+        vec![HirParameter::new(
+            "ptr".to_string(),
+            HirType::Pointer(Box::new(HirType::Int)),
+        )],
+        vec![
+            // ptr++: UnaryOp increment on pointer → pointer arithmetic
+            HirStatement::Assignment {
+                target: "ptr".to_string(),
+                value: HirExpression::BinaryOp {
+                    op: BinaryOperator::Add,
+                    left: Box::new(HirExpression::Variable("ptr".to_string())),
+                    right: Box::new(HirExpression::IntLiteral(1)),
+                },
+            },
+        ],
+    );
+    let sig = make_annotated_sig(&func);
+    let cg = CodeGenerator::new();
+    let code = cg.generate_annotated_signature_with_func(&sig, Some(&func));
+    assert!(
+        code.contains("*mut i32"),
+        "Pointer arithmetic → raw pointer: {}",
+        code
+    );
+}
+
+#[test]
+fn sig_annotated_unsized_array_param() {
+    // DECY-196: char arr[] → &mut [u8]
+    let func = HirFunction::new_with_body(
+        "fill".to_string(),
+        HirType::Void,
+        vec![HirParameter::new(
+            "buf".to_string(),
+            HirType::Array {
+                element_type: Box::new(HirType::Char),
+                size: None,
+            },
+        )],
+        vec![],
+    );
+    let sig = make_annotated_sig(&func);
+    let cg = CodeGenerator::new();
+    let code = cg.generate_annotated_signature_with_func(&sig, Some(&func));
+    assert!(
+        code.contains("&mut [u8]"),
+        "Unsized array → &mut [slice]: {}",
+        code
+    );
+}
+
+#[test]
+fn sig_annotated_main_no_return_type() {
+    // int main() → fn main() (no return type)
+    let func = HirFunction::new_with_body(
+        "main".to_string(),
+        HirType::Int,
+        vec![],
+        vec![],
+    );
+    let sig = make_annotated_sig(&func);
+    let cg = CodeGenerator::new();
+    let code = cg.generate_annotated_signature_with_func(&sig, Some(&func));
+    assert!(
+        !code.contains("-> i32"),
+        "main() should not have -> i32: {}",
+        code
+    );
+    assert!(
+        code.contains("fn main()"),
+        "Should be fn main(): {}",
+        code
+    );
+}
+
+#[test]
+fn sig_annotated_multiple_output_params_tuple() {
+    // DECY-085: Multiple output params → tuple return
+    let func = HirFunction::new_with_body(
+        "get_dimensions".to_string(),
+        HirType::Void,
+        vec![
+            HirParameter::new("input".to_string(), HirType::Int),
+            HirParameter::new(
+                "width".to_string(),
+                HirType::Pointer(Box::new(HirType::Int)),
+            ),
+            HirParameter::new(
+                "height".to_string(),
+                HirType::Pointer(Box::new(HirType::Int)),
+            ),
+        ],
+        vec![
+            // Write to *width (output)
+            HirStatement::DerefAssignment {
+                target: HirExpression::Variable("width".to_string()),
+                value: HirExpression::IntLiteral(800),
+            },
+            // Write to *height (output)
+            HirStatement::DerefAssignment {
+                target: HirExpression::Variable("height".to_string()),
+                value: HirExpression::IntLiteral(600),
+            },
+        ],
+    );
+    let sig = make_annotated_sig(&func);
+    let cg = CodeGenerator::new();
+    let code = cg.generate_annotated_signature_with_func(&sig, Some(&func));
+    assert!(
+        code.contains("(i32, i32)"),
+        "Multiple output params → tuple: {}",
+        code
+    );
+}
+
+#[test]
+fn sig_annotated_regular_ptr_to_mut_ref() {
+    // Regular pointer param without arithmetic → &mut T
+    let func = HirFunction::new_with_body(
+        "increment".to_string(),
+        HirType::Void,
+        vec![HirParameter::new(
+            "val".to_string(),
+            HirType::Pointer(Box::new(HirType::Int)),
+        )],
+        vec![
+            HirStatement::DerefAssignment {
+                target: HirExpression::Variable("val".to_string()),
+                value: HirExpression::IntLiteral(1),
+            },
+        ],
+    );
+    let sig = make_annotated_sig(&func);
+    let cg = CodeGenerator::new();
+    let code = cg.generate_annotated_signature_with_func(&sig, Some(&func));
+    // Without pointer arithmetic, should become &mut i32
+    assert!(
+        code.contains("&mut i32") || code.contains("*mut i32"),
+        "Regular ptr → &mut or *mut: {}",
+        code
+    );
+}
+
+#[test]
+fn sig_annotated_ptr_null_check_stays_raw() {
+    // DECY-137: Pointer compared to NULL → stays raw
+    let func = HirFunction::new_with_body(
+        "check_null".to_string(),
+        HirType::Int,
+        vec![HirParameter::new(
+            "ptr".to_string(),
+            HirType::Pointer(Box::new(HirType::Int)),
+        )],
+        vec![HirStatement::If {
+            condition: HirExpression::BinaryOp {
+                op: BinaryOperator::Equal,
+                left: Box::new(HirExpression::Variable("ptr".to_string())),
+                right: Box::new(HirExpression::IntLiteral(0)),
+            },
+            then_block: vec![HirStatement::Return(Some(HirExpression::IntLiteral(-1)))],
+            else_block: Some(vec![HirStatement::Return(Some(HirExpression::IntLiteral(0)))]),
+        }],
+    );
+    let sig = make_annotated_sig(&func);
+    let cg = CodeGenerator::new();
+    let code = cg.generate_annotated_signature_with_func(&sig, Some(&func));
+    assert!(
+        code.contains("*mut i32"),
+        "Null-checked pointer stays raw: {}",
+        code
+    );
+}
+
+#[test]
+fn sig_annotated_vec_return_detection() {
+    // DECY-142: Function returning malloc'd array → Vec<T>
+    let func = HirFunction::new_with_body(
+        "create_buffer".to_string(),
+        HirType::Pointer(Box::new(HirType::Int)),
+        vec![HirParameter::new("size".to_string(), HirType::Int)],
+        vec![
+            HirStatement::VariableDeclaration {
+                name: "buf".to_string(),
+                var_type: HirType::Pointer(Box::new(HirType::Int)),
+                initializer: Some(HirExpression::FunctionCall {
+                    function: "malloc".to_string(),
+                    arguments: vec![HirExpression::BinaryOp {
+                        op: BinaryOperator::Multiply,
+                        left: Box::new(HirExpression::Variable("size".to_string())),
+                        right: Box::new(HirExpression::Sizeof {
+                            type_name: "int".to_string(),
+                        }),
+                    }],
+                }),
+            },
+            HirStatement::Return(Some(HirExpression::Variable("buf".to_string()))),
+        ],
+    );
+    let sig = make_annotated_sig(&func);
+    let cg = CodeGenerator::new();
+    let code = cg.generate_annotated_signature_with_func(&sig, Some(&func));
+    assert!(
+        code.contains("Vec<i32>"),
+        "Malloc'd return → Vec<i32>: {}",
+        code
+    );
+}
+
+#[test]
+fn sig_annotated_non_void_return_type() {
+    // Regular non-void return type
+    let func = HirFunction::new_with_body(
+        "add".to_string(),
+        HirType::Double,
+        vec![
+            HirParameter::new("a".to_string(), HirType::Double),
+            HirParameter::new("b".to_string(), HirType::Double),
+        ],
+        vec![],
+    );
+    let sig = make_annotated_sig(&func);
+    let cg = CodeGenerator::new();
+    let code = cg.generate_annotated_signature_with_func(&sig, Some(&func));
+    assert!(
+        code.contains("-> f64"),
+        "Non-void return type: {}",
+        code
+    );
+}
