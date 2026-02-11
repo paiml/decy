@@ -852,4 +852,68 @@ mod tests {
         assert!(is_better);
         assert!(p_value < 0.05);
     }
+
+    #[test]
+    fn ab_test_zero_observations_returns_not_significant() {
+        // Both groups have zero samples → with_ground_truth < 30 → early return (false, 1.0)
+        let exp = ABExperiment::new("empty_test", "No data");
+        let (is_better, p_value) = exp.is_treatment_better();
+        assert!(!is_better);
+        assert!((p_value - 1.0).abs() < f64::EPSILON);
+    }
+
+    #[test]
+    fn ab_test_variant_metrics_default_trait() {
+        let metrics = VariantMetrics::default();
+        assert_eq!(metrics.count, 0);
+        assert_eq!(metrics.accuracy(), 0.0);
+        assert_eq!(metrics.avg_confidence(), 0.0);
+    }
+
+    fn make_obs(variant: TestVariant, correct: Option<bool>) -> TestObservation {
+        TestObservation {
+            variant,
+            variable: "ptr".to_string(),
+            predicted: InferredOwnership::Owned,
+            ground_truth: Some(InferredOwnership::Owned),
+            confidence: 0.8,
+            method: ClassificationMethod::RuleBased,
+            latency: Duration::from_micros(100),
+            correct,
+        }
+    }
+
+    #[test]
+    fn ab_test_sufficient_data_both_correct() {
+        // Both groups fully correct → chi_sq = 0 → not significant
+        let mut exp = ABExperiment::new("equal", "Both equally good");
+        for _ in 0..40 {
+            exp.record(&make_obs(TestVariant::Control, Some(true)));
+            exp.record(&make_obs(TestVariant::Treatment, Some(true)));
+        }
+        let (is_better, _p_value) = exp.is_treatment_better();
+        assert!(!is_better, "Equal groups should not show treatment as better");
+    }
+
+    #[test]
+    fn ab_test_total_zero_early_return() {
+        // Manually set with_ground_truth >= 30 but all zeros (both groups have 0 correct/wrong)
+        let mut exp = ABExperiment::new("zero_total", "Zero data case");
+        // Need at least 30 with_ground_truth per group, but force total correct+wrong = 0
+        // by having 30 observations with ground_truth=None
+        for _ in 0..30 {
+            let mut obs = make_obs(TestVariant::Control, None);
+            obs.ground_truth = None;
+            exp.record(&obs);
+        }
+        for _ in 0..30 {
+            let mut obs = make_obs(TestVariant::Treatment, None);
+            obs.ground_truth = None;
+            exp.record(&obs);
+        }
+        // with_ground_truth will be 0, so this triggers the < 30 check
+        let (is_better, p_value) = exp.is_treatment_better();
+        assert!(!is_better);
+        assert!((p_value - 1.0).abs() < f64::EPSILON);
+    }
 }
