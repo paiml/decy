@@ -366,4 +366,64 @@ mod tests {
         assert!((thresholds.min_hit_rate - 0.5).abs() < 0.01);
         assert!((thresholds.min_fix_rate - 0.8).abs() < 0.01);
     }
+
+    #[test]
+    fn test_record_pattern_captured() {
+        let mut metrics = OracleMetrics::default();
+        assert_eq!(metrics.patterns_captured, 0);
+        metrics.record_pattern_captured();
+        assert_eq!(metrics.patterns_captured, 1);
+        metrics.record_pattern_captured();
+        assert_eq!(metrics.patterns_captured, 2);
+    }
+
+    #[test]
+    fn test_to_prometheus() {
+        let mut metrics = OracleMetrics::default();
+        metrics.record_hit("E0382");
+        metrics.record_fix_applied("E0382");
+        metrics.record_fix_verified("E0382");
+        metrics.record_pattern_captured();
+
+        let prom = metrics.to_prometheus();
+        assert!(prom.contains("decy_oracle_queries_total 1"), "Got: {}", prom);
+        assert!(prom.contains("decy_oracle_hits_total 1"), "Got: {}", prom);
+        assert!(prom.contains("decy_oracle_hit_rate 1"), "Got: {}", prom);
+        assert!(prom.contains("decy_oracle_fixes_applied_total 1"), "Got: {}", prom);
+        assert!(prom.contains("decy_oracle_fixes_verified_total 1"), "Got: {}", prom);
+        assert!(prom.contains("decy_oracle_fix_success_rate 1"), "Got: {}", prom);
+    }
+
+    #[test]
+    fn test_meets_ci_thresholds_fix_rate_fail() {
+        let mut metrics = OracleMetrics::default();
+        metrics.record_hit("E0382");
+        metrics.record_fix_applied("E0382");
+        metrics.record_fix_applied("E0382");
+        // 0 verified of 2 applied = 0% fix rate
+        // Hit rate is 100%, fix rate is 0% — should fail on fix rate
+        assert!(!metrics.meets_ci_thresholds(0.5, 0.8));
+    }
+
+    #[test]
+    fn test_ci_report_to_json() {
+        let mut metrics = OracleMetrics::default();
+        metrics.record_hit("E0382");
+        let report = CIReport::from_metrics(metrics, CIThresholds::default());
+        let json = report.to_json();
+        assert!(json.contains("hit_rate_pct"), "Got: {}", json);
+        assert!(json.contains("passed"), "Got: {}", json);
+    }
+
+    #[test]
+    fn test_ci_report_to_markdown_failed() {
+        let mut metrics = OracleMetrics::default();
+        metrics.record_miss("E0382");
+        metrics.record_miss("E0308");
+        // 0% hit rate — should fail
+        let report = CIReport::from_metrics(metrics, CIThresholds::default());
+        assert!(!report.passed);
+        let md = report.to_markdown();
+        assert!(md.contains("FAILED"), "Got: {}", md);
+    }
 }
