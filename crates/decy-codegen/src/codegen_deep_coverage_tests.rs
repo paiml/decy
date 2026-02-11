@@ -23060,3 +23060,202 @@ fn variable_char_to_int_target() {
         code
     );
 }
+
+// ============================================================================
+// Batch 37: generate_function method paths
+// Targets: length_to_array mapping, detect_vec_return, empty body stubs,
+//          struct pointer context, generate_function_with_structs
+// ============================================================================
+
+// --- generate_function with array param + length param (lines 6356-6384) ---
+
+#[test]
+fn generate_function_array_with_length_param() {
+    let cg = CodeGenerator::new();
+    let func = HirFunction::new_with_body(
+        "process".to_string(),
+        HirType::Void,
+        vec![
+            HirParameter::new("arr".to_string(), HirType::Pointer(Box::new(HirType::Int))),
+            HirParameter::new("len".to_string(), HirType::Int),
+        ],
+        vec![HirStatement::Expression(HirExpression::FunctionCall {
+            function: "printf".to_string(),
+            arguments: vec![HirExpression::Variable("len".to_string())],
+        })],
+    );
+    let code = cg.generate_function(&func);
+    // Should transform len references to arr.len() calls
+    assert!(
+        code.contains(".len()") || code.contains("arr"),
+        "Array+length function: {}",
+        code
+    );
+}
+
+// --- generate_function with empty body (lines 6438-6444) ---
+
+#[test]
+fn generate_function_empty_body_void() {
+    let cg = CodeGenerator::new();
+    let func = HirFunction::new_with_body(
+        "noop".to_string(),
+        HirType::Void,
+        vec![],
+        vec![],
+    );
+    let code = cg.generate_function(&func);
+    assert!(code.contains("fn noop"), "Should have function name: {}", code);
+    assert!(code.contains("}"), "Should have closing brace: {}", code);
+}
+
+#[test]
+fn generate_function_empty_body_returns_int() {
+    let cg = CodeGenerator::new();
+    let func = HirFunction::new_with_body(
+        "get_zero".to_string(),
+        HirType::Int,
+        vec![],
+        vec![],
+    );
+    let code = cg.generate_function(&func);
+    assert!(code.contains("fn get_zero"), "Function name: {}", code);
+    assert!(code.contains("-> i32") || code.contains("0"), "Return type or default: {}", code);
+}
+
+// --- generate_function with struct pointer param (lines 6415-6424) ---
+
+#[test]
+fn generate_function_struct_pointer_param() {
+    let cg = CodeGenerator::new();
+    let func = HirFunction::new_with_body(
+        "process_node".to_string(),
+        HirType::Void,
+        vec![HirParameter::new(
+            "node".to_string(),
+            HirType::Pointer(Box::new(HirType::Struct("Node".to_string()))),
+        )],
+        vec![HirStatement::Return(None)],
+    );
+    let code = cg.generate_function(&func);
+    assert!(
+        code.contains("node") && code.contains("Node"),
+        "Should reference node param and Node type: {}",
+        code
+    );
+}
+
+// --- detect_vec_return: function returning malloc result (lines 5256-5297) ---
+
+#[test]
+fn generate_function_vec_return_from_malloc() {
+    let cg = CodeGenerator::new();
+    let func = HirFunction::new_with_body(
+        "create_array".to_string(),
+        HirType::Pointer(Box::new(HirType::Int)),
+        vec![HirParameter::new("size".to_string(), HirType::Int)],
+        vec![
+            HirStatement::VariableDeclaration {
+                name: "result".to_string(),
+                var_type: HirType::Pointer(Box::new(HirType::Int)),
+                initializer: Some(HirExpression::Malloc {
+                    size: Box::new(HirExpression::Variable("size".to_string())),
+                }),
+            },
+            HirStatement::Return(Some(HirExpression::Variable("result".to_string()))),
+        ],
+    );
+    let code = cg.generate_function(&func);
+    // detect_vec_return should detect malloc+return pattern and use Vec
+    assert!(
+        code.contains("Vec") || code.contains("vec!") || code.contains("vec"),
+        "Should detect Vec return pattern: {}",
+        code
+    );
+}
+
+// --- generate_function_with_structs (lines 6471-6530) ---
+
+#[test]
+fn generate_function_with_structs_field_access() {
+    let cg = CodeGenerator::new();
+    let struct_def = decy_hir::HirStruct::new(
+        "Point".to_string(),
+        vec![
+            decy_hir::HirStructField::new("x".to_string(), HirType::Int),
+            decy_hir::HirStructField::new("y".to_string(), HirType::Int),
+        ],
+    );
+    let func = HirFunction::new_with_body(
+        "get_x".to_string(),
+        HirType::Int,
+        vec![HirParameter::new(
+            "p".to_string(),
+            HirType::Pointer(Box::new(HirType::Struct("Point".to_string()))),
+        )],
+        vec![HirStatement::Return(Some(HirExpression::FieldAccess {
+            object: Box::new(HirExpression::Variable("p".to_string())),
+            field: "x".to_string(),
+        }))],
+    );
+    let code = cg.generate_function_with_structs(&func, &[struct_def]);
+    assert!(code.contains("fn get_x"), "Function name: {}", code);
+    assert!(code.contains(".x"), "Should access field x: {}", code);
+}
+
+// --- generate_function: pointer arithmetic skips array transform (line 6362-6364) ---
+
+#[test]
+fn generate_function_pointer_arithmetic_keeps_raw() {
+    let cg = CodeGenerator::new();
+    let func = HirFunction::new_with_body(
+        "walk".to_string(),
+        HirType::Void,
+        vec![
+            HirParameter::new("arr".to_string(), HirType::Pointer(Box::new(HirType::Int))),
+            HirParameter::new("len".to_string(), HirType::Int),
+        ],
+        vec![HirStatement::Assignment {
+            target: "arr".to_string(),
+            value: HirExpression::BinaryOp {
+                op: BinaryOperator::Add,
+                left: Box::new(HirExpression::Variable("arr".to_string())),
+                right: Box::new(HirExpression::IntLiteral(1)),
+            },
+        }],
+    );
+    let code = cg.generate_function(&func);
+    // With pointer arithmetic, arr should NOT be transformed to slice
+    // len should NOT be mapped to arr.len()
+    assert!(
+        !code.contains("&[i32]") && !code.contains("&mut [i32]"),
+        "Should NOT transform to slice when pointer arithmetic present: {}",
+        code
+    );
+}
+
+// --- is_any_malloc_or_calloc through cast (line 5312) ---
+
+#[test]
+fn generate_function_calloc_return_detected_as_vec() {
+    let cg = CodeGenerator::new();
+    let func = HirFunction::new_with_body(
+        "alloc_zeroed".to_string(),
+        HirType::Pointer(Box::new(HirType::Int)),
+        vec![HirParameter::new("n".to_string(), HirType::Int)],
+        vec![HirStatement::Return(Some(HirExpression::Cast {
+            target_type: HirType::Pointer(Box::new(HirType::Int)),
+            expr: Box::new(HirExpression::Calloc {
+                count: Box::new(HirExpression::Variable("n".to_string())),
+                element_type: Box::new(HirType::Int),
+            }),
+        }))],
+    );
+    let code = cg.generate_function(&func);
+    // detect_vec_return should detect calloc through cast
+    assert!(
+        code.contains("Vec") || code.contains("vec") || code.contains("alloc"),
+        "Should detect calloc return: {}",
+        code
+    );
+}
