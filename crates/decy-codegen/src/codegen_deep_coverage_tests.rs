@@ -24849,3 +24849,501 @@ fn stmt_context_return_void() {
         code
     );
 }
+
+// =============================================================================
+// Batch 45: Switch, DerefAssignment, ArrayIndexAssignment, Free, Expression,
+//           InlineAsm, FieldAssignment statement types
+// =============================================================================
+
+#[test]
+fn stmt_context_switch_int_with_char_cases() {
+    // DECY-209/219: Switch on int with CharLiteral cases → numeric match patterns
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("ch".to_string(), HirType::Int);
+    let stmt = HirStatement::Switch {
+        condition: HirExpression::Variable("ch".to_string()),
+        cases: vec![
+            SwitchCase {
+                value: Some(HirExpression::CharLiteral(b'0' as i8)),
+                body: vec![
+                    HirStatement::Expression(HirExpression::FunctionCall {
+                        function: "handle_zero".to_string(),
+                        arguments: vec![],
+                    }),
+                    HirStatement::Break,
+                ],
+            },
+            SwitchCase {
+                value: Some(HirExpression::CharLiteral(b'A' as i8)),
+                body: vec![
+                    HirStatement::Expression(HirExpression::FunctionCall {
+                        function: "handle_a".to_string(),
+                        arguments: vec![],
+                    }),
+                    HirStatement::Break,
+                ],
+            },
+        ],
+        default_case: Some(vec![HirStatement::Break]),
+    };
+    let code = cg.generate_statement_with_context(&stmt, Some("test"), &mut ctx, None);
+    // CharLiteral '0' = 48, 'A' = 65 as match patterns
+    assert!(
+        code.contains("48"),
+        "Switch char→int pattern for '0': {}",
+        code
+    );
+    assert!(
+        code.contains("65"),
+        "Switch char→int pattern for 'A': {}",
+        code
+    );
+    assert!(code.contains("match ch"), "Switch match: {}", code);
+    assert!(
+        code.contains("handle_zero"),
+        "Case body included: {}",
+        code
+    );
+    // Break should be filtered out
+    assert!(
+        !code.contains("break"),
+        "Break should be filtered: {}",
+        code
+    );
+}
+
+#[test]
+fn stmt_context_switch_non_int_cases() {
+    // Non-int switch → regular expression patterns
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let stmt = HirStatement::Switch {
+        condition: HirExpression::Variable("x".to_string()),
+        cases: vec![SwitchCase {
+            value: Some(HirExpression::IntLiteral(1)),
+            body: vec![HirStatement::Return(Some(HirExpression::IntLiteral(10)))],
+        }],
+        default_case: None,
+    };
+    let code = cg.generate_statement_with_context(&stmt, Some("test"), &mut ctx, None);
+    assert!(code.contains("match x"), "Match expression: {}", code);
+    assert!(code.contains("1 =>"), "Case pattern: {}", code);
+    assert!(code.contains("_ =>"), "Default case always present: {}", code);
+}
+
+#[test]
+fn stmt_context_switch_with_default_body() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let stmt = HirStatement::Switch {
+        condition: HirExpression::Variable("v".to_string()),
+        cases: vec![],
+        default_case: Some(vec![
+            HirStatement::Expression(HirExpression::FunctionCall {
+                function: "fallback".to_string(),
+                arguments: vec![],
+            }),
+        ]),
+    };
+    let code = cg.generate_statement_with_context(&stmt, Some("test"), &mut ctx, None);
+    assert!(code.contains("_ =>"), "Default arm: {}", code);
+    assert!(
+        code.contains("fallback"),
+        "Default body included: {}",
+        code
+    );
+}
+
+#[test]
+fn stmt_context_deref_assign_struct_field() {
+    // DECY-185: PointerFieldAccess target → no extra dereference
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let stmt = HirStatement::DerefAssignment {
+        target: HirExpression::PointerFieldAccess {
+            pointer: Box::new(HirExpression::Variable("sb".to_string())),
+            field: "capacity".to_string(),
+        },
+        value: HirExpression::IntLiteral(100),
+    };
+    let code = cg.generate_statement_with_context(&stmt, Some("test"), &mut ctx, None);
+    assert!(
+        code.contains("capacity") && code.contains("100"),
+        "Struct field deref: {}",
+        code
+    );
+    // Should NOT have double dereference
+    assert!(
+        !code.contains("**"),
+        "No double deref for field access: {}",
+        code
+    );
+}
+
+#[test]
+fn stmt_context_deref_assign_array_index() {
+    // DECY-254: ArrayIndex target → no extra dereference
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let stmt = HirStatement::DerefAssignment {
+        target: HirExpression::ArrayIndex {
+            array: Box::new(HirExpression::Variable("arr".to_string())),
+            index: Box::new(HirExpression::Variable("i".to_string())),
+        },
+        value: HirExpression::IntLiteral(42),
+    };
+    let code = cg.generate_statement_with_context(&stmt, Some("test"), &mut ctx, None);
+    assert!(
+        code.contains("arr") && code.contains("42"),
+        "Array index assignment: {}",
+        code
+    );
+}
+
+#[test]
+fn stmt_context_deref_assign_raw_pointer() {
+    // DECY-124: Variable target that is raw pointer → unsafe
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("ptr".to_string(), HirType::Pointer(Box::new(HirType::Int)));
+    let stmt = HirStatement::DerefAssignment {
+        target: HirExpression::Variable("ptr".to_string()),
+        value: HirExpression::IntLiteral(99),
+    };
+    let code = cg.generate_statement_with_context(&stmt, Some("test"), &mut ctx, None);
+    assert!(
+        code.contains("unsafe"),
+        "Raw pointer deref needs unsafe: {}",
+        code
+    );
+    assert!(
+        code.contains("*ptr") && code.contains("99"),
+        "Deref write: {}",
+        code
+    );
+}
+
+#[test]
+fn stmt_context_deref_assign_double_pointer() {
+    // DECY-128: Dereference(Variable) where var is Reference to Pointer → unsafe
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable(
+        "pp".to_string(),
+        HirType::Reference {
+            inner: Box::new(HirType::Pointer(Box::new(HirType::Int))),
+            mutable: true,
+        },
+    );
+    let stmt = HirStatement::DerefAssignment {
+        target: HirExpression::Dereference(Box::new(HirExpression::Variable("pp".to_string()))),
+        value: HirExpression::IntLiteral(55),
+    };
+    let code = cg.generate_statement_with_context(&stmt, Some("test"), &mut ctx, None);
+    assert!(
+        code.contains("unsafe"),
+        "Double pointer deref needs unsafe: {}",
+        code
+    );
+    assert!(
+        code.contains("55"),
+        "Value written through double pointer: {}",
+        code
+    );
+}
+
+#[test]
+fn stmt_context_deref_assign_plain_variable() {
+    // Non-pointer variable → plain dereference, no unsafe
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("val".to_string(), HirType::Int);
+    let stmt = HirStatement::DerefAssignment {
+        target: HirExpression::Variable("val".to_string()),
+        value: HirExpression::IntLiteral(7),
+    };
+    let code = cg.generate_statement_with_context(&stmt, Some("test"), &mut ctx, None);
+    assert!(code.contains("*val = 7;"), "Plain deref: {}", code);
+    assert!(!code.contains("unsafe"), "No unsafe for plain var: {}", code);
+}
+
+#[test]
+fn stmt_context_array_index_assign_local() {
+    // Local array index assignment: arr[(i) as usize] = v
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let stmt = HirStatement::ArrayIndexAssignment {
+        array: Box::new(HirExpression::Variable("arr".to_string())),
+        index: Box::new(HirExpression::Variable("i".to_string())),
+        value: HirExpression::IntLiteral(5),
+    };
+    let code = cg.generate_statement_with_context(&stmt, Some("test"), &mut ctx, None);
+    assert!(
+        code.contains("arr[") && code.contains("as usize") && code.contains("5"),
+        "Local array index: {}",
+        code
+    );
+    assert!(
+        !code.contains("unsafe"),
+        "Local array no unsafe: {}",
+        code
+    );
+}
+
+#[test]
+fn stmt_context_array_index_assign_global() {
+    // DECY-223: Global array → unsafe wrapper
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("BUFFER".to_string(), HirType::Array { element_type: Box::new(HirType::Char), size: Some(256) });
+    ctx.add_global("BUFFER".to_string());
+    let stmt = HirStatement::ArrayIndexAssignment {
+        array: Box::new(HirExpression::Variable("BUFFER".to_string())),
+        index: Box::new(HirExpression::IntLiteral(0)),
+        value: HirExpression::CharLiteral(b'X' as i8),
+    };
+    let code = cg.generate_statement_with_context(&stmt, Some("test"), &mut ctx, None);
+    assert!(
+        code.contains("unsafe"),
+        "Global array needs unsafe: {}",
+        code
+    );
+    assert!(
+        code.contains("BUFFER"),
+        "Global array name: {}",
+        code
+    );
+}
+
+#[test]
+fn stmt_context_array_index_assign_raw_pointer() {
+    // DECY-165: Raw pointer array → unsafe pointer arithmetic
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("data".to_string(), HirType::Pointer(Box::new(HirType::Int)));
+    let stmt = HirStatement::ArrayIndexAssignment {
+        array: Box::new(HirExpression::Variable("data".to_string())),
+        index: Box::new(HirExpression::IntLiteral(3)),
+        value: HirExpression::IntLiteral(42),
+    };
+    let code = cg.generate_statement_with_context(&stmt, Some("test"), &mut ctx, None);
+    assert!(
+        code.contains("unsafe"),
+        "Raw pointer index needs unsafe: {}",
+        code
+    );
+    assert!(
+        code.contains(".add("),
+        "Pointer arithmetic with .add(): {}",
+        code
+    );
+}
+
+#[test]
+fn stmt_context_array_index_int_to_char_coercion() {
+    // DECY-210: Int value assigned to char array element → as u8
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("s".to_string(), HirType::Array { element_type: Box::new(HirType::Char), size: Some(10) });
+    let stmt = HirStatement::ArrayIndexAssignment {
+        array: Box::new(HirExpression::Variable("s".to_string())),
+        index: Box::new(HirExpression::Variable("i".to_string())),
+        value: HirExpression::BinaryOp {
+            op: BinaryOperator::Add,
+            left: Box::new(HirExpression::IntLiteral(48)),
+            right: Box::new(HirExpression::IntLiteral(0)),
+        },
+    };
+    let code = cg.generate_statement_with_context(&stmt, Some("test"), &mut ctx, None);
+    assert!(
+        code.contains("as u8"),
+        "Int→char coercion for array element: {}",
+        code
+    );
+}
+
+#[test]
+fn stmt_context_field_assign_regular() {
+    // Regular struct field assignment
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let stmt = HirStatement::FieldAssignment {
+        object: HirExpression::Variable("point".to_string()),
+        field: "x".to_string(),
+        value: HirExpression::IntLiteral(10),
+    };
+    let code = cg.generate_statement_with_context(&stmt, Some("test"), &mut ctx, None);
+    assert!(
+        code.contains("point.x = 10;"),
+        "Regular field assignment: {}",
+        code
+    );
+}
+
+#[test]
+fn stmt_context_field_assign_pointer_object() {
+    // DECY-119: Pointer object → unsafe deref
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable(
+        "node".to_string(),
+        HirType::Pointer(Box::new(HirType::Struct("Node".to_string()))),
+    );
+    let stmt = HirStatement::FieldAssignment {
+        object: HirExpression::Variable("node".to_string()),
+        field: "value".to_string(),
+        value: HirExpression::IntLiteral(42),
+    };
+    let code = cg.generate_statement_with_context(&stmt, Some("test"), &mut ctx, None);
+    assert!(
+        code.contains("unsafe"),
+        "Pointer field assign needs unsafe: {}",
+        code
+    );
+    assert!(
+        code.contains("(*node).value"),
+        "Deref struct access: {}",
+        code
+    );
+}
+
+#[test]
+fn stmt_context_field_assign_global_struct() {
+    // DECY-261: Global struct → unsafe block
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("CONFIG".to_string(), HirType::Struct("Config".to_string()));
+    ctx.add_global("CONFIG".to_string());
+    let stmt = HirStatement::FieldAssignment {
+        object: HirExpression::Variable("CONFIG".to_string()),
+        field: "debug".to_string(),
+        value: HirExpression::IntLiteral(1),
+    };
+    let code = cg.generate_statement_with_context(&stmt, Some("test"), &mut ctx, None);
+    assert!(
+        code.contains("unsafe"),
+        "Global struct field needs unsafe: {}",
+        code
+    );
+    assert!(
+        code.contains("CONFIG.debug"),
+        "Global struct field access: {}",
+        code
+    );
+}
+
+#[test]
+fn stmt_context_field_assign_keyword_field() {
+    // DECY-227: Reserved keyword in field name → escaped
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let stmt = HirStatement::FieldAssignment {
+        object: HirExpression::Variable("obj".to_string()),
+        field: "type".to_string(),
+        value: HirExpression::IntLiteral(0),
+    };
+    let code = cg.generate_statement_with_context(&stmt, Some("test"), &mut ctx, None);
+    assert!(
+        code.contains("r#type"),
+        "Keyword field escaped: {}",
+        code
+    );
+}
+
+#[test]
+fn stmt_context_free_variable() {
+    // free(ptr) → RAII comment
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let stmt = HirStatement::Free {
+        pointer: HirExpression::Variable("buffer".to_string()),
+    };
+    let code = cg.generate_statement_with_context(&stmt, Some("test"), &mut ctx, None);
+    assert!(
+        code.contains("RAII") && code.contains("buffer"),
+        "Free→RAII comment: {}",
+        code
+    );
+}
+
+#[test]
+fn stmt_context_free_expression() {
+    // free(ptr_expr) → RAII comment with generated expression
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let stmt = HirStatement::Free {
+        pointer: HirExpression::FieldAccess {
+            object: Box::new(HirExpression::Variable("list".to_string())),
+            field: "data".to_string(),
+        },
+    };
+    let code = cg.generate_statement_with_context(&stmt, Some("test"), &mut ctx, None);
+    assert!(
+        code.contains("RAII"),
+        "Free expression→RAII: {}",
+        code
+    );
+}
+
+#[test]
+fn stmt_context_expression_function_call() {
+    // Expression statement: function call for side effects
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let stmt = HirStatement::Expression(HirExpression::FunctionCall {
+        function: "printf".to_string(),
+        arguments: vec![HirExpression::StringLiteral("hello".to_string())],
+    });
+    let code = cg.generate_statement_with_context(&stmt, Some("test"), &mut ctx, None);
+    assert!(
+        code.contains("print") && code.ends_with(";"),
+        "Expression statement with semicolon: {}",
+        code
+    );
+}
+
+#[test]
+fn stmt_context_inline_asm_translatable() {
+    // DECY-197: Translatable inline assembly
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let stmt = HirStatement::InlineAsm {
+        text: "nop".to_string(),
+        translatable: true,
+    };
+    let code = cg.generate_statement_with_context(&stmt, Some("test"), &mut ctx, None);
+    assert!(
+        code.contains("manual review required"),
+        "Review comment: {}",
+        code
+    );
+    assert!(
+        code.contains("translatable to Rust intrinsics"),
+        "Translatable hint: {}",
+        code
+    );
+    assert!(code.contains("nop"), "Original asm text: {}", code);
+}
+
+#[test]
+fn stmt_context_inline_asm_not_translatable() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let stmt = HirStatement::InlineAsm {
+        text: "mov eax, 1".to_string(),
+        translatable: false,
+    };
+    let code = cg.generate_statement_with_context(&stmt, Some("test"), &mut ctx, None);
+    assert!(
+        code.contains("manual review required"),
+        "Review comment: {}",
+        code
+    );
+    assert!(
+        !code.contains("translatable"),
+        "No translatable hint: {}",
+        code
+    );
+    assert!(code.contains("mov eax, 1"), "Original asm: {}", code);
+}
