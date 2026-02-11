@@ -24302,3 +24302,214 @@ fn stmt_context_var_decl_pointer_no_init() {
         code
     );
 }
+
+// =============================================================================
+// Batch 42: generate_annotated_signature_with_func — output param paths
+// =============================================================================
+// Targets lines 5936-6177: output parameter detection, single/multiple output
+// returns, fallible output (Result<T, i32>), Vec return detection.
+
+#[test]
+fn annotated_sig_output_param_single_nonfallible() {
+    // void compute(int input, int* result) where result is write-only
+    // → fn compute(mut input: i32) -> i32
+    let cg = CodeGenerator::new();
+    let func = HirFunction::new_with_body(
+        "compute".to_string(),
+        HirType::Void,
+        vec![
+            HirParameter::new("input".to_string(), HirType::Int),
+            HirParameter::new(
+                "result".to_string(),
+                HirType::Pointer(Box::new(HirType::Int)),
+            ),
+        ],
+        vec![
+            // *result = input * 2; (dereference write to result, no read)
+            HirStatement::DerefAssignment {
+                target: HirExpression::Variable("result".to_string()),
+                value: HirExpression::BinaryOp {
+                    op: BinaryOperator::Multiply,
+                    left: Box::new(HirExpression::Variable("input".to_string())),
+                    right: Box::new(HirExpression::IntLiteral(2)),
+                },
+            },
+        ],
+    );
+    let sig = make_annotated_sig(&func);
+    let code = cg.generate_annotated_signature_with_func(&sig, Some(&func));
+    // "result" should be removed from params and used as return type
+    assert!(
+        !code.contains("result"),
+        "Output param should be removed from params: {}",
+        code
+    );
+    assert!(
+        code.contains("-> i32"),
+        "Should return the output type: {}",
+        code
+    );
+}
+
+#[test]
+fn annotated_sig_output_param_fallible() {
+    // int process(int input, int* out) → fn process(mut input: i32) -> Result<i32, i32>
+    let cg = CodeGenerator::new();
+    let func = HirFunction::new_with_body(
+        "process".to_string(),
+        HirType::Int, // Int return = fallible
+        vec![
+            HirParameter::new("input".to_string(), HirType::Int),
+            HirParameter::new(
+                "out".to_string(),
+                HirType::Pointer(Box::new(HirType::Int)),
+            ),
+        ],
+        vec![HirStatement::DerefAssignment {
+            target: HirExpression::Variable("out".to_string()),
+            value: HirExpression::Variable("input".to_string()),
+        }],
+    );
+    let sig = make_annotated_sig(&func);
+    let code = cg.generate_annotated_signature_with_func(&sig, Some(&func));
+    // Check that output param is removed and Result type is generated
+    assert!(
+        !code.contains("out:") && !code.contains("out :"),
+        "Output param should be removed: {}",
+        code
+    );
+    assert!(
+        code.contains("Result<i32, i32>"),
+        "Fallible output should use Result: {}",
+        code
+    );
+}
+
+#[test]
+fn annotated_sig_no_output_params() {
+    // Regular function: int add(int a, int b) → fn add(mut a: i32, mut b: i32) -> i32
+    let cg = CodeGenerator::new();
+    let func = HirFunction::new_with_body(
+        "add".to_string(),
+        HirType::Int,
+        vec![
+            HirParameter::new("a".to_string(), HirType::Int),
+            HirParameter::new("b".to_string(), HirType::Int),
+        ],
+        vec![HirStatement::Return(Some(HirExpression::BinaryOp {
+            op: BinaryOperator::Add,
+            left: Box::new(HirExpression::Variable("a".to_string())),
+            right: Box::new(HirExpression::Variable("b".to_string())),
+        }))],
+    );
+    let sig = make_annotated_sig(&func);
+    let code = cg.generate_annotated_signature_with_func(&sig, Some(&func));
+    assert!(
+        code.contains("-> i32"),
+        "Regular return type: {}",
+        code
+    );
+    assert!(
+        !code.contains("Result"),
+        "No Result for regular functions: {}",
+        code
+    );
+}
+
+#[test]
+fn annotated_sig_void_no_return() {
+    // void noop() → fn noop()
+    let cg = CodeGenerator::new();
+    let func = HirFunction::new_with_body(
+        "noop".to_string(),
+        HirType::Void,
+        vec![],
+        vec![],
+    );
+    let sig = make_annotated_sig(&func);
+    let code = cg.generate_annotated_signature_with_func(&sig, Some(&func));
+    assert!(
+        !code.contains("->"),
+        "Void function should have no return type: {}",
+        code
+    );
+}
+
+#[test]
+fn annotated_sig_keyword_rename_all() {
+    // Test all keyword renames: write, read, type, match, self, in
+    let cg = CodeGenerator::new();
+    for (c_name, rust_name) in [
+        ("write", "c_write"),
+        ("read", "c_read"),
+        ("type", "c_type"),
+        ("match", "c_match"),
+        ("self", "c_self"),
+        ("in", "c_in"),
+    ] {
+        let func = HirFunction::new_with_body(
+            c_name.to_string(),
+            HirType::Void,
+            vec![],
+            vec![],
+        );
+        let sig = make_annotated_sig(&func);
+        let code = cg.generate_annotated_signature_with_func(&sig, Some(&func));
+        assert!(
+            code.contains(rust_name),
+            "{} should be renamed to {}: {}",
+            c_name, rust_name, code
+        );
+    }
+}
+
+// =============================================================================
+// Batch 42b: generate_expression_with_target_type — remaining numeric coercions
+// =============================================================================
+
+#[test]
+fn expr_target_type_variable_global_int_to_float() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("counter".to_string(), HirType::Int);
+    ctx.add_global("counter".to_string());
+    let expr = HirExpression::Variable("counter".to_string());
+    let target = HirType::Float;
+    let code = cg.generate_expression_with_target_type(&expr, &ctx, Some(&target));
+    assert!(
+        code.contains("unsafe") && code.contains("as f32"),
+        "Global int→float should be unsafe: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_target_type_variable_global_int_to_double() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("counter".to_string(), HirType::Int);
+    ctx.add_global("counter".to_string());
+    let expr = HirExpression::Variable("counter".to_string());
+    let target = HirType::Double;
+    let code = cg.generate_expression_with_target_type(&expr, &ctx, Some(&target));
+    assert!(
+        code.contains("unsafe") && code.contains("as f64"),
+        "Global int→double should be unsafe: {}",
+        code
+    );
+}
+
+#[test]
+fn expr_target_type_variable_local_int_to_float() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("val".to_string(), HirType::Int);
+    let expr = HirExpression::Variable("val".to_string());
+    let target = HirType::Float;
+    let code = cg.generate_expression_with_target_type(&expr, &ctx, Some(&target));
+    assert!(
+        code.contains("as f32") && !code.contains("unsafe"),
+        "Local int→float should not be unsafe: {}",
+        code
+    );
+}
