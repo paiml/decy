@@ -1206,3 +1206,256 @@ fn cli_transpile_library_code_file_note() {
         .stderr(predicate::str::contains("No main function found"))
         .stderr(predicate::str::contains("rustc --crate-type=lib"));
 }
+
+// ============================================================================
+// STRATEGY 1: --verify FLAG (compile-the-output verification)
+// ============================================================================
+
+#[test]
+fn cli_transpile_verify_valid_code_succeeds() {
+    let temp = TempDir::new().unwrap();
+    let c_code = "int main() { return 0; }";
+    let input = create_temp_file(&temp, "verify_ok.c", c_code);
+
+    decy_cmd()
+        .arg("transpile")
+        .arg(&input)
+        .arg("--verify")
+        .assert()
+        .success()
+        .stderr(predicate::str::contains("Compilation verified"));
+}
+
+#[test]
+fn cli_transpile_verify_with_output_file() {
+    let temp = TempDir::new().unwrap();
+    let c_code = "int add(int a, int b) { return a + b; }\nint main() { return add(1, 2); }";
+    let input = create_temp_file(&temp, "verify_out.c", c_code);
+    let output = temp.path().join("verify_out.rs");
+
+    decy_cmd()
+        .arg("transpile")
+        .arg(&input)
+        .arg("-o")
+        .arg(&output)
+        .arg("--verify")
+        .assert()
+        .success()
+        .stderr(predicate::str::contains("Compilation verified"))
+        .stderr(predicate::str::contains("Transpiled"));
+}
+
+#[test]
+fn cli_transpile_verify_stdout_mode() {
+    let temp = TempDir::new().unwrap();
+    let c_code = "int main() { int x = 42; return x; }";
+    let input = create_temp_file(&temp, "verify_stdout.c", c_code);
+
+    let assert = decy_cmd()
+        .arg("transpile")
+        .arg(&input)
+        .arg("--verify")
+        .assert()
+        .success();
+
+    // Stdout should contain Rust code, stderr should contain verification
+    let output = assert.get_output();
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(stdout.contains("fn main"), "Expected Rust code on stdout");
+    assert!(
+        stderr.contains("Compilation verified"),
+        "Expected verification message on stderr"
+    );
+}
+
+// ============================================================================
+// TRANSPILE-PROJECT: dry-run and stats paths
+// ============================================================================
+
+#[test]
+fn cli_transpile_project_dry_run_mode() {
+    let temp = TempDir::new().unwrap();
+    create_temp_file(&temp, "a.c", "int f() { return 1; }");
+    create_temp_file(&temp, "b.c", "int g() { return 2; }");
+    let output_dir = temp.path().join("out");
+
+    decy_cmd()
+        .arg("transpile-project")
+        .arg(temp.path())
+        .arg("-o")
+        .arg(&output_dir)
+        .arg("--dry-run")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("DRY RUN"))
+        .stdout(predicate::str::contains("Dry run complete"));
+}
+
+#[test]
+fn cli_transpile_project_verbose_output() {
+    let temp = TempDir::new().unwrap();
+    create_temp_file(&temp, "hello.c", "int main() { return 0; }");
+    let output_dir = temp.path().join("verbose_out");
+
+    decy_cmd()
+        .arg("transpile-project")
+        .arg(temp.path())
+        .arg("-o")
+        .arg(&output_dir)
+        .arg("--verbose")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Transpiled"));
+}
+
+#[test]
+fn cli_transpile_project_quiet_mode() {
+    let temp = TempDir::new().unwrap();
+    create_temp_file(&temp, "quiet.c", "int main() { return 0; }");
+    let output_dir = temp.path().join("quiet_out");
+
+    // In quiet mode, stdout should have minimal output
+    decy_cmd()
+        .arg("transpile-project")
+        .arg(temp.path())
+        .arg("-o")
+        .arg(&output_dir)
+        .arg("--quiet")
+        .assert()
+        .success();
+}
+
+#[test]
+fn cli_transpile_project_stats_flag() {
+    let temp = TempDir::new().unwrap();
+    create_temp_file(&temp, "stats.c", "int main() { return 0; }");
+    let output_dir = temp.path().join("stats_out");
+
+    decy_cmd()
+        .arg("transpile-project")
+        .arg(temp.path())
+        .arg("-o")
+        .arg(&output_dir)
+        .arg("--stats")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Statistics"))
+        .stdout(predicate::str::contains("Files found"))
+        .stdout(predicate::str::contains("Files transpiled"));
+}
+
+#[test]
+fn cli_transpile_project_no_cache_flag() {
+    let temp = TempDir::new().unwrap();
+    create_temp_file(&temp, "nocache.c", "int main() { return 0; }");
+    let output_dir = temp.path().join("nocache_out");
+
+    decy_cmd()
+        .arg("transpile-project")
+        .arg(temp.path())
+        .arg("-o")
+        .arg(&output_dir)
+        .arg("--no-cache")
+        .assert()
+        .success();
+}
+
+#[test]
+fn cli_transpile_project_nonexistent_dir() {
+    let temp = TempDir::new().unwrap();
+    let output_dir = temp.path().join("out");
+
+    decy_cmd()
+        .arg("transpile-project")
+        .arg("/nonexistent/dir/does/not/exist")
+        .arg("-o")
+        .arg(&output_dir)
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("not found"));
+}
+
+#[test]
+fn cli_transpile_project_empty_dir() {
+    let temp = TempDir::new().unwrap();
+    let output_dir = temp.path().join("empty_out");
+
+    decy_cmd()
+        .arg("transpile-project")
+        .arg(temp.path())
+        .arg("-o")
+        .arg(&output_dir)
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("No C files found"));
+}
+
+// ============================================================================
+// CHECK-PROJECT paths
+// ============================================================================
+
+#[test]
+fn cli_check_project_with_files() {
+    let temp = TempDir::new().unwrap();
+    create_temp_file(&temp, "main.c", "int main() { return 0; }");
+    create_temp_file(&temp, "util.c", "int helper() { return 1; }");
+
+    decy_cmd()
+        .arg("check-project")
+        .arg(temp.path())
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Found 2 C files"))
+        .stdout(predicate::str::contains("No circular dependencies"))
+        .stdout(predicate::str::contains("Build order"))
+        .stdout(predicate::str::contains("ready for transpilation"));
+}
+
+#[test]
+fn cli_check_project_empty_dir() {
+    let temp = TempDir::new().unwrap();
+
+    decy_cmd()
+        .arg("check-project")
+        .arg(temp.path())
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("No C files found"));
+}
+
+#[test]
+fn cli_check_project_nonexistent_dir() {
+    decy_cmd()
+        .arg("check-project")
+        .arg("/nonexistent/dir/does/not/exist")
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("not found"));
+}
+
+// ============================================================================
+// CACHE-STATS paths
+// ============================================================================
+
+#[test]
+fn cli_cache_stats_no_cache_exists() {
+    let temp = TempDir::new().unwrap();
+
+    decy_cmd()
+        .arg("cache-stats")
+        .arg(temp.path())
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("No cache found"));
+}
+
+#[test]
+fn cli_cache_stats_nonexistent_dir() {
+    decy_cmd()
+        .arg("cache-stats")
+        .arg("/nonexistent/dir/does/not/exist")
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("not found"));
+}
