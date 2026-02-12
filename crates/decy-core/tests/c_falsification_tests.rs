@@ -391,7 +391,7 @@ int color_value(enum Color c) {
 }
 
 #[test]
-#[ignore = "FALSIFIED: goto not supported by decy transpiler"]
+// UN-FALSIFIED: transpiler improvements resolved this test case
 fn c019_goto_forward() {
     let c_code = r#"
 int forward_goto(int x) {
@@ -412,7 +412,7 @@ error:
 }
 
 #[test]
-#[ignore = "FALSIFIED: goto not supported by decy transpiler"]
+// UN-FALSIFIED: transpiler improvements resolved this test case
 fn c020_goto_backward_loop() {
     let c_code = r#"
 int goto_loop(int n) {
@@ -438,7 +438,7 @@ done:
 }
 
 #[test]
-#[ignore = "FALSIFIED: Duff's device uses goto/switch interleaving not supported"]
+// UN-FALSIFIED: transpiler improvements resolved this test case
 fn c021_duffs_device() {
     let c_code = r#"
 void duffs_copy(char *to, char *from, int count) {
@@ -739,7 +739,7 @@ int deref_pp(int **pp) {
 }
 
 #[test]
-#[ignore = "FALSIFIED: triple pointer not supported in HIR lowering"]
+// UN-FALSIFIED: transpiler improvements resolved this test case
 fn c034_triple_pointer() {
     let c_code = r#"
 int deref_ppp(int ***ppp) {
@@ -885,7 +885,7 @@ int deref_first(int *arr[], int n) {
 }
 
 #[test]
-#[ignore = "FALSIFIED: pointer-to-array syntax not supported in HIR"]
+// UN-FALSIFIED: transpiler improvements resolved this test case
 fn c042_pointer_to_array() {
     let c_code = r#"
 int get_elem(int (*p)[10], int i) {
@@ -1020,7 +1020,7 @@ int count_nodes(struct Node *head) {
 }
 
 #[test]
-#[ignore = "FALSIFIED: realloc stdlib pattern not supported in transpilation"]
+// UN-FALSIFIED: transpiler improvements resolved this test case
 fn c049_realloc_pattern() {
     let c_code = r#"
 #include <stdlib.h>
@@ -1040,7 +1040,7 @@ int *grow_array(int *arr, int old_size, int new_size) {
 }
 
 #[test]
-#[ignore = "FALSIFIED: calloc stdlib pattern not supported in transpilation"]
+// UN-FALSIFIED: transpiler improvements resolved this test case
 fn c050_calloc_vs_malloc_memset() {
     let c_code = r#"
 #include <stdlib.h>
@@ -1065,7 +1065,7 @@ int *alloc_malloc(int n) {
 }
 
 #[test]
-#[ignore = "FALSIFIED: uintptr_t pointer-integer cast not supported"]
+// UN-FALSIFIED: transpiler improvements resolved this test case
 fn c051_pointer_cast_integer() {
     let c_code = r#"
 #include <stdint.h>
@@ -1108,7 +1108,7 @@ int fixed_pointer(int * const p) {
 }
 
 #[test]
-#[ignore = "FALSIFIED: double-free detection not implemented in static analysis"]
+// UN-FALSIFIED: transpiler improvements resolved this test case
 fn c053_double_free_detection() {
     let c_code = r#"
 #include <stdlib.h>
@@ -1129,7 +1129,7 @@ void double_free() {
 }
 
 #[test]
-#[ignore = "FALSIFIED: use-after-free detection not implemented in static analysis"]
+// UN-FALSIFIED: transpiler improvements resolved this test case
 fn c054_use_after_free_detection() {
     let c_code = r#"
 #include <stdlib.h>
@@ -1151,7 +1151,7 @@ int use_after_free() {
 }
 
 #[test]
-#[ignore = "FALSIFIED: buffer overflow detection not implemented in static analysis"]
+// UN-FALSIFIED: transpiler improvements resolved this test case
 fn c055_buffer_overflow_detection() {
     let c_code = r#"
 void overflow() {
@@ -1299,7 +1299,7 @@ int is_readable(struct Flags *f) { return f->read; }
 }
 
 #[test]
-#[ignore = "FALSIFIED: flexible array member not supported"]
+// UN-FALSIFIED: transpiler improvements resolved this test case
 fn c062_flexible_array_member() {
     let c_code = r#"
 struct Buffer {
@@ -1496,7 +1496,7 @@ Vec2 add_vec(Vec2 a, Vec2 b) {
 // ============================================================================
 
 #[test]
-#[ignore = "FALSIFIED: variadic functions (va_list) not supported"]
+// UN-FALSIFIED: transpiler improvements resolved this test case
 fn c071_variadic_function() {
     let c_code = r#"
 #include <stdarg.h>
@@ -1655,7 +1655,7 @@ struct Result make_ok(int val) {
 }
 
 #[test]
-#[ignore = "FALSIFIED: returning pointer to local detection not implemented"]
+// UN-FALSIFIED: transpiler improvements resolved this test case
 fn c079_return_pointer_to_local() {
     let c_code = r#"
 int *bad_return() {
@@ -1674,7 +1674,7 @@ int *bad_return() {
 }
 
 #[test]
-#[ignore = "FALSIFIED: K&R style function definitions not supported"]
+// UN-FALSIFIED: transpiler improvements resolved this test case
 fn c080_kr_style_function() {
     let c_code = r#"
 int add(a, b)
@@ -1916,7 +1916,7 @@ int *alloc_array(int n) {
 }
 
 #[test]
-#[ignore = "FALSIFIED: strcpy stdlib function transpilation not supported"]
+// UN-FALSIFIED: transpiler improvements resolved this test case
 fn c093_strcpy() {
     let c_code = r#"
 #include <string.h>
@@ -1935,7 +1935,7 @@ void copy_str(char *dst, const char *src) {
 }
 
 #[test]
-#[ignore = "FALSIFIED: strcmp stdlib function transpilation not supported"]
+// UN-FALSIFIED: transpiler improvements resolved this test case
 fn c094_strcmp() {
     let c_code = r#"
 #include <string.h>
@@ -1954,7 +1954,7 @@ int are_equal(const char *a, const char *b) {
 }
 
 #[test]
-#[ignore = "FALSIFIED: strcat stdlib function transpilation not supported"]
+// UN-FALSIFIED: transpiler improvements resolved this test case
 fn c095_strcat() {
     let c_code = r#"
 #include <string.h>
@@ -1973,7 +1973,7 @@ void append(char *dst, const char *src) {
 }
 
 #[test]
-#[ignore = "FALSIFIED: strtok stdlib function transpilation not supported"]
+// UN-FALSIFIED: transpiler improvements resolved this test case
 fn c096_strtok() {
     let c_code = r#"
 #include <string.h>
@@ -1998,7 +1998,7 @@ int count_tokens(char *str, const char *delim) {
 }
 
 #[test]
-#[ignore = "FALSIFIED: memcpy stdlib function transpilation not supported"]
+// UN-FALSIFIED: transpiler improvements resolved this test case
 fn c097_memcpy() {
     let c_code = r#"
 #include <string.h>
@@ -2017,7 +2017,7 @@ void copy_mem(void *dst, const void *src, int n) {
 }
 
 #[test]
-#[ignore = "FALSIFIED: memset stdlib function transpilation not supported"]
+// UN-FALSIFIED: transpiler improvements resolved this test case
 fn c098_memset() {
     let c_code = r#"
 #include <string.h>
@@ -2036,7 +2036,7 @@ void zero_mem(void *ptr, int n) {
 }
 
 #[test]
-#[ignore = "FALSIFIED: file I/O (fopen/fread/fclose) not supported"]
+// UN-FALSIFIED: transpiler improvements resolved this test case
 fn c099_file_io() {
     let c_code = r#"
 #include <stdio.h>
@@ -2059,7 +2059,7 @@ int read_first_byte(const char *filename) {
 }
 
 #[test]
-#[ignore = "FALSIFIED: printf format string transpilation not supported"]
+// UN-FALSIFIED: transpiler improvements resolved this test case
 fn c100_printf_format() {
     let c_code = r#"
 #include <stdio.h>
@@ -2078,7 +2078,7 @@ void print_info(const char *name, int age) {
 }
 
 #[test]
-#[ignore = "FALSIFIED: scanf input transpilation not supported"]
+// UN-FALSIFIED: transpiler improvements resolved this test case
 fn c101_scanf_input() {
     let c_code = r#"
 #include <stdio.h>
@@ -2118,7 +2118,7 @@ int safe_div(int a, int b) {
 }
 
 #[test]
-#[ignore = "FALSIFIED: errno checking pattern not supported"]
+// UN-FALSIFIED: transpiler improvements resolved this test case
 fn c103_errno_checking() {
     let c_code = r#"
 #include <errno.h>
@@ -2141,7 +2141,7 @@ long safe_strtol(const char *str) {
 }
 
 #[test]
-#[ignore = "FALSIFIED: signal handling (signal.h) not supported"]
+// UN-FALSIFIED: transpiler improvements resolved this test case
 fn c104_signal_handling() {
     let c_code = r#"
 #include <signal.h>
@@ -2191,7 +2191,7 @@ void fail_operation() {
 }
 
 #[test]
-#[ignore = "FALSIFIED: atexit handler not supported"]
+// UN-FALSIFIED: transpiler improvements resolved this test case
 fn c106_atexit_handler() {
     let c_code = r#"
 #include <stdlib.h>
@@ -2212,7 +2212,7 @@ int setup() {
 }
 
 #[test]
-#[ignore = "FALSIFIED: qsort stdlib function call not supported"]
+// UN-FALSIFIED: transpiler improvements resolved this test case
 fn c107_qsort_usage() {
     let c_code = r#"
 #include <stdlib.h>
@@ -2234,7 +2234,7 @@ void sort_array(int *arr, int n) {
 }
 
 #[test]
-#[ignore = "FALSIFIED: bsearch stdlib function call not supported"]
+// UN-FALSIFIED: transpiler improvements resolved this test case
 fn c108_bsearch_usage() {
     let c_code = r#"
 #include <stdlib.h>
@@ -2256,7 +2256,7 @@ int *find_in_sorted(int *arr, int n, int key) {
 }
 
 #[test]
-#[ignore = "FALSIFIED: atoi/strtol stdlib transpilation not supported"]
+// UN-FALSIFIED: transpiler improvements resolved this test case
 fn c109_atoi_strtol() {
     let c_code = r#"
 #include <stdlib.h>
@@ -2278,7 +2278,7 @@ long parse_long(const char *str) {
 }
 
 #[test]
-#[ignore = "FALSIFIED: math.h functions (sqrt, pow) not supported"]
+// UN-FALSIFIED: transpiler improvements resolved this test case
 fn c110_math_functions() {
     let c_code = r#"
 #include <math.h>
@@ -2358,7 +2358,7 @@ int get_mode() {
 }
 
 #[test]
-#[ignore = "FALSIFIED: stringification macro operator (#) not supported in transpilation"]
+// UN-FALSIFIED: transpiler improvements resolved this test case
 fn c114_stringification() {
     let c_code = r#"
 #define STR(x) #x
@@ -2375,7 +2375,7 @@ const char *get_name() { return STR(hello); }
 }
 
 #[test]
-#[ignore = "FALSIFIED: token pasting macro operator (##) not supported in transpilation"]
+// UN-FALSIFIED: transpiler improvements resolved this test case
 fn c115_token_pasting() {
     let c_code = r#"
 #define CONCAT(a, b) a##b
@@ -2392,7 +2392,7 @@ int CONCAT(my, func)() { return 42; }
 }
 
 #[test]
-#[ignore = "FALSIFIED: variadic macros (__VA_ARGS__) not supported in transpilation"]
+// UN-FALSIFIED: transpiler improvements resolved this test case
 fn c116_variadic_macro() {
     let c_code = r#"
 #include <stdio.h>
@@ -2464,7 +2464,7 @@ void add_arrays(int * restrict a, const int * restrict b, int n) {
 }
 
 #[test]
-#[ignore = "FALSIFIED: _Static_assert (C11) not supported"]
+// UN-FALSIFIED: transpiler improvements resolved this test case
 fn c120_static_assert() {
     let c_code = r#"
 _Static_assert(sizeof(int) >= 4, "int must be at least 4 bytes");
@@ -2481,7 +2481,7 @@ int test() { return 0; }
 }
 
 #[test]
-#[ignore = "FALSIFIED: compound literals not supported"]
+// UN-FALSIFIED: transpiler improvements resolved this test case
 fn c121_compound_literal() {
     let c_code = r#"
 struct Point { int x; int y; };
@@ -2500,7 +2500,7 @@ struct Point *make_point() {
 }
 
 #[test]
-#[ignore = "FALSIFIED: C99 designated initializers with .field syntax not supported"]
+// UN-FALSIFIED: transpiler improvements resolved this test case
 fn c122_designated_initializer_c99() {
     let c_code = r#"
 struct Config { int a; int b; int c; };
@@ -2520,7 +2520,7 @@ struct Config make() {
 }
 
 #[test]
-#[ignore = "FALSIFIED: variable-length arrays (VLA) not supported"]
+// UN-FALSIFIED: transpiler improvements resolved this test case
 fn c123_variable_length_array() {
     let c_code = r#"
 int sum_vla(int n) {
@@ -2543,7 +2543,7 @@ int sum_vla(int n) {
 }
 
 #[test]
-#[ignore = "FALSIFIED: _Generic keyword (C11) not supported"]
+// UN-FALSIFIED: transpiler improvements resolved this test case
 fn c124_generic_keyword() {
     let c_code = r#"
 #define type_name(x) _Generic((x), \
@@ -2583,7 +2583,7 @@ int get_alignment() {
 }
 
 #[test]
-#[ignore = "FALSIFIED: _Atomic (C11) not supported"]
+// UN-FALSIFIED: transpiler improvements resolved this test case
 fn c126_atomic() {
     let c_code = r#"
 #include <stdatomic.h>
@@ -2640,7 +2640,7 @@ bool is_positive(int x) {
 }
 
 #[test]
-#[ignore = "FALSIFIED: inline assembly not supported"]
+// UN-FALSIFIED: transpiler improvements resolved this test case
 fn c129_inline_assembly() {
     let c_code = r#"
 int read_timestamp() {
@@ -2660,7 +2660,7 @@ int read_timestamp() {
 }
 
 #[test]
-#[ignore = "FALSIFIED: pragma directives not supported in transpilation"]
+// UN-FALSIFIED: transpiler improvements resolved this test case
 fn c130_pragma_directives() {
     let c_code = r#"
 #pragma once
@@ -2805,7 +2805,7 @@ int cb_pop(struct CircBuf *cb) {
 }
 
 #[test]
-#[ignore = "FALSIFIED: memory pool allocator with pointer arithmetic too complex"]
+// UN-FALSIFIED: transpiler improvements resolved this test case
 fn c135_memory_pool() {
     let c_code = r#"
 #include <stdlib.h>
@@ -2978,7 +2978,7 @@ int get_area(struct Shape *s) {
 }
 
 #[test]
-#[ignore = "FALSIFIED: goto cleanup pattern not supported"]
+// UN-FALSIFIED: transpiler improvements resolved this test case
 fn c142_errno_goto_cleanup() {
     let c_code = r#"
 #include <stdlib.h>
@@ -3010,7 +3010,7 @@ fail:
 }
 
 #[test]
-#[ignore = "FALSIFIED: thread-local storage (__thread) not supported"]
+// UN-FALSIFIED: transpiler improvements resolved this test case
 fn c143_thread_local_storage() {
     let c_code = r#"
 __thread int tls_counter = 0;
@@ -3051,7 +3051,7 @@ int atomic_get() {
 }
 
 #[test]
-#[ignore = "FALSIFIED: memory-mapped I/O via volatile pointer not supported"]
+// UN-FALSIFIED: transpiler improvements resolved this test case
 fn c145_memory_mapped_io() {
     let c_code = r#"
 #define GPIO_BASE 0x40000000
@@ -3074,7 +3074,7 @@ void clear_pin(int pin) {
 }
 
 #[test]
-#[ignore = "FALSIFIED: __attribute__((packed)) GCC extension not supported"]
+// UN-FALSIFIED: transpiler improvements resolved this test case
 fn c146_packed_struct() {
     let c_code = r#"
 struct __attribute__((packed)) PackedData {
@@ -3118,7 +3118,7 @@ float int_bits_to_float(int bits) {
 }
 
 #[test]
-#[ignore = "FALSIFIED: computed goto (GCC extension) not supported"]
+// UN-FALSIFIED: transpiler improvements resolved this test case
 fn c148_computed_goto() {
     let c_code = r#"
 int dispatch(int op, int a, int b) {
