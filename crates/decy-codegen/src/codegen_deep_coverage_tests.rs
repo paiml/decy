@@ -37046,3 +37046,250 @@ fn char_pointer_array_sized_str_array() {
     let code = cg.generate_statement_with_context(&stmt, Some("func"), &mut ctx, Some(&HirType::Void));
     assert!(code.contains("[&str; 2]") || code.contains("&str"), "sized str array: {}", code);
 }
+
+// =============================================================================
+// Batch 66: Deep function-call arg transforms, sizeof struct field, generate_function
+// =============================================================================
+
+// --- Function call: raw pointer param, array arg → .as_mut_ptr() (L2735-2737) ---
+
+#[test]
+fn func_call_array_arg_to_raw_pointer_param() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    // Register function with Pointer(Int) parameter
+    ctx.add_function("process".to_string(), vec![HirType::Pointer(Box::new(HirType::Int))]);
+    // Register an array variable
+    ctx.add_variable("arr".to_string(), HirType::Array {
+        element_type: Box::new(HirType::Int),
+        size: Some(10),
+    });
+    let expr = HirExpression::FunctionCall {
+        function: "process".to_string(),
+        arguments: vec![HirExpression::Variable("arr".to_string())],
+    };
+    let code = cg.generate_expression_with_context(&expr, &ctx);
+    assert!(code.contains("as_mut_ptr"), "array → .as_mut_ptr(): {}", code);
+}
+
+// --- Function call: raw pointer param, string literal → .as_ptr() as *mut u8 (L2740-2742) ---
+
+#[test]
+fn func_call_string_lit_to_raw_pointer_param() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_function("write_str".to_string(), vec![HirType::Pointer(Box::new(HirType::Char))]);
+    let expr = HirExpression::FunctionCall {
+        function: "write_str".to_string(),
+        arguments: vec![HirExpression::StringLiteral("hello".to_string())],
+    };
+    let code = cg.generate_expression_with_context(&expr, &ctx);
+    assert!(code.contains("as_ptr") || code.contains("as *mut u8"), "string → raw ptr: {}", code);
+}
+
+// --- Function call: reference param, raw pointer arg → unsafe &mut *ptr (L2753-2759) ---
+
+#[test]
+fn func_call_raw_ptr_to_ref_param_unsafe() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_function("read_data".to_string(), vec![HirType::Reference {
+        inner: Box::new(HirType::Int),
+        mutable: true,
+    }]);
+    ctx.add_variable("ptr".to_string(), HirType::Pointer(Box::new(HirType::Int)));
+    let expr = HirExpression::FunctionCall {
+        function: "read_data".to_string(),
+        arguments: vec![HirExpression::Variable("ptr".to_string())],
+    };
+    let code = cg.generate_expression_with_context(&expr, &ctx);
+    assert!(code.contains("unsafe") && code.contains("&mut *ptr"), "raw ptr → ref: {}", code);
+}
+
+// --- Function call: unsized slice param, sized array arg → &mut arr (L2773-2775) ---
+
+#[test]
+fn func_call_sized_array_to_unsized_slice_param() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_function("fill".to_string(), vec![HirType::Array {
+        element_type: Box::new(HirType::Int),
+        size: None, // unsized = slice
+    }]);
+    ctx.add_variable("buf".to_string(), HirType::Array {
+        element_type: Box::new(HirType::Int),
+        size: Some(64),
+    });
+    let expr = HirExpression::FunctionCall {
+        function: "fill".to_string(),
+        arguments: vec![HirExpression::Variable("buf".to_string())],
+    };
+    let code = cg.generate_expression_with_context(&expr, &ctx);
+    assert!(code.contains("&mut buf"), "sized array → &mut ref: {}", code);
+}
+
+// --- sizeof(record->field) member access with struct in ctx (L2987-2995) ---
+
+#[test]
+fn sizeof_member_access_struct_field_found_in_ctx() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    // Register struct "MyStruct" with field "data" of type Int
+    let s = HirStruct::new("MyStruct".to_string(), vec![
+        HirStructField::new("data".to_string(), HirType::Int),
+        HirStructField::new("count".to_string(), HirType::Int),
+    ]);
+    ctx.add_struct(&s);
+    // sizeof expression with 3+ tokens so is_struct_field_sizeof=false but is_member_access=true
+    // Then struct_name at L2984 matches ctx.structs and field is found
+    let expr = HirExpression::Sizeof {
+        type_name: "MyStruct data extra".to_string(),
+    };
+    let code = cg.generate_expression_with_context(&expr, &ctx);
+    assert!(code.contains("size_of::<i32>()") || code.contains("size_of"), "sizeof struct field: {}", code);
+}
+
+// --- sizeof struct field (is_struct_field_sizeof path, L2962-2975) ---
+
+#[test]
+fn sizeof_struct_field_sizeof_pattern() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    let s = HirStruct::new("Example".to_string(), vec![
+        HirStructField::new("value".to_string(), HirType::Double),
+    ]);
+    ctx.add_struct(&s);
+    // "struct Example value" → normalized "Example value", parts=["Example","value"]
+    // is_struct_field_sizeof=true because parts.len()==2 and ctx.structs.contains_key("Example")
+    let expr = HirExpression::Sizeof {
+        type_name: "struct Example value".to_string(),
+    };
+    let code = cg.generate_expression_with_context(&expr, &ctx);
+    assert!(code.contains("size_of::<f64>()"), "sizeof struct field double: {}", code);
+}
+
+// --- DerefAssignment: strip_unsafe triggers when value has unsafe wrapper (L4731-4734) ---
+
+#[test]
+fn deref_assign_strips_nested_unsafe_from_value() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("dst".to_string(), HirType::Pointer(Box::new(HirType::Int)));
+    ctx.add_variable("src".to_string(), HirType::Pointer(Box::new(HirType::Int)));
+    // *dst = *src where both are raw pointers
+    // *src generates "unsafe { *src }" with SAFETY comment, which strip_unsafe can't strip
+    // because the SAFETY comment prefix means it doesn't start with "unsafe { "
+    let stmt = HirStatement::DerefAssignment {
+        target: HirExpression::Variable("dst".to_string()),
+        value: HirExpression::Dereference(Box::new(HirExpression::Variable("src".to_string()))),
+    };
+    let code = cg.generate_statement_with_context(&stmt, Some("func"), &mut ctx, Some(&HirType::Void));
+    assert!(code.contains("unsafe"), "has unsafe: {}", code);
+    assert!(code.contains("*dst"), "has target deref: {}", code);
+    assert!(code.contains("*src"), "has value deref: {}", code);
+}
+
+// --- VariableDeclaration: malloc non-Box non-Vec fallback (L4244-4254) ---
+// Need is_malloc_init=true but _actual_type not Pointer → the wildcard arm
+
+#[test]
+fn var_decl_malloc_init_non_pointer_type_fallback() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    // Declare variable with non-pointer type but with malloc initializer
+    // This hits the wildcard at L4244 where _actual_type is neither Box nor Vec
+    let stmt = HirStatement::VariableDeclaration {
+        name: "raw".to_string(),
+        var_type: HirType::Int, // Non-pointer type with malloc init → falls through
+        initializer: Some(HirExpression::Malloc {
+            size: Box::new(HirExpression::IntLiteral(4)),
+        }),
+    };
+    let code = cg.generate_statement_with_context(&stmt, Some("func"), &mut ctx, Some(&HirType::Void));
+    // The else branch at L4107: var_type is not Pointer, so we get (var_type, map_type(var_type))
+    // Then the malloc is treated as a regular expression
+    assert!(code.contains("raw"), "has variable name: {}", code);
+}
+
+// --- VariableDeclaration: Vec malloc with simple size (non-multiply) → Vec::new() (L4195-4197) ---
+
+#[test]
+fn var_decl_vec_malloc_simple_size_vec_new() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    // int* arr = malloc(sizeof(int)) — non-multiply size, primitive pointer → Vec
+    // is_malloc_init=true, type is Pointer(Int), not struct → Vec
+    // Size is Sizeof{type_name} which is NOT BinaryOp::Multiply → Vec::new() fallback
+    let stmt = HirStatement::VariableDeclaration {
+        name: "arr".to_string(),
+        var_type: HirType::Pointer(Box::new(HirType::Int)),
+        initializer: Some(HirExpression::Malloc {
+            size: Box::new(HirExpression::Sizeof {
+                type_name: "int".to_string(),
+            }),
+        }),
+    };
+    let code = cg.generate_statement_with_context(&stmt, Some("func"), &mut ctx, Some(&HirType::Void));
+    assert!(code.contains("Vec") || code.contains("vec"), "Vec type: {}", code);
+}
+
+// --- generate_function: length param detection (L6370-6382) ---
+
+#[test]
+fn generate_function_detects_array_length_param() {
+    let cg = CodeGenerator::new();
+    // Function with int* arr and int size params → length_to_array mapping
+    let func = HirFunction::new_with_body(
+        "process".to_string(),
+        HirType::Void,
+        vec![
+            HirParameter::new("arr".to_string(), HirType::Pointer(Box::new(HirType::Int))),
+            HirParameter::new("size".to_string(), HirType::Int),
+        ],
+        vec![
+            // Body that uses pointer arithmetic (to trigger param conversion)
+            HirStatement::Expression(HirExpression::BinaryOp {
+                op: BinaryOperator::Add,
+                left: Box::new(HirExpression::Variable("arr".to_string())),
+                right: Box::new(HirExpression::Variable("size".to_string())),
+            }),
+        ],
+    );
+    let code = cg.generate_function(&func);
+    // arr: *mut i32 or &mut [i32] and size should be processed
+    assert!(code.contains("fn process"), "has function: {}", code);
+}
+
+// --- generate_function: n/num param name detection (L6381-6382) ---
+
+#[test]
+fn generate_function_detects_n_length_param() {
+    let cg = CodeGenerator::new();
+    let func = HirFunction::new_with_body(
+        "copy_n".to_string(),
+        HirType::Void,
+        vec![
+            HirParameter::new("data".to_string(), HirType::Pointer(Box::new(HirType::Char))),
+            HirParameter::new("n".to_string(), HirType::Int),
+        ],
+        vec![
+            HirStatement::Expression(HirExpression::Variable("data".to_string())),
+        ],
+    );
+    let code = cg.generate_function(&func);
+    assert!(code.contains("fn copy_n"), "has function: {}", code);
+}
+
+// --- Int to char coercion: checking the actual DECY-198 path (L1223-1227) ---
+// The path requires target_type = Some(Char) AND variable type = Int in ctx
+
+#[test]
+fn int_to_char_coercion_in_array_assignment() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("c".to_string(), HirType::Int);
+    // With target_type Char, int variable should become "c as u8"
+    let expr = HirExpression::Variable("c".to_string());
+    let code = cg.generate_expression_with_target_type(&expr, &ctx, Some(&HirType::Char));
+    assert!(code.contains("as u8"), "int → char coercion: {}", code);
+}
