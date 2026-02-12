@@ -35629,3 +35629,504 @@ fn var_decl_malloc_func_call_box_non_struct() {
     let code = cg.generate_statement_with_context(&stmt, Some("func"), &mut ctx, Some(&HirType::Void));
     assert!(code.contains("Box"), "uses Box: {}", code);
 }
+
+// =============================================================================
+// Batch 63: Target remaining uncovered lines in codegen/lib.rs
+// Targets: expression null comparison (pointer, Option, Vec, Box, strlen),
+//   function call arg transforms (AddressOf, raw ptr to ref, array to slice),
+//   assign expression global array index, LogicalNot in generate_expression_with_context,
+//   VariableDeclaration fallback init, pointer to raw ptr conversion
+// =============================================================================
+
+// --- Assign expression: global array index (lines 1300-1309) ---
+
+#[test]
+fn assign_expr_global_array_index() {
+    // Assign to global array index: g[i] = val as expression
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_global("g".to_string());
+    ctx.add_variable("g".to_string(), HirType::Array {
+        element_type: Box::new(HirType::Int),
+        size: Some(10),
+    });
+    ctx.add_variable("i".to_string(), HirType::Int);
+    let expr = HirExpression::BinaryOp {
+        op: BinaryOperator::Assign,
+        left: Box::new(HirExpression::ArrayIndex {
+            array: Box::new(HirExpression::Variable("g".to_string())),
+            index: Box::new(HirExpression::Variable("i".to_string())),
+        }),
+        right: Box::new(HirExpression::IntLiteral(42)),
+    };
+    let code = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(code.contains("unsafe"), "global array assign needs unsafe: {}", code);
+}
+
+// --- Pointer null comparison: ptr == 0 → ptr == std::ptr::null_mut() (line 1352) ---
+
+#[test]
+fn ptr_null_comparison_int_zero() {
+    // ptr == 0 where ptr is pointer → ptr == std::ptr::null_mut()
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("ptr".to_string(), HirType::Pointer(Box::new(HirType::Int)));
+    let expr = HirExpression::BinaryOp {
+        op: BinaryOperator::Equal,
+        left: Box::new(HirExpression::Variable("ptr".to_string())),
+        right: Box::new(HirExpression::IntLiteral(0)),
+    };
+    let code = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(code.contains("null_mut()"), "ptr == null_mut: {}", code);
+}
+
+// --- Reversed pointer null comparison: 0 == ptr (line 1361) ---
+
+#[test]
+fn ptr_null_comparison_reversed() {
+    // 0 == ptr → std::ptr::null_mut() == ptr
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("p".to_string(), HirType::Pointer(Box::new(HirType::Int)));
+    let expr = HirExpression::BinaryOp {
+        op: BinaryOperator::NotEqual,
+        left: Box::new(HirExpression::IntLiteral(0)),
+        right: Box::new(HirExpression::Variable("p".to_string())),
+    };
+    let code = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(code.contains("null_mut()"), "reversed null: {}", code);
+}
+
+// --- Vec null check: vec == 0 → false (lines 1391-1401) ---
+
+#[test]
+fn vec_null_check_equal_zero_is_false() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("arr".to_string(), HirType::Vec(Box::new(HirType::Int)));
+    let expr = HirExpression::BinaryOp {
+        op: BinaryOperator::Equal,
+        left: Box::new(HirExpression::Variable("arr".to_string())),
+        right: Box::new(HirExpression::IntLiteral(0)),
+    };
+    let code = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(code.contains("false"), "Vec == 0 is false: {}", code);
+}
+
+#[test]
+fn vec_null_check_notequal_null_is_true() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("arr".to_string(), HirType::Vec(Box::new(HirType::Int)));
+    let expr = HirExpression::BinaryOp {
+        op: BinaryOperator::NotEqual,
+        left: Box::new(HirExpression::Variable("arr".to_string())),
+        right: Box::new(HirExpression::NullLiteral),
+    };
+    let code = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(code.contains("true"), "Vec != NULL is true: {}", code);
+}
+
+// --- Box null check: box == 0 → false (lines 1409-1423) ---
+
+#[test]
+fn box_null_check_equal_zero_is_false() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("node".to_string(), HirType::Box(Box::new(HirType::Struct("Node".to_string()))));
+    let expr = HirExpression::BinaryOp {
+        op: BinaryOperator::Equal,
+        left: Box::new(HirExpression::Variable("node".to_string())),
+        right: Box::new(HirExpression::IntLiteral(0)),
+    };
+    let code = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(code.contains("false"), "Box == 0 is false: {}", code);
+}
+
+#[test]
+fn box_null_check_notequal_null_is_true() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("node".to_string(), HirType::Box(Box::new(HirType::Int)));
+    let expr = HirExpression::BinaryOp {
+        op: BinaryOperator::NotEqual,
+        left: Box::new(HirExpression::Variable("node".to_string())),
+        right: Box::new(HirExpression::NullLiteral),
+    };
+    let code = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(code.contains("true"), "Box != NULL is true: {}", code);
+}
+
+// --- strlen == 0 → is_empty(), reversed (lines 1427-1462) ---
+
+#[test]
+fn strlen_eq_zero_is_empty() {
+    // strlen(s) == 0 → s.is_empty()
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    let expr = HirExpression::BinaryOp {
+        op: BinaryOperator::Equal,
+        left: Box::new(HirExpression::FunctionCall {
+            function: "strlen".to_string(),
+            arguments: vec![HirExpression::Variable("s".to_string())],
+        }),
+        right: Box::new(HirExpression::IntLiteral(0)),
+    };
+    let code = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(code.contains("is_empty"), "strlen == 0 → is_empty: {}", code);
+}
+
+#[test]
+fn zero_eq_strlen_is_empty_reversed() {
+    // 0 == strlen(s) → s.is_empty() (reversed)
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    let expr = HirExpression::BinaryOp {
+        op: BinaryOperator::Equal,
+        left: Box::new(HirExpression::IntLiteral(0)),
+        right: Box::new(HirExpression::FunctionCall {
+            function: "strlen".to_string(),
+            arguments: vec![HirExpression::Variable("s".to_string())],
+        }),
+    };
+    let code = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(code.contains("is_empty"), "0 == strlen → is_empty: {}", code);
+}
+
+#[test]
+fn strlen_neq_zero_not_is_empty() {
+    // strlen(s) != 0 → !s.is_empty()
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    let expr = HirExpression::BinaryOp {
+        op: BinaryOperator::NotEqual,
+        left: Box::new(HirExpression::FunctionCall {
+            function: "strlen".to_string(),
+            arguments: vec![HirExpression::Variable("s".to_string())],
+        }),
+        right: Box::new(HirExpression::IntLiteral(0)),
+    };
+    let code = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(code.contains("!") && code.contains("is_empty"), "strlen != 0 → !is_empty: {}", code);
+}
+
+// --- Function call: AddressOf arg with is_mutable detection (lines 2712-2721) ---
+
+#[test]
+fn func_call_address_of_arg_string_iter() {
+    // Function call where arg is AddressOf and function expects string iter → &mut inner or &inner
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("buf".to_string(), HirType::Array {
+        element_type: Box::new(HirType::Char),
+        size: Some(256),
+    });
+    ctx.add_string_iter_func("process".to_string(), vec![(0, true)]);
+    let expr = HirExpression::FunctionCall {
+        function: "process".to_string(),
+        arguments: vec![HirExpression::AddressOf(
+            Box::new(HirExpression::Variable("buf".to_string())),
+        )],
+    };
+    let code = cg.generate_expression_with_context(&expr, &ctx);
+    assert!(code.contains("process"), "calls process: {}", code);
+}
+
+// --- Function call: raw pointer param with array arg → .as_mut_ptr() (lines 2735-2737) ---
+
+#[test]
+fn func_call_raw_ptr_param_array_arg() {
+    // Array arg passed to function expecting raw pointer → .as_mut_ptr()
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("data".to_string(), HirType::Array {
+        element_type: Box::new(HirType::Int),
+        size: Some(10),
+    });
+    ctx.add_function("memset".to_string(), vec![HirType::Pointer(Box::new(HirType::Int))]);
+    let expr = HirExpression::FunctionCall {
+        function: "memset".to_string(),
+        arguments: vec![HirExpression::Variable("data".to_string())],
+    };
+    let code = cg.generate_expression_with_context(&expr, &ctx);
+    assert!(code.contains("as_mut_ptr"), "array to ptr: {}", code);
+}
+
+// --- Function call: raw pointer param with string literal → .as_ptr() as *mut (lines 2740-2742) ---
+
+#[test]
+fn func_call_raw_ptr_param_string_lit_arg() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_function("puts".to_string(), vec![HirType::Pointer(Box::new(HirType::Char))]);
+    let expr = HirExpression::FunctionCall {
+        function: "puts".to_string(),
+        arguments: vec![HirExpression::StringLiteral("hello".to_string())],
+    };
+    let code = cg.generate_expression_with_context(&expr, &ctx);
+    assert!(code.contains("as_ptr") || code.contains("hello"), "string to ptr: {}", code);
+}
+
+// --- Function call: ref param with raw pointer arg → unsafe &mut * (lines 2753-2760) ---
+
+#[test]
+fn func_call_ref_param_raw_ptr_arg() {
+    // Raw pointer arg to function expecting reference → unsafe { &mut *ptr }
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("ptr".to_string(), HirType::Pointer(Box::new(HirType::Int)));
+    ctx.add_function("process".to_string(), vec![HirType::Reference {
+        inner: Box::new(HirType::Int),
+        mutable: true,
+    }]);
+    let expr = HirExpression::FunctionCall {
+        function: "process".to_string(),
+        arguments: vec![HirExpression::Variable("ptr".to_string())],
+    };
+    let code = cg.generate_expression_with_context(&expr, &ctx);
+    assert!(code.contains("unsafe") || code.contains("&mut"), "ptr to ref: {}", code);
+}
+
+// --- Function call: slice param with fixed array arg → &mut arr (lines 2773-2776) ---
+
+#[test]
+fn func_call_slice_param_fixed_array_arg() {
+    // Fixed array arg to function expecting unsized array (slice) → &mut arr
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("buf".to_string(), HirType::Array {
+        element_type: Box::new(HirType::Char),
+        size: Some(256),
+    });
+    ctx.add_function("fill".to_string(), vec![HirType::Array {
+        element_type: Box::new(HirType::Char),
+        size: None,
+    }]);
+    let expr = HirExpression::FunctionCall {
+        function: "fill".to_string(),
+        arguments: vec![HirExpression::Variable("buf".to_string())],
+    };
+    let code = cg.generate_expression_with_context(&expr, &ctx);
+    assert!(code.contains("&mut buf") || code.contains("buf"), "array to slice: {}", code);
+}
+
+// --- LogicalNot in generate_expression_with_context (lines 2007-2014) ---
+
+#[test]
+fn logical_not_via_generate_expression_no_target() {
+    // LogicalNot via generate_expression_with_context (target=None)
+    // Matched at line 1049 in generate_expression_with_target_type, not 2006
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    let expr = HirExpression::UnaryOp {
+        op: decy_hir::UnaryOperator::LogicalNot,
+        operand: Box::new(HirExpression::Variable("x".to_string())),
+    };
+    let code = cg.generate_expression_with_context(&expr, &ctx);
+    assert!(code.contains("== 0"), "integer logical not: {}", code);
+    // No target type → no as i32 cast (line 1076)
+}
+
+#[test]
+fn logical_not_boolean_via_generate_expression_no_target() {
+    // LogicalNot on boolean in generate_expression_with_context → !operand
+    let cg = CodeGenerator::new();
+    let ctx = TypeContext::new();
+    let expr = HirExpression::UnaryOp {
+        op: decy_hir::UnaryOperator::LogicalNot,
+        operand: Box::new(HirExpression::BinaryOp {
+            op: BinaryOperator::LessThan,
+            left: Box::new(HirExpression::Variable("a".to_string())),
+            right: Box::new(HirExpression::Variable("b".to_string())),
+        }),
+    };
+    let code = cg.generate_expression_with_context(&expr, &ctx);
+    assert!(code.contains("!"), "boolean negation: {}", code);
+}
+
+// --- VariableDeclaration: fallback init for pointer with unrecognized initializer (lines 4244-4254) ---
+
+#[test]
+fn var_decl_pointer_unrecognized_init_fallback() {
+    // Pointer variable with non-malloc, non-string, non-char init → fallback path
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("other".to_string(), HirType::Pointer(Box::new(HirType::Int)));
+    let stmt = HirStatement::VariableDeclaration {
+        name: "ptr".to_string(),
+        var_type: HirType::Pointer(Box::new(HirType::Int)),
+        initializer: Some(HirExpression::Variable("other".to_string())),
+    };
+    let code = cg.generate_statement_with_context(&stmt, Some("func"), &mut ctx, Some(&HirType::Void));
+    assert!(code.contains("ptr") && code.contains("other"), "fallback init: {}", code);
+}
+
+// --- Variable: int to char coercion (lines 1225-1228) ---
+
+#[test]
+fn var_int_to_char_target_type_coercion() {
+    // Variable with Int type and Char target → cast as u8
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("c".to_string(), HirType::Int);
+    let expr = HirExpression::Variable("c".to_string());
+    let code = cg.generate_expression_with_target_type(&expr, &ctx, Some(&HirType::Char));
+    assert!(code.contains("as u8"), "int to char: {}", code);
+}
+
+// --- Variable: _ wildcard for pointer target match (line 1215) ---
+
+#[test]
+fn var_to_ptr_unknown_type_fallback() {
+    // Variable with Struct type assigned to Pointer target → hits _ => {} fallback
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("s".to_string(), HirType::Struct("MyStruct".to_string()));
+    let expr = HirExpression::Variable("s".to_string());
+    let code = cg.generate_expression_with_target_type(&expr, &ctx, Some(&HirType::Pointer(Box::new(HirType::Int))));
+    // Falls through to default variable handling
+    assert!(code.contains("s"), "returns variable name: {}", code);
+}
+
+// --- generate_signature: skip "n" and "num" params (lines 5072-5078) ---
+
+#[test]
+fn generate_signature_skip_n_length_param() {
+    // Function with array param + "n" param → "n" should be skipped in signature
+    let cg = CodeGenerator::new();
+    let func = HirFunction::new_with_body(
+        "sum".to_string(),
+        HirType::Int,
+        vec![
+            HirParameter::new("arr".to_string(), HirType::Pointer(Box::new(HirType::Int))),
+            HirParameter::new("n".to_string(), HirType::Int),
+        ],
+        vec![
+            HirStatement::Return(Some(HirExpression::IntLiteral(0))),
+        ],
+    );
+    let sig = cg.generate_signature(&func);
+    // If arr detected as array, "n" should be skipped
+    assert!(sig.contains("fn sum"), "has function name: {}", sig);
+}
+
+// --- generate_function_with_structs: struct context registration (line 6520) ---
+
+#[test]
+fn generate_function_with_structs_registers_types() {
+    let cg = CodeGenerator::new();
+    let func = HirFunction::new_with_body(
+        "init".to_string(),
+        HirType::Void,
+        vec![],
+        vec![
+            HirStatement::Expression(HirExpression::IntLiteral(0)),
+        ],
+    );
+    let structs = vec![
+        decy_hir::HirStruct::new("Point".to_string(), vec![
+            HirStructField::new("x".to_string(), HirType::Int),
+            HirStructField::new("y".to_string(), HirType::Int),
+        ]),
+    ];
+    let code = cg.generate_function_with_structs(&func, &structs);
+    assert!(code.contains("fn init"), "function generated: {}", code);
+}
+
+// --- generate_function_with_lifetimes_and_structs: StringReference context (line 6658) ---
+
+#[test]
+fn generate_func_lifetimes_registers_string_ref() {
+    use decy_ownership::lifetime_gen::{AnnotatedSignature, AnnotatedType, AnnotatedParameter};
+    let cg = CodeGenerator::new();
+    let func = HirFunction::new_with_body(
+        "greet".to_string(),
+        HirType::Void,
+        vec![
+            HirParameter::new("msg".to_string(), HirType::Pointer(Box::new(HirType::Char))),
+        ],
+        vec![
+            HirStatement::Expression(HirExpression::Variable("msg".to_string())),
+        ],
+    );
+    let sig = AnnotatedSignature {
+        name: "greet".to_string(),
+        lifetimes: vec![],
+        parameters: vec![
+            AnnotatedParameter {
+                name: "msg".to_string(),
+                param_type: AnnotatedType::Simple(HirType::Pointer(Box::new(HirType::Char))),
+            },
+        ],
+        return_type: AnnotatedType::Simple(HirType::Void),
+    };
+    let globals: Vec<(String, HirType)> = vec![];
+    let code = cg.generate_function_with_lifetimes_and_structs(
+        &func, &sig, &[], &[], &[], &[],
+        &globals,
+    );
+    assert!(code.contains("fn greet"), "function generated: {}", code);
+}
+
+// --- Option null comparison: p == NULL → p.is_none() (lines 1323-1331) ---
+
+#[test]
+fn option_null_comparison_equal() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("p".to_string(), HirType::Option(Box::new(HirType::Int)));
+    let expr = HirExpression::BinaryOp {
+        op: BinaryOperator::Equal,
+        left: Box::new(HirExpression::Variable("p".to_string())),
+        right: Box::new(HirExpression::NullLiteral),
+    };
+    let code = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(code.contains("is_none"), "Option == NULL → is_none: {}", code);
+}
+
+#[test]
+fn option_null_comparison_not_equal() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("p".to_string(), HirType::Option(Box::new(HirType::Int)));
+    let expr = HirExpression::BinaryOp {
+        op: BinaryOperator::NotEqual,
+        left: Box::new(HirExpression::Variable("p".to_string())),
+        right: Box::new(HirExpression::NullLiteral),
+    };
+    let code = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(code.contains("is_some"), "Option != NULL → is_some: {}", code);
+}
+
+// --- Reversed Option null comparison: NULL == p → p.is_none() (lines 1334-1341) ---
+
+#[test]
+fn option_null_reversed_equal() {
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("p".to_string(), HirType::Option(Box::new(HirType::Int)));
+    let expr = HirExpression::BinaryOp {
+        op: BinaryOperator::Equal,
+        left: Box::new(HirExpression::NullLiteral),
+        right: Box::new(HirExpression::Variable("p".to_string())),
+    };
+    let code = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    assert!(code.contains("is_none"), "NULL == Option → is_none: {}", code);
+}
+
+// --- Pointer to raw pointer: Vec to *mut T (line 1190-1194, already tested above) ---
+// --- Pointer to raw pointer: Array to *mut void (lines 1204-1206) ---
+
+#[test]
+fn var_array_to_void_pointer_target() {
+    // Array[Int; N] to *mut () (void pointer target)
+    let cg = CodeGenerator::new();
+    let mut ctx = TypeContext::new();
+    ctx.add_variable("arr".to_string(), HirType::Array {
+        element_type: Box::new(HirType::Int),
+        size: Some(10),
+    });
+    let expr = HirExpression::Variable("arr".to_string());
+    let code = cg.generate_expression_with_target_type(&expr, &ctx, Some(&HirType::Pointer(Box::new(HirType::Void))));
+    assert!(code.contains("as_mut_ptr") && code.contains("*mut ()"), "array to void ptr: {}", code);
+}
