@@ -695,6 +695,18 @@ mod tests {
     }
 
     #[test]
+    fn test_extract_error_code_bracket_fallback() {
+        // First path fails (E99 is only 2 digits after E), falls to bracket pattern
+        assert_eq!(extract_error_code("error[E99]: short code"), "E99");
+    }
+
+    #[test]
+    fn test_extract_error_code_bracket_first_e_not_code() {
+        // First E in "EXPECTED" isn't followed by 4 digits; bracket fallback finds [E55]
+        assert_eq!(extract_error_code("EXPECTED [E55]: issue"), "E55");
+    }
+
+    #[test]
     fn test_compile_metrics_to_markdown_no_errors() {
         let metrics = CompileMetrics::new();
         let md = metrics.to_markdown();
