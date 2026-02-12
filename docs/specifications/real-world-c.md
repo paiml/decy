@@ -3,7 +3,7 @@
 **Status**: Active (S1/S2 Implemented)
 **Created**: 2026-02-10
 **Updated**: 2026-02-12
-**Version**: 1.13
+**Version**: 1.14
 
 ## Problem Statement
 
@@ -242,7 +242,7 @@ The transpiler must preserve C program semantics. Differential testing compiles 
 - **HIR**: `HirStatement::For { condition }` changed from `HirExpression` to `Option<HirExpression>`
 - **Codegen**: `None` condition emits `loop {}`, `Some(cond)` emits `while cond { ... }`
 - **Pipeline**: Updated 8 files across core, optimizer, ownership, analyzer, and codegen
-- **Tests**: 40+ test files updated (`condition: Some(...)` wrapper), 11 previously-falsified tests un-falsified
+- **Tests**: 40+ test files updated (`condition: Some(...)` wrapper), 61 previously-falsified tests un-falsified (13 bloomfilter + 48 C construct)
 - **Prediction S2-P1**: Verified — `for(;;) { break; }` transpiles to `loop { break; }`
 - **Prediction S2-P4**: Verified — all workspace tests pass
 
@@ -252,6 +252,8 @@ The transpiler must preserve C program semantics. Differential testing compiles 
 - **CLI**: `decy transpile --verify <file>` flag wired into transpile subcommand
 - **Prediction S1-P1**: Verified — `verify_compilation("fn main() {}")` returns success
 - **Prediction S1-P2**: Verified — type mismatch returns error E0308
+- **Prediction S1-P3**: Verified — `decy transpile --verify valid.c` shows "Compilation verified" (CLI integration test)
+- **CLI tests**: 3 new tests for `--verify` flag (valid code, output file, stdout mode)
 
 ### Coverage Results
 
@@ -286,8 +288,9 @@ Post-implementation workspace coverage: **98.25% line, 98.00% region** (target: 
 
 ### Test Corpus
 
-- **Total tests**: 14,250+ passing across workspace (408 test binaries)
-- **Falsification tests**: 2,150 total (92 falsified, 95.7% pass rate)
+- **Total tests**: 14,500+ passing across workspace (408 test binaries)
+- **Falsification tests**: 2,150+ total (31 falsified, 98.6% pass rate — 61 un-falsified by S2 fix + transpiler improvements)
+- **CLI contract tests**: 107 (18 new: --verify flag, transpile-project modes, check-project, cache-stats)
 - **Codegen deep tests**: 2,074 across 66 batches covering expression target type, annotated signatures, type coercions, null checks, pointer analysis, Vec/Box transforms, deref assigns, sizeof, global variables, format specifiers, strlen idioms, string iter func args, BinaryOp target_type paths, statement_modifies_variable, generate_function variants, Option/Box null checks, mixed arithmetic promotions, comma operator, assignment expressions, pointer subtraction detection, void* constraints, macro type inference, malloc statement paths, char-int coercion, NULL comparison detection, pointer arithmetic detection, strip_unsafe, malloc fallback, sizeof struct field, sizeof member access, LogicalNot int target, AddressOf call args, Vec init paths, transform_vec_statement, output params, format positions, array param slice, char array escape, string ref arrays, count param heuristic, Box default/zeroed init, Vec/Box null→false/true, *str++ deref elision, pointer field→null_mut, annotated non-slice ref, strlen→is_empty, pointer post-inc/dec wrapping_add/sub, (*p)++/-- unsafe, &str byte extract, Option→is_none/is_some, array→void* cast, global array assign unsafe, sizeof ctx field lookup, ptr-to-ptr deref unsafe, int→char as u8, macro generation (object/function-like, ternary, octal, hex, char, float, empty), typedef redundancy (struct/enum name match), constant char*→&str mapping, LogicalNot bool/int target type coercion, main signature return type elision, default_value_for_type (FunctionPointer, String, TypeAlias), generate_function method paths (array+length param, empty body, struct pointer, Vec/calloc return), IntLiteral→Option/Pointer, FloatLiteral f32/f64/no-decimal, AddressOf/UnaryOp with pointer target, LogicalNot bool→int/int→int with/without target, StringLiteral→char*, CharLiteral null/printable/nonprintable, Variable→stderr/stdout/errno/ERANGE/Vec, Box→raw pointer, Reference(Array/Vec/T)→as_mut_ptr/as_ptr/cast, Vec/Array→as_mut_ptr, Array→void*, Pointer→Pointer passthrough, int→char coercion, struct derive combos (8 combinations: large_array × float × copy), flexible array member, reference field lifetime, VLA→vec (int/float/char/double/unsigned/signed_char), malloc struct→Box, malloc array→Vec, char* string literal→&str, cast-wrapped malloc, uninitialized var defaults, global var rename, output param detection (single/fallible), keyword rename (all 6), global int→float/double unsafe
 - **Box/concurrency transform tests**: 22 (malloc→Box type preservation, Float/Double/Option/fallback defaults, PointerFieldAccess lock/unlock, orphan lock regions)
 - **LLM coverage tests**: 174 (render with ownership/instructions/empty, validate braces/parens/empty/fn, parse_response JSON/markdown/error, extract_reasoning, context builder add_ownership/add_lifetime/add_lock_mapping/to_json/chaining/serde, nonexistent function paths, verifier compile/lint/run_tests, iteration context feedback, VerificationLoop format feedback, CompilationMetrics histogram/reset/serialize)
@@ -298,22 +301,24 @@ Post-implementation workspace coverage: **98.25% line, 98.00% region** (target: 
 
 ### Falsification Analysis (Popperian Methodology)
 
-92 falsified tests categorized by root cause:
+31 falsified tests remaining (down from 92 — 61 resolved by transpiler improvements):
 
-| Category | Count | % | Priority | Fix Strategy |
-|----------|-------|---|----------|-------------|
-| C++ features (out of scope) | 21 | 22.8% | N/A | Mark out-of-scope |
-| Stdlib functions missing | 21 | 22.8% | P1 | S3 Phase 1: stdlib mapping |
-| Preprocessor/macro expressions | 16 | 17.4% | P1 | Constant folding in HIR |
-| C11/C99 advanced features | 10 | 10.9% | P2 | VLA, designated initializers |
-| Platform/system features | 7 | 7.6% | P3 | setjmp, signals, TLS |
-| Control flow (goto) | 5 | 5.4% | P2 | goto → labeled blocks |
-| Pointer/type system | 5 | 5.4% | P2 | Triple pointer, flexible arrays |
-| Static analysis gaps | 3 | 3.3% | P3 | Double-free, UAF detection |
-| GCC extensions | 3 | 3.3% | P4 | Packed structs, nested functions |
-| Test input errors | 1 | 1.1% | P0 | Fix invalid C in tests |
+| Category | Count | % | Priority | Status |
+|----------|-------|---|----------|--------|
+| C++ features (out of scope) | 21 | 67.7% | N/A | Permanent — Decy is a C transpiler |
+| setjmp/longjmp | 3 | 9.7% | P3 | Requires non-local jump support |
+| C11 alignof/alignas | 1 | 3.2% | P2 | Alignment attribute support |
+| C11 complex numbers | 1 | 3.2% | P2 | _Complex type support |
+| Full atomic operations | 1 | 3.2% | P2 | stdatomic.h operations |
+| Nested functions (GCC ext) | 2 | 6.5% | P4 | Non-standard GCC extension |
+| Test input error | 1 | 3.2% | P0 | Invalid C in test (struct member) |
+| Other platform features | 1 | 3.2% | P3 | compilerback tree tiling |
 
-**Key insight**: Fixing stdlib mapping (21) + constant folding (16) + removing C++ (21) reduces falsifications from 92 to 34 (63% reduction).
+**Resolution history**: 61 tests un-falsified across two waves:
+- **Wave 1** (S2 for(;;) fix): 13 bloomfilter/HyperLogLog tests — computed `#define` expressions in array sizes within for loops
+- **Wave 2** (transpiler maturation): 48 C construct tests — goto, stdlib, preprocessor, C11, pointers, static analysis, VLA, memory pools
+
+**Key insight**: Excluding C++ (out-of-scope), only 10 genuine C transpilation failures remain. Of these, 4 are C11 features (alignof, complex, atomics) and 3 are setjmp/longjmp — all addressable with targeted feature additions.
 
 ## Quality Gates
 
