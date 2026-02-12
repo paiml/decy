@@ -279,6 +279,7 @@ MIT OR Apache-2.0
 - **[C2Rust](https://github.com/immunant/c2rust)** - Mozilla's C-to-Rust transpiler
 - **[PMAT](https://github.com/paiml/pmat)** - Quality metrics toolkit
 - **Toyota Production System** - Quality principles
+- 🤖 [Coursera Hugging Face AI Development Specialization](https://www.coursera.org/specializations/hugging-face-ai-development) - Build Production AI systems with Hugging Face in Pure Rust
 
 ---
 
