@@ -3,7 +3,7 @@
 **Status**: Active (S1/S2 Implemented)
 **Created**: 2026-02-10
 **Updated**: 2026-02-12
-**Version**: 1.12
+**Version**: 1.13
 
 ## Problem Statement
 
@@ -255,32 +255,34 @@ The transpiler must preserve C program semantics. Differential testing compiles 
 
 ### Coverage Results
 
-Post-implementation workspace coverage: **98.26% line, 98.02% region** (target: 95% — EXCEEDED)
+Post-implementation workspace coverage: **98.25% line, 98.00% region** (target: 95% — EXCEEDED)
 
-637 uncovered lines remain across 36,668 total lines. Top uncovered files:
+643 uncovered lines remain across 36,668 total lines. Top uncovered files:
 
 | File | Uncovered | Coverage | Notes |
 |------|-----------|----------|-------|
 | parser.rs | 208 | 93.13% | FFI/clang-sys boundary code |
 | codegen/lib.rs | 108 | 97.32% | Deep pipeline paths, dead code, LLVM artifacts |
 | main.rs | 57 | 89.62% | CLI entry points (interactive) |
-| core/lib.rs | 50 | 97.80% | Pipeline orchestration |
-| array_slice.rs | 37 | 95.92% | Complex context setup |
+| core/lib.rs | 50 | 97.80% | Pipeline orchestration (integration paths) |
+| optimize.rs | 29 | 97.20% | ALL production code covered (29 uncov are test assertions) |
+| array_slice.rs | 31 | 96.92% | 4 production lines (DataflowGraph integration), 27 test assertions |
 | retraining_pipeline.rs | 10 | 98.77% | Training loop internals |
-| dataset.rs | 15 | 96.58% | Error closures (infallible) |
+| dataset.rs | 15 | 96.58% | Infallible serde error closures |
+| box_transform.rs | 6 | 97.27% | ALL test assertion branches |
 
 | Crate | Region | Line | Notes |
 |-------|--------|------|-------|
 | decy-parser | 91.99% | 93.13% | FFI/clang-sys boundary code (349 uncovered) |
 | decy-hir | 100% | 100% | Full coverage via integration tests |
 | decy-analyzer | 97.00% | — | Lock analysis, subprocess analysis, output params covered |
-| decy-ownership | 99.46%+ | — | hybrid_classifier 99.71%, model_versioning 99.46%, active_learning 99.77%, classifier edge cases, retraining metrics, array_slice transform() integration |
+| decy-ownership | 95.66%+ | — | hybrid_classifier 99.71%, model_versioning 99.46%, active_learning 99.77%, classifier edge cases, retraining metrics, array_slice transform() integration |
 | decy-codegen | 97.66% | 97.32% | 2,074 deep coverage tests (66 batches) + TypeContext helpers + box/concurrency/pattern |
-| decy-verify | 99.23% | 100% | lock_verify 100%, compile verification fully tested |
-| decy-core | 97.61% | 97.80% | Pipeline tests + uninitialized globals + enum/function dedup + metrics serialization |
+| decy-verify | 99.23% | 98.92% | lock_verify 100%, compile verification fully tested |
+| decy-core | 95.64% | 97.80% | Pipeline tests + optimize.rs 100% production + metrics serialization |
 | decy-stdlib | 100% | 100% | Full coverage |
 | decy-llm | 99.36% | 100% | context_builder 100%, llm_codegen 99.36%, verifier 98.70% |
-| decy-oracle | 97.82%+ | — | trace_verifier 97.82%, verification 98.32%, dataset 97.98%, golden_trace 97.93% |
+| decy-oracle | 97.82%+ | — | trace_verifier 98.06%, verification 98.24%, dataset 97.98%, golden_trace 97.93% |
 
 ### Test Corpus
 
@@ -290,7 +292,7 @@ Post-implementation workspace coverage: **98.26% line, 98.02% region** (target: 
 - **Box/concurrency transform tests**: 22 (malloc→Box type preservation, Float/Double/Option/fallback defaults, PointerFieldAccess lock/unlock, orphan lock regions)
 - **LLM coverage tests**: 174 (render with ownership/instructions/empty, validate braces/parens/empty/fn, parse_response JSON/markdown/error, extract_reasoning, context builder add_ownership/add_lifetime/add_lock_mapping/to_json/chaining/serde, nonexistent function paths, verifier compile/lint/run_tests, iteration context feedback, VerificationLoop format feedback, CompilationMetrics histogram/reset/serialize)
 - **Oracle trace verifier tests**: 45 (compilation valid/invalid/empty, verify_trace valid/invalid/unsafe/fn_main, verify_batch/filter_valid, verify_safety allow/deny, stats accumulation, VerifierConfig, VerificationLevel Display, pass_rate, count_unsafe variants)
-- **Core pipeline tests**: 12 (uninitialized globals, enum variants, function dedup) + 4 metrics tests (to_json, success/failure results, no-error markdown)
+- **Core pipeline tests**: 12 (uninitialized globals, enum variants, function dedup) + 6 metrics tests (to_json, success/failure results, no-error markdown, extract_error_code bracket fallback, bracket with non-code E prefix)
 - **Inference branch tests**: 17 (via DataflowGraph test helpers for defensive branches)
 - **Ownership tests**: Retraining pipeline ClassMetrics/TrainingMetrics fields + f1 zero-division + invalid day fallback + timezone edge cases, hybrid classifier trait defaults, classifier integration edge cases + evaluator mismatches + precision/recall/f1 zero cases + macro_f1 + multi-alternative predictions, ArrayParameterTransformer::transform() integration (immutable/mutable/pointer-arithmetic/no-array), optimize.rs count_uses_in_stmt/expr + fold_constants_stmt VarDecl/For increment
 
