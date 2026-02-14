@@ -11,8 +11,8 @@
 <p align="center">
   <img src="https://img.shields.io/badge/tests-99.9%25%20passing-brightgreen.svg" alt="Tests">
   <img src="https://img.shields.io/badge/coverage-95%25-purple.svg" alt="Coverage">
-  <img src="https://img.shields.io/badge/PMAT-A+-blue.svg" alt="PMAT Score">
-  <img src="https://img.shields.io/badge/repo%20health-84%2F100-green.svg" alt="Repo Health">
+  <img src="https://img.shields.io/badge/PMAT-A%20(90%2F100)-blue.svg" alt="PMAT Score">
+  <img src="https://img.shields.io/badge/repo%20health-90%2F100-brightgreen.svg" alt="Repo Health">
 </p>
 
 </div>
@@ -24,6 +24,7 @@
 - [Quick Start](#quick-start)
 - [Quality Metrics](#quality-metrics-pmat)
 - [Installation](#installation)
+- [Usage](#usage)
 - [Features](#features)
 - [Architecture](#architecture)
 - [Unsafe Minimization](#unsafe-minimization)
@@ -111,6 +112,45 @@ cargo install --path crates/decy
 - **Rust**: 1.70+ (stable)
 - **LLVM/Clang**: 14+ (for C parsing)
 - **Platform**: Linux, macOS, Windows (WSL2)
+
+---
+
+## Usage
+
+### Transpile a Single File
+
+```bash
+decy transpile input.c -o output.rs
+```
+
+### Transpile with Compilation Verification
+
+```bash
+decy transpile input.c --verify -o output.rs
+```
+
+### Differential Testing (S5)
+
+Compile original C with gcc and transpiled Rust with rustc, run both, and compare outputs:
+
+```bash
+decy diff-test input.c
+decy diff-test input.c --timeout 10
+```
+
+### Transpile an Entire Project
+
+```bash
+decy transpile-project src/ -o rust_output/
+decy check-project src/       # Verify build order
+decy cache-stats src/          # View cache performance
+```
+
+### Interactive REPL
+
+```bash
+decy repl
+```
 
 ---
 
