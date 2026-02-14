@@ -24,9 +24,9 @@ alimentar = { version = "0.2.2", optional = true }
 arrow = { version = "54", optional = true, default-features = false, features = ["ipc"] }
 
 # Core decy crates
-decy-parser = { path = "../decy-parser" }
-decy-hir = { path = "../decy-hir" }
-decy-codegen = { path = "../decy-codegen" }
+decy-parser = { version = "2.1.0", path = "../decy-parser" }
+decy-hir = { version = "2.1.0", path = "../decy-hir" }
+decy-codegen = { version = "2.1.0", path = "../decy-codegen" }
 
 # Serialization
 serde = { version = "1.0", features = ["derive"] }
