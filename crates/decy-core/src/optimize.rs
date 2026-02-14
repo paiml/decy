@@ -275,7 +275,7 @@ fn is_constant_truthy(expr: &HirExpression) -> Option<bool> {
 }
 
 // ============================================================================
-// Pass 3: Temporary Elimination
+// Pass 3: Single-Use Variable Elimination
 // ============================================================================
 
 /// Eliminate single-use temporary variables.

@@ -106,10 +106,10 @@ int main() {
     fib_cache_init();  /* Reset cache */
     printf("  Memoized: %ld\n", fib_memo(30));
 
-    /* Slow version */
+    /* Naive version */
     call_count = 0;
     long result = fib_slow(30);
-    printf("  Slow (no memo): %ld (%d function calls)\n", result, call_count);
+    printf("  Naive (no memo): %ld (%d function calls)\n", result, call_count);
 
     /* Memoized on second call (should be instant) */
     printf("  Memoized (cached): %ld\n", fib_memo(30));

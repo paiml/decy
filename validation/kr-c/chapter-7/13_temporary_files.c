@@ -1,13 +1,13 @@
-/* K&R C Chapter 7: Temporary Files
+/* K&R C Chapter 7: Scratch Files
  * K&R §7.5: tmpfile, tmpnam, mkstemp
- * Tests creation and usage of temporary files
+ * Tests creation and usage of scratch files
  */
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-/* Use tmpfile for anonymous temporary file */
+/* Use tmpfile for anonymous scratch file */
 void demo_tmpfile(void) {
     printf("=== tmpfile() demo ===\n");
 
@@ -17,8 +17,8 @@ void demo_tmpfile(void) {
         return;
     }
 
-    /* Write data to temp file */
-    fprintf(tmp, "Line 1: Temporary data\n");
+    /* Write data to scratch file */
+    fprintf(tmp, "Line 1: Ephemeral data\n");
     fprintf(tmp, "Line 2: More data\n");
     fprintf(tmp, "Line 3: Final line\n");
 
@@ -45,7 +45,7 @@ void demo_tmpnam(void) {
         return;
     }
 
-    printf("Generated temp filename: %s\n", filename);
+    printf("Generated scratch filename: %s\n", filename);
 
     /* Create and use the file */
     FILE *fp = fopen(filename, "w+");
@@ -54,7 +54,7 @@ void demo_tmpnam(void) {
         return;
     }
 
-    fprintf(fp, "Data in named temporary file\n");
+    fprintf(fp, "Data in named scratch file\n");
     rewind(fp);
 
     char buffer[100];
@@ -64,19 +64,19 @@ void demo_tmpnam(void) {
     fclose(fp);
 
     /* Must manually delete */
-    printf("Removing temp file: %s\n", filename);
+    printf("Removing scratch file: %s\n", filename);
     remove(filename);
     printf("\n");
 }
 
-/* Temporary file for sorting large data */
+/* Scratch file for sorting large data */
 void demo_sorting_with_temp(void) {
-    printf("=== Sorting with temporary file ===\n");
+    printf("=== Sorting with scratch file ===\n");
 
     int numbers[] = {64, 34, 25, 12, 22, 11, 90, 88, 45, 50, 33, 78, 21};
     int count = sizeof(numbers) / sizeof(numbers[0]);
 
-    /* Write unsorted data to temp file */
+    /* Write unsorted data to scratch file */
     FILE *tmp = tmpfile();
     if (tmp == NULL) {
         perror("tmpfile");
@@ -118,9 +118,9 @@ void demo_sorting_with_temp(void) {
     printf("\n");
 }
 
-/* Multiple temp files for merge sort */
+/* Multiple scratch files for merge sort */
 void demo_merge_sort_temp(void) {
-    printf("=== Merge sort with temp files ===\n");
+    printf("=== Merge sort with scratch files ===\n");
 
     int data[] = {9, 7, 5, 3, 1, 8, 6, 4, 2, 0};
     int n = sizeof(data) / sizeof(data[0]);
@@ -130,7 +130,7 @@ void demo_merge_sort_temp(void) {
         printf("%d ", data[i]);
     printf("\n");
 
-    /* Split into two temp files */
+    /* Split into two scratch files */
     FILE *left = tmpfile();
     FILE *right = tmpfile();
 
@@ -140,7 +140,7 @@ void demo_merge_sort_temp(void) {
     for (int i = mid; i < n; i++)
         fprintf(right, "%d\n", data[i]);
 
-    printf("Split into two temp files:\n");
+    printf("Split into two scratch files:\n");
     printf("  Left file: %d elements\n", mid);
     printf("  Right file: %d elements\n", n - mid);
 
@@ -164,14 +164,14 @@ void demo_merge_sort_temp(void) {
     printf("\n");
 }
 
-/* Temporary work file for text processing */
+/* Scratch work file for text processing */
 void demo_text_processing_temp(void) {
-    printf("=== Text processing with temp file ===\n");
+    printf("=== Text processing with scratch file ===\n");
 
     const char *input_lines[] = {
         "Hello, World!",
         "This is a test.",
-        "Temporary files are useful.",
+        "Scratch files are useful.",
         "For processing data.",
         "End of input."
     };
@@ -210,7 +210,7 @@ void demo_text_processing_temp(void) {
 }
 
 int main() {
-    printf("=== Temporary Files ===\n\n");
+    printf("=== Scratch Files ===\n\n");
 
     demo_tmpfile();
     demo_tmpnam();

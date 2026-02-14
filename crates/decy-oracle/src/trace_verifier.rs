@@ -159,7 +159,7 @@ impl TraceVerifier {
         let temp_dir = std::env::temp_dir();
         let rust_path = temp_dir.join(format!("decy_verify_{}.rs", unique_id));
 
-        // Write Rust code to temp file
+        // Write Rust code to scratch file
         let mut file = std::fs::File::create(&rust_path)
             .map_err(|e| format!("Failed to create temp file: {}", e))?;
         file.write_all(rust_code.as_bytes())

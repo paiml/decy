@@ -104,10 +104,10 @@ fn main() {
     let fib_memo_fresh = FibMemo::new();
     println!("  Memoized: {}", fib_memo_fresh.compute(30));
 
-    // Slow version
+    // Naive version
     let mut call_count = 0;
     let result = fib_slow(30, &mut call_count);
-    println!("  Slow (no memo): {} ({} function calls)", result, call_count);
+    println!("  Naive (no memo): {} ({} function calls)", result, call_count);
 
     // Memoized on second call (instant)
     println!("  Memoized (cached): {}", fib_memo_fresh.compute(30));

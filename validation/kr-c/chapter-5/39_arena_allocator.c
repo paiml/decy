@@ -1,5 +1,5 @@
 /* K&R C Chapter 5: Memory Arena Allocator
- * K&R §5.10, §8.7: Fast linear allocator for temporary data
+ * K&R §5.10, §8.7: Fast linear allocator for short-lived data
  * Tests arena allocation pattern
  */
 
@@ -98,7 +98,7 @@ void string_pool_print(StringPool *pool) {
     }
 }
 
-/* Example: Temporary calculations */
+/* Example: Short-lived calculations */
 typedef struct {
     int id;
     char name[50];
@@ -116,11 +116,11 @@ Student *create_student(Arena *arena, int id, const char *name, int score_count)
 }
 
 void demo_student_processing(Arena *arena) {
-    printf("\n=== Student Processing (Temporary Data) ===\n");
+    printf("\n=== Student Processing (Ephemeral Data) ===\n");
 
     size_t start_used = arena->used;
 
-    /* Create temporary student records */
+    /* Create short-lived student records */
     Student *s1 = create_student(arena, 1, "Alice", 5);
     s1->scores[0] = 95.5;
     s1->scores[1] = 88.0;
@@ -195,7 +195,7 @@ int main() {
     printf("  - No fragmentation\n");
     printf("  - Bulk deallocation (reset/destroy)\n");
     printf("  - Cache-friendly (linear memory)\n");
-    printf("  - Perfect for temporary/scoped data\n");
+    printf("  - Perfect for short-lived/scoped data\n");
 
     return 0;
 }
