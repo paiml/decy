@@ -27,6 +27,8 @@
 pub enum HirType {
     /// void type
     Void,
+    /// C99 _Bool type (maps to bool in Rust)
+    Bool,
     /// int type (maps to i32 in Rust)
     Int,
     /// unsigned int type (maps to u32 in Rust) - DECY-158
@@ -101,6 +103,7 @@ impl HirType {
         use decy_parser::parser::Type;
         match ast_type {
             Type::Void => HirType::Void,
+            Type::Bool => HirType::Bool,
             Type::Int => HirType::Int,
             Type::UnsignedInt => HirType::UnsignedInt, // DECY-158
             Type::Float => HirType::Float,

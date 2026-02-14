@@ -103,11 +103,10 @@ int use_square(int n) {
 }
 
 #[test]
-#[ignore = "FALSIFIED: _Bool return type functions parse but are not converted to HIR - transpiler drops them"]
 fn c204_bool_type() {
     // C99 has _Bool; <stdbool.h> provides bool/true/false macros
-    // Falsified: clang parses _Bool correctly but the HIR conversion
-    // does not handle _Bool return type, so functions are silently dropped.
+    // Previously falsified: clang parses _Bool correctly but the HIR conversion
+    // did not handle _Bool return type. Fixed by adding Bool variant through pipeline.
     let c_code = r#"
 _Bool is_positive(int x) {
     return x > 0;

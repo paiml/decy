@@ -4366,6 +4366,7 @@ fn convert_type(cx_type: CXType) -> Option<Type> {
     // SAFETY: Getting type kind
     match cx_type.kind {
         CXType_Void => Some(Type::Void),
+        3 => Some(Type::Bool), // CXType_Bool = 3 — C99 _Bool
         CXType_Int => Some(Type::Int),
         CXType_UInt => Some(Type::UnsignedInt), // DECY-158: unsigned int → u32
         CXType_UChar => Some(Type::Char),       // unsigned char → u8 (DECY-057 fix)
@@ -4971,6 +4972,7 @@ impl Typedef {
         // Return a string representation of the type
         match &self.underlying_type {
             Type::Void => "void",
+            Type::Bool => "_Bool",
             Type::Int => "int",
             Type::UnsignedInt => "unsigned int", // DECY-158
             Type::Float => "float",
@@ -5487,6 +5489,8 @@ impl Function {
 pub enum Type {
     /// void
     Void,
+    /// C99 _Bool type (maps to bool in Rust)
+    Bool,
     /// int
     Int,
     /// unsigned int (DECY-158)

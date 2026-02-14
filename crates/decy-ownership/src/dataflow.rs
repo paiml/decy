@@ -625,6 +625,7 @@ impl DataflowAnalyzer {
                                 "int" => HirType::Int,
                                 "char" => HirType::Char,
                                 "signed char" => HirType::SignedChar, // DECY-250
+                                "_Bool" => HirType::Bool,
                                 "float" => HirType::Float,
                                 "double" => HirType::Double,
                                 _ => HirType::Int, // Default fallback

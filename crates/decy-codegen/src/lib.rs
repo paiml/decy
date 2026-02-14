@@ -847,6 +847,7 @@ impl CodeGenerator {
     pub fn map_type(hir_type: &HirType) -> String {
         match hir_type {
             HirType::Void => "()".to_string(),
+            HirType::Bool => "bool".to_string(),
             HirType::Int => "i32".to_string(),
             HirType::UnsignedInt => "u32".to_string(), // DECY-158
             HirType::Float => "f32".to_string(),
@@ -3629,6 +3630,7 @@ impl CodeGenerator {
     fn default_value_for_type(hir_type: &HirType) -> String {
         match hir_type {
             HirType::Void => "()".to_string(),
+            HirType::Bool => "false".to_string(),
             HirType::Int => "0i32".to_string(),
             HirType::UnsignedInt => "0u32".to_string(), // DECY-158
             HirType::Float => "0.0f32".to_string(),
@@ -6257,6 +6259,7 @@ impl CodeGenerator {
     pub fn generate_return(&self, return_type: &HirType) -> String {
         match return_type {
             HirType::Void => String::new(),
+            HirType::Bool => "    return false;".to_string(),
             HirType::Int => "    return 0;".to_string(),
             HirType::UnsignedInt => "    return 0;".to_string(), // DECY-158
             HirType::Float => "    return 0.0;".to_string(),
@@ -7029,6 +7032,7 @@ impl CodeGenerator {
             match ty {
                 HirType::Int
                 | HirType::UnsignedInt
+                | HirType::Bool
                 | HirType::Float
                 | HirType::Double
                 | HirType::Char

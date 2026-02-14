@@ -40,6 +40,7 @@ impl BoxTransformer {
     /// Generate a default value expression for a type.
     fn default_value_for_type(&self, hir_type: &HirType) -> HirExpression {
         match hir_type {
+            HirType::Bool => HirExpression::IntLiteral(0), // false
             HirType::Int | HirType::UnsignedInt => HirExpression::IntLiteral(0), // DECY-158
             HirType::Float | HirType::Double => {
                 // We'll use 0 for now since we only have IntLiteral
