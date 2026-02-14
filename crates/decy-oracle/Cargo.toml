@@ -1,11 +1,11 @@
 [package]
 name = "decy-oracle"
-version = "2.0.0"
-edition = "2021"
-authors = ["PAIML <hello@paiml.com>"]
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
 description = "CITL (Compiler-in-the-Loop) oracle for C-to-Rust transpilation pattern mining"
-repository = "https://github.com/paiml/decy"
-license = "MIT"
+repository.workspace = true
+license.workspace = true
 keywords = ["transpiler", "citl", "machine-learning", "c-to-rust"]
 
 [features]
@@ -24,9 +24,9 @@ alimentar = { version = "0.2.2", optional = true }
 arrow = { version = "54", optional = true, default-features = false, features = ["ipc"] }
 
 # Core decy crates
-decy-parser = { version = "2.0.0", path = "../decy-parser" }
-decy-hir = { version = "2.0.0", path = "../decy-hir" }
-decy-codegen = { version = "2.0.0", path = "../decy-codegen" }
+decy-parser = { path = "../decy-parser" }
+decy-hir = { path = "../decy-hir" }
+decy-codegen = { path = "../decy-codegen" }
 
 # Serialization
 serde = { version = "1.0", features = ["derive"] }

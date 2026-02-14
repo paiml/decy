@@ -1,3 +1,33 @@
+## [2.1.0] - 2026-02-15
+
+### C99 Type System Expansion
+
+#### C99 `_Bool` Type Support (Full Pipeline)
+- **Parser**: Added `Type::Bool` variant and `CXType_Bool` (clang type code 3) handling in `convert_type()`
+- **HIR**: Added `HirType::Bool` variant with `from_ast_type` mapping
+- **Codegen**: `_Bool` maps to Rust `bool`, with correct defaults (`false`), return values, and Copy semantics
+- **Ownership/Dataflow**: `_Bool` recognized in sizeof type mapping
+- **Un-falsified**: `c204_bool_type` test now passes — functions using `_Bool` are no longer silently dropped
+
+#### Rustc-Style Diagnostic Tracebacks
+- C parse errors now display rustc-style diagnostics with file, line, and column information
+- Actionable error messages for syntax errors
+
+#### Differential Testing (S5)
+- Compile C with gcc, transpiled Rust with rustc, compare outputs for equivalence validation
+- 61 C construct tests un-falsified through transpiler improvements
+
+#### Quality & Coverage
+- 2,074 codegen deep coverage tests across 66 batches
+- 98.25% line coverage
+- 21 SATD false positives eliminated
+
+#### Infrastructure
+- `decy-oracle` now uses workspace version inheritance (was hardcoded)
+- Updated README with Usage section
+
+---
+
 ## [1.0.1] - 2025-11-07 🔧
 
 ### **Bug Fixes & Critical Improvements**
