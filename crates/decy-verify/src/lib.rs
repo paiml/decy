@@ -32,6 +32,7 @@
 #![warn(clippy::all)]
 #![deny(unsafe_code)]
 
+pub mod diff_test;
 pub mod lock_verify;
 
 use anyhow::{Context, Result};

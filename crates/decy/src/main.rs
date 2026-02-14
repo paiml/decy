@@ -145,6 +145,16 @@ enum Commands {
         #[arg(short, long)]
         verbose: bool,
     },
+    /// Differential test: compile C with gcc and transpiled Rust with rustc, run both, compare outputs
+    DiffTest {
+        /// Path to the C source file
+        #[arg(value_name = "FILE")]
+        input: PathBuf,
+
+        /// Timeout in seconds for each binary execution
+        #[arg(long, default_value = "5")]
+        timeout: u64,
+    },
     /// Oracle management commands
     Oracle {
         #[command(subcommand)]
@@ -305,6 +315,9 @@ fn main() -> Result<()> {
         Some(Commands::Audit { input, verbose }) => {
             audit_file(input, verbose)?;
         }
+        Some(Commands::DiffTest { input, timeout }) => {
+            diff_test_file(input, timeout)?;
+        }
         Some(Commands::Oracle { action }) => {
             handle_oracle_command(action)?;
         }
@@ -320,6 +333,7 @@ fn main() -> Result<()> {
             println!("Use 'decy cache-stats <dir>' to view cache statistics");
             println!("Use 'decy repl' to start interactive mode");
             println!("Use 'decy audit <file>' to audit unsafe code in Rust files");
+            println!("Use 'decy diff-test <file>' to compare C vs transpiled Rust behavior");
         }
     }
 
@@ -633,6 +647,56 @@ fn audit_file(input: PathBuf, verbose: bool) -> Result<()> {
     println!("---");
     println!("Recommendation: Focus on eliminating HIGH confidence blocks first.");
     println!();
+
+    Ok(())
+}
+
+fn diff_test_file(input: PathBuf, timeout_secs: u64) -> Result<()> {
+    use decy_verify::diff_test::{diff_test, DiffTestConfig};
+
+    // Read input C file
+    let c_code = fs::read_to_string(&input).with_context(|| {
+        format!(
+            "Failed to read input file: {}\n\nTry: Check that the file exists and is readable",
+            input.display()
+        )
+    })?;
+
+    // Transpile C to Rust
+    let base_dir = input.parent();
+    let rust_code = decy_core::transpile_with_includes(&c_code, base_dir).with_context(|| {
+        format!(
+            "Failed to transpile {}\n\nTry: Check if the C code has syntax errors",
+            input.display()
+        )
+    })?;
+
+    // Run differential test
+    let config = DiffTestConfig {
+        timeout_secs,
+        ..Default::default()
+    };
+
+    let result = diff_test(&c_code, &rust_code, &config)?;
+
+    // Report results
+    if result.passed() {
+        println!("PASS: {} — C and Rust outputs are identical", input.display());
+        println!(
+            "  stdout: {} bytes | exit code: {}",
+            result.c_output.stdout.len(),
+            result.c_output.exit_code
+        );
+    } else {
+        println!("FAIL: {} — behavioral divergence detected", input.display());
+        for divergence in &result.divergences {
+            println!("  {}", divergence);
+        }
+        anyhow::bail!(
+            "Differential test failed: {} divergence(s)",
+            result.divergences.len()
+        );
+    }
 
     Ok(())
 }
