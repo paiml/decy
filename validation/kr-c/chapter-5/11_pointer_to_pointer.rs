@@ -52,7 +52,7 @@ fn bubble_sort_strings(strings: &mut [&str]) {
 // Key differences from C:
 // 1. &mut [&str] instead of char**
 // 2. No manual pointer arithmetic
-// 3. .swap() instead of manual temp variable
+// 3. .swap() instead of manual auxiliary variable
 // 4. Built-in .sort() uses optimized algorithm
 // 5. No null pointers possible
 // 6. Bounds checking (can be optimized away)

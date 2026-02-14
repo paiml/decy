@@ -348,7 +348,7 @@ pub fn verify_compilation(rust_code: &str) -> Result<CompilationResult> {
         .output()
         .context("Failed to run rustc — is it installed?")?;
 
-    // Clean up temp files
+    // Remove scratch files
     let _ = std::fs::remove_file(&temp_file);
     let _ = std::fs::remove_file(&temp_output);
 

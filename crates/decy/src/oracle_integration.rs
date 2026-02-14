@@ -285,7 +285,7 @@ fn check_rust_compilation(rust_code: &str) -> Result<(), String> {
     use std::process::Command;
     use std::time::{SystemTime, UNIX_EPOCH};
 
-    // Use unique temp files to avoid race conditions
+    // Use unique scratch files to avoid race conditions
     let unique_id = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .map(|d| d.as_nanos())

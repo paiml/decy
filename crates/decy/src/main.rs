@@ -1503,7 +1503,7 @@ fn handle_oracle_command(action: OracleAction) -> Result<()> {
                         }
                     };
 
-                    // Write to temp file and compile with rustc
+                    // Write scratch file and compile with rustc
                     let temp_dir = std::env::temp_dir();
                     let rust_path = temp_dir.join(format!("decy_train_{}.rs", files_processed));
                     std::fs::write(&rust_path, &transpiled.rust_code)?;

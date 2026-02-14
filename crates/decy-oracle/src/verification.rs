@@ -177,7 +177,7 @@ pub fn check_rust_compilation(rust_code: &str, config: &VerificationConfig) -> R
     let temp_file = temp_dir.join(format!("decy_verify_{}.rs", unique_id));
     let temp_output = temp_dir.join(format!("decy_verify_{}.out", unique_id));
 
-    // Write code to temp file
+    // Write code to scratch file
     let mut file = std::fs::File::create(&temp_file)
         .map_err(|e| format!("Failed to create temp file: {}", e))?;
     file.write_all(rust_code.as_bytes())
@@ -186,7 +186,7 @@ pub fn check_rust_compilation(rust_code: &str, config: &VerificationConfig) -> R
     // Drop the file handle to ensure it's flushed
     drop(file);
 
-    // Run rustc check - use --emit=obj to a temp file (faster than full codegen)
+    // Run rustc check — emit metadata only (faster than full codegen)
     // Allow warnings but catch errors
     let output = Command::new("rustc")
         .args([
@@ -205,7 +205,7 @@ pub fn check_rust_compilation(rust_code: &str, config: &VerificationConfig) -> R
         .output()
         .map_err(|e| format!("Failed to run rustc: {}", e))?;
 
-    // Clean up temp files
+    // Remove scratch files
     let _ = std::fs::remove_file(&temp_file);
     let _ = std::fs::remove_file(&temp_output);
     // Also clean up any rmeta files that might have been created

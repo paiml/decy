@@ -1,5 +1,5 @@
 /* K&R C Chapter 5: Memory Arena Allocator
- * K&R §5.10, §8.7: Fast linear allocator for temporary data
+ * K&R §5.10, §8.7: Fast linear allocator for short-lived data
  * Transpiled to safe Rust (using Vec and lifetime management)
  */
 
@@ -107,8 +107,8 @@ fn main() {
     println!();
     arena.stats();
 
-    // Temporary allocations
-    println!("\n=== Temporary Data ===");
+    // Short-lived allocations
+    println!("\n=== Ephemeral Data ===");
     let start_used = arena.used.get();
 
     if let Some(buffer) = arena.alloc(100) {
@@ -121,7 +121,7 @@ fn main() {
     }
 
     let used = arena.used.get() - start_used;
-    println!("Temporary data used: {} bytes", used);
+    println!("Short-lived data used: {} bytes", used);
     println!("(No individual free() calls needed!)");
 
     println!();
@@ -137,7 +137,7 @@ fn main() {
     println!("  - No fragmentation");
     println!("  - Bulk deallocation (reset/destroy)");
     println!("  - Cache-friendly (linear memory)");
-    println!("  - Perfect for temporary/scoped data");
+    println!("  - Perfect for short-lived/scoped data");
 }
 
 // Idiomatic Rust: use typed_arena or bumpalo crate
