@@ -6,6 +6,7 @@
 // Allow non-upper-case globals from clang-sys FFI bindings (CXCursor_* constants)
 #![allow(non_upper_case_globals)]
 
+use crate::diagnostic::{Diagnostic, DiagnosticError, Severity};
 use anyhow::{Context, Result};
 use clang_sys::*;
 use std::ffi::{CStr, CString};
@@ -227,25 +228,11 @@ impl CParser {
             anyhow::bail!("Failed to parse C source");
         }
 
-        // SAFETY: Check for diagnostics (errors/warnings)
-        let num_diagnostics = unsafe { clang_getNumDiagnostics(tu) };
-        for i in 0..num_diagnostics {
-            let diag = unsafe { clang_getDiagnostic(tu, i) };
-            let severity = unsafe { clang_getDiagnosticSeverity(diag) };
-
-            // If we have errors, fail the parse
-            if severity >= CXDiagnostic_Error {
-                // DECY-237: Print diagnostic for debugging
-                let diag_str = unsafe { clang_getDiagnosticSpelling(diag) };
-                let c_str = unsafe { CStr::from_ptr(clang_getCString(diag_str)) };
-                let error_msg = c_str.to_str().unwrap_or("unknown error").to_string();
-                unsafe { clang_disposeString(diag_str) };
-                unsafe { clang_disposeDiagnostic(diag) };
-                unsafe { clang_disposeTranslationUnit(tu) };
-                anyhow::bail!("C source has syntax errors: {}", error_msg);
-            }
-
-            unsafe { clang_disposeDiagnostic(diag) };
+        // SAFETY: Extract structured diagnostics from clang
+        let diagnostics = extract_diagnostics(tu, source, None);
+        if diagnostics.iter().any(|d| d.severity >= Severity::Error) {
+            unsafe { clang_disposeTranslationUnit(tu) };
+            return Err(DiagnosticError::new(diagnostics).into());
         }
 
         // SAFETY: Getting cursor from valid translation unit
@@ -414,23 +401,12 @@ impl CParser {
             anyhow::bail!("Failed to parse C source file: {}", path.display());
         }
 
-        // Check for diagnostics
-        let num_diagnostics = unsafe { clang_getNumDiagnostics(tu) };
-        for i in 0..num_diagnostics {
-            let diag = unsafe { clang_getDiagnostic(tu, i) };
-            let severity = unsafe { clang_getDiagnosticSeverity(diag) };
-
-            if severity >= CXDiagnostic_Error {
-                let diag_str = unsafe { clang_getDiagnosticSpelling(diag) };
-                let c_str = unsafe { CStr::from_ptr(clang_getCString(diag_str)) };
-                let error_msg = c_str.to_str().unwrap_or("unknown error").to_string();
-                unsafe { clang_disposeString(diag_str) };
-                unsafe { clang_disposeDiagnostic(diag) };
-                unsafe { clang_disposeTranslationUnit(tu) };
-                anyhow::bail!("C source has syntax errors: {}", error_msg);
-            }
-
-            unsafe { clang_disposeDiagnostic(diag) };
+        // SAFETY: Extract structured diagnostics from clang
+        let file_name = path.to_string_lossy().to_string();
+        let diagnostics = extract_diagnostics(tu, &source, Some(&file_name));
+        if diagnostics.iter().any(|d| d.severity >= Severity::Error) {
+            unsafe { clang_disposeTranslationUnit(tu) };
+            return Err(DiagnosticError::new(diagnostics).into());
         }
 
         // Get cursor and visit
@@ -453,6 +429,115 @@ impl Drop for CParser {
             clang_disposeIndex(self.index);
         }
     }
+}
+
+/// Extract structured diagnostics from a clang translation unit.
+///
+/// Iterates all diagnostics from clang, extracting message, location, category,
+/// fix-it suggestions, and building code snippets with caret indicators.
+///
+/// # Safety
+///
+/// `tu` must be a valid, non-null translation unit from `clang_parseTranslationUnit2`.
+fn extract_diagnostics(
+    tu: CXTranslationUnit,
+    source: &str,
+    file_override: Option<&str>,
+) -> Vec<Diagnostic> {
+    let num_diagnostics = unsafe { clang_getNumDiagnostics(tu) };
+    let mut diagnostics = Vec::new();
+
+    for i in 0..num_diagnostics {
+        let diag = unsafe { clang_getDiagnostic(tu, i) };
+        let raw_severity = unsafe { clang_getDiagnosticSeverity(diag) };
+
+        let severity = match raw_severity {
+            CXDiagnostic_Note => Severity::Note,
+            CXDiagnostic_Warning => Severity::Warning,
+            CXDiagnostic_Error => Severity::Error,
+            CXDiagnostic_Fatal => Severity::Fatal,
+            _ => {
+                unsafe { clang_disposeDiagnostic(diag) };
+                continue; // Skip ignored diagnostics
+            }
+        };
+
+        // Extract message text
+        let diag_str = unsafe { clang_getDiagnosticSpelling(diag) };
+        let c_str = unsafe { CStr::from_ptr(clang_getCString(diag_str)) };
+        let message = c_str.to_str().unwrap_or("unknown error").to_string();
+        unsafe { clang_disposeString(diag_str) };
+
+        let mut d = Diagnostic::new(severity, message);
+
+        // Extract source location (line, column, file)
+        let loc = unsafe { clang_getDiagnosticLocation(diag) };
+        let mut file: CXFile = ptr::null_mut();
+        let mut line: u32 = 0;
+        let mut column: u32 = 0;
+        unsafe {
+            clang_getFileLocation(loc, &mut file, &mut line, &mut column, ptr::null_mut());
+        }
+
+        if line > 0 {
+            d.line = Some(line);
+            d.column = Some(column);
+        }
+
+        // Use file override if provided, otherwise extract from clang
+        if let Some(name) = file_override {
+            d.file = Some(name.to_string());
+        } else if !file.is_null() {
+            let file_name = unsafe {
+                let name_cx = clang_getFileName(file);
+                let name_c = CStr::from_ptr(clang_getCString(name_cx));
+                let name = name_c.to_string_lossy().into_owned();
+                clang_disposeString(name_cx);
+                name
+            };
+            d.file = Some(file_name);
+        } else {
+            d.file = Some("input.c".to_string());
+        }
+
+        // Extract category text
+        let cat_idx = unsafe { clang_getDiagnosticCategory(diag) };
+        if cat_idx != 0 {
+            let cat_str = unsafe { clang_getDiagnosticCategoryText(diag) };
+            let cat_c = unsafe { CStr::from_ptr(clang_getCString(cat_str)) };
+            let category = cat_c.to_str().unwrap_or("").to_string();
+            unsafe { clang_disposeString(cat_str) };
+            if !category.is_empty() {
+                d.category = Some(category);
+            }
+        }
+
+        // Extract fix-it suggestions
+        let num_fix_its = unsafe { clang_getDiagnosticNumFixIts(diag) };
+        for fi in 0..num_fix_its {
+            let mut range = unsafe { std::mem::zeroed::<CXSourceRange>() };
+            let fix_str = unsafe { clang_getDiagnosticFixIt(diag, fi, &mut range) };
+            let fix_c = unsafe { CStr::from_ptr(clang_getCString(fix_str)) };
+            let fix_text = fix_c.to_str().unwrap_or("").to_string();
+            unsafe { clang_disposeString(fix_str) };
+            if !fix_text.is_empty() {
+                d.fix_its.push(format!("insert '{}'", fix_text));
+            }
+        }
+
+        // Build code snippet from source
+        if let Some(line_num) = d.line {
+            d.snippet = Diagnostic::build_snippet(source, line_num, d.column);
+        }
+
+        // Infer note and help from message patterns
+        d.infer_note_and_help();
+
+        unsafe { clang_disposeDiagnostic(diag) };
+        diagnostics.push(d);
+    }
+
+    diagnostics
 }
 
 /// Visitor callback for clang AST traversal.

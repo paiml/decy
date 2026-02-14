@@ -870,6 +870,7 @@ dependencies = [
  "console",
  "decy-core",
  "decy-oracle",
+ "decy-parser",
  "decy-verify",
  "indicatif",
  "predicates",
@@ -1043,6 +1044,7 @@ version = "2.0.0"
 dependencies = [
  "anyhow",
  "clang-sys",
+ "colored",
  "criterion",
  "proptest",
  "serde",

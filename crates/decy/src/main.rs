@@ -252,6 +252,20 @@ enum OracleAction {
 }
 
 fn main() -> Result<()> {
+    let result = run();
+    if let Err(ref err) = result {
+        // Check if the error chain contains a DiagnosticError for rich formatting
+        if let Some(diag_err) = err.downcast_ref::<decy_parser::DiagnosticError>() {
+            for diag in &diag_err.diagnostics {
+                eprintln!("{diag}");
+            }
+            std::process::exit(1);
+        }
+    }
+    result
+}
+
+fn run() -> Result<()> {
     let cli = Cli::parse();
 
     match cli.command {
