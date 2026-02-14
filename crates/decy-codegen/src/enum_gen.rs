@@ -199,6 +199,7 @@ impl EnumGenerator {
     fn type_based_variant_name(payload_type: &HirType) -> String {
         match payload_type {
             HirType::Void => "None".to_string(),
+            HirType::Bool => "Bool".to_string(),
             HirType::Int => "Int".to_string(),
             HirType::UnsignedInt => "UInt".to_string(), // DECY-158
             HirType::Float => "Float".to_string(),
@@ -229,6 +230,7 @@ impl EnumGenerator {
     fn map_hir_type_to_rust(hir_type: &HirType) -> String {
         match hir_type {
             HirType::Void => "()".to_string(),
+            HirType::Bool => "bool".to_string(),
             HirType::Int => "i32".to_string(),
             HirType::UnsignedInt => "u32".to_string(), // DECY-158
             HirType::Float => "f32".to_string(),
