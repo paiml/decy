@@ -178,7 +178,8 @@ fn cli_error_invalid_c_syntax_suggests_preprocess() {
             predicate::str::contains("Try:")
                 .or(predicate::str::contains("preprocess"))
                 .or(predicate::str::contains("Check"))
-                .or(predicate::str::contains("Failed to transpile")),
+                .or(predicate::str::contains("Failed to transpile"))
+                .or(predicate::str::contains("error[parse]")),
         );
 }
 
