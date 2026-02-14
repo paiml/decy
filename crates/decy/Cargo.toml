@@ -13,6 +13,7 @@ description = "CLI tool for C-to-Rust transpilation with EXTREME quality standar
 
 [dependencies]
 decy-core = { version = "2.0.0", path = "../decy-core" }
+decy-parser = { version = "2.0.0", path = "../decy-parser" }
 decy-verify = { version = "2.0.0", path = "../decy-verify" }
 decy-oracle = { version = "2.0.0", path = "../decy-oracle", optional = true }
 clap.workspace = true
