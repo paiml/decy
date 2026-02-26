@@ -12,6 +12,20 @@ mutation_score = 60
 # Enforce quality gates in CI
 enforce_in_ci = true
 block_on_failure = true
+run_clippy = true
+run_fmt = true
+run_tests = true
+run_audit = true
+clippy_strict = true
+test_timeout = 300
+check_coverage = true
+min_coverage = 80.0
+check_mutations = false
+min_mutation_score = 60.0
+check_complexity = true
+check_satd = true
+check_docs = true
+max_complexity = 20
 
 [thresholds]
 # Complexity thresholds
