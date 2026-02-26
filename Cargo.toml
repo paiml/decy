@@ -97,3 +97,6 @@ strip = true
 [profile.dev]
 opt-level = 0
 debug = true
+
+[package.metadata.release]
+shared-version = true
