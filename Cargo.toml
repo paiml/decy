@@ -100,3 +100,8 @@ debug = true
 
 [package.metadata.release]
 shared-version = true
+
+
+[[bench]]
+name = "benchmarks"
+harness = false
