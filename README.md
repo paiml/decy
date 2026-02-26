@@ -308,6 +308,11 @@ See [GETTING_STARTED.md](GETTING_STARTED.md) for detailed developer setup.
 
 ---
 
+
+## MSRV
+
+Minimum Supported Rust Version: **1.74**
+
 ## License
 
 MIT OR Apache-2.0

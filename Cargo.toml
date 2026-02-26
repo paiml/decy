@@ -95,6 +95,7 @@ codegen-units = 1
 strip = true
 
 [profile.dev]
+panic = "abort"
 opt-level = 0
 debug = true
 
