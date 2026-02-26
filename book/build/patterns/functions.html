@@ -1,0 +1,545 @@
+<!DOCTYPE HTML>
+<html lang="en" class="rust sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Functions - DECY: C-to-Rust Transpiler Verification Book</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="Comprehensive verification and testing documentation for the DECY C-to-Rust transpiler, following EXTREME TDD methodology">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="../favicon.svg">
+        <link rel="shortcut icon" href="../favicon.png">
+        <link rel="stylesheet" href="../css/variables.css">
+        <link rel="stylesheet" href="../css/general.css">
+        <link rel="stylesheet" href="../css/chrome.css">
+        <link rel="stylesheet" href="../css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="../fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="../highlight.css">
+        <link rel="stylesheet" href="../tomorrow-night.css">
+        <link rel="stylesheet" href="../ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+
+
+        <!-- Provide site root to javascript -->
+        <script>
+            var path_to_root = "../";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "rust";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="../toc.js"></script>
+    </head>
+    <body>
+    <div id="body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('rust')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            var sidebar = null;
+            var sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+            }
+            sidebar_toggle.checked = sidebar === 'visible';
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="../toc.html"></iframe>
+            </noscript>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="sidebar-toggle" class="icon-button" for="sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </label>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">DECY: C-to-Rust Transpiler Verification Book</h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        <a href="https://github.com/noahgift/decy" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
+                        </a>
+                        <a href="https://github.com/noahgift/decy/edit/main/book/src/patterns/functions.md" title="Suggest an edit" aria-label="Suggest an edit">
+                            <i id="git-edit-button" class="fa fa-edit"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="functions"><a class="header" href="#functions">Functions</a></h1>
+<p>Decy transforms C functions to idiomatic Rust functions with proper type signatures, ownership semantics, and safety guarantees.</p>
+<h2 id="basic-function-transformation"><a class="header" href="#basic-function-transformation">Basic Function Transformation</a></h2>
+<h3 id="c-input"><a class="header" href="#c-input">C Input</a></h3>
+<pre><code class="language-c">int add(int a, int b) {
+    return a + b;
+}
+</code></pre>
+<h3 id="rust-output"><a class="header" href="#rust-output">Rust Output</a></h3>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>fn add(a: i32, b: i32) -&gt; i32 {
+    a + b
+}
+
+#[test]
+fn test_add() {
+    assert_eq!(add(2, 3), 5);
+    assert_eq!(add(-1, 1), 0);
+}
+<span class="boring">}</span></code></pre></pre>
+<p><strong>What Changed</strong>:</p>
+<ul>
+<li><code>int</code> → <code>i32</code></li>
+<li>Implicit return (last expression without semicolon)</li>
+</ul>
+<h2 id="pattern-1-void-functions"><a class="header" href="#pattern-1-void-functions">Pattern 1: Void Functions</a></h2>
+<h3 id="c-input-1"><a class="header" href="#c-input-1">C Input</a></h3>
+<pre><code class="language-c">void print_value(int value) {
+    printf("Value: %d\n", value);
+}
+</code></pre>
+<h3 id="rust-output-1"><a class="header" href="#rust-output-1">Rust Output</a></h3>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>fn print_value(value: i32) {
+    println!("Value: {}", value);
+}
+
+#[test]
+fn test_print_value() {
+    // This compiles and runs without panic
+    print_value(42);
+}
+<span class="boring">}</span></code></pre></pre>
+<p><strong>What Changed</strong>:</p>
+<ul>
+<li><code>void</code> return → no return type annotation</li>
+<li><code>printf</code> → <code>println!</code> macro</li>
+</ul>
+<h2 id="pattern-2-pointer-parameters"><a class="header" href="#pattern-2-pointer-parameters">Pattern 2: Pointer Parameters</a></h2>
+<h3 id="c-input-2"><a class="header" href="#c-input-2">C Input</a></h3>
+<pre><code class="language-c">void swap(int *a, int *b) {
+    int temp = *a;
+    *a = *b;
+    *b = temp;
+}
+</code></pre>
+<h3 id="rust-output-2"><a class="header" href="#rust-output-2">Rust Output</a></h3>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>fn swap(a: &amp;mut i32, b: &amp;mut i32) {
+    std::mem::swap(a, b);
+}
+
+#[test]
+fn test_swap() {
+    let mut x = 10;
+    let mut y = 20;
+    swap(&amp;mut x, &amp;mut y);
+    assert_eq!(x, 20);
+    assert_eq!(y, 10);
+}
+<span class="boring">}</span></code></pre></pre>
+<p><strong>What Changed</strong>:</p>
+<ul>
+<li><code>int *a</code> → <code>&amp;mut i32</code> (mutable reference)</li>
+<li>Manual swap → <code>std::mem::swap</code></li>
+</ul>
+<h2 id="pattern-3-array-parameters"><a class="header" href="#pattern-3-array-parameters">Pattern 3: Array Parameters</a></h2>
+<h3 id="c-input-3"><a class="header" href="#c-input-3">C Input</a></h3>
+<pre><code class="language-c">int sum_array(int *arr, int len) {
+    int total = 0;
+    for (int i = 0; i &lt; len; i++) {
+        total += arr[i];
+    }
+    return total;
+}
+</code></pre>
+<h3 id="rust-output-3"><a class="header" href="#rust-output-3">Rust Output</a></h3>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>fn sum_array(arr: &amp;[i32]) -&gt; i32 {
+    arr.iter().sum()
+}
+
+#[test]
+fn test_sum_array() {
+    assert_eq!(sum_array(&amp;[1, 2, 3, 4, 5]), 15);
+    assert_eq!(sum_array(&amp;[]), 0);
+}
+<span class="boring">}</span></code></pre></pre>
+<p><strong>What Changed</strong>:</p>
+<ul>
+<li><code>int *arr, int len</code> → <code>&amp;[i32]</code> (slice with length)</li>
+<li>Manual loop → iterator <code>.sum()</code></li>
+</ul>
+<h2 id="pattern-4-return-by-pointer-output-parameters"><a class="header" href="#pattern-4-return-by-pointer-output-parameters">Pattern 4: Return by Pointer (Output Parameters)</a></h2>
+<p>C often uses output parameters for returning values. Decy transforms these to return values.</p>
+<h3 id="c-input-4"><a class="header" href="#c-input-4">C Input</a></h3>
+<pre><code class="language-c">int divide(int a, int b, int *result) {
+    if (b == 0) {
+        return -1;  // Error
+    }
+    *result = a / b;
+    return 0;  // Success
+}
+</code></pre>
+<h3 id="rust-output-4"><a class="header" href="#rust-output-4">Rust Output</a></h3>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>fn divide(a: i32, b: i32) -&gt; Option&lt;i32&gt; {
+    if b == 0 {
+        None
+    } else {
+        Some(a / b)
+    }
+}
+
+#[test]
+fn test_divide() {
+    assert_eq!(divide(10, 2), Some(5));
+    assert_eq!(divide(10, 0), None);
+}
+<span class="boring">}</span></code></pre></pre>
+<p><strong>What Changed</strong>:</p>
+<ul>
+<li>Output parameter → return value</li>
+<li>Error code → <code>Option</code> type</li>
+<li>Clearer API</li>
+</ul>
+<h2 id="pattern-5-multiple-return-values"><a class="header" href="#pattern-5-multiple-return-values">Pattern 5: Multiple Return Values</a></h2>
+<h3 id="c-input-5"><a class="header" href="#c-input-5">C Input</a></h3>
+<pre><code class="language-c">void minmax(int *arr, int len, int *min, int *max) {
+    *min = arr[0];
+    *max = arr[0];
+    for (int i = 1; i &lt; len; i++) {
+        if (arr[i] &lt; *min) *min = arr[i];
+        if (arr[i] &gt; *max) *max = arr[i];
+    }
+}
+</code></pre>
+<h3 id="rust-output-5"><a class="header" href="#rust-output-5">Rust Output</a></h3>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>fn minmax(arr: &amp;[i32]) -&gt; (i32, i32) {
+    let min = *arr.iter().min().unwrap();
+    let max = *arr.iter().max().unwrap();
+    (min, max)
+}
+
+#[test]
+fn test_minmax() {
+    let (min, max) = minmax(&amp;[3, 1, 4, 1, 5, 9, 2, 6]);
+    assert_eq!(min, 1);
+    assert_eq!(max, 9);
+}
+<span class="boring">}</span></code></pre></pre>
+<p><strong>What Changed</strong>:</p>
+<ul>
+<li>Output parameters → tuple return</li>
+<li>Manual iteration → iterator methods</li>
+</ul>
+<h2 id="pattern-6-static-variables"><a class="header" href="#pattern-6-static-variables">Pattern 6: Static Variables</a></h2>
+<p>C static variables become Rust statics or are refactored.</p>
+<h3 id="c-input-6"><a class="header" href="#c-input-6">C Input</a></h3>
+<pre><code class="language-c">int counter() {
+    static int count = 0;
+    count++;
+    return count;
+}
+</code></pre>
+<h3 id="rust-output-6"><a class="header" href="#rust-output-6">Rust Output</a></h3>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use std::sync::atomic::{AtomicI32, Ordering};
+
+static COUNT: AtomicI32 = AtomicI32::new(0);
+
+fn counter() -&gt; i32 {
+    COUNT.fetch_add(1, Ordering::SeqCst) + 1
+}
+
+#[test]
+fn test_counter() {
+    // Note: test isolation may vary
+    let _ = counter();
+    let _ = counter();
+    // Counter increments on each call
+}
+<span class="boring">}</span></code></pre></pre>
+<p><strong>What Changed</strong>:</p>
+<ul>
+<li><code>static int</code> → <code>AtomicI32</code> (thread-safe)</li>
+<li>Increment is atomic operation</li>
+</ul>
+<h2 id="pattern-7-function-pointers"><a class="header" href="#pattern-7-function-pointers">Pattern 7: Function Pointers</a></h2>
+<h3 id="c-input-7"><a class="header" href="#c-input-7">C Input</a></h3>
+<pre><code class="language-c">int apply(int (*op)(int, int), int a, int b) {
+    return op(a, b);
+}
+
+int mul(int a, int b) {
+    return a * b;
+}
+
+int main() {
+    return apply(mul, 3, 4);  // Returns 12
+}
+</code></pre>
+<h3 id="rust-output-7"><a class="header" href="#rust-output-7">Rust Output</a></h3>
+<pre><pre class="playground"><code class="language-rust edition2021">fn apply&lt;F&gt;(op: F, a: i32, b: i32) -&gt; i32
+where
+    F: Fn(i32, i32) -&gt; i32,
+{
+    op(a, b)
+}
+
+fn mul(a: i32, b: i32) -&gt; i32 {
+    a * b
+}
+
+fn main() -&gt; i32 {
+    apply(mul, 3, 4)
+}
+
+#[test]
+fn test_apply() {
+    assert_eq!(apply(mul, 3, 4), 12);
+    assert_eq!(apply(|a, b| a + b, 3, 4), 7);
+}</code></pre></pre>
+<p><strong>What Changed</strong>:</p>
+<ul>
+<li>Function pointer → generic with <code>Fn</code> trait</li>
+<li>Works with closures too</li>
+</ul>
+<h2 id="pattern-8-variadic-functions"><a class="header" href="#pattern-8-variadic-functions">Pattern 8: Variadic Functions</a></h2>
+<p>Variadic C functions are transformed based on usage.</p>
+<h3 id="c-input-8"><a class="header" href="#c-input-8">C Input</a></h3>
+<pre><code class="language-c">// printf-like function
+void log_message(const char *format, ...) {
+    // Implementation using va_list
+}
+</code></pre>
+<h3 id="rust-output-8"><a class="header" href="#rust-output-8">Rust Output</a></h3>
+<pre><pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// Macro-based approach
+macro_rules! log_message {
+    ($fmt:expr) =&gt; {
+        println!("{}", $fmt)
+    };
+    ($fmt:expr, $($arg:tt)*) =&gt; {
+        println!($fmt, $($arg)*)
+    };
+}
+
+#[test]
+fn test_log_message() {
+    log_message!("Hello");
+    log_message!("Value: {}", 42);
+}
+<span class="boring">}</span></code></pre></pre>
+<p><strong>What Changed</strong>:</p>
+<ul>
+<li>Variadic function → macro</li>
+<li>Type-safe format strings</li>
+</ul>
+<h2 id="type-mapping"><a class="header" href="#type-mapping">Type Mapping</a></h2>
+<div class="table-wrapper"><table><thead><tr><th>C Type</th><th>Rust Type</th><th>Notes</th></tr></thead><tbody>
+<tr><td><code>int</code></td><td><code>i32</code></td><td>32-bit signed</td></tr>
+<tr><td><code>unsigned int</code></td><td><code>u32</code></td><td>32-bit unsigned</td></tr>
+<tr><td><code>long</code></td><td><code>i64</code></td><td>64-bit signed</td></tr>
+<tr><td><code>float</code></td><td><code>f32</code></td><td>32-bit float</td></tr>
+<tr><td><code>double</code></td><td><code>f64</code></td><td>64-bit float</td></tr>
+<tr><td><code>char</code></td><td><code>i8</code> or <code>u8</code></td><td>Depends on context</td></tr>
+<tr><td><code>void</code></td><td><code>()</code></td><td>Unit type</td></tr>
+<tr><td><code>void *</code></td><td><code>*mut c_void</code> or generic</td><td>Context dependent</td></tr>
+</tbody></table>
+</div>
+<h2 id="how-decy-decides"><a class="header" href="#how-decy-decides">How Decy Decides</a></h2>
+<h3 id="parameter-types"><a class="header" href="#parameter-types">Parameter Types</a></h3>
+<pre><code>Is parameter a pointer?
+├─ Yes → Is it const?
+│   ├─ Yes → &amp;T (immutable reference)
+│   └─ No → Is it written through?
+│       ├─ Yes → &amp;mut T (mutable reference)
+│       └─ No → &amp;T (immutable reference)
+└─ No → T (value type)
+</code></pre>
+<h3 id="return-types"><a class="header" href="#return-types">Return Types</a></h3>
+<pre><code>Does function return pointer?
+├─ Yes → Analyze ownership...
+└─ No → Does it have output params?
+   ├─ Yes → Transform to return value
+   └─ No → Direct mapping
+</code></pre>
+<h2 id="summary"><a class="header" href="#summary">Summary</a></h2>
+<div class="table-wrapper"><table><thead><tr><th>C Pattern</th><th>Rust Equivalent</th></tr></thead><tbody>
+<tr><td><code>int func()</code></td><td><code>fn func() -&gt; i32</code></td></tr>
+<tr><td><code>void func()</code></td><td><code>fn func()</code></td></tr>
+<tr><td><code>void func(int *out)</code></td><td><code>fn func() -&gt; i32</code></td></tr>
+<tr><td><code>int *arr, int len</code></td><td><code>&amp;[i32]</code></td></tr>
+<tr><td><code>int *p</code> (mutated)</td><td><code>&amp;mut i32</code></td></tr>
+<tr><td><code>const int *p</code></td><td><code>&amp;i32</code></td></tr>
+<tr><td><code>int (*fn)(int)</code></td><td><code>impl Fn(i32) -&gt; i32</code></td></tr>
+</tbody></table>
+</div>
+<h2 id="next"><a class="header" href="#next">Next</a></h2>
+<ul>
+<li><a href="./control-flow.html">Control Flow</a> - Loops and conditionals</li>
+<li><a href="./arrays.html">Arrays and Slices</a> - Array patterns</li>
+</ul>
+<hr />
+<p><strong>Note</strong>: All code examples in this chapter are tested in CI. If they don't compile, our release is blocked!</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../patterns/structs.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+
+                            <a rel="next prefetch" href="../patterns/control-flow.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../patterns/structs.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+                    <a rel="next prefetch" href="../patterns/control-flow.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+            </nav>
+
+        </div>
+
+
+
+        <script>
+            window.playground_line_numbers = true;
+        </script>
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+        <script src="../ace.js"></script>
+        <script src="../editor.js"></script>
+        <script src="../mode-rust.js"></script>
+        <script src="../theme-dawn.js"></script>
+        <script src="../theme-tomorrow_night.js"></script>
+
+        <script src="../elasticlunr.min.js"></script>
+        <script src="../mark.min.js"></script>
+        <script src="../searcher.js"></script>
+
+        <script src="../clipboard.min.js"></script>
+        <script src="../highlight.js"></script>
+        <script src="../book.js"></script>
+
+        <!-- Custom JS scripts -->
+
+
+    </div>
+    </body>
+</html>

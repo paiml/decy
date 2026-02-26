@@ -1,0 +1,599 @@
+<!DOCTYPE HTML>
+<html lang="en" class="rust sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>CLI Reference - DECY: C-to-Rust Transpiler Verification Book</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="Comprehensive verification and testing documentation for the DECY C-to-Rust transpiler, following EXTREME TDD methodology">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="../favicon.svg">
+        <link rel="shortcut icon" href="../favicon.png">
+        <link rel="stylesheet" href="../css/variables.css">
+        <link rel="stylesheet" href="../css/general.css">
+        <link rel="stylesheet" href="../css/chrome.css">
+        <link rel="stylesheet" href="../css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="../fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="../highlight.css">
+        <link rel="stylesheet" href="../tomorrow-night.css">
+        <link rel="stylesheet" href="../ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+
+
+        <!-- Provide site root to javascript -->
+        <script>
+            var path_to_root = "../";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "rust";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="../toc.js"></script>
+    </head>
+    <body>
+    <div id="body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('rust')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            var sidebar = null;
+            var sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+            }
+            sidebar_toggle.checked = sidebar === 'visible';
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="../toc.html"></iframe>
+            </noscript>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="sidebar-toggle" class="icon-button" for="sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </label>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">DECY: C-to-Rust Transpiler Verification Book</h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        <a href="https://github.com/noahgift/decy" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
+                        </a>
+                        <a href="https://github.com/noahgift/decy/edit/main/book/src/reference/cli.md" title="Suggest an edit" aria-label="Suggest an edit">
+                            <i id="git-edit-button" class="fa fa-edit"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="cli-reference"><a class="header" href="#cli-reference">CLI Reference</a></h1>
+<p>Decy provides a command-line interface for C-to-Rust transpilation with various options for controlling the transpilation process.</p>
+<h2 id="commands"><a class="header" href="#commands">Commands</a></h2>
+<h3 id="decy-transpile"><a class="header" href="#decy-transpile"><code>decy transpile</code></a></h3>
+<p>Transpile a single C source file to Rust.</p>
+<pre><code class="language-bash">decy transpile [OPTIONS] &lt;FILE&gt;
+</code></pre>
+<p><strong>Arguments:</strong></p>
+<ul>
+<li><code>&lt;FILE&gt;</code> - Path to the C source file</li>
+</ul>
+<p><strong>Options:</strong></p>
+<div class="table-wrapper"><table><thead><tr><th>Flag</th><th>Description</th><th>Default</th></tr></thead><tbody>
+<tr><td><code>-o, --output &lt;FILE&gt;</code></td><td>Output file path (stdout if omitted)</td><td>stdout</td></tr>
+<tr><td><code>--oracle</code></td><td>Enable CITL oracle for error correction</td><td>disabled</td></tr>
+<tr><td><code>--oracle-threshold &lt;FLOAT&gt;</code></td><td>Confidence threshold (0.0-1.0)</td><td>0.7</td></tr>
+<tr><td><code>--auto-fix</code></td><td>Automatically apply oracle fixes</td><td>disabled</td></tr>
+<tr><td><code>--capture</code></td><td>Capture verified fix patterns for learning</td><td>disabled</td></tr>
+<tr><td><code>--import-patterns &lt;FILE&gt;</code></td><td>Import patterns from .apr file</td><td>none</td></tr>
+<tr><td><code>--oracle-report &lt;FORMAT&gt;</code></td><td>Output metrics (json, markdown, prometheus)</td><td>none</td></tr>
+</tbody></table>
+</div>
+<p><strong>Examples:</strong></p>
+<pre><code class="language-bash"># Basic transpilation
+decy transpile hello.c -o hello.rs
+
+# Transpile with oracle assistance
+decy transpile --oracle --auto-fix input.c -o output.rs
+
+# Full oracle workflow with pattern capture
+decy transpile --oracle --auto-fix --capture \
+    --import-patterns base.apr \
+    --oracle-report json \
+    input.c -o output.rs
+</code></pre>
+<h3 id="decy-transpile-project"><a class="header" href="#decy-transpile-project"><code>decy transpile-project</code></a></h3>
+<p>Transpile an entire C project directory.</p>
+<pre><code class="language-bash">decy transpile-project [OPTIONS] &lt;DIR&gt; -o &lt;OUTPUT_DIR&gt;
+</code></pre>
+<p><strong>Arguments:</strong></p>
+<ul>
+<li><code>&lt;DIR&gt;</code> - Path to the C project directory</li>
+<li><code>-o, --output &lt;DIR&gt;</code> - Output directory for transpiled files</li>
+</ul>
+<p><strong>Options:</strong></p>
+<div class="table-wrapper"><table><thead><tr><th>Flag</th><th>Description</th><th>Default</th></tr></thead><tbody>
+<tr><td><code>--no-cache</code></td><td>Disable incremental caching</td><td>enabled</td></tr>
+<tr><td><code>-v, --verbose</code></td><td>Show per-file progress</td><td>disabled</td></tr>
+<tr><td><code>-q, --quiet</code></td><td>Suppress progress output</td><td>disabled</td></tr>
+<tr><td><code>--dry-run</code></td><td>Show what would be done without writing</td><td>disabled</td></tr>
+<tr><td><code>--stats</code></td><td>Show summary statistics after transpilation</td><td>disabled</td></tr>
+<tr><td><code>--oracle</code></td><td>Enable CITL oracle for error correction</td><td>disabled</td></tr>
+<tr><td><code>--oracle-threshold &lt;FLOAT&gt;</code></td><td>Confidence threshold (0.0-1.0)</td><td>0.7</td></tr>
+<tr><td><code>--auto-fix</code></td><td>Automatically apply oracle fixes</td><td>disabled</td></tr>
+<tr><td><code>--capture</code></td><td>Capture verified fix patterns for learning</td><td>disabled</td></tr>
+<tr><td><code>--import-patterns &lt;FILE&gt;</code></td><td>Import patterns from .apr file</td><td>none</td></tr>
+<tr><td><code>--oracle-report &lt;FORMAT&gt;</code></td><td>Output metrics (json, markdown, prometheus)</td><td>none</td></tr>
+</tbody></table>
+</div>
+<p><strong>Examples:</strong></p>
+<pre><code class="language-bash"># Basic project transpilation
+decy transpile-project ./my-c-project -o ./rust-output
+
+# With caching disabled and verbose output
+decy transpile-project --no-cache --verbose ./src -o ./rust-src
+
+# Full oracle workflow for CI
+decy transpile-project --oracle --auto-fix --capture \
+    --oracle-report markdown \
+    ./project -o ./output &gt; ci-report.md
+</code></pre>
+<h3 id="decy-check-project"><a class="header" href="#decy-check-project"><code>decy check-project</code></a></h3>
+<p>Check a project and show the build order without transpiling (dry-run).</p>
+<pre><code class="language-bash">decy check-project &lt;DIR&gt;
+</code></pre>
+<p><strong>Arguments:</strong></p>
+<ul>
+<li><code>&lt;DIR&gt;</code> - Path to the C project directory</li>
+</ul>
+<p><strong>Example:</strong></p>
+<pre><code class="language-bash">decy check-project ./my-c-project
+</code></pre>
+<h3 id="decy-cache-stats"><a class="header" href="#decy-cache-stats"><code>decy cache-stats</code></a></h3>
+<p>Show cache statistics for a project.</p>
+<pre><code class="language-bash">decy cache-stats &lt;DIR&gt;
+</code></pre>
+<p><strong>Arguments:</strong></p>
+<ul>
+<li><code>&lt;DIR&gt;</code> - Path to the project directory</li>
+</ul>
+<p><strong>Example:</strong></p>
+<pre><code class="language-bash">decy cache-stats ./my-c-project
+</code></pre>
+<h3 id="decy-audit"><a class="header" href="#decy-audit"><code>decy audit</code></a></h3>
+<p>Audit unsafe code in Rust files.</p>
+<pre><code class="language-bash">decy audit [OPTIONS] &lt;FILE&gt;
+</code></pre>
+<p><strong>Arguments:</strong></p>
+<ul>
+<li><code>&lt;FILE&gt;</code> - Path to the Rust source file to audit</li>
+</ul>
+<p><strong>Options:</strong></p>
+<div class="table-wrapper"><table><thead><tr><th>Flag</th><th>Description</th><th>Default</th></tr></thead><tbody>
+<tr><td><code>-v, --verbose</code></td><td>Show detailed information for each unsafe block</td><td>disabled</td></tr>
+</tbody></table>
+</div>
+<p><strong>Example:</strong></p>
+<pre><code class="language-bash"># Basic audit
+decy audit output.rs
+
+# Detailed audit
+decy audit --verbose output.rs
+</code></pre>
+<h3 id="decy-repl"><a class="header" href="#decy-repl"><code>decy repl</code></a></h3>
+<p>Start interactive REPL mode for experimenting with transpilation.</p>
+<pre><code class="language-bash">decy repl
+</code></pre>
+<p><strong>REPL Commands:</strong></p>
+<ul>
+<li>Enter C code to transpile</li>
+<li>Use multi-line mode for function definitions</li>
+<li>Type <code>exit</code> or <code>quit</code> to leave</li>
+</ul>
+<h3 id="decy-oracle"><a class="header" href="#decy-oracle"><code>decy oracle</code></a></h3>
+<p>Oracle management commands for training and maintenance.</p>
+<pre><code class="language-bash">decy oracle &lt;COMMAND&gt;
+</code></pre>
+<p><strong>Subcommands:</strong></p>
+<h4 id="decy-oracle-bootstrap"><a class="header" href="#decy-oracle-bootstrap"><code>decy oracle bootstrap</code></a></h4>
+<p>Bootstrap the oracle with seed patterns for cold start. This command loads predefined patterns for common C→Rust transpilation errors, solving the cold start problem where the oracle has no patterns to learn from.</p>
+<pre><code class="language-bash">decy oracle bootstrap [OPTIONS]
+</code></pre>
+<p><strong>Options:</strong></p>
+<div class="table-wrapper"><table><thead><tr><th>Flag</th><th>Description</th><th>Default</th></tr></thead><tbody>
+<tr><td><code>--dry-run</code></td><td>Show available patterns without saving</td><td>disabled</td></tr>
+</tbody></table>
+</div>
+<p><strong>Example:</strong></p>
+<pre><code class="language-bash"># Preview bootstrap patterns
+decy oracle bootstrap --dry-run
+
+# Bootstrap the oracle
+decy oracle bootstrap
+</code></pre>
+<p><strong>Bootstrap Patterns Include:</strong></p>
+<ul>
+<li><strong>E0308</strong> (Type mismatch): pointer_to_reference, type_coercion, array_to_slice</li>
+<li><strong>E0133</strong> (Unsafe required): unsafe_deref, unsafe_extern</li>
+<li><strong>E0382</strong> (Use after move): clone_before_move, borrow_instead_of_move</li>
+<li><strong>E0499</strong> (Multiple mutable borrows): sequential_mutable_borrow, use_stdlib_method</li>
+<li><strong>E0506</strong> (Assign to borrowed): reorder_borrow</li>
+<li><strong>E0597</strong> (Value not live long enough): extend_lifetime, return_owned</li>
+<li><strong>E0515</strong> (Return reference to local): return_owned, clone_return</li>
+</ul>
+<h4 id="decy-oracle-seed"><a class="header" href="#decy-oracle-seed"><code>decy oracle seed</code></a></h4>
+<p>Import patterns from another project's .apr file.</p>
+<pre><code class="language-bash">decy oracle seed --from &lt;FILE&gt;
+</code></pre>
+<p><strong>Options:</strong></p>
+<div class="table-wrapper"><table><thead><tr><th>Flag</th><th>Description</th><th>Required</th></tr></thead><tbody>
+<tr><td><code>--from &lt;FILE&gt;</code></td><td>Path to .apr file to import</td><td>yes</td></tr>
+</tbody></table>
+</div>
+<p><strong>Example:</strong></p>
+<pre><code class="language-bash"># Seed from depyler patterns
+decy oracle seed --from ../depyler/depyler.apr
+</code></pre>
+<h4 id="decy-oracle-stats"><a class="header" href="#decy-oracle-stats"><code>decy oracle stats</code></a></h4>
+<p>Show oracle statistics.</p>
+<pre><code class="language-bash">decy oracle stats [OPTIONS]
+</code></pre>
+<p><strong>Options:</strong></p>
+<div class="table-wrapper"><table><thead><tr><th>Flag</th><th>Description</th><th>Default</th></tr></thead><tbody>
+<tr><td><code>--format &lt;FORMAT&gt;</code></td><td>Output format (json, markdown, prometheus)</td><td>markdown</td></tr>
+</tbody></table>
+</div>
+<p><strong>Examples:</strong></p>
+<pre><code class="language-bash"># Default markdown output
+decy oracle stats
+
+# JSON for CI pipelines
+decy oracle stats --format json
+
+# Prometheus for monitoring
+decy oracle stats --format prometheus
+</code></pre>
+<h4 id="decy-oracle-retire"><a class="header" href="#decy-oracle-retire"><code>decy oracle retire</code></a></h4>
+<p>Retire obsolete patterns for oracle hygiene.</p>
+<pre><code class="language-bash">decy oracle retire [OPTIONS]
+</code></pre>
+<p><strong>Options:</strong></p>
+<div class="table-wrapper"><table><thead><tr><th>Flag</th><th>Description</th><th>Default</th></tr></thead><tbody>
+<tr><td><code>--dry-run</code></td><td>Preview retirements without applying</td><td>disabled</td></tr>
+<tr><td><code>--archive-path &lt;FILE&gt;</code></td><td>Save retired patterns to file</td><td>none</td></tr>
+</tbody></table>
+</div>
+<p><strong>Examples:</strong></p>
+<pre><code class="language-bash"># Preview retirements
+decy oracle retire --dry-run
+
+# Apply retirements with archive
+decy oracle retire --archive-path ./retired-patterns.apr
+</code></pre>
+<h4 id="decy-oracle-validate"><a class="header" href="#decy-oracle-validate"><code>decy oracle validate</code></a></h4>
+<p>Validate oracle on a corpus with diversity analysis.</p>
+<pre><code class="language-bash">decy oracle validate &lt;DIR&gt;
+</code></pre>
+<p><strong>Arguments:</strong></p>
+<ul>
+<li><code>&lt;DIR&gt;</code> - Path to corpus directory containing C files</li>
+</ul>
+<p><strong>Example:</strong></p>
+<pre><code class="language-bash"># Validate on reprorusted-c-cli corpus
+decy oracle validate ../reprorusted-c-cli/coreutils/
+</code></pre>
+<p><strong>Output includes:</strong></p>
+<ul>
+<li>Corpus diversity analysis (file count, LOC, C construct coverage)</li>
+<li>Transpilation success/failure rates</li>
+<li>Error distribution by category</li>
+<li>Oracle query metrics</li>
+</ul>
+<h4 id="decy-oracle-query"><a class="header" href="#decy-oracle-query"><code>decy oracle query</code></a></h4>
+<p>Query oracle for fix patterns for a specific rustc error code.</p>
+<pre><code class="language-bash">decy oracle query --error &lt;CODE&gt; [OPTIONS]
+</code></pre>
+<p><strong>Options:</strong></p>
+<div class="table-wrapper"><table><thead><tr><th>Flag</th><th>Description</th><th>Default</th></tr></thead><tbody>
+<tr><td><code>--error &lt;CODE&gt;</code></td><td>Rustc error code (e.g., E0308, E0382)</td><td>required</td></tr>
+<tr><td><code>--context &lt;TEXT&gt;</code></td><td>Optional code context for better matching</td><td>none</td></tr>
+<tr><td><code>--format &lt;FORMAT&gt;</code></td><td>Output format (text, json)</td><td>text</td></tr>
+</tbody></table>
+</div>
+<p><strong>Examples:</strong></p>
+<pre><code class="language-bash"># Query patterns for type mismatch
+decy oracle query --error E0308
+
+# Query with context
+decy oracle query --error E0382 --context "let x = value; use(x);"
+
+# JSON output for tooling
+decy oracle query --error E0308 --format json
+</code></pre>
+<h4 id="decy-oracle-train"><a class="header" href="#decy-oracle-train"><code>decy oracle train</code></a></h4>
+<p>Train oracle on a C corpus using CITL feedback loop.</p>
+<pre><code class="language-bash">decy oracle train --corpus &lt;DIR&gt; [OPTIONS]
+</code></pre>
+<p><strong>Options:</strong></p>
+<div class="table-wrapper"><table><thead><tr><th>Flag</th><th>Description</th><th>Default</th></tr></thead><tbody>
+<tr><td><code>--corpus &lt;DIR&gt;</code></td><td>Path to corpus directory containing C files</td><td>required</td></tr>
+<tr><td><code>--tier &lt;TIER&gt;</code></td><td>Training tier: P0 (simple), P1 (I/O), P2 (complex)</td><td>P0</td></tr>
+<tr><td><code>--dry-run</code></td><td>Preview training without saving patterns</td><td>disabled</td></tr>
+</tbody></table>
+</div>
+<p><strong>Examples:</strong></p>
+<pre><code class="language-bash"># Train on P0 tier
+decy oracle train --corpus ./c-corpus --tier P0
+
+# Preview training
+decy oracle train --corpus ./c-corpus --dry-run
+</code></pre>
+<h4 id="decy-oracle-generate-traces"><a class="header" href="#decy-oracle-generate-traces"><code>decy oracle generate-traces</code></a></h4>
+<p>Generate Golden Traces from C corpus for model training.</p>
+<pre><code class="language-bash">decy oracle generate-traces --corpus &lt;DIR&gt; --output &lt;FILE&gt; [OPTIONS]
+</code></pre>
+<p><strong>Options:</strong></p>
+<div class="table-wrapper"><table><thead><tr><th>Flag</th><th>Description</th><th>Default</th></tr></thead><tbody>
+<tr><td><code>--corpus &lt;DIR&gt;</code></td><td>Path to corpus directory containing C files</td><td>required</td></tr>
+<tr><td><code>--output &lt;FILE&gt;</code></td><td>Output file path for JSONL traces</td><td>required</td></tr>
+<tr><td><code>--tier &lt;TIER&gt;</code></td><td>Training tier: P0 (simple), P1 (I/O), P2 (complex)</td><td>P0</td></tr>
+<tr><td><code>--dry-run</code></td><td>Preview generation without writing output</td><td>disabled</td></tr>
+</tbody></table>
+</div>
+<p><strong>Examples:</strong></p>
+<pre><code class="language-bash"># Generate P0 traces
+decy oracle generate-traces \
+    --corpus ./c-corpus \
+    --output ./traces.jsonl \
+    --tier P0
+
+# Preview generation
+decy oracle generate-traces \
+    --corpus ./c-corpus \
+    --output ./traces.jsonl \
+    --dry-run
+</code></pre>
+<h4 id="decy-oracle-export"><a class="header" href="#decy-oracle-export"><code>decy oracle export</code></a></h4>
+<p>Export patterns to dataset format for HuggingFace.</p>
+<pre><code class="language-bash">decy oracle export &lt;FILE&gt; [OPTIONS]
+</code></pre>
+<p><strong>Arguments:</strong></p>
+<ul>
+<li><code>&lt;FILE&gt;</code> - Output file path</li>
+</ul>
+<p><strong>Options:</strong></p>
+<div class="table-wrapper"><table><thead><tr><th>Flag</th><th>Description</th><th>Default</th></tr></thead><tbody>
+<tr><td><code>--format &lt;FORMAT&gt;</code></td><td>Export format: jsonl, chatml, alpaca, parquet</td><td>jsonl</td></tr>
+<tr><td><code>--with-card</code></td><td>Also generate dataset card (README.md)</td><td>disabled</td></tr>
+</tbody></table>
+</div>
+<p><strong>Examples:</strong></p>
+<pre><code class="language-bash"># Export to JSONL
+decy oracle export ./patterns.jsonl --format jsonl
+
+# Export with dataset card
+decy oracle export ./dataset.jsonl --format jsonl --with-card
+
+# Export to ChatML format
+decy oracle export ./patterns.chatml --format chatml
+</code></pre>
+<h2 id="oracle-integration"><a class="header" href="#oracle-integration">Oracle Integration</a></h2>
+<p>The oracle integration uses entrenar's CITL (Compiler-in-the-Loop Training) system to automatically fix rustc errors during transpilation.</p>
+<h3 id="how-it-works"><a class="header" href="#how-it-works">How It Works</a></h3>
+<ol>
+<li><strong>Query</strong>: When rustc produces an error, the oracle queries accumulated fix patterns</li>
+<li><strong>Suggest</strong>: Patterns matching the error code and context are ranked by confidence</li>
+<li><strong>Apply</strong>: If <code>--auto-fix</code> is enabled and confidence exceeds threshold, the fix is applied</li>
+<li><strong>Verify</strong>: The code is recompiled to verify the fix worked</li>
+<li><strong>Capture</strong>: If <code>--capture</code> is enabled and the fix succeeded, the pattern is saved</li>
+</ol>
+<h3 id="oracle-flags"><a class="header" href="#oracle-flags">Oracle Flags</a></h3>
+<div class="table-wrapper"><table><thead><tr><th>Flag</th><th>Purpose</th></tr></thead><tbody>
+<tr><td><code>--oracle</code></td><td>Enable the CITL oracle system</td></tr>
+<tr><td><code>--oracle-threshold</code></td><td>Minimum confidence score (0.0-1.0) to apply fixes</td></tr>
+<tr><td><code>--auto-fix</code></td><td>Automatically apply suggested fixes</td></tr>
+<tr><td><code>--capture</code></td><td>Save verified fixes to pattern library</td></tr>
+<tr><td><code>--import-patterns</code></td><td>Load patterns from another project's .apr file</td></tr>
+<tr><td><code>--oracle-report</code></td><td>Output metrics in specified format</td></tr>
+</tbody></table>
+</div>
+<h3 id="report-formats"><a class="header" href="#report-formats">Report Formats</a></h3>
+<p><strong>JSON</strong> - Machine-readable for CI/CD pipelines:</p>
+<pre><code class="language-bash">decy transpile --oracle --oracle-report json input.c
+</code></pre>
+<p><strong>Markdown</strong> - Human-readable for PR comments:</p>
+<pre><code class="language-bash">decy transpile --oracle --oracle-report markdown input.c &gt; report.md
+</code></pre>
+<p><strong>Prometheus</strong> - Metrics for monitoring systems:</p>
+<pre><code class="language-bash">decy transpile --oracle --oracle-report prometheus input.c
+</code></pre>
+<h3 id="cross-project-pattern-transfer"><a class="header" href="#cross-project-pattern-transfer">Cross-Project Pattern Transfer</a></h3>
+<p>Patterns can be shared between projects using .apr files:</p>
+<pre><code class="language-bash"># Export patterns from project A
+decy transpile-project --oracle --capture ./project-a -o ./out-a
+
+# Import patterns to project B
+decy transpile-project --oracle --import-patterns ./project-a.apr \
+    ./project-b -o ./out-b
+</code></pre>
+<p>Transferable error codes (ownership/lifetime patterns):</p>
+<ul>
+<li>E0382 - Borrow of moved value</li>
+<li>E0499 - Cannot borrow as mutable more than once</li>
+<li>E0506 - Cannot assign to borrowed value</li>
+<li>E0597 - Borrowed value does not live long enough</li>
+<li>E0515 - Cannot return reference to local variable</li>
+</ul>
+<h2 id="exit-codes"><a class="header" href="#exit-codes">Exit Codes</a></h2>
+<div class="table-wrapper"><table><thead><tr><th>Code</th><th>Meaning</th></tr></thead><tbody>
+<tr><td>0</td><td>Success</td></tr>
+<tr><td>1</td><td>Transpilation error</td></tr>
+<tr><td>2</td><td>Invalid arguments</td></tr>
+<tr><td>3</td><td>File I/O error</td></tr>
+</tbody></table>
+</div>
+<h2 id="environment-variables"><a class="header" href="#environment-variables">Environment Variables</a></h2>
+<div class="table-wrapper"><table><thead><tr><th>Variable</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>DECY_CACHE_DIR</code></td><td>Override default cache directory</td></tr>
+<tr><td><code>RUST_LOG</code></td><td>Set logging level (debug, info, warn, error)</td></tr>
+</tbody></table>
+</div>
+<h2 id="feature-flags"><a class="header" href="#feature-flags">Feature Flags</a></h2>
+<p>Build decy with optional features:</p>
+<pre><code class="language-bash"># Build with oracle support
+cargo build --features oracle
+
+# Build release with all features
+cargo build --release --features oracle
+</code></pre>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../advanced/debugging.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+
+                            <a rel="next prefetch" href="../reference/config.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../advanced/debugging.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+                    <a rel="next prefetch" href="../reference/config.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+            </nav>
+
+        </div>
+
+
+
+        <script>
+            window.playground_line_numbers = true;
+        </script>
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+        <script src="../ace.js"></script>
+        <script src="../editor.js"></script>
+        <script src="../mode-rust.js"></script>
+        <script src="../theme-dawn.js"></script>
+        <script src="../theme-tomorrow_night.js"></script>
+
+        <script src="../elasticlunr.min.js"></script>
+        <script src="../mark.min.js"></script>
+        <script src="../searcher.js"></script>
+
+        <script src="../clipboard.min.js"></script>
+        <script src="../highlight.js"></script>
+        <script src="../book.js"></script>
+
+        <!-- Custom JS scripts -->
+
+
+    </div>
+    </body>
+</html>

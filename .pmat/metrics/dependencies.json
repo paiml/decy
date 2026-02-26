@@ -1,0 +1,21 @@
+{
+  "direct_count": 0,
+  "transitive_count": 579,
+  "timestamp": "2026-02-10T11:14:10.218242707+00:00",
+  "previous": {
+    "direct_count": 0,
+    "transitive_count": 579,
+    "timestamp": "2026-02-10T11:12:25.140468622+00:00",
+    "previous": {
+      "direct_count": 0,
+      "transitive_count": 579,
+      "timestamp": "2026-02-09T16:15:30.226831753+00:00",
+      "previous": {
+        "direct_count": 0,
+        "transitive_count": 579,
+        "timestamp": "2026-02-05T16:19:41.525030365+00:00",
+        "previous": null
+      }
+    }
+  }
+}

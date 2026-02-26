@@ -1,0 +1,164 @@
+version: "1.0"
+name: "Decy Transpilation State Machine"
+description: "Verify C-to-Rust transpilation flow and state transitions"
+machine:
+  id: "transpile_flow"
+  initial: "idle"
+  states:
+    idle:
+      id: "idle"
+      invariants:
+        - description: "CLI ready for input"
+          condition: "stdin.ready()"
+    parsing:
+      id: "parsing"
+      invariants:
+        - description: "C source provided"
+          condition: "input.len() > 0"
+        - description: "Parser initialized"
+          condition: "parser.initialized()"
+    hir_conversion:
+      id: "hir_conversion"
+      invariants:
+        - description: "AST available"
+          condition: "ast.is_some()"
+        - description: "HIR builder ready"
+          condition: "hir_builder.ready()"
+    analyzing:
+      id: "analyzing"
+      invariants:
+        - description: "HIR available"
+          condition: "hir.functions.len() > 0"
+        - description: "Ownership analyzer initialized"
+          condition: "ownership_analyzer.ready()"
+    generating:
+      id: "generating"
+      invariants:
+        - description: "Analysis complete"
+          condition: "analysis.complete()"
+        - description: "Codegen ready"
+          condition: "codegen.initialized()"
+    complete:
+      id: "complete"
+      final_state: true
+      invariants:
+        - description: "Rust code generated"
+          condition: "output.len() > 0"
+        - description: "Unsafe count tracked"
+          condition: "metrics.unsafe_count >= 0"
+    error:
+      id: "error"
+      invariants:
+        - description: "Error message available"
+          condition: "error.message.len() > 0"
+  transitions:
+    - id: "start_parse"
+      from: "idle"
+      to: "parsing"
+      event: "transpile_command"
+      actions:
+        - type: cli
+          command: "decy transpile"
+    - id: "parse_success"
+      from: "parsing"
+      to: "hir_conversion"
+      event: "parse_complete"
+      guard: "!has_parse_errors()"
+    - id: "parse_failure"
+      from: "parsing"
+      to: "error"
+      event: "parse_error"
+      guard: "has_parse_errors()"
+    - id: "hir_success"
+      from: "hir_conversion"
+      to: "analyzing"
+      event: "hir_complete"
+    - id: "hir_failure"
+      from: "hir_conversion"
+      to: "error"
+      event: "hir_error"
+    - id: "analysis_success"
+      from: "analyzing"
+      to: "generating"
+      event: "analysis_complete"
+    - id: "analysis_failure"
+      from: "analyzing"
+      to: "error"
+      event: "analysis_error"
+    - id: "codegen_success"
+      from: "generating"
+      to: "complete"
+      event: "generation_complete"
+    - id: "codegen_failure"
+      from: "generating"
+      to: "error"
+      event: "generation_error"
+    - id: "retry_from_error"
+      from: "error"
+      to: "idle"
+      event: "reset"
+    - id: "new_transpilation"
+      from: "complete"
+      to: "idle"
+      event: "new_input"
+  forbidden:
+    - from: "idle"
+      to: "complete"
+      reason: "Cannot complete without transpilation"
+    - from: "parsing"
+      to: "generating"
+      reason: "Must convert to HIR and analyze first"
+    - from: "hir_conversion"
+      to: "complete"
+      reason: "Must analyze and generate code first"
+playbook:
+  setup:
+    - type: tempdir
+      var: "workdir"
+    - type: write_file
+      path: "${workdir}/test.c"
+      content: |
+        int main() {
+            int x = 42;
+            return x;
+        }
+  steps:
+    - name: "Start transpilation"
+      transitions: ["start_parse"]
+      actions:
+        - type: cli
+          command: "decy transpile ${workdir}/test.c"
+          capture:
+            - var: "stdout"
+              from: "stdout"
+            - var: "exit_code"
+              from: "exit_code"
+    - name: "Verify parsing"
+      transitions: ["parse_success"]
+      assertions:
+        - condition: "!stdout.contains('parse error')"
+          message: "Parsing should succeed"
+    - name: "Verify HIR conversion"
+      transitions: ["hir_success"]
+    - name: "Verify analysis"
+      transitions: ["analysis_success"]
+    - name: "Verify code generation"
+      transitions: ["codegen_success"]
+      capture:
+        - var: "rust_output"
+          from: "stdout"
+  teardown:
+    - type: cleanup
+      path: "${workdir}"
+assertions:
+  path:
+    must_visit: ["idle", "parsing", "hir_conversion", "analyzing", "generating", "complete"]
+    must_not_visit: ["error"]
+  output:
+    - var: "rust_output"
+      contains: "fn main"
+    - var: "exit_code"
+      equals: 0
+performance:
+  max_duration_ms: 5000
+  max_memory_mb: 256
