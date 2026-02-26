@@ -19,7 +19,7 @@ decy-ownership = { version = "2.0.0", path = "../decy-ownership" }
 decy-codegen = { version = "2.0.0", path = "../decy-codegen" }
 
 # Spydecy debugger integration
-spydecy-debugger = "0.2.0"
+spydecy-debugger.workspace = true
 
 # Error handling
 anyhow = "1.0"
