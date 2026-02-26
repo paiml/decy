@@ -1,0 +1,117 @@
+version: "1.0"
+name: "Decy Error Handling State Machine"
+description: "Verify error handling for invalid C code inputs"
+machine:
+  id: "error_handling_flow"
+  initial: "idle"
+  states:
+    idle:
+      id: "idle"
+      invariants:
+        - description: "CLI ready"
+          condition: "ready()"
+    parsing:
+      id: "parsing"
+      invariants:
+        - description: "Parser active"
+          condition: "parser.active()"
+    syntax_error:
+      id: "syntax_error"
+      final_state: true
+      invariants:
+        - description: "Syntax error reported"
+          condition: "error.type == 'syntax'"
+        - description: "Line number shown"
+          condition: "error.line > 0"
+    semantic_error:
+      id: "semantic_error"
+      final_state: true
+      invariants:
+        - description: "Semantic error reported"
+          condition: "error.type == 'semantic'"
+    file_not_found:
+      id: "file_not_found"
+      final_state: true
+      invariants:
+        - description: "File error shown"
+          condition: "stderr.contains('not found') || stderr.contains('No such file')"
+  transitions:
+    - id: "start_invalid_syntax"
+      from: "idle"
+      to: "parsing"
+      event: "transpile_command"
+    - id: "detect_syntax_error"
+      from: "parsing"
+      to: "syntax_error"
+      event: "syntax_error_detected"
+    - id: "detect_semantic_error"
+      from: "parsing"
+      to: "semantic_error"
+      event: "semantic_error_detected"
+    - id: "file_missing"
+      from: "idle"
+      to: "file_not_found"
+      event: "file_not_found"
+playbook:
+  steps:
+    - name: "Test syntax error handling"
+      setup:
+        - type: tempdir
+          var: "workdir"
+        - type: write_file
+          path: "${workdir}/bad_syntax.c"
+          content: |
+            int main( {
+              return 0;
+            }
+      actions:
+        - type: cli
+          command: "decy transpile ${workdir}/bad_syntax.c"
+          expect_failure: true
+          capture:
+            - var: "stderr"
+              from: "stderr"
+            - var: "exit_code"
+              from: "exit_code"
+      assertions:
+        - condition: "exit_code != 0"
+          message: "Should exit with non-zero for syntax error"
+        - condition: "stderr.len() > 0"
+          message: "Should output error to stderr"
+    - name: "Test missing file handling"
+      actions:
+        - type: cli
+          command: "decy transpile nonexistent_file_12345.c"
+          expect_failure: true
+          capture:
+            - var: "stderr"
+              from: "stderr"
+            - var: "exit_code"
+              from: "exit_code"
+      assertions:
+        - condition: "exit_code != 0"
+          message: "Should exit with non-zero for missing file"
+        - condition: "stderr.contains('not found') || stderr.contains('No such file')"
+          message: "Should indicate file not found"
+    - name: "Test empty file handling"
+      setup:
+        - type: write_file
+          path: "${workdir}/empty.c"
+          content: ""
+      actions:
+        - type: cli
+          command: "decy transpile ${workdir}/empty.c"
+          capture:
+            - var: "exit_code"
+              from: "exit_code"
+      assertions:
+        - condition: "exit_code != 0"
+          message: "Should handle empty file gracefully"
+assertions:
+  path:
+    coverage_target: 100
+  error_handling:
+    all_errors_have_messages: true
+    all_errors_have_exit_codes: true
+performance:
+  max_duration_ms: 3000

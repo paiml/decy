@@ -1,0 +1,781 @@
+{
+  "tree_hash": "5d60eff43190a897779c82f59730e36d064641cb",
+  "pmat_version": "3.0.7",
+  "timestamp": "2026-02-14T21:56:17.971119231Z",
+  "report": {
+    "files_with_dead_code": [
+      {
+        "file_path": "validation/kr-c/chapter-5/23_function_pointer_arrays.rs",
+        "dead_items": [
+          {
+            "name": "Operation",
+            "kind": "Suppressed",
+            "line": 88,
+            "column": 1,
+            "message": "enum `Operation` has #[allow(dead_code)] suppression (explicit dead code admission)"
+          }
+        ],
+        "file_dead_percentage": 3.3057851239669422
+      },
+      {
+        "file_path": "validation/kr-c/chapter-5/31_circular_buffer.rs",
+        "dead_items": [
+          {
+            "name": "demonstrate_vecdeque",
+            "kind": "Suppressed",
+            "line": 111,
+            "column": 1,
+            "message": "fn `demonstrate_vecdeque` has #[allow(dead_code)] suppression (explicit dead code admission)"
+          }
+        ],
+        "file_dead_percentage": 2.9197080291970803
+      },
+      {
+        "file_path": "validation/kr-c/chapter-5/27_binary_search_tree.rs",
+        "dead_items": [
+          {
+            "name": "demonstrate_btreemap",
+            "kind": "Suppressed",
+            "line": 189,
+            "column": 1,
+            "message": "fn `demonstrate_btreemap` has #[allow(dead_code)] suppression (explicit dead code admission)"
+          }
+        ],
+        "file_dead_percentage": 1.834862385321101
+      },
+      {
+        "file_path": "crates/decy-codegen/tests/sizeof_edge_cases_test.rs",
+        "dead_items": [
+          {
+            "name": "Packed",
+            "kind": "Suppressed",
+            "line": 244,
+            "column": 1,
+            "message": "struct `Packed` has #[allow(dead_code)] suppression (explicit dead code admission)"
+          },
+          {
+            "name": "Color",
+            "kind": "Suppressed",
+            "line": 303,
+            "column": 1,
+            "message": "enum `Color` has #[allow(dead_code)] suppression (explicit dead code admission)"
+          },
+          {
+            "name": "Result",
+            "kind": "Suppressed",
+            "line": 314,
+            "column": 1,
+            "message": "enum `Result` has #[allow(dead_code)] suppression (explicit dead code admission)"
+          }
+        ],
+        "file_dead_percentage": 1.4634146341463417
+      },
+      {
+        "file_path": "crates/decy-codegen/tests/inline_functions_documentation_test.rs",
+        "dead_items": [
+          {
+            "name": "square",
+            "kind": "Suppressed",
+            "line": 113,
+            "column": 1,
+            "message": "fn `square` has #[allow(dead_code)] suppression (explicit dead code admission)"
+          },
+          {
+            "name": "helper",
+            "kind": "Suppressed",
+            "line": 394,
+            "column": 1,
+            "message": "fn `helper` has #[allow(dead_code)] suppression (explicit dead code admission)"
+          },
+          {
+            "name": "Point",
+            "kind": "Suppressed",
+            "line": 442,
+            "column": 1,
+            "message": "struct `Point` has #[allow(dead_code)] suppression (explicit dead code admission)"
+          }
+        ],
+        "file_dead_percentage": 1.932367149758454
+      },
+      {
+        "file_path": "validation/kr-c/chapter-5/26_linked_list.rs",
+        "dead_items": [
+          {
+            "name": "demonstrate_vec_alternative",
+            "kind": "Suppressed",
+            "line": 170,
+            "column": 1,
+            "message": "fn `demonstrate_vec_alternative` has #[allow(dead_code)] suppression (explicit dead code admission)"
+          }
+        ],
+        "file_dead_percentage": 2.030456852791878
+      },
+      {
+        "file_path": "validation/kr-c/chapter-5/32_skip_list.rs",
+        "dead_items": [
+          {
+            "name": "demonstrate_btreemap",
+            "kind": "Suppressed",
+            "line": 154,
+            "column": 1,
+            "message": "fn `demonstrate_btreemap` has #[allow(dead_code)] suppression (explicit dead code admission)"
+          }
+        ],
+        "file_dead_percentage": 2.197802197802198
+      },
+      {
+        "file_path": "validation/kr-c/chapter-6/22_struct_vtable.rs",
+        "dead_items": [
+          {
+            "name": "enum_dispatch",
+            "kind": "Suppressed",
+            "line": 178,
+            "column": 1,
+            "message": "mod `enum_dispatch` has #[allow(dead_code)] suppression (explicit dead code admission)"
+          }
+        ],
+        "file_dead_percentage": 1.8779342723004695
+      },
+      {
+        "file_path": "validation/kr-c/chapter-6/18_struct_copy_vs_reference.rs",
+        "dead_items": [
+          {
+            "name": "demonstrate_borrowing_rules",
+            "kind": "Suppressed",
+            "line": 169,
+            "column": 1,
+            "message": "fn `demonstrate_borrowing_rules` has #[allow(dead_code)] suppression (explicit dead code admission)"
+          }
+        ],
+        "file_dead_percentage": 2.051282051282051
+      },
+      {
+        "file_path": "validation/kr-c/chapter-6/16_opaque_types.rs",
+        "dead_items": [
+          {
+            "name": "newtype",
+            "kind": "Suppressed",
+            "line": 121,
+            "column": 1,
+            "message": "mod `newtype` has #[allow(dead_code)] suppression (explicit dead code admission)"
+          },
+          {
+            "name": "pimpl",
+            "kind": "Suppressed",
+            "line": 161,
+            "column": 1,
+            "message": "mod `pimpl` has #[allow(dead_code)] suppression (explicit dead code admission)"
+          }
+        ],
+        "file_dead_percentage": 4.0201005025125625
+      },
+      {
+        "file_path": "validation/kr-c/chapter-5/34_graph_adjacency_list.rs",
+        "dead_items": [
+          {
+            "name": "demonstrate_advanced_graphs",
+            "kind": "Suppressed",
+            "line": 139,
+            "column": 1,
+            "message": "fn `demonstrate_advanced_graphs` has #[allow(dead_code)] suppression (explicit dead code admission)"
+          }
+        ],
+        "file_dead_percentage": 2.127659574468085
+      },
+      {
+        "file_path": "validation/kr-c/chapter-5/37_lru_cache.rs",
+        "dead_items": [
+          {
+            "name": "demonstrate_lru_crate",
+            "kind": "Suppressed",
+            "line": 103,
+            "column": 1,
+            "message": "fn `demonstrate_lru_crate` has #[allow(dead_code)] suppression (explicit dead code admission)"
+          },
+          {
+            "name": "LRUCacheWithCallback",
+            "kind": "Suppressed",
+            "line": 119,
+            "column": 1,
+            "message": "struct `LRUCacheWithCallback` has #[allow(dead_code)] suppression (explicit dead code admission)"
+          }
+        ],
+        "file_dead_percentage": 4.705882352941177
+      },
+      {
+        "file_path": "crates/decy-core/tests/test_performance_regression.rs",
+        "dead_items": [
+          {
+            "name": "load_golden_measurements",
+            "kind": "Suppressed",
+            "line": 116,
+            "column": 1,
+            "message": "fn `load_golden_measurements` has #[allow(dead_code)] suppression (explicit dead code admission)"
+          },
+          {
+            "name": "run_decy_and_measure",
+            "kind": "Suppressed",
+            "line": 129,
+            "column": 1,
+            "message": "fn `run_decy_and_measure` has #[allow(dead_code)] suppression (explicit dead code admission)"
+          }
+        ],
+        "file_dead_percentage": 5.228758169934641
+      },
+      {
+        "file_path": "validation/kr-c/chapter-4/13_function_attributes.rs",
+        "dead_items": [
+          {
+            "name": "new_function",
+            "kind": "Suppressed",
+            "line": 50,
+            "column": 1,
+            "message": "fn `new_function` has #[allow(dead_code)] suppression (explicit dead code admission)"
+          },
+          {
+            "name": "show_compile_time",
+            "kind": "Suppressed",
+            "line": 94,
+            "column": 1,
+            "message": "fn `show_compile_time` has #[allow(dead_code)] suppression (explicit dead code admission)"
+          }
+        ],
+        "file_dead_percentage": 7.547169811320755
+      },
+      {
+        "file_path": "validation/kr-c/chapter-4/15_function_composition.rs",
+        "dead_items": [
+          {
+            "name": "idiomatic_composition",
+            "kind": "Suppressed",
+            "line": 141,
+            "column": 1,
+            "message": "fn `idiomatic_composition` has #[allow(dead_code)] suppression (explicit dead code admission)"
+          }
+        ],
+        "file_dead_percentage": 2.5316455696202533
+      },
+      {
+        "file_path": "validation/kr-c/chapter-5/30_doubly_linked_list.rs",
+        "dead_items": [
+          {
+            "name": "unsafe_dll",
+            "kind": "Suppressed",
+            "line": 114,
+            "column": 1,
+            "message": "mod `unsafe_dll` has #[allow(dead_code)] suppression (explicit dead code admission)"
+          },
+          {
+            "name": "index_based",
+            "kind": "Suppressed",
+            "line": 181,
+            "column": 1,
+            "message": "mod `index_based` has #[allow(dead_code)] suppression (explicit dead code admission)"
+          },
+          {
+            "name": "demonstrate_vecdeque",
+            "kind": "Suppressed",
+            "line": 239,
+            "column": 1,
+            "message": "fn `demonstrate_vecdeque` has #[allow(dead_code)] suppression (explicit dead code admission)"
+          }
+        ],
+        "file_dead_percentage": 4.301075268817205
+      },
+      {
+        "file_path": "validation/kr-c/chapter-6/13_flexible_array_member.rs",
+        "dead_items": [
+          {
+            "name": "PacketBoxed",
+            "kind": "Suppressed",
+            "line": 64,
+            "column": 1,
+            "message": "struct `PacketBoxed` has #[allow(dead_code)] suppression (explicit dead code admission)"
+          }
+        ],
+        "file_dead_percentage": 2.941176470588235
+      },
+      {
+        "file_path": "validation/kr-c/chapter-4/05_const_variable.rs",
+        "dead_items": [
+          {
+            "name": "demonstrate_static",
+            "kind": "Suppressed",
+            "line": 25,
+            "column": 1,
+            "message": "fn `demonstrate_static` has #[allow(dead_code)] suppression (explicit dead code admission)"
+          }
+        ],
+        "file_dead_percentage": 12.903225806451612
+      },
+      {
+        "file_path": "validation/kr-c/chapter-5/25_memory_pool.rs",
+        "dead_items": [
+          {
+            "name": "demonstrate_safe_arena",
+            "kind": "Suppressed",
+            "line": 120,
+            "column": 1,
+            "message": "fn `demonstrate_safe_arena` has #[allow(dead_code)] suppression (explicit dead code admission)"
+          }
+        ],
+        "file_dead_percentage": 2.941176470588235
+      },
+      {
+        "file_path": "validation/kr-c/chapter-5/33_trie.rs",
+        "dead_items": [
+          {
+            "name": "demonstrate_alternatives",
+            "kind": "Suppressed",
+            "line": 153,
+            "column": 1,
+            "message": "fn `demonstrate_alternatives` has #[allow(dead_code)] suppression (explicit dead code admission)"
+          }
+        ],
+        "file_dead_percentage": 2.094240837696335
+      },
+      {
+        "file_path": "validation/kr-c/chapter-4/14_callback_patterns.rs",
+        "dead_items": [
+          {
+            "name": "idiomatic_rust_approach",
+            "kind": "Suppressed",
+            "line": 133,
+            "column": 1,
+            "message": "fn `idiomatic_rust_approach` has #[allow(dead_code)] suppression (explicit dead code admission)"
+          }
+        ],
+        "file_dead_percentage": 2.7027027027027026
+      },
+      {
+        "file_path": "validation/kr-c/chapter-5/36_union_find.rs",
+        "dead_items": [
+          {
+            "name": "UnionFindWithSize",
+            "kind": "Suppressed",
+            "line": 106,
+            "column": 1,
+            "message": "struct `UnionFindWithSize` has #[allow(dead_code)] suppression (explicit dead code admission)"
+          }
+        ],
+        "file_dead_percentage": 2.5
+      },
+      {
+        "file_path": "validation/kr-c/chapter-5/28_hash_table.rs",
+        "dead_items": [
+          {
+            "name": "demonstrate_hashmap",
+            "kind": "Suppressed",
+            "line": 160,
+            "column": 1,
+            "message": "fn `demonstrate_hashmap` has #[allow(dead_code)] suppression (explicit dead code admission)"
+          }
+        ],
+        "file_dead_percentage": 2.0100502512562812
+      },
+      {
+        "file_path": "crates/decy/tests/cli_testing_tools.rs",
+        "dead_items": [
+          {
+            "name": "VALID_C_CODE",
+            "kind": "Suppressed",
+            "line": 38,
+            "column": 1,
+            "message": "const `VALID_C_CODE` has #[allow(dead_code)] suppression (explicit dead code admission)"
+          },
+          {
+            "name": "INVALID_C_CODE",
+            "kind": "Suppressed",
+            "line": 46,
+            "column": 1,
+            "message": "const `INVALID_C_CODE` has #[allow(dead_code)] suppression (explicit dead code admission)"
+          },
+          {
+            "name": "C_WITH_FUNCTION",
+            "kind": "Suppressed",
+            "line": 54,
+            "column": 1,
+            "message": "const `C_WITH_FUNCTION` has #[allow(dead_code)] suppression (explicit dead code admission)"
+          },
+          {
+            "name": "C_WITH_POINTERS",
+            "kind": "Suppressed",
+            "line": 67,
+            "column": 1,
+            "message": "const `C_WITH_POINTERS` has #[allow(dead_code)] suppression (explicit dead code admission)"
+          },
+          {
+            "name": "C_WITH_MALLOC",
+            "kind": "Suppressed",
+            "line": 81,
+            "column": 1,
+            "message": "const `C_WITH_MALLOC` has #[allow(dead_code)] suppression (explicit dead code admission)"
+          }
+        ],
+        "file_dead_percentage": 16.666666666666664
+      },
+      {
+        "file_path": "crates/decy-codegen/tests/designated_initializers_documentation_test.rs",
+        "dead_items": [
+          {
+            "name": "Point",
+            "kind": "Suppressed",
+            "line": 520,
+            "column": 1,
+            "message": "struct `Point` has #[allow(dead_code)] suppression (explicit dead code admission)"
+          },
+          {
+            "name": "Point2",
+            "kind": "Suppressed",
+            "line": 532,
+            "column": 1,
+            "message": "struct `Point2` has #[allow(dead_code)] suppression (explicit dead code admission)"
+          }
+        ],
+        "file_dead_percentage": 1.4678899082568808
+      },
+      {
+        "file_path": "validation/kr-c/chapter-6/09_structure_initialization.rs",
+        "dead_items": [
+          {
+            "name": "demonstrate_advanced_init",
+            "kind": "Suppressed",
+            "line": 60,
+            "column": 1,
+            "message": "fn `demonstrate_advanced_init` has #[allow(dead_code)] suppression (explicit dead code admission)"
+          }
+        ],
+        "file_dead_percentage": 3.1746031746031744
+      },
+      {
+        "file_path": "validation/kr-c/chapter-7/10_fseek_ftell.rs",
+        "dead_items": [
+          {
+            "name": "random_access_example",
+            "kind": "Suppressed",
+            "line": 108,
+            "column": 1,
+            "message": "fn `random_access_example` has #[allow(dead_code)] suppression (explicit dead code admission)"
+          }
+        ],
+        "file_dead_percentage": 2.7027027027027026
+      },
+      {
+        "file_path": "validation/kr-c/chapter-7/06_line_input.rs",
+        "dead_items": [
+          {
+            "name": "demo_collect_lines",
+            "kind": "Suppressed",
+            "line": 58,
+            "column": 1,
+            "message": "fn `demo_collect_lines` has #[allow(dead_code)] suppression (explicit dead code admission)"
+          }
+        ],
+        "file_dead_percentage": 5.128205128205128
+      },
+      {
+        "file_path": "validation/kr-c/chapter-5/29_dynamic_array.rs",
+        "dead_items": [
+          {
+            "name": "demonstrate_vec_directly",
+            "kind": "Suppressed",
+            "line": 167,
+            "column": 1,
+            "message": "fn `demonstrate_vec_directly` has #[allow(dead_code)] suppression (explicit dead code admission)"
+          },
+          {
+            "name": "advanced_vec_features",
+            "kind": "Suppressed",
+            "line": 206,
+            "column": 1,
+            "message": "fn `advanced_vec_features` has #[allow(dead_code)] suppression (explicit dead code admission)"
+          }
+        ],
+        "file_dead_percentage": 3.2653061224489797
+      },
+      {
+        "file_path": "validation/kr-c/chapter-6/21_struct_inheritance_simulation.rs",
+        "dead_items": [
+          {
+            "name": "demonstrate_enum_polymorphism",
+            "kind": "Suppressed",
+            "line": 179,
+            "column": 1,
+            "message": "fn `demonstrate_enum_polymorphism` has #[allow(dead_code)] suppression (explicit dead code admission)"
+          }
+        ],
+        "file_dead_percentage": 1.702127659574468
+      },
+      {
+        "file_path": "validation/kr-c/chapter-6/24_advanced_bitfields.rs",
+        "dead_items": [
+          {
+            "name": "demonstrate_bitflags",
+            "kind": "Suppressed",
+            "line": 224,
+            "column": 1,
+            "message": "fn `demonstrate_bitflags` has #[allow(dead_code)] suppression (explicit dead code admission)"
+          }
+        ],
+        "file_dead_percentage": 1.593625498007968
+      },
+      {
+        "file_path": "validation/kr-c/chapter-6/17_struct_array_operations.rs",
+        "dead_items": [
+          {
+            "name": "demonstrate_advanced_operations",
+            "kind": "Suppressed",
+            "line": 83,
+            "column": 1,
+            "message": "fn `demonstrate_advanced_operations` has #[allow(dead_code)] suppression (explicit dead code admission)"
+          }
+        ],
+        "file_dead_percentage": 2.7027027027027026
+      },
+      {
+        "file_path": "validation/kr-c/chapter-7/09_ungetc.rs",
+        "dead_items": [
+          {
+            "name": "parse_expression",
+            "kind": "Suppressed",
+            "line": 103,
+            "column": 1,
+            "message": "fn `parse_expression` has #[allow(dead_code)] suppression (explicit dead code admission)"
+          }
+        ],
+        "file_dead_percentage": 2.6490066225165565
+      },
+      {
+        "file_path": "validation/kr-c/chapter-5/40_smart_pointers_refcount.rs",
+        "dead_items": [
+          {
+            "name": "demonstrate_arc",
+            "kind": "Suppressed",
+            "line": 182,
+            "column": 1,
+            "message": "fn `demonstrate_arc` has #[allow(dead_code)] suppression (explicit dead code admission)"
+          }
+        ],
+        "file_dead_percentage": 1.8957345971563981
+      },
+      {
+        "file_path": "validation/kr-c/chapter-6/14_struct_composition.rs",
+        "dead_items": [
+          {
+            "name": "demonstrate_traits",
+            "kind": "Suppressed",
+            "line": 141,
+            "column": 1,
+            "message": "fn `demonstrate_traits` has #[allow(dead_code)] suppression (explicit dead code admission)"
+          }
+        ],
+        "file_dead_percentage": 1.9607843137254901
+      },
+      {
+        "file_path": "validation/kr-c/chapter-6/12_structure_padding.rs",
+        "dead_items": [
+          {
+            "name": "demonstrate_custom_alignment",
+            "kind": "Suppressed",
+            "line": 112,
+            "column": 1,
+            "message": "fn `demonstrate_custom_alignment` has #[allow(dead_code)] suppression (explicit dead code admission)"
+          }
+        ],
+        "file_dead_percentage": 2.898550724637681
+      },
+      {
+        "file_path": "validation/kr-c/chapter-6/11_nested_structures.rs",
+        "dead_items": [
+          {
+            "name": "demonstrate_builder_pattern",
+            "kind": "Suppressed",
+            "line": 142,
+            "column": 1,
+            "message": "fn `demonstrate_builder_pattern` has #[allow(dead_code)] suppression (explicit dead code admission)"
+          }
+        ],
+        "file_dead_percentage": 2.0618556701030926
+      },
+      {
+        "file_path": "validation/kr-c/chapter-6/15_tagged_union.rs",
+        "dead_items": [
+          {
+            "name": "demonstrate_complex_enum",
+            "kind": "Suppressed",
+            "line": 79,
+            "column": 1,
+            "message": "fn `demonstrate_complex_enum` has #[allow(dead_code)] suppression (explicit dead code admission)"
+          },
+          {
+            "name": "demonstrate_option_result",
+            "kind": "Suppressed",
+            "line": 111,
+            "column": 1,
+            "message": "fn `demonstrate_option_result` has #[allow(dead_code)] suppression (explicit dead code admission)"
+          }
+        ],
+        "file_dead_percentage": 5.128205128205128
+      },
+      {
+        "file_path": "validation/kr-c/chapter-6/10_structure_assignment.rs",
+        "dead_items": [
+          {
+            "name": "demonstrate_copy_vs_clone",
+            "kind": "Suppressed",
+            "line": 59,
+            "column": 1,
+            "message": "fn `demonstrate_copy_vs_clone` has #[allow(dead_code)] suppression (explicit dead code admission)"
+          },
+          {
+            "name": "demonstrate_partial_moves",
+            "kind": "Suppressed",
+            "line": 88,
+            "column": 1,
+            "message": "fn `demonstrate_partial_moves` has #[allow(dead_code)] suppression (explicit dead code admission)"
+          }
+        ],
+        "file_dead_percentage": 7.079646017699115
+      },
+      {
+        "file_path": "validation/kr-c/chapter-5/35_priority_queue.rs",
+        "dead_items": [
+          {
+            "name": "demonstrate_binary_heap",
+            "kind": "Suppressed",
+            "line": 137,
+            "column": 1,
+            "message": "fn `demonstrate_binary_heap` has #[allow(dead_code)] suppression (explicit dead code admission)"
+          },
+          {
+            "name": "GenericPriorityQueue",
+            "kind": "Suppressed",
+            "line": 167,
+            "column": 1,
+            "message": "struct `GenericPriorityQueue` has #[allow(dead_code)] suppression (explicit dead code admission)"
+          }
+        ],
+        "file_dead_percentage": 3.827751196172249
+      },
+      {
+        "file_path": "validation/kr-c/chapter-6/19_struct_serialization.rs",
+        "dead_items": [
+          {
+            "name": "demonstrate_serde",
+            "kind": "Suppressed",
+            "line": 127,
+            "column": 1,
+            "message": "fn `demonstrate_serde` has #[allow(dead_code)] suppression (explicit dead code admission)"
+          }
+        ],
+        "file_dead_percentage": 2.5316455696202533
+      },
+      {
+        "file_path": "crates/decy-ownership/tests/test_ownership_inference_perf.rs",
+        "dead_items": [
+          {
+            "name": "measure_ownership_inference_overhead",
+            "kind": "Suppressed",
+            "line": 159,
+            "column": 1,
+            "message": "fn `measure_ownership_inference_overhead` has #[allow(dead_code)] suppression (explicit dead code admission)"
+          },
+          {
+            "name": "validate_arena_allocation",
+            "kind": "Suppressed",
+            "line": 172,
+            "column": 1,
+            "message": "fn `validate_arena_allocation` has #[allow(dead_code)] suppression (explicit dead code admission)"
+          }
+        ],
+        "file_dead_percentage": 3.4334763948497855
+      },
+      {
+        "file_path": "validation/kr-c/chapter-5/38_red_black_tree.rs",
+        "dead_items": [
+          {
+            "name": "RBNode",
+            "kind": "Suppressed",
+            "line": 19,
+            "column": 1,
+            "message": "struct `RBNode` has #[allow(dead_code)] suppression (explicit dead code admission)"
+          },
+          {
+            "name": "demonstrate_btreemap",
+            "kind": "Suppressed",
+            "line": 130,
+            "column": 1,
+            "message": "fn `demonstrate_btreemap` has #[allow(dead_code)] suppression (explicit dead code admission)"
+          }
+        ],
+        "file_dead_percentage": 4.395604395604396
+      },
+      {
+        "file_path": "validation/kr-c/chapter-5/39_arena_allocator.rs",
+        "dead_items": [
+          {
+            "name": "demonstrate_typed_arena",
+            "kind": "Suppressed",
+            "line": 145,
+            "column": 1,
+            "message": "fn `demonstrate_typed_arena` has #[allow(dead_code)] suppression (explicit dead code admission)"
+          },
+          {
+            "name": "demonstrate_bumpalo",
+            "kind": "Suppressed",
+            "line": 159,
+            "column": 1,
+            "message": "fn `demonstrate_bumpalo` has #[allow(dead_code)] suppression (explicit dead code admission)"
+          }
+        ],
+        "file_dead_percentage": 4.371584699453552
+      },
+      {
+        "file_path": "validation/kr-c/chapter-7/08_file_copy.rs",
+        "dead_items": [
+          {
+            "name": "copy_with_progress",
+            "kind": "Suppressed",
+            "line": 88,
+            "column": 1,
+            "message": "fn `copy_with_progress` has #[allow(dead_code)] suppression (explicit dead code admission)"
+          }
+        ],
+        "file_dead_percentage": 3.3057851239669422
+      },
+      {
+        "file_path": "validation/kr-c/chapter-7/07_sprintf_sscanf.rs",
+        "dead_items": [
+          {
+            "name": "parse_complex",
+            "kind": "Suppressed",
+            "line": 92,
+            "column": 1,
+            "message": "fn `parse_complex` has #[allow(dead_code)] suppression (explicit dead code admission)"
+          }
+        ],
+        "file_dead_percentage": 3.5398230088495577
+      },
+      {
+        "file_path": "validation/kr-c/chapter-4/09_scope_rules.rs",
+        "dead_items": [
+          {
+            "name": "demonstrate_shadowing_features",
+            "kind": "Suppressed",
+            "line": 56,
+            "column": 1,
+            "message": "fn `demonstrate_shadowing_features` has #[allow(dead_code)] suppression (explicit dead code admission)"
+          }
+        ],
+        "file_dead_percentage": 6.451612903225806
+      }
+    ],
+    "total_dead_items": 69,
+    "dead_code_percentage": 0.028537632451837578,
+    "total_lines": 483572,
+    "dead_lines": 138,
+    "dead_by_type": {
+      "suppressed": 69
+    }
+  }
+}

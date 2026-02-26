@@ -1,0 +1,176 @@
+version: "1.0"
+name: "Decy C Construct Coverage"
+description: "Verify transpilation of all supported C language constructs"
+machine:
+  id: "construct_coverage"
+  initial: "ready"
+  states:
+    ready:
+      id: "ready"
+    testing:
+      id: "testing"
+    validated:
+      id: "validated"
+      final_state: true
+    failed:
+      id: "failed"
+  transitions:
+    - id: "start_test"
+      from: "ready"
+      to: "testing"
+      event: "test_construct"
+    - id: "test_pass"
+      from: "testing"
+      to: "validated"
+      event: "validation_success"
+    - id: "test_fail"
+      from: "testing"
+      to: "failed"
+      event: "validation_failure"
+playbook:
+  setup:
+    - type: tempdir
+      var: "workdir"
+  steps:
+    # Basic expressions
+    - name: "Test integer literals"
+      c_code: "int x = 42;"
+      expected_rust: "let mut x: i32 = 42;"
+    - name: "Test float literals"
+      c_code: "float f = 3.14;"
+      expected_rust: "let mut f: f32 = 3.14;"
+    - name: "Test char literals"
+      c_code: "char c = 'A';"
+      expected_rust: "let mut c: u8 = b'A';"
+    - name: "Test string literals"
+      c_code: |
+        char* s = "hello";
+      expected_rust: "&str"
+
+    # Control flow
+    - name: "Test if statement"
+      c_code: |
+        int main() {
+            int x = 1;
+            if (x > 0) { return 1; }
+            return 0;
+        }
+      expected_contains: ["if x > 0"]
+    - name: "Test if-else"
+      c_code: |
+        int main() {
+            int x = 0;
+            if (x) { return 1; } else { return 0; }
+        }
+      expected_contains: ["if", "else"]
+    - name: "Test while loop"
+      c_code: |
+        int main() {
+            int i = 0;
+            while (i < 10) { i = i + 1; }
+            return i;
+        }
+      expected_contains: ["while"]
+    - name: "Test for loop"
+      c_code: |
+        int main() {
+            int sum = 0;
+            for (int i = 0; i < 5; i++) { sum = sum + i; }
+            return sum;
+        }
+      expected_contains: ["for"]
+
+    # Pointers and memory
+    - name: "Test pointer declaration"
+      c_code: "int* ptr;"
+      expected_contains: ["*mut"]
+    - name: "Test malloc pattern"
+      c_code: |
+        #include <stdlib.h>
+        int main() {
+            int* arr = malloc(10 * sizeof(int));
+            free(arr);
+            return 0;
+        }
+      expected_contains: ["Vec", "Box"]
+    - name: "Test array declaration"
+      c_code: "int arr[10];"
+      expected_contains: ["[i32; 10]"]
+
+    # Functions
+    - name: "Test function declaration"
+      c_code: |
+        int add(int a, int b) {
+            return a + b;
+        }
+      expected_contains: ["fn add(a: i32, b: i32) -> i32"]
+    - name: "Test void function"
+      c_code: "void noop() {}"
+      expected_contains: ["fn noop()"]
+
+    # Structs
+    - name: "Test struct definition"
+      c_code: |
+        struct Point {
+            int x;
+            int y;
+        };
+      expected_contains: ["struct Point", "x: i32", "y: i32"]
+    - name: "Test struct field access"
+      c_code: |
+        struct Point { int x; int y; };
+        int main() {
+            struct Point p;
+            p.x = 10;
+            return p.x;
+        }
+      expected_contains: [".x"]
+
+    # Operators
+    - name: "Test binary operators"
+      c_code: "int x = 1 + 2 * 3 - 4 / 2;"
+      expected_contains: ["+", "*", "-", "/"]
+    - name: "Test comparison operators"
+      c_code: |
+        int cmp(int a, int b) {
+            if (a == b) return 0;
+            if (a < b) return -1;
+            return 1;
+        }
+      expected_contains: ["==", "<"]
+    - name: "Test logical operators"
+      c_code: |
+        int test(int a, int b) {
+            return a && b || !a;
+        }
+      expected_contains: ["&&", "||", "!"]
+    - name: "Test bitwise operators"
+      c_code: "int x = (5 & 3) | (2 ^ 1);"
+      expected_contains: ["&", "|", "^"]
+    - name: "Test increment/decrement"
+      c_code: |
+        int main() {
+            int x = 0;
+            x++;
+            ++x;
+            x--;
+            --x;
+            return x;
+        }
+      expected_contains: ["x += 1", "x -= 1"]
+
+    # Global variables
+    - name: "Test global variable"
+      c_code: |
+        int global_counter = 0;
+        int main() {
+            global_counter = 1;
+            return global_counter;
+        }
+      expected_contains: ["static mut", "unsafe"]
+assertions:
+  coverage:
+    constructs_tested: 20
+    all_constructs_pass: true
+performance:
+  max_duration_ms: 30000
