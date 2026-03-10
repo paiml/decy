@@ -492,10 +492,7 @@ int main() {
     let rust_code = result.unwrap();
 
     // This is a documentation test
-    assert!(
-        rust_code.contains("fn main") || rust_code.contains("main"),
-        "Expected main function"
-    );
+    assert!(rust_code.contains("fn main") || rust_code.contains("main"), "Expected main function");
 
     println!("\n=== Address-of & Dereference Transformation Rules ===");
     println!("1. Address-of: &x → &x (reference)");
@@ -592,10 +589,7 @@ fn test_address_of_dereference_documentation_summary() {
 
     println!("\n=== Address-of & Dereference Documentation Summary ===");
     println!("Total tests: {}", total_tests);
-    println!(
-        "Unsafe blocks (references): {}",
-        unsafe_blocks_for_references
-    );
+    println!("Unsafe blocks (references): {}", unsafe_blocks_for_references);
     println!("Coverage target: {}%", coverage_target);
     println!("Feature: C99 §6.5.3.2 Address-of & Dereference");
     println!("Reference: K&R §5.1");
@@ -605,12 +599,6 @@ fn test_address_of_dereference_documentation_summary() {
     println!("Key advantage: Borrow checker prevents bugs");
     println!("=======================================================\n");
 
-    assert_eq!(
-        unsafe_blocks_for_references, 0,
-        "References should not require unsafe blocks"
-    );
-    assert!(
-        total_tests >= 10,
-        "Need at least 10 tests for comprehensive coverage"
-    );
+    assert_eq!(unsafe_blocks_for_references, 0, "References should not require unsafe blocks");
+    assert!(total_tests >= 10, "Need at least 10 tests for comprehensive coverage");
 }

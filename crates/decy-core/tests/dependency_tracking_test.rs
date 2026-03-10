@@ -48,14 +48,8 @@ fn test_dependency_graph_add_dependency() {
     graph.add_file(&utils_h);
     graph.add_dependency(&main_c, &utils_h);
 
-    assert!(
-        graph.has_dependency(&main_c, &utils_h),
-        "Should have dependency"
-    );
-    assert!(
-        !graph.has_dependency(&utils_h, &main_c),
-        "Dependency is directional"
-    );
+    assert!(graph.has_dependency(&main_c, &utils_h), "Should have dependency");
+    assert!(!graph.has_dependency(&utils_h, &main_c), "Dependency is directional");
 }
 
 #[test]
@@ -78,10 +72,7 @@ fn test_build_dependency_graph_from_files() {
     let graph = DependencyGraph::from_files(&files).expect("Should build graph");
 
     assert_eq!(graph.file_count(), 2, "Should have 2 files");
-    assert!(
-        graph.has_dependency(&main_c, &utils_h),
-        "main.c should depend on utils.h"
-    );
+    assert!(graph.has_dependency(&main_c, &utils_h), "main.c should depend on utils.h");
 }
 
 #[test]
@@ -95,19 +86,14 @@ fn test_topological_sort_simple() {
     graph.add_file(&utils_h);
     graph.add_dependency(&main_c, &utils_h);
 
-    let build_order = graph
-        .topological_sort()
-        .expect("Should compute build order");
+    let build_order = graph.topological_sort().expect("Should compute build order");
 
     assert_eq!(build_order.len(), 2, "Should have 2 files in order");
 
     // utils.h should come before main.c (no dependencies before dependencies)
     let utils_pos = build_order.iter().position(|p| p == &utils_h).unwrap();
     let main_pos = build_order.iter().position(|p| p == &main_c).unwrap();
-    assert!(
-        utils_pos < main_pos,
-        "utils.h should be transpiled before main.c"
-    );
+    assert!(utils_pos < main_pos, "utils.h should be transpiled before main.c");
 }
 
 #[test]
@@ -125,9 +111,7 @@ fn test_topological_sort_complex() {
     graph.add_dependency(&a, &b);
     graph.add_dependency(&b, &c);
 
-    let build_order = graph
-        .topological_sort()
-        .expect("Should compute build order");
+    let build_order = graph.topological_sort().expect("Should compute build order");
 
     // c should come first (no dependencies), then b, then a
     let c_pos = build_order.iter().position(|p| p == &c).unwrap();
@@ -197,11 +181,8 @@ fn test_header_guard_detection() {
 #[test]
 fn test_parse_include_directive() {
     // Test: Parse #include directive to extract filename
-    let includes = [
-        r#"#include "utils.h""#,
-        r#"#include <stdio.h>"#,
-        r#"  #include   "config.h"  "#,
-    ];
+    let includes =
+        [r#"#include "utils.h""#, r#"#include <stdio.h>"#, r#"  #include   "config.h"  "#];
 
     let parsed = DependencyGraph::parse_include_directives(&includes.join("\n"));
 

@@ -262,11 +262,8 @@ pub fn aggregate_measurements(measurements: &[FileMeasurement]) -> BaselineMetri
 
     let eventual_successes = measurements.iter().filter(|m| m.eventual_success).count() as u64;
 
-    let total_iterations: u64 = measurements
-        .iter()
-        .filter(|m| m.eventual_success)
-        .map(|m| m.iterations as u64)
-        .sum();
+    let total_iterations: u64 =
+        measurements.iter().filter(|m| m.eventual_success).map(|m| m.iterations as u64).sum();
 
     BaselineMetrics::with_iterations(
         first_try_successes,
@@ -493,10 +490,7 @@ mod tests {
 
         // Rate way above target — CI doesn't include target (lower bound > target)
         let high = BaselineMetrics::new(990, 1000);
-        assert!(
-            !high.includes_target(),
-            "99% rate CI lower bound should be above 85%"
-        );
+        assert!(!high.includes_target(), "99% rate CI lower bound should be above 85%");
     }
 
     #[test]

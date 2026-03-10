@@ -45,11 +45,7 @@ fn test_complete_malloc_to_box_pipeline() {
         "malloc should be transformed to Vec. Got: {}",
         code
     );
-    assert!(
-        !code.contains("malloc(4)"),
-        "malloc should not appear in output. Got: {}",
-        code
-    );
+    assert!(!code.contains("malloc(4)"), "malloc should not appear in output. Got: {}", code);
 
     // Step 3: Generate code with Box transformation (explicit Box hints)
     let code_with = codegen.generate_function_with_box_transform(&func, &candidates);

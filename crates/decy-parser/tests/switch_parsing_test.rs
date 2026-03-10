@@ -31,24 +31,13 @@ fn test_parse_simple_switch() {
 
     let func = &ast.functions()[0];
     assert_eq!(func.name, "test_switch");
-    assert_eq!(
-        func.body.len(),
-        1,
-        "Function should have one statement (switch)"
-    );
+    assert_eq!(func.body.len(), 1, "Function should have one statement (switch)");
 
     // Verify switch statement
     match &func.body[0] {
-        Statement::Switch {
-            condition,
-            cases,
-            default_case,
-        } => {
+        Statement::Switch { condition, cases, default_case } => {
             // Verify condition is a variable reference
-            assert!(matches!(
-                condition,
-                decy_parser::parser::Expression::Variable(_)
-            ));
+            assert!(matches!(condition, decy_parser::parser::Expression::Variable(_)));
 
             // Verify one case
             assert_eq!(cases.len(), 1, "Should have one case");
@@ -85,11 +74,7 @@ fn test_parse_switch_with_multiple_cases() {
     assert_eq!(func.body.len(), 1);
 
     match &func.body[0] {
-        Statement::Switch {
-            cases,
-            default_case,
-            ..
-        } => {
+        Statement::Switch { cases, default_case, .. } => {
             assert_eq!(cases.len(), 3, "Should have three cases");
             assert!(default_case.is_some(), "Should have default case");
         }
@@ -115,11 +100,7 @@ fn test_parse_switch_with_default_only() {
     let func = &ast.functions()[0];
 
     match &func.body[0] {
-        Statement::Switch {
-            cases,
-            default_case,
-            ..
-        } => {
+        Statement::Switch { cases, default_case, .. } => {
             assert_eq!(cases.len(), 0, "Should have no cases");
             assert!(default_case.is_some(), "Should have default case");
         }
@@ -158,10 +139,7 @@ fn test_parse_switch_with_fallthrough() {
     assert!(func.body.len() >= 2, "Should have multiple statements");
 
     // Find the switch statement
-    let switch_stmt = func
-        .body
-        .iter()
-        .find(|stmt| matches!(stmt, Statement::Switch { .. }));
+    let switch_stmt = func.body.iter().find(|stmt| matches!(stmt, Statement::Switch { .. }));
 
     assert!(switch_stmt.is_some(), "Should find switch statement");
 
@@ -196,14 +174,9 @@ fn test_parse_switch_with_complex_condition() {
     let func = &ast.functions()[0];
 
     match &func.body[0] {
-        Statement::Switch {
-            condition, cases, ..
-        } => {
+        Statement::Switch { condition, cases, .. } => {
             // Condition should be a binary operation (a + b)
-            assert!(matches!(
-                condition,
-                decy_parser::parser::Expression::BinaryOp { .. }
-            ));
+            assert!(matches!(condition, decy_parser::parser::Expression::BinaryOp { .. }));
 
             assert_eq!(cases.len(), 2, "Should have two cases");
         }
@@ -276,10 +249,7 @@ fn test_parse_switch_with_multiple_statements_per_case() {
     let func = &ast.functions()[0];
 
     // Find switch statement
-    let switch_stmt = func
-        .body
-        .iter()
-        .find(|stmt| matches!(stmt, Statement::Switch { .. }));
+    let switch_stmt = func.body.iter().find(|stmt| matches!(stmt, Statement::Switch { .. }));
 
     match switch_stmt.unwrap() {
         Statement::Switch { cases, .. } => {
@@ -289,14 +259,8 @@ fn test_parse_switch_with_multiple_statements_per_case() {
             // statements means case bodies are siblings at the switch level, not
             // nested under each case. This test verifies basic parsing works.
             // Full fix requires rewriting switch body collection strategy.
-            assert!(
-                !cases[0].body.is_empty(),
-                "Case should have at least one statement"
-            );
-            assert!(
-                !cases[1].body.is_empty(),
-                "Case should have at least one statement"
-            );
+            assert!(!cases[0].body.is_empty(), "Case should have at least one statement");
+            assert!(!cases[1].body.is_empty(), "Case should have at least one statement");
         }
         _ => panic!("Expected Switch statement"),
     }
@@ -322,11 +286,7 @@ fn test_parse_switch_without_default() {
     let func = &ast.functions()[0];
 
     match &func.body[0] {
-        Statement::Switch {
-            cases,
-            default_case,
-            ..
-        } => {
+        Statement::Switch { cases, default_case, .. } => {
             assert_eq!(cases.len(), 2, "Should have two cases");
             assert!(default_case.is_none(), "Should not have default case");
         }

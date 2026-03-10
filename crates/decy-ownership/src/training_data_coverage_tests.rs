@@ -21,9 +21,7 @@ fn make_labeled_sample(label: InferredOwnership, confidence: f64) -> LabeledSamp
     let sample = TrainingSample::new(features, label, "test.c", 0);
     LabeledSample::new(
         sample,
-        DataSource::Synthetic {
-            template: "test".to_string(),
-        },
+        DataSource::Synthetic { template: "test".to_string() },
         "int* p;",
         "let p: i32;",
     )
@@ -41,9 +39,7 @@ fn test_samples_by_source_rust_port() {
     let sample = TrainingSample::new(features, InferredOwnership::Owned, "test.c", 0);
     dataset.add(LabeledSample::new(
         sample,
-        DataSource::RustPort {
-            project: "linux".to_string(),
-        },
+        DataSource::RustPort { project: "linux".to_string() },
         "",
         "",
     ));
@@ -58,9 +54,7 @@ fn test_samples_by_source_compiler_feedback() {
     let sample = TrainingSample::new(features, InferredOwnership::Borrowed, "test.c", 0);
     dataset.add(LabeledSample::new(
         sample,
-        DataSource::CompilerFeedback {
-            error_code: "E0382".to_string(),
-        },
+        DataSource::CompilerFeedback { error_code: "E0382".to_string() },
         "",
         "",
     ));
@@ -75,9 +69,7 @@ fn test_samples_by_source_human_annotated() {
     let sample = TrainingSample::new(features, InferredOwnership::BorrowedMut, "test.c", 0);
     dataset.add(LabeledSample::new(
         sample,
-        DataSource::HumanAnnotated {
-            annotator: "expert1".to_string(),
-        },
+        DataSource::HumanAnnotated { annotator: "expert1".to_string() },
         "",
         "",
     ));
@@ -92,9 +84,7 @@ fn test_samples_by_source_synthetic() {
     let sample = TrainingSample::new(features, InferredOwnership::Owned, "test.c", 0);
     dataset.add(LabeledSample::new(
         sample,
-        DataSource::Synthetic {
-            template: "test".to_string(),
-        },
+        DataSource::Synthetic { template: "test".to_string() },
         "",
         "",
     ));
@@ -297,18 +287,14 @@ fn test_stats_source_distribution() {
     let s1 = TrainingSample::new(features.clone(), InferredOwnership::Owned, "a.c", 0);
     dataset.add(LabeledSample::new(
         s1,
-        DataSource::RustPort {
-            project: "linux".to_string(),
-        },
+        DataSource::RustPort { project: "linux".to_string() },
         "",
         "",
     ));
     let s2 = TrainingSample::new(features, InferredOwnership::Borrowed, "b.c", 1);
     dataset.add(LabeledSample::new(
         s2,
-        DataSource::CompilerFeedback {
-            error_code: "E0505".to_string(),
-        },
+        DataSource::CompilerFeedback { error_code: "E0505".to_string() },
         "",
         "",
     ));
@@ -372,11 +358,7 @@ fn test_collector_default_trait() {
 
 #[test]
 fn test_synthetic_config_custom_values() {
-    let config = SyntheticConfig {
-        samples_per_pattern: 5,
-        seed: 123,
-        include_edge_cases: false,
-    };
+    let config = SyntheticConfig { samples_per_pattern: 5, seed: 123, include_edge_cases: false };
     assert_eq!(config.samples_per_pattern, 5);
     assert_eq!(config.seed, 123);
     assert!(!config.include_edge_cases);
@@ -436,10 +418,7 @@ fn test_collector_multiple_errors() {
 fn test_collector_build_after_errors() {
     let mut collector = TrainingDataCollector::new();
     collector.record_error("some error");
-    let config = SyntheticConfig {
-        samples_per_pattern: 2,
-        ..Default::default()
-    };
+    let config = SyntheticConfig { samples_per_pattern: 2, ..Default::default() };
     let gen = SyntheticDataGenerator::new(config);
     collector.add_synthetic(&gen);
     // 5 patterns * 2 samples = 10

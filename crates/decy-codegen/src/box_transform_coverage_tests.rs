@@ -17,10 +17,7 @@ fn test_default_value_unsigned_int() {
     };
     let result = transformer.transform_malloc_to_box(&malloc_expr, &HirType::UnsignedInt);
     match result {
-        HirExpression::FunctionCall {
-            function,
-            arguments,
-        } => {
+        HirExpression::FunctionCall { function, arguments } => {
             assert_eq!(function, "Box::new");
             assert_eq!(arguments[0], HirExpression::IntLiteral(0));
         }
@@ -167,10 +164,7 @@ fn test_default_value_reference_fallback() {
         function: "malloc".to_string(),
         arguments: vec![HirExpression::IntLiteral(8)],
     };
-    let ref_type = HirType::Reference {
-        inner: Box::new(HirType::Int),
-        mutable: false,
-    };
+    let ref_type = HirType::Reference { inner: Box::new(HirType::Int), mutable: false };
     let result = transformer.transform_malloc_to_box(&malloc_expr, &ref_type);
     match result {
         HirExpression::FunctionCall { arguments, .. } => {
@@ -187,7 +181,8 @@ fn test_default_value_struct_fallback() {
         function: "malloc".to_string(),
         arguments: vec![HirExpression::IntLiteral(16)],
     };
-    let result = transformer.transform_malloc_to_box(&malloc_expr, &HirType::Struct("MyStruct".to_string()));
+    let result =
+        transformer.transform_malloc_to_box(&malloc_expr, &HirType::Struct("MyStruct".to_string()));
     match result {
         HirExpression::FunctionCall { arguments, .. } => {
             assert_eq!(arguments[0], HirExpression::IntLiteral(0));
@@ -203,7 +198,8 @@ fn test_default_value_enum_fallback() {
         function: "malloc".to_string(),
         arguments: vec![HirExpression::IntLiteral(4)],
     };
-    let result = transformer.transform_malloc_to_box(&malloc_expr, &HirType::Enum("Color".to_string()));
+    let result =
+        transformer.transform_malloc_to_box(&malloc_expr, &HirType::Enum("Color".to_string()));
     match result {
         HirExpression::FunctionCall { arguments, .. } => {
             assert_eq!(arguments[0], HirExpression::IntLiteral(0));
@@ -219,10 +215,8 @@ fn test_default_value_union_fallback() {
         function: "malloc".to_string(),
         arguments: vec![HirExpression::IntLiteral(8)],
     };
-    let union_type = HirType::Union(vec![
-        ("x".to_string(), HirType::Int),
-        ("y".to_string(), HirType::Float),
-    ]);
+    let union_type =
+        HirType::Union(vec![("x".to_string(), HirType::Int), ("y".to_string(), HirType::Float)]);
     let result = transformer.transform_malloc_to_box(&malloc_expr, &union_type);
     match result {
         HirExpression::FunctionCall { arguments, .. } => {
@@ -239,10 +233,7 @@ fn test_default_value_array_fallback() {
         function: "malloc".to_string(),
         arguments: vec![HirExpression::IntLiteral(40)],
     };
-    let array_type = HirType::Array {
-        element_type: Box::new(HirType::Int),
-        size: Some(10),
-    };
+    let array_type = HirType::Array { element_type: Box::new(HirType::Int), size: Some(10) };
     let result = transformer.transform_malloc_to_box(&malloc_expr, &array_type);
     match result {
         HirExpression::FunctionCall { arguments, .. } => {
@@ -327,7 +318,8 @@ fn test_default_value_type_alias_fallback() {
         function: "malloc".to_string(),
         arguments: vec![HirExpression::IntLiteral(4)],
     };
-    let result = transformer.transform_malloc_to_box(&malloc_expr, &HirType::TypeAlias("size_t".to_string()));
+    let result = transformer
+        .transform_malloc_to_box(&malloc_expr, &HirType::TypeAlias("size_t".to_string()));
     match result {
         HirExpression::FunctionCall { arguments, .. } => {
             assert_eq!(arguments[0], HirExpression::IntLiteral(0));
@@ -343,10 +335,7 @@ fn test_default_value_mutable_reference_fallback() {
         function: "malloc".to_string(),
         arguments: vec![HirExpression::IntLiteral(8)],
     };
-    let ref_type = HirType::Reference {
-        inner: Box::new(HirType::Int),
-        mutable: true,
-    };
+    let ref_type = HirType::Reference { inner: Box::new(HirType::Int), mutable: true };
     let result = transformer.transform_malloc_to_box(&malloc_expr, &ref_type);
     match result {
         HirExpression::FunctionCall { arguments, .. } => {
@@ -363,11 +352,7 @@ fn test_default_value_mutable_reference_fallback() {
 #[test]
 fn test_transform_statement_var_decl_non_malloc_function_call() {
     let transformer = BoxTransformer::new();
-    let candidate = BoxCandidate {
-        variable: "ptr".to_string(),
-        malloc_index: 0,
-        free_index: None,
-    };
+    let candidate = BoxCandidate { variable: "ptr".to_string(), malloc_index: 0, free_index: None };
 
     // VariableDeclaration with a function call that is NOT malloc
     let stmt = HirStatement::VariableDeclaration {
@@ -387,11 +372,7 @@ fn test_transform_statement_var_decl_non_malloc_function_call() {
 #[test]
 fn test_transform_statement_var_decl_malloc_non_pointer_type() {
     let transformer = BoxTransformer::new();
-    let candidate = BoxCandidate {
-        variable: "x".to_string(),
-        malloc_index: 0,
-        free_index: None,
-    };
+    let candidate = BoxCandidate { variable: "x".to_string(), malloc_index: 0, free_index: None };
 
     // VariableDeclaration with malloc but type is NOT Pointer (edge case)
     let stmt = HirStatement::VariableDeclaration {
@@ -411,11 +392,7 @@ fn test_transform_statement_var_decl_malloc_non_pointer_type() {
 #[test]
 fn test_transform_statement_var_decl_no_initializer() {
     let transformer = BoxTransformer::new();
-    let candidate = BoxCandidate {
-        variable: "ptr".to_string(),
-        malloc_index: 0,
-        free_index: None,
-    };
+    let candidate = BoxCandidate { variable: "ptr".to_string(), malloc_index: 0, free_index: None };
 
     // VariableDeclaration with no initializer
     let stmt = HirStatement::VariableDeclaration {
@@ -431,11 +408,7 @@ fn test_transform_statement_var_decl_no_initializer() {
 #[test]
 fn test_transform_statement_var_decl_non_function_call_initializer() {
     let transformer = BoxTransformer::new();
-    let candidate = BoxCandidate {
-        variable: "ptr".to_string(),
-        malloc_index: 0,
-        free_index: None,
-    };
+    let candidate = BoxCandidate { variable: "ptr".to_string(), malloc_index: 0, free_index: None };
 
     // VariableDeclaration with an initializer that is not a FunctionCall
     let stmt = HirStatement::VariableDeclaration {
@@ -451,11 +424,7 @@ fn test_transform_statement_var_decl_non_function_call_initializer() {
 #[test]
 fn test_transform_statement_assignment_non_malloc_function() {
     let transformer = BoxTransformer::new();
-    let candidate = BoxCandidate {
-        variable: "ptr".to_string(),
-        malloc_index: 0,
-        free_index: None,
-    };
+    let candidate = BoxCandidate { variable: "ptr".to_string(), malloc_index: 0, free_index: None };
 
     // Assignment with a function call that is NOT malloc
     let stmt = HirStatement::Assignment {
@@ -476,11 +445,7 @@ fn test_transform_statement_assignment_non_malloc_function() {
 #[test]
 fn test_transform_statement_assignment_non_function_value() {
     let transformer = BoxTransformer::new();
-    let candidate = BoxCandidate {
-        variable: "ptr".to_string(),
-        malloc_index: 0,
-        free_index: None,
-    };
+    let candidate = BoxCandidate { variable: "ptr".to_string(), malloc_index: 0, free_index: None };
 
     // Assignment with a value that is not a FunctionCall
     let stmt = HirStatement::Assignment {
@@ -495,11 +460,7 @@ fn test_transform_statement_assignment_non_function_value() {
 #[test]
 fn test_transform_statement_wildcard_return() {
     let transformer = BoxTransformer::new();
-    let candidate = BoxCandidate {
-        variable: "x".to_string(),
-        malloc_index: 0,
-        free_index: None,
-    };
+    let candidate = BoxCandidate { variable: "x".to_string(), malloc_index: 0, free_index: None };
 
     // A Return statement hits the wildcard arm
     let stmt = HirStatement::Return(Some(HirExpression::IntLiteral(0)));
@@ -510,11 +471,7 @@ fn test_transform_statement_wildcard_return() {
 #[test]
 fn test_transform_statement_wildcard_break() {
     let transformer = BoxTransformer::new();
-    let candidate = BoxCandidate {
-        variable: "x".to_string(),
-        malloc_index: 0,
-        free_index: None,
-    };
+    let candidate = BoxCandidate { variable: "x".to_string(), malloc_index: 0, free_index: None };
 
     let stmt = HirStatement::Break;
     let transformed = transformer.transform_statement(&stmt, &candidate);
@@ -524,11 +481,7 @@ fn test_transform_statement_wildcard_break() {
 #[test]
 fn test_transform_statement_wildcard_continue() {
     let transformer = BoxTransformer::new();
-    let candidate = BoxCandidate {
-        variable: "x".to_string(),
-        malloc_index: 0,
-        free_index: None,
-    };
+    let candidate = BoxCandidate { variable: "x".to_string(), malloc_index: 0, free_index: None };
 
     let stmt = HirStatement::Continue;
     let transformed = transformer.transform_statement(&stmt, &candidate);
@@ -538,11 +491,7 @@ fn test_transform_statement_wildcard_continue() {
 #[test]
 fn test_transform_statement_wildcard_if() {
     let transformer = BoxTransformer::new();
-    let candidate = BoxCandidate {
-        variable: "x".to_string(),
-        malloc_index: 0,
-        free_index: None,
-    };
+    let candidate = BoxCandidate { variable: "x".to_string(), malloc_index: 0, free_index: None };
 
     let stmt = HirStatement::If {
         condition: HirExpression::IntLiteral(1),
@@ -556,16 +505,9 @@ fn test_transform_statement_wildcard_if() {
 #[test]
 fn test_transform_statement_wildcard_while() {
     let transformer = BoxTransformer::new();
-    let candidate = BoxCandidate {
-        variable: "x".to_string(),
-        malloc_index: 0,
-        free_index: None,
-    };
+    let candidate = BoxCandidate { variable: "x".to_string(), malloc_index: 0, free_index: None };
 
-    let stmt = HirStatement::While {
-        condition: HirExpression::IntLiteral(1),
-        body: vec![],
-    };
+    let stmt = HirStatement::While { condition: HirExpression::IntLiteral(1), body: vec![] };
     let transformed = transformer.transform_statement(&stmt, &candidate);
     assert_eq!(transformed, stmt);
 }
@@ -619,11 +561,8 @@ fn test_box_transformer_clone() {
 #[test]
 fn test_transform_var_decl_malloc_with_float_pointer() {
     let transformer = BoxTransformer::new();
-    let candidate = BoxCandidate {
-        variable: "fptr".to_string(),
-        malloc_index: 0,
-        free_index: Some(5),
-    };
+    let candidate =
+        BoxCandidate { variable: "fptr".to_string(), malloc_index: 0, free_index: Some(5) };
 
     let stmt = HirStatement::VariableDeclaration {
         name: "fptr".to_string(),
@@ -651,11 +590,8 @@ fn test_transform_var_decl_malloc_with_float_pointer() {
 #[test]
 fn test_transform_var_decl_malloc_with_double_pointer() {
     let transformer = BoxTransformer::new();
-    let candidate = BoxCandidate {
-        variable: "dptr".to_string(),
-        malloc_index: 0,
-        free_index: None,
-    };
+    let candidate =
+        BoxCandidate { variable: "dptr".to_string(), malloc_index: 0, free_index: None };
 
     let stmt = HirStatement::VariableDeclaration {
         name: "dptr".to_string(),
@@ -668,10 +604,7 @@ fn test_transform_var_decl_malloc_with_double_pointer() {
 
     let transformed = transformer.transform_statement(&stmt, &candidate);
     match transformed {
-        HirStatement::VariableDeclaration {
-            var_type: HirType::Box(inner),
-            ..
-        } => {
+        HirStatement::VariableDeclaration { var_type: HirType::Box(inner), .. } => {
             assert_eq!(*inner, HirType::Double);
         }
         _ => panic!("Expected VariableDeclaration with Box<Double>"),
@@ -681,11 +614,8 @@ fn test_transform_var_decl_malloc_with_double_pointer() {
 #[test]
 fn test_transform_var_decl_malloc_with_struct_pointer() {
     let transformer = BoxTransformer::new();
-    let candidate = BoxCandidate {
-        variable: "sptr".to_string(),
-        malloc_index: 0,
-        free_index: Some(10),
-    };
+    let candidate =
+        BoxCandidate { variable: "sptr".to_string(), malloc_index: 0, free_index: Some(10) };
 
     let stmt = HirStatement::VariableDeclaration {
         name: "sptr".to_string(),
@@ -718,11 +648,8 @@ fn test_transform_var_decl_malloc_with_struct_pointer() {
 #[test]
 fn test_transform_with_free_index_present() {
     let transformer = BoxTransformer::new();
-    let candidate = BoxCandidate {
-        variable: "ptr".to_string(),
-        malloc_index: 2,
-        free_index: Some(8),
-    };
+    let candidate =
+        BoxCandidate { variable: "ptr".to_string(), malloc_index: 2, free_index: Some(8) };
 
     let stmt = HirStatement::Assignment {
         target: "ptr".to_string(),

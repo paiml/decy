@@ -123,8 +123,9 @@ fn test_stmt_while_empty_body_colored() {
 
 #[test]
 fn test_stmt_for_colored() {
-    let temp =
-        write_c_temp("int f() { int i; int s = 0; for (i = 0; i < 5; i = i + 1) { s = s + i; } return s; }");
+    let temp = write_c_temp(
+        "int f() { int i; int s = 0; for (i = 0; i < 5; i = i + 1) { s = s + i; } return s; }",
+    );
     let result = visualize_c_ast(temp.path(), true);
     assert!(result.is_ok());
     let output = result.unwrap();
@@ -155,8 +156,7 @@ fn test_stmt_if_no_else_colored() {
 
 #[test]
 fn test_stmt_if_with_else_colored() {
-    let temp =
-        write_c_temp("int f(int x) { if (x) { return 1; } else { return 0; } }");
+    let temp = write_c_temp("int f(int x) { if (x) { return 1; } else { return 0; } }");
     let result = visualize_c_ast(temp.path(), true);
     assert!(result.is_ok());
     let output = result.unwrap();
@@ -234,9 +234,7 @@ fn test_expr_subtraction_colored() {
 
 #[test]
 fn test_expr_function_call_colored() {
-    let temp = write_c_temp(
-        "int helper(int x) { return x; }\nint f() { return helper(5); }",
-    );
+    let temp = write_c_temp("int helper(int x) { return x; }\nint f() { return helper(5); }");
     let result = visualize_c_ast(temp.path(), true);
     assert!(result.is_ok());
     let output = result.unwrap();
@@ -245,9 +243,8 @@ fn test_expr_function_call_colored() {
 
 #[test]
 fn test_expr_function_call_multiple_args_colored() {
-    let temp = write_c_temp(
-        "int add(int a, int b) { return a + b; }\nint f() { return add(3, 4); }",
-    );
+    let temp =
+        write_c_temp("int add(int a, int b) { return a + b; }\nint f() { return add(3, 4); }");
     let result = visualize_c_ast(temp.path(), true);
     assert!(result.is_ok());
     let output = result.unwrap();
@@ -256,9 +253,7 @@ fn test_expr_function_call_multiple_args_colored() {
 
 #[test]
 fn test_expr_function_call_no_args_no_colors() {
-    let temp = write_c_temp(
-        "int zero() { return 0; }\nint f() { return zero(); }",
-    );
+    let temp = write_c_temp("int zero() { return 0; }\nint f() { return zero(); }");
     let result = visualize_c_ast(temp.path(), false);
     assert!(result.is_ok());
     let output = result.unwrap();
@@ -308,9 +303,7 @@ fn test_expr_int_literal_negative_no_colors() {
 #[test]
 fn test_expr_string_literal_catchall_no_colors() {
     // String literals in C will go through the Debug-format catchall
-    let temp = write_c_temp(
-        "int f() { char *s = \"hello\"; return 0; }",
-    );
+    let temp = write_c_temp("int f() { char *s = \"hello\"; return 0; }");
     let result = visualize_c_ast(temp.path(), false);
     assert!(result.is_ok());
 }
@@ -523,9 +516,8 @@ fn test_hir_file_info() {
 
 #[test]
 fn test_hir_three_functions_colored() {
-    let temp = write_c_temp(
-        "int a() { return 1; }\nint b() { return 2; }\nint c() { return 3; }\n",
-    );
+    let temp =
+        write_c_temp("int a() { return 1; }\nint b() { return 2; }\nint c() { return 3; }\n");
     let result = visualize_hir(temp.path(), true);
     assert!(result.is_ok());
     let output = result.unwrap();
@@ -537,9 +529,8 @@ fn test_hir_three_functions_colored() {
 
 #[test]
 fn test_hir_three_functions_no_colors() {
-    let temp = write_c_temp(
-        "int a() { return 1; }\nint b() { return 2; }\nint c() { return 3; }\n",
-    );
+    let temp =
+        write_c_temp("int a() { return 1; }\nint b() { return 2; }\nint c() { return 3; }\n");
     let result = visualize_hir(temp.path(), false);
     assert!(result.is_ok());
     let output = result.unwrap();
@@ -772,18 +763,14 @@ int sum_to(int n) {
 
 #[test]
 fn test_ast_deeply_nested_if_no_colors() {
-    let temp = write_c_temp(
-        "int f(int x) { if (x) { if (x) { return 1; } } return 0; }",
-    );
+    let temp = write_c_temp("int f(int x) { if (x) { if (x) { return 1; } } return 0; }");
     let result = visualize_c_ast(temp.path(), false);
     assert!(result.is_ok());
 }
 
 #[test]
 fn test_ast_deeply_nested_if_colored() {
-    let temp = write_c_temp(
-        "int f(int x) { if (x) { if (x) { return 1; } } return 0; }",
-    );
+    let temp = write_c_temp("int f(int x) { if (x) { if (x) { return 1; } } return 0; }");
     let result = visualize_c_ast(temp.path(), true);
     assert!(result.is_ok());
 }

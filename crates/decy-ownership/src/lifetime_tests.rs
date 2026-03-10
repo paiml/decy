@@ -32,10 +32,7 @@ fn test_build_scope_tree() {
     let scope_tree = analyzer.build_scope_tree(&func);
 
     // Should have at least 2 scopes: function scope and if-block scope
-    assert!(
-        scope_tree.scopes().len() >= 2,
-        "Should have function scope and nested scopes"
-    );
+    assert!(scope_tree.scopes().len() >= 2, "Should have function scope and nested scopes");
 
     // Root scope should contain 'x'
     let root_scope = scope_tree.get_scope(0).unwrap();
@@ -66,10 +63,7 @@ fn test_track_variable_lifetimes() {
     let scope_tree = analyzer.build_scope_tree(&func);
     let lifetimes = analyzer.track_lifetimes(&func, &scope_tree);
 
-    assert!(
-        lifetimes.contains_key("x"),
-        "Should track lifetime of variable x"
-    );
+    assert!(lifetimes.contains_key("x"), "Should track lifetime of variable x");
 
     let x_lifetime = &lifetimes["x"];
     assert_eq!(x_lifetime.name, "x");
@@ -142,10 +136,7 @@ fn test_lifetime_relationships() {
 
     // 'outer' should outlive 'inner' (outer is in parent scope)
     if let Some(relation) = relationships.get(&("outer".to_string(), "inner".to_string())) {
-        assert!(
-            matches!(relation, LifetimeRelation::Outlives),
-            "outer should outlive inner"
-        );
+        assert!(matches!(relation, LifetimeRelation::Outlives), "outer should outlive inner");
     }
 }
 
@@ -189,10 +180,7 @@ fn test_nested_scopes() {
     let scope_tree = analyzer.build_scope_tree(&func);
 
     // Should have at least 3 scopes: function, outer if, inner if
-    assert!(
-        scope_tree.scopes().len() >= 3,
-        "Should have multiple nested scopes"
-    );
+    assert!(scope_tree.scopes().len() >= 3, "Should have multiple nested scopes");
 
     // Check that scope tree correctly represents nesting
     // The root scope (0) should contain 'a'
@@ -261,10 +249,7 @@ fn test_else_block_scopes() {
     let scope_tree = analyzer.build_scope_tree(&func);
 
     // Should have at least 3 scopes: function, then, else
-    assert!(
-        scope_tree.scopes().len() >= 3,
-        "Should have separate scopes for then and else"
-    );
+    assert!(scope_tree.scopes().len() >= 3, "Should have separate scopes for then and else");
 }
 
 #[test]
@@ -274,10 +259,7 @@ fn test_function_parameters_not_tracked_in_tree() {
     let func = HirFunction::new_with_body(
         "test".to_string(),
         HirType::Int,
-        vec![HirParameter::new(
-            "param".to_string(),
-            HirType::Pointer(Box::new(HirType::Int)),
-        )],
+        vec![HirParameter::new("param".to_string(), HirType::Pointer(Box::new(HirType::Int)))],
         vec![HirStatement::Return(Some(HirExpression::IntLiteral(0)))],
     );
 
@@ -366,10 +348,7 @@ fn test_complex_scope_analysis() {
     let func = HirFunction::new_with_body(
         "complex".to_string(),
         HirType::Int,
-        vec![HirParameter::new(
-            "input".to_string(),
-            HirType::Pointer(Box::new(HirType::Int)),
-        )],
+        vec![HirParameter::new("input".to_string(), HirType::Pointer(Box::new(HirType::Int)))],
         vec![
             HirStatement::VariableDeclaration {
                 name: "outer".to_string(),
@@ -405,10 +384,7 @@ fn test_complex_scope_analysis() {
     let relationships = analyzer.infer_lifetime_relationships(&lifetimes, &scope_tree);
 
     // Should successfully analyze complex nested structure
-    assert!(
-        scope_tree.scopes().len() >= 4,
-        "Should have multiple scopes"
-    );
+    assert!(scope_tree.scopes().len() >= 4, "Should have multiple scopes");
     assert!(lifetimes.len() >= 3, "Should track multiple variables");
     assert!(!relationships.is_empty(), "Should infer relationships");
 
@@ -444,10 +420,7 @@ fn test_expression_uses_variable_in_cast() {
     let scope_tree = analyzer.build_scope_tree(&func);
     let lifetimes = analyzer.track_lifetimes(&func, &scope_tree);
 
-    assert!(
-        lifetimes["x"].escapes,
-        "Variable used in cast should be detected as escaping"
-    );
+    assert!(lifetimes["x"].escapes, "Variable used in cast should be detected as escaping");
 }
 
 #[test]
@@ -477,10 +450,7 @@ fn test_expression_uses_variable_in_compound_literal() {
     let scope_tree = analyzer.build_scope_tree(&func);
     let lifetimes = analyzer.track_lifetimes(&func, &scope_tree);
 
-    assert!(
-        lifetimes["x"].escapes,
-        "Variable in compound literal should be detected as escaping"
-    );
+    assert!(lifetimes["x"].escapes, "Variable in compound literal should be detected as escaping");
 }
 
 #[test]
@@ -506,10 +476,7 @@ fn test_expression_uses_variable_in_is_not_null() {
     let scope_tree = analyzer.build_scope_tree(&func);
     let lifetimes = analyzer.track_lifetimes(&func, &scope_tree);
 
-    assert!(
-        lifetimes["ptr"].escapes,
-        "Variable in IsNotNull should be detected as escaping"
-    );
+    assert!(lifetimes["ptr"].escapes, "Variable in IsNotNull should be detected as escaping");
 }
 
 #[test]
@@ -536,10 +503,7 @@ fn test_expression_uses_variable_in_calloc() {
     let scope_tree = analyzer.build_scope_tree(&func);
     let lifetimes = analyzer.track_lifetimes(&func, &scope_tree);
 
-    assert!(
-        lifetimes["count"].escapes,
-        "Variable in calloc should be detected as escaping"
-    );
+    assert!(lifetimes["count"].escapes, "Variable in calloc should be detected as escaping");
 }
 
 #[test]
@@ -565,10 +529,7 @@ fn test_expression_uses_variable_in_malloc() {
     let scope_tree = analyzer.build_scope_tree(&func);
     let lifetimes = analyzer.track_lifetimes(&func, &scope_tree);
 
-    assert!(
-        lifetimes["size"].escapes,
-        "Variable in malloc should be detected as escaping"
-    );
+    assert!(lifetimes["size"].escapes, "Variable in malloc should be detected as escaping");
 }
 
 #[test]
@@ -600,14 +561,8 @@ fn test_expression_uses_variable_in_realloc() {
     let scope_tree = analyzer.build_scope_tree(&func);
     let lifetimes = analyzer.track_lifetimes(&func, &scope_tree);
 
-    assert!(
-        lifetimes["ptr"].escapes,
-        "Pointer in realloc should be detected as escaping"
-    );
-    assert!(
-        lifetimes["new_size"].escapes,
-        "new_size in realloc should be detected as escaping"
-    );
+    assert!(lifetimes["ptr"].escapes, "Pointer in realloc should be detected as escaping");
+    assert!(lifetimes["new_size"].escapes, "new_size in realloc should be detected as escaping");
 }
 
 #[test]
@@ -702,14 +657,8 @@ fn test_expression_uses_variable_in_slice_index() {
     let scope_tree = analyzer.build_scope_tree(&func);
     let lifetimes = analyzer.track_lifetimes(&func, &scope_tree);
 
-    assert!(
-        lifetimes["arr"].escapes,
-        "Slice variable should be detected as escaping"
-    );
-    assert!(
-        lifetimes["idx"].escapes,
-        "Index variable should be detected as escaping"
-    );
+    assert!(lifetimes["arr"].escapes, "Slice variable should be detected as escaping");
+    assert!(lifetimes["idx"].escapes, "Index variable should be detected as escaping");
 }
 
 #[test]
@@ -735,10 +684,7 @@ fn test_expression_uses_variable_in_post_increment() {
     let scope_tree = analyzer.build_scope_tree(&func);
     let lifetimes = analyzer.track_lifetimes(&func, &scope_tree);
 
-    assert!(
-        lifetimes["x"].escapes,
-        "Variable in post increment should be detected as escaping"
-    );
+    assert!(lifetimes["x"].escapes, "Variable in post increment should be detected as escaping");
 }
 
 #[test]
@@ -764,10 +710,7 @@ fn test_expression_uses_variable_in_pre_increment() {
     let scope_tree = analyzer.build_scope_tree(&func);
     let lifetimes = analyzer.track_lifetimes(&func, &scope_tree);
 
-    assert!(
-        lifetimes["x"].escapes,
-        "Variable in pre increment should be detected as escaping"
-    );
+    assert!(lifetimes["x"].escapes, "Variable in pre increment should be detected as escaping");
 }
 
 #[test]
@@ -793,10 +736,7 @@ fn test_expression_uses_variable_in_post_decrement() {
     let scope_tree = analyzer.build_scope_tree(&func);
     let lifetimes = analyzer.track_lifetimes(&func, &scope_tree);
 
-    assert!(
-        lifetimes["x"].escapes,
-        "Variable in post decrement should be detected as escaping"
-    );
+    assert!(lifetimes["x"].escapes, "Variable in post decrement should be detected as escaping");
 }
 
 #[test]
@@ -822,10 +762,7 @@ fn test_expression_uses_variable_in_pre_decrement() {
     let scope_tree = analyzer.build_scope_tree(&func);
     let lifetimes = analyzer.track_lifetimes(&func, &scope_tree);
 
-    assert!(
-        lifetimes["x"].escapes,
-        "Variable in pre decrement should be detected as escaping"
-    );
+    assert!(lifetimes["x"].escapes, "Variable in pre decrement should be detected as escaping");
 }
 
 #[test]
@@ -884,10 +821,7 @@ fn test_expression_uses_variable_in_ternary_then() {
     let scope_tree = analyzer.build_scope_tree(&func);
     let lifetimes = analyzer.track_lifetimes(&func, &scope_tree);
 
-    assert!(
-        lifetimes["result"].escapes,
-        "Then variable in ternary should be detected as escaping"
-    );
+    assert!(lifetimes["result"].escapes, "Then variable in ternary should be detected as escaping");
 }
 
 #[test]
@@ -928,11 +862,7 @@ fn test_expression_uses_variable_in_ternary_else() {
 #[test]
 fn test_scope_tree_default() {
     let tree: ScopeTree = Default::default();
-    assert_eq!(
-        tree.scopes().len(),
-        1,
-        "Default tree should have root scope"
-    );
+    assert_eq!(tree.scopes().len(), 1, "Default tree should have root scope");
 }
 
 #[test]
@@ -1121,10 +1051,7 @@ fn test_expression_uses_variable_binary_op_in_return() {
     let scope_tree = analyzer.build_scope_tree(&func);
     let lifetimes = analyzer.track_lifetimes(&func, &scope_tree);
 
-    assert!(
-        lifetimes["a"].escapes,
-        "Variable in binary op return should be detected as escaping"
-    );
+    assert!(lifetimes["a"].escapes, "Variable in binary op return should be detected as escaping");
 }
 
 #[test]
@@ -1181,10 +1108,7 @@ fn test_expression_uses_variable_dereference_in_return() {
     let scope_tree = analyzer.build_scope_tree(&func);
     let lifetimes = analyzer.track_lifetimes(&func, &scope_tree);
 
-    assert!(
-        lifetimes["ptr"].escapes,
-        "Variable in dereference should be detected as escaping"
-    );
+    assert!(lifetimes["ptr"].escapes, "Variable in dereference should be detected as escaping");
 }
 
 #[test]
@@ -1210,10 +1134,7 @@ fn test_expression_uses_variable_address_of_in_return() {
     let scope_tree = analyzer.build_scope_tree(&func);
     let lifetimes = analyzer.track_lifetimes(&func, &scope_tree);
 
-    assert!(
-        lifetimes["x"].escapes,
-        "Variable in address-of should be detected as escaping"
-    );
+    assert!(lifetimes["x"].escapes, "Variable in address-of should be detected as escaping");
 }
 
 #[test]
@@ -1240,10 +1161,7 @@ fn test_expression_uses_variable_unary_op_in_return() {
     let scope_tree = analyzer.build_scope_tree(&func);
     let lifetimes = analyzer.track_lifetimes(&func, &scope_tree);
 
-    assert!(
-        lifetimes["n"].escapes,
-        "Variable in unary op should be detected as escaping"
-    );
+    assert!(lifetimes["n"].escapes, "Variable in unary op should be detected as escaping");
 }
 
 #[test]
@@ -1300,10 +1218,7 @@ fn test_expression_uses_variable_field_access_in_return() {
     let scope_tree = analyzer.build_scope_tree(&func);
     let lifetimes = analyzer.track_lifetimes(&func, &scope_tree);
 
-    assert!(
-        lifetimes["obj"].escapes,
-        "Variable in field access should be detected as escaping"
-    );
+    assert!(lifetimes["obj"].escapes, "Variable in field access should be detected as escaping");
 }
 
 #[test]
@@ -1360,10 +1275,7 @@ fn test_expression_uses_variable_array_index_in_return() {
     let scope_tree = analyzer.build_scope_tree(&func);
     let lifetimes = analyzer.track_lifetimes(&func, &scope_tree);
 
-    assert!(
-        lifetimes["arr"].escapes,
-        "Variable in array index should be detected as escaping"
-    );
+    assert!(lifetimes["arr"].escapes, "Variable in array index should be detected as escaping");
 }
 
 #[test]
@@ -1418,10 +1330,7 @@ fn test_expression_uses_variable_literal_returns_false() {
     let scope_tree = analyzer.build_scope_tree(&func);
     let lifetimes = analyzer.track_lifetimes(&func, &scope_tree);
 
-    assert!(
-        !lifetimes["unused"].escapes,
-        "Variable not in return expression should not escape"
-    );
+    assert!(!lifetimes["unused"].escapes, "Variable not in return expression should not escape");
 }
 
 #[test]
@@ -1445,10 +1354,7 @@ fn test_check_if_escapes_no_return() {
     let scope_tree = analyzer.build_scope_tree(&func);
     let lifetimes = analyzer.track_lifetimes(&func, &scope_tree);
 
-    assert!(
-        !lifetimes["x"].escapes,
-        "Variable should not escape when Return(None)"
-    );
+    assert!(!lifetimes["x"].escapes, "Variable should not escape when Return(None)");
 }
 
 #[test]
@@ -1500,10 +1406,7 @@ fn test_compound_literal_no_variable_usage() {
             },
             HirStatement::Return(Some(HirExpression::CompoundLiteral {
                 literal_type: HirType::Struct("Point".to_string()),
-                initializers: vec![
-                    HirExpression::IntLiteral(1),
-                    HirExpression::IntLiteral(2),
-                ],
+                initializers: vec![HirExpression::IntLiteral(1), HirExpression::IntLiteral(2)],
             })),
         ],
     );
@@ -1512,10 +1415,7 @@ fn test_compound_literal_no_variable_usage() {
     let scope_tree = analyzer.build_scope_tree(&func);
     let lifetimes = analyzer.track_lifetimes(&func, &scope_tree);
 
-    assert!(
-        !lifetimes["unused"].escapes,
-        "Variable not in compound literal should not escape"
-    );
+    assert!(!lifetimes["unused"].escapes, "Variable not in compound literal should not escape");
 }
 
 #[test]
@@ -1542,21 +1442,13 @@ fn test_function_call_no_matching_variable_args() {
     let scope_tree = analyzer.build_scope_tree(&func);
     let lifetimes = analyzer.track_lifetimes(&func, &scope_tree);
 
-    assert!(
-        !lifetimes["v"].escapes,
-        "Variable not in function call args should not escape"
-    );
+    assert!(!lifetimes["v"].escapes, "Variable not in function call args should not escape");
 }
 
 #[test]
 fn test_track_lifetimes_empty_function() {
     // Cover empty function body with no variables
-    let func = HirFunction::new_with_body(
-        "empty".to_string(),
-        HirType::Void,
-        vec![],
-        vec![],
-    );
+    let func = HirFunction::new_with_body("empty".to_string(), HirType::Void, vec![], vec![]);
 
     let analyzer = LifetimeAnalyzer::new();
     let scope_tree = analyzer.build_scope_tree(&func);
@@ -1658,9 +1550,9 @@ fn test_compare_lifetimes_outlived_by() {
     let relationships = analyzer.infer_lifetime_relationships(&lifetimes, &tree);
 
     // One of the pairs should show Outlives or OutlivedBy
-    let has_outlives_or_outlived_by = relationships.values().any(|r| {
-        matches!(r, LifetimeRelation::Outlives | LifetimeRelation::OutlivedBy)
-    });
+    let has_outlives_or_outlived_by = relationships
+        .values()
+        .any(|r| matches!(r, LifetimeRelation::Outlives | LifetimeRelation::OutlivedBy));
     assert!(has_outlives_or_outlived_by, "Should detect Outlives/OutlivedBy relationship");
 }
 
@@ -1671,35 +1563,29 @@ fn test_while_loop_with_nested_if_and_variables() {
         "complex_loop".to_string(),
         HirType::Void,
         vec![],
-        vec![
-            HirStatement::While {
-                condition: HirExpression::IntLiteral(1),
-                body: vec![
-                    HirStatement::VariableDeclaration {
-                        name: "loop_var".to_string(),
+        vec![HirStatement::While {
+            condition: HirExpression::IntLiteral(1),
+            body: vec![
+                HirStatement::VariableDeclaration {
+                    name: "loop_var".to_string(),
+                    var_type: HirType::Int,
+                    initializer: Some(HirExpression::IntLiteral(0)),
+                },
+                HirStatement::If {
+                    condition: HirExpression::Variable("loop_var".to_string()),
+                    then_block: vec![HirStatement::VariableDeclaration {
+                        name: "then_v".to_string(),
                         var_type: HirType::Int,
-                        initializer: Some(HirExpression::IntLiteral(0)),
-                    },
-                    HirStatement::If {
-                        condition: HirExpression::Variable("loop_var".to_string()),
-                        then_block: vec![
-                            HirStatement::VariableDeclaration {
-                                name: "then_v".to_string(),
-                                var_type: HirType::Int,
-                                initializer: Some(HirExpression::IntLiteral(1)),
-                            },
-                        ],
-                        else_block: Some(vec![
-                            HirStatement::VariableDeclaration {
-                                name: "else_v".to_string(),
-                                var_type: HirType::Int,
-                                initializer: Some(HirExpression::IntLiteral(2)),
-                            },
-                        ]),
-                    },
-                ],
-            },
-        ],
+                        initializer: Some(HirExpression::IntLiteral(1)),
+                    }],
+                    else_block: Some(vec![HirStatement::VariableDeclaration {
+                        name: "else_v".to_string(),
+                        var_type: HirType::Int,
+                        initializer: Some(HirExpression::IntLiteral(2)),
+                    }]),
+                },
+            ],
+        }],
     );
 
     let analyzer = LifetimeAnalyzer::new();
@@ -1756,10 +1642,7 @@ fn test_string_method_call_no_match() {
     let scope_tree = analyzer.build_scope_tree(&func);
     let lifetimes = analyzer.track_lifetimes(&func, &scope_tree);
 
-    assert!(
-        !lifetimes["unused"].escapes,
-        "Variable not in string method call should not escape"
-    );
+    assert!(!lifetimes["unused"].escapes, "Variable not in string method call should not escape");
 }
 
 #[test]
@@ -1786,8 +1669,5 @@ fn test_realloc_variable_not_present() {
     let scope_tree = analyzer.build_scope_tree(&func);
     let lifetimes = analyzer.track_lifetimes(&func, &scope_tree);
 
-    assert!(
-        !lifetimes["unused"].escapes,
-        "Variable not in realloc should not escape"
-    );
+    assert!(!lifetimes["unused"].escapes, "Variable not in realloc should not escape");
 }

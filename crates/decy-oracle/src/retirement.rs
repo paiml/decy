@@ -24,10 +24,7 @@ pub enum RetirementDecision {
 impl RetirementDecision {
     /// Check if pattern should be removed from active use
     pub fn should_remove(&self) -> bool {
-        matches!(
-            self,
-            RetirementDecision::Retire(_) | RetirementDecision::Archive(_)
-        )
+        matches!(self, RetirementDecision::Retire(_) | RetirementDecision::Archive(_))
     }
 
     /// Get the reason if retiring
@@ -43,18 +40,11 @@ impl RetirementDecision {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum RetirementReason {
     /// Pattern rarely used (< threshold uses in evaluation window)
-    LowUsage {
-        uses: usize,
-        threshold: usize,
-        window_days: u32,
-    },
+    LowUsage { uses: usize, threshold: usize, window_days: u32 },
     /// Pattern has high failure rate
     HighFailureRate { success_rate: f32, threshold: f32 },
     /// Pattern superseded by better alternative
-    Superseded {
-        better_pattern_id: String,
-        improvement: f32,
-    },
+    Superseded { better_pattern_id: String, improvement: f32 },
     /// Manually deprecated by maintainer
     ManualDeprecation { reason: String },
 }
@@ -62,21 +52,14 @@ pub enum RetirementReason {
 impl std::fmt::Display for RetirementReason {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            RetirementReason::LowUsage {
-                uses,
-                threshold,
-                window_days,
-            } => {
+            RetirementReason::LowUsage { uses, threshold, window_days } => {
                 write!(
                     f,
                     "Low usage: {} uses in {} days (threshold: {})",
                     uses, window_days, threshold
                 )
             }
-            RetirementReason::HighFailureRate {
-                success_rate,
-                threshold,
-            } => {
+            RetirementReason::HighFailureRate { success_rate, threshold } => {
                 write!(
                     f,
                     "High failure rate: {:.1}% (threshold: {:.1}%)",
@@ -84,10 +67,7 @@ impl std::fmt::Display for RetirementReason {
                     threshold * 100.0
                 )
             }
-            RetirementReason::Superseded {
-                better_pattern_id,
-                improvement,
-            } => {
+            RetirementReason::Superseded { better_pattern_id, improvement } => {
                 write!(
                     f,
                     "Superseded by {} (+{:.1}% success)",
@@ -207,9 +187,7 @@ pub struct PatternRetirementPolicy {
 impl PatternRetirementPolicy {
     /// Create new policy with default configuration
     pub fn new() -> Self {
-        Self {
-            config: RetirementConfig::default(),
-        }
+        Self { config: RetirementConfig::default() }
     }
 
     /// Create policy with custom configuration
@@ -265,18 +243,12 @@ impl PatternRetirementPolicy {
 
     /// Evaluate multiple patterns and return retirement decisions
     pub fn evaluate_batch(&self, stats_list: &[PatternStats]) -> Vec<(String, RetirementDecision)> {
-        stats_list
-            .iter()
-            .map(|stats| (stats.pattern_id.clone(), self.evaluate(stats)))
-            .collect()
+        stats_list.iter().map(|stats| (stats.pattern_id.clone(), self.evaluate(stats))).collect()
     }
 
     /// Find patterns that should be retired
     pub fn find_retireable<'a>(&self, stats_list: &'a [PatternStats]) -> Vec<&'a PatternStats> {
-        stats_list
-            .iter()
-            .filter(|stats| self.evaluate(stats).should_remove())
-            .collect()
+        stats_list.iter().filter(|stats| self.evaluate(stats).should_remove()).collect()
     }
 }
 
@@ -373,11 +345,7 @@ mod tests {
 
     #[test]
     fn test_retirement_reason_display_low_usage() {
-        let reason = RetirementReason::LowUsage {
-            uses: 2,
-            threshold: 5,
-            window_days: 30,
-        };
+        let reason = RetirementReason::LowUsage { uses: 2, threshold: 5, window_days: 30 };
         let display = format!("{}", reason);
         assert!(display.contains("Low usage"));
         assert!(display.contains("2 uses"));
@@ -385,10 +353,7 @@ mod tests {
 
     #[test]
     fn test_retirement_reason_display_high_failure() {
-        let reason = RetirementReason::HighFailureRate {
-            success_rate: 0.2,
-            threshold: 0.3,
-        };
+        let reason = RetirementReason::HighFailureRate { success_rate: 0.2, threshold: 0.3 };
         let display = format!("{}", reason);
         assert!(display.contains("High failure rate"));
         assert!(display.contains("20.0%"));
@@ -430,11 +395,7 @@ mod tests {
     fn test_retirement_decision_reason() {
         assert!(RetirementDecision::Keep.reason().is_none());
 
-        let reason = RetirementReason::LowUsage {
-            uses: 0,
-            threshold: 5,
-            window_days: 30,
-        };
+        let reason = RetirementReason::LowUsage { uses: 0, threshold: 5, window_days: 30 };
         let decision = RetirementDecision::Retire(reason.clone());
         assert!(decision.reason().is_some());
     }
@@ -529,10 +490,7 @@ mod tests {
 
         let decision = policy.evaluate(&stats);
         assert!(decision.should_remove());
-        assert!(matches!(
-            decision.reason(),
-            Some(RetirementReason::LowUsage { .. })
-        ));
+        assert!(matches!(decision.reason(), Some(RetirementReason::LowUsage { .. })));
     }
 
     #[test]
@@ -551,10 +509,7 @@ mod tests {
 
         let decision = policy.evaluate(&stats);
         assert!(decision.should_remove());
-        assert!(matches!(
-            decision.reason(),
-            Some(RetirementReason::HighFailureRate { .. })
-        ));
+        assert!(matches!(decision.reason(), Some(RetirementReason::HighFailureRate { .. })));
     }
 
     #[test]
@@ -570,10 +525,7 @@ mod tests {
 
         let decision = policy.evaluate(&stats);
         assert!(decision.should_remove());
-        assert!(matches!(
-            decision.reason(),
-            Some(RetirementReason::Superseded { .. })
-        ));
+        assert!(matches!(decision.reason(), Some(RetirementReason::Superseded { .. })));
     }
 
     #[test]
@@ -745,15 +697,9 @@ mod tests {
 
     #[test]
     fn test_manual_deprecation_display() {
-        let reason = RetirementReason::ManualDeprecation {
-            reason: "API changed".to_string(),
-        };
+        let reason = RetirementReason::ManualDeprecation { reason: "API changed".to_string() };
         let display = format!("{}", reason);
-        assert!(
-            display.contains("Manually deprecated"),
-            "Got: {}",
-            display
-        );
+        assert!(display.contains("Manually deprecated"), "Got: {}", display);
         assert!(display.contains("API changed"), "Got: {}", display);
     }
 
@@ -789,10 +735,7 @@ mod tests {
 
     #[test]
     fn test_evaluate_low_usage_retire_not_archive() {
-        let config = RetirementConfig {
-            archive_instead_of_delete: false,
-            ..Default::default()
-        };
+        let config = RetirementConfig { archive_instead_of_delete: false, ..Default::default() };
         let policy = PatternRetirementPolicy::with_config(config);
         let stats = PatternStats::new("pat-1", "E0382");
         // 0 uses in window < threshold 5 → Retire (not Archive)
@@ -806,10 +749,7 @@ mod tests {
 
     #[test]
     fn test_evaluate_high_failure_retire_not_archive() {
-        let config = RetirementConfig {
-            archive_instead_of_delete: false,
-            ..Default::default()
-        };
+        let config = RetirementConfig { archive_instead_of_delete: false, ..Default::default() };
         let policy = PatternRetirementPolicy::with_config(config);
         let mut stats = PatternStats::new("pat-1", "E0382");
         // Need >= 5 total uses and success_rate < 0.3
@@ -822,7 +762,10 @@ mod tests {
         stats.total_uses = 10;
         let decision = policy.evaluate(&stats);
         assert!(
-            matches!(decision, RetirementDecision::Retire(RetirementReason::HighFailureRate { .. })),
+            matches!(
+                decision,
+                RetirementDecision::Retire(RetirementReason::HighFailureRate { .. })
+            ),
             "Expected Retire(HighFailureRate), got: {:?}",
             decision
         );

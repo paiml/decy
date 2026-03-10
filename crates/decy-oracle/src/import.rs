@@ -43,10 +43,7 @@ pub enum ImportDecision {
 impl ImportDecision {
     /// Check if decision allows import
     pub fn allows_import(&self) -> bool {
-        matches!(
-            self,
-            ImportDecision::Accept | ImportDecision::AcceptWithWarning(_)
-        )
+        matches!(self, ImportDecision::Accept | ImportDecision::AcceptWithWarning(_))
     }
 }
 
@@ -88,16 +85,8 @@ impl ImportStats {
 
     /// Get acceptance rate for a strategy
     pub fn acceptance_rate(&self, strategy: FixStrategy) -> f32 {
-        let accepted = self
-            .accepted_by_strategy
-            .get(&strategy)
-            .copied()
-            .unwrap_or(0);
-        let rejected = self
-            .rejected_by_strategy
-            .get(&strategy)
-            .copied()
-            .unwrap_or(0);
+        let accepted = self.accepted_by_strategy.get(&strategy).copied().unwrap_or(0);
+        let rejected = self.rejected_by_strategy.get(&strategy).copied().unwrap_or(0);
         let total = accepted + rejected;
         if total == 0 {
             0.0
@@ -130,11 +119,7 @@ pub struct SmartImportConfig {
 
 impl Default for SmartImportConfig {
     fn default() -> Self {
-        Self {
-            source_language: SourceLanguage::Python,
-            min_confidence: 0.5,
-            allow_warnings: true,
-        }
+        Self { source_language: SourceLanguage::Python, min_confidence: 0.5, allow_warnings: true }
     }
 }
 
@@ -347,10 +332,8 @@ mod tests {
     fn test_smart_filter_accepts_borrow_from_python() {
         let diff = "- fn foo(x: String)\n+ fn foo(x: &String)";
         let metadata = HashMap::new();
-        let config = SmartImportConfig {
-            source_language: SourceLanguage::Python,
-            ..Default::default()
-        };
+        let config =
+            SmartImportConfig { source_language: SourceLanguage::Python, ..Default::default() };
 
         let decision = smart_import_filter(diff, &metadata, &config);
         assert_eq!(decision, ImportDecision::Accept);
@@ -361,10 +344,8 @@ mod tests {
         let diff = "- let x = lst;\n+ let x = lst.clone();";
         let mut metadata = HashMap::new();
         metadata.insert("source_construct".into(), "list_copy".into());
-        let config = SmartImportConfig {
-            source_language: SourceLanguage::Python,
-            ..Default::default()
-        };
+        let config =
+            SmartImportConfig { source_language: SourceLanguage::Python, ..Default::default() };
 
         let decision = smart_import_filter(diff, &metadata, &config);
         assert!(matches!(decision, ImportDecision::Reject(_)));
@@ -374,10 +355,8 @@ mod tests {
     fn test_smart_filter_accepts_clone_without_list_context() {
         let diff = "- let x = value;\n+ let x = value.clone();";
         let metadata = HashMap::new();
-        let config = SmartImportConfig {
-            source_language: SourceLanguage::Python,
-            ..Default::default()
-        };
+        let config =
+            SmartImportConfig { source_language: SourceLanguage::Python, ..Default::default() };
 
         let decision = smart_import_filter(diff, &metadata, &config);
         assert_eq!(decision, ImportDecision::Accept);
@@ -387,10 +366,8 @@ mod tests {
     fn test_smart_filter_warns_on_option_without_null() {
         let diff = "- let x = value\n+ let x = Some(value)";
         let metadata = HashMap::new();
-        let config = SmartImportConfig {
-            source_language: SourceLanguage::Python,
-            ..Default::default()
-        };
+        let config =
+            SmartImportConfig { source_language: SourceLanguage::Python, ..Default::default() };
 
         let decision = smart_import_filter(diff, &metadata, &config);
         assert!(matches!(decision, ImportDecision::AcceptWithWarning(_)));
@@ -400,10 +377,8 @@ mod tests {
     fn test_smart_filter_accepts_option_with_null() {
         let diff = "- if (ptr == NULL)\n+ if ptr.is_none()";
         let metadata = HashMap::new();
-        let config = SmartImportConfig {
-            source_language: SourceLanguage::Python,
-            ..Default::default()
-        };
+        let config =
+            SmartImportConfig { source_language: SourceLanguage::Python, ..Default::default() };
 
         let decision = smart_import_filter(diff, &metadata, &config);
         // NULL in diff means it's applicable to C context
@@ -426,24 +401,14 @@ mod tests {
         let metadata = HashMap::new();
 
         // Python source
-        let config_py = SmartImportConfig {
-            source_language: SourceLanguage::Python,
-            ..Default::default()
-        };
-        assert_eq!(
-            smart_import_filter(diff, &metadata, &config_py),
-            ImportDecision::Accept
-        );
+        let config_py =
+            SmartImportConfig { source_language: SourceLanguage::Python, ..Default::default() };
+        assert_eq!(smart_import_filter(diff, &metadata, &config_py), ImportDecision::Accept);
 
         // C source
-        let config_c = SmartImportConfig {
-            source_language: SourceLanguage::C,
-            ..Default::default()
-        };
-        assert_eq!(
-            smart_import_filter(diff, &metadata, &config_c),
-            ImportDecision::Accept
-        );
+        let config_c =
+            SmartImportConfig { source_language: SourceLanguage::C, ..Default::default() };
+        assert_eq!(smart_import_filter(diff, &metadata, &config_c), ImportDecision::Accept);
     }
 
     // ============ Import Stats Tests ============
@@ -461,25 +426,16 @@ mod tests {
         stats.record(FixStrategy::AddBorrow, &ImportDecision::Accept);
 
         assert_eq!(stats.total_evaluated, 1);
-        assert_eq!(
-            stats.accepted_by_strategy.get(&FixStrategy::AddBorrow),
-            Some(&1)
-        );
+        assert_eq!(stats.accepted_by_strategy.get(&FixStrategy::AddBorrow), Some(&1));
     }
 
     #[test]
     fn test_import_stats_record_reject() {
         let mut stats = ImportStats::new();
-        stats.record(
-            FixStrategy::AddClone,
-            &ImportDecision::Reject("reason".into()),
-        );
+        stats.record(FixStrategy::AddClone, &ImportDecision::Reject("reason".into()));
 
         assert_eq!(stats.total_evaluated, 1);
-        assert_eq!(
-            stats.rejected_by_strategy.get(&FixStrategy::AddClone),
-            Some(&1)
-        );
+        assert_eq!(stats.rejected_by_strategy.get(&FixStrategy::AddClone), Some(&1));
     }
 
     #[test]
@@ -492,10 +448,7 @@ mod tests {
 
         assert_eq!(stats.total_evaluated, 1);
         assert_eq!(stats.warnings, 1);
-        assert_eq!(
-            stats.accepted_by_strategy.get(&FixStrategy::WrapInOption),
-            Some(&1)
-        );
+        assert_eq!(stats.accepted_by_strategy.get(&FixStrategy::WrapInOption), Some(&1));
     }
 
     #[test]
@@ -505,10 +458,7 @@ mod tests {
         stats.record(FixStrategy::AddBorrow, &ImportDecision::Accept);
         stats.record(FixStrategy::AddBorrow, &ImportDecision::Accept);
         stats.record(FixStrategy::AddBorrow, &ImportDecision::Accept);
-        stats.record(
-            FixStrategy::AddBorrow,
-            &ImportDecision::Reject("reason".into()),
-        );
+        stats.record(FixStrategy::AddBorrow, &ImportDecision::Reject("reason".into()));
 
         let rate = stats.acceptance_rate(FixStrategy::AddBorrow);
         assert!((rate - 0.75).abs() < 0.01);
@@ -519,10 +469,7 @@ mod tests {
         let mut stats = ImportStats::new();
         stats.record(FixStrategy::AddBorrow, &ImportDecision::Accept);
         stats.record(FixStrategy::AddClone, &ImportDecision::Accept);
-        stats.record(
-            FixStrategy::Unknown,
-            &ImportDecision::Reject("reason".into()),
-        );
+        stats.record(FixStrategy::Unknown, &ImportDecision::Reject("reason".into()));
 
         let rate = stats.overall_acceptance_rate();
         assert!((rate - 0.666).abs() < 0.01);
@@ -542,10 +489,8 @@ mod tests {
         // Spec says AddBorrow should have 95% acceptance
         // This is a property test that will guide implementation
         let mut stats = ImportStats::new();
-        let config = SmartImportConfig {
-            source_language: SourceLanguage::Python,
-            ..Default::default()
-        };
+        let config =
+            SmartImportConfig { source_language: SourceLanguage::Python, ..Default::default() };
 
         // Simulate typical borrow patterns
         let borrow_diffs = [
@@ -571,10 +516,8 @@ mod tests {
     fn test_expected_acceptance_rates_add_lifetime() {
         // Spec says AddLifetime should have 90% acceptance
         let mut stats = ImportStats::new();
-        let config = SmartImportConfig {
-            source_language: SourceLanguage::Python,
-            ..Default::default()
-        };
+        let config =
+            SmartImportConfig { source_language: SourceLanguage::Python, ..Default::default() };
 
         let lifetime_diffs = [
             "- fn foo(x: &str)\n+ fn foo<'a>(x: &'a str)",

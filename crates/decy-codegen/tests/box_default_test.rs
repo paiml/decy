@@ -19,9 +19,7 @@ use tempfile::NamedTempFile;
 /// Helper to transpile C code and return the generated Rust
 fn transpile_c(c_code: &str) -> String {
     let mut temp_file = NamedTempFile::new().expect("Failed to create temp file");
-    temp_file
-        .write_all(c_code.as_bytes())
-        .expect("Failed to write C code");
+    temp_file.write_all(c_code.as_bytes()).expect("Failed to write C code");
 
     let output = Command::new("cargo")
         .args(["run", "-p", "decy", "--quiet", "--", "transpile"])
@@ -35,9 +33,7 @@ fn transpile_c(c_code: &str) -> String {
 /// Helper to compile Rust code and return success/failure
 fn compile_rust(rust_code: &str) -> (bool, String) {
     let mut temp_file = NamedTempFile::with_suffix(".rs").expect("Failed to create temp file");
-    temp_file
-        .write_all(rust_code.as_bytes())
-        .expect("Failed to write Rust code");
+    temp_file.write_all(rust_code.as_bytes()).expect("Failed to write Rust code");
 
     let output = Command::new("rustc")
         .args([
@@ -82,11 +78,7 @@ Point* create_point(void) {
     let rust_code = transpile_c(c_code);
 
     // Should contain Box allocation
-    assert!(
-        rust_code.contains("Box"),
-        "Should generate Box allocation, got: {}",
-        rust_code
-    );
+    assert!(rust_code.contains("Box"), "Should generate Box allocation, got: {}", rust_code);
 
     // Should use Box::default() instead of mem::zeroed
     // DECY-141: This is the key assertion
@@ -220,11 +212,7 @@ fn test_hash_table_compiles_with_box_default() {
             "examples/data_structures/hash_table.c",
         ])
         .current_dir(
-            std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-                .parent()
-                .unwrap()
-                .parent()
-                .unwrap(),
+            std::path::Path::new(env!("CARGO_MANIFEST_DIR")).parent().unwrap().parent().unwrap(),
         )
         .output()
         .expect("Failed to run decy transpile");
@@ -233,18 +221,10 @@ fn test_hash_table_compiles_with_box_default() {
 
     // Write to temp file and compile
     let mut temp_file = NamedTempFile::with_suffix(".rs").expect("Failed to create temp file");
-    temp_file
-        .write_all(rust_code.as_bytes())
-        .expect("Failed to write Rust code");
+    temp_file.write_all(rust_code.as_bytes()).expect("Failed to write Rust code");
 
     let output = Command::new("rustc")
-        .args([
-            "--crate-type=lib",
-            "--edition=2021",
-            "--crate-name=hash_table",
-            "-A",
-            "warnings",
-        ])
+        .args(["--crate-type=lib", "--edition=2021", "--crate-name=hash_table", "-A", "warnings"])
         .arg(temp_file.path())
         .arg("-o")
         .arg("/tmp/test_hash_table_box_default")
@@ -281,11 +261,7 @@ fn test_binary_tree_compiles_with_box_default() {
             "examples/data_structures/binary_tree.c",
         ])
         .current_dir(
-            std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-                .parent()
-                .unwrap()
-                .parent()
-                .unwrap(),
+            std::path::Path::new(env!("CARGO_MANIFEST_DIR")).parent().unwrap().parent().unwrap(),
         )
         .output()
         .expect("Failed to run decy transpile");
@@ -294,18 +270,10 @@ fn test_binary_tree_compiles_with_box_default() {
 
     // Write to temp file and compile
     let mut temp_file = NamedTempFile::with_suffix(".rs").expect("Failed to create temp file");
-    temp_file
-        .write_all(rust_code.as_bytes())
-        .expect("Failed to write Rust code");
+    temp_file.write_all(rust_code.as_bytes()).expect("Failed to write Rust code");
 
     let output = Command::new("rustc")
-        .args([
-            "--crate-type=lib",
-            "--edition=2021",
-            "--crate-name=binary_tree",
-            "-A",
-            "warnings",
-        ])
+        .args(["--crate-type=lib", "--edition=2021", "--crate-name=binary_tree", "-A", "warnings"])
         .arg(temp_file.path())
         .arg("-o")
         .arg("/tmp/test_binary_tree_box_default")

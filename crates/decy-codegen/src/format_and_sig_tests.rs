@@ -144,10 +144,7 @@ fn test_format_uppercase_float_with_precision() {
 #[test]
 fn test_format_uppercase_float_with_width_precision() {
     // %10.3F → uppercase float with width and precision
-    assert_eq!(
-        CodeGenerator::convert_format_specifiers("%10.3F"),
-        "{:10.3}"
-    );
+    assert_eq!(CodeGenerator::convert_format_specifiers("%10.3F"), "{:10.3}");
 }
 
 #[test]
@@ -159,10 +156,7 @@ fn test_format_uppercase_float_with_width_only() {
 #[test]
 fn test_format_float_zero_pad_width_precision() {
     // %010.2f → zero-pad, width 10, precision 2
-    assert_eq!(
-        CodeGenerator::convert_format_specifiers("%010.2f"),
-        "{:010.2}"
-    );
+    assert_eq!(CodeGenerator::convert_format_specifiers("%010.2f"), "{:010.2}");
 }
 
 #[test]
@@ -184,10 +178,7 @@ fn test_format_precision_zero() {
 #[test]
 fn test_format_binary_with_zero_pad_width() {
     // %016b → zero-padded binary 16-wide
-    assert_eq!(
-        CodeGenerator::convert_format_specifiers("%016b"),
-        "{:016b}"
-    );
+    assert_eq!(CodeGenerator::convert_format_specifiers("%016b"), "{:016b}");
 }
 
 #[test]
@@ -203,23 +194,16 @@ fn test_format_binary_with_width_only() {
 #[test]
 fn test_format_complex_printf_pattern() {
     // Complex real-world printf: "Value: %08X (decimal: %d, float: %.2f)"
-    let result = CodeGenerator::convert_format_specifiers(
-        "Value: %08X (decimal: %d, float: %.2f)",
-    );
-    assert_eq!(
-        result,
-        "Value: {:08X} (decimal: {}, float: {:.2})"
-    );
+    let result = CodeGenerator::convert_format_specifiers("Value: %08X (decimal: %d, float: %.2f)");
+    assert_eq!(result, "Value: {:08X} (decimal: {}, float: {:.2})");
 }
 
 #[test]
 fn test_format_all_basic_specifiers() {
     // String with all basic specifiers
-    let result = CodeGenerator::convert_format_specifiers("%d %u %x %X %o %b %f %e %E %g %G %s %c %p");
-    assert_eq!(
-        result,
-        "{} {} {:x} {:X} {:o} {:b} {} {:e} {:E} {} {} {} {} {:p}"
-    );
+    let result =
+        CodeGenerator::convert_format_specifiers("%d %u %x %X %o %b %f %e %E %g %G %s %c %p");
+    assert_eq!(result, "{} {} {:x} {:X} {:o} {:b} {} {:e} {:E} {} {} {} {} {:p}");
 }
 
 #[test]
@@ -232,19 +216,13 @@ fn test_format_newline_in_string() {
 #[test]
 fn test_format_adjacent_specifiers() {
     // No separator between specifiers
-    assert_eq!(
-        CodeGenerator::convert_format_specifiers("%d%d%d"),
-        "{}{}{}"
-    );
+    assert_eq!(CodeGenerator::convert_format_specifiers("%d%d%d"), "{}{}{}");
 }
 
 #[test]
 fn test_format_percent_between_specifiers() {
     // %% interleaved with real specifiers
-    assert_eq!(
-        CodeGenerator::convert_format_specifiers("%d%%%d"),
-        "{}%{}"
-    );
+    assert_eq!(CodeGenerator::convert_format_specifiers("%d%%%d"), "{}%{}");
 }
 
 // ============================================================================
@@ -323,7 +301,11 @@ fn test_c_format_to_rust_with_whitespace() {
 // generate_annotated_signature_with_func: basic signatures (no func)
 // ============================================================================
 
-fn make_simple_sig(name: &str, params: Vec<AnnotatedParameter>, ret: AnnotatedType) -> AnnotatedSignature {
+fn make_simple_sig(
+    name: &str,
+    params: Vec<AnnotatedParameter>,
+    ret: AnnotatedType,
+) -> AnnotatedSignature {
     AnnotatedSignature {
         name: name.to_string(),
         lifetimes: vec![],
@@ -333,10 +315,7 @@ fn make_simple_sig(name: &str, params: Vec<AnnotatedParameter>, ret: AnnotatedTy
 }
 
 fn make_param(name: &str, param_type: AnnotatedType) -> AnnotatedParameter {
-    AnnotatedParameter {
-        name: name.to_string(),
-        param_type,
-    }
+    AnnotatedParameter { name: name.to_string(), param_type }
 }
 
 #[test]
@@ -357,11 +336,7 @@ fn test_sig_simple_int_function() {
 #[test]
 fn test_sig_void_return() {
     let codegen = CodeGenerator::new();
-    let sig = make_simple_sig(
-        "noop",
-        vec![],
-        AnnotatedType::Simple(HirType::Void),
-    );
+    let sig = make_simple_sig("noop", vec![], AnnotatedType::Simple(HirType::Void));
     let result = codegen.generate_annotated_signature_with_func(&sig, None);
     assert_eq!(result, "fn noop()");
 }
@@ -369,11 +344,7 @@ fn test_sig_void_return() {
 #[test]
 fn test_sig_no_params_with_return() {
     let codegen = CodeGenerator::new();
-    let sig = make_simple_sig(
-        "get_value",
-        vec![],
-        AnnotatedType::Simple(HirType::Double),
-    );
+    let sig = make_simple_sig("get_value", vec![], AnnotatedType::Simple(HirType::Double));
     let result = codegen.generate_annotated_signature_with_func(&sig, None);
     assert_eq!(result, "fn get_value() -> f64");
 }
@@ -605,10 +576,7 @@ fn test_sig_simple_pointer_becomes_mut_ref() {
     let codegen = CodeGenerator::new();
     let sig = make_simple_sig(
         "increment",
-        vec![make_param(
-            "val",
-            AnnotatedType::Simple(HirType::Pointer(Box::new(HirType::Int))),
-        )],
+        vec![make_param("val", AnnotatedType::Simple(HirType::Pointer(Box::new(HirType::Int))))],
         AnnotatedType::Simple(HirType::Void),
     );
     let result = codegen.generate_annotated_signature_with_func(&sig, None);
@@ -621,10 +589,7 @@ fn test_sig_void_pointer_stays_raw() {
     let codegen = CodeGenerator::new();
     let sig = make_simple_sig(
         "generic_op",
-        vec![make_param(
-            "ptr",
-            AnnotatedType::Simple(HirType::Pointer(Box::new(HirType::Void))),
-        )],
+        vec![make_param("ptr", AnnotatedType::Simple(HirType::Pointer(Box::new(HirType::Void))))],
         AnnotatedType::Simple(HirType::Void),
     );
     let result = codegen.generate_annotated_signature_with_func(&sig, None);
@@ -637,10 +602,7 @@ fn test_sig_double_pointer_becomes_mut_ref() {
     let codegen = CodeGenerator::new();
     let sig = make_simple_sig(
         "scale",
-        vec![make_param(
-            "val",
-            AnnotatedType::Simple(HirType::Pointer(Box::new(HirType::Double))),
-        )],
+        vec![make_param("val", AnnotatedType::Simple(HirType::Pointer(Box::new(HirType::Double))))],
         AnnotatedType::Simple(HirType::Void),
     );
     let result = codegen.generate_annotated_signature_with_func(&sig, None);
@@ -697,11 +659,7 @@ fn test_sig_unsized_int_array_becomes_mut_slice() {
 fn test_sig_main_no_return_type() {
     // int main() → fn main() (no return type)
     let codegen = CodeGenerator::new();
-    let sig = make_simple_sig(
-        "main",
-        vec![],
-        AnnotatedType::Simple(HirType::Int),
-    );
+    let sig = make_simple_sig("main", vec![], AnnotatedType::Simple(HirType::Int));
     let result = codegen.generate_annotated_signature_with_func(&sig, None);
     assert_eq!(result, "fn main()");
     assert!(!result.contains("-> i32"), "main should not have i32 return: {}", result);
@@ -711,11 +669,7 @@ fn test_sig_main_no_return_type() {
 fn test_sig_main_with_void_return() {
     // void main() → fn main() (no return type either way)
     let codegen = CodeGenerator::new();
-    let sig = make_simple_sig(
-        "main",
-        vec![],
-        AnnotatedType::Simple(HirType::Void),
-    );
+    let sig = make_simple_sig("main", vec![], AnnotatedType::Simple(HirType::Void));
     let result = codegen.generate_annotated_signature_with_func(&sig, None);
     assert_eq!(result, "fn main()");
 }
@@ -739,11 +693,7 @@ fn test_sig_float_return() {
 #[test]
 fn test_sig_char_return() {
     let codegen = CodeGenerator::new();
-    let sig = make_simple_sig(
-        "first_char",
-        vec![],
-        AnnotatedType::Simple(HirType::Char),
-    );
+    let sig = make_simple_sig("first_char", vec![], AnnotatedType::Simple(HirType::Char));
     let result = codegen.generate_annotated_signature_with_func(&sig, None);
     assert!(result.contains("-> u8"), "Expected u8 return, got: {}", result);
 }
@@ -751,11 +701,7 @@ fn test_sig_char_return() {
 #[test]
 fn test_sig_unsigned_int_return() {
     let codegen = CodeGenerator::new();
-    let sig = make_simple_sig(
-        "count",
-        vec![],
-        AnnotatedType::Simple(HirType::UnsignedInt),
-    );
+    let sig = make_simple_sig("count", vec![], AnnotatedType::Simple(HirType::UnsignedInt));
     let result = codegen.generate_annotated_signature_with_func(&sig, None);
     assert!(result.contains("-> u32"), "Expected u32 return, got: {}", result);
 }
@@ -776,12 +722,10 @@ fn test_sig_with_func_output_param_result_name() {
             HirParameter::new("input".to_string(), HirType::Int),
             HirParameter::new("result".to_string(), HirType::Pointer(Box::new(HirType::Int))),
         ],
-        vec![
-            HirStatement::DerefAssignment {
-                target: HirExpression::Variable("result".to_string()),
-                value: HirExpression::Variable("input".to_string()),
-            },
-        ],
+        vec![HirStatement::DerefAssignment {
+            target: HirExpression::Variable("result".to_string()),
+            value: HirExpression::Variable("input".to_string()),
+        }],
     );
 
     let sig = make_simple_sig(
@@ -794,8 +738,11 @@ fn test_sig_with_func_output_param_result_name() {
     );
     let result = codegen.generate_annotated_signature_with_func(&sig, Some(&func));
     // "result" name should be detected as output param
-    assert!(result.contains("-> i32") || result.contains("&mut i32"),
-        "Expected output param transformation, got: {}", result);
+    assert!(
+        result.contains("-> i32") || result.contains("&mut i32"),
+        "Expected output param transformation, got: {}",
+        result
+    );
 }
 
 #[test]
@@ -810,12 +757,10 @@ fn test_sig_with_func_output_param_out_name() {
             HirParameter::new("x".to_string(), HirType::Int),
             HirParameter::new("out".to_string(), HirType::Pointer(Box::new(HirType::Float))),
         ],
-        vec![
-            HirStatement::DerefAssignment {
-                target: HirExpression::Variable("out".to_string()),
-                value: HirExpression::IntLiteral(42),
-            },
-        ],
+        vec![HirStatement::DerefAssignment {
+            target: HirExpression::Variable("out".to_string()),
+            value: HirExpression::IntLiteral(42),
+        }],
     );
 
     let sig = make_simple_sig(
@@ -828,8 +773,11 @@ fn test_sig_with_func_output_param_out_name() {
     );
     let result = codegen.generate_annotated_signature_with_func(&sig, Some(&func));
     // "out" is an output param name
-    assert!(result.contains("-> f32") || result.contains("&mut f32"),
-        "Expected output param transformation for 'out' name, got: {}", result);
+    assert!(
+        result.contains("-> f32") || result.contains("&mut f32"),
+        "Expected output param transformation for 'out' name, got: {}",
+        result
+    );
 }
 
 #[test]
@@ -844,12 +792,10 @@ fn test_sig_output_param_len_name() {
             HirParameter::new("data".to_string(), HirType::Int),
             HirParameter::new("len".to_string(), HirType::Pointer(Box::new(HirType::Int))),
         ],
-        vec![
-            HirStatement::DerefAssignment {
-                target: HirExpression::Variable("len".to_string()),
-                value: HirExpression::IntLiteral(10),
-            },
-        ],
+        vec![HirStatement::DerefAssignment {
+            target: HirExpression::Variable("len".to_string()),
+            value: HirExpression::IntLiteral(10),
+        }],
     );
 
     let sig = make_simple_sig(
@@ -862,8 +808,11 @@ fn test_sig_output_param_len_name() {
     );
     let result = codegen.generate_annotated_signature_with_func(&sig, Some(&func));
     // "len" matches output name heuristic
-    assert!(result.contains("-> i32") || result.contains("&mut"),
-        "Expected output param for 'len', got: {}", result);
+    assert!(
+        result.contains("-> i32") || result.contains("&mut"),
+        "Expected output param for 'len', got: {}",
+        result
+    );
 }
 
 #[test]
@@ -877,12 +826,10 @@ fn test_sig_output_param_size_name() {
             HirParameter::new("input".to_string(), HirType::Int),
             HirParameter::new("size".to_string(), HirType::Pointer(Box::new(HirType::Int))),
         ],
-        vec![
-            HirStatement::DerefAssignment {
-                target: HirExpression::Variable("size".to_string()),
-                value: HirExpression::IntLiteral(100),
-            },
-        ],
+        vec![HirStatement::DerefAssignment {
+            target: HirExpression::Variable("size".to_string()),
+            value: HirExpression::IntLiteral(100),
+        }],
     );
 
     let sig = make_simple_sig(
@@ -894,8 +841,11 @@ fn test_sig_output_param_size_name() {
         AnnotatedType::Simple(HirType::Void),
     );
     let result = codegen.generate_annotated_signature_with_func(&sig, Some(&func));
-    assert!(result.contains("-> i32") || result.contains("&mut"),
-        "Expected output param for 'size', got: {}", result);
+    assert!(
+        result.contains("-> i32") || result.contains("&mut"),
+        "Expected output param for 'size', got: {}",
+        result
+    );
 }
 
 #[test]
@@ -910,12 +860,10 @@ fn test_sig_output_param_coordinate_names() {
                 HirParameter::new("input".to_string(), HirType::Int),
                 HirParameter::new(name.to_string(), HirType::Pointer(Box::new(HirType::Int))),
             ],
-            vec![
-                HirStatement::DerefAssignment {
-                    target: HirExpression::Variable(name.to_string()),
-                    value: HirExpression::IntLiteral(0),
-                },
-            ],
+            vec![HirStatement::DerefAssignment {
+                target: HirExpression::Variable(name.to_string()),
+                value: HirExpression::IntLiteral(0),
+            }],
         );
 
         let sig = make_simple_sig(
@@ -927,8 +875,12 @@ fn test_sig_output_param_coordinate_names() {
             AnnotatedType::Simple(HirType::Void),
         );
         let result = codegen.generate_annotated_signature_with_func(&sig, Some(&func));
-        assert!(result.contains("-> i32") || result.contains("&mut"),
-            "Expected output param for '{}', got: {}", name, result);
+        assert!(
+            result.contains("-> i32") || result.contains("&mut"),
+            "Expected output param for '{}', got: {}",
+            name,
+            result
+        );
     }
 }
 
@@ -944,12 +896,10 @@ fn test_sig_output_param_color_names() {
                 HirParameter::new("pixel".to_string(), HirType::Int),
                 HirParameter::new(name.to_string(), HirType::Pointer(Box::new(HirType::Int))),
             ],
-            vec![
-                HirStatement::DerefAssignment {
-                    target: HirExpression::Variable(name.to_string()),
-                    value: HirExpression::IntLiteral(0),
-                },
-            ],
+            vec![HirStatement::DerefAssignment {
+                target: HirExpression::Variable(name.to_string()),
+                value: HirExpression::IntLiteral(0),
+            }],
         );
 
         let sig = make_simple_sig(
@@ -961,8 +911,12 @@ fn test_sig_output_param_color_names() {
             AnnotatedType::Simple(HirType::Void),
         );
         let result = codegen.generate_annotated_signature_with_func(&sig, Some(&func));
-        assert!(result.contains("-> i32") || result.contains("&mut"),
-            "Expected output param for '{}', got: {}", name, result);
+        assert!(
+            result.contains("-> i32") || result.contains("&mut"),
+            "Expected output param for '{}', got: {}",
+            name,
+            result
+        );
     }
 }
 
@@ -977,12 +931,10 @@ fn test_sig_output_param_width_height_names() {
                 HirParameter::new("data".to_string(), HirType::Int),
                 HirParameter::new(name.to_string(), HirType::Pointer(Box::new(HirType::Int))),
             ],
-            vec![
-                HirStatement::DerefAssignment {
-                    target: HirExpression::Variable(name.to_string()),
-                    value: HirExpression::IntLiteral(0),
-                },
-            ],
+            vec![HirStatement::DerefAssignment {
+                target: HirExpression::Variable(name.to_string()),
+                value: HirExpression::IntLiteral(0),
+            }],
         );
 
         let sig = make_simple_sig(
@@ -994,8 +946,12 @@ fn test_sig_output_param_width_height_names() {
             AnnotatedType::Simple(HirType::Void),
         );
         let result = codegen.generate_annotated_signature_with_func(&sig, Some(&func));
-        assert!(result.contains("-> i32") || result.contains("&mut"),
-            "Expected output param for '{}', got: {}", name, result);
+        assert!(
+            result.contains("-> i32") || result.contains("&mut"),
+            "Expected output param for '{}', got: {}",
+            name,
+            result
+        );
     }
 }
 
@@ -1010,12 +966,10 @@ fn test_sig_output_param_ret_name() {
             HirParameter::new("input".to_string(), HirType::Int),
             HirParameter::new("ret".to_string(), HirType::Pointer(Box::new(HirType::Int))),
         ],
-        vec![
-            HirStatement::DerefAssignment {
-                target: HirExpression::Variable("ret".to_string()),
-                value: HirExpression::IntLiteral(0),
-            },
-        ],
+        vec![HirStatement::DerefAssignment {
+            target: HirExpression::Variable("ret".to_string()),
+            value: HirExpression::IntLiteral(0),
+        }],
     );
 
     let sig = make_simple_sig(
@@ -1027,8 +981,11 @@ fn test_sig_output_param_ret_name() {
         AnnotatedType::Simple(HirType::Void),
     );
     let result = codegen.generate_annotated_signature_with_func(&sig, Some(&func));
-    assert!(result.contains("-> i32") || result.contains("&mut"),
-        "Expected output param for 'ret', got: {}", result);
+    assert!(
+        result.contains("-> i32") || result.contains("&mut"),
+        "Expected output param for 'ret', got: {}",
+        result
+    );
 }
 
 // ============================================================================
@@ -1048,10 +1005,7 @@ fn test_sig_const_char_pointer_to_str() {
     let codegen = CodeGenerator::new();
     let sig = make_simple_sig(
         "print_msg",
-        vec![make_param(
-            "msg",
-            AnnotatedType::Simple(HirType::Pointer(Box::new(HirType::Char))),
-        )],
+        vec![make_param("msg", AnnotatedType::Simple(HirType::Pointer(Box::new(HirType::Char))))],
         AnnotatedType::Simple(HirType::Void),
     );
     let result = codegen.generate_annotated_signature_with_func(&sig, Some(&func));
@@ -1070,10 +1024,7 @@ fn test_sig_pointer_arithmetic_stays_raw() {
     let func = HirFunction::new_with_body(
         "walk_ptr".to_string(),
         HirType::Void,
-        vec![HirParameter::new(
-            "p".to_string(),
-            HirType::Pointer(Box::new(HirType::Int)),
-        )],
+        vec![HirParameter::new("p".to_string(), HirType::Pointer(Box::new(HirType::Int)))],
         vec![HirStatement::Assignment {
             target: "p".to_string(),
             value: HirExpression::BinaryOp {
@@ -1086,10 +1037,7 @@ fn test_sig_pointer_arithmetic_stays_raw() {
 
     let sig = make_simple_sig(
         "walk_ptr",
-        vec![make_param(
-            "p",
-            AnnotatedType::Simple(HirType::Pointer(Box::new(HirType::Int))),
-        )],
+        vec![make_param("p", AnnotatedType::Simple(HirType::Pointer(Box::new(HirType::Int))))],
         AnnotatedType::Simple(HirType::Void),
     );
     let result = codegen.generate_annotated_signature_with_func(&sig, Some(&func));
@@ -1339,19 +1287,13 @@ fn test_sig_mutable_reference_return() {
 
 #[test]
 fn test_format_octal_with_zero_pad() {
-    assert_eq!(
-        CodeGenerator::convert_format_specifiers("%08o"),
-        "{:08o}"
-    );
+    assert_eq!(CodeGenerator::convert_format_specifiers("%08o"), "{:08o}");
 }
 
 #[test]
 fn test_format_binary_with_flags_and_width() {
     // %032b → zero-padded binary
-    assert_eq!(
-        CodeGenerator::convert_format_specifiers("%032b"),
-        "{:032b}"
-    );
+    assert_eq!(CodeGenerator::convert_format_specifiers("%032b"), "{:032b}");
 }
 
 #[test]
@@ -1364,19 +1306,13 @@ fn test_format_string_between_text() {
 
 #[test]
 fn test_format_just_specifiers_no_text() {
-    assert_eq!(
-        CodeGenerator::convert_format_specifiers("%s%d%f"),
-        "{}{}{}"
-    );
+    assert_eq!(CodeGenerator::convert_format_specifiers("%s%d%f"), "{}{}{}");
 }
 
 #[test]
 fn test_format_hex_with_length_and_width() {
     // %08lx → long hex with zero-pad and width
-    assert_eq!(
-        CodeGenerator::convert_format_specifiers("%08lx"),
-        "{:08x}"
-    );
+    assert_eq!(CodeGenerator::convert_format_specifiers("%08lx"), "{:08x}");
 }
 
 #[test]

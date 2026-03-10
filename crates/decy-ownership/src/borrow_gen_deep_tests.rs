@@ -6,7 +6,9 @@
 
 use super::*;
 use crate::inference::{OwnershipInference, OwnershipKind};
-use decy_hir::{BinaryOperator, HirExpression, HirFunction, HirParameter, HirStatement, HirType, UnaryOperator};
+use decy_hir::{
+    BinaryOperator, HirExpression, HirFunction, HirParameter, HirStatement, HirType, UnaryOperator,
+};
 use std::collections::HashMap;
 
 // ============================================================================
@@ -54,10 +56,7 @@ fn func_with_body_expr(expr: HirExpression) -> HirFunction {
 }
 
 /// Build a function with params and body statements.
-fn func_with_params_and_body(
-    params: Vec<HirParameter>,
-    body: Vec<HirStatement>,
-) -> HirFunction {
+fn func_with_params_and_body(params: Vec<HirParameter>, body: Vec<HirStatement>) -> HirFunction {
     HirFunction::new_with_body("test_fn".to_string(), HirType::Void, params, body)
 }
 
@@ -97,10 +96,7 @@ fn deep_deref_with_length_replacement() {
     // The inner variable "n" should be replaced with arr.len() call,
     // and then wrapped in Dereference
     if let HirExpression::Dereference(inner) = &result {
-        if let HirExpression::StringMethodCall {
-            receiver, method, ..
-        } = &**inner
-        {
+        if let HirExpression::StringMethodCall { receiver, method, .. } = &**inner {
             assert_eq!(method, "len");
             assert!(matches!(&**receiver, HirExpression::Variable(n) if n == "arr"));
         } else {
@@ -140,7 +136,9 @@ fn deep_address_of_with_length_replacement() {
         &length_map,
     );
     if let HirExpression::AddressOf(inner) = &result {
-        assert!(matches!(&**inner, HirExpression::StringMethodCall { method, .. } if method == "len"));
+        assert!(
+            matches!(&**inner, HirExpression::StringMethodCall { method, .. } if method == "len")
+        );
     } else {
         panic!("Expected AddressOf");
     }
@@ -178,14 +176,13 @@ fn deep_unary_logical_not_with_length() {
         op: UnaryOperator::LogicalNot,
         operand: Box::new(HirExpression::Variable("n".to_string())),
     };
-    let result = gen.transform_expression_with_length_replacement(
-        &expr,
-        &empty_inferences(),
-        &length_map,
-    );
+    let result =
+        gen.transform_expression_with_length_replacement(&expr, &empty_inferences(), &length_map);
     if let HirExpression::UnaryOp { op, operand } = &result {
         assert!(matches!(op, UnaryOperator::LogicalNot));
-        assert!(matches!(&**operand, HirExpression::StringMethodCall { method, .. } if method == "len"));
+        assert!(
+            matches!(&**operand, HirExpression::StringMethodCall { method, .. } if method == "len")
+        );
     } else {
         panic!("Expected UnaryOp");
     }
@@ -245,15 +242,14 @@ fn deep_binary_subtract_with_length() {
         left: Box::new(HirExpression::Variable("n".to_string())),
         right: Box::new(HirExpression::IntLiteral(1)),
     };
-    let result = gen.transform_expression_with_length_replacement(
-        &expr,
-        &empty_inferences(),
-        &length_map,
-    );
+    let result =
+        gen.transform_expression_with_length_replacement(&expr, &empty_inferences(), &length_map);
     if let HirExpression::BinaryOp { op, left, right } = &result {
         assert!(matches!(op, BinaryOperator::Subtract));
         // left should be replaced with arr.len()
-        assert!(matches!(&**left, HirExpression::StringMethodCall { method, .. } if method == "len"));
+        assert!(
+            matches!(&**left, HirExpression::StringMethodCall { method, .. } if method == "len")
+        );
         assert!(matches!(&**right, HirExpression::IntLiteral(1)));
     } else {
         panic!("Expected BinaryOp");
@@ -303,20 +299,13 @@ fn deep_binary_equal() {
 #[test]
 fn deep_function_call_no_args() {
     let gen = BorrowGenerator::new();
-    let expr = HirExpression::FunctionCall {
-        function: "foo".to_string(),
-        arguments: vec![],
-    };
+    let expr = HirExpression::FunctionCall { function: "foo".to_string(), arguments: vec![] };
     let result = gen.transform_expression_with_length_replacement(
         &expr,
         &empty_inferences(),
         &empty_length_params(),
     );
-    if let HirExpression::FunctionCall {
-        function,
-        arguments,
-    } = &result
-    {
+    if let HirExpression::FunctionCall { function, arguments } = &result {
         assert_eq!(function, "foo");
         assert!(arguments.is_empty());
     } else {
@@ -329,21 +318,14 @@ fn deep_function_call_with_args() {
     let gen = BorrowGenerator::new();
     let expr = HirExpression::FunctionCall {
         function: "bar".to_string(),
-        arguments: vec![
-            HirExpression::Variable("x".to_string()),
-            HirExpression::IntLiteral(42),
-        ],
+        arguments: vec![HirExpression::Variable("x".to_string()), HirExpression::IntLiteral(42)],
     };
     let result = gen.transform_expression_with_length_replacement(
         &expr,
         &empty_inferences(),
         &empty_length_params(),
     );
-    if let HirExpression::FunctionCall {
-        function,
-        arguments,
-    } = &result
-    {
+    if let HirExpression::FunctionCall { function, arguments } = &result {
         assert_eq!(function, "bar");
         assert_eq!(arguments.len(), 2);
     } else {
@@ -362,11 +344,8 @@ fn deep_function_call_with_length_arg() {
             HirExpression::Variable("n".to_string()),
         ],
     };
-    let result = gen.transform_expression_with_length_replacement(
-        &expr,
-        &empty_inferences(),
-        &length_map,
-    );
+    let result =
+        gen.transform_expression_with_length_replacement(&expr, &empty_inferences(), &length_map);
     if let HirExpression::FunctionCall { arguments, .. } = &result {
         assert_eq!(arguments.len(), 2);
         // Second arg "n" should become arr.len()
@@ -411,13 +390,12 @@ fn deep_field_access_with_length_object() {
         object: Box::new(HirExpression::Variable("n".to_string())),
         field: "value".to_string(),
     };
-    let result = gen.transform_expression_with_length_replacement(
-        &expr,
-        &empty_inferences(),
-        &length_map,
-    );
+    let result =
+        gen.transform_expression_with_length_replacement(&expr, &empty_inferences(), &length_map);
     if let HirExpression::FieldAccess { object, field } = &result {
-        assert!(matches!(&**object, HirExpression::StringMethodCall { method, .. } if method == "len"));
+        assert!(
+            matches!(&**object, HirExpression::StringMethodCall { method, .. } if method == "len")
+        );
         assert_eq!(field, "value");
     } else {
         panic!("Expected FieldAccess");
@@ -456,13 +434,12 @@ fn deep_pointer_field_access_with_length() {
         pointer: Box::new(HirExpression::Variable("n".to_string())),
         field: "count".to_string(),
     };
-    let result = gen.transform_expression_with_length_replacement(
-        &expr,
-        &empty_inferences(),
-        &length_map,
-    );
+    let result =
+        gen.transform_expression_with_length_replacement(&expr, &empty_inferences(), &length_map);
     if let HirExpression::PointerFieldAccess { pointer, field } = &result {
-        assert!(matches!(&**pointer, HirExpression::StringMethodCall { method, .. } if method == "len"));
+        assert!(
+            matches!(&**pointer, HirExpression::StringMethodCall { method, .. } if method == "len")
+        );
         assert_eq!(field, "count");
     } else {
         panic!("Expected PointerFieldAccess");
@@ -501,15 +478,14 @@ fn deep_array_index_with_length_in_index() {
         array: Box::new(HirExpression::Variable("arr".to_string())),
         index: Box::new(HirExpression::Variable("n".to_string())),
     };
-    let result = gen.transform_expression_with_length_replacement(
-        &expr,
-        &empty_inferences(),
-        &length_map,
-    );
+    let result =
+        gen.transform_expression_with_length_replacement(&expr, &empty_inferences(), &length_map);
     if let HirExpression::ArrayIndex { array, index } = &result {
         assert!(matches!(&**array, HirExpression::Variable(n) if n == "arr"));
         // index "n" becomes data.len()
-        assert!(matches!(&**index, HirExpression::StringMethodCall { method, .. } if method == "len"));
+        assert!(
+            matches!(&**index, HirExpression::StringMethodCall { method, .. } if method == "len")
+        );
     } else {
         panic!("Expected ArrayIndex");
     }
@@ -546,11 +522,7 @@ fn deep_cast_int_to_float() {
         &empty_inferences(),
         &empty_length_params(),
     );
-    if let HirExpression::Cast {
-        expr: inner,
-        target_type,
-    } = &result
-    {
+    if let HirExpression::Cast { expr: inner, target_type } = &result {
         assert!(matches!(&**inner, HirExpression::Variable(n) if n == "x"));
         assert_eq!(*target_type, HirType::Float);
     } else {
@@ -566,13 +538,12 @@ fn deep_cast_with_length_replacement() {
         expr: Box::new(HirExpression::Variable("n".to_string())),
         target_type: HirType::Int,
     };
-    let result = gen.transform_expression_with_length_replacement(
-        &expr,
-        &empty_inferences(),
-        &length_map,
-    );
+    let result =
+        gen.transform_expression_with_length_replacement(&expr, &empty_inferences(), &length_map);
     if let HirExpression::Cast { expr: inner, .. } = &result {
-        assert!(matches!(&**inner, HirExpression::StringMethodCall { method, .. } if method == "len"));
+        assert!(
+            matches!(&**inner, HirExpression::StringMethodCall { method, .. } if method == "len")
+        );
     } else {
         panic!("Expected Cast");
     }
@@ -594,11 +565,7 @@ fn deep_compound_literal() {
         &empty_inferences(),
         &empty_length_params(),
     );
-    if let HirExpression::CompoundLiteral {
-        literal_type,
-        initializers,
-    } = &result
-    {
+    if let HirExpression::CompoundLiteral { literal_type, initializers } = &result {
         assert_eq!(*literal_type, HirType::Struct("Point".to_string()));
         assert_eq!(initializers.len(), 2);
     } else {
@@ -612,16 +579,10 @@ fn deep_compound_literal_with_length_init() {
     let length_map = length_params_with("n", "arr");
     let expr = HirExpression::CompoundLiteral {
         literal_type: HirType::Struct("Data".to_string()),
-        initializers: vec![
-            HirExpression::Variable("n".to_string()),
-            HirExpression::IntLiteral(0),
-        ],
+        initializers: vec![HirExpression::Variable("n".to_string()), HirExpression::IntLiteral(0)],
     };
-    let result = gen.transform_expression_with_length_replacement(
-        &expr,
-        &empty_inferences(),
-        &length_map,
-    );
+    let result =
+        gen.transform_expression_with_length_replacement(&expr, &empty_inferences(), &length_map);
     if let HirExpression::CompoundLiteral { initializers, .. } = &result {
         assert_eq!(initializers.len(), 2);
         assert!(matches!(
@@ -669,11 +630,7 @@ fn deep_calloc_simple() {
         &empty_inferences(),
         &empty_length_params(),
     );
-    if let HirExpression::Calloc {
-        count,
-        element_type,
-    } = &result
-    {
+    if let HirExpression::Calloc { count, element_type } = &result {
         assert!(matches!(&**count, HirExpression::IntLiteral(10)));
         assert_eq!(**element_type, HirType::Int);
     } else {
@@ -689,13 +646,12 @@ fn deep_calloc_with_length_count() {
         count: Box::new(HirExpression::Variable("n".to_string())),
         element_type: Box::new(HirType::Int),
     };
-    let result = gen.transform_expression_with_length_replacement(
-        &expr,
-        &empty_inferences(),
-        &length_map,
-    );
+    let result =
+        gen.transform_expression_with_length_replacement(&expr, &empty_inferences(), &length_map);
     if let HirExpression::Calloc { count, .. } = &result {
-        assert!(matches!(&**count, HirExpression::StringMethodCall { method, .. } if method == "len"));
+        assert!(
+            matches!(&**count, HirExpression::StringMethodCall { method, .. } if method == "len")
+        );
     } else {
         panic!("Expected Calloc");
     }
@@ -708,9 +664,7 @@ fn deep_calloc_with_length_count() {
 #[test]
 fn deep_malloc_simple() {
     let gen = BorrowGenerator::new();
-    let expr = HirExpression::Malloc {
-        size: Box::new(HirExpression::IntLiteral(100)),
-    };
+    let expr = HirExpression::Malloc { size: Box::new(HirExpression::IntLiteral(100)) };
     let result = gen.transform_expression_with_length_replacement(
         &expr,
         &empty_inferences(),
@@ -727,16 +681,13 @@ fn deep_malloc_simple() {
 fn deep_malloc_with_length_size() {
     let gen = BorrowGenerator::new();
     let length_map = length_params_with("n", "arr");
-    let expr = HirExpression::Malloc {
-        size: Box::new(HirExpression::Variable("n".to_string())),
-    };
-    let result = gen.transform_expression_with_length_replacement(
-        &expr,
-        &empty_inferences(),
-        &length_map,
-    );
+    let expr = HirExpression::Malloc { size: Box::new(HirExpression::Variable("n".to_string())) };
+    let result =
+        gen.transform_expression_with_length_replacement(&expr, &empty_inferences(), &length_map);
     if let HirExpression::Malloc { size } = &result {
-        assert!(matches!(&**size, HirExpression::StringMethodCall { method, .. } if method == "len"));
+        assert!(
+            matches!(&**size, HirExpression::StringMethodCall { method, .. } if method == "len")
+        );
     } else {
         panic!("Expected Malloc");
     }
@@ -774,13 +725,12 @@ fn deep_realloc_with_length_in_new_size() {
         pointer: Box::new(HirExpression::Variable("ptr".to_string())),
         new_size: Box::new(HirExpression::Variable("n".to_string())),
     };
-    let result = gen.transform_expression_with_length_replacement(
-        &expr,
-        &empty_inferences(),
-        &length_map,
-    );
+    let result =
+        gen.transform_expression_with_length_replacement(&expr, &empty_inferences(), &length_map);
     if let HirExpression::Realloc { new_size, .. } = &result {
-        assert!(matches!(&**new_size, HirExpression::StringMethodCall { method, .. } if method == "len"));
+        assert!(
+            matches!(&**new_size, HirExpression::StringMethodCall { method, .. } if method == "len")
+        );
     } else {
         panic!("Expected Realloc");
     }
@@ -803,12 +753,7 @@ fn deep_string_method_call() {
         &empty_inferences(),
         &empty_length_params(),
     );
-    if let HirExpression::StringMethodCall {
-        receiver,
-        method,
-        arguments,
-    } = &result
-    {
+    if let HirExpression::StringMethodCall { receiver, method, arguments } = &result {
         assert!(matches!(&**receiver, HirExpression::Variable(n) if n == "s"));
         assert_eq!(method, "len");
         assert!(arguments.is_empty());
@@ -826,11 +771,8 @@ fn deep_string_method_call_with_args() {
         method: "split".to_string(),
         arguments: vec![HirExpression::Variable("n".to_string())],
     };
-    let result = gen.transform_expression_with_length_replacement(
-        &expr,
-        &empty_inferences(),
-        &length_map,
-    );
+    let result =
+        gen.transform_expression_with_length_replacement(&expr, &empty_inferences(), &length_map);
     if let HirExpression::StringMethodCall { arguments, .. } = &result {
         assert_eq!(arguments.len(), 1);
         assert!(matches!(
@@ -859,12 +801,7 @@ fn deep_slice_index() {
         &empty_inferences(),
         &empty_length_params(),
     );
-    if let HirExpression::SliceIndex {
-        slice,
-        index,
-        element_type,
-    } = &result
-    {
+    if let HirExpression::SliceIndex { slice, index, element_type } = &result {
         assert!(matches!(&**slice, HirExpression::Variable(n) if n == "arr"));
         assert!(matches!(&**index, HirExpression::IntLiteral(3)));
         assert_eq!(*element_type, HirType::Int);
@@ -882,13 +819,12 @@ fn deep_slice_index_with_length_in_index() {
         index: Box::new(HirExpression::Variable("n".to_string())),
         element_type: HirType::Float,
     };
-    let result = gen.transform_expression_with_length_replacement(
-        &expr,
-        &empty_inferences(),
-        &length_map,
-    );
+    let result =
+        gen.transform_expression_with_length_replacement(&expr, &empty_inferences(), &length_map);
     if let HirExpression::SliceIndex { index, .. } = &result {
-        assert!(matches!(&**index, HirExpression::StringMethodCall { method, .. } if method == "len"));
+        assert!(
+            matches!(&**index, HirExpression::StringMethodCall { method, .. } if method == "len")
+        );
     } else {
         panic!("Expected SliceIndex");
     }
@@ -919,9 +855,8 @@ fn deep_post_increment() {
 #[test]
 fn deep_pre_increment() {
     let gen = BorrowGenerator::new();
-    let expr = HirExpression::PreIncrement {
-        operand: Box::new(HirExpression::Variable("j".to_string())),
-    };
+    let expr =
+        HirExpression::PreIncrement { operand: Box::new(HirExpression::Variable("j".to_string())) };
     let result = gen.transform_expression_with_length_replacement(
         &expr,
         &empty_inferences(),
@@ -955,9 +890,8 @@ fn deep_post_decrement() {
 #[test]
 fn deep_pre_decrement() {
     let gen = BorrowGenerator::new();
-    let expr = HirExpression::PreDecrement {
-        operand: Box::new(HirExpression::Variable("m".to_string())),
-    };
+    let expr =
+        HirExpression::PreDecrement { operand: Box::new(HirExpression::Variable("m".to_string())) };
     let result = gen.transform_expression_with_length_replacement(
         &expr,
         &empty_inferences(),
@@ -987,12 +921,7 @@ fn deep_ternary_simple() {
         &empty_inferences(),
         &empty_length_params(),
     );
-    if let HirExpression::Ternary {
-        condition,
-        then_expr,
-        else_expr,
-    } = &result
-    {
+    if let HirExpression::Ternary { condition, then_expr, else_expr } = &result {
         assert!(matches!(&**condition, HirExpression::Variable(n) if n == "flag"));
         assert!(matches!(&**then_expr, HirExpression::IntLiteral(1)));
         assert!(matches!(&**else_expr, HirExpression::IntLiteral(0)));
@@ -1010,13 +939,12 @@ fn deep_ternary_with_length_in_condition() {
         then_expr: Box::new(HirExpression::IntLiteral(1)),
         else_expr: Box::new(HirExpression::IntLiteral(0)),
     };
-    let result = gen.transform_expression_with_length_replacement(
-        &expr,
-        &empty_inferences(),
-        &length_map,
-    );
+    let result =
+        gen.transform_expression_with_length_replacement(&expr, &empty_inferences(), &length_map);
     if let HirExpression::Ternary { condition, .. } = &result {
-        assert!(matches!(&**condition, HirExpression::StringMethodCall { method, .. } if method == "len"));
+        assert!(
+            matches!(&**condition, HirExpression::StringMethodCall { method, .. } if method == "len")
+        );
     } else {
         panic!("Expected Ternary");
     }
@@ -1031,19 +959,15 @@ fn deep_ternary_with_length_in_branches() {
         then_expr: Box::new(HirExpression::Variable("n".to_string())),
         else_expr: Box::new(HirExpression::Variable("n".to_string())),
     };
-    let result = gen.transform_expression_with_length_replacement(
-        &expr,
-        &empty_inferences(),
-        &length_map,
-    );
-    if let HirExpression::Ternary {
-        then_expr,
-        else_expr,
-        ..
-    } = &result
-    {
-        assert!(matches!(&**then_expr, HirExpression::StringMethodCall { method, .. } if method == "len"));
-        assert!(matches!(&**else_expr, HirExpression::StringMethodCall { method, .. } if method == "len"));
+    let result =
+        gen.transform_expression_with_length_replacement(&expr, &empty_inferences(), &length_map);
+    if let HirExpression::Ternary { then_expr, else_expr, .. } = &result {
+        assert!(
+            matches!(&**then_expr, HirExpression::StringMethodCall { method, .. } if method == "len")
+        );
+        assert!(
+            matches!(&**else_expr, HirExpression::StringMethodCall { method, .. } if method == "len")
+        );
     } else {
         panic!("Expected Ternary");
     }
@@ -1116,9 +1040,7 @@ fn deep_leaf_variable_no_replacement() {
 #[test]
 fn deep_leaf_sizeof() {
     let gen = BorrowGenerator::new();
-    let expr = HirExpression::Sizeof {
-        type_name: "int".to_string(),
-    };
+    let expr = HirExpression::Sizeof { type_name: "int".to_string() };
     let result = gen.transform_expression_with_length_replacement(
         &expr,
         &empty_inferences(),
@@ -1156,17 +1078,9 @@ fn deep_deref_add_array_pointer_to_slice_index() {
         left: Box::new(HirExpression::Variable("arr".to_string())),
         right: Box::new(HirExpression::IntLiteral(2)),
     }));
-    let result = gen.transform_expression_recursive_with_length(
-        &expr,
-        &inferences,
-        &empty_length_params(),
-    );
-    if let HirExpression::SliceIndex {
-        slice,
-        index,
-        element_type,
-    } = &result
-    {
+    let result =
+        gen.transform_expression_recursive_with_length(&expr, &inferences, &empty_length_params());
+    if let HirExpression::SliceIndex { slice, index, element_type } = &result {
         assert!(matches!(&**slice, HirExpression::Variable(n) if n == "arr"));
         assert!(matches!(&**index, HirExpression::IntLiteral(2)));
         assert_eq!(*element_type, HirType::Int);
@@ -1188,11 +1102,8 @@ fn deep_deref_subtract_array_pointer_to_slice_index() {
         left: Box::new(HirExpression::Variable("arr".to_string())),
         right: Box::new(HirExpression::IntLiteral(1)),
     }));
-    let result = gen.transform_expression_recursive_with_length(
-        &expr,
-        &inferences,
-        &empty_length_params(),
-    );
+    let result =
+        gen.transform_expression_recursive_with_length(&expr, &inferences, &empty_length_params());
     assert!(matches!(&result, HirExpression::SliceIndex { .. }));
 }
 
@@ -1227,11 +1138,8 @@ fn deep_deref_multiply_no_transform() {
         left: Box::new(HirExpression::Variable("arr".to_string())),
         right: Box::new(HirExpression::IntLiteral(2)),
     }));
-    let result = gen.transform_expression_recursive_with_length(
-        &expr,
-        &inferences,
-        &empty_length_params(),
-    );
+    let result =
+        gen.transform_expression_recursive_with_length(&expr, &inferences, &empty_length_params());
     assert!(matches!(&result, HirExpression::Dereference(_)));
 }
 
@@ -1244,17 +1152,9 @@ fn deep_variable_length_replaced() {
     let gen = BorrowGenerator::new();
     let length_map = length_params_with("len", "data");
     let expr = HirExpression::Variable("len".to_string());
-    let result = gen.transform_expression_with_length_replacement(
-        &expr,
-        &empty_inferences(),
-        &length_map,
-    );
-    if let HirExpression::StringMethodCall {
-        receiver,
-        method,
-        arguments,
-    } = &result
-    {
+    let result =
+        gen.transform_expression_with_length_replacement(&expr, &empty_inferences(), &length_map);
+    if let HirExpression::StringMethodCall { receiver, method, arguments } = &result {
         assert_eq!(method, "len");
         assert!(arguments.is_empty());
         assert!(matches!(&**receiver, HirExpression::Variable(n) if n == "data"));
@@ -1268,11 +1168,8 @@ fn deep_variable_not_in_length_map() {
     let gen = BorrowGenerator::new();
     let length_map = length_params_with("len", "data");
     let expr = HirExpression::Variable("other".to_string());
-    let result = gen.transform_expression_with_length_replacement(
-        &expr,
-        &empty_inferences(),
-        &length_map,
-    );
+    let result =
+        gen.transform_expression_with_length_replacement(&expr, &empty_inferences(), &length_map);
     assert!(matches!(&result, HirExpression::Variable(n) if n == "other"));
 }
 
@@ -1307,9 +1204,9 @@ fn deep_nested_binary_in_array_index() {
 fn deep_nested_deref_in_field_access() {
     let gen = BorrowGenerator::new();
     let expr = HirExpression::FieldAccess {
-        object: Box::new(HirExpression::Dereference(Box::new(
-            HirExpression::Variable("ptr".to_string()),
-        ))),
+        object: Box::new(HirExpression::Dereference(Box::new(HirExpression::Variable(
+            "ptr".to_string(),
+        )))),
         field: "value".to_string(),
     };
     let result = gen.transform_expression_with_length_replacement(
@@ -1339,14 +1236,12 @@ fn deep_deref_add_with_length_in_offset() {
         left: Box::new(HirExpression::Variable("arr".to_string())),
         right: Box::new(HirExpression::Variable("n".to_string())),
     }));
-    let result = gen.transform_expression_recursive_with_length(
-        &expr,
-        &inferences,
-        &length_map,
-    );
+    let result = gen.transform_expression_recursive_with_length(&expr, &inferences, &length_map);
     if let HirExpression::SliceIndex { index, .. } = &result {
         // The index "n" should be replaced with arr.len()
-        assert!(matches!(&**index, HirExpression::StringMethodCall { method, .. } if method == "len"));
+        assert!(
+            matches!(&**index, HirExpression::StringMethodCall { method, .. } if method == "len")
+        );
     } else {
         panic!("Expected SliceIndex with len() replacement, got {:?}", result);
     }

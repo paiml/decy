@@ -74,11 +74,7 @@ fn test_loop_boundary_less_than() {
         .find(|stmt| matches!(stmt, Statement::For { .. }))
         .expect("Should have for statement");
 
-    if let Statement::For {
-        condition: Some(cond),
-        ..
-    } = for_stmt
-    {
+    if let Statement::For { condition: Some(cond), .. } = for_stmt {
         // Condition should be i < 10
         match cond {
             Expression::BinaryOp { op, .. } => {
@@ -116,11 +112,7 @@ fn test_loop_boundary_less_than_or_equal() {
         .find(|stmt| matches!(stmt, Statement::For { .. }))
         .expect("Should have for statement");
 
-    if let Statement::For {
-        condition: Some(cond),
-        ..
-    } = for_stmt
-    {
+    if let Statement::For { condition: Some(cond), .. } = for_stmt {
         match cond {
             Expression::BinaryOp { op, .. } => {
                 assert!(
@@ -191,10 +183,7 @@ fn test_array_index_boundary_zero() {
         // Init should be assignment: i = 0 (starting at boundary 0)
         let stmt = &init[0];
         if let Statement::Assignment { value, .. } = stmt {
-            assert!(
-                matches!(value, Expression::IntLiteral(0)),
-                "Array indexing should start at 0"
-            );
+            assert!(matches!(value, Expression::IntLiteral(0)), "Array indexing should start at 0");
         }
     }
 }
@@ -225,11 +214,7 @@ fn test_off_by_one_boundary() {
         .find(|stmt| matches!(stmt, Statement::For { .. }))
         .expect("Should have for statement");
 
-    if let Statement::For {
-        condition: Some(cond),
-        ..
-    } = for_stmt
-    {
+    if let Statement::For { condition: Some(cond), .. } = for_stmt {
         match cond {
             Expression::BinaryOp { op, .. } => {
                 // Should be <, not <=
@@ -306,11 +291,7 @@ fn test_range_boundaries_inclusive_vs_exclusive() {
         .find(|stmt| matches!(stmt, Statement::For { .. }))
         .expect("Should have for statement");
 
-    if let Statement::For {
-        condition: Some(cond),
-        ..
-    } = for_stmt
-    {
+    if let Statement::For { condition: Some(cond), .. } = for_stmt {
         match cond {
             Expression::BinaryOp { op, .. } => {
                 assert!(

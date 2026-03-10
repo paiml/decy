@@ -40,10 +40,7 @@ fn test_simple_nested_struct_definition() {
     // Define Rectangle struct with Point fields
     let rectangle_fields = vec![
         HirStructField::new("top_left".to_string(), HirType::Struct("Point".to_string())),
-        HirStructField::new(
-            "bottom_right".to_string(),
-            HirType::Struct("Point".to_string()),
-        ),
+        HirStructField::new("bottom_right".to_string(), HirType::Struct("Point".to_string())),
     ];
     let rectangle_struct = HirStruct::new("Rectangle".to_string(), rectangle_fields);
 
@@ -51,26 +48,17 @@ fn test_simple_nested_struct_definition() {
     let rect_result = codegen.generate_struct(&rectangle_struct);
 
     // Verify Point struct is generated correctly
-    assert!(
-        point_result.contains("struct Point"),
-        "Should generate Point struct"
-    );
+    assert!(point_result.contains("struct Point"), "Should generate Point struct");
     assert!(point_result.contains("x: i32"), "Should have x: i32 field");
     assert!(point_result.contains("y: i32"), "Should have y: i32 field");
 
     // Verify Rectangle struct uses Point type (not "struct Point")
-    assert!(
-        rect_result.contains("struct Rectangle"),
-        "Should generate Rectangle struct"
-    );
+    assert!(rect_result.contains("struct Rectangle"), "Should generate Rectangle struct");
     assert!(
         rect_result.contains("top_left: Point"),
         "Should use Point type without 'struct' keyword"
     );
-    assert!(
-        rect_result.contains("bottom_right: Point"),
-        "Should use Point type for second field"
-    );
+    assert!(rect_result.contains("bottom_right: Point"), "Should use Point type for second field");
 
     // Should NOT contain C-style "struct Point" in field types
     // (Note: may contain "struct Rectangle" for the struct definition itself)
@@ -99,10 +87,7 @@ fn test_nested_struct_member_access() {
     let func = HirFunction::new_with_body(
         "rect_width".to_string(),
         HirType::Int,
-        vec![HirParameter::new(
-            "r".to_string(),
-            HirType::Struct("Rectangle".to_string()),
-        )],
+        vec![HirParameter::new("r".to_string(), HirType::Struct("Rectangle".to_string()))],
         vec![HirStatement::Return(Some(HirExpression::BinaryOp {
             op: decy_hir::BinaryOperator::Subtract,
             left: Box::new(HirExpression::FieldAccess {
@@ -128,23 +113,14 @@ fn test_nested_struct_member_access() {
     println!("Generated code:\n{}", result);
 
     // Verify nested member access
-    assert!(
-        result.contains("r.bottom_right.x"),
-        "Should generate nested member access"
-    );
-    assert!(
-        result.contains("r.top_left.x"),
-        "Should generate second nested access"
-    );
+    assert!(result.contains("r.bottom_right.x"), "Should generate nested member access");
+    assert!(result.contains("r.top_left.x"), "Should generate second nested access");
 
     // Should use dot notation (not arrow)
     // Note: Function signature may contain -> for return type, so check only the body
     let body_start = result.find('{').unwrap_or(0);
     let body = &result[body_start..];
-    assert!(
-        !body.contains("->"),
-        "Should use dot notation, not arrow in function body"
-    );
+    assert!(!body.contains("->"), "Should use dot notation, not arrow in function body");
 
     // Verify no unsafe blocks
     assert!(!result.contains("unsafe"));
@@ -195,10 +171,7 @@ fn test_nested_struct_pointer_member_access() {
         result.contains("bottom_right") && result.contains("x"),
         "Should access nested field through pointer"
     );
-    assert!(
-        result.contains("top_left"),
-        "Should access second nested field"
-    );
+    assert!(result.contains("top_left"), "Should access second nested field");
 
     // Verify no unsafe blocks (pointer access should be safe with references)
     assert!(!result.contains("unsafe"));
@@ -220,10 +193,7 @@ fn test_deeply_nested_structs() {
     let codegen = CodeGenerator::new();
 
     let canvas_fields = vec![
-        HirStructField::new(
-            "bounds".to_string(),
-            HirType::Struct("Rectangle".to_string()),
-        ),
+        HirStructField::new("bounds".to_string(), HirType::Struct("Rectangle".to_string())),
         HirStructField::new("color".to_string(), HirType::Int),
     ];
     let canvas_struct = HirStruct::new("Canvas".to_string(), canvas_fields);
@@ -231,14 +201,8 @@ fn test_deeply_nested_structs() {
     let result = codegen.generate_struct(&canvas_struct);
 
     // Verify deeply nested struct definition
-    assert!(
-        result.contains("struct Canvas"),
-        "Should generate Canvas struct"
-    );
-    assert!(
-        result.contains("bounds: Rectangle"),
-        "Should use Rectangle type"
-    );
+    assert!(result.contains("struct Canvas"), "Should generate Canvas struct");
+    assert!(result.contains("bounds: Rectangle"), "Should use Rectangle type");
     assert!(result.contains("color: i32"), "Should have color field");
 
     // Should not use C-style "struct Rectangle"
@@ -266,10 +230,7 @@ fn test_deeply_nested_member_access() {
     let func = HirFunction::new_with_body(
         "get_canvas_x".to_string(),
         HirType::Int,
-        vec![HirParameter::new(
-            "c".to_string(),
-            HirType::Struct("Canvas".to_string()),
-        )],
+        vec![HirParameter::new("c".to_string(), HirType::Struct("Canvas".to_string()))],
         vec![HirStatement::Return(Some(HirExpression::FieldAccess {
             object: Box::new(HirExpression::FieldAccess {
                 object: Box::new(HirExpression::FieldAccess {
@@ -286,10 +247,7 @@ fn test_deeply_nested_member_access() {
     let result = codegen.generate_function(&func);
 
     // Verify deeply nested member access
-    assert!(
-        result.contains("c.bounds.top_left.x"),
-        "Should generate deeply nested member access"
-    );
+    assert!(result.contains("c.bounds.top_left.x"), "Should generate deeply nested member access");
 
     // Verify no unsafe blocks
     assert!(!result.contains("unsafe"));
@@ -328,17 +286,11 @@ fn test_nested_struct_with_mixed_fields() {
     let location_pos = result.find("location").unwrap();
     let size_pos = result.find("size").unwrap();
 
-    assert!(
-        id_pos < location_pos && location_pos < size_pos,
-        "Should preserve field order"
-    );
+    assert!(id_pos < location_pos && location_pos < size_pos, "Should preserve field order");
 
     // Verify correct types
     assert!(result.contains("id: i32"), "Should have id: i32");
-    assert!(
-        result.contains("location: Point"),
-        "Should have location: Point"
-    );
+    assert!(result.contains("location: Point"), "Should have location: Point");
     assert!(result.contains("size: i32"), "Should have size: i32");
 
     // Verify no unsafe blocks
@@ -377,10 +329,7 @@ fn test_nested_struct_with_array() {
     let result = codegen.generate_struct(&polygon_struct);
 
     // Verify array of struct type
-    assert!(
-        result.contains("vertices: [Point; 10]"),
-        "Should have array of Point structs"
-    );
+    assert!(result.contains("vertices: [Point; 10]"), "Should have array of Point structs");
     assert!(result.contains("count: i32"), "Should have count field");
 
     // Verify no unsafe blocks
@@ -441,10 +390,7 @@ fn test_nested_struct_transformation_unsafe_count() {
 
     let rectangle_fields = vec![
         HirStructField::new("top_left".to_string(), HirType::Struct("Point".to_string())),
-        HirStructField::new(
-            "bottom_right".to_string(),
-            HirType::Struct("Point".to_string()),
-        ),
+        HirStructField::new("bottom_right".to_string(), HirType::Struct("Point".to_string())),
     ];
     let rectangle_struct = HirStruct::new("Rectangle".to_string(), rectangle_fields);
 
@@ -456,8 +402,5 @@ fn test_nested_struct_transformation_unsafe_count() {
 
     // Count unsafe blocks (should be 0)
     let unsafe_count = combined.matches("unsafe").count();
-    assert_eq!(
-        unsafe_count, 0,
-        "Nested struct transformation should not introduce unsafe blocks"
-    );
+    assert_eq!(unsafe_count, 0, "Nested struct transformation should not introduce unsafe blocks");
 }

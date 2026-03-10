@@ -87,10 +87,7 @@ struct Buffer {
             data: Vec<u8>,
         }
 
-        let buf = Buffer {
-            length: 5,
-            data: vec![1, 2, 3, 4, 5],
-        };
+        let buf = Buffer { length: 5, data: vec![1, 2, 3, 4, 5] };
 
         assert_eq!(buf.length, 5);
         assert_eq!(buf.data.len(), 5);
@@ -126,10 +123,7 @@ let buf = Buffer {
 
         let n = 10;
         // Rust: no manual size calculation, Vec handles allocation
-        let buf = Buffer {
-            length: n,
-            data: vec![0; n],
-        };
+        let buf = Buffer { length: n, data: vec![0; n] };
 
         assert_eq!(buf.length, 10);
         assert_eq!(buf.data.len(), 10);
@@ -168,11 +162,7 @@ struct Packet {
             payload: Vec<u8>,
         }
 
-        let packet = Packet {
-            id: 12345,
-            length: 4,
-            payload: vec![0xDE, 0xAD, 0xBE, 0xEF],
-        };
+        let packet = Packet { id: 12345, length: 4, payload: vec![0xDE, 0xAD, 0xBE, 0xEF] };
 
         assert_eq!(packet.id, 12345);
         assert_eq!(packet.length, 4);
@@ -210,10 +200,7 @@ struct StringBuffer {
         }
 
         let text = "Hello, World!";
-        let buf = StringBuffer {
-            len: text.len(),
-            str: text.to_string(),
-        };
+        let buf = StringBuffer { len: text.len(), str: text.to_string() };
 
         assert_eq!(buf.len, 13);
         assert_eq!(buf.str, "Hello, World!");
@@ -241,10 +228,7 @@ buf->data[i] = value;  // Direct array access
             data: Vec<u8>,
         }
 
-        let mut buf = Buffer {
-            length: 5,
-            data: vec![0, 0, 0, 0, 0],
-        };
+        let mut buf = Buffer { length: 5, data: vec![0, 0, 0, 0, 0] };
 
         // Modify elements (bounds-checked)
         buf.data[0] = 10;
@@ -280,10 +264,7 @@ memcpy(copy, src, sizeof(struct Buffer) + src->length);
             data: Vec<u8>,
         }
 
-        let buf = Buffer {
-            length: 3,
-            data: vec![1, 2, 3],
-        };
+        let buf = Buffer { length: 3, data: vec![1, 2, 3] };
 
         // Rust: simple clone (Vec is cloned automatically)
         let copy = buf.clone();
@@ -322,10 +303,7 @@ struct IntArray {
             values: Vec<i32>,
         }
 
-        let arr = IntArray {
-            count: 4,
-            values: vec![10, 20, 30, 40],
-        };
+        let arr = IntArray { count: 4, values: vec![10, 20, 30, 40] };
 
         assert_eq!(arr.count, 4);
         assert_eq!(arr.values.len(), 4);
@@ -399,10 +377,8 @@ struct Container {
             items: Vec<Point>,
         }
 
-        let container = Container {
-            count: 2,
-            items: vec![Point { x: 1, y: 2 }, Point { x: 3, y: 4 }],
-        };
+        let container =
+            Container { count: 2, items: vec![Point { x: 1, y: 2 }, Point { x: 3, y: 4 }] };
 
         assert_eq!(container.count, 2);
         assert_eq!(container.items.len(), 2);
@@ -442,11 +418,7 @@ Rust: No such restrictions
             data2: Vec<u8>, // Second Vec (allowed in Rust)
         }
 
-        let buf = MultiBuffer {
-            data1: vec![1, 2, 3],
-            length: 3,
-            data2: vec![4, 5, 6],
-        };
+        let buf = MultiBuffer { data1: vec![1, 2, 3], length: 3, data2: vec![4, 5, 6] };
 
         assert_eq!(buf.data1.len(), 3);
         assert_eq!(buf.data2.len(), 3);
@@ -477,10 +449,7 @@ buf.length = new_size;
             data: Vec<u8>,
         }
 
-        let mut buf = Buffer {
-            length: 5,
-            data: vec![1, 2, 3, 4, 5],
-        };
+        let mut buf = Buffer { length: 5, data: vec![1, 2, 3, 4, 5] };
 
         // Resize the flexible array
         let new_size = 8;
@@ -514,10 +483,7 @@ buf.length = new_size;
         }
 
         let backing_data = [1, 2, 3, 4, 5];
-        let buf = BufferRef {
-            length: 5,
-            data: &backing_data,
-        };
+        let buf = BufferRef { length: 5, data: &backing_data };
 
         assert_eq!(buf.length, 5);
         assert_eq!(buf.data.len(), 5);
@@ -546,10 +512,7 @@ buf.length = new_size;
             data: Box<[u8]>,
         }
 
-        let buf = BufferBox {
-            length: 5,
-            data: vec![1, 2, 3, 4, 5].into_boxed_slice(),
-        };
+        let buf = BufferBox { length: 5, data: vec![1, 2, 3, 4, 5].into_boxed_slice() };
 
         assert_eq!(buf.length, 5);
         assert_eq!(buf.data.len(), 5);
@@ -596,10 +559,7 @@ Rust Transformation Patterns:
             data: Vec<u8>,
         }
 
-        let buf = BufferVec {
-            length: 3,
-            data: vec![1, 2, 3],
-        };
+        let buf = BufferVec { length: 3, data: vec![1, 2, 3] };
         assert_eq!(buf.data.len(), 3);
 
         // Alternative: slice reference
@@ -610,10 +570,7 @@ Rust Transformation Patterns:
         }
 
         let backing = [1, 2, 3];
-        let buf_ref = BufferRef {
-            length: 3,
-            data: &backing,
-        };
+        let buf_ref = BufferRef { length: 3, data: &backing };
         assert_eq!(buf_ref.data.len(), 3);
 
         assert!(c_summary.contains("Must be last member"));

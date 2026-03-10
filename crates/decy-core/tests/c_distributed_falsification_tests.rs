@@ -117,8 +117,14 @@ int dist_raft_tick(dist_raft_node_t *node, int delta_ms) {
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1501: Output should not be empty");
     assert!(code.contains("fn dist_raft_init"), "C1501: Should contain dist_raft_init");
-    assert!(code.contains("fn dist_raft_start_election"), "C1501: Should contain dist_raft_start_election");
-    assert!(code.contains("fn dist_raft_handle_vote_request"), "C1501: Should contain dist_raft_handle_vote_request");
+    assert!(
+        code.contains("fn dist_raft_start_election"),
+        "C1501: Should contain dist_raft_start_election"
+    );
+    assert!(
+        code.contains("fn dist_raft_handle_vote_request"),
+        "C1501: Should contain dist_raft_handle_vote_request"
+    );
 }
 
 /// C1502: Paxos prepare/accept phases with proposal numbers and ballot tracking
@@ -236,8 +242,14 @@ int dist_paxos_proposer_value(const dist_paxos_proposer_t *prop) {
     assert!(result.is_ok(), "C1502: Paxos prepare/accept should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1502: Output should not be empty");
-    assert!(code.contains("fn dist_paxos_handle_prepare"), "C1502: Should contain dist_paxos_handle_prepare");
-    assert!(code.contains("fn dist_paxos_handle_accept"), "C1502: Should contain dist_paxos_handle_accept");
+    assert!(
+        code.contains("fn dist_paxos_handle_prepare"),
+        "C1502: Should contain dist_paxos_handle_prepare"
+    );
+    assert!(
+        code.contains("fn dist_paxos_handle_accept"),
+        "C1502: Should contain dist_paxos_handle_accept"
+    );
 }
 
 /// C1503: Vector clocks for causal ordering in distributed systems
@@ -320,7 +332,10 @@ void dist_vc_copy(dist_vector_clock_t *dst, const dist_vector_clock_t *src) {
     assert!(!code.is_empty(), "C1503: Output should not be empty");
     assert!(code.contains("fn dist_vc_init"), "C1503: Should contain dist_vc_init");
     assert!(code.contains("fn dist_vc_merge"), "C1503: Should contain dist_vc_merge");
-    assert!(code.contains("fn dist_vc_happened_before"), "C1503: Should contain dist_vc_happened_before");
+    assert!(
+        code.contains("fn dist_vc_happened_before"),
+        "C1503: Should contain dist_vc_happened_before"
+    );
 }
 
 /// C1504: Lamport logical timestamps with message passing simulation
@@ -696,7 +711,10 @@ int dist_vnode_count_for_physical(const dist_vnode_ring_t *ring, uint32_t phys_i
     assert!(result.is_ok(), "C1507: Virtual nodes should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1507: Output should not be empty");
-    assert!(code.contains("fn dist_vnode_add_physical"), "C1507: Should contain dist_vnode_add_physical");
+    assert!(
+        code.contains("fn dist_vnode_add_physical"),
+        "C1507: Should contain dist_vnode_add_physical"
+    );
     assert!(code.contains("fn dist_vnode_lookup"), "C1507: Should contain dist_vnode_lookup");
 }
 
@@ -780,7 +798,10 @@ int dist_chord_stabilize_check(const dist_chord_node_t *node, uint32_t x) {
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1508: Output should not be empty");
     assert!(code.contains("fn dist_chord_init"), "C1508: Should contain dist_chord_init");
-    assert!(code.contains("fn dist_chord_find_successor"), "C1508: Should contain dist_chord_find_successor");
+    assert!(
+        code.contains("fn dist_chord_find_successor"),
+        "C1508: Should contain dist_chord_find_successor"
+    );
 }
 
 /// C1509: Kademlia XOR distance metric and k-bucket routing
@@ -897,8 +918,14 @@ int dist_kad_find_closest(const dist_kad_table_t *table, uint32_t target,
     assert!(result.is_ok(), "C1509: Kademlia XOR distance should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1509: Output should not be empty");
-    assert!(code.contains("fn dist_kad_xor_distance"), "C1509: Should contain dist_kad_xor_distance");
-    assert!(code.contains("fn dist_kad_table_insert"), "C1509: Should contain dist_kad_table_insert");
+    assert!(
+        code.contains("fn dist_kad_xor_distance"),
+        "C1509: Should contain dist_kad_xor_distance"
+    );
+    assert!(
+        code.contains("fn dist_kad_table_insert"),
+        "C1509: Should contain dist_kad_table_insert"
+    );
 }
 
 /// C1510: Gossip protocol with infection-style dissemination and rumor mongering
@@ -1001,7 +1028,10 @@ int dist_gossip_select_peers(const dist_gossip_state_t *state,
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1510: Output should not be empty");
     assert!(code.contains("fn dist_gossip_init"), "C1510: Should contain dist_gossip_init");
-    assert!(code.contains("fn dist_gossip_merge_entry"), "C1510: Should contain dist_gossip_merge_entry");
+    assert!(
+        code.contains("fn dist_gossip_merge_entry"),
+        "C1510: Should contain dist_gossip_merge_entry"
+    );
 }
 
 // ============================================================================
@@ -1101,7 +1131,11 @@ int dist_replica_lag(const dist_replica_t *r) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(result.is_ok(), "C1511: Primary-backup replication should transpile: {:?}", result.err());
+    assert!(
+        result.is_ok(),
+        "C1511: Primary-backup replication should transpile: {:?}",
+        result.err()
+    );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1511: Output should not be empty");
     assert!(code.contains("fn dist_replica_init"), "C1511: Should contain dist_replica_init");
@@ -1436,7 +1470,10 @@ int dist_merkle_find_diffs(const dist_merkle_tree_t *a, const dist_merkle_tree_t
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1514: Output should not be empty");
     assert!(code.contains("fn dist_merkle_rebuild"), "C1514: Should contain dist_merkle_rebuild");
-    assert!(code.contains("fn dist_merkle_find_diffs"), "C1514: Should contain dist_merkle_find_diffs");
+    assert!(
+        code.contains("fn dist_merkle_find_diffs"),
+        "C1514: Should contain dist_merkle_find_diffs"
+    );
 }
 
 /// C1515: CRDT G-Counter (grow-only counter) with merge semantics
@@ -1841,7 +1878,10 @@ int dist_swim_alive_count(const dist_swim_t *swim) {
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1518: Output should not be empty");
     assert!(code.contains("fn dist_swim_init"), "C1518: Should contain dist_swim_init");
-    assert!(code.contains("fn dist_swim_check_suspects"), "C1518: Should contain dist_swim_check_suspects");
+    assert!(
+        code.contains("fn dist_swim_check_suspects"),
+        "C1518: Should contain dist_swim_check_suspects"
+    );
 }
 
 /// C1519: Write-ahead log (WAL) for crash recovery with checkpointing
@@ -2045,7 +2085,10 @@ void dist_cb_reset(dist_circuit_breaker_t *cb) {
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1520: Output should not be empty");
     assert!(code.contains("fn dist_cb_init"), "C1520: Should contain dist_cb_init");
-    assert!(code.contains("fn dist_cb_allow_request"), "C1520: Should contain dist_cb_allow_request");
+    assert!(
+        code.contains("fn dist_cb_allow_request"),
+        "C1520: Should contain dist_cb_allow_request"
+    );
     assert!(code.contains("fn dist_cb_on_failure"), "C1520: Should contain dist_cb_on_failure");
 }
 
@@ -2267,7 +2310,10 @@ int dist_dag_all_complete(const dist_dag_scheduler_t *sched) {
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1522: Output should not be empty");
     assert!(code.contains("fn dist_dag_add_task"), "C1522: Should contain dist_dag_add_task");
-    assert!(code.contains("fn dist_dag_complete_task"), "C1522: Should contain dist_dag_complete_task");
+    assert!(
+        code.contains("fn dist_dag_complete_task"),
+        "C1522: Should contain dist_dag_complete_task"
+    );
 }
 
 /// C1523: Fair share scheduler with per-user resource tracking and borrowing
@@ -2393,7 +2439,10 @@ int dist_fs_schedule_next(dist_fs_scheduler_t *sched, uint64_t now) {
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1523: Output should not be empty");
     assert!(code.contains("fn dist_fs_init"), "C1523: Should contain dist_fs_init");
-    assert!(code.contains("fn dist_fs_schedule_next"), "C1523: Should contain dist_fs_schedule_next");
+    assert!(
+        code.contains("fn dist_fs_schedule_next"),
+        "C1523: Should contain dist_fs_schedule_next"
+    );
 }
 
 /// C1524: Weighted round-robin load balancer with health checking
@@ -2639,7 +2688,11 @@ uint64_t dist_rl_total_denied(const dist_rate_limiter_t *rl) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(result.is_ok(), "C1525: Rate limiter token bucket should transpile: {:?}", result.err());
+    assert!(
+        result.is_ok(),
+        "C1525: Rate limiter token bucket should transpile: {:?}",
+        result.err()
+    );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1525: Output should not be empty");
     assert!(code.contains("fn dist_tb_consume"), "C1525: Should contain dist_tb_consume");

@@ -287,7 +287,11 @@ int bf_fpr_estimate_full(const bf_fpr_t *bf) {
 }
 "##;
     let result = decy_core::transpile(c_code);
-    assert!(result.is_ok(), "C1879: Bloom filter FPR estimation should transpile: {:?}", result.err());
+    assert!(
+        result.is_ok(),
+        "C1879: Bloom filter FPR estimation should transpile: {:?}",
+        result.err()
+    );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1879: Output should not be empty");
     assert!(code.contains("fn bf_"), "C1879: Should contain bf_ functions");
@@ -349,7 +353,11 @@ int bf_opt_test(void) {
 }
 "##;
     let result = decy_core::transpile(c_code);
-    assert!(result.is_ok(), "C1880: Bloom filter optimal params should transpile: {:?}", result.err());
+    assert!(
+        result.is_ok(),
+        "C1880: Bloom filter optimal params should transpile: {:?}",
+        result.err()
+    );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1880: Output should not be empty");
     assert!(code.contains("fn bf_"), "C1880: Should contain bf_ functions");
@@ -418,7 +426,11 @@ int bf_counting_query(const bf_counting_t *cbf, uint32_t key) {
 }
 "##;
     let result = decy_core::transpile(c_code);
-    assert!(result.is_ok(), "C1881: Counting bloom counter array should transpile: {:?}", result.err());
+    assert!(
+        result.is_ok(),
+        "C1881: Counting bloom counter array should transpile: {:?}",
+        result.err()
+    );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1881: Output should not be empty");
     assert!(code.contains("fn bf_"), "C1881: Should contain bf_ functions");
@@ -722,7 +734,11 @@ uint32_t bf_wide_min_count(const bf_wide_t *w, uint32_t key) {
 }
 "##;
     let result = decy_core::transpile(c_code);
-    assert!(result.is_ok(), "C1885: Counting bloom wide counters should transpile: {:?}", result.err());
+    assert!(
+        result.is_ok(),
+        "C1885: Counting bloom wide counters should transpile: {:?}",
+        result.err()
+    );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1885: Output should not be empty");
     assert!(code.contains("fn bf_"), "C1885: Should contain bf_ functions");
@@ -804,7 +820,11 @@ int bf_scalable_query(const bf_scalable_t *sbf, uint32_t key) {
 }
 "##;
     let result = decy_core::transpile(c_code);
-    assert!(result.is_ok(), "C1886: Scalable bloom multilevel should transpile: {:?}", result.err());
+    assert!(
+        result.is_ok(),
+        "C1886: Scalable bloom multilevel should transpile: {:?}",
+        result.err()
+    );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1886: Output should not be empty");
     assert!(code.contains("fn bf_"), "C1886: Should contain bf_ functions");
@@ -1095,7 +1115,11 @@ uint32_t bf_tightening_total(const bf_tightening_t *tbf) {
 }
 "##;
     let result = decy_core::transpile(c_code);
-    assert!(result.is_ok(), "C1890: Scalable bloom tightening should transpile: {:?}", result.err());
+    assert!(
+        result.is_ok(),
+        "C1890: Scalable bloom tightening should transpile: {:?}",
+        result.err()
+    );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1890: Output should not be empty");
     assert!(code.contains("fn bf_"), "C1890: Should contain bf_ functions");
@@ -1164,7 +1188,11 @@ int bf_cuckoo_bucket_has_space(const bf_cuckoo_t *cf, uint32_t bucket) {
 }
 "##;
     let result = decy_core::transpile(c_code);
-    assert!(result.is_ok(), "C1891: Cuckoo filter bucket array should transpile: {:?}", result.err());
+    assert!(
+        result.is_ok(),
+        "C1891: Cuckoo filter bucket array should transpile: {:?}",
+        result.err()
+    );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1891: Output should not be empty");
     assert!(code.contains("fn bf_"), "C1891: Should contain bf_ functions");
@@ -1238,7 +1266,11 @@ int bf_fp_bucket_insert(bf_fp_filter_t *f, uint32_t bucket, uint8_t fp) {
 }
 "##;
     let result = decy_core::transpile(c_code);
-    assert!(result.is_ok(), "C1892: Cuckoo filter fingerprint should transpile: {:?}", result.err());
+    assert!(
+        result.is_ok(),
+        "C1892: Cuckoo filter fingerprint should transpile: {:?}",
+        result.err()
+    );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1892: Output should not be empty");
     assert!(code.contains("fn bf_"), "C1892: Should contain bf_ functions");
@@ -1314,7 +1346,11 @@ int bf_cil_lookup(const bf_cil_t *cf, uint32_t key) {
 }
 "##;
     let result = decy_core::transpile(c_code);
-    assert!(result.is_ok(), "C1893: Cuckoo filter insert/lookup should transpile: {:?}", result.err());
+    assert!(
+        result.is_ok(),
+        "C1893: Cuckoo filter insert/lookup should transpile: {:?}",
+        result.err()
+    );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1893: Output should not be empty");
     assert!(code.contains("fn bf_"), "C1893: Should contain bf_ functions");
@@ -1533,7 +1569,11 @@ uint8_t bf_hll_max_register(const bf_hll_t *hll) {
 }
 "##;
     let result = decy_core::transpile(c_code);
-    assert!(result.is_ok(), "C1896: HyperLogLog register array should transpile: {:?}", result.err());
+    assert!(
+        result.is_ok(),
+        "C1896: HyperLogLog register array should transpile: {:?}",
+        result.err()
+    );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1896: Output should not be empty");
     assert!(code.contains("fn bf_"), "C1896: Should contain bf_ functions");

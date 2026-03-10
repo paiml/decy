@@ -1354,7 +1354,10 @@ int cache_obl_test(void) {
     assert!(result.is_ok(), "C988: Cache-oblivious transpose should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C988: Output should not be empty");
-    assert!(code.contains("fn cache_obl_transpose_rec"), "C988: Should contain cache_obl_transpose_rec");
+    assert!(
+        code.contains("fn cache_obl_transpose_rec"),
+        "C988: Should contain cache_obl_transpose_rec"
+    );
 }
 
 /// C989: Bloom filter
@@ -1433,7 +1436,10 @@ int cache_bloom_test(void) {
     let code = result.unwrap();
     assert!(!code.is_empty(), "C989: Output should not be empty");
     assert!(code.contains("fn cache_bloom_add"), "C989: Should contain cache_bloom_add");
-    assert!(code.contains("fn cache_bloom_may_contain"), "C989: Should contain cache_bloom_may_contain");
+    assert!(
+        code.contains("fn cache_bloom_may_contain"),
+        "C989: Should contain cache_bloom_may_contain"
+    );
 }
 
 /// C990: Cuckoo filter
@@ -2138,7 +2144,10 @@ int cache_page_test(void) {
     let code = result.unwrap();
     assert!(!code.is_empty(), "C996: Output should not be empty");
     assert!(code.contains("fn cache_page_load"), "C996: Should contain cache_page_load");
-    assert!(code.contains("fn cache_page_mark_dirty"), "C996: Should contain cache_page_mark_dirty");
+    assert!(
+        code.contains("fn cache_page_mark_dirty"),
+        "C996: Should contain cache_page_mark_dirty"
+    );
 }
 
 /// C997: Write-ahead log (WAL)

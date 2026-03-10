@@ -250,10 +250,7 @@ fn test_for_loop_code_structure() {
     let increment_pos = code.find("i = i + 1").expect("Should have increment");
 
     assert!(init_pos < while_pos, "Init should come before while");
-    assert!(
-        while_pos < increment_pos,
-        "While should come before increment"
-    );
+    assert!(while_pos < increment_pos, "While should come before increment");
 }
 
 #[test]
@@ -269,15 +266,7 @@ fn test_for_infinite_loop_no_condition() {
     };
 
     let code = codegen.generate_statement(&for_loop);
-    assert!(
-        code.contains("loop"),
-        "for(;;) should generate `loop`, got: {}",
-        code
-    );
-    assert!(
-        !code.contains("while"),
-        "for(;;) should NOT generate `while`, got: {}",
-        code
-    );
+    assert!(code.contains("loop"), "for(;;) should generate `loop`, got: {}", code);
+    assert!(!code.contains("while"), "for(;;) should NOT generate `while`, got: {}", code);
     assert!(code.contains("break"), "body should contain break");
 }

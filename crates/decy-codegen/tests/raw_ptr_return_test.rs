@@ -23,9 +23,7 @@ use tempfile::NamedTempFile;
 /// Helper to transpile C code and return the generated Rust
 fn transpile_c(c_code: &str) -> String {
     let mut temp_file = NamedTempFile::new().expect("Failed to create temp file");
-    temp_file
-        .write_all(c_code.as_bytes())
-        .expect("Failed to write C code");
+    temp_file.write_all(c_code.as_bytes()).expect("Failed to write C code");
 
     let output = Command::new("cargo")
         .args(["run", "-p", "decy", "--quiet", "--", "transpile"])
@@ -39,9 +37,7 @@ fn transpile_c(c_code: &str) -> String {
 /// Helper to check if generated Rust compiles
 fn compiles(rust_code: &str) -> Result<(), String> {
     let mut temp_file = NamedTempFile::with_suffix(".rs").expect("Failed to create temp file");
-    temp_file
-        .write_all(rust_code.as_bytes())
-        .expect("Failed to write Rust code");
+    temp_file.write_all(rust_code.as_bytes()).expect("Failed to write Rust code");
 
     let out_dir = tempfile::tempdir().expect("Failed to create temp dir");
     let out_path = out_dir.path().join("test_raw_ptr");
@@ -174,11 +170,7 @@ fn test_binary_tree_full_compiles() {
             "examples/data_structures/binary_tree.c",
         ])
         .current_dir(
-            std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-                .parent()
-                .unwrap()
-                .parent()
-                .unwrap(),
+            std::path::Path::new(env!("CARGO_MANIFEST_DIR")).parent().unwrap().parent().unwrap(),
         )
         .output()
         .expect("Failed to run decy transpile");
@@ -194,9 +186,8 @@ fn test_binary_tree_full_compiles() {
 
     match compiles(&rust_code) {
         Ok(()) => {}
-        Err(e) => panic!(
-            "DECY-148: binary_tree.c should compile.\nCode:\n{}\nErrors:\n{}",
-            rust_code, e
-        ),
+        Err(e) => {
+            panic!("DECY-148: binary_tree.c should compile.\nCode:\n{}\nErrors:\n{}", rust_code, e)
+        }
     }
 }

@@ -149,11 +149,7 @@ pub fn run_binary(binary: &Path) -> Result<ExecutionOutput> {
 
 /// Run a full differential test: compile C with gcc, compile Rust with rustc,
 /// execute both, and compare outputs.
-pub fn diff_test(
-    c_code: &str,
-    rust_code: &str,
-    config: &DiffTestConfig,
-) -> Result<DiffTestResult> {
+pub fn diff_test(c_code: &str, rust_code: &str, config: &DiffTestConfig) -> Result<DiffTestResult> {
     // Compile both
     let (_c_dir, c_bin) =
         compile_c(c_code, config).context("C compilation failed during diff test")?;
@@ -191,13 +187,7 @@ pub fn diff_test(
         ));
     }
 
-    Ok(DiffTestResult {
-        c_output,
-        rust_output,
-        stdout_matches,
-        exit_code_matches,
-        divergences,
-    })
+    Ok(DiffTestResult { c_output, rust_output, stdout_matches, exit_code_matches, divergences })
 }
 
 #[cfg(test)]
@@ -232,10 +222,8 @@ mod tests {
 
     #[test]
     fn test_compile_c_bad_gcc_path() {
-        let config = DiffTestConfig {
-            gcc_path: "/nonexistent/gcc".to_string(),
-            ..Default::default()
-        };
+        let config =
+            DiffTestConfig { gcc_path: "/nonexistent/gcc".to_string(), ..Default::default() };
         let result = compile_c("int main() { return 0; }", &config);
         assert!(result.is_err(), "Bad gcc path should error");
     }
@@ -244,11 +232,7 @@ mod tests {
     fn test_compile_rust_valid() {
         let config = DiffTestConfig::default();
         let result = compile_rust("fn main() {}", &config);
-        assert!(
-            result.is_ok(),
-            "Valid Rust should compile: {:?}",
-            result.err()
-        );
+        assert!(result.is_ok(), "Valid Rust should compile: {:?}", result.err());
         let (_dir, bin) = result.unwrap();
         assert!(bin.exists(), "Binary should exist after compilation");
     }
@@ -268,10 +252,8 @@ mod tests {
 
     #[test]
     fn test_compile_rust_bad_rustc_path() {
-        let config = DiffTestConfig {
-            rustc_path: "/nonexistent/rustc".to_string(),
-            ..Default::default()
-        };
+        let config =
+            DiffTestConfig { rustc_path: "/nonexistent/rustc".to_string(), ..Default::default() };
         let result = compile_rust("fn main() {}", &config);
         assert!(result.is_err(), "Bad rustc path should error");
     }
@@ -303,11 +285,7 @@ fn main() {
             "Integer arithmetic stdout should match: {:?}",
             result.divergences
         );
-        assert!(
-            result.exit_code_matches,
-            "Exit codes should match: {:?}",
-            result.divergences
-        );
+        assert!(result.exit_code_matches, "Exit codes should match: {:?}", result.divergences);
         assert!(result.passed());
     }
 
@@ -353,11 +331,7 @@ fn main() {
 "#;
         let config = DiffTestConfig::default();
         let result = diff_test(c_code, rust_code, &config).expect("diff_test should succeed");
-        assert!(
-            result.stdout_matches,
-            "String output should match: {:?}",
-            result.divergences
-        );
+        assert!(result.stdout_matches, "String output should match: {:?}", result.divergences);
         assert!(result.passed());
     }
 
@@ -397,11 +371,7 @@ fn main() {
 "#;
         let config = DiffTestConfig::default();
         let result = diff_test(c_code, rust_code, &config).expect("diff_test should succeed");
-        assert!(
-            result.stdout_matches,
-            "Multiline output should match: {:?}",
-            result.divergences
-        );
+        assert!(result.stdout_matches, "Multiline output should match: {:?}", result.divergences);
         assert!(result.passed());
     }
 
@@ -439,10 +409,7 @@ fn main() { println!("from Rust"); }
         let rust_code = "fn main() { std::process::exit(1); }";
         let config = DiffTestConfig::default();
         let result = diff_test(c_code, rust_code, &config).expect("diff_test should succeed");
-        assert!(
-            !result.exit_code_matches,
-            "Different exit codes should diverge"
-        );
+        assert!(!result.exit_code_matches, "Different exit codes should diverge");
         assert!(!result.passed());
     }
 
@@ -463,10 +430,7 @@ fn main() { println!("from Rust"); }
     fn test_compare_stderr_flag() {
         let c_code = "int main() { return 0; }";
         let rust_code = "fn main() {}";
-        let config = DiffTestConfig {
-            compare_stderr: true,
-            ..Default::default()
-        };
+        let config = DiffTestConfig { compare_stderr: true, ..Default::default() };
         let result = diff_test(c_code, rust_code, &config).expect("diff_test should succeed");
         assert!(result.passed());
     }

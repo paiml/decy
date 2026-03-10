@@ -17,12 +17,7 @@ mod tests {
             initializer: Some(HirExpression::IntLiteral(5)),
         };
 
-        if let HirStatement::VariableDeclaration {
-            name,
-            var_type,
-            initializer,
-        } = &var_decl
-        {
+        if let HirStatement::VariableDeclaration { name, var_type, initializer } = &var_decl {
             assert_eq!(name, "x");
             assert_eq!(var_type, &HirType::Int);
             assert!(initializer.is_some());
@@ -40,12 +35,7 @@ mod tests {
             initializer: None,
         };
 
-        if let HirStatement::VariableDeclaration {
-            name,
-            var_type,
-            initializer,
-        } = &var_decl
-        {
+        if let HirStatement::VariableDeclaration { name, var_type, initializer } = &var_decl {
             assert_eq!(name, "y");
             assert_eq!(var_type, &HirType::Float);
             assert!(initializer.is_none());
@@ -275,12 +265,7 @@ mod tests {
             else_block: None,
         };
 
-        if let HirStatement::If {
-            condition,
-            then_block,
-            else_block,
-        } = &if_stmt
-        {
+        if let HirStatement::If { condition, then_block, else_block } = &if_stmt {
             assert!(matches!(condition, HirExpression::BinaryOp { .. }));
             assert_eq!(then_block.len(), 1);
             assert!(else_block.is_none());
@@ -299,17 +284,10 @@ mod tests {
                 right: Box::new(HirExpression::IntLiteral(0)),
             },
             then_block: vec![HirStatement::Return(Some(HirExpression::IntLiteral(1)))],
-            else_block: Some(vec![HirStatement::Return(Some(HirExpression::IntLiteral(
-                -1,
-            )))]),
+            else_block: Some(vec![HirStatement::Return(Some(HirExpression::IntLiteral(-1)))]),
         };
 
-        if let HirStatement::If {
-            condition,
-            then_block,
-            else_block,
-        } = &if_stmt
-        {
+        if let HirStatement::If { condition, then_block, else_block } = &if_stmt {
             assert!(matches!(condition, HirExpression::BinaryOp { .. }));
             assert_eq!(then_block.len(), 1);
             assert!(else_block.is_some());
@@ -514,16 +492,9 @@ mod tests {
     #[test]
     fn test_function_call_no_args() {
         // RED PHASE: This test will FAIL
-        let expr = HirExpression::FunctionCall {
-            function: "foo".to_string(),
-            arguments: vec![],
-        };
+        let expr = HirExpression::FunctionCall { function: "foo".to_string(), arguments: vec![] };
 
-        if let HirExpression::FunctionCall {
-            function,
-            arguments,
-        } = &expr
-        {
+        if let HirExpression::FunctionCall { function, arguments } = &expr {
             assert_eq!(function, "foo");
             assert_eq!(arguments.len(), 0);
         } else {
@@ -539,11 +510,7 @@ mod tests {
             arguments: vec![HirExpression::IntLiteral(10)],
         };
 
-        if let HirExpression::FunctionCall {
-            function,
-            arguments,
-        } = &expr
-        {
+        if let HirExpression::FunctionCall { function, arguments } = &expr {
             assert_eq!(function, "malloc");
             assert_eq!(arguments.len(), 1);
             assert!(matches!(arguments[0], HirExpression::IntLiteral(10)));
@@ -563,11 +530,7 @@ mod tests {
             ],
         };
 
-        if let HirExpression::FunctionCall {
-            function,
-            arguments,
-        } = &expr
-        {
+        if let HirExpression::FunctionCall { function, arguments } = &expr {
             assert_eq!(function, "add");
             assert_eq!(arguments.len(), 2);
         } else {
@@ -599,11 +562,7 @@ mod tests {
             }],
         };
 
-        if let HirExpression::FunctionCall {
-            function,
-            arguments,
-        } = &expr
-        {
+        if let HirExpression::FunctionCall { function, arguments } = &expr {
             assert_eq!(function, "outer");
             assert_eq!(arguments.len(), 1);
             assert!(matches!(arguments[0], HirExpression::FunctionCall { .. }));

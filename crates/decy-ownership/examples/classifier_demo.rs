@@ -49,10 +49,7 @@ fn demo_rule_based() {
             .build();
 
         let result = classifier.classify(&features);
-        println!(
-            "  {} -> {:?} (confidence: {:.2})",
-            name, result.prediction, result.confidence
-        );
+        println!("  {} -> {:?} (confidence: {:.2})", name, result.prediction, result.confidence);
     }
 }
 
@@ -75,10 +72,7 @@ fn demo_ensemble() {
         .build();
 
     let result = ensemble.classify(&features);
-    println!(
-        "Ensemble prediction: {:?} (confidence: {:.2})",
-        result.prediction, result.confidence
-    );
+    println!("Ensemble prediction: {:?} (confidence: {:.2})", result.prediction, result.confidence);
 }
 
 fn demo_evaluation() {

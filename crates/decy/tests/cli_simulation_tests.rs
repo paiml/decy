@@ -95,11 +95,7 @@ mod parsing_state {
 
     #[test]
     fn test_parse_file_not_found() {
-        decy_cmd()
-            .arg("transpile")
-            .arg("nonexistent_file_12345.c")
-            .assert()
-            .failure();
+        decy_cmd().arg("transpile").arg("nonexistent_file_12345.c").assert().failure();
     }
 }
 
@@ -132,9 +128,7 @@ mod hir_conversion_state {
             .assert()
             .success()
             // Note: decy generates `mut` parameters by default
-            .stdout(predicate::str::contains(
-                "fn add(mut a: i32, mut b: i32) -> i32",
-            ));
+            .stdout(predicate::str::contains("fn add(mut a: i32, mut b: i32) -> i32"));
     }
 
     #[test]
@@ -217,11 +211,7 @@ mod analysis_state {
             "#,
         );
 
-        let output = decy_cmd()
-            .arg("transpile")
-            .arg(&file)
-            .output()
-            .expect("Failed to run");
+        let output = decy_cmd().arg("transpile").arg(&file).output().expect("Failed to run");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         // Should transform malloc to Box
@@ -306,11 +296,7 @@ mod analysis_state {
         );
 
         // Note: decy may transform for loops to while loops or use different syntax
-        let output = decy_cmd()
-            .arg("transpile")
-            .arg(&file)
-            .output()
-            .expect("Failed to run");
+        let output = decy_cmd().arg("transpile").arg(&file).output().expect("Failed to run");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         // Should have some kind of loop construct
@@ -346,11 +332,7 @@ mod generation_state {
             "#,
         );
 
-        let output = decy_cmd()
-            .arg("transpile")
-            .arg(&file)
-            .output()
-            .expect("Failed to run");
+        let output = decy_cmd().arg("transpile").arg(&file).output().expect("Failed to run");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
 
@@ -446,12 +428,7 @@ mod complete_state {
             "#,
         );
 
-        decy_cmd()
-            .arg("transpile")
-            .arg(&file)
-            .assert()
-            .success()
-            .code(0);
+        decy_cmd().arg("transpile").arg(&file).assert().success().code(0);
     }
 
     #[test]
@@ -705,19 +682,11 @@ mod cli_interface {
 
     #[test]
     fn test_cli_help() {
-        decy_cmd()
-            .arg("--help")
-            .assert()
-            .success()
-            .stdout(predicate::str::contains("transpile"));
+        decy_cmd().arg("--help").assert().success().stdout(predicate::str::contains("transpile"));
     }
 
     #[test]
     fn test_cli_version() {
-        decy_cmd()
-            .arg("--version")
-            .assert()
-            .success()
-            .stdout(predicate::str::contains("decy"));
+        decy_cmd().arg("--version").assert().success().stdout(predicate::str::contains("decy"));
     }
 }

@@ -115,10 +115,8 @@ impl LifetimeAnnotator {
         let mut needed_lifetimes = HashSet::new();
 
         // Check if any parameters are references
-        let has_ref_params = func
-            .parameters()
-            .iter()
-            .any(|p| matches!(p.param_type(), HirType::Reference { .. }));
+        let has_ref_params =
+            func.parameters().iter().any(|p| matches!(p.param_type(), HirType::Reference { .. }));
 
         // Check if return type is a reference
         let returns_ref = matches!(func.return_type(), HirType::Reference { .. });
@@ -149,10 +147,7 @@ impl LifetimeAnnotator {
             .iter()
             .map(|param| {
                 let annotated_type = self.annotate_type(param.param_type(), lifetime_params);
-                AnnotatedParameter {
-                    name: param.name().to_string(),
-                    param_type: annotated_type,
-                }
+                AnnotatedParameter { name: param.name().to_string(), param_type: annotated_type }
             })
             .collect()
     }
@@ -209,10 +204,8 @@ impl LifetimeAnnotator {
     /// - No lifetime outlives another incorrectly
     pub fn validate_constraints(&self, signature: &AnnotatedSignature) -> Result<(), String> {
         // Check that return type lifetime exists in parameters
-        if let AnnotatedType::Reference {
-            lifetime: Some(ref ret_lifetime),
-            ..
-        } = signature.return_type
+        if let AnnotatedType::Reference { lifetime: Some(ref ret_lifetime), .. } =
+            signature.return_type
         {
             // Verify that this lifetime appears in parameters
             let param_has_lifetime = signature
@@ -235,14 +228,10 @@ impl LifetimeAnnotator {
     #[allow(clippy::only_used_in_recursion)]
     fn type_has_lifetime(&self, annotated_type: &AnnotatedType, lifetime_name: &str) -> bool {
         match annotated_type {
-            AnnotatedType::Reference {
-                lifetime: Some(lt), ..
-            } => lt.name == lifetime_name,
-            AnnotatedType::Reference {
-                lifetime: None,
-                inner,
-                ..
-            } => self.type_has_lifetime(inner, lifetime_name),
+            AnnotatedType::Reference { lifetime: Some(lt), .. } => lt.name == lifetime_name,
+            AnnotatedType::Reference { lifetime: None, inner, .. } => {
+                self.type_has_lifetime(inner, lifetime_name)
+            }
             AnnotatedType::Simple(_) => false,
         }
     }

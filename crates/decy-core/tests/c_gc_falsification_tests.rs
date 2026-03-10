@@ -102,11 +102,7 @@ int gc_tricolor_collect(int root) {
 }
 "##;
     let result = transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1526: Tri-color mark-sweep GC should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1526: Tri-color mark-sweep GC should transpile: {:?}", result.err());
 }
 
 #[test]
@@ -181,11 +177,7 @@ int gc_wl_sweep(int root) {
 }
 "##;
     let result = transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1527: Worklist-based sweep should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1527: Worklist-based sweep should transpile: {:?}", result.err());
 }
 
 #[test]
@@ -324,11 +316,7 @@ int gc_fl_live_count(void) {
 }
 "##;
     let result = transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1529: Free-list GC collector should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1529: Free-list GC collector should transpile: {:?}", result.err());
 }
 
 #[test]
@@ -405,11 +393,7 @@ size_t gc_cmp_fragmentation(void) {
 }
 "##;
     let result = transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1530: Fragmentation compactor should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1530: Fragmentation compactor should transpile: {:?}", result.err());
 }
 
 // ============================================================================
@@ -468,11 +452,7 @@ int gc_rc_get_refcount(int idx) {
 }
 "##;
     let result = transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1531: Basic reference counting should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1531: Basic reference counting should transpile: {:?}", result.err());
 }
 
 #[test]
@@ -544,11 +524,7 @@ void gc_wr_release(int idx) {
 }
 "##;
     let result = transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1532: Weak reference tracking should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1532: Weak reference tracking should transpile: {:?}", result.err());
 }
 
 #[test]
@@ -783,11 +759,7 @@ int gc_ep_reclaim(void) {
 }
 "##;
     let result = transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1535: Epoch-based reclamation should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1535: Epoch-based reclamation should transpile: {:?}", result.err());
 }
 
 // ============================================================================
@@ -1063,11 +1035,7 @@ int gc_pt_gen_count(int gen) {
 }
 "##;
     let result = transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1539: Promoted object tracking should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1539: Promoted object tracking should transpile: {:?}", result.err());
 }
 
 #[test]
@@ -1443,11 +1411,7 @@ int gc_root_count_roots(void) {
 }
 "##;
     let result = transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1544: Root set scanning should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1544: Root set scanning should transpile: {:?}", result.err());
 }
 
 #[test]
@@ -1616,11 +1580,7 @@ int gc_im_sweep(void) {
 }
 "##;
     let result = transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1546: Incremental marking GC should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1546: Incremental marking GC should transpile: {:?}", result.err());
 }
 
 #[test]

@@ -213,13 +213,7 @@ fn test_stats_markdown_multiple_entries() {
     by_source.insert("bootstrap".to_string(), 12);
     by_source.insert("training".to_string(), 6);
 
-    let stats = DatasetStats {
-        total: 18,
-        verified: 15,
-        by_error_code,
-        by_decision,
-        by_source,
-    };
+    let stats = DatasetStats { total: 18, verified: 15, by_error_code, by_decision, by_source };
 
     let md = stats.to_markdown();
 
@@ -256,13 +250,7 @@ fn test_stats_markdown_full_verification() {
     let mut by_source = HashMap::new();
     by_source.insert("bootstrap".to_string(), 5);
 
-    let stats = DatasetStats {
-        total: 5,
-        verified: 5,
-        by_error_code,
-        by_decision,
-        by_source,
-    };
+    let stats = DatasetStats { total: 5, verified: 5, by_error_code, by_decision, by_source };
 
     let md = stats.to_markdown();
     assert!(md.contains("100.0%"));
@@ -344,13 +332,7 @@ fn test_generate_dataset_card_includes_stats() {
     let mut by_source = HashMap::new();
     by_source.insert("bootstrap".to_string(), 10);
 
-    let stats = DatasetStats {
-        total: 10,
-        verified: 8,
-        by_error_code,
-        by_decision,
-        by_source,
-    };
+    let stats = DatasetStats { total: 10, verified: 8, by_error_code, by_decision, by_source };
 
     let card = generate_dataset_card(&stats);
     // The card should embed the to_markdown() output
@@ -428,10 +410,7 @@ fn test_training_example_clone() {
 
 #[test]
 fn test_chatml_message_serde() {
-    let msg = ChatMLMessage {
-        role: "user".to_string(),
-        content: "Fix this error".to_string(),
-    };
+    let msg = ChatMLMessage { role: "user".to_string(), content: "Fix this error".to_string() };
 
     let json = serde_json::to_string(&msg).unwrap();
     let deserialized: ChatMLMessage = serde_json::from_str(&json).unwrap();
@@ -443,10 +422,7 @@ fn test_chatml_message_serde() {
 fn test_chatml_conversation_serde() {
     let conv = ChatMLConversation {
         messages: vec![
-            ChatMLMessage {
-                role: "user".to_string(),
-                content: "Help me fix E0308".to_string(),
-            },
+            ChatMLMessage { role: "user".to_string(), content: "Help me fix E0308".to_string() },
             ChatMLMessage {
                 role: "assistant".to_string(),
                 content: "Add `as i32` cast".to_string(),
@@ -463,10 +439,8 @@ fn test_chatml_conversation_serde() {
 
 #[test]
 fn test_chatml_message_debug_clone() {
-    let msg = ChatMLMessage {
-        role: "system".to_string(),
-        content: "You are a Rust expert.".to_string(),
-    };
+    let msg =
+        ChatMLMessage { role: "system".to_string(), content: "You are a Rust expert.".to_string() };
     let debug = format!("{:?}", msg);
     assert!(debug.contains("system"));
 

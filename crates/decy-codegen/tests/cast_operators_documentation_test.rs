@@ -343,10 +343,7 @@ fn test_cast_add_const() {
     let rust_equivalent = "let cp: &str = str;";
 
     assert!(c_code.contains("const"), "C adds const");
-    assert!(
-        rust_equivalent.contains("&str"),
-        "Rust immutable by default"
-    );
+    assert!(rust_equivalent.contains("&str"), "Rust immutable by default");
 
     // Demonstrate immutable reference (no cast needed)
     let s = "hello";
@@ -552,10 +549,8 @@ fn test_cast_transformation_safety() {
     let bool_cast = "flag as i32";
     let enum_cast = "status as i32";
 
-    let safe_combined = format!(
-        "{}\n{}\n{}\n{}",
-        numeric_cast, pointer_to_int, bool_cast, enum_cast
-    );
+    let safe_combined =
+        format!("{}\n{}\n{}\n{}", numeric_cast, pointer_to_int, bool_cast, enum_cast);
 
     // Count unsafe (should be 0 for these patterns)
     let unsafe_count = safe_combined.matches("unsafe").count();
@@ -563,10 +558,7 @@ fn test_cast_transformation_safety() {
 
     // Type punning requires unsafe
     let type_punning = "std::mem::transmute(f)";
-    assert!(
-        type_punning.contains("transmute"),
-        "Type punning uses transmute (unsafe)"
-    );
+    assert!(type_punning.contains("transmute"), "Type punning uses transmute (unsafe)");
 }
 
 /// Summary of cast operator transformation rules
@@ -623,10 +615,7 @@ fn test_cast_transformation_rules_summary() {
 
     // Rule 5: Most casts don't need unsafe
     let unsafe_blocks = 0;
-    assert_eq!(
-        unsafe_blocks, 0,
-        "Most cast transformations use safe `as` operator"
-    );
+    assert_eq!(unsafe_blocks, 0, "Most cast transformations use safe `as` operator");
 
     // Rule 6: Type punning has safe alternatives
     let f = std::f32::consts::PI;

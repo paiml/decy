@@ -23,20 +23,12 @@ int main() {
 "#;
 
     let result = parser.parse(source);
-    assert!(
-        result.is_ok(),
-        "Should parse C code with <stdlib.h>: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "Should parse C code with <stdlib.h>: {:?}", result.err());
 
     let ast = result.unwrap();
     // stdlib.h brings in many function declarations, just verify main exists
     let has_main = ast.functions().iter().any(|f| f.name == "main");
-    assert!(
-        has_main,
-        "Should find main function among {} functions",
-        ast.functions().len()
-    );
+    assert!(has_main, "Should find main function among {} functions", ast.functions().len());
 }
 
 // ============================================================================
@@ -57,11 +49,7 @@ int main() {
 "#;
 
     let result = parser.parse(source);
-    assert!(
-        result.is_ok(),
-        "Should parse C code with <stdio.h>: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "Should parse C code with <stdio.h>: {:?}", result.err());
 }
 
 // ============================================================================
@@ -83,11 +71,7 @@ int main() {
 "#;
 
     let result = parser.parse(source);
-    assert!(
-        result.is_ok(),
-        "Should parse C code with <string.h>: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "Should parse C code with <string.h>: {:?}", result.err());
 }
 
 // ============================================================================
@@ -113,11 +97,7 @@ int main() {
 "#;
 
     let result = parser.parse(source);
-    assert!(
-        result.is_ok(),
-        "Should parse C code with multiple headers: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "Should parse C code with multiple headers: {:?}", result.err());
 }
 
 // ============================================================================
@@ -145,11 +125,7 @@ struct Node* create_node(int value) {
 "#;
 
     let result = parser.parse(source);
-    assert!(
-        result.is_ok(),
-        "Should parse struct with stdlib types: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "Should parse struct with stdlib types: {:?}", result.err());
 }
 
 // ============================================================================
@@ -169,11 +145,7 @@ size_t get_size(void) {
 "#;
 
     let result = parser.parse(source);
-    assert!(
-        result.is_ok(),
-        "Should parse C code with size_t: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "Should parse C code with size_t: {:?}", result.err());
 }
 
 // ============================================================================
@@ -273,15 +245,9 @@ int main(void) {
     let ast = result.unwrap();
     // Verify expected functions exist
     let function_names: Vec<&str> = ast.functions().iter().map(|f| f.name.as_str()).collect();
-    assert!(
-        function_names.contains(&"create_node"),
-        "Should have create_node"
-    );
+    assert!(function_names.contains(&"create_node"), "Should have create_node");
     assert!(function_names.contains(&"insert"), "Should have insert");
     assert!(function_names.contains(&"search"), "Should have search");
-    assert!(
-        function_names.contains(&"free_tree"),
-        "Should have free_tree"
-    );
+    assert!(function_names.contains(&"free_tree"), "Should have free_tree");
     assert!(function_names.contains(&"main"), "Should have main");
 }

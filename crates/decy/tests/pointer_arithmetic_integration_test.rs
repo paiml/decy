@@ -41,11 +41,7 @@ fn compile_rust_code(rust_code: &str, output_name: &str) -> Result<(), String> {
 fn test_transpile_compound_assignments() {
     // Given: C code with compound assignment operators
     let example_path = "../../examples/pointer_arithmetic/compound_assignments.c";
-    assert!(
-        Path::new(example_path).exists(),
-        "Example file {} should exist",
-        example_path
-    );
+    assert!(Path::new(example_path).exists(), "Example file {} should exist", example_path);
 
     let c_code = fs::read_to_string(example_path).expect("Failed to read example file");
 
@@ -60,46 +56,20 @@ fn test_transpile_compound_assignments() {
     let result = decy_core::transpile(&c_code);
 
     // Then: Transpilation should succeed
-    assert!(
-        result.is_ok(),
-        "Should transpile compound assignments, got error: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "Should transpile compound assignments, got error: {:?}", result.err());
 
     let rust_code = result.unwrap();
 
     // And: Generated Rust code should contain all functions
-    assert!(
-        rust_code.contains("fn increment_by"),
-        "Should contain increment_by function"
-    );
-    assert!(
-        rust_code.contains("fn decrement_by"),
-        "Should contain decrement_by function"
-    );
-    assert!(
-        rust_code.contains("fn multiply_by"),
-        "Should contain multiply_by function"
-    );
-    assert!(
-        rust_code.contains("fn divide_by"),
-        "Should contain divide_by function"
-    );
-    assert!(
-        rust_code.contains("fn modulo_by"),
-        "Should contain modulo_by function"
-    );
-    assert!(
-        rust_code.contains("fn advance_pointer"),
-        "Should contain advance_pointer function"
-    );
+    assert!(rust_code.contains("fn increment_by"), "Should contain increment_by function");
+    assert!(rust_code.contains("fn decrement_by"), "Should contain decrement_by function");
+    assert!(rust_code.contains("fn multiply_by"), "Should contain multiply_by function");
+    assert!(rust_code.contains("fn divide_by"), "Should contain divide_by function");
+    assert!(rust_code.contains("fn modulo_by"), "Should contain modulo_by function");
+    assert!(rust_code.contains("fn advance_pointer"), "Should contain advance_pointer function");
 
     // And: Should use i32 for int types
-    assert!(
-        rust_code.contains("i32"),
-        "Should use i32 for int types, got: {}",
-        rust_code
-    );
+    assert!(rust_code.contains("i32"), "Should use i32 for int types, got: {}", rust_code);
 
     // DECY-041: Verify compound assignments are transpiled correctly
     // They should be converted to expanded form: x += y becomes x = x + y
@@ -117,11 +87,7 @@ fn test_transpile_compound_assignments() {
 fn test_transpile_increment_decrement() {
     // Given: C code with increment/decrement operators
     let example_path = "../../examples/pointer_arithmetic/increment_decrement.c";
-    assert!(
-        Path::new(example_path).exists(),
-        "Example file {} should exist",
-        example_path
-    );
+    assert!(Path::new(example_path).exists(), "Example file {} should exist", example_path);
 
     let c_code = fs::read_to_string(example_path).expect("Failed to read example file");
 
@@ -133,11 +99,7 @@ fn test_transpile_increment_decrement() {
     let result = decy_core::transpile(&c_code);
 
     // Then: Transpilation should succeed
-    assert!(
-        result.is_ok(),
-        "Should transpile increment/decrement, got error: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "Should transpile increment/decrement, got error: {:?}", result.err());
 
     let rust_code = result.unwrap();
 
@@ -158,14 +120,8 @@ fn test_transpile_increment_decrement() {
         rust_code.contains("fn pre_decrement_test"),
         "Should contain pre_decrement_test function"
     );
-    assert!(
-        rust_code.contains("fn sum_to_n"),
-        "Should contain sum_to_n function with for loop"
-    );
-    assert!(
-        rust_code.contains("fn countdown_sum"),
-        "Should contain countdown_sum function"
-    );
+    assert!(rust_code.contains("fn sum_to_n"), "Should contain sum_to_n function with for loop");
+    assert!(rust_code.contains("fn countdown_sum"), "Should contain countdown_sum function");
 
     // DECY-041: Verify increment/decrement are transpiled correctly
     // They should be converted to: x++ becomes x = x + 1
@@ -183,47 +139,27 @@ fn test_transpile_increment_decrement() {
 fn test_transpile_real_world_patterns() {
     // Given: C code with real-world pointer arithmetic patterns
     let example_path = "../../examples/pointer_arithmetic/real_world_patterns.c";
-    assert!(
-        Path::new(example_path).exists(),
-        "Example file {} should exist",
-        example_path
-    );
+    assert!(Path::new(example_path).exists(), "Example file {} should exist", example_path);
 
     let c_code = fs::read_to_string(example_path).expect("Failed to read example file");
 
     // Verify example contains expected patterns
-    assert!(
-        c_code.contains("arr + size"),
-        "Should contain pointer arithmetic"
-    );
+    assert!(c_code.contains("arr + size"), "Should contain pointer arithmetic");
     assert!(c_code.contains("arr++"), "Should contain pointer increment");
     assert!(c_code.contains("break"), "Should contain break statement");
-    assert!(
-        c_code.contains("continue"),
-        "Should contain continue statement"
-    );
+    assert!(c_code.contains("continue"), "Should contain continue statement");
 
     // When: We transpile it
     let result = decy_core::transpile(&c_code);
 
     // Then: Transpilation should succeed
-    assert!(
-        result.is_ok(),
-        "Should transpile real-world patterns, got error: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "Should transpile real-world patterns, got error: {:?}", result.err());
 
     let rust_code = result.unwrap();
 
     // And: Generated Rust code should contain all functions
-    assert!(
-        rust_code.contains("fn sum_array"),
-        "Should contain sum_array function"
-    );
-    assert!(
-        rust_code.contains("fn find_first"),
-        "Should contain find_first function"
-    );
+    assert!(rust_code.contains("fn sum_array"), "Should contain sum_array function");
+    assert!(rust_code.contains("fn find_first"), "Should contain find_first function");
     assert!(
         rust_code.contains("fn count_even"),
         "Should contain count_even function with continue"
@@ -232,20 +168,11 @@ fn test_transpile_real_world_patterns() {
         rust_code.contains("fn linear_search"),
         "Should contain linear_search function with break"
     );
-    assert!(
-        rust_code.contains("fn string_length"),
-        "Should contain string_length function"
-    );
+    assert!(rust_code.contains("fn string_length"), "Should contain string_length function");
 
     // And: Should contain break and continue statements
-    assert!(
-        rust_code.contains("break"),
-        "Should preserve break statements"
-    );
-    assert!(
-        rust_code.contains("continue"),
-        "Should preserve continue statements"
-    );
+    assert!(rust_code.contains("break"), "Should preserve break statements");
+    assert!(rust_code.contains("continue"), "Should preserve continue statements");
 
     println!("Generated Rust code:\n{}", rust_code);
 
@@ -274,19 +201,12 @@ fn test_for_loop_with_increment() {
     let result = decy_core::transpile(c_code);
 
     // Then: Should succeed
-    assert!(
-        result.is_ok(),
-        "Should transpile for loop with i++, got error: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "Should transpile for loop with i++, got error: {:?}", result.err());
 
     let rust_code = result.unwrap();
 
     // And: Should convert for loop to while loop with increment
-    assert!(
-        rust_code.contains("while"),
-        "For loop should convert to while loop"
-    );
+    assert!(rust_code.contains("while"), "For loop should convert to while loop");
 
     println!("Generated Rust code:\n{}", rust_code);
 
@@ -331,11 +251,7 @@ fn test_nested_loops_with_break_continue() {
     let result = decy_core::transpile(c_code);
 
     // Then: Should succeed
-    assert!(
-        result.is_ok(),
-        "Should transpile nested loops, got error: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "Should transpile nested loops, got error: {:?}", result.err());
 
     let rust_code = result.unwrap();
 

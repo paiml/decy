@@ -28,14 +28,10 @@ fn test_free_eliminated_for_box() {
                 name: "p".to_string(),
                 var_type: HirType::Box(Box::new(HirType::Int)),
                 initializer: Some(HirExpression::Malloc {
-                    size: Box::new(HirExpression::Sizeof {
-                        type_name: "int".to_string(),
-                    }),
+                    size: Box::new(HirExpression::Sizeof { type_name: "int".to_string() }),
                 }),
             },
-            HirStatement::Free {
-                pointer: HirExpression::Variable("p".to_string()),
-            },
+            HirStatement::Free { pointer: HirExpression::Variable("p".to_string()) },
         ],
     );
 
@@ -79,15 +75,11 @@ fn test_free_eliminated_for_vec() {
                     size: Box::new(HirExpression::BinaryOp {
                         op: decy_hir::BinaryOperator::Multiply,
                         left: Box::new(HirExpression::Variable("n".to_string())),
-                        right: Box::new(HirExpression::Sizeof {
-                            type_name: "int".to_string(),
-                        }),
+                        right: Box::new(HirExpression::Sizeof { type_name: "int".to_string() }),
                     }),
                 }),
             },
-            HirStatement::Free {
-                pointer: HirExpression::Variable("arr".to_string()),
-            },
+            HirStatement::Free { pointer: HirExpression::Variable("arr".to_string()) },
         ],
     );
 
@@ -118,9 +110,7 @@ fn test_free_null_pointer_eliminated() {
         "test".to_string(),
         HirType::Void,
         vec![],
-        vec![HirStatement::Free {
-            pointer: HirExpression::NullLiteral,
-        }],
+        vec![HirStatement::Free { pointer: HirExpression::NullLiteral }],
     );
 
     let codegen = CodeGenerator::new();
@@ -154,26 +144,18 @@ fn test_multiple_free_eliminated() {
                 name: "p1".to_string(),
                 var_type: HirType::Box(Box::new(HirType::Int)),
                 initializer: Some(HirExpression::Malloc {
-                    size: Box::new(HirExpression::Sizeof {
-                        type_name: "int".to_string(),
-                    }),
+                    size: Box::new(HirExpression::Sizeof { type_name: "int".to_string() }),
                 }),
             },
             HirStatement::VariableDeclaration {
                 name: "p2".to_string(),
                 var_type: HirType::Box(Box::new(HirType::Float)),
                 initializer: Some(HirExpression::Malloc {
-                    size: Box::new(HirExpression::Sizeof {
-                        type_name: "float".to_string(),
-                    }),
+                    size: Box::new(HirExpression::Sizeof { type_name: "float".to_string() }),
                 }),
             },
-            HirStatement::Free {
-                pointer: HirExpression::Variable("p1".to_string()),
-            },
-            HirStatement::Free {
-                pointer: HirExpression::Variable("p2".to_string()),
-            },
+            HirStatement::Free { pointer: HirExpression::Variable("p1".to_string()) },
+            HirStatement::Free { pointer: HirExpression::Variable("p2".to_string()) },
         ],
     );
 
@@ -210,9 +192,7 @@ fn test_free_in_conditional_eliminated() {
                 name: "p".to_string(),
                 var_type: HirType::Box(Box::new(HirType::Int)),
                 initializer: Some(HirExpression::Malloc {
-                    size: Box::new(HirExpression::Sizeof {
-                        type_name: "int".to_string(),
-                    }),
+                    size: Box::new(HirExpression::Sizeof { type_name: "int".to_string() }),
                 }),
             },
             HirStatement::If {
@@ -258,9 +238,7 @@ fn test_free_before_return_eliminated() {
                 name: "p".to_string(),
                 var_type: HirType::Box(Box::new(HirType::Int)),
                 initializer: Some(HirExpression::Malloc {
-                    size: Box::new(HirExpression::Sizeof {
-                        type_name: "int".to_string(),
-                    }),
+                    size: Box::new(HirExpression::Sizeof { type_name: "int".to_string() }),
                 }),
             },
             HirStatement::VariableDeclaration {
@@ -268,9 +246,7 @@ fn test_free_before_return_eliminated() {
                 var_type: HirType::Int,
                 initializer: Some(HirExpression::IntLiteral(42)),
             },
-            HirStatement::Free {
-                pointer: HirExpression::Variable("p".to_string()),
-            },
+            HirStatement::Free { pointer: HirExpression::Variable("p".to_string()) },
             HirStatement::Return(Some(HirExpression::Variable("result".to_string()))),
         ],
     );
@@ -304,14 +280,10 @@ fn test_free_transformation_unsafe_count() {
                 name: "p".to_string(),
                 var_type: HirType::Box(Box::new(HirType::Int)),
                 initializer: Some(HirExpression::Malloc {
-                    size: Box::new(HirExpression::Sizeof {
-                        type_name: "int".to_string(),
-                    }),
+                    size: Box::new(HirExpression::Sizeof { type_name: "int".to_string() }),
                 }),
             },
-            HirStatement::Free {
-                pointer: HirExpression::Variable("p".to_string()),
-            },
+            HirStatement::Free { pointer: HirExpression::Variable("p".to_string()) },
         ],
     );
 
@@ -320,10 +292,7 @@ fn test_free_transformation_unsafe_count() {
 
     // Count unsafe blocks (should be 0)
     let unsafe_count = result.matches("unsafe").count();
-    assert_eq!(
-        unsafe_count, 0,
-        "free → drop transformation should not introduce unsafe blocks"
-    );
+    assert_eq!(unsafe_count, 0, "free → drop transformation should not introduce unsafe blocks");
 }
 
 /// Test RAII documentation comment generation
@@ -342,14 +311,10 @@ fn test_free_generates_raii_comment() {
                 name: "p".to_string(),
                 var_type: HirType::Box(Box::new(HirType::Int)),
                 initializer: Some(HirExpression::Malloc {
-                    size: Box::new(HirExpression::Sizeof {
-                        type_name: "int".to_string(),
-                    }),
+                    size: Box::new(HirExpression::Sizeof { type_name: "int".to_string() }),
                 }),
             },
-            HirStatement::Free {
-                pointer: HirExpression::Variable("p".to_string()),
-            },
+            HirStatement::Free { pointer: HirExpression::Variable("p".to_string()) },
         ],
     );
 

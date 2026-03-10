@@ -58,10 +58,7 @@ fn test_hir_compound_literal_struct() {
     };
 
     match compound_expr {
-        HirExpression::CompoundLiteral {
-            literal_type,
-            initializers,
-        } => {
+        HirExpression::CompoundLiteral { literal_type, initializers } => {
             assert_eq!(literal_type, HirType::Struct("Point".to_string()));
             assert_eq!(initializers.len(), 2);
         }
@@ -76,10 +73,7 @@ fn test_hir_compound_literal_array() {
     // HIR: CompoundLiteral { literal_type: Array(Int, 5), initializers: [...] }
 
     let compound_expr = HirExpression::CompoundLiteral {
-        literal_type: HirType::Array {
-            element_type: Box::new(HirType::Int),
-            size: Some(5),
-        },
+        literal_type: HirType::Array { element_type: Box::new(HirType::Int), size: Some(5) },
         initializers: vec![
             HirExpression::IntLiteral(1),
             HirExpression::IntLiteral(2),
@@ -90,10 +84,7 @@ fn test_hir_compound_literal_array() {
     };
 
     match compound_expr {
-        HirExpression::CompoundLiteral {
-            literal_type,
-            initializers,
-        } => {
+        HirExpression::CompoundLiteral { literal_type, initializers } => {
             assert!(matches!(literal_type, HirType::Array { .. }));
             assert_eq!(initializers.len(), 5);
         }

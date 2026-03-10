@@ -44,16 +44,8 @@ fn test_void_pointer_param_stays_raw_pointer() {
     println!("Generated: {}", code);
 
     // The void* parameter should be *mut (), not &mut ()
-    assert!(
-        code.contains("ptr: *mut ()"),
-        "void* param should become *mut (), got: {}",
-        code
-    );
-    assert!(
-        !code.contains("ptr: &mut ()"),
-        "void* param should NOT become &mut (), got: {}",
-        code
-    );
+    assert!(code.contains("ptr: *mut ()"), "void* param should become *mut (), got: {}", code);
+    assert!(!code.contains("ptr: &mut ()"), "void* param should NOT become &mut (), got: {}", code);
 }
 
 #[test]
@@ -68,10 +60,7 @@ fn test_memcpy_void_pointers() {
         "memcpy".to_string(),
         HirType::Pointer(Box::new(HirType::Void)),
         vec![
-            HirParameter::new(
-                "dest".to_string(),
-                HirType::Pointer(Box::new(HirType::Void)),
-            ),
+            HirParameter::new("dest".to_string(), HirType::Pointer(Box::new(HirType::Void))),
             HirParameter::new("src".to_string(), HirType::Pointer(Box::new(HirType::Void))),
             HirParameter::new("n".to_string(), HirType::UnsignedInt),
         ],
@@ -83,11 +72,7 @@ fn test_memcpy_void_pointers() {
     println!("Generated: {}", code);
 
     // Both void* params should be *mut ()
-    assert!(
-        code.contains("dest: *mut ()"),
-        "void* dest should become *mut (), got: {}",
-        code
-    );
+    assert!(code.contains("dest: *mut ()"), "void* dest should become *mut (), got: {}", code);
     // Note: src may be different due to naming, but should NOT be a reference
     assert!(
         !code.contains(": &mut ()") && !code.contains(": &()"),
@@ -106,10 +91,7 @@ fn test_free_void_pointer() {
     let func = HirFunction::new_with_body(
         "free".to_string(),
         HirType::Void,
-        vec![HirParameter::new(
-            "ptr".to_string(),
-            HirType::Pointer(Box::new(HirType::Void)),
-        )],
+        vec![HirParameter::new("ptr".to_string(), HirType::Pointer(Box::new(HirType::Void)))],
         vec![],
     );
 
@@ -117,14 +99,6 @@ fn test_free_void_pointer() {
 
     println!("Generated: {}", code);
 
-    assert!(
-        code.contains("ptr: *mut ()"),
-        "void* param should become *mut (), got: {}",
-        code
-    );
-    assert!(
-        !code.contains("ptr: &mut ()"),
-        "void* param should NOT become &mut (), got: {}",
-        code
-    );
+    assert!(code.contains("ptr: *mut ()"), "void* param should become *mut (), got: {}", code);
+    assert!(!code.contains("ptr: &mut ()"), "void* param should NOT become &mut (), got: {}", code);
 }

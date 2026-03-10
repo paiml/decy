@@ -80,14 +80,8 @@ void vec_scale(vector_t *v, double alpha) {
     );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C451: empty output");
-    assert!(
-        code.contains("fn mat_vec_mul"),
-        "C451: Should contain mat_vec_mul function"
-    );
-    assert!(
-        code.contains("fn vec_dot"),
-        "C451: Should contain vec_dot function"
-    );
+    assert!(code.contains("fn mat_vec_mul"), "C451: Should contain mat_vec_mul function");
+    assert!(code.contains("fn vec_dot"), "C451: Should contain vec_dot function");
 }
 
 #[test]
@@ -160,17 +154,10 @@ void gauss_back_substitute(linear_system_t *sys) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C452: Gaussian elimination should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C452: Gaussian elimination should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C452: empty output");
-    assert!(
-        code.contains("fn gauss_eliminate"),
-        "C452: Should contain gauss_eliminate function"
-    );
+    assert!(code.contains("fn gauss_eliminate"), "C452: Should contain gauss_eliminate function");
     assert!(
         code.contains("fn gauss_back_substitute"),
         "C452: Should contain gauss_back_substitute function"
@@ -241,21 +228,11 @@ void lu_solve(const lu_decomp_t *lu, const double *b, double *x) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C453: LU decomposition should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C453: LU decomposition should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C453: empty output");
-    assert!(
-        code.contains("fn lu_decompose"),
-        "C453: Should contain lu_decompose function"
-    );
-    assert!(
-        code.contains("fn lu_solve"),
-        "C453: Should contain lu_solve function"
-    );
+    assert!(code.contains("fn lu_decompose"), "C453: Should contain lu_decompose function");
+    assert!(code.contains("fn lu_solve"), "C453: Should contain lu_solve function");
 }
 
 #[test]
@@ -315,21 +292,11 @@ int jacobi_iterate(jacobi_solver_t *sol) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C454: Jacobi iterative solver should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C454: Jacobi iterative solver should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C454: empty output");
-    assert!(
-        code.contains("fn jacobi_iterate"),
-        "C454: Should contain jacobi_iterate function"
-    );
-    assert!(
-        code.contains("fn jacobi_residual"),
-        "C454: Should contain jacobi_residual function"
-    );
+    assert!(code.contains("fn jacobi_iterate"), "C454: Should contain jacobi_iterate function");
+    assert!(code.contains("fn jacobi_residual"), "C454: Should contain jacobi_residual function");
 }
 
 #[test]
@@ -389,21 +356,11 @@ double csr_get(const csr_matrix_t *A, int row, int col) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C455: Sparse CSR matrix should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C455: Sparse CSR matrix should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C455: empty output");
-    assert!(
-        code.contains("fn csr_matvec"),
-        "C455: Should contain csr_matvec function"
-    );
-    assert!(
-        code.contains("fn csr_get"),
-        "C455: Should contain csr_get function"
-    );
+    assert!(code.contains("fn csr_matvec"), "C455: Should contain csr_matvec function");
+    assert!(code.contains("fn csr_get"), "C455: Should contain csr_get function");
 }
 
 // ============================================================================
@@ -466,14 +423,8 @@ int newton_solve(newton_state_t *st) {
     );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C456: empty output");
-    assert!(
-        code.contains("fn newton_solve"),
-        "C456: Should contain newton_solve function"
-    );
-    assert!(
-        code.contains("fn newton_func"),
-        "C456: Should contain newton_func function"
-    );
+    assert!(code.contains("fn newton_solve"), "C456: Should contain newton_solve function");
+    assert!(code.contains("fn newton_func"), "C456: Should contain newton_func function");
 }
 
 #[test]
@@ -524,21 +475,11 @@ void rk4_init(rk4_state_t *st, double y0, double h, double t_end) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C457: Runge-Kutta 4th order should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C457: Runge-Kutta 4th order should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C457: empty output");
-    assert!(
-        code.contains("fn rk4_step"),
-        "C457: Should contain rk4_step function"
-    );
-    assert!(
-        code.contains("fn rk4_integrate"),
-        "C457: Should contain rk4_integrate function"
-    );
+    assert!(code.contains("fn rk4_step"), "C457: Should contain rk4_step function");
+    assert!(code.contains("fn rk4_integrate"), "C457: Should contain rk4_integrate function");
 }
 
 #[test]
@@ -587,21 +528,11 @@ int trap_converge(double a, double b, double tol, double exact) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C458: Trapezoidal integration should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C458: Trapezoidal integration should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C458: empty output");
-    assert!(
-        code.contains("fn trap_integrate"),
-        "C458: Should contain trap_integrate function"
-    );
-    assert!(
-        code.contains("fn trap_converge"),
-        "C458: Should contain trap_converge function"
-    );
+    assert!(code.contains("fn trap_integrate"), "C458: Should contain trap_integrate function");
+    assert!(code.contains("fn trap_converge"), "C458: Should contain trap_converge function");
 }
 
 #[test]
@@ -666,10 +597,7 @@ double simpson_adaptive(double a, double b, double tol) {
         code.contains("fn simpson_integrate"),
         "C459: Should contain simpson_integrate function"
     );
-    assert!(
-        code.contains("fn simpson_adaptive"),
-        "C459: Should contain simpson_adaptive function"
-    );
+    assert!(code.contains("fn simpson_adaptive"), "C459: Should contain simpson_adaptive function");
 }
 
 #[test]
@@ -741,14 +669,8 @@ double poly_root_newton(const polynomial_t *p, double x0, double tol, int max_it
     );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C460: empty output");
-    assert!(
-        code.contains("fn poly_eval_horner"),
-        "C460: Should contain poly_eval_horner function"
-    );
-    assert!(
-        code.contains("fn poly_root_newton"),
-        "C460: Should contain poly_root_newton function"
-    );
+    assert!(code.contains("fn poly_eval_horner"), "C460: Should contain poly_eval_horner function");
+    assert!(code.contains("fn poly_root_newton"), "C460: Should contain poly_root_newton function");
 }
 
 // ============================================================================
@@ -809,21 +731,11 @@ double lagrange_error_bound(const interp_data_t *d, double x, double max_deriv) 
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C461: Lagrange interpolation should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C461: Lagrange interpolation should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C461: empty output");
-    assert!(
-        code.contains("fn lagrange_eval"),
-        "C461: Should contain lagrange_eval function"
-    );
-    assert!(
-        code.contains("fn lagrange_basis"),
-        "C461: Should contain lagrange_basis function"
-    );
+    assert!(code.contains("fn lagrange_eval"), "C461: Should contain lagrange_eval function");
+    assert!(code.contains("fn lagrange_basis"), "C461: Should contain lagrange_basis function");
 }
 
 #[test]
@@ -890,21 +802,11 @@ double reg_predict(const regression_t *r, double x) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C462: Least squares regression should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C462: Least squares regression should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C462: empty output");
-    assert!(
-        code.contains("fn reg_fit"),
-        "C462: Should contain reg_fit function"
-    );
-    assert!(
-        code.contains("fn reg_predict"),
-        "C462: Should contain reg_predict function"
-    );
+    assert!(code.contains("fn reg_fit"), "C462: Should contain reg_fit function");
+    assert!(code.contains("fn reg_predict"), "C462: Should contain reg_predict function");
 }
 
 #[test]
@@ -976,21 +878,11 @@ void qr_decompose(qr_decomp_t *qr, const double *A) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C463: QR decomposition should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C463: QR decomposition should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C463: empty output");
-    assert!(
-        code.contains("fn qr_decompose"),
-        "C463: Should contain qr_decompose function"
-    );
-    assert!(
-        code.contains("fn qr_col_dot"),
-        "C463: Should contain qr_col_dot function"
-    );
+    assert!(code.contains("fn qr_decompose"), "C463: Should contain qr_decompose function");
+    assert!(code.contains("fn qr_col_dot"), "C463: Should contain qr_col_dot function");
 }
 
 #[test]
@@ -1073,14 +965,8 @@ int power_iterate(power_iter_t *pi) {
     );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C464: empty output");
-    assert!(
-        code.contains("fn power_iterate"),
-        "C464: Should contain power_iterate function"
-    );
-    assert!(
-        code.contains("fn power_vec_norm"),
-        "C464: Should contain power_vec_norm function"
-    );
+    assert!(code.contains("fn power_iterate"), "C464: Should contain power_iterate function");
+    assert!(code.contains("fn power_vec_norm"), "C464: Should contain power_vec_norm function");
 }
 
 #[test]
@@ -1137,21 +1023,11 @@ double mc_error(const monte_carlo_t *mc) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C465: Monte Carlo Pi estimation should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C465: Monte Carlo Pi estimation should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C465: empty output");
-    assert!(
-        code.contains("fn mc_sample"),
-        "C465: Should contain mc_sample function"
-    );
-    assert!(
-        code.contains("fn rng_uniform"),
-        "C465: Should contain rng_uniform function"
-    );
+    assert!(code.contains("fn mc_sample"), "C465: Should contain mc_sample function");
+    assert!(code.contains("fn rng_uniform"), "C465: Should contain rng_uniform function");
 }
 
 // ============================================================================
@@ -1228,14 +1104,8 @@ void heat1d_evolve(heat1d_t *h, int num_steps) {
     );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C466: empty output");
-    assert!(
-        code.contains("fn heat1d_step"),
-        "C466: Should contain heat1d_step function"
-    );
-    assert!(
-        code.contains("fn heat1d_evolve"),
-        "C466: Should contain heat1d_evolve function"
-    );
+    assert!(code.contains("fn heat1d_step"), "C466: Should contain heat1d_step function");
+    assert!(code.contains("fn heat1d_evolve"), "C466: Should contain heat1d_evolve function");
 }
 
 #[test]
@@ -1319,21 +1189,11 @@ void fft_butterfly(complex_t *data, int n) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C467: FFT radix-2 should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C467: FFT radix-2 should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C467: empty output");
-    assert!(
-        code.contains("fn fft_butterfly"),
-        "C467: Should contain fft_butterfly function"
-    );
-    assert!(
-        code.contains("fn complex_mul"),
-        "C467: Should contain complex_mul function"
-    );
+    assert!(code.contains("fn fft_butterfly"), "C467: Should contain fft_butterfly function");
+    assert!(code.contains("fn complex_mul"), "C467: Should contain complex_mul function");
 }
 
 #[test]
@@ -1400,21 +1260,14 @@ void cholesky_solve(const cholesky_t *ch, const double *b, double *x) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C468: Cholesky decomposition should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C468: Cholesky decomposition should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C468: empty output");
     assert!(
         code.contains("fn cholesky_decompose"),
         "C468: Should contain cholesky_decompose function"
     );
-    assert!(
-        code.contains("fn cholesky_solve"),
-        "C468: Should contain cholesky_solve function"
-    );
+    assert!(code.contains("fn cholesky_solve"), "C468: Should contain cholesky_solve function");
 }
 
 #[test]
@@ -1484,17 +1337,10 @@ double bisect_convergence_rate(const bisection_t *bs) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C469: Bisection method should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C469: Bisection method should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C469: empty output");
-    assert!(
-        code.contains("fn bisect_solve"),
-        "C469: Should contain bisect_solve function"
-    );
+    assert!(code.contains("fn bisect_solve"), "C469: Should contain bisect_solve function");
     assert!(
         code.contains("fn bisect_check_bracket"),
         "C469: Should contain bisect_check_bracket function"
@@ -1579,14 +1425,8 @@ double spline_eval(const cubic_spline_t *sp, double x) {
     );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C470: empty output");
-    assert!(
-        code.contains("fn spline_compute"),
-        "C470: Should contain spline_compute function"
-    );
-    assert!(
-        code.contains("fn spline_eval"),
-        "C470: Should contain spline_eval function"
-    );
+    assert!(code.contains("fn spline_compute"), "C470: Should contain spline_compute function");
+    assert!(code.contains("fn spline_eval"), "C470: Should contain spline_eval function");
 }
 
 // ============================================================================
@@ -1670,17 +1510,10 @@ int gs_check_diagonal_dominance(const gauss_seidel_t *gs) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C471: Gauss-Seidel solver should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C471: Gauss-Seidel solver should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C471: empty output");
-    assert!(
-        code.contains("fn gs_solve"),
-        "C471: Should contain gs_solve function"
-    );
+    assert!(code.contains("fn gs_solve"), "C471: Should contain gs_solve function");
     assert!(
         code.contains("fn gs_compute_residual"),
         "C471: Should contain gs_compute_residual function"
@@ -1759,21 +1592,11 @@ double svd2x2_condition_number(const svd2x2_t *svd) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C472: SVD 2x2 simplified should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C472: SVD 2x2 simplified should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C472: empty output");
-    assert!(
-        code.contains("fn svd2x2_compute"),
-        "C472: Should contain svd2x2_compute function"
-    );
-    assert!(
-        code.contains("fn svd_sqrt_approx"),
-        "C472: Should contain svd_sqrt_approx function"
-    );
+    assert!(code.contains("fn svd2x2_compute"), "C472: Should contain svd2x2_compute function");
+    assert!(code.contains("fn svd_sqrt_approx"), "C472: Should contain svd_sqrt_approx function");
 }
 
 #[test]
@@ -1835,21 +1658,11 @@ double diff_optimal_h(double x) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C473: Numerical differentiation should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C473: Numerical differentiation should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C473: empty output");
-    assert!(
-        code.contains("fn diff_central"),
-        "C473: Should contain diff_central function"
-    );
-    assert!(
-        code.contains("fn diff_richardson"),
-        "C473: Should contain diff_richardson function"
-    );
+    assert!(code.contains("fn diff_central"), "C473: Should contain diff_central function");
+    assert!(code.contains("fn diff_richardson"), "C473: Should contain diff_richardson function");
 }
 
 #[test]
@@ -1927,14 +1740,8 @@ int ab_solve(ab_solver_t *sol, double t_end) {
     );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C474: empty output");
-    assert!(
-        code.contains("fn ab4_step"),
-        "C474: Should contain ab4_step function"
-    );
-    assert!(
-        code.contains("fn ab_solve"),
-        "C474: Should contain ab_solve function"
-    );
+    assert!(code.contains("fn ab4_step"), "C474: Should contain ab4_step function");
+    assert!(code.contains("fn ab_solve"), "C474: Should contain ab_solve function");
 }
 
 #[test]
@@ -2023,19 +1830,9 @@ double cg_residual_norm(const cg_solver_t *cg) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C475: Conjugate gradient solver should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C475: Conjugate gradient solver should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C475: empty output");
-    assert!(
-        code.contains("fn cg_solve"),
-        "C475: Should contain cg_solve function"
-    );
-    assert!(
-        code.contains("fn cg_dot"),
-        "C475: Should contain cg_dot function"
-    );
+    assert!(code.contains("fn cg_solve"), "C475: Should contain cg_solve function");
+    assert!(code.contains("fn cg_dot"), "C475: Should contain cg_dot function");
 }

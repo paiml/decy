@@ -33,11 +33,7 @@ fn test_wexitstatus_generates_code() {
     let generator = CodeGenerator::new();
     let code = generator.generate_function(&func);
 
-    assert!(
-        code.contains(".code()"),
-        "Should generate .code() for WEXITSTATUS:\n{}",
-        code
-    );
+    assert!(code.contains(".code()"), "Should generate .code() for WEXITSTATUS:\n{}", code);
 }
 
 // ============================================================================
@@ -63,11 +59,7 @@ fn test_wifexited_generates_success() {
     let generator = CodeGenerator::new();
     let code = generator.generate_function(&func);
 
-    assert!(
-        code.contains(".success()"),
-        "Should generate .success() for WIFEXITED:\n{}",
-        code
-    );
+    assert!(code.contains(".success()"), "Should generate .success() for WIFEXITED:\n{}", code);
 }
 
 // ============================================================================
@@ -93,11 +85,7 @@ fn test_wifsignaled_generates_signal_check() {
     let generator = CodeGenerator::new();
     let code = generator.generate_function(&func);
 
-    assert!(
-        code.contains(".signal()"),
-        "Should generate .signal() for WIFSIGNALED:\n{}",
-        code
-    );
+    assert!(code.contains(".signal()"), "Should generate .signal() for WIFSIGNALED:\n{}", code);
 }
 
 // ============================================================================
@@ -123,11 +111,7 @@ fn test_wtermsig_generates_signal() {
     let generator = CodeGenerator::new();
     let code = generator.generate_function(&func);
 
-    assert!(
-        code.contains(".signal()"),
-        "Should generate .signal() for WTERMSIG:\n{}",
-        code
-    );
+    assert!(code.contains(".signal()"), "Should generate .signal() for WTERMSIG:\n{}", code);
 }
 
 // ============================================================================
@@ -151,11 +135,7 @@ fn test_wait_generates_wait_call() {
     let generator = CodeGenerator::new();
     let code = generator.generate_function(&func);
 
-    assert!(
-        code.contains(".wait()"),
-        "Should generate .wait() call:\n{}",
-        code
-    );
+    assert!(code.contains(".wait()"), "Should generate .wait() call:\n{}", code);
 }
 
 // ============================================================================

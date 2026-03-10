@@ -169,18 +169,13 @@ fn cli_error_invalid_c_syntax_suggests_preprocess() {
         "int main( { return 0; }", // Missing closing paren - invalid syntax
     );
 
-    decy_cmd()
-        .arg("transpile")
-        .arg(&file)
-        .assert()
-        .failure()
-        .stderr(
-            predicate::str::contains("Try:")
-                .or(predicate::str::contains("preprocess"))
-                .or(predicate::str::contains("Check"))
-                .or(predicate::str::contains("Failed to transpile"))
-                .or(predicate::str::contains("error[parse]")),
-        );
+    decy_cmd().arg("transpile").arg(&file).assert().failure().stderr(
+        predicate::str::contains("Try:")
+            .or(predicate::str::contains("preprocess"))
+            .or(predicate::str::contains("Check"))
+            .or(predicate::str::contains("Failed to transpile"))
+            .or(predicate::str::contains("error[parse]")),
+    );
 }
 
 #[test]

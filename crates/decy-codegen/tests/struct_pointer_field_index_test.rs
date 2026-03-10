@@ -20,10 +20,7 @@ fn create_generator() -> CodeGenerator {
 fn create_string_builder_struct() -> HirStruct {
     HirStruct::new(
         "StringBuilder".to_string(),
-        vec![HirStructField::new(
-            "data".to_string(),
-            HirType::Pointer(Box::new(HirType::Char)),
-        )],
+        vec![HirStructField::new("data".to_string(), HirType::Pointer(Box::new(HirType::Char)))],
     )
 }
 
@@ -32,10 +29,7 @@ fn create_string_builder_with_length_struct() -> HirStruct {
     HirStruct::new(
         "StringBuilder".to_string(),
         vec![
-            HirStructField::new(
-                "data".to_string(),
-                HirType::Pointer(Box::new(HirType::Char)),
-            ),
+            HirStructField::new("data".to_string(), HirType::Pointer(Box::new(HirType::Char))),
             HirStructField::new("length".to_string(), HirType::UnsignedInt),
         ],
     )

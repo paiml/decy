@@ -10,19 +10,16 @@
 //! - `ErrorTracker::calculate_suspiciousness` (line 688, 45 uncov)
 
 use crate::error_tracking::{
-    ErrorTracker, FeatureSuspiciousness, InferenceError, PatternStats,
-    SuggestionCategory, SuggestionPriority,
+    ErrorTracker, FeatureSuspiciousness, InferenceError, PatternStats, SuggestionCategory,
+    SuggestionPriority,
 };
-use crate::ml_features::{
-    InferredOwnership, OwnershipDefect, OwnershipFeaturesBuilder,
-};
+use crate::ml_features::{InferredOwnership, OwnershipDefect, OwnershipFeaturesBuilder};
 use crate::model_versioning::{
     ModelEntry, ModelQualityMetrics, ModelVersion, ModelVersionManager, QualityThresholds,
 };
 use crate::retraining_pipeline::{
-    DataSplit, ExecutionSummary, ModelTrainer, NullTrainer,
-    RetrainingConfig, RetrainingPipeline, RetrainingResult, TrainingMetrics,
-    TrainingSample,
+    DataSplit, ExecutionSummary, ModelTrainer, NullTrainer, RetrainingConfig, RetrainingPipeline,
+    RetrainingResult, TrainingMetrics, TrainingSample,
 };
 
 // ============================================================================
@@ -54,11 +51,7 @@ fn make_below_threshold_metrics() -> ModelQualityMetrics {
     ModelQualityMetrics::new(0.70, 0.65, 0.60, 0.625, 0.55, 0.40, 200)
 }
 
-fn make_error(
-    variable: &str,
-    defect: OwnershipDefect,
-    features: Vec<String>,
-) -> InferenceError {
+fn make_error(variable: &str, defect: OwnershipDefect, features: Vec<String>) -> InferenceError {
     InferenceError::new(
         variable,
         "test.c",
@@ -108,10 +101,7 @@ fn execute_insufficient_data_records_history() {
 
     assert!(matches!(result, RetrainingResult::InsufficientData { actual: 50, .. }));
     assert_eq!(pipeline.history().len(), 1);
-    assert!(matches!(
-        pipeline.history()[0].result,
-        ExecutionSummary::InsufficientData
-    ));
+    assert!(matches!(pipeline.history()[0].result, ExecutionSummary::InsufficientData));
     assert_eq!(pipeline.history()[0].sample_count, 50);
 }
 
@@ -132,10 +122,7 @@ fn execute_insufficient_data_exact_boundary() {
     // Exactly at boundary: 99 < 100 required
     let samples = make_samples(99);
     let result = pipeline.execute(samples);
-    assert!(matches!(
-        result,
-        RetrainingResult::InsufficientData { actual: 99, required: 100 }
-    ));
+    assert!(matches!(result, RetrainingResult::InsufficientData { actual: 99, required: 100 }));
 }
 
 #[test]
@@ -145,7 +132,7 @@ fn execute_data_split_fails_minimum_after_splitting() {
         min_train_samples: 80,
         min_validation_samples: 15,
         min_test_samples: 15,
-        train_ratio: 0.50,     // Only 50% train
+        train_ratio: 0.50,      // Only 50% train
         validation_ratio: 0.10, // Only 10% validation
         ..RetrainingConfig::default()
     };
@@ -181,10 +168,7 @@ fn execute_training_error_from_failing_trainer() {
     } else {
         panic!("Expected TrainingError");
     }
-    assert!(matches!(
-        pipeline.history()[0].result,
-        ExecutionSummary::Error { .. }
-    ));
+    assert!(matches!(pipeline.history()[0].result, ExecutionSummary::Error { .. }));
 }
 
 #[test]
@@ -230,10 +214,7 @@ fn execute_quality_gate_both_below_threshold() {
 
     assert!(!result.is_success());
     assert!(matches!(result, RetrainingResult::QualityGateFailed { .. }));
-    assert!(matches!(
-        pipeline.history()[0].result,
-        ExecutionSummary::QualityGateFailed { .. }
-    ));
+    assert!(matches!(pipeline.history()[0].result, ExecutionSummary::QualityGateFailed { .. }));
 }
 
 #[test]
@@ -256,12 +237,7 @@ fn execute_degradation_with_existing_strong_model() {
     let result = pipeline.execute(samples);
 
     assert!(!result.is_success());
-    if let RetrainingResult::Degraded {
-        degradation,
-        new_metrics,
-        current_metrics,
-    } = &result
-    {
+    if let RetrainingResult::Degraded { degradation, new_metrics, current_metrics } = &result {
         assert!(*degradation > 0.02);
         assert!(new_metrics.f1_score < current_metrics.f1_score);
     } else {
@@ -398,15 +374,10 @@ fn execute_result_metrics_accessor_degraded() {
 
 #[test]
 fn execute_result_metrics_accessor_none_variants() {
-    let insuf = RetrainingResult::InsufficientData {
-        actual: 50,
-        required: 1000,
-    };
+    let insuf = RetrainingResult::InsufficientData { actual: 50, required: 1000 };
     assert!(insuf.metrics().is_none());
 
-    let err = RetrainingResult::TrainingError {
-        error: "boom".into(),
-    };
+    let err = RetrainingResult::TrainingError { error: "boom".into() };
     assert!(err.metrics().is_none());
 }
 
@@ -511,9 +482,7 @@ fn rollback_skips_already_rolled_back_versions() {
     let mut vm = populated_version_manager(4);
 
     // Active is 1.3.0. Rollback to 1.0.0, skipping 1.2.0 and 1.1.0
-    let rb = vm
-        .rollback_to(&ModelVersion::new(1, 0, 0), "skip to baseline")
-        .unwrap();
+    let rb = vm.rollback_to(&ModelVersion::new(1, 0, 0), "skip to baseline").unwrap();
     assert!(rb.success);
     assert_eq!(rb.from_version, ModelVersion::new(1, 3, 0));
     assert_eq!(rb.to_version, ModelVersion::new(1, 0, 0));
@@ -550,9 +519,7 @@ fn rollback_to_specific_version() {
     let mut vm = populated_version_manager(4);
 
     // Active is 1.3.0, rollback to 1.0.0
-    let rb = vm
-        .rollback_to(&ModelVersion::new(1, 0, 0), "Return to baseline")
-        .unwrap();
+    let rb = vm.rollback_to(&ModelVersion::new(1, 0, 0), "Return to baseline").unwrap();
 
     assert!(rb.success);
     assert_eq!(rb.from_version, ModelVersion::new(1, 3, 0));
@@ -801,18 +768,10 @@ fn markdown_report_suspicious_features_table() {
 fn markdown_report_defect_distribution_section() {
     let mut tracker = ErrorTracker::new();
     for _ in 0..5 {
-        tracker.record_error(make_error(
-            "ptr",
-            OwnershipDefect::PointerMisclassification,
-            vec![],
-        ));
+        tracker.record_error(make_error("ptr", OwnershipDefect::PointerMisclassification, vec![]));
     }
     for _ in 0..3 {
-        tracker.record_error(make_error(
-            "ptr",
-            OwnershipDefect::LifetimeInferenceGap,
-            vec![],
-        ));
+        tracker.record_error(make_error("ptr", OwnershipDefect::LifetimeInferenceGap, vec![]));
     }
 
     let md = tracker.generate_markdown_report();
@@ -861,18 +820,10 @@ fn markdown_report_no_suggestions_when_few_errors() {
 fn markdown_report_defect_percentages() {
     let mut tracker = ErrorTracker::new();
     for _ in 0..8 {
-        tracker.record_error(make_error(
-            "ptr",
-            OwnershipDefect::PointerMisclassification,
-            vec![],
-        ));
+        tracker.record_error(make_error("ptr", OwnershipDefect::PointerMisclassification, vec![]));
     }
     for _ in 0..2 {
-        tracker.record_error(make_error(
-            "ptr",
-            OwnershipDefect::AliasViolation,
-            vec![],
-        ));
+        tracker.record_error(make_error("ptr", OwnershipDefect::AliasViolation, vec![]));
     }
 
     let md = tracker.generate_markdown_report();
@@ -1054,10 +1005,8 @@ fn suggestions_high_priority_for_many_defects() {
     }
 
     let suggestions = tracker.generate_suggestions();
-    let defect_suggestions: Vec<_> = suggestions
-        .iter()
-        .filter(|s| s.category == SuggestionCategory::DefectPrevention)
-        .collect();
+    let defect_suggestions: Vec<_> =
+        suggestions.iter().filter(|s| s.category == SuggestionCategory::DefectPrevention).collect();
     assert!(!defect_suggestions.is_empty());
     assert_eq!(defect_suggestions[0].priority, SuggestionPriority::High);
 }
@@ -1077,10 +1026,8 @@ fn suggestions_medium_priority_for_moderate_defects() {
     }
 
     let suggestions = tracker.generate_suggestions();
-    let defect_suggestions: Vec<_> = suggestions
-        .iter()
-        .filter(|s| s.category == SuggestionCategory::DefectPrevention)
-        .collect();
+    let defect_suggestions: Vec<_> =
+        suggestions.iter().filter(|s| s.category == SuggestionCategory::DefectPrevention).collect();
     assert!(!defect_suggestions.is_empty());
     assert_eq!(defect_suggestions[0].priority, SuggestionPriority::Medium);
 }
@@ -1112,10 +1059,8 @@ fn suggestions_feature_handling_for_highly_suspicious() {
     }
 
     let suggestions = tracker.generate_suggestions();
-    let feature_suggestions: Vec<_> = suggestions
-        .iter()
-        .filter(|s| s.category == SuggestionCategory::FeatureHandling)
-        .collect();
+    let feature_suggestions: Vec<_> =
+        suggestions.iter().filter(|s| s.category == SuggestionCategory::FeatureHandling).collect();
     assert!(!feature_suggestions.is_empty());
     assert_eq!(feature_suggestions[0].priority, SuggestionPriority::High);
     assert!(feature_suggestions[0].affected_feature.is_some());
@@ -1169,15 +1114,8 @@ fn version_manager_with_max_history_clamps_minimum_to_2() {
     // We verify by registering 3 versions; with max=2, only 2 should remain
     let mut vm = vm;
     for i in 0..3 {
-        let m = ModelQualityMetrics::new(
-            0.85 + (i as f64 * 0.02),
-            0.85,
-            0.85,
-            0.85,
-            0.9,
-            0.05,
-            1000,
-        );
+        let m =
+            ModelQualityMetrics::new(0.85 + (i as f64 * 0.02), 0.85, 0.85, 0.85, 0.9, 0.05, 1000);
         let e = ModelEntry::new(
             ModelVersion::new(1, i, 0),
             m,
@@ -1237,21 +1175,9 @@ fn training_metrics_to_quality_metrics_roundtrip() {
 #[test]
 fn errors_by_defect_returns_matching() {
     let mut tracker = ErrorTracker::new();
-    tracker.record_error(make_error(
-        "ptr1",
-        OwnershipDefect::MutabilityMismatch,
-        vec![],
-    ));
-    tracker.record_error(make_error(
-        "ptr2",
-        OwnershipDefect::PointerMisclassification,
-        vec![],
-    ));
-    tracker.record_error(make_error(
-        "ptr3",
-        OwnershipDefect::MutabilityMismatch,
-        vec![],
-    ));
+    tracker.record_error(make_error("ptr1", OwnershipDefect::MutabilityMismatch, vec![]));
+    tracker.record_error(make_error("ptr2", OwnershipDefect::PointerMisclassification, vec![]));
+    tracker.record_error(make_error("ptr3", OwnershipDefect::MutabilityMismatch, vec![]));
 
     let results = tracker.errors_by_defect(&OwnershipDefect::MutabilityMismatch);
     assert_eq!(results.len(), 2);

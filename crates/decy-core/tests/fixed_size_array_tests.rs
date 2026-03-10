@@ -16,10 +16,7 @@ fn test_fixed_size_int_array_declaration() {
         vec![],
         vec![HirStatement::VariableDeclaration {
             name: "arr".to_string(),
-            var_type: HirType::Array {
-                element_type: Box::new(HirType::Int),
-                size: Some(10),
-            },
+            var_type: HirType::Array { element_type: Box::new(HirType::Int), size: Some(10) },
             initializer: None,
         }],
     );
@@ -28,17 +25,9 @@ fn test_fixed_size_int_array_declaration() {
     let code = codegen.generate_function(&func);
 
     // Should generate [i32; 10] type
-    assert!(
-        code.contains("[i32; 10]"),
-        "Expected [i32; 10] in:\n{}",
-        code
-    );
+    assert!(code.contains("[i32; 10]"), "Expected [i32; 10] in:\n{}", code);
     // Should have default initialization
-    assert!(
-        code.contains("[0i32; 10]"),
-        "Expected [0i32; 10] initialization in:\n{}",
-        code
-    );
+    assert!(code.contains("[0i32; 10]"), "Expected [0i32; 10] initialization in:\n{}", code);
 }
 
 /// Test fixed-size char array declaration.
@@ -52,10 +41,7 @@ fn test_fixed_size_char_array_declaration() {
         vec![],
         vec![HirStatement::VariableDeclaration {
             name: "buf".to_string(),
-            var_type: HirType::Array {
-                element_type: Box::new(HirType::Char),
-                size: Some(100),
-            },
+            var_type: HirType::Array { element_type: Box::new(HirType::Char), size: Some(100) },
             initializer: None,
         }],
     );
@@ -63,16 +49,8 @@ fn test_fixed_size_char_array_declaration() {
     let codegen = CodeGenerator::new();
     let code = codegen.generate_function(&func);
 
-    assert!(
-        code.contains("[u8; 100]"),
-        "Expected [u8; 100] in:\n{}",
-        code
-    );
-    assert!(
-        code.contains("[0u8; 100]"),
-        "Expected [0u8; 100] initialization in:\n{}",
-        code
-    );
+    assert!(code.contains("[u8; 100]"), "Expected [u8; 100] in:\n{}", code);
+    assert!(code.contains("[0u8; 100]"), "Expected [0u8; 100] initialization in:\n{}", code);
 }
 
 /// Test fixed-size float array declaration.
@@ -86,10 +64,7 @@ fn test_fixed_size_float_array_declaration() {
         vec![],
         vec![HirStatement::VariableDeclaration {
             name: "values".to_string(),
-            var_type: HirType::Array {
-                element_type: Box::new(HirType::Float),
-                size: Some(5),
-            },
+            var_type: HirType::Array { element_type: Box::new(HirType::Float), size: Some(5) },
             initializer: None,
         }],
     );
@@ -98,11 +73,7 @@ fn test_fixed_size_float_array_declaration() {
     let code = codegen.generate_function(&func);
 
     assert!(code.contains("[f32; 5]"), "Expected [f32; 5] in:\n{}", code);
-    assert!(
-        code.contains("[0.0f32; 5]"),
-        "Expected [0.0f32; 5] initialization in:\n{}",
-        code
-    );
+    assert!(code.contains("[0.0f32; 5]"), "Expected [0.0f32; 5] initialization in:\n{}", code);
 }
 
 /// Test array parameter becomes slice reference in signature.
@@ -116,10 +87,7 @@ fn test_fixed_size_array_parameter_becomes_slice() {
         vec![
             HirParameter::new(
                 "arr".to_string(),
-                HirType::Array {
-                    element_type: Box::new(HirType::Int),
-                    size: Some(10),
-                },
+                HirType::Array { element_type: Box::new(HirType::Int), size: Some(10) },
             ),
             HirParameter::new("len".to_string(), HirType::Int),
         ],
@@ -148,10 +116,7 @@ fn test_array_index_assignment() {
         vec![
             HirStatement::VariableDeclaration {
                 name: "arr".to_string(),
-                var_type: HirType::Array {
-                    element_type: Box::new(HirType::Int),
-                    size: Some(10),
-                },
+                var_type: HirType::Array { element_type: Box::new(HirType::Int), size: Some(10) },
                 initializer: None,
             },
             HirStatement::ArrayIndexAssignment {
@@ -166,11 +131,7 @@ fn test_array_index_assignment() {
     let code = codegen.generate_function(&func);
 
     // Should cast index to usize for safe indexing
-    assert!(
-        code.contains("as usize]"),
-        "Expected usize cast for array index in:\n{}",
-        code
-    );
+    assert!(code.contains("as usize]"), "Expected usize cast for array index in:\n{}", code);
 }
 
 /// Test array return type mapping.
@@ -178,10 +139,7 @@ fn test_array_index_assignment() {
 /// Rust: [i32; 5]
 #[test]
 fn test_array_type_mapping() {
-    let array_type = HirType::Array {
-        element_type: Box::new(HirType::Int),
-        size: Some(5),
-    };
+    let array_type = HirType::Array { element_type: Box::new(HirType::Int), size: Some(5) };
 
     let rust_type = CodeGenerator::map_type(&array_type);
 
@@ -193,21 +151,12 @@ fn test_array_type_mapping() {
 /// Rust: [[i32; 4]; 3]
 #[test]
 fn test_multidimensional_array_type_mapping() {
-    let inner_array = HirType::Array {
-        element_type: Box::new(HirType::Int),
-        size: Some(4),
-    };
-    let outer_array = HirType::Array {
-        element_type: Box::new(inner_array),
-        size: Some(3),
-    };
+    let inner_array = HirType::Array { element_type: Box::new(HirType::Int), size: Some(4) };
+    let outer_array = HirType::Array { element_type: Box::new(inner_array), size: Some(3) };
 
     let rust_type = CodeGenerator::map_type(&outer_array);
 
-    assert_eq!(
-        rust_type, "[[i32; 4]; 3]",
-        "Nested array type mapping failed"
-    );
+    assert_eq!(rust_type, "[[i32; 4]; 3]", "Nested array type mapping failed");
 }
 
 /// Test double array declaration.
@@ -221,10 +170,7 @@ fn test_fixed_size_double_array_declaration() {
         vec![],
         vec![HirStatement::VariableDeclaration {
             name: "coords".to_string(),
-            var_type: HirType::Array {
-                element_type: Box::new(HirType::Double),
-                size: Some(3),
-            },
+            var_type: HirType::Array { element_type: Box::new(HirType::Double), size: Some(3) },
             initializer: None,
         }],
     );
@@ -233,9 +179,5 @@ fn test_fixed_size_double_array_declaration() {
     let code = codegen.generate_function(&func);
 
     assert!(code.contains("[f64; 3]"), "Expected [f64; 3] in:\n{}", code);
-    assert!(
-        code.contains("[0.0f64; 3]"),
-        "Expected [0.0f64; 3] initialization in:\n{}",
-        code
-    );
+    assert!(code.contains("[0.0f64; 3]"), "Expected [0.0f64; 3] initialization in:\n{}", code);
 }

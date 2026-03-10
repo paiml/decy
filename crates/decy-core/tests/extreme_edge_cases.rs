@@ -131,12 +131,7 @@ fn torture_deeply_nested_structs() {
     let mut c_code = String::new();
 
     for i in 0..50 {
-        c_code.push_str(&format!(
-            "struct Level{} {{ int value{}; struct Level{} {{ ",
-            i,
-            i,
-            i + 1
-        ));
+        c_code.push_str(&format!("struct Level{} {{ int value{}; struct Level{} {{ ", i, i, i + 1));
     }
 
     // Close innermost struct

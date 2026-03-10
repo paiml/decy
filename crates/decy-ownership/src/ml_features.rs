@@ -444,10 +444,7 @@ impl FeatureExtractor {
             return None;
         }
 
-        let param_index = func
-            .parameters()
-            .iter()
-            .position(|p| p.name() == param_name)?;
+        let param_index = func.parameters().iter().position(|p| p.name() == param_name)?;
 
         Some(self.extract_features(func, param_name, param_type, param_index, true))
     }
@@ -460,12 +457,7 @@ impl FeatureExtractor {
     ) -> Option<OwnershipFeatures> {
         // Find variable declaration in body
         for stmt in func.body() {
-            if let HirStatement::VariableDeclaration {
-                name,
-                var_type,
-                initializer,
-            } = stmt
-            {
+            if let HirStatement::VariableDeclaration { name, var_type, initializer } = stmt {
                 if name == var_name && self.is_pointer_like(var_type) {
                     let allocation = self.classify_allocation(initializer.as_ref());
                     let mut features = self.extract_features(func, var_name, var_type, 0, false);
@@ -622,11 +614,7 @@ impl FeatureExtractor {
                     0
                 }
             }
-            HirStatement::If {
-                then_block,
-                else_block,
-                ..
-            } => {
+            HirStatement::If { then_block, else_block, .. } => {
                 let mut count = 0u8;
                 for s in then_block {
                     count = count.saturating_add(self.count_free_in_stmt(s, var_name));
@@ -684,11 +672,7 @@ impl FeatureExtractor {
     fn count_stmt_accesses(&self, stmt: &HirStatement, var_name: &str) -> (u32, u32) {
         match stmt {
             HirStatement::Assignment { target, value } => {
-                let mut reads: u32 = if self.expr_uses_var(value, var_name) {
-                    1
-                } else {
-                    0
-                };
+                let mut reads: u32 = if self.expr_uses_var(value, var_name) { 1 } else { 0 };
                 let writes: u32 = if target == var_name { 1 } else { 0 };
                 // Target might also be a dereference read
                 if target != var_name && self.expr_uses_var(value, var_name) {
@@ -704,23 +688,11 @@ impl FeatureExtractor {
                 } else {
                     0
                 };
-                let writes: u32 = if self.expr_uses_var(target, var_name) {
-                    1
-                } else {
-                    0
-                };
+                let writes: u32 = if self.expr_uses_var(target, var_name) { 1 } else { 0 };
                 (reads, writes)
             }
-            HirStatement::If {
-                condition,
-                then_block,
-                else_block,
-            } => {
-                let mut reads: u32 = if self.expr_uses_var(condition, var_name) {
-                    1
-                } else {
-                    0
-                };
+            HirStatement::If { condition, then_block, else_block } => {
+                let mut reads: u32 = if self.expr_uses_var(condition, var_name) { 1 } else { 0 };
                 let mut writes: u32 = 0;
                 for s in then_block {
                     let (r, w) = self.count_stmt_accesses(s, var_name);
@@ -757,16 +729,8 @@ impl FeatureExtractor {
 
     fn count_null_checks_in_stmt(&self, stmt: &HirStatement, var_name: &str) -> u8 {
         match stmt {
-            HirStatement::If {
-                condition,
-                then_block,
-                else_block,
-            } => {
-                let mut count: u8 = if self.is_null_check(condition, var_name) {
-                    1
-                } else {
-                    0
-                };
+            HirStatement::If { condition, then_block, else_block } => {
+                let mut count: u8 = if self.is_null_check(condition, var_name) { 1 } else { 0 };
                 for s in then_block {
                     count = count.saturating_add(self.count_null_checks_in_stmt(s, var_name));
                 }
@@ -778,11 +742,7 @@ impl FeatureExtractor {
                 count
             }
             HirStatement::While { condition, body } => {
-                let mut count: u8 = if self.is_null_check(condition, var_name) {
-                    1
-                } else {
-                    0
-                };
+                let mut count: u8 = if self.is_null_check(condition, var_name) { 1 } else { 0 };
                 for s in body {
                     count = count.saturating_add(self.count_null_checks_in_stmt(s, var_name));
                 }
@@ -820,9 +780,9 @@ impl FeatureExtractor {
             HirExpression::ArrayIndex { array, index } => {
                 self.expr_uses_var(array, var_name) || self.expr_uses_var(index, var_name)
             }
-            HirExpression::FunctionCall { arguments, .. } => arguments
-                .iter()
-                .any(|arg| self.expr_uses_var(arg, var_name)),
+            HirExpression::FunctionCall { arguments, .. } => {
+                arguments.iter().any(|arg| self.expr_uses_var(arg, var_name))
+            }
             HirExpression::IsNotNull(inner) => self.expr_uses_var(inner, var_name),
             _ => false,
         }
@@ -1068,9 +1028,7 @@ pub struct PatternLibrary {
 impl PatternLibrary {
     /// Create a new empty pattern library.
     pub fn new() -> Self {
-        Self {
-            patterns: std::collections::HashMap::new(),
-        }
+        Self { patterns: std::collections::HashMap::new() }
     }
 
     /// Add a pattern to the library.
@@ -1090,10 +1048,7 @@ impl PatternLibrary {
 
     /// Get all patterns matching an error kind.
     pub fn get_by_error_kind(&self, kind: OwnershipErrorKind) -> Vec<&ErrorPattern> {
-        self.patterns
-            .values()
-            .filter(|p| p.error_kind == kind)
-            .collect()
+        self.patterns.values().filter(|p| p.error_kind == kind).collect()
     }
 
     /// Get patterns ordered by curriculum level (easiest first).
@@ -1202,10 +1157,7 @@ pub fn default_pattern_library() -> PatternLibrary {
         .with_curriculum_level(1)
         .with_c_pattern("const T *ptr")
         .with_rust_error("E0596")
-        .with_fix(SuggestedFix::new(
-            "Use immutable reference",
-            "fn foo(ptr: &T)",
-        )),
+        .with_fix(SuggestedFix::new("Use immutable reference", "fn foo(ptr: &T)")),
     );
 
     // ========================================================================
@@ -1240,10 +1192,7 @@ pub fn default_pattern_library() -> PatternLibrary {
         .with_curriculum_level(2)
         .with_c_pattern("struct View { T *data; }")
         .with_rust_error("E0106")
-        .with_fix(SuggestedFix::new(
-            "Add lifetime to struct",
-            "struct View<'a> { data: &'a T }",
-        )),
+        .with_fix(SuggestedFix::new("Add lifetime to struct", "struct View<'a> { data: &'a T }")),
     );
 
     // DECY-O-006: Array/Slice Mismatch - parameter
@@ -1257,10 +1206,7 @@ pub fn default_pattern_library() -> PatternLibrary {
         .with_curriculum_level(2)
         .with_c_pattern("void process(int arr[], size_t len)")
         .with_rust_error("E0308")
-        .with_fix(SuggestedFix::new(
-            "Use slice parameter",
-            "fn process(arr: &[i32])",
-        )),
+        .with_fix(SuggestedFix::new("Use slice parameter", "fn process(arr: &[i32])")),
     );
 
     // ========================================================================
@@ -1381,10 +1327,7 @@ pub fn default_pattern_library() -> PatternLibrary {
         .with_severity(ErrorSeverity::Warning)
         .with_curriculum_level(4)
         .with_c_pattern("*(ptr + i) = value; // pointer arithmetic")
-        .with_fix(SuggestedFix::new(
-            "Use safe slice indexing",
-            "slice[i] = value;",
-        )),
+        .with_fix(SuggestedFix::new("Use safe slice indexing", "slice[i] = value;")),
     );
 
     // DECY-O-005: Unsafe Minimization - null check

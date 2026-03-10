@@ -38,11 +38,7 @@ pub struct ClassifierPrediction {
 impl ClassifierPrediction {
     /// Create a new prediction.
     pub fn new(prediction: InferredOwnership, confidence: f64) -> Self {
-        Self {
-            prediction,
-            confidence,
-            alternatives: Vec::new(),
-        }
+        Self { prediction, confidence, alternatives: Vec::new() }
     }
 
     /// Add an alternative prediction.
@@ -130,20 +126,16 @@ impl RuleBasedClassifier {
 impl OwnershipClassifier for RuleBasedClassifier {
     fn classify(&self, features: &OwnershipFeatures) -> ClassifierPrediction {
         // Rule 1: malloc + free → Owned (Box)
-        if matches!(
-            features.allocation_site,
-            AllocationKind::Malloc | AllocationKind::Calloc
-        ) && features.deallocation_count > 0
+        if matches!(features.allocation_site, AllocationKind::Malloc | AllocationKind::Calloc)
+            && features.deallocation_count > 0
             && !features.has_size_param
         {
             return ClassifierPrediction::new(InferredOwnership::Owned, self.weights.malloc_free);
         }
 
         // Rule 2: malloc + size + array_decay → Vec
-        if matches!(
-            features.allocation_site,
-            AllocationKind::Malloc | AllocationKind::Calloc
-        ) && (features.has_size_param || features.is_array_decay)
+        if matches!(features.allocation_site, AllocationKind::Malloc | AllocationKind::Calloc)
+            && (features.has_size_param || features.is_array_decay)
             && features.deallocation_count > 0
         {
             return ClassifierPrediction::new(InferredOwnership::Vec, self.weights.array_alloc);
@@ -165,10 +157,7 @@ impl OwnershipClassifier for RuleBasedClassifier {
         if !features.is_const
             && features.write_count > 0
             && features.deallocation_count == 0
-            && !matches!(
-                features.allocation_site,
-                AllocationKind::Malloc | AllocationKind::Calloc
-            )
+            && !matches!(features.allocation_site, AllocationKind::Malloc | AllocationKind::Calloc)
         {
             // Check for mutable slice pattern
             if features.is_array_decay && features.has_size_param {
@@ -289,17 +278,13 @@ impl ClassifierEvaluator {
 
     /// Create from dataset (uses all samples).
     pub fn from_dataset(dataset: &TrainingDataset) -> Self {
-        Self {
-            samples: dataset.to_training_samples(),
-        }
+        Self { samples: dataset.to_training_samples() }
     }
 
     /// Evaluate a classifier.
     pub fn evaluate(&self, classifier: &dyn OwnershipClassifier) -> EvaluationMetrics {
-        let mut metrics = EvaluationMetrics {
-            total_samples: self.samples.len(),
-            ..Default::default()
-        };
+        let mut metrics =
+            EvaluationMetrics { total_samples: self.samples.len(), ..Default::default() };
 
         for sample in &self.samples {
             let prediction = classifier.classify(&sample.features);
@@ -310,10 +295,7 @@ impl ClassifierEvaluator {
                 metrics.correct += 1;
                 *metrics.true_positives.entry(actual_class).or_insert(0) += 1;
             } else {
-                *metrics
-                    .false_positives
-                    .entry(predicted_class.clone())
-                    .or_insert(0) += 1;
+                *metrics.false_positives.entry(predicted_class.clone()).or_insert(0) += 1;
                 *metrics.false_negatives.entry(actual_class).or_insert(0) += 1;
             }
         }
@@ -377,13 +359,7 @@ impl TrainingResult {
         iterations: usize,
         duration_secs: f64,
     ) -> Self {
-        Self {
-            success: true,
-            train_metrics,
-            validation_metrics,
-            iterations,
-            duration_secs,
-        }
+        Self { success: true, train_metrics, validation_metrics, iterations, duration_secs }
     }
 
     /// Create a failed result.
@@ -452,10 +428,7 @@ pub struct EnsembleClassifier {
 impl EnsembleClassifier {
     /// Create a new ensemble.
     pub fn new(name: &str) -> Self {
-        Self {
-            classifiers: Vec::new(),
-            name: name.to_string(),
-        }
+        Self { classifiers: Vec::new(), name: name.to_string() }
     }
 
     /// Add a classifier with weight.
@@ -504,11 +477,7 @@ impl OwnershipClassifier for EnsembleClassifier {
             _ => InferredOwnership::RawPointer,
         };
 
-        let confidence = if total_weight > 0.0 {
-            best_score / total_weight
-        } else {
-            0.0
-        };
+        let confidence = if total_weight > 0.0 { best_score / total_weight } else { 0.0 };
 
         ClassifierPrediction::new(prediction, confidence)
     }
@@ -593,10 +562,8 @@ mod tests {
     #[test]
     fn rule_based_const_borrowed() {
         let classifier = RuleBasedClassifier::new();
-        let features = OwnershipFeaturesBuilder::default()
-            .const_qualified(true)
-            .pointer_depth(1)
-            .build();
+        let features =
+            OwnershipFeaturesBuilder::default().const_qualified(true).pointer_depth(1).build();
 
         let pred = classifier.classify(&features);
 
@@ -664,22 +631,14 @@ mod tests {
                 .allocation_site(AllocationKind::Malloc)
                 .deallocation_count(1)
                 .build(),
-            OwnershipFeaturesBuilder::default()
-                .const_qualified(true)
-                .build(),
+            OwnershipFeaturesBuilder::default().const_qualified(true).build(),
         ];
 
         let predictions = classifier.classify_batch(&features);
 
         assert_eq!(predictions.len(), 2);
-        assert!(matches!(
-            predictions[0].prediction,
-            InferredOwnership::Owned
-        ));
-        assert!(matches!(
-            predictions[1].prediction,
-            InferredOwnership::Borrowed
-        ));
+        assert!(matches!(predictions[0].prediction, InferredOwnership::Owned));
+        assert!(matches!(predictions[1].prediction, InferredOwnership::Borrowed));
     }
 
     // ========================================================================
@@ -688,11 +647,7 @@ mod tests {
 
     #[test]
     fn metrics_accuracy() {
-        let metrics = EvaluationMetrics {
-            total_samples: 100,
-            correct: 80,
-            ..Default::default()
-        };
+        let metrics = EvaluationMetrics { total_samples: 100, correct: 80, ..Default::default() };
 
         assert!((metrics.accuracy() - 0.8).abs() < 0.001);
     }
@@ -763,9 +718,7 @@ mod tests {
                 1,
             ),
             TrainingSample::new(
-                OwnershipFeaturesBuilder::default()
-                    .const_qualified(true)
-                    .build(),
+                OwnershipFeaturesBuilder::default().const_qualified(true).build(),
                 InferredOwnership::Borrowed,
                 "test.c",
                 2,
@@ -1022,10 +975,8 @@ mod tests {
         ensemble.add_classifier(RuleBasedClassifier::new(), 1.0);
         ensemble.add_classifier(RuleBasedClassifier::new(), 1.0);
 
-        let features = OwnershipFeaturesBuilder::default()
-            .const_qualified(true)
-            .pointer_depth(1)
-            .build();
+        let features =
+            OwnershipFeaturesBuilder::default().const_qualified(true).pointer_depth(1).build();
 
         let pred = ensemble.classify(&features);
         assert!(matches!(pred.prediction, InferredOwnership::Borrowed));
@@ -1050,10 +1001,8 @@ mod tests {
     #[test]
     fn full_training_pipeline() {
         // Create synthetic dataset
-        let config = crate::training_data::SyntheticConfig {
-            samples_per_pattern: 20,
-            ..Default::default()
-        };
+        let config =
+            crate::training_data::SyntheticConfig { samples_per_pattern: 20, ..Default::default() };
         let generator = crate::training_data::SyntheticDataGenerator::new(config);
         let dataset = generator.generate_full_dataset();
 
@@ -1084,12 +1033,8 @@ mod tests {
             ..Default::default()
         };
         // Label says Borrowed, but features look like Owned → mismatch
-        let samples = vec![TrainingSample::new(
-            owned_features,
-            InferredOwnership::Borrowed,
-            "test.c",
-            1,
-        )];
+        let samples =
+            vec![TrainingSample::new(owned_features, InferredOwnership::Borrowed, "test.c", 1)];
 
         let evaluator = ClassifierEvaluator::new(samples);
         let classifier = RuleBasedClassifier::new();
@@ -1159,10 +1104,7 @@ mod tests {
             deallocation_count: 1,
             ..Default::default()
         };
-        let borrow_features = OwnershipFeatures {
-            is_const: true,
-            ..Default::default()
-        };
+        let borrow_features = OwnershipFeatures { is_const: true, ..Default::default() };
 
         let samples = vec![
             // Correctly classified (Owned features, Owned label)

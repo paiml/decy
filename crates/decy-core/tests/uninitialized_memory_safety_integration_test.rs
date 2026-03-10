@@ -81,11 +81,7 @@ fn test_initialized_array() {
     assert!(result.contains("fn main"), "Should have main function");
 
     let unsafe_count = result.matches("unsafe").count();
-    assert!(
-        unsafe_count <= 3,
-        "Initialized array should minimize unsafe (found {})",
-        unsafe_count
-    );
+    assert!(unsafe_count <= 3, "Initialized array should minimize unsafe (found {})", unsafe_count);
 }
 
 #[test]
@@ -321,11 +317,7 @@ fn test_calloc_zero_initialized() {
     assert!(result.contains("fn main"), "Should have main function");
 
     let unsafe_count = result.matches("unsafe").count();
-    assert!(
-        unsafe_count <= 5,
-        "calloc should minimize unsafe (found {})",
-        unsafe_count
-    );
+    assert!(unsafe_count <= 5, "calloc should minimize unsafe (found {})", unsafe_count);
 }
 
 // ============================================================================
@@ -348,11 +340,7 @@ fn test_static_variable_initialization() {
     assert!(result.contains("fn main"), "Should have main function");
 
     let unsafe_count = result.matches("unsafe").count();
-    assert!(
-        unsafe_count <= 3,
-        "Static variable should minimize unsafe (found {})",
-        unsafe_count
-    );
+    assert!(unsafe_count <= 3, "Static variable should minimize unsafe (found {})", unsafe_count);
 }
 
 #[test]
@@ -371,11 +359,7 @@ fn test_global_variable_initialization() {
     assert!(result.contains("fn main"), "Should have main function");
 
     let unsafe_count = result.matches("unsafe").count();
-    assert!(
-        unsafe_count <= 3,
-        "Global variable should minimize unsafe (found {})",
-        unsafe_count
-    );
+    assert!(unsafe_count <= 3, "Global variable should minimize unsafe (found {})", unsafe_count);
 }
 
 // ============================================================================
@@ -399,10 +383,7 @@ fn test_function_parameter_passed() {
     let result = transpile(c_code).expect("Should transpile");
 
     assert!(result.contains("fn main"), "Should have main function");
-    assert!(
-        result.contains("fn double_value"),
-        "Should have double_value function"
-    );
+    assert!(result.contains("fn double_value"), "Should have double_value function");
 
     let unsafe_count = result.matches("unsafe").count();
     assert!(
@@ -433,17 +414,10 @@ fn test_function_return_value() {
     let result = transpile(c_code).expect("Should transpile");
 
     assert!(result.contains("fn main"), "Should have main function");
-    assert!(
-        result.contains("fn get_value"),
-        "Should have get_value function"
-    );
+    assert!(result.contains("fn get_value"), "Should have get_value function");
 
     let unsafe_count = result.matches("unsafe").count();
-    assert!(
-        unsafe_count <= 3,
-        "Return value should minimize unsafe (found {})",
-        unsafe_count
-    );
+    assert!(unsafe_count <= 3, "Return value should minimize unsafe (found {})", unsafe_count);
 }
 
 // ============================================================================
@@ -474,11 +448,7 @@ fn test_nested_struct_initialization() {
     assert!(result.contains("fn main"), "Should have main function");
 
     let unsafe_count = result.matches("unsafe").count();
-    assert!(
-        unsafe_count <= 4,
-        "Nested struct should minimize unsafe (found {})",
-        unsafe_count
-    );
+    assert!(unsafe_count <= 4, "Nested struct should minimize unsafe (found {})", unsafe_count);
 }
 
 #[test]
@@ -506,11 +476,7 @@ fn test_array_of_structs_initialization() {
     assert!(result.contains("fn main"), "Should have main function");
 
     let unsafe_count = result.matches("unsafe").count();
-    assert!(
-        unsafe_count <= 4,
-        "Array of structs should minimize unsafe (found {})",
-        unsafe_count
-    );
+    assert!(unsafe_count <= 4, "Array of structs should minimize unsafe (found {})", unsafe_count);
 }
 
 // ============================================================================
@@ -539,11 +505,8 @@ fn test_unsafe_block_count_target() {
     let unsafe_count = result.matches("unsafe").count();
     let lines_of_code = result.lines().count();
 
-    let unsafe_per_1000 = if lines_of_code > 0 {
-        (unsafe_count as f64 / lines_of_code as f64) * 1000.0
-    } else {
-        0.0
-    };
+    let unsafe_per_1000 =
+        if lines_of_code > 0 { (unsafe_count as f64 / lines_of_code as f64) * 1000.0 } else { 0.0 };
 
     // Target: <=50 unsafe per 1000 LOC for initialization
     assert!(
@@ -605,9 +568,5 @@ fn test_initialization_safety_documentation() {
 
     // If unsafe blocks exist, they should be minimal
     let unsafe_count = result.matches("unsafe").count();
-    assert!(
-        unsafe_count < 10,
-        "Should have minimal unsafe blocks (found {})",
-        unsafe_count
-    );
+    assert!(unsafe_count < 10, "Should have minimal unsafe blocks (found {})", unsafe_count);
 }

@@ -829,7 +829,10 @@ int que_idxpq_test(void) {
     assert!(!code.is_empty(), "C1859: Output should not be empty");
     assert!(code.contains("fn que_idxpq_init"), "C1859: Should contain que_idxpq_init");
     assert!(code.contains("fn que_idxpq_insert"), "C1859: Should contain que_idxpq_insert");
-    assert!(code.contains("fn que_idxpq_decrease_key"), "C1859: Should contain que_idxpq_decrease_key");
+    assert!(
+        code.contains("fn que_idxpq_decrease_key"),
+        "C1859: Should contain que_idxpq_decrease_key"
+    );
     Ok(())
 }
 
@@ -926,7 +929,11 @@ int que_mlfq_test(void) {
 }
 "##;
     let result = decy_core::transpile(c_code);
-    assert!(result.is_ok(), "C1860: Multi-level feedback queue should transpile: {:?}", result.err());
+    assert!(
+        result.is_ok(),
+        "C1860: Multi-level feedback queue should transpile: {:?}",
+        result.err()
+    );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1860: Output should not be empty");
     assert!(code.contains("fn que_mlfq_init"), "C1860: Should contain que_mlfq_init");
@@ -1292,7 +1299,10 @@ int que_delay_test(void) {
     assert!(!code.is_empty(), "C1864: Output should not be empty");
     assert!(code.contains("fn que_delay_init"), "C1864: Should contain que_delay_init");
     assert!(code.contains("fn que_delay_enqueue"), "C1864: Should contain que_delay_enqueue");
-    assert!(code.contains("fn que_delay_try_dequeue"), "C1864: Should contain que_delay_try_dequeue");
+    assert!(
+        code.contains("fn que_delay_try_dequeue"),
+        "C1864: Should contain que_delay_try_dequeue"
+    );
     Ok(())
 }
 
@@ -1466,7 +1476,10 @@ int que_batch_test(void) {
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1866: Output should not be empty");
     assert!(code.contains("fn que_batch_init"), "C1866: Should contain que_batch_init");
-    assert!(code.contains("fn que_batch_enqueue_many"), "C1866: Should contain que_batch_enqueue_many");
+    assert!(
+        code.contains("fn que_batch_enqueue_many"),
+        "C1866: Should contain que_batch_enqueue_many"
+    );
     assert!(code.contains("fn que_batch_dequeue"), "C1866: Should contain que_batch_dequeue");
     Ok(())
 }
@@ -1997,7 +2010,10 @@ int que_evtqueue_test(void) {
     assert!(!code.is_empty(), "C1872: Output should not be empty");
     assert!(code.contains("fn que_evtqueue_init"), "C1872: Should contain que_evtqueue_init");
     assert!(code.contains("fn que_evtqueue_post"), "C1872: Should contain que_evtqueue_post");
-    assert!(code.contains("fn que_evtqueue_dispatch"), "C1872: Should contain que_evtqueue_dispatch");
+    assert!(
+        code.contains("fn que_evtqueue_dispatch"),
+        "C1872: Should contain que_evtqueue_dispatch"
+    );
     Ok(())
 }
 
@@ -2085,7 +2101,10 @@ int que_cmdqueue_test(void) {
     assert!(!code.is_empty(), "C1873: Output should not be empty");
     assert!(code.contains("fn que_cmdqueue_init"), "C1873: Should contain que_cmdqueue_init");
     assert!(code.contains("fn que_cmdqueue_enqueue"), "C1873: Should contain que_cmdqueue_enqueue");
-    assert!(code.contains("fn que_cmdqueue_execute_next"), "C1873: Should contain que_cmdqueue_execute_next");
+    assert!(
+        code.contains("fn que_cmdqueue_execute_next"),
+        "C1873: Should contain que_cmdqueue_execute_next"
+    );
     Ok(())
 }
 
@@ -2280,6 +2299,9 @@ int que_logqueue_test(void) {
     assert!(!code.is_empty(), "C1875: Output should not be empty");
     assert!(code.contains("fn que_logqueue_init"), "C1875: Should contain que_logqueue_init");
     assert!(code.contains("fn que_logqueue_write"), "C1875: Should contain que_logqueue_write");
-    assert!(code.contains("fn que_logqueue_read_recent"), "C1875: Should contain que_logqueue_read_recent");
+    assert!(
+        code.contains("fn que_logqueue_read_recent"),
+        "C1875: Should contain que_logqueue_read_recent"
+    );
     Ok(())
 }

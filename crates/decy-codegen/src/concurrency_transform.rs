@@ -16,11 +16,7 @@ use decy_hir::{HirExpression, HirFunction, HirStatement};
 ///
 /// Returns the name of the mutex variable if detected, None otherwise.
 pub fn is_pthread_lock(stmt: &HirStatement) -> Option<String> {
-    if let HirStatement::Expression(HirExpression::FunctionCall {
-        function,
-        arguments,
-    }) = stmt
-    {
+    if let HirStatement::Expression(HirExpression::FunctionCall { function, arguments }) = stmt {
         if function == "pthread_mutex_lock" && !arguments.is_empty() {
             // Extract mutex name from &mutex or &ptr->field
             if let Some(HirExpression::AddressOf(inner)) = arguments.first() {
@@ -39,11 +35,7 @@ pub fn is_pthread_lock(stmt: &HirStatement) -> Option<String> {
 ///
 /// Returns the name of the mutex variable if detected, None otherwise.
 pub fn is_pthread_unlock(stmt: &HirStatement) -> Option<String> {
-    if let HirStatement::Expression(HirExpression::FunctionCall {
-        function,
-        arguments,
-    }) = stmt
-    {
+    if let HirStatement::Expression(HirExpression::FunctionCall { function, arguments }) = stmt {
         if function == "pthread_mutex_unlock" && !arguments.is_empty() {
             // Extract mutex name from &mutex or &ptr->field
             if let Some(HirExpression::AddressOf(inner)) = arguments.first() {

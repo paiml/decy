@@ -107,10 +107,7 @@ fn test_goto_nested_loop_to_labeled_break() {
     let rust_equivalent = "'outer: for ... { break 'outer; }";
 
     assert!(c_code.contains("goto"), "C uses goto to break nested loops");
-    assert!(
-        rust_equivalent.contains("break 'outer"),
-        "Rust uses labeled break"
-    );
+    assert!(rust_equivalent.contains("break 'outer"), "Rust uses labeled break");
 
     // Rust provides structured nested loop breaking
 }
@@ -169,10 +166,7 @@ fn test_goto_state_machine_to_loop_match() {
     let rust_equivalent = "loop { match state { State1 => { ... state = State2; } ... } }";
 
     assert!(c_code.contains("goto"), "C uses goto for state machine");
-    assert!(
-        rust_equivalent.contains("match"),
-        "Rust uses loop + match for state machine"
-    );
+    assert!(rust_equivalent.contains("match"), "Rust uses loop + match for state machine");
 }
 
 /// Document transformation of goto for retry logic
@@ -210,14 +204,8 @@ fn test_goto_retry_to_loop_continue() {
     let rust_equivalent = "loop { ... if failed { continue; } else { break; } }";
 
     assert!(c_code.contains("goto"), "C uses goto for retry logic");
-    assert!(
-        rust_equivalent.contains("loop"),
-        "Rust uses loop for retry logic"
-    );
-    assert!(
-        rust_equivalent.contains("continue"),
-        "Rust uses continue to retry"
-    );
+    assert!(rust_equivalent.contains("loop"), "Rust uses loop for retry logic");
+    assert!(rust_equivalent.contains("continue"), "Rust uses continue to retry");
 }
 
 /// Document transformation of forward goto (skip code)
@@ -243,10 +231,7 @@ fn test_goto_forward_jump_to_if() {
     let rust_equivalent = "if !skip { ... }";
 
     assert!(c_code.contains("goto"), "C uses goto for forward jumps");
-    assert!(
-        rust_equivalent.contains("if"),
-        "Rust restructures with if statement"
-    );
+    assert!(rust_equivalent.contains("if"), "Rust restructures with if statement");
 }
 
 /// Document transformation of goto with multiple cleanup paths
@@ -327,10 +312,7 @@ fn test_goto_loop_end_to_continue() {
     let rust_equivalent = "if skip { continue; }";
 
     assert!(c_code.contains("goto"), "C uses goto to skip loop body");
-    assert!(
-        rust_equivalent.contains("continue"),
-        "Rust uses continue for same effect"
-    );
+    assert!(rust_equivalent.contains("continue"), "Rust uses continue for same effect");
 }
 
 /// Document transformation of goto for early return
@@ -359,10 +341,7 @@ fn test_goto_early_exit_to_return() {
     let rust_equivalent = "if done { return; }";
 
     assert!(c_code.contains("goto"), "C uses goto for early exit");
-    assert!(
-        rust_equivalent.contains("return"),
-        "Rust uses direct return"
-    );
+    assert!(rust_equivalent.contains("return"), "Rust uses direct return");
 }
 
 /// Document transformation of goto in switch fallthrough
@@ -433,10 +412,7 @@ fn test_goto_elimination_unsafe_count() {
 
     // Count unsafe blocks (should be 0)
     let unsafe_count = combined.matches("unsafe").count();
-    assert_eq!(
-        unsafe_count, 0,
-        "goto elimination should not introduce unsafe blocks"
-    );
+    assert_eq!(unsafe_count, 0, "goto elimination should not introduce unsafe blocks");
 }
 
 /// Summary of transformation rules
@@ -497,17 +473,11 @@ fn test_goto_elimination_rules_summary() {
 
     // Rule 7: No unsafe needed
     let unsafe_blocks = 0;
-    assert_eq!(
-        unsafe_blocks, 0,
-        "goto elimination introduces 0 unsafe blocks"
-    );
+    assert_eq!(unsafe_blocks, 0, "goto elimination introduces 0 unsafe blocks");
 
     // Rule 8: Structured control flow
     let structured = true;
-    assert!(
-        structured,
-        "Rust enforces structured control flow (no arbitrary jumps)"
-    );
+    assert!(structured, "Rust enforces structured control flow (no arbitrary jumps)");
 }
 
 /// Document that Rust has NO goto statement

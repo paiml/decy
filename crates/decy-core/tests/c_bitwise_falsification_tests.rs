@@ -133,21 +133,14 @@ int bit_parity_selftest(void) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1202: Parity computation should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1202: Parity computation should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1202: Output should not be empty");
     assert!(
         code.contains("fn bit_parity_naive"),
         "C1202: Should contain bit_parity_naive function"
     );
-    assert!(
-        code.contains("fn bit_parity_fold"),
-        "C1202: Should contain bit_parity_fold function"
-    );
+    assert!(code.contains("fn bit_parity_fold"), "C1202: Should contain bit_parity_fold function");
 }
 
 #[test]
@@ -184,11 +177,7 @@ int bit_reverse_selftest(void) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1203: Reverse bits should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1203: Reverse bits should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1203: Output should not be empty");
     assert!(
@@ -246,17 +235,10 @@ int bit_ctz_selftest(void) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1204: Count trailing zeros should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1204: Count trailing zeros should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1204: Output should not be empty");
-    assert!(
-        code.contains("fn bit_ctz_naive"),
-        "C1204: Should contain bit_ctz_naive function"
-    );
+    assert!(code.contains("fn bit_ctz_naive"), "C1204: Should contain bit_ctz_naive function");
     assert!(
         code.contains("fn bit_ctz_debruijn"),
         "C1204: Should contain bit_ctz_debruijn function"
@@ -304,17 +286,10 @@ int bit_clz_selftest(void) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1205: Count leading zeros should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1205: Count leading zeros should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1205: Output should not be empty");
-    assert!(
-        code.contains("fn bit_clz_naive"),
-        "C1205: Should contain bit_clz_naive function"
-    );
+    assert!(code.contains("fn bit_clz_naive"), "C1205: Should contain bit_clz_naive function");
     assert!(
         code.contains("fn bit_clz_binary_search"),
         "C1205: Should contain bit_clz_binary_search function"
@@ -368,11 +343,7 @@ int bit_power2_selftest(void) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1206: Power of two check should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1206: Power of two check should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1206: Output should not be empty");
     assert!(
@@ -427,21 +398,14 @@ int bit_next_pow2_selftest(void) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1207: Next power of two should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1207: Next power of two should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1207: Output should not be empty");
     assert!(
         code.contains("fn bit_next_power_of_2"),
         "C1207: Should contain bit_next_power_of_2 function"
     );
-    assert!(
-        code.contains("fn bit_align_up"),
-        "C1207: Should contain bit_align_up function"
-    );
+    assert!(code.contains("fn bit_align_up"), "C1207: Should contain bit_align_up function");
 }
 
 #[test]
@@ -487,11 +451,7 @@ int bit_morton_selftest(void) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1208: Morton code interleave should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1208: Morton code interleave should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1208: Output should not be empty");
     assert!(
@@ -545,21 +505,11 @@ int bit_gray_selftest(void) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1209: Gray code conversion should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1209: Gray code conversion should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1209: Output should not be empty");
-    assert!(
-        code.contains("fn bit_to_gray"),
-        "C1209: Should contain bit_to_gray function"
-    );
-    assert!(
-        code.contains("fn bit_from_gray"),
-        "C1209: Should contain bit_from_gray function"
-    );
+    assert!(code.contains("fn bit_to_gray"), "C1209: Should contain bit_to_gray function");
+    assert!(code.contains("fn bit_from_gray"), "C1209: Should contain bit_from_gray function");
 }
 
 #[test]
@@ -679,14 +629,8 @@ int bit_range_selftest(void) {
     );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1211: Output should not be empty");
-    assert!(
-        code.contains("fn bit_set_range"),
-        "C1211: Should contain bit_set_range function"
-    );
-    assert!(
-        code.contains("fn bit_clear_range"),
-        "C1211: Should contain bit_clear_range function"
-    );
+    assert!(code.contains("fn bit_set_range"), "C1211: Should contain bit_set_range function");
+    assert!(code.contains("fn bit_clear_range"), "C1211: Should contain bit_clear_range function");
 }
 
 #[test]
@@ -785,21 +729,11 @@ int bit_rotate_selftest(void) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1213: Bit rotate operations should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1213: Bit rotate operations should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1213: Output should not be empty");
-    assert!(
-        code.contains("fn bit_rotl32"),
-        "C1213: Should contain bit_rotl32 function"
-    );
-    assert!(
-        code.contains("fn bit_rotr32"),
-        "C1213: Should contain bit_rotr32 function"
-    );
+    assert!(code.contains("fn bit_rotl32"), "C1213: Should contain bit_rotl32 function");
+    assert!(code.contains("fn bit_rotr32"), "C1213: Should contain bit_rotr32 function");
 }
 
 #[test]
@@ -852,21 +786,14 @@ int bit_permute_selftest(void) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1214: Bit permutation should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1214: Bit permutation should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1214: Output should not be empty");
     assert!(
         code.contains("fn bit_permute_by_table"),
         "C1214: Should contain bit_permute_by_table function"
     );
-    assert!(
-        code.contains("fn bit_swap_bytes"),
-        "C1214: Should contain bit_swap_bytes function"
-    );
+    assert!(code.contains("fn bit_swap_bytes"), "C1214: Should contain bit_swap_bytes function");
 }
 
 #[test]
@@ -912,21 +839,11 @@ int bit_pack_selftest(void) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1215: Bitfield struct packing should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1215: Bitfield struct packing should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1215: Output should not be empty");
-    assert!(
-        code.contains("fn bit_pack_rgba"),
-        "C1215: Should contain bit_pack_rgba function"
-    );
-    assert!(
-        code.contains("fn bit_unpack_red"),
-        "C1215: Should contain bit_unpack_red function"
-    );
+    assert!(code.contains("fn bit_pack_rgba"), "C1215: Should contain bit_pack_rgba function");
+    assert!(code.contains("fn bit_unpack_red"), "C1215: Should contain bit_unpack_red function");
 }
 
 // ============================================================================
@@ -980,17 +897,10 @@ int bit_prefix_selftest(void) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1216: Parallel prefix sum should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1216: Parallel prefix sum should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1216: Output should not be empty");
-    assert!(
-        code.contains("fn bit_prefix_or"),
-        "C1216: Should contain bit_prefix_or function"
-    );
+    assert!(code.contains("fn bit_prefix_or"), "C1216: Should contain bit_prefix_or function");
     assert!(
         code.contains("fn bit_prefix_popcount"),
         "C1216: Should contain bit_prefix_popcount function"
@@ -1043,11 +953,7 @@ int bit_horiz_selftest(void) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1217: Horizontal byte add should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1217: Horizontal byte add should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1217: Output should not be empty");
     assert!(
@@ -1165,11 +1071,7 @@ int bit_transpose_selftest(void) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1219: Bit matrix transpose 8x8 should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1219: Bit matrix transpose 8x8 should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1219: Output should not be empty");
     assert!(
@@ -1223,21 +1125,11 @@ int bit_sat_selftest(void) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1220: Saturating arithmetic should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1220: Saturating arithmetic should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1220: Output should not be empty");
-    assert!(
-        code.contains("fn bit_sat_add_u8"),
-        "C1220: Should contain bit_sat_add_u8 function"
-    );
-    assert!(
-        code.contains("fn bit_sat_sub_u8"),
-        "C1220: Should contain bit_sat_sub_u8 function"
-    );
+    assert!(code.contains("fn bit_sat_add_u8"), "C1220: Should contain bit_sat_add_u8 function");
+    assert!(code.contains("fn bit_sat_sub_u8"), "C1220: Should contain bit_sat_sub_u8 function");
 }
 
 // ============================================================================
@@ -1487,10 +1379,7 @@ int bit_bitap_selftest(void) {
         code.contains("fn bit_bitap_search"),
         "C1223: Should contain bit_bitap_search function"
     );
-    assert!(
-        code.contains("fn bit_has_char"),
-        "C1223: Should contain bit_has_char function"
-    );
+    assert!(code.contains("fn bit_has_char"), "C1223: Should contain bit_has_char function");
 }
 
 #[test]
@@ -1561,10 +1450,7 @@ int bit_board_selftest(void) {
     );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1224: Output should not be empty");
-    assert!(
-        code.contains("fn bit_board_set"),
-        "C1224: Should contain bit_board_set function"
-    );
+    assert!(code.contains("fn bit_board_set"), "C1224: Should contain bit_board_set function");
     assert!(
         code.contains("fn bit_board_king_attacks"),
         "C1224: Should contain bit_board_king_attacks function"
@@ -1639,11 +1525,7 @@ int bit_fenwick_selftest(void) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1225: Fenwick bit tree should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1225: Fenwick bit tree should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1225: Output should not be empty");
     assert!(

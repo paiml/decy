@@ -153,11 +153,7 @@ int mul(int a, int b) {
 
     let rust_code = result.unwrap();
 
-    assert!(
-        rust_code.contains("a * b"),
-        "Simple multiply should work!\nGot: {}",
-        rust_code
-    );
+    assert!(rust_code.contains("a * b"), "Simple multiply should work!\nGot: {}", rust_code);
 }
 
 /// Test multiply with variable that has subtraction in assignment

@@ -36,10 +36,7 @@ fn test_size_t_variable_uses_typedef_alias() {
     let func = HirFunction::new_with_body(
         "test_func".to_string(),
         HirType::Void,
-        vec![HirParameter::new(
-            "str".to_string(),
-            HirType::Pointer(Box::new(HirType::Char)),
-        )],
+        vec![HirParameter::new("str".to_string(), HirType::Pointer(Box::new(HirType::Char)))],
         vec![
             // size_t len = strlen(str);
             HirStatement::VariableDeclaration {
@@ -65,11 +62,7 @@ fn test_size_t_variable_uses_typedef_alias() {
     );
 
     // Should NOT use u32
-    assert!(
-        !code.contains(": u32"),
-        "Variable should NOT use u32 type for size_t. Got: {}",
-        code
-    );
+    assert!(!code.contains(": u32"), "Variable should NOT use u32 type for size_t. Got: {}", code);
 }
 
 #[test]

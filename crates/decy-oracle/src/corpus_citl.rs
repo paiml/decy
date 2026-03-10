@@ -129,11 +129,7 @@ impl CorpusCITL {
     pub fn new() -> Result<Self, OracleError> {
         let citl =
             DecisionCITL::new().map_err(|e| OracleError::PatternStoreError(e.to_string()))?;
-        Ok(Self {
-            citl,
-            stats: IngestionStats::default(),
-            seen_features: HashSet::new(),
-        })
+        Ok(Self { citl, stats: IngestionStats::default(), seen_features: HashSet::new() })
     }
 
     /// Ingest a C-to-Rust transpilation pair.
@@ -314,8 +310,7 @@ mod tests {
         let rust_code = "fn add(a: i32, b: i32) -> i32 { a + b }";
         let features = vec![];
 
-        citl.ingest_pair(c_code, Some(rust_code), &features)
-            .unwrap();
+        citl.ingest_pair(c_code, Some(rust_code), &features).unwrap();
 
         assert_eq!(citl.stats().total_pairs, 1);
         assert_eq!(citl.stats().success_pairs, 1);
@@ -362,10 +357,7 @@ mod tests {
 
         // Both MallocFree and PointerArithmetic have 100% failure rate
         assert!(!suspicious.is_empty());
-        assert!(
-            suspicious[0].1 > 0.5,
-            "Top feature should have high suspiciousness"
-        );
+        assert!(suspicious[0].1 > 0.5, "Top feature should have high suspiciousness");
     }
 
     #[test]
@@ -402,14 +394,8 @@ mod tests {
     #[test]
     fn test_cfeature_as_decision() {
         assert_eq!(CFeature::MallocFree.as_decision(), "malloc_free");
-        assert_eq!(
-            CFeature::PointerArithmetic.as_decision(),
-            "pointer_arithmetic"
-        );
-        assert_eq!(
-            CFeature::ConstCharPointer.as_decision(),
-            "const_char_pointer"
-        );
+        assert_eq!(CFeature::PointerArithmetic.as_decision(), "pointer_arithmetic");
+        assert_eq!(CFeature::ConstCharPointer.as_decision(), "const_char_pointer");
     }
 
     #[test]
@@ -424,10 +410,7 @@ mod tests {
         for f in features {
             let decision = f.as_decision();
             let recovered = CFeature::from_decision(&decision);
-            assert_eq!(
-                f, recovered,
-                "Feature should roundtrip through decision string"
-            );
+            assert_eq!(f, recovered, "Feature should roundtrip through decision string");
         }
     }
 
@@ -444,18 +427,9 @@ mod tests {
         let mut citl = CorpusCITL::new().unwrap();
 
         // Ingest with overlapping features
-        citl.ingest_pair(
-            "code1",
-            None,
-            &[CFeature::MallocFree, CFeature::VoidPointer],
-        )
-        .unwrap();
-        citl.ingest_pair(
-            "code2",
-            None,
-            &[CFeature::MallocFree, CFeature::PointerArithmetic],
-        )
-        .unwrap();
+        citl.ingest_pair("code1", None, &[CFeature::MallocFree, CFeature::VoidPointer]).unwrap();
+        citl.ingest_pair("code2", None, &[CFeature::MallocFree, CFeature::PointerArithmetic])
+            .unwrap();
 
         // Should track 3 unique features: MallocFree, VoidPointer, PointerArithmetic
         assert_eq!(citl.stats().unique_features, 3);

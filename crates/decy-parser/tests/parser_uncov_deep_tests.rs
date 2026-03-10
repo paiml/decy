@@ -23,9 +23,7 @@ fn parse_c(code: &str) -> decy_parser::Ast {
 
 /// Helper: get first function from AST
 fn first_func(ast: &decy_parser::Ast) -> &decy_parser::Function {
-    ast.functions()
-        .first()
-        .expect("Expected at least one function")
+    ast.functions().first().expect("Expected at least one function")
 }
 
 /// Helper: find a function by name
@@ -52,14 +50,11 @@ void f() {
 "#;
     let ast = parse_c(code);
     let func = find_func(&ast, "f");
-    let has_field_assign = func.body.iter().any(|s| {
-        matches!(s, Statement::FieldAssignment { field, .. } if field == "z")
-    });
-    assert!(
-        has_field_assign,
-        "Expected FieldAssignment for --c.z, got: {:?}",
-        func.body
-    );
+    let has_field_assign = func
+        .body
+        .iter()
+        .any(|s| matches!(s, Statement::FieldAssignment { field, .. } if field == "z"));
+    assert!(has_field_assign, "Expected FieldAssignment for --c.z, got: {:?}", func.body);
 }
 
 #[test]
@@ -74,14 +69,11 @@ void f() {
 "#;
     let ast = parse_c(code);
     let func = find_func(&ast, "f");
-    let has_field_assign = func.body.iter().any(|s| {
-        matches!(s, Statement::FieldAssignment { field, .. } if field == "w")
-    });
-    assert!(
-        has_field_assign,
-        "Expected FieldAssignment for ++s.w, got: {:?}",
-        func.body
-    );
+    let has_field_assign = func
+        .body
+        .iter()
+        .any(|s| matches!(s, Statement::FieldAssignment { field, .. } if field == "w"));
+    assert!(has_field_assign, "Expected FieldAssignment for ++s.w, got: {:?}", func.body);
 }
 
 // ============================================================================
@@ -99,14 +91,9 @@ void f() {
 "#;
     let ast = parse_c(code);
     let func = find_func(&ast, "f");
-    let has_arr_assign = func.body.iter().any(|s| {
-        matches!(s, Statement::ArrayIndexAssignment { .. })
-    });
-    assert!(
-        has_arr_assign,
-        "Expected ArrayIndexAssignment for --vals[0], got: {:?}",
-        func.body
-    );
+    let has_arr_assign =
+        func.body.iter().any(|s| matches!(s, Statement::ArrayIndexAssignment { .. }));
+    assert!(has_arr_assign, "Expected ArrayIndexAssignment for --vals[0], got: {:?}", func.body);
 }
 
 #[test]
@@ -120,14 +107,9 @@ void f() {
 "#;
     let ast = parse_c(code);
     let func = find_func(&ast, "f");
-    let has_arr_assign = func.body.iter().any(|s| {
-        matches!(s, Statement::ArrayIndexAssignment { .. })
-    });
-    assert!(
-        has_arr_assign,
-        "Expected ArrayIndexAssignment for --arr[i], got: {:?}",
-        func.body
-    );
+    let has_arr_assign =
+        func.body.iter().any(|s| matches!(s, Statement::ArrayIndexAssignment { .. }));
+    assert!(has_arr_assign, "Expected ArrayIndexAssignment for --arr[i], got: {:?}", func.body);
 }
 
 // ============================================================================
@@ -144,9 +126,10 @@ void f(int* ptr) {
 "#;
     let ast = parse_c(code);
     let func = find_func(&ast, "f");
-    let has_deref_compound = func.body.iter().any(|s| {
-        matches!(s, Statement::DerefCompoundAssignment { op: BinaryOperator::Add, .. })
-    });
+    let has_deref_compound = func
+        .body
+        .iter()
+        .any(|s| matches!(s, Statement::DerefCompoundAssignment { op: BinaryOperator::Add, .. }));
     assert!(
         has_deref_compound,
         "Expected DerefCompoundAssignment for *ptr += 5, got: {:?}",
@@ -284,11 +267,7 @@ void f() {
             false
         }
     });
-    assert!(
-        has_addr_of,
-        "Expected AddressOf expression in initializer, got: {:?}",
-        func.body
-    );
+    assert!(has_addr_of, "Expected AddressOf expression in initializer, got: {:?}", func.body);
 }
 
 #[test]
@@ -353,11 +332,7 @@ fn test_ternary_expression_in_return() {
     let func = first_func(&ast);
     let ret = func.body.iter().find(|s| matches!(s, Statement::Return(Some(_))));
     if let Some(Statement::Return(Some(expr))) = ret {
-        assert!(
-            matches!(expr, Expression::Ternary { .. }),
-            "Expected Ternary, got: {:?}",
-            expr
-        );
+        assert!(matches!(expr, Expression::Ternary { .. }), "Expected Ternary, got: {:?}", expr);
     } else {
         panic!("Expected return with ternary expression");
     }
@@ -397,17 +372,12 @@ int f() {
     // sizeof might appear as part of an assignment or variable init
     let has_sizeof = func.body.iter().any(|s| match s {
         Statement::Assignment { value, .. } => matches!(value, Expression::Sizeof { .. }),
-        Statement::VariableDeclaration {
-            initializer: Some(expr),
-            ..
-        } => matches!(expr, Expression::Sizeof { .. }),
+        Statement::VariableDeclaration { initializer: Some(expr), .. } => {
+            matches!(expr, Expression::Sizeof { .. })
+        }
         _ => false,
     });
-    assert!(
-        has_sizeof,
-        "Expected Sizeof expression, got: {:?}",
-        func.body
-    );
+    assert!(has_sizeof, "Expected Sizeof expression, got: {:?}", func.body);
 }
 
 #[test]
@@ -426,11 +396,7 @@ int f() {
         Statement::Assignment { value, .. } => matches!(value, Expression::Sizeof { .. }),
         _ => false,
     });
-    assert!(
-        has_sizeof,
-        "Expected Sizeof(Point), got: {:?}",
-        func.body
-    );
+    assert!(has_sizeof, "Expected Sizeof(Point), got: {:?}", func.body);
 }
 
 // ============================================================================
@@ -469,11 +435,7 @@ void* f(int* p) {
     let func = first_func(&ast);
     let ret = func.body.iter().find(|s| matches!(s, Statement::Return(Some(_))));
     if let Some(Statement::Return(Some(expr))) = ret {
-        assert!(
-            matches!(expr, Expression::Cast { .. }),
-            "Expected Cast to void*, got: {:?}",
-            expr
-        );
+        assert!(matches!(expr, Expression::Cast { .. }), "Expected Cast to void*, got: {:?}", expr);
     } else {
         panic!("Expected return with cast expression");
     }
@@ -1001,9 +963,10 @@ void f() {
 "#;
     let ast = parse_c(code);
     let func = find_func(&ast, "f");
-    let has_call = func.body.iter().any(|s| {
-        matches!(s, Statement::FunctionCall { function, .. } if function == "process")
-    });
+    let has_call = func
+        .body
+        .iter()
+        .any(|s| matches!(s, Statement::FunctionCall { function, .. } if function == "process"));
     assert!(has_call, "Expected FunctionCall statement, got: {:?}", func.body);
 }
 
@@ -1239,9 +1202,7 @@ void f(int* ptr) {
 "#;
     let ast = parse_c(code);
     let func = first_func(&ast);
-    let has_deref = func.body.iter().any(|s| {
-        matches!(s, Statement::DerefAssignment { .. })
-    });
+    let has_deref = func.body.iter().any(|s| matches!(s, Statement::DerefAssignment { .. }));
     assert!(has_deref, "Expected DerefAssignment for *ptr = 42, got: {:?}", func.body);
 }
 
@@ -1259,9 +1220,10 @@ void f(Str* s) {
 "#;
     let ast = parse_c(code);
     let func = find_func(&ast, "f");
-    let has_field_assign = func.body.iter().any(|s| {
-        matches!(s, Statement::FieldAssignment { field, .. } if field == "len")
-    });
+    let has_field_assign = func
+        .body
+        .iter()
+        .any(|s| matches!(s, Statement::FieldAssignment { field, .. } if field == "len"));
     assert!(has_field_assign, "Expected FieldAssignment for s->len = 100, got: {:?}", func.body);
 }
 

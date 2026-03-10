@@ -11,10 +11,7 @@ fn test_infer_lifetime_parameters() {
         HirType::Void,
         vec![HirParameter::new(
             "data".to_string(),
-            HirType::Reference {
-                inner: Box::new(HirType::Int),
-                mutable: false,
-            },
+            HirType::Reference { inner: Box::new(HirType::Int), mutable: false },
         )],
     );
 
@@ -25,10 +22,7 @@ fn test_infer_lifetime_parameters() {
         !signature.lifetimes.is_empty(),
         "Function with reference parameter should have lifetime parameters"
     );
-    assert_eq!(
-        signature.lifetimes[0].name, "'a",
-        "First lifetime should be 'a"
-    );
+    assert_eq!(signature.lifetimes[0].name, "'a", "First lifetime should be 'a");
 }
 
 #[test]
@@ -58,10 +52,7 @@ fn test_annotate_parameters() {
         vec![
             HirParameter::new(
                 "data".to_string(),
-                HirType::Reference {
-                    inner: Box::new(HirType::Int),
-                    mutable: false,
-                },
+                HirType::Reference { inner: Box::new(HirType::Int), mutable: false },
             ),
             HirParameter::new("count".to_string(), HirType::Int),
         ],
@@ -76,10 +67,7 @@ fn test_annotate_parameters() {
     assert!(
         matches!(
             signature.parameters[0].param_type,
-            AnnotatedType::Reference {
-                lifetime: Some(_),
-                ..
-            }
+            AnnotatedType::Reference { lifetime: Some(_), .. }
         ),
         "Reference parameter should have lifetime"
     );
@@ -96,16 +84,10 @@ fn test_annotate_return_type() {
     // Test annotating return type with lifetime
     let func = HirFunction::new(
         "test".to_string(),
-        HirType::Reference {
-            inner: Box::new(HirType::Int),
-            mutable: false,
-        },
+        HirType::Reference { inner: Box::new(HirType::Int), mutable: false },
         vec![HirParameter::new(
             "data".to_string(),
-            HirType::Reference {
-                inner: Box::new(HirType::Int),
-                mutable: false,
-            },
+            HirType::Reference { inner: Box::new(HirType::Int), mutable: false },
         )],
     );
 
@@ -114,13 +96,7 @@ fn test_annotate_return_type() {
 
     // Return type should have lifetime annotation
     assert!(
-        matches!(
-            signature.return_type,
-            AnnotatedType::Reference {
-                lifetime: Some(_),
-                ..
-            }
-        ),
+        matches!(signature.return_type, AnnotatedType::Reference { lifetime: Some(_), .. }),
         "Reference return type should have lifetime"
     );
 }
@@ -184,10 +160,7 @@ fn test_mutable_reference_parameter() {
         HirType::Void,
         vec![HirParameter::new(
             "data".to_string(),
-            HirType::Reference {
-                inner: Box::new(HirType::Int),
-                mutable: true,
-            },
+            HirType::Reference { inner: Box::new(HirType::Int), mutable: true },
         )],
     );
 
@@ -195,9 +168,7 @@ fn test_mutable_reference_parameter() {
     let signature = annotator.annotate_function(&func);
 
     assert!(!signature.lifetimes.is_empty());
-    if let AnnotatedType::Reference {
-        mutable, lifetime, ..
-    } = &signature.parameters[0].param_type
+    if let AnnotatedType::Reference { mutable, lifetime, .. } = &signature.parameters[0].param_type
     {
         assert!(*mutable, "Should preserve mutable flag");
         assert!(lifetime.is_some(), "Should have lifetime annotation");
@@ -211,20 +182,14 @@ fn test_function_lifetime_end_to_end() {
     // Integration test: complete lifetime annotation pipeline
     let func = HirFunction::new_with_body(
         "get_value".to_string(),
-        HirType::Reference {
-            inner: Box::new(HirType::Int),
-            mutable: false,
-        },
+        HirType::Reference { inner: Box::new(HirType::Int), mutable: false },
         vec![HirParameter::new(
             "container".to_string(),
-            HirType::Reference {
-                inner: Box::new(HirType::Int),
-                mutable: false,
-            },
+            HirType::Reference { inner: Box::new(HirType::Int), mutable: false },
         )],
-        vec![HirStatement::Return(Some(
-            decy_hir::HirExpression::Variable("container".to_string()),
-        ))],
+        vec![HirStatement::Return(Some(decy_hir::HirExpression::Variable(
+            "container".to_string(),
+        )))],
     );
 
     let annotator = LifetimeAnnotator::new();
@@ -295,17 +260,11 @@ fn test_multiple_reference_parameters() {
         vec![
             HirParameter::new(
                 "a".to_string(),
-                HirType::Reference {
-                    inner: Box::new(HirType::Int),
-                    mutable: false,
-                },
+                HirType::Reference { inner: Box::new(HirType::Int), mutable: false },
             ),
             HirParameter::new(
                 "b".to_string(),
-                HirType::Reference {
-                    inner: Box::new(HirType::Int),
-                    mutable: false,
-                },
+                HirType::Reference { inner: Box::new(HirType::Int), mutable: false },
             ),
         ],
     );
@@ -327,10 +286,7 @@ fn test_void_return_with_ref_params() {
         HirType::Void,
         vec![HirParameter::new(
             "data".to_string(),
-            HirType::Reference {
-                inner: Box::new(HirType::Int),
-                mutable: true,
-            },
+            HirType::Reference { inner: Box::new(HirType::Int), mutable: true },
         )],
     );
 
@@ -340,8 +296,5 @@ fn test_void_return_with_ref_params() {
     // Should have lifetime parameter for the reference
     assert!(!signature.lifetimes.is_empty());
     // But return type is simple (void)
-    assert!(matches!(
-        signature.return_type,
-        AnnotatedType::Simple(HirType::Void)
-    ));
+    assert!(matches!(signature.return_type, AnnotatedType::Simple(HirType::Void)));
 }

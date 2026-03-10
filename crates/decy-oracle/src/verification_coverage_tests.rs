@@ -118,10 +118,7 @@ fn test_verification_config_custom_values() {
 #[test]
 fn test_verification_config_with_work_dir() {
     let tmp = std::env::temp_dir();
-    let config = VerificationConfig {
-        work_dir: Some(tmp.clone()),
-        ..Default::default()
-    };
+    let config = VerificationConfig { work_dir: Some(tmp.clone()), ..Default::default() };
     assert_eq!(config.work_dir.unwrap(), tmp);
 }
 
@@ -258,10 +255,7 @@ fn test_compilation_invalid_missing_semicolon() {
 #[test]
 fn test_compilation_with_custom_work_dir() {
     let tmp = std::env::temp_dir();
-    let config = VerificationConfig {
-        work_dir: Some(tmp),
-        ..Default::default()
-    };
+    let config = VerificationConfig { work_dir: Some(tmp), ..Default::default() };
     let code = "pub fn hello() -> &'static str { \"world\" }";
     // Under coverage instrumentation, rustc subprocess may fail due to env interference.
     let _result = check_rust_compilation(code, &config);
@@ -270,10 +264,7 @@ fn test_compilation_with_custom_work_dir() {
 #[test]
 fn test_compilation_invalid_code_with_custom_work_dir() {
     let tmp = std::env::temp_dir();
-    let config = VerificationConfig {
-        work_dir: Some(tmp),
-        ..Default::default()
-    };
+    let config = VerificationConfig { work_dir: Some(tmp), ..Default::default() };
     let code = "fn broken() -> i32 { \"not an int\" }";
     // Under coverage instrumentation, rustc subprocess may produce unexpected results.
     let _result = check_rust_compilation(code, &config);
@@ -383,11 +374,7 @@ fn test_run_test_suite_dir_with_failing_script() {
     let tmp = std::env::temp_dir().join("decy_verification_fail_script_dir");
     let _ = std::fs::create_dir_all(&tmp);
     std::fs::write(tmp.join("placeholder.txt"), "test data").ok();
-    std::fs::write(
-        tmp.join("run_tests.sh"),
-        "#!/bin/bash\necho 'test failed' >&2\nexit 1\n",
-    )
-    .ok();
+    std::fs::write(tmp.join("run_tests.sh"), "#!/bin/bash\necho 'test failed' >&2\nexit 1\n").ok();
     #[cfg(unix)]
     {
         use std::os::unix::fs::PermissionsExt;
@@ -421,10 +408,7 @@ fn test_verify_compile_failed_returns_compile_failed() {
 #[test]
 fn test_verify_compiles_only_when_tests_disabled() {
     let code = "pub fn ok() -> i32 { 42 }";
-    let config = VerificationConfig {
-        run_tests: false,
-        ..Default::default()
-    };
+    let config = VerificationConfig { run_tests: false, ..Default::default() };
     let result = verify_fix_semantically(code, None, &config);
     // Under coverage instrumentation, rustc subprocess may fail.
     assert!(
@@ -488,11 +472,8 @@ fn test_verify_behavior_changed_with_failing_tests() {
     let tmp = std::env::temp_dir().join("decy_verify_behavior_changed");
     let _ = std::fs::create_dir_all(&tmp);
     std::fs::write(tmp.join("placeholder.txt"), "test data").ok();
-    std::fs::write(
-        tmp.join("run_tests.sh"),
-        "#!/bin/bash\necho 'assertion failed' >&2\nexit 1\n",
-    )
-    .ok();
+    std::fs::write(tmp.join("run_tests.sh"), "#!/bin/bash\necho 'assertion failed' >&2\nexit 1\n")
+        .ok();
     #[cfg(unix)]
     {
         use std::os::unix::fs::PermissionsExt;

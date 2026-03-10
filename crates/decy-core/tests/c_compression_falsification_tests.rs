@@ -85,14 +85,8 @@ int rle_roundtrip_test(void) {
 "#;
     let rust_code = decy_core::transpile(c_code)?;
     assert!(!rust_code.is_empty(), "C526: Should produce output");
-    assert!(
-        rust_code.contains("fn rle_encode"),
-        "C526: Should contain rle_encode function"
-    );
-    assert!(
-        rust_code.contains("fn rle_decode"),
-        "C526: Should contain rle_decode function"
-    );
+    assert!(rust_code.contains("fn rle_encode"), "C526: Should contain rle_encode function");
+    assert!(rust_code.contains("fn rle_decode"), "C526: Should contain rle_decode function");
     Ok(())
 }
 
@@ -398,10 +392,7 @@ int lzw_decode_string(const lzw_dict_t *d, int code, uint8_t *out, int max_len) 
 "#;
     let rust_code = decy_core::transpile(c_code)?;
     assert!(!rust_code.is_empty(), "C530: Should produce output");
-    assert!(
-        rust_code.contains("fn lzw_init"),
-        "C530: Should contain lzw_init function"
-    );
+    assert!(rust_code.contains("fn lzw_init"), "C530: Should contain lzw_init function");
     Ok(())
 }
 
@@ -449,10 +440,7 @@ int base64_encoded_len(int in_len) {
 "#;
     let rust_code = decy_core::transpile(c_code)?;
     assert!(!rust_code.is_empty(), "C531: Should produce output");
-    assert!(
-        rust_code.contains("fn base64_encode"),
-        "C531: Should contain base64_encode function"
-    );
+    assert!(rust_code.contains("fn base64_encode"), "C531: Should contain base64_encode function");
     Ok(())
 }
 
@@ -503,10 +491,7 @@ int base64_roundtrip_check(void) {
 "#;
     let rust_code = decy_core::transpile(c_code)?;
     assert!(!rust_code.is_empty(), "C532: Should produce output");
-    assert!(
-        rust_code.contains("fn base64_decode"),
-        "C532: Should contain base64_decode function"
-    );
+    assert!(rust_code.contains("fn base64_decode"), "C532: Should contain base64_decode function");
     Ok(())
 }
 
@@ -552,10 +537,7 @@ uint32_t crc32_compute(const uint8_t *data, int len) {
 "#;
     let rust_code = decy_core::transpile(c_code)?;
     assert!(!rust_code.is_empty(), "C533: Should produce output");
-    assert!(
-        rust_code.contains("fn crc32_update"),
-        "C533: Should contain crc32_update function"
-    );
+    assert!(rust_code.contains("fn crc32_update"), "C533: Should contain crc32_update function");
     Ok(())
 }
 
@@ -785,14 +767,8 @@ int delta_compression_ratio(const int *deltas, int len) {
 "#;
     let rust_code = decy_core::transpile(c_code)?;
     assert!(!rust_code.is_empty(), "C537: Should produce output");
-    assert!(
-        rust_code.contains("fn delta_encode"),
-        "C537: Should contain delta_encode function"
-    );
-    assert!(
-        rust_code.contains("fn delta_decode"),
-        "C537: Should contain delta_decode function"
-    );
+    assert!(rust_code.contains("fn delta_encode"), "C537: Should contain delta_encode function");
+    assert!(rust_code.contains("fn delta_decode"), "C537: Should contain delta_decode function");
     Ok(())
 }
 
@@ -854,10 +830,7 @@ void bwt_transform(bwt_ctx_t *ctx, const uint8_t *data, int len) {
 "#;
     let rust_code = decy_core::transpile(c_code)?;
     assert!(!rust_code.is_empty(), "C538: Should produce output");
-    assert!(
-        rust_code.contains("fn bwt_transform"),
-        "C538: Should contain bwt_transform function"
-    );
+    assert!(rust_code.contains("fn bwt_transform"), "C538: Should contain bwt_transform function");
     Ok(())
 }
 
@@ -915,14 +888,8 @@ void mtf_decode(mtf_ctx_t *ctx, const uint8_t *input, int len, uint8_t *output) 
 "#;
     let rust_code = decy_core::transpile(c_code)?;
     assert!(!rust_code.is_empty(), "C539: Should produce output");
-    assert!(
-        rust_code.contains("fn mtf_encode"),
-        "C539: Should contain mtf_encode function"
-    );
-    assert!(
-        rust_code.contains("fn mtf_decode"),
-        "C539: Should contain mtf_decode function"
-    );
+    assert!(rust_code.contains("fn mtf_encode"), "C539: Should contain mtf_encode function");
+    assert!(rust_code.contains("fn mtf_decode"), "C539: Should contain mtf_decode function");
     Ok(())
 }
 
@@ -986,10 +953,7 @@ int bw_flush(bit_writer_t *w) {
 "#;
     let rust_code = decy_core::transpile(c_code)?;
     assert!(!rust_code.is_empty(), "C540: Should produce output");
-    assert!(
-        rust_code.contains("fn bw_put_bit"),
-        "C540: Should contain bw_put_bit function"
-    );
+    assert!(rust_code.contains("fn bw_put_bit"), "C540: Should contain bw_put_bit function");
     Ok(())
 }
 
@@ -1051,10 +1015,7 @@ int br_is_aligned(const bit_reader_t *r) {
 "#;
     let rust_code = decy_core::transpile(c_code)?;
     assert!(!rust_code.is_empty(), "C541: Should produce output");
-    assert!(
-        rust_code.contains("fn br_get_bit"),
-        "C541: Should contain br_get_bit function"
-    );
+    assert!(rust_code.contains("fn br_get_bit"), "C541: Should contain br_get_bit function");
     Ok(())
 }
 
@@ -1117,14 +1078,8 @@ int varint_roundtrip(uint32_t input) {
 "#;
     let rust_code = decy_core::transpile(c_code)?;
     assert!(!rust_code.is_empty(), "C542: Should produce output");
-    assert!(
-        rust_code.contains("fn varint_encode"),
-        "C542: Should contain varint_encode function"
-    );
-    assert!(
-        rust_code.contains("fn varint_decode"),
-        "C542: Should contain varint_decode function"
-    );
+    assert!(rust_code.contains("fn varint_encode"), "C542: Should contain varint_encode function");
+    assert!(rust_code.contains("fn varint_decode"), "C542: Should contain varint_decode function");
     Ok(())
 }
 
@@ -1309,10 +1264,7 @@ int fib_code_length(uint32_t value) {
 "#;
     let rust_code = decy_core::transpile(c_code)?;
     assert!(!rust_code.is_empty(), "C545: Should produce output");
-    assert!(
-        rust_code.contains("fn fib_encode"),
-        "C545: Should contain fib_encode function"
-    );
+    assert!(rust_code.contains("fn fib_encode"), "C545: Should contain fib_encode function");
     Ok(())
 }
 
@@ -1475,10 +1427,7 @@ int ppm_escape_probability(const ppm_ctx_t *ctx) {
 "#;
     let rust_code = decy_core::transpile(c_code)?;
     assert!(!rust_code.is_empty(), "C547: Should produce output");
-    assert!(
-        rust_code.contains("fn ppm_predict"),
-        "C547: Should contain ppm_predict function"
-    );
+    assert!(rust_code.contains("fn ppm_predict"), "C547: Should contain ppm_predict function");
     Ok(())
 }
 
@@ -1686,9 +1635,6 @@ int jpeg_qt_count_zeros(const int *quantized, int len) {
 "#;
     let rust_code = decy_core::transpile(c_code)?;
     assert!(!rust_code.is_empty(), "C550: Should produce output");
-    assert!(
-        rust_code.contains("fn jpeg_qt_init"),
-        "C550: Should contain jpeg_qt_init function"
-    );
+    assert!(rust_code.contains("fn jpeg_qt_init"), "C550: Should contain jpeg_qt_init function");
     Ok(())
 }

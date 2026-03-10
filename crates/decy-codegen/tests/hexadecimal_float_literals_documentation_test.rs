@@ -452,10 +452,7 @@ fn test_hex_float_summary() {
 
     assert!(!c89_has_hex_float, "C89 did not have hex float literals");
     assert!(c99_has_hex_float, "C99 added hex float literals");
-    assert!(
-        !rust_has_hex_float_literals,
-        "Rust has no hex float literal syntax"
-    );
+    assert!(!rust_has_hex_float_literals, "Rust has no hex float literal syntax");
 
     // But Rust has equivalent capability via from_bits
     // C99 would use: 0x1.8p3

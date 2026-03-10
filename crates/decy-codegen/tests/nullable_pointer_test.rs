@@ -15,10 +15,7 @@ fn create_null_checking_function() -> HirFunction {
     HirFunction::new_with_body(
         "process".to_string(),
         HirType::Int,
-        vec![HirParameter::new(
-            "ptr".to_string(),
-            HirType::Pointer(Box::new(HirType::Int)),
-        )],
+        vec![HirParameter::new("ptr".to_string(), HirType::Pointer(Box::new(HirType::Int)))],
         vec![
             HirStatement::If {
                 condition: HirExpression::BinaryOp {
@@ -43,10 +40,7 @@ fn test_null_checked_pointer_stays_as_pointer() {
     let func = create_null_checking_function();
 
     // Check that the function has a pointer parameter
-    assert!(matches!(
-        func.parameters()[0].param_type(),
-        HirType::Pointer(_)
-    ));
+    assert!(matches!(func.parameters()[0].param_type(), HirType::Pointer(_)));
 
     // The key invariant: if a function compares a pointer param to NULL,
     // that param must stay as *mut T, not become &mut T
@@ -91,10 +85,7 @@ fn test_recursive_null_pointer_pattern() {
     );
 
     // The root parameter is compared to NULL, so it must stay as *mut Node
-    assert!(matches!(
-        func.parameters()[0].param_type(),
-        HirType::Pointer(_)
-    ));
+    assert!(matches!(func.parameters()[0].param_type(), HirType::Pointer(_)));
 
     // When calling insert(root, 50) where root is *mut Node,
     // the generated code should be insert(root, 50), NOT insert(&mut *root, 50)

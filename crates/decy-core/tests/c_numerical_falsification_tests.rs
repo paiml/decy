@@ -62,17 +62,10 @@ void num_euler_init(num_euler_state_t *st, double y0, double h, double t_end) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1276: Euler method ODE should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1276: Euler method ODE should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1276: empty output");
-    assert!(
-        code.contains("fn num_euler_step"),
-        "C1276: Should contain num_euler_step function"
-    );
+    assert!(code.contains("fn num_euler_step"), "C1276: Should contain num_euler_step function");
     assert!(
         code.contains("fn num_euler_integrate"),
         "C1276: Should contain num_euler_integrate function"
@@ -117,21 +110,11 @@ int num_rk4_solve(num_rk4_state_t *st, double t_end, double *out, int max_n) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1277: RK4 ODE solver should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1277: RK4 ODE solver should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1277: empty output");
-    assert!(
-        code.contains("fn num_rk4_step"),
-        "C1277: Should contain num_rk4_step function"
-    );
-    assert!(
-        code.contains("fn num_rk4_solve"),
-        "C1277: Should contain num_rk4_solve function"
-    );
+    assert!(code.contains("fn num_rk4_step"), "C1277: Should contain num_rk4_step function");
+    assert!(code.contains("fn num_rk4_solve"), "C1277: Should contain num_rk4_solve function");
 }
 
 /// C1278: Adaptive step-size RK4 with error estimation
@@ -180,17 +163,10 @@ int num_ark_step(num_ark_state_t *st) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1278: Adaptive step RK4 should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1278: Adaptive step RK4 should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1278: empty output");
-    assert!(
-        code.contains("fn num_ark_step"),
-        "C1278: Should contain num_ark_step function"
-    );
+    assert!(code.contains("fn num_ark_step"), "C1278: Should contain num_ark_step function");
     assert!(
         code.contains("fn num_ark_rk4_step"),
         "C1278: Should contain num_ark_rk4_step function"
@@ -242,21 +218,11 @@ int num_leap_evolve(num_leap_state_t *st, int steps) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1279: Leapfrog integrator should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1279: Leapfrog integrator should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1279: empty output");
-    assert!(
-        code.contains("fn num_leap_step"),
-        "C1279: Should contain num_leap_step function"
-    );
-    assert!(
-        code.contains("fn num_leap_energy"),
-        "C1279: Should contain num_leap_energy function"
-    );
+    assert!(code.contains("fn num_leap_step"), "C1279: Should contain num_leap_step function");
+    assert!(code.contains("fn num_leap_energy"), "C1279: Should contain num_leap_energy function");
 }
 
 /// C1280: Velocity Verlet integration for molecular dynamics
@@ -309,17 +275,10 @@ double num_verlet_kinetic(const num_verlet_t *v) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1280: Verlet integration should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1280: Verlet integration should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1280: empty output");
-    assert!(
-        code.contains("fn num_verlet_step"),
-        "C1280: Should contain num_verlet_step function"
-    );
+    assert!(code.contains("fn num_verlet_step"), "C1280: Should contain num_verlet_step function");
     assert!(
         code.contains("fn num_verlet_kinetic"),
         "C1280: Should contain num_verlet_kinetic function"
@@ -372,11 +331,7 @@ double num_linterp_eval(const num_linterp_t *li, double x) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1281: Linear interpolation should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1281: Linear interpolation should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1281: empty output");
     assert!(
@@ -432,21 +387,11 @@ double num_lagr_error_bound(const num_lagr_data_t *d, double x, double max_deriv
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1282: Lagrange interpolation should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1282: Lagrange interpolation should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1282: empty output");
-    assert!(
-        code.contains("fn num_lagr_eval"),
-        "C1282: Should contain num_lagr_eval function"
-    );
-    assert!(
-        code.contains("fn num_lagr_basis"),
-        "C1282: Should contain num_lagr_basis function"
-    );
+    assert!(code.contains("fn num_lagr_eval"), "C1282: Should contain num_lagr_eval function");
+    assert!(code.contains("fn num_lagr_basis"), "C1282: Should contain num_lagr_basis function");
 }
 
 /// C1283: Natural cubic spline interpolation
@@ -583,21 +528,11 @@ double num_cheb_eval(const num_cheb_t *ch, double x) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1284: Chebyshev approximation should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1284: Chebyshev approximation should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1284: empty output");
-    assert!(
-        code.contains("fn num_cheb_fit"),
-        "C1284: Should contain num_cheb_fit function"
-    );
-    assert!(
-        code.contains("fn num_cheb_eval"),
-        "C1284: Should contain num_cheb_eval function"
-    );
+    assert!(code.contains("fn num_cheb_fit"), "C1284: Should contain num_cheb_fit function");
+    assert!(code.contains("fn num_cheb_eval"), "C1284: Should contain num_cheb_eval function");
 }
 
 /// C1285: Horner's method polynomial evaluation with derivative
@@ -646,21 +581,11 @@ void num_poly_multiply(const num_poly_t *a, const num_poly_t *b, num_poly_t *r) 
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1285: Polynomial evaluation should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1285: Polynomial evaluation should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1285: empty output");
-    assert!(
-        code.contains("fn num_poly_horner"),
-        "C1285: Should contain num_poly_horner function"
-    );
-    assert!(
-        code.contains("fn num_poly_deriv"),
-        "C1285: Should contain num_poly_deriv function"
-    );
+    assert!(code.contains("fn num_poly_horner"), "C1285: Should contain num_poly_horner function");
+    assert!(code.contains("fn num_poly_deriv"), "C1285: Should contain num_poly_deriv function");
 }
 
 // ============================================================================
@@ -699,11 +624,7 @@ double num_trap_error(double a, double b, int n, double exact) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1286: Trapezoidal rule should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1286: Trapezoidal rule should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1286: empty output");
     assert!(
@@ -758,11 +679,7 @@ double num_simp_adaptive(double a, double b, double tol) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1287: Simpson's rule should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1287: Simpson's rule should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1287: empty output");
     assert!(
@@ -822,10 +739,7 @@ double num_gl_error(double a, double b, int panels, double exact) {
     );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1288: empty output");
-    assert!(
-        code.contains("fn num_gl_3pt"),
-        "C1288: Should contain num_gl_3pt function"
-    );
+    assert!(code.contains("fn num_gl_3pt"), "C1288: Should contain num_gl_3pt function");
     assert!(
         code.contains("fn num_gl_composite"),
         "C1288: Should contain num_gl_composite function"
@@ -872,21 +786,14 @@ double num_romb_integrate(double a, double b, int max_k, double tol) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1289: Romberg integration should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1289: Romberg integration should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1289: empty output");
     assert!(
         code.contains("fn num_romb_integrate"),
         "C1289: Should contain num_romb_integrate function"
     );
-    assert!(
-        code.contains("fn num_romb_trap"),
-        "C1289: Should contain num_romb_trap function"
-    );
+    assert!(code.contains("fn num_romb_trap"), "C1289: Should contain num_romb_trap function");
 }
 
 /// C1290: Monte Carlo integration with simple LCG
@@ -945,21 +852,14 @@ double num_mc_variance(double a, double b, int n, num_mc_uint32 seed) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1290: Monte Carlo integration should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1290: Monte Carlo integration should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1290: empty output");
     assert!(
         code.contains("fn num_mc_integrate"),
         "C1290: Should contain num_mc_integrate function"
     );
-    assert!(
-        code.contains("fn num_mc_variance"),
-        "C1290: Should contain num_mc_variance function"
-    );
+    assert!(code.contains("fn num_mc_variance"), "C1290: Should contain num_mc_variance function");
 }
 
 // ============================================================================
@@ -1017,21 +917,11 @@ void num_nr_init(num_nr_result_t *res) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1291: Newton-Raphson should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1291: Newton-Raphson should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1291: empty output");
-    assert!(
-        code.contains("fn num_nr_solve"),
-        "C1291: Should contain num_nr_solve function"
-    );
-    assert!(
-        code.contains("fn num_nr_f"),
-        "C1291: Should contain num_nr_f function"
-    );
+    assert!(code.contains("fn num_nr_solve"), "C1291: Should contain num_nr_solve function");
+    assert!(code.contains("fn num_nr_f"), "C1291: Should contain num_nr_f function");
 }
 
 /// C1292: Brent's method for bracketed root finding
@@ -1087,21 +977,11 @@ double num_brent_solve(double a, double b, double tol, int max_iter) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1292: Brent's method should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1292: Brent's method should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1292: empty output");
-    assert!(
-        code.contains("fn num_brent_solve"),
-        "C1292: Should contain num_brent_solve function"
-    );
-    assert!(
-        code.contains("fn num_brent_f"),
-        "C1292: Should contain num_brent_f function"
-    );
+    assert!(code.contains("fn num_brent_solve"), "C1292: Should contain num_brent_solve function");
+    assert!(code.contains("fn num_brent_f"), "C1292: Should contain num_brent_f function");
 }
 
 /// C1293: Fixed-point iteration with convergence check
@@ -1156,21 +1036,11 @@ double num_fpi_residual(double x) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1293: Fixed point iteration should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1293: Fixed point iteration should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1293: empty output");
-    assert!(
-        code.contains("fn num_fpi_solve"),
-        "C1293: Should contain num_fpi_solve function"
-    );
-    assert!(
-        code.contains("fn num_fpi_g"),
-        "C1293: Should contain num_fpi_g function"
-    );
+    assert!(code.contains("fn num_fpi_solve"), "C1293: Should contain num_fpi_solve function");
+    assert!(code.contains("fn num_fpi_g"), "C1293: Should contain num_fpi_g function");
 }
 
 /// C1294: Muller's method for polynomial root finding
@@ -1221,21 +1091,14 @@ double num_muller_solve(double x0, double x1, double x2, double tol, int max_ite
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1294: Muller's method should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1294: Muller's method should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1294: empty output");
     assert!(
         code.contains("fn num_muller_solve"),
         "C1294: Should contain num_muller_solve function"
     );
-    assert!(
-        code.contains("fn num_muller_f"),
-        "C1294: Should contain num_muller_f function"
-    );
+    assert!(code.contains("fn num_muller_f"), "C1294: Should contain num_muller_f function");
 }
 
 /// C1295: Durand-Kerner method for all polynomial roots simultaneously
@@ -1294,17 +1157,10 @@ double num_dk_cabs(num_dk_complex_t c) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1295: Durand-Kerner should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1295: Durand-Kerner should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1295: empty output");
-    assert!(
-        code.contains("fn num_dk_cmul"),
-        "C1295: Should contain num_dk_cmul function"
-    );
+    assert!(code.contains("fn num_dk_cmul"), "C1295: Should contain num_dk_cmul function");
     assert!(
         code.contains("fn num_dk_poly_eval"),
         "C1295: Should contain num_dk_poly_eval function"
@@ -1370,21 +1226,11 @@ double num_heat_max(const num_heat_t *h) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1296: Heat equation FD should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1296: Heat equation FD should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1296: empty output");
-    assert!(
-        code.contains("fn num_heat_step"),
-        "C1296: Should contain num_heat_step function"
-    );
-    assert!(
-        code.contains("fn num_heat_evolve"),
-        "C1296: Should contain num_heat_evolve function"
-    );
+    assert!(code.contains("fn num_heat_step"), "C1296: Should contain num_heat_step function");
+    assert!(code.contains("fn num_heat_evolve"), "C1296: Should contain num_heat_evolve function");
 }
 
 /// C1297: 1D wave equation via finite differences
@@ -1441,21 +1287,11 @@ double num_wave_energy(const num_wave_t *w) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1297: Wave equation FD should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1297: Wave equation FD should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1297: empty output");
-    assert!(
-        code.contains("fn num_wave_step"),
-        "C1297: Should contain num_wave_step function"
-    );
-    assert!(
-        code.contains("fn num_wave_energy"),
-        "C1297: Should contain num_wave_energy function"
-    );
+    assert!(code.contains("fn num_wave_step"), "C1297: Should contain num_wave_step function");
+    assert!(code.contains("fn num_wave_energy"), "C1297: Should contain num_wave_energy function");
 }
 
 /// C1298: FFT butterfly operations with complex arithmetic
@@ -1518,21 +1354,14 @@ double num_fft_magnitude(num_fft_c_t c) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1298: FFT butterfly should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1298: FFT butterfly should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1298: empty output");
     assert!(
         code.contains("fn num_fft_butterfly"),
         "C1298: Should contain num_fft_butterfly function"
     );
-    assert!(
-        code.contains("fn num_fft_cmul"),
-        "C1298: Should contain num_fft_cmul function"
-    );
+    assert!(code.contains("fn num_fft_cmul"), "C1298: Should contain num_fft_cmul function");
 }
 
 /// C1299: Direct DFT computation (O(N^2) reference)
@@ -1589,17 +1418,10 @@ double num_dft_dominant_freq(const double *power, int n) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1299: DFT direct should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1299: DFT direct should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1299: empty output");
-    assert!(
-        code.contains("fn num_dft_forward"),
-        "C1299: Should contain num_dft_forward function"
-    );
+    assert!(code.contains("fn num_dft_forward"), "C1299: Should contain num_dft_forward function");
     assert!(
         code.contains("fn num_dft_power_spectrum"),
         "C1299: Should contain num_dft_power_spectrum function"
@@ -1675,11 +1497,7 @@ void num_spec_poisson_solve(num_spec_t *sp) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1300: Spectral method should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1300: Spectral method should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1300: empty output");
     assert!(

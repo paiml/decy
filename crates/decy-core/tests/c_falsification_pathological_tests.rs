@@ -39,18 +39,9 @@ int main() {
     );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C151: Output should not be empty");
-    assert!(
-        code.contains("fn add"),
-        "C151: Should contain add function"
-    );
-    assert!(
-        code.contains("fn apply"),
-        "C151: Should contain apply function"
-    );
-    assert!(
-        code.contains("fn main"),
-        "C151: Should contain main function"
-    );
+    assert!(code.contains("fn add"), "C151: Should contain add function");
+    assert!(code.contains("fn apply"), "C151: Should contain apply function");
+    assert!(code.contains("fn main"), "C151: Should contain main function");
 }
 
 #[test]
@@ -77,22 +68,10 @@ int dispatch(int op, int a, int b) {
     );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C152: Output should not be empty");
-    assert!(
-        code.contains("fn dispatch"),
-        "C152: Should contain dispatch function"
-    );
-    assert!(
-        code.contains("fn add"),
-        "C152: Should contain add function"
-    );
-    assert!(
-        code.contains("fn sub"),
-        "C152: Should contain sub function"
-    );
-    assert!(
-        code.contains("fn mul"),
-        "C152: Should contain mul function"
-    );
+    assert!(code.contains("fn dispatch"), "C152: Should contain dispatch function");
+    assert!(code.contains("fn add"), "C152: Should contain add function");
+    assert!(code.contains("fn sub"), "C152: Should contain sub function");
+    assert!(code.contains("fn mul"), "C152: Should contain mul function");
 }
 
 #[test]
@@ -114,14 +93,8 @@ int main() {
     );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C153: Output should not be empty");
-    assert!(
-        code.contains("fn apply_twice"),
-        "C153: Should contain apply_twice function"
-    );
-    assert!(
-        code.contains("fn double_it"),
-        "C153: Should contain double_it function"
-    );
+    assert!(code.contains("fn apply_twice"), "C153: Should contain apply_twice function");
+    assert!(code.contains("fn double_it"), "C153: Should contain double_it function");
 }
 
 #[test]
@@ -147,14 +120,8 @@ int main() {
     );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C154: Output should not be empty");
-    assert!(
-        code.contains("fn get_op"),
-        "C154: Should contain get_op function"
-    );
-    assert!(
-        code.contains("fn main"),
-        "C154: Should contain main function"
-    );
+    assert!(code.contains("fn get_op"), "C154: Should contain get_op function");
+    assert!(code.contains("fn main"), "C154: Should contain main function");
 }
 
 #[test]
@@ -184,18 +151,9 @@ void fire_event(struct EventHandler *eh, int code) {
     );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C155: Output should not be empty");
-    assert!(
-        code.contains("fn register_handler"),
-        "C155: Should contain register_handler function"
-    );
-    assert!(
-        code.contains("fn fire_event"),
-        "C155: Should contain fire_event function"
-    );
-    assert!(
-        code.contains("EventHandler"),
-        "C155: Should contain EventHandler struct"
-    );
+    assert!(code.contains("fn register_handler"), "C155: Should contain register_handler function");
+    assert!(code.contains("fn fire_event"), "C155: Should contain fire_event function");
+    assert!(code.contains("EventHandler"), "C155: Should contain EventHandler struct");
 }
 
 // ============================================================================
@@ -219,17 +177,10 @@ int sum_ints(int count, ...) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C156: Variadic function should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C156: Variadic function should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C156: Output should not be empty");
-    assert!(
-        code.contains("fn sum_ints"),
-        "C156: Should contain sum_ints function"
-    );
+    assert!(code.contains("fn sum_ints"), "C156: Should contain sum_ints function");
 }
 
 #[test]
@@ -250,10 +201,7 @@ void copy_array(int * restrict dst, const int * restrict src, int n) {
     );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C157: Output should not be empty");
-    assert!(
-        code.contains("fn copy_array"),
-        "C157: Should contain copy_array function"
-    );
+    assert!(code.contains("fn copy_array"), "C157: Should contain copy_array function");
 }
 
 #[test]
@@ -267,17 +215,10 @@ int compute(int x, int y, int z) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C158: Static inline function should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C158: Static inline function should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C158: Output should not be empty");
-    assert!(
-        code.contains("fn compute"),
-        "C158: Should contain compute function"
-    );
+    assert!(code.contains("fn compute"), "C158: Should contain compute function");
 }
 
 #[test]
@@ -310,18 +251,9 @@ int find_max(struct TreeNode *root) {
     );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C159: Output should not be empty");
-    assert!(
-        code.contains("fn count_nodes"),
-        "C159: Should contain count_nodes function"
-    );
-    assert!(
-        code.contains("fn find_max"),
-        "C159: Should contain find_max function"
-    );
-    assert!(
-        code.contains("TreeNode"),
-        "C159: Should contain TreeNode struct"
-    );
+    assert!(code.contains("fn count_nodes"), "C159: Should contain count_nodes function");
+    assert!(code.contains("fn find_max"), "C159: Should contain find_max function");
+    assert!(code.contains("TreeNode"), "C159: Should contain TreeNode struct");
 }
 
 #[test]
@@ -342,10 +274,7 @@ int add(a, b)
     );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C160: Output should not be empty");
-    assert!(
-        code.contains("fn add"),
-        "C160: Should contain add function"
-    );
+    assert!(code.contains("fn add"), "C160: Should contain add function");
 }
 
 // ============================================================================
@@ -364,21 +293,11 @@ int get_length(struct Buffer *buf) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C161: Flexible array member should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C161: Flexible array member should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C161: Output should not be empty");
-    assert!(
-        code.contains("fn get_length"),
-        "C161: Should contain get_length function"
-    );
-    assert!(
-        code.contains("Buffer"),
-        "C161: Should contain Buffer struct"
-    );
+    assert!(code.contains("fn get_length"), "C161: Should contain get_length function");
+    assert!(code.contains("Buffer"), "C161: Should contain Buffer struct");
 }
 
 #[test]
@@ -398,25 +317,12 @@ void set_writable(struct Flags *f, int val) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C162: Bitfield struct should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C162: Bitfield struct should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C162: Output should not be empty");
-    assert!(
-        code.contains("fn is_readable"),
-        "C162: Should contain is_readable function"
-    );
-    assert!(
-        code.contains("fn set_writable"),
-        "C162: Should contain set_writable function"
-    );
-    assert!(
-        code.contains("Flags"),
-        "C162: Should contain Flags struct"
-    );
+    assert!(code.contains("fn is_readable"), "C162: Should contain is_readable function");
+    assert!(code.contains("fn set_writable"), "C162: Should contain set_writable function");
+    assert!(code.contains("Flags"), "C162: Should contain Flags struct");
 }
 
 #[test]
@@ -447,14 +353,8 @@ int get_packet_x(struct Packet *p) {
     );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C163: Output should not be empty");
-    assert!(
-        code.contains("fn get_packet_x"),
-        "C163: Should contain get_packet_x function"
-    );
-    assert!(
-        code.contains("Packet"),
-        "C163: Should contain Packet struct"
-    );
+    assert!(code.contains("fn get_packet_x"), "C163: Should contain get_packet_x function");
+    assert!(code.contains("Packet"), "C163: Should contain Packet struct");
 }
 
 #[test]
@@ -492,18 +392,12 @@ int traverse_backward(struct DListNode *tail) {
     );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C164: Output should not be empty");
-    assert!(
-        code.contains("fn traverse_forward"),
-        "C164: Should contain traverse_forward function"
-    );
+    assert!(code.contains("fn traverse_forward"), "C164: Should contain traverse_forward function");
     assert!(
         code.contains("fn traverse_backward"),
         "C164: Should contain traverse_backward function"
     );
-    assert!(
-        code.contains("DListNode"),
-        "C164: Should contain DListNode struct"
-    );
+    assert!(code.contains("DListNode"), "C164: Should contain DListNode struct");
 }
 
 #[test]
@@ -533,22 +427,10 @@ int call_validate(struct Object *obj, int input) {
     );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C165: Output should not be empty");
-    assert!(
-        code.contains("fn call_process"),
-        "C165: Should contain call_process function"
-    );
-    assert!(
-        code.contains("fn call_validate"),
-        "C165: Should contain call_validate function"
-    );
-    assert!(
-        code.contains("VTable"),
-        "C165: Should contain VTable struct"
-    );
-    assert!(
-        code.contains("Object"),
-        "C165: Should contain Object struct"
-    );
+    assert!(code.contains("fn call_process"), "C165: Should contain call_process function");
+    assert!(code.contains("fn call_validate"), "C165: Should contain call_validate function");
+    assert!(code.contains("VTable"), "C165: Should contain VTable struct");
+    assert!(code.contains("Object"), "C165: Should contain Object struct");
 }
 
 // ============================================================================
@@ -566,21 +448,11 @@ void set_triple(int ***ppp, int val) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C166: Triple pointer should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C166: Triple pointer should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C166: Output should not be empty");
-    assert!(
-        code.contains("fn deref_triple"),
-        "C166: Should contain deref_triple function"
-    );
-    assert!(
-        code.contains("fn set_triple"),
-        "C166: Should contain set_triple function"
-    );
+    assert!(code.contains("fn deref_triple"), "C166: Should contain deref_triple function");
+    assert!(code.contains("fn set_triple"), "C166: Should contain set_triple function");
 }
 
 #[test]
@@ -596,17 +468,10 @@ int sum_row(int (*arr)[10], int row) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C167: Pointer to array should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C167: Pointer to array should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C167: Output should not be empty");
-    assert!(
-        code.contains("fn sum_row"),
-        "C167: Should contain sum_row function"
-    );
+    assert!(code.contains("fn sum_row"), "C167: Should contain sum_row function");
 }
 
 #[test]
@@ -635,14 +500,8 @@ int swap_ints(int *x, int *y) {
     );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C168: Output should not be empty");
-    assert!(
-        code.contains("fn swap"),
-        "C168: Should contain swap function"
-    );
-    assert!(
-        code.contains("fn swap_ints"),
-        "C168: Should contain swap_ints function"
-    );
+    assert!(code.contains("fn swap"), "C168: Should contain swap function");
+    assert!(code.contains("fn swap_ints"), "C168: Should contain swap_ints function");
 }
 
 #[test]
@@ -667,14 +526,8 @@ int alias_test(int *a, float *b) {
     );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C169: Output should not be empty");
-    assert!(
-        code.contains("fn type_pun"),
-        "C169: Should contain type_pun function"
-    );
-    assert!(
-        code.contains("fn alias_test"),
-        "C169: Should contain alias_test function"
-    );
+    assert!(code.contains("fn type_pun"), "C169: Should contain type_pun function");
+    assert!(code.contains("fn alias_test"), "C169: Should contain alias_test function");
 }
 
 #[test]
@@ -690,21 +543,11 @@ int use_dangling() {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C170: Dangling pointer creation should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C170: Dangling pointer creation should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C170: Output should not be empty");
-    assert!(
-        code.contains("fn get_dangling"),
-        "C170: Should contain get_dangling function"
-    );
-    assert!(
-        code.contains("fn use_dangling"),
-        "C170: Should contain use_dangling function"
-    );
+    assert!(code.contains("fn get_dangling"), "C170: Should contain get_dangling function");
+    assert!(code.contains("fn use_dangling"), "C170: Should contain use_dangling function");
 }
 
 // ============================================================================
@@ -731,11 +574,7 @@ int try_divide(int a, int b) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C171: setjmp/longjmp should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C171: setjmp/longjmp should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C171: Output should not be empty");
 }
@@ -770,18 +609,9 @@ int check_signal() {
     );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C172: Output should not be empty");
-    assert!(
-        code.contains("fn sig_handler"),
-        "C172: Should contain sig_handler function"
-    );
-    assert!(
-        code.contains("fn setup_handler"),
-        "C172: Should contain setup_handler function"
-    );
-    assert!(
-        code.contains("fn check_signal"),
-        "C172: Should contain check_signal function"
-    );
+    assert!(code.contains("fn sig_handler"), "C172: Should contain sig_handler function");
+    assert!(code.contains("fn setup_handler"), "C172: Should contain setup_handler function");
+    assert!(code.contains("fn check_signal"), "C172: Should contain check_signal function");
 }
 
 #[test]
@@ -802,21 +632,11 @@ void set_tls_value(int v) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C173: Thread-local storage should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C173: Thread-local storage should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C173: Output should not be empty");
-    assert!(
-        code.contains("fn get_tls_value"),
-        "C173: Should contain get_tls_value function"
-    );
-    assert!(
-        code.contains("fn set_tls_value"),
-        "C173: Should contain set_tls_value function"
-    );
+    assert!(code.contains("fn get_tls_value"), "C173: Should contain get_tls_value function");
+    assert!(code.contains("fn set_tls_value"), "C173: Should contain set_tls_value function");
 }
 
 #[test]
@@ -837,17 +657,10 @@ int sum_stack_array(int n) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C174: alloca stack allocation should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C174: alloca stack allocation should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C174: Output should not be empty");
-    assert!(
-        code.contains("fn sum_stack_array"),
-        "C174: Should contain sum_stack_array function"
-    );
+    assert!(code.contains("fn sum_stack_array"), "C174: Should contain sum_stack_array function");
 }
 
 #[test]
@@ -865,19 +678,9 @@ int free_page(void *ptr, int size) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C175: mmap memory mapping should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C175: mmap memory mapping should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C175: Output should not be empty");
-    assert!(
-        code.contains("fn allocate_page"),
-        "C175: Should contain allocate_page function"
-    );
-    assert!(
-        code.contains("fn free_page"),
-        "C175: Should contain free_page function"
-    );
+    assert!(code.contains("fn allocate_page"), "C175: Should contain allocate_page function");
+    assert!(code.contains("fn free_page"), "C175: Should contain free_page function");
 }

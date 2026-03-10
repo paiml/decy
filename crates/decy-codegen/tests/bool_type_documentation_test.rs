@@ -198,10 +198,7 @@ fn test_bool_short_circuit() {
     let rust_pattern = "Short-circuit evaluation";
 
     assert!(c_code.contains("&&"), "C short-circuit");
-    assert!(
-        rust_pattern.contains("Short-circuit"),
-        "Rust short-circuits"
-    );
+    assert!(rust_pattern.contains("Short-circuit"), "Rust short-circuits");
 
     // Demonstrate short-circuit
     let flag = false;
@@ -290,10 +287,7 @@ fn test_bool_as_parameter() {
     let rust_equivalent = "fn process(flag: bool) { }";
 
     assert!(c_code.contains("bool flag"), "C bool parameter");
-    assert!(
-        rust_equivalent.contains("flag: bool"),
-        "Rust bool parameter"
-    );
+    assert!(rust_equivalent.contains("flag: bool"), "Rust bool parameter");
 
     // Demonstrate bool parameter
     fn process(flag: bool) -> i32 {
@@ -371,10 +365,7 @@ fn test_bool_in_struct() {
         verbose: bool,
     }
 
-    let config = Config {
-        enabled: true,
-        verbose: false,
-    };
+    let config = Config { enabled: true, verbose: false };
 
     assert!(config.enabled, "Enabled flag is true");
     assert!(!config.verbose, "Verbose flag is false");
@@ -610,17 +601,11 @@ fn test_bool_transformation_unsafe_count() {
     let bool_op = "let result = a && b;";
     let bool_convert = "let x = flag as i32;";
 
-    let combined = format!(
-        "{}\n{}\n{}\n{}",
-        bool_decl, bool_cond, bool_op, bool_convert
-    );
+    let combined = format!("{}\n{}\n{}\n{}", bool_decl, bool_cond, bool_op, bool_convert);
 
     // Count unsafe blocks (should be 0)
     let unsafe_count = combined.matches("unsafe").count();
-    assert_eq!(
-        unsafe_count, 0,
-        "Boolean transformations should not introduce unsafe blocks"
-    );
+    assert_eq!(unsafe_count, 0, "Boolean transformations should not introduce unsafe blocks");
 }
 
 /// Summary of boolean type transformation rules
@@ -678,10 +663,7 @@ fn test_bool_transformation_rules_summary() {
 
     // Rule 4: No unsafe needed
     let unsafe_blocks = 0;
-    assert_eq!(
-        unsafe_blocks, 0,
-        "Boolean transformations introduce 0 unsafe blocks"
-    );
+    assert_eq!(unsafe_blocks, 0, "Boolean transformations introduce 0 unsafe blocks");
 
     // Rule 5: Type-safe (no implicit conversions)
     let type_safe = true;

@@ -1307,7 +1307,11 @@ int bld_cas_has(bld_cas_t *cas, bld_hash_t hash) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(result.is_ok(), "C1598: content addressable store should transpile: {:?}", result.err());
+    assert!(
+        result.is_ok(),
+        "C1598: content addressable store should transpile: {:?}",
+        result.err()
+    );
     let code = result.unwrap();
     assert!(!code.is_empty());
     assert!(code.contains("fn bld_cas_put"));
@@ -1445,7 +1449,11 @@ int bld_icu_recompile_count(bld_icu_tracker_t *t) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(result.is_ok(), "C1600: incremental compilation unit should transpile: {:?}", result.err());
+    assert!(
+        result.is_ok(),
+        "C1600: incremental compilation unit should transpile: {:?}",
+        result.err()
+    );
     let code = result.unwrap();
     assert!(!code.is_empty());
     assert!(code.contains("fn bld_icu_invalidate"));

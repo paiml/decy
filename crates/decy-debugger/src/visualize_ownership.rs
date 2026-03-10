@@ -23,21 +23,15 @@ pub fn visualize_ownership_graph(file_path: &Path, use_colors: bool) -> Result<S
     let ast = parser.parse(&source).context("Failed to parse C source")?;
 
     // Convert to HIR
-    let hir_functions: Vec<HirFunction> = ast
-        .functions()
-        .iter()
-        .map(HirFunction::from_ast_function)
-        .collect();
+    let hir_functions: Vec<HirFunction> =
+        ast.functions().iter().map(HirFunction::from_ast_function).collect();
 
     // Generate output
     let mut output = String::new();
 
     // Header
     if use_colors {
-        output.push_str(&format!(
-            "{}\n",
-            "╔═══ Ownership Analysis ═══╗".magenta().bold()
-        ));
+        output.push_str(&format!("{}\n", "╔═══ Ownership Analysis ═══╗".magenta().bold()));
     } else {
         output.push_str("╔═══ Ownership Analysis ═══╗\n");
     }

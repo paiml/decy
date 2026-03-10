@@ -8,18 +8,18 @@
 //! - `HybridClassifier::classify_ensemble` (line 266)
 
 use crate::error_tracking::{
-    ErrorTracker, FeatureSuspiciousness, InferenceError, PatternStats,
-    SuggestionCategory, SuggestionPriority,
+    ErrorTracker, FeatureSuspiciousness, InferenceError, PatternStats, SuggestionCategory,
+    SuggestionPriority,
 };
 use crate::hybrid_classifier::{
-    ClassificationMethod, HybridClassifier, HybridMetrics, HybridResult, NullModel,
-    OwnershipModel,
+    ClassificationMethod, HybridClassifier, HybridMetrics, HybridResult, NullModel, OwnershipModel,
 };
 use crate::inference::{OwnershipInference, OwnershipKind};
-use crate::ml_features::{InferredOwnership, OwnershipDefect, OwnershipFeatures, OwnershipPrediction};
+use crate::ml_features::{
+    InferredOwnership, OwnershipDefect, OwnershipFeatures, OwnershipPrediction,
+};
 use crate::threshold_tuning::{
-    find_optimal_threshold, SelectionCriteria, ThresholdMetrics, ThresholdTuner,
-    ValidationSample,
+    find_optimal_threshold, SelectionCriteria, ThresholdMetrics, ThresholdTuner, ValidationSample,
 };
 
 // ============================================================================
@@ -33,10 +33,7 @@ struct ConfigurableMockModel {
 
 impl ConfigurableMockModel {
     fn new(ownership: InferredOwnership, confidence: f64) -> Self {
-        Self {
-            ownership,
-            confidence,
-        }
+        Self { ownership, confidence }
     }
 }
 
@@ -68,7 +65,12 @@ fn make_error(
 }
 
 // Helper to create a standard OwnershipInference
-fn make_inference(variable: &str, kind: OwnershipKind, confidence: f32, reason: &str) -> OwnershipInference {
+fn make_inference(
+    variable: &str,
+    kind: OwnershipKind,
+    confidence: f32,
+    reason: &str,
+) -> OwnershipInference {
     OwnershipInference {
         variable: variable.to_string(),
         kind,
@@ -240,10 +242,7 @@ fn markdown_report_limits_suspicious_features_to_5() {
     }
     let report = tracker.generate_markdown_report();
     // Table rows for suspicious features should be limited to 5
-    let feature_rows: Vec<&str> = report
-        .lines()
-        .filter(|l| l.starts_with("| feature_"))
-        .collect();
+    let feature_rows: Vec<&str> = report.lines().filter(|l| l.starts_with("| feature_")).collect();
     assert!(feature_rows.len() <= 5);
 }
 
@@ -546,10 +545,8 @@ fn suggestions_highly_suspicious_feature_triggers_feature_handling() {
         tracker.record_success(&["other_feat".to_string()]);
     }
     let suggestions = tracker.generate_suggestions();
-    let feature_suggestions: Vec<_> = suggestions
-        .iter()
-        .filter(|s| s.category == SuggestionCategory::FeatureHandling)
-        .collect();
+    let feature_suggestions: Vec<_> =
+        suggestions.iter().filter(|s| s.category == SuggestionCategory::FeatureHandling).collect();
     assert!(!feature_suggestions.is_empty());
     assert_eq!(feature_suggestions[0].priority, SuggestionPriority::High);
     assert!(feature_suggestions[0].affected_feature.is_some());
@@ -573,10 +570,8 @@ fn suggestions_defect_count_above_5_below_20_gives_medium() {
         tracker.record_success(&["x".to_string()]);
     }
     let suggestions = tracker.generate_suggestions();
-    let defect_sug: Vec<_> = suggestions
-        .iter()
-        .filter(|s| s.category == SuggestionCategory::DefectPrevention)
-        .collect();
+    let defect_sug: Vec<_> =
+        suggestions.iter().filter(|s| s.category == SuggestionCategory::DefectPrevention).collect();
     assert!(!defect_sug.is_empty());
     assert_eq!(defect_sug[0].priority, SuggestionPriority::Medium);
     assert!(defect_sug[0].affected_defect.is_some());
@@ -600,10 +595,8 @@ fn suggestions_defect_count_above_20_gives_high() {
         tracker.record_success(&["x".to_string()]);
     }
     let suggestions = tracker.generate_suggestions();
-    let defect_sug: Vec<_> = suggestions
-        .iter()
-        .filter(|s| s.category == SuggestionCategory::DefectPrevention)
-        .collect();
+    let defect_sug: Vec<_> =
+        suggestions.iter().filter(|s| s.category == SuggestionCategory::DefectPrevention).collect();
     assert!(!defect_sug.is_empty());
     assert_eq!(defect_sug[0].priority, SuggestionPriority::High);
 }
@@ -626,10 +619,8 @@ fn suggestions_defect_count_5_or_below_skipped() {
         tracker.record_success(&["x".to_string()]);
     }
     let suggestions = tracker.generate_suggestions();
-    let defect_sug: Vec<_> = suggestions
-        .iter()
-        .filter(|s| s.category == SuggestionCategory::DefectPrevention)
-        .collect();
+    let defect_sug: Vec<_> =
+        suggestions.iter().filter(|s| s.category == SuggestionCategory::DefectPrevention).collect();
     assert!(defect_sug.is_empty());
 }
 
@@ -659,10 +650,8 @@ fn suggestions_top3_defects_only() {
         tracker.record_success(&["x".to_string()]);
     }
     let suggestions = tracker.generate_suggestions();
-    let defect_sug: Vec<_> = suggestions
-        .iter()
-        .filter(|s| s.category == SuggestionCategory::DefectPrevention)
-        .collect();
+    let defect_sug: Vec<_> =
+        suggestions.iter().filter(|s| s.category == SuggestionCategory::DefectPrevention).collect();
     // At most 3 defect suggestions
     assert!(defect_sug.len() <= 3);
 }
@@ -711,14 +700,12 @@ fn threshold_metrics_calculate_all_correct_using_ml() {
 #[test]
 fn threshold_metrics_calculate_all_incorrect() {
     // Branch: is_correct = false for all => false_positives, false_negatives
-    let samples = vec![
-        ValidationSample::new(
-            InferredOwnership::Owned,
-            InferredOwnership::Borrowed, // rule wrong
-            InferredOwnership::Borrowed, // ml also wrong (using rules due to low conf)
-            0.3,
-        ),
-    ];
+    let samples = vec![ValidationSample::new(
+        InferredOwnership::Owned,
+        InferredOwnership::Borrowed, // rule wrong
+        InferredOwnership::Borrowed, // ml also wrong (using rules due to low conf)
+        0.3,
+    )];
     let metrics = ThresholdMetrics::calculate(&samples, 0.5);
     assert!((metrics.accuracy - 0.0).abs() < 0.001);
     // precision: tp=0, fp=1 => 0/(0+1) = 0
@@ -735,9 +722,9 @@ fn threshold_metrics_calculate_mixed_ml_and_fallback() {
     let samples = vec![
         ValidationSample::new(
             InferredOwnership::Owned,
-            InferredOwnership::Owned,    // rule correct
-            InferredOwnership::Owned,    // ml correct
-            0.9,                         // above threshold
+            InferredOwnership::Owned, // rule correct
+            InferredOwnership::Owned, // ml correct
+            0.9,                      // above threshold
         ),
         ValidationSample::new(
             InferredOwnership::Borrowed,
@@ -757,9 +744,24 @@ fn threshold_metrics_calculate_mixed_ml_and_fallback() {
 fn threshold_metrics_calculate_precision_recall_f1() {
     // 3 correct, 1 wrong => precision = 3/4, recall = 3/4, f1 = 3/4
     let samples = vec![
-        ValidationSample::new(InferredOwnership::Owned, InferredOwnership::Owned, InferredOwnership::Owned, 0.9),
-        ValidationSample::new(InferredOwnership::Borrowed, InferredOwnership::Borrowed, InferredOwnership::Borrowed, 0.8),
-        ValidationSample::new(InferredOwnership::Vec, InferredOwnership::Vec, InferredOwnership::Vec, 0.7),
+        ValidationSample::new(
+            InferredOwnership::Owned,
+            InferredOwnership::Owned,
+            InferredOwnership::Owned,
+            0.9,
+        ),
+        ValidationSample::new(
+            InferredOwnership::Borrowed,
+            InferredOwnership::Borrowed,
+            InferredOwnership::Borrowed,
+            0.8,
+        ),
+        ValidationSample::new(
+            InferredOwnership::Vec,
+            InferredOwnership::Vec,
+            InferredOwnership::Vec,
+            0.7,
+        ),
         ValidationSample::new(
             InferredOwnership::Owned,
             InferredOwnership::Borrowed, // wrong
@@ -789,14 +791,12 @@ fn threshold_metrics_zero_tp_zero_fp_precision_zero() {
 fn threshold_metrics_zero_precision_zero_recall_f1_zero() {
     // Branch: precision + recall == 0 => f1 = 0.0
     // All wrong predictions
-    let samples = vec![
-        ValidationSample::new(
-            InferredOwnership::Owned,
-            InferredOwnership::Borrowed, // wrong
-            InferredOwnership::Borrowed, // wrong
-            0.3,
-        ),
-    ];
+    let samples = vec![ValidationSample::new(
+        InferredOwnership::Owned,
+        InferredOwnership::Borrowed, // wrong
+        InferredOwnership::Borrowed, // wrong
+        0.3,
+    )];
     let metrics = ThresholdMetrics::calculate(&samples, 0.5);
     assert!((metrics.f1_score - 0.0).abs() < 0.001);
 }
@@ -804,8 +804,18 @@ fn threshold_metrics_zero_precision_zero_recall_f1_zero() {
 #[test]
 fn threshold_metrics_high_threshold_forces_all_fallback() {
     let samples = vec![
-        ValidationSample::new(InferredOwnership::Owned, InferredOwnership::Owned, InferredOwnership::Borrowed, 0.5),
-        ValidationSample::new(InferredOwnership::Borrowed, InferredOwnership::Borrowed, InferredOwnership::Owned, 0.6),
+        ValidationSample::new(
+            InferredOwnership::Owned,
+            InferredOwnership::Owned,
+            InferredOwnership::Borrowed,
+            0.5,
+        ),
+        ValidationSample::new(
+            InferredOwnership::Borrowed,
+            InferredOwnership::Borrowed,
+            InferredOwnership::Owned,
+            0.6,
+        ),
     ];
     let metrics = ThresholdMetrics::calculate(&samples, 0.99);
     // All fallback to rules
@@ -818,8 +828,18 @@ fn threshold_metrics_high_threshold_forces_all_fallback() {
 #[test]
 fn threshold_metrics_low_threshold_forces_all_ml() {
     let samples = vec![
-        ValidationSample::new(InferredOwnership::Owned, InferredOwnership::Borrowed, InferredOwnership::Owned, 0.1),
-        ValidationSample::new(InferredOwnership::Borrowed, InferredOwnership::Owned, InferredOwnership::Borrowed, 0.2),
+        ValidationSample::new(
+            InferredOwnership::Owned,
+            InferredOwnership::Borrowed,
+            InferredOwnership::Owned,
+            0.1,
+        ),
+        ValidationSample::new(
+            InferredOwnership::Borrowed,
+            InferredOwnership::Owned,
+            InferredOwnership::Borrowed,
+            0.2,
+        ),
     ];
     let metrics = ThresholdMetrics::calculate(&samples, 0.05);
     // All use ML (conf >= 0.05)
@@ -835,8 +855,18 @@ fn threshold_metrics_low_threshold_forces_all_ml() {
 fn select_optimal_max_accuracy_picks_best() {
     // SelectionCriteria::MaxAccuracy branch
     let samples = vec![
-        ValidationSample::new(InferredOwnership::Owned, InferredOwnership::Borrowed, InferredOwnership::Owned, 0.9),
-        ValidationSample::new(InferredOwnership::Borrowed, InferredOwnership::Borrowed, InferredOwnership::Owned, 0.3),
+        ValidationSample::new(
+            InferredOwnership::Owned,
+            InferredOwnership::Borrowed,
+            InferredOwnership::Owned,
+            0.9,
+        ),
+        ValidationSample::new(
+            InferredOwnership::Borrowed,
+            InferredOwnership::Borrowed,
+            InferredOwnership::Owned,
+            0.3,
+        ),
     ];
     let tuner = ThresholdTuner::new().with_criteria(SelectionCriteria::MaxAccuracy);
     let result = tuner.tune(&samples);
@@ -848,8 +878,18 @@ fn select_optimal_max_accuracy_picks_best() {
 fn select_optimal_max_f1_picks_best_f1() {
     // SelectionCriteria::MaxF1 branch
     let samples = vec![
-        ValidationSample::new(InferredOwnership::Owned, InferredOwnership::Owned, InferredOwnership::Owned, 0.9),
-        ValidationSample::new(InferredOwnership::Borrowed, InferredOwnership::Borrowed, InferredOwnership::Borrowed, 0.8),
+        ValidationSample::new(
+            InferredOwnership::Owned,
+            InferredOwnership::Owned,
+            InferredOwnership::Owned,
+            0.9,
+        ),
+        ValidationSample::new(
+            InferredOwnership::Borrowed,
+            InferredOwnership::Borrowed,
+            InferredOwnership::Borrowed,
+            0.8,
+        ),
     ];
     let tuner = ThresholdTuner::new().with_criteria(SelectionCriteria::MaxF1);
     let result = tuner.tune(&samples);
@@ -886,8 +926,18 @@ fn select_optimal_balanced_accuracy_fallback() {
 fn select_optimal_min_fallback_above_baseline_with_candidates_above() {
     // SelectionCriteria::MinFallbackAboveBaseline branch: above_baseline not empty
     let samples = vec![
-        ValidationSample::new(InferredOwnership::Owned, InferredOwnership::Borrowed, InferredOwnership::Owned, 0.9),
-        ValidationSample::new(InferredOwnership::Borrowed, InferredOwnership::Borrowed, InferredOwnership::Borrowed, 0.3),
+        ValidationSample::new(
+            InferredOwnership::Owned,
+            InferredOwnership::Borrowed,
+            InferredOwnership::Owned,
+            0.9,
+        ),
+        ValidationSample::new(
+            InferredOwnership::Borrowed,
+            InferredOwnership::Borrowed,
+            InferredOwnership::Borrowed,
+            0.3,
+        ),
     ];
     let tuner = ThresholdTuner::new().with_criteria(SelectionCriteria::MinFallbackAboveBaseline);
     let result = tuner.tune(&samples);
@@ -904,10 +954,30 @@ fn select_optimal_min_fallback_above_baseline_none_above() {
     // accuracy < baseline. We can create a dataset where rules are always correct but
     // ML always wrong, and thresholds that include ML cause accuracy to drop.
     let samples = vec![
-        ValidationSample::new(InferredOwnership::Owned, InferredOwnership::Owned, InferredOwnership::Borrowed, 0.9),
-        ValidationSample::new(InferredOwnership::Borrowed, InferredOwnership::Borrowed, InferredOwnership::Owned, 0.8),
-        ValidationSample::new(InferredOwnership::Owned, InferredOwnership::Owned, InferredOwnership::Borrowed, 0.7),
-        ValidationSample::new(InferredOwnership::Borrowed, InferredOwnership::Borrowed, InferredOwnership::Owned, 0.6),
+        ValidationSample::new(
+            InferredOwnership::Owned,
+            InferredOwnership::Owned,
+            InferredOwnership::Borrowed,
+            0.9,
+        ),
+        ValidationSample::new(
+            InferredOwnership::Borrowed,
+            InferredOwnership::Borrowed,
+            InferredOwnership::Owned,
+            0.8,
+        ),
+        ValidationSample::new(
+            InferredOwnership::Owned,
+            InferredOwnership::Owned,
+            InferredOwnership::Borrowed,
+            0.7,
+        ),
+        ValidationSample::new(
+            InferredOwnership::Borrowed,
+            InferredOwnership::Borrowed,
+            InferredOwnership::Owned,
+            0.6,
+        ),
     ];
     // Rules are 100% correct, ML is 0% correct at every confidence level
     // At any threshold <= 0.9, some ML predictions will be used (incorrectly)
@@ -924,9 +994,12 @@ fn select_optimal_min_fallback_above_baseline_none_above() {
 fn select_optimal_empty_metrics_returns_default() {
     // Branch: metrics is empty => returns default ThresholdMetrics
     let tuner = ThresholdTuner::with_candidates(vec![]);
-    let result = tuner.tune(&[
-        ValidationSample::new(InferredOwnership::Owned, InferredOwnership::Owned, InferredOwnership::Owned, 0.9),
-    ]);
+    let result = tuner.tune(&[ValidationSample::new(
+        InferredOwnership::Owned,
+        InferredOwnership::Owned,
+        InferredOwnership::Owned,
+        0.9,
+    )]);
     // With no candidates, all_thresholds is empty, select_optimal returns default
     assert!((result.optimal_threshold - 0.65).abs() < 0.001);
 }
@@ -944,9 +1017,12 @@ fn tune_empty_samples_returns_default() {
 #[test]
 fn tuner_with_custom_candidates() {
     let tuner = ThresholdTuner::with_candidates(vec![0.25, 0.5, 0.75]);
-    let samples = vec![
-        ValidationSample::new(InferredOwnership::Owned, InferredOwnership::Owned, InferredOwnership::Owned, 0.9),
-    ];
+    let samples = vec![ValidationSample::new(
+        InferredOwnership::Owned,
+        InferredOwnership::Owned,
+        InferredOwnership::Owned,
+        0.9,
+    )];
     let result = tuner.tune(&samples);
     assert_eq!(result.all_thresholds.len(), 3);
 }
@@ -956,10 +1032,13 @@ fn tuner_add_candidate_no_duplicate() {
     let mut tuner = ThresholdTuner::new();
     let initial_len = 10; // default has 10 candidates
     tuner.add_candidate(0.5); // already exists
-    // Should not add duplicate
-    let samples = vec![
-        ValidationSample::new(InferredOwnership::Owned, InferredOwnership::Owned, InferredOwnership::Owned, 0.9),
-    ];
+                              // Should not add duplicate
+    let samples = vec![ValidationSample::new(
+        InferredOwnership::Owned,
+        InferredOwnership::Owned,
+        InferredOwnership::Owned,
+        0.9,
+    )];
     let result = tuner.tune(&samples);
     assert_eq!(result.all_thresholds.len(), initial_len);
 }
@@ -969,18 +1048,24 @@ fn tuner_add_candidate_clamps_and_sorts() {
     let mut tuner = ThresholdTuner::with_candidates(vec![0.3, 0.7]);
     tuner.add_candidate(1.5); // clamped to 1.0
     tuner.add_candidate(-0.5); // clamped to 0.0
-    let samples = vec![
-        ValidationSample::new(InferredOwnership::Owned, InferredOwnership::Owned, InferredOwnership::Owned, 0.9),
-    ];
+    let samples = vec![ValidationSample::new(
+        InferredOwnership::Owned,
+        InferredOwnership::Owned,
+        InferredOwnership::Owned,
+        0.9,
+    )];
     let result = tuner.tune(&samples);
     assert_eq!(result.all_thresholds.len(), 4); // 0.0, 0.3, 0.7, 1.0
 }
 
 #[test]
 fn find_optimal_threshold_convenience_function() {
-    let samples = vec![
-        ValidationSample::new(InferredOwnership::Owned, InferredOwnership::Owned, InferredOwnership::Owned, 0.9),
-    ];
+    let samples = vec![ValidationSample::new(
+        InferredOwnership::Owned,
+        InferredOwnership::Owned,
+        InferredOwnership::Owned,
+        0.9,
+    )];
     let threshold = find_optimal_threshold(&samples);
     assert!((0.0..=1.0).contains(&threshold));
 }
@@ -989,8 +1074,18 @@ fn find_optimal_threshold_convenience_function() {
 fn tuning_result_to_markdown_positive_improvement() {
     // Branch in to_markdown: improvement > 0 => ADOPT HYBRID
     let samples = vec![
-        ValidationSample::new(InferredOwnership::Owned, InferredOwnership::Borrowed, InferredOwnership::Owned, 0.9),
-        ValidationSample::new(InferredOwnership::Borrowed, InferredOwnership::Borrowed, InferredOwnership::Borrowed, 0.8),
+        ValidationSample::new(
+            InferredOwnership::Owned,
+            InferredOwnership::Borrowed,
+            InferredOwnership::Owned,
+            0.9,
+        ),
+        ValidationSample::new(
+            InferredOwnership::Borrowed,
+            InferredOwnership::Borrowed,
+            InferredOwnership::Borrowed,
+            0.8,
+        ),
     ];
     let result = ThresholdTuner::new().tune(&samples);
     assert!(result.improvement_over_baseline > 0.0);
@@ -1005,8 +1100,18 @@ fn tuning_result_to_markdown_positive_improvement() {
 fn tuning_result_to_markdown_no_improvement() {
     // Branch in to_markdown: improvement <= 0 => KEEP RULES ONLY
     let samples = vec![
-        ValidationSample::new(InferredOwnership::Owned, InferredOwnership::Owned, InferredOwnership::Borrowed, 0.9),
-        ValidationSample::new(InferredOwnership::Borrowed, InferredOwnership::Borrowed, InferredOwnership::Owned, 0.8),
+        ValidationSample::new(
+            InferredOwnership::Owned,
+            InferredOwnership::Owned,
+            InferredOwnership::Borrowed,
+            0.9,
+        ),
+        ValidationSample::new(
+            InferredOwnership::Borrowed,
+            InferredOwnership::Borrowed,
+            InferredOwnership::Owned,
+            0.8,
+        ),
     ];
     // Rules are always right, ML is always wrong
     let result = ThresholdTuner::new().tune(&samples);
@@ -1016,9 +1121,12 @@ fn tuning_result_to_markdown_no_improvement() {
 
 #[test]
 fn tuning_result_to_markdown_includes_threshold_table() {
-    let samples = vec![
-        ValidationSample::new(InferredOwnership::Owned, InferredOwnership::Owned, InferredOwnership::Owned, 0.9),
-    ];
+    let samples = vec![ValidationSample::new(
+        InferredOwnership::Owned,
+        InferredOwnership::Owned,
+        InferredOwnership::Owned,
+        0.9,
+    )];
     let result = ThresholdTuner::new().tune(&samples);
     let md = result.to_markdown();
     assert!(md.contains("All Thresholds"));
@@ -1376,38 +1484,68 @@ fn classification_method_display_all() {
 
 #[test]
 fn validation_sample_rule_correct_true() {
-    let s = ValidationSample::new(InferredOwnership::Owned, InferredOwnership::Owned, InferredOwnership::Borrowed, 0.5);
+    let s = ValidationSample::new(
+        InferredOwnership::Owned,
+        InferredOwnership::Owned,
+        InferredOwnership::Borrowed,
+        0.5,
+    );
     assert!(s.rule_correct());
 }
 
 #[test]
 fn validation_sample_rule_correct_false() {
-    let s = ValidationSample::new(InferredOwnership::Owned, InferredOwnership::Borrowed, InferredOwnership::Owned, 0.5);
+    let s = ValidationSample::new(
+        InferredOwnership::Owned,
+        InferredOwnership::Borrowed,
+        InferredOwnership::Owned,
+        0.5,
+    );
     assert!(!s.rule_correct());
 }
 
 #[test]
 fn validation_sample_ml_correct_true() {
-    let s = ValidationSample::new(InferredOwnership::Owned, InferredOwnership::Borrowed, InferredOwnership::Owned, 0.5);
+    let s = ValidationSample::new(
+        InferredOwnership::Owned,
+        InferredOwnership::Borrowed,
+        InferredOwnership::Owned,
+        0.5,
+    );
     assert!(s.ml_correct());
 }
 
 #[test]
 fn validation_sample_ml_correct_false() {
-    let s = ValidationSample::new(InferredOwnership::Owned, InferredOwnership::Owned, InferredOwnership::Borrowed, 0.5);
+    let s = ValidationSample::new(
+        InferredOwnership::Owned,
+        InferredOwnership::Owned,
+        InferredOwnership::Borrowed,
+        0.5,
+    );
     assert!(!s.ml_correct());
 }
 
 #[test]
 fn validation_sample_hybrid_prediction_exact_threshold() {
     // ml_confidence == threshold => uses ML
-    let s = ValidationSample::new(InferredOwnership::Owned, InferredOwnership::Borrowed, InferredOwnership::Owned, 0.5);
+    let s = ValidationSample::new(
+        InferredOwnership::Owned,
+        InferredOwnership::Borrowed,
+        InferredOwnership::Owned,
+        0.5,
+    );
     assert_eq!(s.hybrid_prediction(0.5), InferredOwnership::Owned); // uses ML
 }
 
 #[test]
 fn validation_sample_hybrid_correct_exact_threshold() {
-    let s = ValidationSample::new(InferredOwnership::Owned, InferredOwnership::Borrowed, InferredOwnership::Owned, 0.5);
+    let s = ValidationSample::new(
+        InferredOwnership::Owned,
+        InferredOwnership::Borrowed,
+        InferredOwnership::Owned,
+        0.5,
+    );
     assert!(s.hybrid_correct(0.5)); // ML is correct, exactly at threshold
 }
 
@@ -1466,9 +1604,12 @@ fn feature_suspiciousness_exactly_07_not_highly() {
 #[test]
 fn threshold_tuner_default_trait() {
     let tuner = ThresholdTuner::default();
-    let samples = vec![
-        ValidationSample::new(InferredOwnership::Owned, InferredOwnership::Owned, InferredOwnership::Owned, 0.9),
-    ];
+    let samples = vec![ValidationSample::new(
+        InferredOwnership::Owned,
+        InferredOwnership::Owned,
+        InferredOwnership::Owned,
+        0.9,
+    )];
     let result = tuner.tune(&samples);
     assert!((result.optimal_metrics.accuracy - 1.0).abs() < 0.001);
 }

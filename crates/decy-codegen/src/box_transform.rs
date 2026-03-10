@@ -82,17 +82,15 @@ impl BoxTransformer {
         _candidate: &BoxCandidate,
     ) -> HirStatement {
         match stmt {
-            HirStatement::VariableDeclaration {
-                name,
-                var_type,
-                initializer,
-            } => {
+            HirStatement::VariableDeclaration { name, var_type, initializer } => {
                 if let Some(HirExpression::FunctionCall { function, .. }) = initializer {
                     if function == "malloc" {
                         // Extract pointee type from pointer type
                         if let HirType::Pointer(pointee) = var_type {
-                            let box_expr = self
-                                .transform_malloc_to_box(initializer.as_ref().unwrap(), pointee);
+                            let box_expr = self.transform_malloc_to_box(
+                                initializer.as_ref().expect("initializer present"),
+                                pointee,
+                            );
 
                             // Convert Pointer type to Box type
                             let box_type = HirType::Box(pointee.clone());
@@ -148,10 +146,7 @@ mod tests {
         let box_expr = transformer.transform_malloc_to_box(&malloc_expr, &HirType::Int);
 
         match box_expr {
-            HirExpression::FunctionCall {
-                function,
-                arguments,
-            } => {
+            HirExpression::FunctionCall { function, arguments } => {
                 assert_eq!(function, "Box::new");
                 assert_eq!(arguments.len(), 1);
                 assert_eq!(arguments[0], HirExpression::IntLiteral(0));
@@ -163,11 +158,8 @@ mod tests {
     #[test]
     fn test_transform_variable_declaration_with_malloc() {
         let transformer = BoxTransformer::new();
-        let candidate = BoxCandidate {
-            variable: "ptr".to_string(),
-            malloc_index: 0,
-            free_index: None,
-        };
+        let candidate =
+            BoxCandidate { variable: "ptr".to_string(), malloc_index: 0, free_index: None };
 
         let stmt = HirStatement::VariableDeclaration {
             name: "ptr".to_string(),
@@ -196,11 +188,8 @@ mod tests {
     #[test]
     fn test_transform_assignment_with_malloc() {
         let transformer = BoxTransformer::new();
-        let candidate = BoxCandidate {
-            variable: "ptr".to_string(),
-            malloc_index: 0,
-            free_index: None,
-        };
+        let candidate =
+            BoxCandidate { variable: "ptr".to_string(), malloc_index: 0, free_index: None };
 
         let stmt = HirStatement::Assignment {
             target: "ptr".to_string(),
@@ -227,11 +216,8 @@ mod tests {
     #[test]
     fn test_non_malloc_statement_unchanged() {
         let transformer = BoxTransformer::new();
-        let candidate = BoxCandidate {
-            variable: "x".to_string(),
-            malloc_index: 0,
-            free_index: None,
-        };
+        let candidate =
+            BoxCandidate { variable: "x".to_string(), malloc_index: 0, free_index: None };
 
         let stmt = HirStatement::VariableDeclaration {
             name: "x".to_string(),
@@ -308,11 +294,8 @@ mod tests {
     #[test]
     fn test_transform_generates_box_type() {
         let transformer = BoxTransformer::new();
-        let candidate = BoxCandidate {
-            variable: "ptr".to_string(),
-            malloc_index: 0,
-            free_index: None,
-        };
+        let candidate =
+            BoxCandidate { variable: "ptr".to_string(), malloc_index: 0, free_index: None };
 
         let stmt = HirStatement::VariableDeclaration {
             name: "ptr".to_string(),
@@ -343,11 +326,8 @@ mod tests {
     #[test]
     fn test_box_type_with_different_pointee() {
         let transformer = BoxTransformer::new();
-        let candidate = BoxCandidate {
-            variable: "data".to_string(),
-            malloc_index: 0,
-            free_index: None,
-        };
+        let candidate =
+            BoxCandidate { variable: "data".to_string(), malloc_index: 0, free_index: None };
 
         let stmt = HirStatement::VariableDeclaration {
             name: "data".to_string(),
@@ -361,10 +341,7 @@ mod tests {
         let transformed = transformer.transform_statement(&stmt, &candidate);
 
         match transformed {
-            HirStatement::VariableDeclaration {
-                var_type: HirType::Box(inner),
-                ..
-            } => {
+            HirStatement::VariableDeclaration { var_type: HirType::Box(inner), .. } => {
                 assert_eq!(*inner, HirType::Char);
             }
             _ => panic!("Expected Box<char> type"),

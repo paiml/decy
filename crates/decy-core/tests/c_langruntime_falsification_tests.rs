@@ -174,17 +174,10 @@ int32_t lr_vm_top(struct lr_vm *vm) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C751: Bytecode VM (stack-based) - failed: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C751: Bytecode VM (stack-based) - failed: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C751: empty output");
-    assert!(
-        code.contains("fn lr_vm_execute"),
-        "C751: Should contain lr_vm_execute function"
-    );
+    assert!(code.contains("fn lr_vm_execute"), "C751: Should contain lr_vm_execute function");
 }
 
 /// C752: Lexer/tokenizer for simple expression language
@@ -405,17 +398,10 @@ int lr_count_tokens(const char *src, int len) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C752: Lexer/tokenizer - failed: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C752: Lexer/tokenizer - failed: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C752: empty output");
-    assert!(
-        code.contains("fn lr_lex_next"),
-        "C752: Should contain lr_lex_next function"
-    );
+    assert!(code.contains("fn lr_lex_next"), "C752: Should contain lr_lex_next function");
 }
 
 /// C753: Recursive descent parser for arithmetic expressions
@@ -595,17 +581,10 @@ int lr_eval_node(struct lr_parser *p, int idx, int *vars) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C753: Recursive descent parser - failed: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C753: Recursive descent parser - failed: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C753: empty output");
-    assert!(
-        code.contains("fn lr_parse_expr"),
-        "C753: Should contain lr_parse_expr function"
-    );
+    assert!(code.contains("fn lr_parse_expr"), "C753: Should contain lr_parse_expr function");
 }
 
 /// C754: Abstract syntax tree builder with node pool
@@ -738,17 +717,10 @@ int lr_ast_depth(struct lr_ast_pool *pool, int idx) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C754: AST builder - failed: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C754: AST builder - failed: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C754: empty output");
-    assert!(
-        code.contains("fn lr_ast_alloc"),
-        "C754: Should contain lr_ast_alloc function"
-    );
+    assert!(code.contains("fn lr_ast_alloc"), "C754: Should contain lr_ast_alloc function");
 }
 
 /// C755: Symbol table with scope chains
@@ -885,17 +857,10 @@ int lr_symtab_lookup_local(struct lr_symtab *tab, const char *name) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C755: Symbol table with scope chains - failed: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C755: Symbol table with scope chains - failed: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C755: empty output");
-    assert!(
-        code.contains("fn lr_symtab_lookup"),
-        "C755: Should contain lr_symtab_lookup function"
-    );
+    assert!(code.contains("fn lr_symtab_lookup"), "C755: Should contain lr_symtab_lookup function");
 }
 
 // ============================================================================
@@ -1077,17 +1042,10 @@ enum lr_tc_type lr_tc_check(struct lr_type_checker *tc, int idx) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C756: Type checker - failed: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C756: Type checker - failed: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C756: empty output");
-    assert!(
-        code.contains("fn lr_tc_check"),
-        "C756: Should contain lr_tc_check function"
-    );
+    assert!(code.contains("fn lr_tc_check"), "C756: Should contain lr_tc_check function");
 }
 
 /// C757: Register allocator (linear scan)
@@ -1201,11 +1159,7 @@ int lr_regalloc_get_reg(struct lr_regalloc *ra, int vreg) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C757: Register allocator - failed: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C757: Register allocator - failed: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C757: empty output");
     assert!(
@@ -1351,17 +1305,10 @@ int lr_cf_fold(struct lr_const_folder *cf, int idx) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C758: Constant folding optimizer - failed: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C758: Constant folding optimizer - failed: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C758: empty output");
-    assert!(
-        code.contains("fn lr_cf_fold"),
-        "C758: Should contain lr_cf_fold function"
-    );
+    assert!(code.contains("fn lr_cf_fold"), "C758: Should contain lr_cf_fold function");
 }
 
 /// C759: Dead code eliminator
@@ -1478,17 +1425,10 @@ int lr_dce_eliminate(struct lr_dce *dce) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C759: Dead code eliminator - failed: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C759: Dead code eliminator - failed: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C759: empty output");
-    assert!(
-        code.contains("fn lr_dce_eliminate"),
-        "C759: Should contain lr_dce_eliminate function"
-    );
+    assert!(code.contains("fn lr_dce_eliminate"), "C759: Should contain lr_dce_eliminate function");
 }
 
 /// C760: Tail call optimizer
@@ -1598,11 +1538,7 @@ int lr_tco_optimize_all(struct lr_tco *tco) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C760: Tail call optimizer - failed: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C760: Tail call optimizer - failed: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C760: empty output");
     assert!(
@@ -1737,17 +1673,10 @@ int lr_closure_add_upvalue(struct lr_upval_pool *pool, int closure_idx, int upva
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C761: Closure/upvalue capture - failed: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C761: Closure/upvalue capture - failed: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C761: empty output");
-    assert!(
-        code.contains("fn lr_upval_capture"),
-        "C761: Should contain lr_upval_capture function"
-    );
+    assert!(code.contains("fn lr_upval_capture"), "C761: Should contain lr_upval_capture function");
 }
 
 /// C762: Mark-compact garbage collector for VM
@@ -1906,17 +1835,10 @@ int lr_gc_collect(struct lr_gc_heap *heap) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C762: Mark-compact GC - failed: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C762: Mark-compact GC - failed: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C762: empty output");
-    assert!(
-        code.contains("fn lr_gc_collect"),
-        "C762: Should contain lr_gc_collect function"
-    );
+    assert!(code.contains("fn lr_gc_collect"), "C762: Should contain lr_gc_collect function");
 }
 
 /// C763: String interning table
@@ -2030,17 +1952,10 @@ int lr_intern_hit_rate_pct(struct lr_intern_table *tab) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C763: String interning table - failed: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C763: String interning table - failed: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C763: empty output");
-    assert!(
-        code.contains("fn lr_intern"),
-        "C763: Should contain lr_intern function"
-    );
+    assert!(code.contains("fn lr_intern"), "C763: Should contain lr_intern function");
 }
 
 // ============================================================================
@@ -2150,17 +2065,10 @@ int lr_dispatch_lookup(struct lr_dispatch *d, int vt_id, int method_slot) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C764: Method dispatch (vtable) - failed: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C764: Method dispatch (vtable) - failed: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C764: empty output");
-    assert!(
-        code.contains("fn lr_dispatch_call"),
-        "C764: Should contain lr_dispatch_call function"
-    );
+    assert!(code.contains("fn lr_dispatch_call"), "C764: Should contain lr_dispatch_call function");
 }
 
 /// C765: Exception/longjmp handler simulation
@@ -2257,17 +2165,10 @@ int lr_exc_rethrow(struct lr_exc_state *es) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C765: Exception handler - failed: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C765: Exception handler - failed: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C765: empty output");
-    assert!(
-        code.contains("fn lr_exc_throw"),
-        "C765: Should contain lr_exc_throw function"
-    );
+    assert!(code.contains("fn lr_exc_throw"), "C765: Should contain lr_exc_throw function");
 }
 
 /// C766: Coroutine/fiber scheduler
@@ -2402,17 +2303,10 @@ int lr_sched_active_count(struct lr_scheduler *sched) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C766: Coroutine/fiber scheduler - failed: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C766: Coroutine/fiber scheduler - failed: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C766: empty output");
-    assert!(
-        code.contains("fn lr_sched_step"),
-        "C766: Should contain lr_sched_step function"
-    );
+    assert!(code.contains("fn lr_sched_step"), "C766: Should contain lr_sched_step function");
 }
 
 /// C767: JIT code buffer manager
@@ -2516,17 +2410,10 @@ int lr_jit_total_code_size(struct lr_jit_buffer *jit) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C767: JIT code buffer manager - failed: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C767: JIT code buffer manager - failed: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C767: empty output");
-    assert!(
-        code.contains("fn lr_jit_emit_byte"),
-        "C767: Should contain lr_jit_emit_byte function"
-    );
+    assert!(code.contains("fn lr_jit_emit_byte"), "C767: Should contain lr_jit_emit_byte function");
 }
 
 /// C768: Profiler/call graph builder
@@ -2645,17 +2532,10 @@ int lr_prof_hottest(struct lr_profiler *prof) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C768: Profiler/call graph builder - failed: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C768: Profiler/call graph builder - failed: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C768: empty output");
-    assert!(
-        code.contains("fn lr_prof_enter"),
-        "C768: Should contain lr_prof_enter function"
-    );
+    assert!(code.contains("fn lr_prof_enter"), "C768: Should contain lr_prof_enter function");
 }
 
 // ============================================================================
@@ -2770,11 +2650,7 @@ int lr_debug_find_line(struct lr_debug_table *dt, int pc) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C769: Debug info table - failed: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C769: Debug info table - failed: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C769: empty output");
     assert!(
@@ -2905,17 +2781,10 @@ int lr_mod_load_all(struct lr_mod_loader *loader) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C770: Module loader - failed: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C770: Module loader - failed: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C770: empty output");
-    assert!(
-        code.contains("fn lr_mod_load"),
-        "C770: Should contain lr_mod_load function"
-    );
+    assert!(code.contains("fn lr_mod_load"), "C770: Should contain lr_mod_load function");
 }
 
 /// C771: Regular expression compiler to NFA
@@ -3047,17 +2916,10 @@ int lr_nfa_match(struct lr_nfa *nfa, const char *input, int len) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C771: Regex compiler to NFA - failed: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C771: Regex compiler to NFA - failed: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C771: empty output");
-    assert!(
-        code.contains("fn lr_nfa_compile"),
-        "C771: Should contain lr_nfa_compile function"
-    );
+    assert!(code.contains("fn lr_nfa_compile"), "C771: Should contain lr_nfa_compile function");
 }
 
 /// C772: Pattern matching compiler
@@ -3192,11 +3054,7 @@ int lr_patc_has_wildcard(struct lr_pattern_compiler *pc) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C772: Pattern matching compiler - failed: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C772: Pattern matching compiler - failed: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C772: empty output");
     assert!(
@@ -3324,17 +3182,10 @@ int lr_enc_count_instructions(uint8_t *buffer, int len) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C773: Instruction decoder/encoder - failed: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C773: Instruction decoder/encoder - failed: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C773: empty output");
-    assert!(
-        code.contains("fn lr_enc_encode"),
-        "C773: Should contain lr_enc_encode function"
-    );
+    assert!(code.contains("fn lr_enc_encode"), "C773: Should contain lr_enc_encode function");
 }
 
 /// C774: Peephole optimizer
@@ -3476,17 +3327,10 @@ int lr_peep_reduction_pct(struct lr_peephole *ph) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C774: Peephole optimizer - failed: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C774: Peephole optimizer - failed: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C774: empty output");
-    assert!(
-        code.contains("fn lr_peep_optimize"),
-        "C774: Should contain lr_peep_optimize function"
-    );
+    assert!(code.contains("fn lr_peep_optimize"), "C774: Should contain lr_peep_optimize function");
 }
 
 /// C775: Stack frame layout manager
@@ -3623,11 +3467,7 @@ int lr_frame_live_size(struct lr_frame_layout *fl) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C775: Stack frame layout manager - failed: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C775: Stack frame layout manager - failed: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C775: empty output");
     assert!(

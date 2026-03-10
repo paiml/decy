@@ -24,10 +24,7 @@ fn test_simple_strcpy() {
     let func = HirFunction::new_with_body(
         "test".to_string(),
         HirType::Void,
-        vec![HirParameter::new(
-            "src".to_string(),
-            HirType::Pointer(Box::new(HirType::Char)),
-        )],
+        vec![HirParameter::new("src".to_string(), HirType::Pointer(Box::new(HirType::Char)))],
         vec![
             HirStatement::VariableDeclaration {
                 name: "dest".to_string(),
@@ -57,10 +54,7 @@ fn test_simple_strcpy() {
     );
 
     // Should NOT contain C strcpy function
-    assert!(
-        !result.contains("strcpy("),
-        "Should not contain C strcpy function"
-    );
+    assert!(!result.contains("strcpy("), "Should not contain C strcpy function");
 
     // Verify no unsafe blocks
     assert!(!result.contains("unsafe"));
@@ -79,10 +73,7 @@ fn test_strcpy_as_initializer() {
         "test".to_string(),
         HirType::Void,
         vec![
-            HirParameter::new(
-                "buffer".to_string(),
-                HirType::Pointer(Box::new(HirType::Char)),
-            ),
+            HirParameter::new("buffer".to_string(), HirType::Pointer(Box::new(HirType::Char))),
             HirParameter::new("src".to_string(), HirType::Pointer(Box::new(HirType::Char))),
         ],
         vec![HirStatement::VariableDeclaration {
@@ -121,10 +112,7 @@ fn test_strcpy_with_string_literal() {
     let func = HirFunction::new_with_body(
         "test".to_string(),
         HirType::Void,
-        vec![HirParameter::new(
-            "dest".to_string(),
-            HirType::Pointer(Box::new(HirType::Char)),
-        )],
+        vec![HirParameter::new("dest".to_string(), HirType::Pointer(Box::new(HirType::Char)))],
         vec![HirStatement::Assignment {
             target: "dest".to_string(),
             value: HirExpression::FunctionCall {
@@ -165,10 +153,7 @@ fn test_strcpy_in_condition() {
         "test".to_string(),
         HirType::Void,
         vec![
-            HirParameter::new(
-                "dest".to_string(),
-                HirType::Pointer(Box::new(HirType::Char)),
-            ),
+            HirParameter::new("dest".to_string(), HirType::Pointer(Box::new(HirType::Char))),
             HirParameter::new("src".to_string(), HirType::Pointer(Box::new(HirType::Char))),
         ],
         vec![HirStatement::If {
@@ -214,10 +199,7 @@ fn test_strcpy_in_return() {
         "copy_string".to_string(),
         HirType::Pointer(Box::new(HirType::Char)),
         vec![
-            HirParameter::new(
-                "dest".to_string(),
-                HirType::Pointer(Box::new(HirType::Char)),
-            ),
+            HirParameter::new("dest".to_string(), HirType::Pointer(Box::new(HirType::Char))),
             HirParameter::new("src".to_string(), HirType::Pointer(Box::new(HirType::Char))),
         ],
         vec![HirStatement::Return(Some(HirExpression::FunctionCall {
@@ -256,22 +238,10 @@ fn test_multiple_strcpy_calls() {
         "test".to_string(),
         HirType::Void,
         vec![
-            HirParameter::new(
-                "dest1".to_string(),
-                HirType::Pointer(Box::new(HirType::Char)),
-            ),
-            HirParameter::new(
-                "src1".to_string(),
-                HirType::Pointer(Box::new(HirType::Char)),
-            ),
-            HirParameter::new(
-                "dest2".to_string(),
-                HirType::Pointer(Box::new(HirType::Char)),
-            ),
-            HirParameter::new(
-                "src2".to_string(),
-                HirType::Pointer(Box::new(HirType::Char)),
-            ),
+            HirParameter::new("dest1".to_string(), HirType::Pointer(Box::new(HirType::Char))),
+            HirParameter::new("src1".to_string(), HirType::Pointer(Box::new(HirType::Char))),
+            HirParameter::new("dest2".to_string(), HirType::Pointer(Box::new(HirType::Char))),
+            HirParameter::new("src2".to_string(), HirType::Pointer(Box::new(HirType::Char))),
         ],
         vec![
             HirStatement::Assignment {
@@ -402,22 +372,10 @@ fn test_strcpy_transformation_unsafe_count() {
         "test".to_string(),
         HirType::Void,
         vec![
-            HirParameter::new(
-                "dest1".to_string(),
-                HirType::Pointer(Box::new(HirType::Char)),
-            ),
-            HirParameter::new(
-                "src1".to_string(),
-                HirType::Pointer(Box::new(HirType::Char)),
-            ),
-            HirParameter::new(
-                "dest2".to_string(),
-                HirType::Pointer(Box::new(HirType::Char)),
-            ),
-            HirParameter::new(
-                "src2".to_string(),
-                HirType::Pointer(Box::new(HirType::Char)),
-            ),
+            HirParameter::new("dest1".to_string(), HirType::Pointer(Box::new(HirType::Char))),
+            HirParameter::new("src1".to_string(), HirType::Pointer(Box::new(HirType::Char))),
+            HirParameter::new("dest2".to_string(), HirType::Pointer(Box::new(HirType::Char))),
+            HirParameter::new("src2".to_string(), HirType::Pointer(Box::new(HirType::Char))),
         ],
         vec![
             HirStatement::Assignment {
@@ -474,10 +432,7 @@ fn test_strcpy_buffer_overflow_prevention() {
         vec![
             HirStatement::VariableDeclaration {
                 name: "dest".to_string(),
-                var_type: HirType::Array {
-                    element_type: Box::new(HirType::Char),
-                    size: Some(5),
-                },
+                var_type: HirType::Array { element_type: Box::new(HirType::Char), size: Some(5) },
                 initializer: None,
             },
             HirStatement::Assignment {

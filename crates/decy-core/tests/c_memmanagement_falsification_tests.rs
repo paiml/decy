@@ -183,11 +183,7 @@ int main(void) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C727: Slab allocator should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C727: Slab allocator should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C727: Should produce non-empty output");
 }
@@ -270,11 +266,7 @@ int main(void) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C728: Buddy allocator should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C728: Buddy allocator should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C728: Should produce non-empty output");
 }
@@ -871,11 +863,7 @@ int main(void) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C735: Stack allocator (LIFO) should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C735: Stack allocator (LIFO) should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C735: Should produce non-empty output");
 }
@@ -1150,11 +1138,7 @@ int main(void) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C738: TLSF allocator should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C738: TLSF allocator should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C738: Should produce non-empty output");
 }
@@ -1244,11 +1228,7 @@ int main(void) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C739: Memory leak detector should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C739: Memory leak detector should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C739: Should produce non-empty output");
 }
@@ -2078,11 +2058,7 @@ int main(void) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C748: Custom realloc with copy should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C748: Custom realloc with copy should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C748: Should produce non-empty output");
 }
@@ -2197,11 +2173,7 @@ int main(void) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C749: Weak reference simulation should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C749: Weak reference simulation should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C749: Should produce non-empty output");
 }

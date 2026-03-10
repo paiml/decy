@@ -113,20 +113,13 @@ fn test_leaf_variable_unchanged_no_length_mapping() {
 #[test]
 fn test_leaf_sizeof_unchanged() {
     let g = gen();
-    let expr = HirExpression::Sizeof {
-        type_name: "int".to_string(),
-    };
+    let expr = HirExpression::Sizeof { type_name: "int".to_string() };
     let result = g.transform_expression_recursive_with_length(
         &expr,
         &empty_inferences(),
         &empty_length_params(),
     );
-    assert_eq!(
-        result,
-        HirExpression::Sizeof {
-            type_name: "int".to_string()
-        }
-    );
+    assert_eq!(result, HirExpression::Sizeof { type_name: "int".to_string() });
 }
 
 #[test]
@@ -163,11 +156,7 @@ fn test_deref_add_to_slice_index() {
         g.transform_expression_recursive_with_length(&expr, &inferences, &empty_length_params());
 
     match result {
-        HirExpression::SliceIndex {
-            slice,
-            index,
-            element_type,
-        } => {
+        HirExpression::SliceIndex { slice, index, element_type } => {
             assert_eq!(*slice, HirExpression::Variable("arr".to_string()));
             assert_eq!(*index, HirExpression::Variable("i".to_string()));
             assert_eq!(element_type, HirType::Int);
@@ -194,9 +183,7 @@ fn test_deref_subtract_to_slice_index() {
         g.transform_expression_recursive_with_length(&expr, &inferences, &empty_length_params());
 
     match result {
-        HirExpression::SliceIndex {
-            element_type, ..
-        } => {
+        HirExpression::SliceIndex { element_type, .. } => {
             assert_eq!(element_type, HirType::Char);
         }
         other => panic!("Expected SliceIndex, got {:?}", other),
@@ -241,8 +228,11 @@ fn test_deref_add_unknown_variable_no_transform() {
         right: Box::new(HirExpression::IntLiteral(0)),
     }));
 
-    let result =
-        g.transform_expression_recursive_with_length(&expr, &empty_inferences(), &empty_length_params());
+    let result = g.transform_expression_recursive_with_length(
+        &expr,
+        &empty_inferences(),
+        &empty_length_params(),
+    );
 
     assert!(matches!(result, HirExpression::Dereference(_)));
 }
@@ -257,8 +247,11 @@ fn test_deref_multiply_no_transform() {
         right: Box::new(HirExpression::Variable("b".to_string())),
     }));
 
-    let result =
-        g.transform_expression_recursive_with_length(&expr, &empty_inferences(), &empty_length_params());
+    let result = g.transform_expression_recursive_with_length(
+        &expr,
+        &empty_inferences(),
+        &empty_length_params(),
+    );
 
     assert!(matches!(result, HirExpression::Dereference(_)));
 }
@@ -269,8 +262,11 @@ fn test_deref_non_binary_inner_no_transform() {
     let g = gen();
     let expr = HirExpression::Dereference(Box::new(HirExpression::Variable("x".to_string())));
 
-    let result =
-        g.transform_expression_recursive_with_length(&expr, &empty_inferences(), &empty_length_params());
+    let result = g.transform_expression_recursive_with_length(
+        &expr,
+        &empty_inferences(),
+        &empty_length_params(),
+    );
 
     assert!(matches!(result, HirExpression::Dereference(_)));
 }
@@ -288,18 +284,11 @@ fn test_length_param_replaced_with_len_call() {
 
     let expr = HirExpression::Variable("n".to_string());
     // Call transform_expression_with_length_replacement which checks length params first
-    let result = g.transform_expression_with_length_replacement(
-        &expr,
-        &empty_inferences(),
-        &length_params,
-    );
+    let result =
+        g.transform_expression_with_length_replacement(&expr, &empty_inferences(), &length_params);
 
     match result {
-        HirExpression::StringMethodCall {
-            receiver,
-            method,
-            arguments,
-        } => {
+        HirExpression::StringMethodCall { receiver, method, arguments } => {
             assert_eq!(*receiver, HirExpression::Variable("data".to_string()));
             assert_eq!(method, "len");
             assert!(arguments.is_empty());
@@ -315,11 +304,8 @@ fn test_length_param_not_replaced_when_not_in_map() {
     let length_params = HashMap::new();
 
     let expr = HirExpression::Variable("n".to_string());
-    let result = g.transform_expression_with_length_replacement(
-        &expr,
-        &empty_inferences(),
-        &length_params,
-    );
+    let result =
+        g.transform_expression_with_length_replacement(&expr, &empty_inferences(), &length_params);
 
     assert_eq!(result, HirExpression::Variable("n".to_string()));
 }
@@ -345,23 +331,14 @@ fn test_deref_add_with_length_replacement_in_index() {
         right: Box::new(HirExpression::Variable("n".to_string())),
     }));
 
-    let result =
-        g.transform_expression_recursive_with_length(&expr, &inferences, &length_params);
+    let result = g.transform_expression_recursive_with_length(&expr, &inferences, &length_params);
 
     match result {
-        HirExpression::SliceIndex {
-            slice,
-            index,
-            element_type,
-        } => {
+        HirExpression::SliceIndex { slice, index, element_type } => {
             assert_eq!(*slice, HirExpression::Variable("arr".to_string()));
             // The index (n) should be replaced with data.len()
             match *index {
-                HirExpression::StringMethodCall {
-                    ref receiver,
-                    ref method,
-                    ref arguments,
-                } => {
+                HirExpression::StringMethodCall { ref receiver, ref method, ref arguments } => {
                     assert_eq!(**receiver, HirExpression::Variable("data".to_string()));
                     assert_eq!(method, "len");
                     assert!(arguments.is_empty());
@@ -481,26 +458,17 @@ fn test_function_call_recursive_transformation() {
 
     let expr = HirExpression::FunctionCall {
         function: "process".to_string(),
-        arguments: vec![
-            HirExpression::Variable("n".to_string()),
-            HirExpression::IntLiteral(0),
-        ],
+        arguments: vec![HirExpression::Variable("n".to_string()), HirExpression::IntLiteral(0)],
     };
 
     let result =
         g.transform_expression_recursive_with_length(&expr, &empty_inferences(), &length_params);
 
     match result {
-        HirExpression::FunctionCall {
-            function,
-            arguments,
-        } => {
+        HirExpression::FunctionCall { function, arguments } => {
             assert_eq!(function, "process");
             assert_eq!(arguments.len(), 2);
-            assert!(matches!(
-                arguments[0],
-                HirExpression::StringMethodCall { .. }
-            ));
+            assert!(matches!(arguments[0], HirExpression::StringMethodCall { .. }));
             assert_eq!(arguments[1], HirExpression::IntLiteral(0));
         }
         other => panic!("Expected FunctionCall, got {:?}", other),
@@ -591,10 +559,7 @@ fn test_cast_recursive_transformation() {
         g.transform_expression_recursive_with_length(&expr, &empty_inferences(), &length_params);
 
     match result {
-        HirExpression::Cast {
-            expr: cast_expr,
-            target_type,
-        } => {
+        HirExpression::Cast { expr: cast_expr, target_type } => {
             assert_eq!(target_type, HirType::Int);
             assert!(matches!(*cast_expr, HirExpression::StringMethodCall { .. }));
         }
@@ -610,26 +575,17 @@ fn test_compound_literal_recursive_transformation() {
 
     let expr = HirExpression::CompoundLiteral {
         literal_type: HirType::Int,
-        initializers: vec![
-            HirExpression::Variable("n".to_string()),
-            HirExpression::IntLiteral(10),
-        ],
+        initializers: vec![HirExpression::Variable("n".to_string()), HirExpression::IntLiteral(10)],
     };
 
     let result =
         g.transform_expression_recursive_with_length(&expr, &empty_inferences(), &length_params);
 
     match result {
-        HirExpression::CompoundLiteral {
-            literal_type,
-            initializers,
-        } => {
+        HirExpression::CompoundLiteral { literal_type, initializers } => {
             assert_eq!(literal_type, HirType::Int);
             assert_eq!(initializers.len(), 2);
-            assert!(matches!(
-                initializers[0],
-                HirExpression::StringMethodCall { .. }
-            ));
+            assert!(matches!(initializers[0], HirExpression::StringMethodCall { .. }));
             assert_eq!(initializers[1], HirExpression::IntLiteral(10));
         }
         other => panic!("Expected CompoundLiteral, got {:?}", other),
@@ -670,10 +626,7 @@ fn test_calloc_recursive_transformation() {
         g.transform_expression_recursive_with_length(&expr, &empty_inferences(), &length_params);
 
     match result {
-        HirExpression::Calloc {
-            count,
-            element_type,
-        } => {
+        HirExpression::Calloc { count, element_type } => {
             assert!(matches!(*count, HirExpression::StringMethodCall { .. }));
             assert_eq!(*element_type, HirType::Int);
         }
@@ -687,9 +640,7 @@ fn test_malloc_recursive_transformation() {
     let mut length_params = HashMap::new();
     length_params.insert("n".to_string(), "arr".to_string());
 
-    let expr = HirExpression::Malloc {
-        size: Box::new(HirExpression::Variable("n".to_string())),
-    };
+    let expr = HirExpression::Malloc { size: Box::new(HirExpression::Variable("n".to_string())) };
 
     let result =
         g.transform_expression_recursive_with_length(&expr, &empty_inferences(), &length_params);
@@ -742,17 +693,10 @@ fn test_string_method_call_recursive_transformation() {
         g.transform_expression_recursive_with_length(&expr, &empty_inferences(), &length_params);
 
     match result {
-        HirExpression::StringMethodCall {
-            receiver,
-            method,
-            arguments,
-        } => {
+        HirExpression::StringMethodCall { receiver, method, arguments } => {
             assert_eq!(method, "to_string");
             assert!(matches!(*receiver, HirExpression::StringMethodCall { .. }));
-            assert!(matches!(
-                arguments[0],
-                HirExpression::StringMethodCall { .. }
-            ));
+            assert!(matches!(arguments[0], HirExpression::StringMethodCall { .. }));
         }
         other => panic!("Expected StringMethodCall, got {:?}", other),
     }
@@ -774,11 +718,7 @@ fn test_slice_index_recursive_transformation() {
         g.transform_expression_recursive_with_length(&expr, &empty_inferences(), &length_params);
 
     match result {
-        HirExpression::SliceIndex {
-            slice,
-            index,
-            element_type,
-        } => {
+        HirExpression::SliceIndex { slice, index, element_type } => {
             assert_eq!(*slice, HirExpression::Variable("data".to_string()));
             assert!(matches!(*index, HirExpression::StringMethodCall { .. }));
             assert_eq!(element_type, HirType::Int);
@@ -818,9 +758,8 @@ fn test_pre_increment_recursive_transformation() {
     let mut length_params = HashMap::new();
     length_params.insert("x".to_string(), "arr".to_string());
 
-    let expr = HirExpression::PreIncrement {
-        operand: Box::new(HirExpression::Variable("x".to_string())),
-    };
+    let expr =
+        HirExpression::PreIncrement { operand: Box::new(HirExpression::Variable("x".to_string())) };
 
     let result =
         g.transform_expression_recursive_with_length(&expr, &empty_inferences(), &length_params);
@@ -860,9 +799,8 @@ fn test_pre_decrement_recursive_transformation() {
     let mut length_params = HashMap::new();
     length_params.insert("x".to_string(), "arr".to_string());
 
-    let expr = HirExpression::PreDecrement {
-        operand: Box::new(HirExpression::Variable("x".to_string())),
-    };
+    let expr =
+        HirExpression::PreDecrement { operand: Box::new(HirExpression::Variable("x".to_string())) };
 
     let result =
         g.transform_expression_recursive_with_length(&expr, &empty_inferences(), &length_params);
@@ -895,11 +833,7 @@ fn test_ternary_recursive_transformation() {
         g.transform_expression_recursive_with_length(&expr, &empty_inferences(), &length_params);
 
     match result {
-        HirExpression::Ternary {
-            condition,
-            then_expr,
-            else_expr,
-        } => {
+        HirExpression::Ternary { condition, then_expr, else_expr } => {
             assert!(matches!(*condition, HirExpression::StringMethodCall { .. }));
             assert!(matches!(*then_expr, HirExpression::StringMethodCall { .. }));
             assert_eq!(*else_expr, HirExpression::IntLiteral(0));
@@ -933,17 +867,15 @@ fn test_deeply_nested_binary_ops_with_length_replacement() {
         g.transform_expression_recursive_with_length(&expr, &empty_inferences(), &length_params);
 
     match result {
-        HirExpression::BinaryOp { right, .. } => {
-            match *right {
-                HirExpression::BinaryOp { right: inner_right, .. } => {
-                    assert!(
-                        matches!(*inner_right, HirExpression::StringMethodCall { .. }),
-                        "Deeply nested 'n' should be replaced with arr.len()"
-                    );
-                }
-                other => panic!("Expected inner BinaryOp, got {:?}", other),
+        HirExpression::BinaryOp { right, .. } => match *right {
+            HirExpression::BinaryOp { right: inner_right, .. } => {
+                assert!(
+                    matches!(*inner_right, HirExpression::StringMethodCall { .. }),
+                    "Deeply nested 'n' should be replaced with arr.len()"
+                );
             }
-        }
+            other => panic!("Expected inner BinaryOp, got {:?}", other),
+        },
         other => panic!("Expected BinaryOp, got {:?}", other),
     }
 }
@@ -967,14 +899,12 @@ fn test_function_call_with_nested_expr_arg() {
         g.transform_expression_recursive_with_length(&expr, &empty_inferences(), &length_params);
 
     match result {
-        HirExpression::FunctionCall { arguments, .. } => {
-            match &arguments[0] {
-                HirExpression::ArrayIndex { index, .. } => {
-                    assert!(matches!(**index, HirExpression::StringMethodCall { .. }));
-                }
-                other => panic!("Expected ArrayIndex arg, got {:?}", other),
+        HirExpression::FunctionCall { arguments, .. } => match &arguments[0] {
+            HirExpression::ArrayIndex { index, .. } => {
+                assert!(matches!(**index, HirExpression::StringMethodCall { .. }));
             }
-        }
+            other => panic!("Expected ArrayIndex arg, got {:?}", other),
+        },
         other => panic!("Expected FunctionCall, got {:?}", other),
     }
 }
@@ -992,8 +922,11 @@ fn test_binary_op_no_transformation_when_empty() {
         right: Box::new(HirExpression::Variable("b".to_string())),
     };
 
-    let result =
-        g.transform_expression_recursive_with_length(&expr, &empty_inferences(), &empty_length_params());
+    let result = g.transform_expression_recursive_with_length(
+        &expr,
+        &empty_inferences(),
+        &empty_length_params(),
+    );
 
     assert_eq!(
         result,
@@ -1010,23 +943,20 @@ fn test_function_call_no_transformation_when_empty() {
     let g = gen();
     let expr = HirExpression::FunctionCall {
         function: "foo".to_string(),
-        arguments: vec![
-            HirExpression::IntLiteral(1),
-            HirExpression::IntLiteral(2),
-        ],
+        arguments: vec![HirExpression::IntLiteral(1), HirExpression::IntLiteral(2)],
     };
 
-    let result =
-        g.transform_expression_recursive_with_length(&expr, &empty_inferences(), &empty_length_params());
+    let result = g.transform_expression_recursive_with_length(
+        &expr,
+        &empty_inferences(),
+        &empty_length_params(),
+    );
 
     assert_eq!(
         result,
         HirExpression::FunctionCall {
             function: "foo".to_string(),
-            arguments: vec![
-                HirExpression::IntLiteral(1),
-                HirExpression::IntLiteral(2),
-            ],
+            arguments: vec![HirExpression::IntLiteral(1), HirExpression::IntLiteral(2),],
         }
     );
 }
@@ -1039,8 +969,11 @@ fn test_cast_no_transformation_when_empty() {
         target_type: HirType::Double,
     };
 
-    let result =
-        g.transform_expression_recursive_with_length(&expr, &empty_inferences(), &empty_length_params());
+    let result = g.transform_expression_recursive_with_length(
+        &expr,
+        &empty_inferences(),
+        &empty_length_params(),
+    );
 
     assert_eq!(
         result,
@@ -1060,8 +993,11 @@ fn test_ternary_no_transformation_when_empty() {
         else_expr: Box::new(HirExpression::IntLiteral(3)),
     };
 
-    let result =
-        g.transform_expression_recursive_with_length(&expr, &empty_inferences(), &empty_length_params());
+    let result = g.transform_expression_recursive_with_length(
+        &expr,
+        &empty_inferences(),
+        &empty_length_params(),
+    );
 
     assert_eq!(
         result,
@@ -1090,8 +1026,11 @@ fn test_deref_add_left_not_variable_no_slice_transform() {
         right: Box::new(HirExpression::IntLiteral(0)),
     }));
 
-    let result =
-        g.transform_expression_recursive_with_length(&expr, &empty_inferences(), &empty_length_params());
+    let result = g.transform_expression_recursive_with_length(
+        &expr,
+        &empty_inferences(),
+        &empty_length_params(),
+    );
 
     // Should be a Dereference (not SliceIndex) because left is not Variable
     assert!(matches!(result, HirExpression::Dereference(_)));
@@ -1109,14 +1048,14 @@ fn test_compound_literal_empty_initializers() {
         initializers: vec![],
     };
 
-    let result =
-        g.transform_expression_recursive_with_length(&expr, &empty_inferences(), &empty_length_params());
+    let result = g.transform_expression_recursive_with_length(
+        &expr,
+        &empty_inferences(),
+        &empty_length_params(),
+    );
 
     match result {
-        HirExpression::CompoundLiteral {
-            literal_type,
-            initializers,
-        } => {
+        HirExpression::CompoundLiteral { literal_type, initializers } => {
             assert_eq!(literal_type, HirType::Struct("Point".to_string()));
             assert!(initializers.is_empty());
         }
@@ -1131,19 +1070,16 @@ fn test_compound_literal_empty_initializers() {
 #[test]
 fn test_function_call_no_args() {
     let g = gen();
-    let expr = HirExpression::FunctionCall {
-        function: "getchar".to_string(),
-        arguments: vec![],
-    };
+    let expr = HirExpression::FunctionCall { function: "getchar".to_string(), arguments: vec![] };
 
-    let result =
-        g.transform_expression_recursive_with_length(&expr, &empty_inferences(), &empty_length_params());
+    let result = g.transform_expression_recursive_with_length(
+        &expr,
+        &empty_inferences(),
+        &empty_length_params(),
+    );
 
     match result {
-        HirExpression::FunctionCall {
-            function,
-            arguments,
-        } => {
+        HirExpression::FunctionCall { function, arguments } => {
             assert_eq!(function, "getchar");
             assert!(arguments.is_empty());
         }

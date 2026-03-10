@@ -185,14 +185,7 @@ fn test_real_world_validation_suite() {
         let result = validate_c_source(name, source);
 
         println!("Testing: {}", result.file_path);
-        println!(
-            "  Status: {}",
-            if result.success {
-                "✅ PASS"
-            } else {
-                "❌ FAIL"
-            }
-        );
+        println!("  Status: {}", if result.success { "✅ PASS" } else { "❌ FAIL" });
         println!("  Time: {}ms", result.transpilation_time_ms);
         println!("  LOC: {}", result.lines_of_code);
         println!("  Functions: {}", result.functions_count);
@@ -214,16 +207,8 @@ fn test_real_world_validation_suite() {
     // Summary statistics
     let total_files = results.len();
     let success_rate = (success_count as f64 / total_files as f64) * 100.0;
-    let avg_time_ms = if success_count > 0 {
-        total_time_ms / success_count as u128
-    } else {
-        0
-    };
-    let avg_loc = if success_count > 0 {
-        total_loc / success_count
-    } else {
-        0
-    };
+    let avg_time_ms = if success_count > 0 { total_time_ms / success_count as u128 } else { 0 };
+    let avg_loc = if success_count > 0 { total_loc / success_count } else { 0 };
 
     println!("=== Validation Summary ===");
     println!("Total files tested: {}", total_files);
@@ -241,11 +226,7 @@ fn test_real_world_validation_suite() {
     }
 
     // Acceptance criteria: At least 80% success rate
-    assert!(
-        success_rate >= 80.0,
-        "Success rate {:.1}% is below 80% threshold",
-        success_rate
-    );
+    assert!(success_rate >= 80.0, "Success rate {:.1}% is below 80% threshold", success_rate);
 
     // List any failures for investigation
     let failures: Vec<_> = results.iter().filter(|r| !r.success).collect();
@@ -288,19 +269,12 @@ fn test_transpilation_performance_baseline() {
 
     let avg_time_ms = total_time.as_millis() / iterations;
 
-    println!(
-        "Performance baseline: {}ms average over {} iterations",
-        avg_time_ms, iterations
-    );
+    println!("Performance baseline: {}ms average over {} iterations", avg_time_ms, iterations);
 
     // Performance acceptance: Should complete in under 100ms on average
     // Adjusted from 15ms to 100ms to account for clang FFI overhead and CI variance
     // Note: Actual performance is typically 30-60ms depending on system load
-    assert!(
-        avg_time_ms < 100,
-        "Transpilation took {}ms (threshold: 100ms)",
-        avg_time_ms
-    );
+    assert!(avg_time_ms < 100, "Transpilation took {}ms (threshold: 100ms)", avg_time_ms);
 }
 
 #[test]
@@ -356,23 +330,14 @@ fn test_complex_real_world_example() {
     let result = transpile(source);
     let duration = start.elapsed();
 
-    assert!(
-        result.is_ok(),
-        "Complex example should transpile successfully"
-    );
+    assert!(result.is_ok(), "Complex example should transpile successfully");
 
     let rust_code = result.unwrap();
 
     // Verify expected functions are present
-    assert!(
-        rust_code.contains("fn list_length"),
-        "Should have list_length function"
-    );
+    assert!(rust_code.contains("fn list_length"), "Should have list_length function");
     assert!(rust_code.contains("fn swap"), "Should have swap function");
-    assert!(
-        rust_code.contains("fn binary_search"),
-        "Should have binary_search function"
-    );
+    assert!(rust_code.contains("fn binary_search"), "Should have binary_search function");
 
     // Verify struct definition
     assert!(
@@ -404,20 +369,12 @@ fn test_error_handling_quality() {
     for (description, source) in invalid_sources {
         let result = transpile(source);
 
-        assert!(
-            result.is_err(),
-            "{}: Should fail for invalid C code",
-            description
-        );
+        assert!(result.is_err(), "{}: Should fail for invalid C code", description);
 
         if let Err(e) = result {
             let error_msg = e.to_string();
             // Error should be non-empty and somewhat descriptive
-            assert!(
-                !error_msg.is_empty(),
-                "{}: Error message should not be empty",
-                description
-            );
+            assert!(!error_msg.is_empty(), "{}: Error message should not be empty", description);
             println!("{}: {}", description, error_msg);
         }
     }

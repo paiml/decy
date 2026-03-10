@@ -146,13 +146,7 @@ impl TestGenerator {
             None
         };
 
-        GeneratedTests {
-            unit_tests,
-            property_tests,
-            doc_tests,
-            mutation_config,
-            equivalence_tests,
-        }
+        GeneratedTests { unit_tests, property_tests, doc_tests, mutation_config, equivalence_tests }
     }
 
     /// Generate unit tests for a function.
@@ -247,10 +241,8 @@ fn test_{}_null_{} () {{
         let func_name = hir_func.name();
 
         // Generate boundary value tests for integer parameters
-        let has_int_params = hir_func
-            .parameters()
-            .iter()
-            .any(|p| matches!(p.param_type(), HirType::Int));
+        let has_int_params =
+            hir_func.parameters().iter().any(|p| matches!(p.param_type(), HirType::Int));
 
         if has_int_params {
             tests.push(format!(

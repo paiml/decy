@@ -27,11 +27,7 @@ fn test_plain_char_literal() {
     println!("Generated Rust code:\n{}", result);
 
     // Should contain b'x' (byte literal)
-    assert!(
-        result.contains("b'x'"),
-        "Should convert 'x' to b'x'\nGenerated:\n{}",
-        result
-    );
+    assert!(result.contains("b'x'"), "Should convert 'x' to b'x'\nGenerated:\n{}", result);
 }
 
 /// Test that null character escape sequence works.
@@ -52,11 +48,7 @@ fn test_null_char_escape() {
     println!("Generated Rust code:\n{}", result);
 
     // Should contain 0u8 for null character
-    assert!(
-        result.contains("0u8"),
-        "Should convert '\\0' to 0u8\nGenerated:\n{}",
-        result
-    );
+    assert!(result.contains("0u8"), "Should convert '\\0' to 0u8\nGenerated:\n{}", result);
 }
 
 /// Test that newline escape sequence works.

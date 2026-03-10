@@ -25,11 +25,7 @@ fn test_fclose_generates_raii_not_fclose() {
 
     // Should NOT have fclose in the body
     let body = code.split('{').nth(1).unwrap_or("");
-    assert!(
-        !body.contains("fclose("),
-        "Should not generate fclose() call in:\n{}",
-        code
-    );
+    assert!(!body.contains("fclose("), "Should not generate fclose() call in:\n{}", code);
     // Should have RAII or drop
     assert!(
         code.contains("drop(") || code.contains("RAII"),
@@ -47,9 +43,7 @@ fn test_free_generates_raii_comment() {
         "free_memory".to_string(),
         HirType::Void,
         vec![],
-        vec![HirStatement::Free {
-            pointer: HirExpression::Variable("ptr".to_string()),
-        }],
+        vec![HirStatement::Free { pointer: HirExpression::Variable("ptr".to_string()) }],
     );
 
     let codegen = CodeGenerator::new();
@@ -63,11 +57,7 @@ fn test_free_generates_raii_comment() {
     );
     // Should NOT have free() call
     let body = code.split('{').nth(1).unwrap_or("");
-    assert!(
-        !body.contains("free("),
-        "Should not generate free() call in:\n{}",
-        code
-    );
+    assert!(!body.contains("free("), "Should not generate free() call in:\n{}", code);
 }
 
 /// Test generated File uses Option for error handling (RAII-safe).
@@ -102,11 +92,7 @@ fn test_fopen_returns_option_for_raii() {
         code
     );
     // Should return Option (using .ok())
-    assert!(
-        code.contains(".ok()"),
-        "Expected .ok() for Option-based RAII in:\n{}",
-        code
-    );
+    assert!(code.contains(".ok()"), "Expected .ok() for Option-based RAII in:\n{}", code);
 }
 
 /// Test Box uses RAII - no explicit deallocation needed.
@@ -124,14 +110,10 @@ fn test_box_allocation_uses_raii() {
                 var_type: HirType::Pointer(Box::new(HirType::Struct("Node".to_string()))),
                 initializer: Some(HirExpression::FunctionCall {
                     function: "malloc".to_string(),
-                    arguments: vec![HirExpression::Sizeof {
-                        type_name: "struct Node".to_string(),
-                    }],
+                    arguments: vec![HirExpression::Sizeof { type_name: "struct Node".to_string() }],
                 }),
             },
-            HirStatement::Free {
-                pointer: HirExpression::Variable("n".to_string()),
-            },
+            HirStatement::Free { pointer: HirExpression::Variable("n".to_string()) },
         ],
     );
 
@@ -139,17 +121,9 @@ fn test_box_allocation_uses_raii() {
     let code = codegen.generate_function(&func);
 
     // Should use Box type
-    assert!(
-        code.contains("Box<Node>"),
-        "Expected Box<Node> type in:\n{}",
-        code
-    );
+    assert!(code.contains("Box<Node>"), "Expected Box<Node> type in:\n{}", code);
     // Should have RAII comment instead of explicit deallocation
-    assert!(
-        code.contains("RAII"),
-        "Expected RAII comment for memory cleanup in:\n{}",
-        code
-    );
+    assert!(code.contains("RAII"), "Expected RAII comment for memory cleanup in:\n{}", code);
 }
 
 /// Test Vec allocation uses RAII.
@@ -170,15 +144,11 @@ fn test_vec_allocation_uses_raii() {
                     arguments: vec![HirExpression::BinaryOp {
                         op: decy_hir::BinaryOperator::Multiply,
                         left: Box::new(HirExpression::Variable("n".to_string())),
-                        right: Box::new(HirExpression::Sizeof {
-                            type_name: "int".to_string(),
-                        }),
+                        right: Box::new(HirExpression::Sizeof { type_name: "int".to_string() }),
                     }],
                 }),
             },
-            HirStatement::Free {
-                pointer: HirExpression::Variable("arr".to_string()),
-            },
+            HirStatement::Free { pointer: HirExpression::Variable("arr".to_string()) },
         ],
     );
 
@@ -186,11 +156,7 @@ fn test_vec_allocation_uses_raii() {
     let code = codegen.generate_function(&func);
 
     // Should use Vec type
-    assert!(
-        code.contains("Vec<i32>"),
-        "Expected Vec<i32> type in:\n{}",
-        code
-    );
+    assert!(code.contains("Vec<i32>"), "Expected Vec<i32> type in:\n{}", code);
     // Should have RAII comment
     assert!(code.contains("RAII"), "Expected RAII comment in:\n{}", code);
 }
@@ -237,16 +203,8 @@ fn test_complete_file_workflow_raii() {
     let code = codegen.generate_function(&func);
 
     // Verify complete RAII workflow
-    assert!(
-        code.contains("File::open"),
-        "Expected File::open in:\n{}",
-        code
-    );
+    assert!(code.contains("File::open"), "Expected File::open in:\n{}", code);
     // No fclose in body
     let body = code.split('{').nth(1).unwrap_or("");
-    assert!(
-        !body.contains("fclose("),
-        "Should not have fclose() in body:\n{}",
-        code
-    );
+    assert!(!body.contains("fclose("), "Should not have fclose() in body:\n{}", code);
 }

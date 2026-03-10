@@ -35,17 +35,10 @@ int add(int a, int b) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C201: Line comments (C99) should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C201: Line comments (C99) should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C201: Output should not be empty");
-    assert!(
-        code.contains("fn add"),
-        "C201: Should contain transpiled function add"
-    );
+    assert!(code.contains("fn add"), "C201: Should contain transpiled function add");
 }
 
 #[test]
@@ -70,10 +63,7 @@ int compute(int n) {
     );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C202: Output should not be empty");
-    assert!(
-        code.contains("fn compute"),
-        "C202: Should contain transpiled function compute"
-    );
+    assert!(code.contains("fn compute"), "C202: Should contain transpiled function compute");
 }
 
 #[test]
@@ -89,11 +79,7 @@ int use_square(int n) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C203: Inline functions (C99) should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C203: Inline functions (C99) should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C203: Output should not be empty");
     assert!(
@@ -119,11 +105,7 @@ _Bool both_positive(int a, int b) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C204: _Bool type (C99) should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C204: _Bool type (C99) should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C204: Output should not be empty");
     assert!(
@@ -194,10 +176,7 @@ int main() {
     );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C206: Output should not be empty");
-    assert!(
-        code.contains("fn increment"),
-        "C206: Should contain transpiled function"
-    );
+    assert!(code.contains("fn increment"), "C206: Should contain transpiled function");
 }
 
 #[test]
@@ -223,10 +202,7 @@ int main() {
     );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C207: Output should not be empty");
-    assert!(
-        code.contains("fn add"),
-        "C207: Should contain transpiled function"
-    );
+    assert!(code.contains("fn add"), "C207: Should contain transpiled function");
 }
 
 #[test]
@@ -256,10 +232,7 @@ int main() {
     );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C208: Output should not be empty");
-    assert!(
-        code.contains("fn add"),
-        "C208: Should contain transpiled function"
-    );
+    assert!(code.contains("fn add"), "C208: Should contain transpiled function");
 }
 
 #[test]
@@ -323,10 +296,7 @@ int main() {
     );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C210: Output should not be empty");
-    assert!(
-        code.contains("fn main"),
-        "C210: Should contain transpiled main"
-    );
+    assert!(code.contains("fn main"), "C210: Should contain transpiled main");
 }
 
 // ============================================================================
@@ -357,10 +327,7 @@ int main() {
     );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C211: Output should not be empty");
-    assert!(
-        code.contains("fn max_val"),
-        "C211: Should contain transpiled template function"
-    );
+    assert!(code.contains("fn max_val"), "C211: Should contain transpiled template function");
 }
 
 #[test]
@@ -395,10 +362,7 @@ int main() {
     );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C212: Output should not be empty");
-    assert!(
-        code.contains("Stack"),
-        "C212: Should contain transpiled template class"
-    );
+    assert!(code.contains("Stack"), "C212: Should contain transpiled template class");
 }
 
 #[test]
@@ -515,10 +479,7 @@ int main() {
     );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C215: Output should not be empty");
-    assert!(
-        code.contains("Vec2"),
-        "C215: Should contain transpiled class"
-    );
+    assert!(code.contains("Vec2"), "C215: Should contain transpiled class");
 }
 
 // ============================================================================
@@ -548,10 +509,7 @@ int main() {
     );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C216: Output should not be empty");
-    assert!(
-        code.contains("fn square"),
-        "C216: Should contain transpiled function"
-    );
+    assert!(code.contains("fn square"), "C216: Should contain transpiled function");
 }
 
 #[test]
@@ -580,10 +538,7 @@ int main() {
     );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C217: Output should not be empty");
-    assert!(
-        code.contains("fn sum_array"),
-        "C217: Should contain transpiled function"
-    );
+    assert!(code.contains("fn sum_array"), "C217: Should contain transpiled function");
 }
 
 #[test]
@@ -609,10 +564,7 @@ int main() {
     );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C218: Output should not be empty");
-    assert!(
-        code.contains("fn apply"),
-        "C218: Should contain transpiled function"
-    );
+    assert!(code.contains("fn apply"), "C218: Should contain transpiled function");
 }
 
 #[test]
@@ -646,10 +598,7 @@ int main() {
     );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C219: Output should not be empty");
-    assert!(
-        code.contains("fn sum_vector"),
-        "C219: Should contain transpiled function"
-    );
+    assert!(code.contains("fn sum_vector"), "C219: Should contain transpiled function");
 }
 
 #[test]
@@ -677,10 +626,7 @@ int main() {
     );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C220: Output should not be empty");
-    assert!(
-        code.contains("fn use_smart_ptr"),
-        "C220: Should contain transpiled function"
-    );
+    assert!(code.contains("fn use_smart_ptr"), "C220: Should contain transpiled function");
 }
 
 // ============================================================================
@@ -755,10 +701,7 @@ int main() {
     );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C222: Output should not be empty");
-    assert!(
-        code.contains("fn safe_divide"),
-        "C222: Should contain transpiled function"
-    );
+    assert!(code.contains("fn safe_divide"), "C222: Should contain transpiled function");
 }
 
 #[test]
@@ -791,10 +734,7 @@ int main() {
     );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C223: Output should not be empty");
-    assert!(
-        code.contains("FileHandle"),
-        "C223: Should contain transpiled RAII class"
-    );
+    assert!(code.contains("FileHandle"), "C223: Should contain transpiled RAII class");
 }
 
 #[test]
@@ -869,8 +809,5 @@ int main() {
     );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C225: Output should not be empty");
-    assert!(
-        code.contains("Counter"),
-        "C225: Should contain transpiled class"
-    );
+    assert!(code.contains("Counter"), "C225: Should contain transpiled class");
 }

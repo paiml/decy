@@ -44,11 +44,7 @@ fn test_preamble_types_for_every_header() {
             "{:?} missing size_t typedef",
             header
         );
-        assert!(
-            result.contains("typedef long ssize_t;\n"),
-            "{:?} missing ssize_t typedef",
-            header
-        );
+        assert!(result.contains("typedef long ssize_t;\n"), "{:?} missing ssize_t typedef", header);
         assert!(
             result.contains("typedef long ptrdiff_t;\n"),
             "{:?} missing ptrdiff_t typedef",
@@ -90,11 +86,7 @@ fn test_stdio_all_macros_present() {
         "#define _IOFBF 0",
     ];
     for m in &expected_macros {
-        assert!(
-            result.contains(m),
-            "Stdio missing macro: {}",
-            m
-        );
+        assert!(result.contains(m), "Stdio missing macro: {}", m);
     }
 }
 
@@ -166,7 +158,12 @@ fn test_errno_no_functions_registered() {
     // Only macros and extern declarations, no function prototypes
     let lines: Vec<&str> = result.lines().collect();
     for line in &lines {
-        if line.contains('(') && line.contains(')') && !line.starts_with("//") && !line.starts_with("#") && !line.starts_with("typedef") {
+        if line.contains('(')
+            && line.contains(')')
+            && !line.starts_with("//")
+            && !line.starts_with("#")
+            && !line.starts_with("typedef")
+        {
             panic!("Errno should have no function declarations, found: {}", line);
         }
     }
@@ -1104,10 +1101,7 @@ fn test_to_c_declaration_multiple_params() {
         header: StdHeader::String,
         c99_section: "§7.24.2.1".to_string(),
     };
-    assert_eq!(
-        proto.to_c_declaration(),
-        "void* memcpy(void* dest, const void* src, size_t n);"
-    );
+    assert_eq!(proto.to_c_declaration(), "void* memcpy(void* dest, const void* src, size_t n);");
 }
 
 #[test]
@@ -1120,10 +1114,7 @@ fn test_to_c_declaration_variadic() {
         header: StdHeader::Stdio,
         c99_section: "§7.21.6.1".to_string(),
     };
-    assert_eq!(
-        proto.to_c_declaration(),
-        "int printf(const char* format, ...);"
-    );
+    assert_eq!(proto.to_c_declaration(), "int printf(const char* format, ...);");
 }
 
 #[test]

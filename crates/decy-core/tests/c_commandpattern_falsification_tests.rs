@@ -89,7 +89,10 @@ int cmd_dispatch_count(cmd_dispatch_t *d) {
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1951: Output should not be empty");
     assert!(code.contains("fn cmd_dispatch_init"), "C1951: Should contain cmd_dispatch_init");
-    assert!(code.contains("fn cmd_dispatch_register"), "C1951: Should contain cmd_dispatch_register");
+    assert!(
+        code.contains("fn cmd_dispatch_register"),
+        "C1951: Should contain cmd_dispatch_register"
+    );
     assert!(code.contains("fn cmd_dispatch_execute"), "C1951: Should contain cmd_dispatch_execute");
 }
 
@@ -407,7 +410,10 @@ int cmd_result_test(void) {
     assert!(!code.is_empty(), "C1955: Output should not be empty");
     assert!(code.contains("fn cmd_result_init"), "C1955: Should contain cmd_result_init");
     assert!(code.contains("fn cmd_result_record"), "C1955: Should contain cmd_result_record");
-    assert!(code.contains("fn cmd_result_success_rate"), "C1955: Should contain cmd_result_success_rate");
+    assert!(
+        code.contains("fn cmd_result_success_rate"),
+        "C1955: Should contain cmd_result_success_rate"
+    );
 }
 
 // ============================================================================
@@ -567,7 +573,10 @@ int cmd_batch_test(void) {
     assert!(!code.is_empty(), "C1957: Output should not be empty");
     assert!(code.contains("fn cmd_batch_init"), "C1957: Should contain cmd_batch_init");
     assert!(code.contains("fn cmd_batch_add"), "C1957: Should contain cmd_batch_add");
-    assert!(code.contains("fn cmd_batch_execute_all"), "C1957: Should contain cmd_batch_execute_all");
+    assert!(
+        code.contains("fn cmd_batch_execute_all"),
+        "C1957: Should contain cmd_batch_execute_all"
+    );
 }
 
 /// C1958: Command replay from recorded history
@@ -1580,7 +1589,10 @@ int cmd_help_test(void) {
     assert!(!code.is_empty(), "C1969: Output should not be empty");
     assert!(code.contains("fn cmd_help_init"), "C1969: Should contain cmd_help_init");
     assert!(code.contains("fn cmd_help_register"), "C1969: Should contain cmd_help_register");
-    assert!(code.contains("fn cmd_help_visible_count"), "C1969: Should contain cmd_help_visible_count");
+    assert!(
+        code.contains("fn cmd_help_visible_count"),
+        "C1969: Should contain cmd_help_visible_count"
+    );
 }
 
 /// C1970: Interpreter loop with command evaluation

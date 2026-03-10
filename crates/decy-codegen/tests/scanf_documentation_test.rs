@@ -40,14 +40,8 @@ fn test_scanf_integer_to_stdin_parse() {
     let rust_equivalent = "io::stdin().read_line(&mut buffer).unwrap();\nlet x: i32 = buffer.trim().parse().unwrap();";
 
     assert!(c_code.contains("scanf"), "C uses scanf");
-    assert!(
-        rust_equivalent.contains("stdin()"),
-        "Rust uses std::io::stdin()"
-    );
-    assert!(
-        rust_equivalent.contains("parse()"),
-        "Rust uses parse() for type conversion"
-    );
+    assert!(rust_equivalent.contains("stdin()"), "Rust uses std::io::stdin()");
+    assert!(rust_equivalent.contains("parse()"), "Rust uses parse() for type conversion");
 
     // Key difference: Rust is type-safe, no format string
 }
@@ -72,10 +66,7 @@ fn test_scanf_float_to_stdin_parse() {
     let rust_equivalent = "let f: f32 = buffer.trim().parse().unwrap();";
 
     assert!(c_code.contains("%f"), "C uses %f format specifier");
-    assert!(
-        rust_equivalent.contains("f32"),
-        "Rust uses explicit f32 type"
-    );
+    assert!(rust_equivalent.contains("f32"), "Rust uses explicit f32 type");
 }
 
 /// Document transformation of string scanf
@@ -99,10 +90,7 @@ fn test_scanf_string_to_read_line() {
     let rust_equivalent = "io::stdin().read_line(&mut str).unwrap();";
 
     assert!(c_code.contains("%s"), "C uses %s format specifier");
-    assert!(
-        rust_equivalent.contains("read_line"),
-        "Rust uses read_line for strings"
-    );
+    assert!(rust_equivalent.contains("read_line"), "Rust uses read_line for strings");
 
     // Rust is safe - no buffer overflow possible
 }
@@ -127,10 +115,7 @@ fn test_scanf_char_to_stdin() {
     let rust_equivalent = "let c: char = buffer.chars().next().unwrap();";
 
     assert!(c_code.contains("%c"), "C uses %c format specifier");
-    assert!(
-        rust_equivalent.contains("chars()"),
-        "Rust uses chars() to extract character"
-    );
+    assert!(rust_equivalent.contains("chars()"), "Rust uses chars() to extract character");
 }
 
 /// Document transformation of multiple value scanf
@@ -193,10 +178,7 @@ fn test_scanf_error_handling_to_result() {
     let rust_equivalent =
         "match io::stdin().read_line(&mut buffer) { Ok(_) => ..., Err(_) => ... }";
 
-    assert!(
-        c_code.contains("scanf"),
-        "C scanf returns number of items read"
-    );
+    assert!(c_code.contains("scanf"), "C scanf returns number of items read");
     assert!(
         rust_equivalent.contains("Ok") && rust_equivalent.contains("Err"),
         "Rust uses Result type with Ok/Err for error handling"
@@ -225,10 +207,7 @@ fn test_scanf_mixed_types_to_typed_parse() {
     let c_code = "scanf(\"%d %f %c\", &i, &f, &c);";
     let rust_equivalent = "let i: i32 = parts.next().unwrap().parse().unwrap();\nlet f: f32 = parts.next().unwrap().parse().unwrap();";
 
-    assert!(
-        c_code.contains("%d %f %c"),
-        "C uses format specifiers for different types"
-    );
+    assert!(c_code.contains("%d %f %c"), "C uses format specifiers for different types");
     assert!(
         rust_equivalent.contains("i32") && rust_equivalent.contains("f32"),
         "Rust uses explicit types for parsing"
@@ -263,10 +242,7 @@ fn test_scanf_loop_to_lines_iterator() {
     let rust_equivalent = "for line in stdin.lock().lines() { ... }";
 
     assert!(c_code.contains("while"), "C uses while loop with scanf");
-    assert!(
-        rust_equivalent.contains("lines()"),
-        "Rust uses lines() iterator"
-    );
+    assert!(rust_equivalent.contains("lines()"), "Rust uses lines() iterator");
 }
 
 /// Document transformation of scanf with width specifier
@@ -289,10 +265,7 @@ fn test_scanf_width_to_take() {
     let rust_equivalent = "buffer.trim().chars().take(9).collect()";
 
     assert!(c_code.contains("%9s"), "C uses width specifier");
-    assert!(
-        rust_equivalent.contains("take(9)"),
-        "Rust uses take() to limit"
-    );
+    assert!(rust_equivalent.contains("take(9)"), "Rust uses take() to limit");
 }
 
 /// Document transformation of scanf skip whitespace
@@ -317,10 +290,7 @@ fn test_scanf_whitespace_to_trim() {
     let rust_equivalent = "buffer.trim().parse().unwrap()";
 
     assert!(c_code.contains("scanf"), "C uses scanf");
-    assert!(
-        rust_equivalent.contains("trim()"),
-        "Rust uses trim() for whitespace"
-    );
+    assert!(rust_equivalent.contains("trim()"), "Rust uses trim() for whitespace");
 }
 
 /// Document transformation of scanf with literal text
@@ -342,14 +312,8 @@ fn test_scanf_literal_to_strip_prefix() {
     let c_code = "scanf(\"Value: %d\", &x);";
     let rust_equivalent = "buffer.trim().strip_prefix(\"Value: \")";
 
-    assert!(
-        c_code.contains("Value:"),
-        "C format string includes literal text"
-    );
-    assert!(
-        rust_equivalent.contains("strip_prefix"),
-        "Rust uses strip_prefix for literal text"
-    );
+    assert!(c_code.contains("Value:"), "C format string includes literal text");
+    assert!(rust_equivalent.contains("strip_prefix"), "Rust uses strip_prefix for literal text");
 }
 
 /// Document transformation of scanf buffer overflow safety
@@ -372,14 +336,8 @@ fn test_scanf_buffer_overflow_safety() {
     let c_unsafe = "char buf[10]; scanf(\"%s\", buf);";
     let rust_safe = "let mut buf = String::new(); io::stdin().read_line(&mut buf).unwrap();";
 
-    assert!(
-        c_unsafe.contains("buf[10]"),
-        "C has fixed buffer (overflow risk)"
-    );
-    assert!(
-        rust_safe.contains("String::new()"),
-        "Rust uses dynamic String (safe)"
-    );
+    assert!(c_unsafe.contains("buf[10]"), "C has fixed buffer (overflow risk)");
+    assert!(rust_safe.contains("String::new()"), "Rust uses dynamic String (safe)");
 
     // Rust eliminates buffer overflow vulnerability
 }
@@ -399,10 +357,7 @@ fn test_scanf_transformation_unsafe_count() {
 
     // Count unsafe blocks (should be 0)
     let unsafe_count = combined.matches("unsafe").count();
-    assert_eq!(
-        unsafe_count, 0,
-        "scanf → stdin transformation should not introduce unsafe blocks"
-    );
+    assert_eq!(unsafe_count, 0, "scanf → stdin transformation should not introduce unsafe blocks");
 }
 
 /// Summary of transformation rules
@@ -434,14 +389,8 @@ fn test_scanf_transformation_unsafe_count() {
 fn test_scanf_transformation_rules_summary() {
     // Rule 1: Basic pattern
     let basic_pattern = "stdin().read_line() + parse()";
-    assert!(
-        basic_pattern.contains("stdin()"),
-        "Use std::io::stdin() for input"
-    );
-    assert!(
-        basic_pattern.contains("parse()"),
-        "Use parse() for type conversion"
-    );
+    assert!(basic_pattern.contains("stdin()"), "Use std::io::stdin() for input");
+    assert!(basic_pattern.contains("parse()"), "Use parse() for type conversion");
 
     // Rule 2: Safety improvements
     let no_buffer_overflow = true;
@@ -455,8 +404,5 @@ fn test_scanf_transformation_rules_summary() {
 
     // Rule 3: No unsafe blocks needed
     let unsafe_blocks = 0;
-    assert_eq!(
-        unsafe_blocks, 0,
-        "scanf transformation introduces 0 unsafe blocks"
-    );
+    assert_eq!(unsafe_blocks, 0, "scanf transformation introduces 0 unsafe blocks");
 }

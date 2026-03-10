@@ -134,11 +134,8 @@ impl<'a> LockDisciplineChecker<'a> {
 
         // 1. Identify protected data from lock analysis
         let mapping = self.analyzer.analyze_lock_data_mapping(func);
-        let protected_vars: std::collections::HashSet<String> = mapping
-            .get_locks()
-            .iter()
-            .flat_map(|lock| mapping.get_protected_data(lock))
-            .collect();
+        let protected_vars: std::collections::HashSet<String> =
+            mapping.get_locks().iter().flat_map(|lock| mapping.get_protected_data(lock)).collect();
 
         // 2. Find lock regions
         let lock_regions = self.analyzer.find_lock_regions(func);
@@ -172,9 +169,7 @@ impl<'a> LockDisciplineChecker<'a> {
         idx: usize,
         regions: &[decy_analyzer::lock_analysis::LockRegion],
     ) -> bool {
-        regions
-            .iter()
-            .any(|r| idx > r.start_index && idx < r.end_index)
+        regions.iter().any(|r| idx > r.start_index && idx < r.end_index)
     }
 
     /// Collect all variable names accessed in a statement
@@ -187,10 +182,7 @@ impl<'a> LockDisciplineChecker<'a> {
                 vars.push(target.clone());
                 Self::collect_vars_from_expr(value, &mut vars);
             }
-            HirStatement::VariableDeclaration {
-                initializer: Some(init),
-                ..
-            } => {
+            HirStatement::VariableDeclaration { initializer: Some(init), .. } => {
                 Self::collect_vars_from_expr(init, &mut vars);
             }
             HirStatement::Expression(expr) => {
@@ -284,10 +276,8 @@ impl<'a> LockDisciplineChecker<'a> {
         let body = func.body();
 
         for stmt in body {
-            if let HirStatement::Expression(HirExpression::FunctionCall {
-                function,
-                arguments,
-            }) = stmt
+            if let HirStatement::Expression(HirExpression::FunctionCall { function, arguments }) =
+                stmt
             {
                 if function == "pthread_mutex_lock" {
                     if let Some(HirExpression::AddressOf(inner)) = arguments.first() {

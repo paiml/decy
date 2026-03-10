@@ -16,9 +16,7 @@ fn parse_c(code: &str) -> decy_parser::Ast {
 
 /// Helper: get first function from AST
 fn first_func(ast: &decy_parser::Ast) -> &decy_parser::Function {
-    ast.functions()
-        .first()
-        .expect("Expected at least one function")
+    ast.functions().first().expect("Expected at least one function")
 }
 
 /// Helper: find a function by name
@@ -37,9 +35,8 @@ fn find_func<'a>(ast: &'a decy_parser::Ast, name: &str) -> &'a decy_parser::Func
 fn test_prefix_increment_variable() {
     let ast = parse_c("void f() { int x = 0; ++x; }");
     let func = first_func(&ast);
-    let has_pre_inc = func.body.iter().any(|s| {
-        matches!(s, Statement::PreIncrement { target } if target == "x")
-    });
+    let has_pre_inc =
+        func.body.iter().any(|s| matches!(s, Statement::PreIncrement { target } if target == "x"));
     assert!(has_pre_inc, "Expected PreIncrement for x, got: {:?}", func.body);
 }
 
@@ -47,9 +44,8 @@ fn test_prefix_increment_variable() {
 fn test_postfix_increment_variable() {
     let ast = parse_c("void f() { int x = 0; x++; }");
     let func = first_func(&ast);
-    let has_post_inc = func.body.iter().any(|s| {
-        matches!(s, Statement::PostIncrement { target } if target == "x")
-    });
+    let has_post_inc =
+        func.body.iter().any(|s| matches!(s, Statement::PostIncrement { target } if target == "x"));
     assert!(has_post_inc, "Expected PostIncrement for x, got: {:?}", func.body);
 }
 
@@ -57,9 +53,8 @@ fn test_postfix_increment_variable() {
 fn test_prefix_decrement_variable() {
     let ast = parse_c("void f() { int x = 5; --x; }");
     let func = first_func(&ast);
-    let has_pre_dec = func.body.iter().any(|s| {
-        matches!(s, Statement::PreDecrement { target } if target == "x")
-    });
+    let has_pre_dec =
+        func.body.iter().any(|s| matches!(s, Statement::PreDecrement { target } if target == "x"));
     assert!(has_pre_dec, "Expected PreDecrement for x, got: {:?}", func.body);
 }
 
@@ -67,9 +62,8 @@ fn test_prefix_decrement_variable() {
 fn test_postfix_decrement_variable() {
     let ast = parse_c("void f() { int x = 5; x--; }");
     let func = first_func(&ast);
-    let has_post_dec = func.body.iter().any(|s| {
-        matches!(s, Statement::PostDecrement { target } if target == "x")
-    });
+    let has_post_dec =
+        func.body.iter().any(|s| matches!(s, Statement::PostDecrement { target } if target == "x"));
     assert!(has_post_dec, "Expected PostDecrement for x, got: {:?}", func.body);
 }
 
@@ -77,9 +71,10 @@ fn test_postfix_decrement_variable() {
 fn test_prefix_increment_different_var_name() {
     let ast = parse_c("void f() { int counter = 0; ++counter; }");
     let func = first_func(&ast);
-    let has_pre_inc = func.body.iter().any(|s| {
-        matches!(s, Statement::PreIncrement { target } if target == "counter")
-    });
+    let has_pre_inc = func
+        .body
+        .iter()
+        .any(|s| matches!(s, Statement::PreIncrement { target } if target == "counter"));
     assert!(has_pre_inc, "Expected PreIncrement for counter, got: {:?}", func.body);
 }
 
@@ -87,9 +82,10 @@ fn test_prefix_increment_different_var_name() {
 fn test_postfix_increment_different_var_name() {
     let ast = parse_c("void f() { int idx = 0; idx++; }");
     let func = first_func(&ast);
-    let has_post_inc = func.body.iter().any(|s| {
-        matches!(s, Statement::PostIncrement { target } if target == "idx")
-    });
+    let has_post_inc = func
+        .body
+        .iter()
+        .any(|s| matches!(s, Statement::PostIncrement { target } if target == "idx"));
     assert!(has_post_inc, "Expected PostIncrement for idx, got: {:?}", func.body);
 }
 
@@ -99,14 +95,16 @@ fn test_postfix_increment_different_var_name() {
 
 #[test]
 fn test_multiple_inc_dec_in_function() {
-    let ast = parse_c(
-        "void f() { int a = 0; int b = 0; a++; ++b; a--; --b; }",
-    );
+    let ast = parse_c("void f() { int a = 0; int b = 0; a++; ++b; a--; --b; }");
     let func = first_func(&ast);
-    let post_inc = func.body.iter().any(|s| matches!(s, Statement::PostIncrement { target } if target == "a"));
-    let pre_inc = func.body.iter().any(|s| matches!(s, Statement::PreIncrement { target } if target == "b"));
-    let post_dec = func.body.iter().any(|s| matches!(s, Statement::PostDecrement { target } if target == "a"));
-    let pre_dec = func.body.iter().any(|s| matches!(s, Statement::PreDecrement { target } if target == "b"));
+    let post_inc =
+        func.body.iter().any(|s| matches!(s, Statement::PostIncrement { target } if target == "a"));
+    let pre_inc =
+        func.body.iter().any(|s| matches!(s, Statement::PreIncrement { target } if target == "b"));
+    let post_dec =
+        func.body.iter().any(|s| matches!(s, Statement::PostDecrement { target } if target == "a"));
+    let pre_dec =
+        func.body.iter().any(|s| matches!(s, Statement::PreDecrement { target } if target == "b"));
     assert!(post_inc, "Expected PostIncrement for a");
     assert!(pre_inc, "Expected PreIncrement for b");
     assert!(post_dec, "Expected PostDecrement for a");
@@ -128,14 +126,11 @@ void f(Data* d) {
     let ast = parse_c(code);
     let func = find_func(&ast, "f");
     // Should be a FieldAssignment, not a simple PostIncrement
-    let has_field_assign = func.body.iter().any(|s| {
-        matches!(s, Statement::FieldAssignment { field, .. } if field == "count")
-    });
-    assert!(
-        has_field_assign,
-        "Expected FieldAssignment for d->count++, got: {:?}",
-        func.body
-    );
+    let has_field_assign = func
+        .body
+        .iter()
+        .any(|s| matches!(s, Statement::FieldAssignment { field, .. } if field == "count"));
+    assert!(has_field_assign, "Expected FieldAssignment for d->count++, got: {:?}", func.body);
 }
 
 #[test]
@@ -148,14 +143,11 @@ void f(Node* n) {
 "#;
     let ast = parse_c(code);
     let func = find_func(&ast, "f");
-    let has_field_assign = func.body.iter().any(|s| {
-        matches!(s, Statement::FieldAssignment { field, .. } if field == "val")
-    });
-    assert!(
-        has_field_assign,
-        "Expected FieldAssignment for ++n->val, got: {:?}",
-        func.body
-    );
+    let has_field_assign = func
+        .body
+        .iter()
+        .any(|s| matches!(s, Statement::FieldAssignment { field, .. } if field == "val"));
+    assert!(has_field_assign, "Expected FieldAssignment for ++n->val, got: {:?}", func.body);
 }
 
 #[test]
@@ -168,14 +160,11 @@ void f(Obj* o) {
 "#;
     let ast = parse_c(code);
     let func = find_func(&ast, "f");
-    let has_field_assign = func.body.iter().any(|s| {
-        matches!(s, Statement::FieldAssignment { field, .. } if field == "refs")
-    });
-    assert!(
-        has_field_assign,
-        "Expected FieldAssignment for o->refs--, got: {:?}",
-        func.body
-    );
+    let has_field_assign = func
+        .body
+        .iter()
+        .any(|s| matches!(s, Statement::FieldAssignment { field, .. } if field == "refs"));
+    assert!(has_field_assign, "Expected FieldAssignment for o->refs--, got: {:?}", func.body);
 }
 
 #[test]
@@ -188,14 +177,11 @@ void f(Stack* s) {
 "#;
     let ast = parse_c(code);
     let func = find_func(&ast, "f");
-    let has_field_assign = func.body.iter().any(|s| {
-        matches!(s, Statement::FieldAssignment { field, .. } if field == "depth")
-    });
-    assert!(
-        has_field_assign,
-        "Expected FieldAssignment for --s->depth, got: {:?}",
-        func.body
-    );
+    let has_field_assign = func
+        .body
+        .iter()
+        .any(|s| matches!(s, Statement::FieldAssignment { field, .. } if field == "depth"));
+    assert!(has_field_assign, "Expected FieldAssignment for --s->depth, got: {:?}", func.body);
 }
 
 // ============================================================================
@@ -214,14 +200,11 @@ void f() {
 "#;
     let ast = parse_c(code);
     let func = find_func(&ast, "f");
-    let has_field_assign = func.body.iter().any(|s| {
-        matches!(s, Statement::FieldAssignment { field, .. } if field == "x")
-    });
-    assert!(
-        has_field_assign,
-        "Expected FieldAssignment for p.x++, got: {:?}",
-        func.body
-    );
+    let has_field_assign = func
+        .body
+        .iter()
+        .any(|s| matches!(s, Statement::FieldAssignment { field, .. } if field == "x"));
+    assert!(has_field_assign, "Expected FieldAssignment for p.x++, got: {:?}", func.body);
 }
 
 #[test]
@@ -236,14 +219,11 @@ void f() {
 "#;
     let ast = parse_c(code);
     let func = find_func(&ast, "f");
-    let has_field_assign = func.body.iter().any(|s| {
-        matches!(s, Statement::FieldAssignment { field, .. } if field == "y")
-    });
-    assert!(
-        has_field_assign,
-        "Expected FieldAssignment for v.y--, got: {:?}",
-        func.body
-    );
+    let has_field_assign = func
+        .body
+        .iter()
+        .any(|s| matches!(s, Statement::FieldAssignment { field, .. } if field == "y"));
+    assert!(has_field_assign, "Expected FieldAssignment for v.y--, got: {:?}", func.body);
 }
 
 // ============================================================================
@@ -262,14 +242,9 @@ void f() {
     let ast = parse_c(code);
     let func = find_func(&ast, "f");
     // Should produce ArrayIndexAssignment
-    let has_arr_assign = func.body.iter().any(|s| {
-        matches!(s, Statement::ArrayIndexAssignment { .. })
-    });
-    assert!(
-        has_arr_assign,
-        "Expected ArrayIndexAssignment for arr[i]++, got: {:?}",
-        func.body
-    );
+    let has_arr_assign =
+        func.body.iter().any(|s| matches!(s, Statement::ArrayIndexAssignment { .. }));
+    assert!(has_arr_assign, "Expected ArrayIndexAssignment for arr[i]++, got: {:?}", func.body);
 }
 
 #[test]
@@ -282,14 +257,9 @@ void f() {
 "#;
     let ast = parse_c(code);
     let func = find_func(&ast, "f");
-    let has_arr_assign = func.body.iter().any(|s| {
-        matches!(s, Statement::ArrayIndexAssignment { .. })
-    });
-    assert!(
-        has_arr_assign,
-        "Expected ArrayIndexAssignment for counts[2]--, got: {:?}",
-        func.body
-    );
+    let has_arr_assign =
+        func.body.iter().any(|s| matches!(s, Statement::ArrayIndexAssignment { .. }));
+    assert!(has_arr_assign, "Expected ArrayIndexAssignment for counts[2]--, got: {:?}", func.body);
 }
 
 #[test]
@@ -302,14 +272,9 @@ void f() {
 "#;
     let ast = parse_c(code);
     let func = find_func(&ast, "f");
-    let has_arr_assign = func.body.iter().any(|s| {
-        matches!(s, Statement::ArrayIndexAssignment { .. })
-    });
-    assert!(
-        has_arr_assign,
-        "Expected ArrayIndexAssignment for ++data[0], got: {:?}",
-        func.body
-    );
+    let has_arr_assign =
+        func.body.iter().any(|s| matches!(s, Statement::ArrayIndexAssignment { .. }));
+    assert!(has_arr_assign, "Expected ArrayIndexAssignment for ++data[0], got: {:?}", func.body);
 }
 
 #[test]
@@ -323,9 +288,8 @@ void f(int c) {
 "#;
     let ast = parse_c(code);
     let func = find_func(&ast, "f");
-    let has_arr_assign = func.body.iter().any(|s| {
-        matches!(s, Statement::ArrayIndexAssignment { .. })
-    });
+    let has_arr_assign =
+        func.body.iter().any(|s| matches!(s, Statement::ArrayIndexAssignment { .. }));
     assert!(
         has_arr_assign,
         "Expected ArrayIndexAssignment for ndigit[c-48]++, got: {:?}",
@@ -345,7 +309,8 @@ fn test_binop_add() {
     if let Some(Statement::Assignment { value, .. }) = assign {
         assert!(
             matches!(value, Expression::BinaryOp { op: BinaryOperator::Add, .. }),
-            "Expected Add, got: {:?}", value
+            "Expected Add, got: {:?}",
+            value
         );
     } else {
         panic!("No assignment found");
@@ -360,7 +325,8 @@ fn test_binop_subtract() {
     if let Some(Statement::Assignment { value, .. }) = assign {
         assert!(
             matches!(value, Expression::BinaryOp { op: BinaryOperator::Subtract, .. }),
-            "Expected Subtract, got: {:?}", value
+            "Expected Subtract, got: {:?}",
+            value
         );
     } else {
         panic!("No assignment found");
@@ -375,7 +341,8 @@ fn test_binop_multiply() {
     if let Some(Statement::Assignment { value, .. }) = assign {
         assert!(
             matches!(value, Expression::BinaryOp { op: BinaryOperator::Multiply, .. }),
-            "Expected Multiply, got: {:?}", value
+            "Expected Multiply, got: {:?}",
+            value
         );
     } else {
         panic!("No assignment found");
@@ -390,7 +357,8 @@ fn test_binop_divide() {
     if let Some(Statement::Assignment { value, .. }) = assign {
         assert!(
             matches!(value, Expression::BinaryOp { op: BinaryOperator::Divide, .. }),
-            "Expected Divide, got: {:?}", value
+            "Expected Divide, got: {:?}",
+            value
         );
     } else {
         panic!("No assignment found");
@@ -405,7 +373,8 @@ fn test_binop_modulo() {
     if let Some(Statement::Assignment { value, .. }) = assign {
         assert!(
             matches!(value, Expression::BinaryOp { op: BinaryOperator::Modulo, .. }),
-            "Expected Modulo, got: {:?}", value
+            "Expected Modulo, got: {:?}",
+            value
         );
     } else {
         panic!("No assignment found");
@@ -424,7 +393,8 @@ fn test_binop_bitwise_and() {
     if let Some(Statement::Assignment { value, .. }) = assign {
         assert!(
             matches!(value, Expression::BinaryOp { op: BinaryOperator::BitwiseAnd, .. }),
-            "Expected BitwiseAnd, got: {:?}", value
+            "Expected BitwiseAnd, got: {:?}",
+            value
         );
     } else {
         panic!("No assignment found");
@@ -439,7 +409,8 @@ fn test_binop_bitwise_or() {
     if let Some(Statement::Assignment { value, .. }) = assign {
         assert!(
             matches!(value, Expression::BinaryOp { op: BinaryOperator::BitwiseOr, .. }),
-            "Expected BitwiseOr, got: {:?}", value
+            "Expected BitwiseOr, got: {:?}",
+            value
         );
     } else {
         panic!("No assignment found");
@@ -454,7 +425,8 @@ fn test_binop_bitwise_xor() {
     if let Some(Statement::Assignment { value, .. }) = assign {
         assert!(
             matches!(value, Expression::BinaryOp { op: BinaryOperator::BitwiseXor, .. }),
-            "Expected BitwiseXor, got: {:?}", value
+            "Expected BitwiseXor, got: {:?}",
+            value
         );
     } else {
         panic!("No assignment found");
@@ -469,7 +441,8 @@ fn test_binop_left_shift() {
     if let Some(Statement::Assignment { value, .. }) = assign {
         assert!(
             matches!(value, Expression::BinaryOp { op: BinaryOperator::LeftShift, .. }),
-            "Expected LeftShift, got: {:?}", value
+            "Expected LeftShift, got: {:?}",
+            value
         );
     } else {
         panic!("No assignment found");
@@ -484,7 +457,8 @@ fn test_binop_right_shift() {
     if let Some(Statement::Assignment { value, .. }) = assign {
         assert!(
             matches!(value, Expression::BinaryOp { op: BinaryOperator::RightShift, .. }),
-            "Expected RightShift, got: {:?}", value
+            "Expected RightShift, got: {:?}",
+            value
         );
     } else {
         panic!("No assignment found");
@@ -502,7 +476,8 @@ fn test_binop_equal() {
     if let Statement::If { condition, .. } = &func.body[0] {
         assert!(
             matches!(condition, Expression::BinaryOp { op: BinaryOperator::Equal, .. }),
-            "Expected Equal, got: {:?}", condition
+            "Expected Equal, got: {:?}",
+            condition
         );
     } else {
         panic!("Expected If statement");
@@ -516,7 +491,8 @@ fn test_binop_not_equal() {
     if let Statement::If { condition, .. } = &func.body[0] {
         assert!(
             matches!(condition, Expression::BinaryOp { op: BinaryOperator::NotEqual, .. }),
-            "Expected NotEqual, got: {:?}", condition
+            "Expected NotEqual, got: {:?}",
+            condition
         );
     } else {
         panic!("Expected If statement");
@@ -530,7 +506,8 @@ fn test_binop_less_than() {
     if let Statement::If { condition, .. } = &func.body[0] {
         assert!(
             matches!(condition, Expression::BinaryOp { op: BinaryOperator::LessThan, .. }),
-            "Expected LessThan, got: {:?}", condition
+            "Expected LessThan, got: {:?}",
+            condition
         );
     } else {
         panic!("Expected If statement");
@@ -544,7 +521,8 @@ fn test_binop_greater_than() {
     if let Statement::If { condition, .. } = &func.body[0] {
         assert!(
             matches!(condition, Expression::BinaryOp { op: BinaryOperator::GreaterThan, .. }),
-            "Expected GreaterThan, got: {:?}", condition
+            "Expected GreaterThan, got: {:?}",
+            condition
         );
     } else {
         panic!("Expected If statement");
@@ -558,7 +536,8 @@ fn test_binop_less_equal() {
     if let Statement::If { condition, .. } = &func.body[0] {
         assert!(
             matches!(condition, Expression::BinaryOp { op: BinaryOperator::LessEqual, .. }),
-            "Expected LessEqual, got: {:?}", condition
+            "Expected LessEqual, got: {:?}",
+            condition
         );
     } else {
         panic!("Expected If statement");
@@ -572,7 +551,8 @@ fn test_binop_greater_equal() {
     if let Statement::If { condition, .. } = &func.body[0] {
         assert!(
             matches!(condition, Expression::BinaryOp { op: BinaryOperator::GreaterEqual, .. }),
-            "Expected GreaterEqual, got: {:?}", condition
+            "Expected GreaterEqual, got: {:?}",
+            condition
         );
     } else {
         panic!("Expected If statement");
@@ -590,7 +570,8 @@ fn test_binop_logical_and() {
     if let Statement::If { condition, .. } = &func.body[0] {
         assert!(
             matches!(condition, Expression::BinaryOp { op: BinaryOperator::LogicalAnd, .. }),
-            "Expected LogicalAnd, got: {:?}", condition
+            "Expected LogicalAnd, got: {:?}",
+            condition
         );
     } else {
         panic!("Expected If statement");
@@ -604,7 +585,8 @@ fn test_binop_logical_or() {
     if let Statement::If { condition, .. } = &func.body[0] {
         assert!(
             matches!(condition, Expression::BinaryOp { op: BinaryOperator::LogicalOr, .. }),
-            "Expected LogicalOr, got: {:?}", condition
+            "Expected LogicalOr, got: {:?}",
+            condition
         );
     } else {
         panic!("Expected If statement");
@@ -618,12 +600,14 @@ fn test_binop_logical_or() {
 #[test]
 fn test_binop_precedence_or_over_and() {
     // || has lower precedence than &&, so should be the top-level operator
-    let ast = parse_c("void f(int a, int b, int c) { if (a > 0 || b > 0 && c > 0) { int r; r = 1; } }");
+    let ast =
+        parse_c("void f(int a, int b, int c) { if (a > 0 || b > 0 && c > 0) { int r; r = 1; } }");
     let func = first_func(&ast);
     if let Statement::If { condition, .. } = &func.body[0] {
         assert!(
             matches!(condition, Expression::BinaryOp { op: BinaryOperator::LogicalOr, .. }),
-            "Expected LogicalOr at top level, got: {:?}", condition
+            "Expected LogicalOr at top level, got: {:?}",
+            condition
         );
     } else {
         panic!("Expected If statement");
@@ -638,7 +622,8 @@ fn test_binop_precedence_and_over_bitor() {
     if let Statement::If { condition, .. } = &func.body[0] {
         assert!(
             matches!(condition, Expression::BinaryOp { op: BinaryOperator::LogicalAnd, .. }),
-            "Expected LogicalAnd at top level, got: {:?}", condition
+            "Expected LogicalAnd at top level, got: {:?}",
+            condition
         );
     } else {
         panic!("Expected If statement");
@@ -654,7 +639,8 @@ fn test_binop_precedence_bitor_over_xor() {
     if let Some(Statement::Assignment { value, .. }) = assign {
         assert!(
             matches!(value, Expression::BinaryOp { op: BinaryOperator::BitwiseOr, .. }),
-            "Expected BitwiseOr at top level, got: {:?}", value
+            "Expected BitwiseOr at top level, got: {:?}",
+            value
         );
     } else {
         panic!("No assignment found");
@@ -670,7 +656,8 @@ fn test_binop_precedence_xor_over_bitand() {
     if let Some(Statement::Assignment { value, .. }) = assign {
         assert!(
             matches!(value, Expression::BinaryOp { op: BinaryOperator::BitwiseXor, .. }),
-            "Expected BitwiseXor at top level, got: {:?}", value
+            "Expected BitwiseXor at top level, got: {:?}",
+            value
         );
     } else {
         panic!("No assignment found");
@@ -685,7 +672,8 @@ fn test_binop_precedence_comparison_over_shift() {
     if let Statement::If { condition, .. } = &func.body[0] {
         assert!(
             matches!(condition, Expression::BinaryOp { op: BinaryOperator::LessThan, .. }),
-            "Expected LessThan at top level, got: {:?}", condition
+            "Expected LessThan at top level, got: {:?}",
+            condition
         );
     } else {
         panic!("Expected If statement");
@@ -701,7 +689,8 @@ fn test_binop_precedence_shift_over_add() {
     if let Some(Statement::Assignment { value, .. }) = assign {
         assert!(
             matches!(value, Expression::BinaryOp { op: BinaryOperator::LeftShift, .. }),
-            "Expected LeftShift at top level, got: {:?}", value
+            "Expected LeftShift at top level, got: {:?}",
+            value
         );
     } else {
         panic!("No assignment found");
@@ -717,7 +706,8 @@ fn test_binop_precedence_add_over_multiply() {
     if let Some(Statement::Assignment { value, .. }) = assign {
         assert!(
             matches!(value, Expression::BinaryOp { op: BinaryOperator::Add, .. }),
-            "Expected Add at top level, got: {:?}", value
+            "Expected Add at top level, got: {:?}",
+            value
         );
     } else {
         panic!("No assignment found");
@@ -732,7 +722,8 @@ fn test_binop_precedence_subtract_vs_multiply() {
     if let Some(Statement::Assignment { value, .. }) = assign {
         assert!(
             matches!(value, Expression::BinaryOp { op: BinaryOperator::Subtract, .. }),
-            "Expected Subtract at top level, got: {:?}", value
+            "Expected Subtract at top level, got: {:?}",
+            value
         );
     } else {
         panic!("No assignment found");
@@ -747,7 +738,8 @@ fn test_binop_equality_over_relational() {
     if let Statement::If { condition, .. } = &func.body[0] {
         assert!(
             matches!(condition, Expression::BinaryOp { op: BinaryOperator::Equal, .. }),
-            "Expected Equal at top level, got: {:?}", condition
+            "Expected Equal at top level, got: {:?}",
+            condition
         );
     } else {
         panic!("Expected If statement");
@@ -837,7 +829,8 @@ fn test_binop_ignores_operator_inside_parens() {
     if let Some(Statement::Assignment { value, .. }) = assign {
         assert!(
             matches!(value, Expression::BinaryOp { op: BinaryOperator::Multiply, .. }),
-            "Expected Multiply at top level (not - from inside parens), got: {:?}", value
+            "Expected Multiply at top level (not - from inside parens), got: {:?}",
+            value
         );
     } else {
         panic!("No assignment found");
@@ -852,7 +845,8 @@ fn test_binop_nested_parens() {
     if let Some(Statement::Assignment { value, .. }) = assign {
         assert!(
             matches!(value, Expression::BinaryOp { op: BinaryOperator::Multiply, .. }),
-            "Expected Multiply at top level, got: {:?}", value
+            "Expected Multiply at top level, got: {:?}",
+            value
         );
     } else {
         panic!("No assignment found");
@@ -1078,10 +1072,7 @@ void f() {
     assert!(for_stmt.is_some(), "Expected For with single-statement body (break)");
     if let Some(Statement::For { body, .. }) = for_stmt {
         assert!(!body.is_empty(), "Body should have break statement");
-        assert!(
-            body.iter().any(|s| matches!(s, Statement::Break)),
-            "Expected Break in body"
-        );
+        assert!(body.iter().any(|s| matches!(s, Statement::Break)), "Expected Break in body");
     }
 }
 
@@ -1354,7 +1345,8 @@ fn test_complex_expression_bitwise_and_arithmetic() {
     if let Some(Statement::Assignment { value, .. }) = assign {
         assert!(
             matches!(value, Expression::BinaryOp { op: BinaryOperator::BitwiseAnd, .. }),
-            "Expected BitwiseAnd at top level, got: {:?}", value
+            "Expected BitwiseAnd at top level, got: {:?}",
+            value
         );
     } else {
         panic!("No assignment found");
@@ -1377,7 +1369,8 @@ fn test_right_shift_expression() {
     if let Some(Statement::Assignment { value, .. }) = assign {
         assert!(
             matches!(value, Expression::BinaryOp { op: BinaryOperator::RightShift, .. }),
-            "Expected RightShift, got: {:?}", value
+            "Expected RightShift, got: {:?}",
+            value
         );
     }
 }
@@ -1390,9 +1383,8 @@ fn test_right_shift_expression() {
 fn test_inc_dec_unsigned_int() {
     let ast = parse_c("void f() { unsigned int x = 0; x++; }");
     let func = first_func(&ast);
-    let has_post_inc = func.body.iter().any(|s| {
-        matches!(s, Statement::PostIncrement { target } if target == "x")
-    });
+    let has_post_inc =
+        func.body.iter().any(|s| matches!(s, Statement::PostIncrement { target } if target == "x"));
     assert!(has_post_inc, "Expected PostIncrement on unsigned int");
 }
 
@@ -1400,9 +1392,8 @@ fn test_inc_dec_unsigned_int() {
 fn test_inc_dec_long() {
     let ast = parse_c("void f() { long n = 100; n--; }");
     let func = first_func(&ast);
-    let has_post_dec = func.body.iter().any(|s| {
-        matches!(s, Statement::PostDecrement { target } if target == "n")
-    });
+    let has_post_dec =
+        func.body.iter().any(|s| matches!(s, Statement::PostDecrement { target } if target == "n"));
     assert!(has_post_dec, "Expected PostDecrement on long");
 }
 
@@ -1410,9 +1401,8 @@ fn test_inc_dec_long() {
 fn test_inc_dec_char() {
     let ast = parse_c("void f() { char c = 'a'; c++; }");
     let func = first_func(&ast);
-    let has_post_inc = func.body.iter().any(|s| {
-        matches!(s, Statement::PostIncrement { target } if target == "c")
-    });
+    let has_post_inc =
+        func.body.iter().any(|s| matches!(s, Statement::PostIncrement { target } if target == "c"));
     assert!(has_post_inc, "Expected PostIncrement on char");
 }
 
@@ -1519,7 +1509,8 @@ fn test_binop_in_while_condition() {
     if let Some(Statement::While { condition, .. }) = while_stmt {
         assert!(
             matches!(condition, Expression::BinaryOp { op: BinaryOperator::GreaterThan, .. }),
-            "Expected GreaterThan in while condition, got: {:?}", condition
+            "Expected GreaterThan in while condition, got: {:?}",
+            condition
         );
     }
 }
@@ -1537,7 +1528,8 @@ fn test_binop_in_return() {
     if let Some(Statement::Return(Some(expr))) = ret {
         assert!(
             matches!(expr, Expression::BinaryOp { op: BinaryOperator::Add, .. }),
-            "Expected Add in return, got: {:?}", expr
+            "Expected Add in return, got: {:?}",
+            expr
         );
     }
 }
@@ -1550,7 +1542,8 @@ fn test_binop_modulo_in_return() {
     if let Some(Statement::Return(Some(expr))) = ret {
         assert!(
             matches!(expr, Expression::BinaryOp { op: BinaryOperator::Modulo, .. }),
-            "Expected Modulo in return, got: {:?}", expr
+            "Expected Modulo in return, got: {:?}",
+            expr
         );
     }
 }
@@ -1567,7 +1560,8 @@ fn test_three_way_add() {
     if let Some(Statement::Assignment { value, .. }) = assign {
         assert!(
             matches!(value, Expression::BinaryOp { op: BinaryOperator::Add, .. }),
-            "Expected Add, got: {:?}", value
+            "Expected Add, got: {:?}",
+            value
         );
     } else {
         panic!("No assignment found");
@@ -1576,14 +1570,14 @@ fn test_three_way_add() {
 
 #[test]
 fn test_chained_comparisons_in_and() {
-    let ast = parse_c(
-        "void f(int a, int b, int c) { if (a > 0 && b > 0 && c > 0) { int x; x = 1; } }",
-    );
+    let ast =
+        parse_c("void f(int a, int b, int c) { if (a > 0 && b > 0 && c > 0) { int x; x = 1; } }");
     let func = first_func(&ast);
     if let Statement::If { condition, .. } = &func.body[0] {
         assert!(
             matches!(condition, Expression::BinaryOp { op: BinaryOperator::LogicalAnd, .. }),
-            "Expected LogicalAnd at top, got: {:?}", condition
+            "Expected LogicalAnd at top, got: {:?}",
+            condition
         );
     }
 }
@@ -1661,9 +1655,8 @@ void f() {
 fn test_inc_dec_on_parameter() {
     let ast = parse_c("void f(int n) { n++; }");
     let func = first_func(&ast);
-    let has_post_inc = func.body.iter().any(|s| {
-        matches!(s, Statement::PostIncrement { target } if target == "n")
-    });
+    let has_post_inc =
+        func.body.iter().any(|s| matches!(s, Statement::PostIncrement { target } if target == "n"));
     assert!(has_post_inc, "Expected PostIncrement on parameter n");
 }
 
@@ -1671,9 +1664,10 @@ fn test_inc_dec_on_parameter() {
 fn test_pre_dec_on_parameter() {
     let ast = parse_c("void f(int count) { --count; }");
     let func = first_func(&ast);
-    let has_pre_dec = func.body.iter().any(|s| {
-        matches!(s, Statement::PreDecrement { target } if target == "count")
-    });
+    let has_pre_dec = func
+        .body
+        .iter()
+        .any(|s| matches!(s, Statement::PreDecrement { target } if target == "count"));
     assert!(has_pre_dec, "Expected PreDecrement on parameter count");
 }
 
@@ -1723,7 +1717,8 @@ fn test_binop_xor_in_condition() {
     if let Statement::If { condition, .. } = &func.body[0] {
         assert!(
             matches!(condition, Expression::BinaryOp { op: BinaryOperator::BitwiseXor, .. }),
-            "Expected BitwiseXor in condition, got: {:?}", condition
+            "Expected BitwiseXor in condition, got: {:?}",
+            condition
         );
     }
 }

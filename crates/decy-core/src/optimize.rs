@@ -29,9 +29,9 @@
 //! assert_eq!(optimized.body().len(), 1);
 //! ```
 
-use decy_hir::{BinaryOperator, HirExpression, HirFunction, HirStatement};
 #[cfg(test)]
 use decy_hir::HirType;
+use decy_hir::{BinaryOperator, HirExpression, HirFunction, HirStatement};
 
 /// Maximum number of fixed-point iterations.
 const MAX_ITERATIONS: usize = 3;
@@ -74,25 +74,18 @@ pub fn optimize_function(func: &HirFunction) -> HirFunction {
 /// Fold constant expressions in a statement.
 fn fold_constants_stmt(stmt: HirStatement) -> HirStatement {
     match stmt {
-        HirStatement::VariableDeclaration {
-            name,
-            var_type,
-            initializer,
-        } => HirStatement::VariableDeclaration {
-            name,
-            var_type,
-            initializer: initializer.map(fold_constants_expr),
-        },
+        HirStatement::VariableDeclaration { name, var_type, initializer } => {
+            HirStatement::VariableDeclaration {
+                name,
+                var_type,
+                initializer: initializer.map(fold_constants_expr),
+            }
+        }
         HirStatement::Return(expr) => HirStatement::Return(expr.map(fold_constants_expr)),
-        HirStatement::Assignment { target, value } => HirStatement::Assignment {
-            target,
-            value: fold_constants_expr(value),
-        },
-        HirStatement::If {
-            condition,
-            then_block,
-            else_block,
-        } => HirStatement::If {
+        HirStatement::Assignment { target, value } => {
+            HirStatement::Assignment { target, value: fold_constants_expr(value) }
+        }
+        HirStatement::If { condition, then_block, else_block } => HirStatement::If {
             condition: fold_constants_expr(condition),
             then_block: then_block.into_iter().map(fold_constants_stmt).collect(),
             else_block: else_block
@@ -102,12 +95,7 @@ fn fold_constants_stmt(stmt: HirStatement) -> HirStatement {
             condition: fold_constants_expr(condition),
             body: body.into_iter().map(fold_constants_stmt).collect(),
         },
-        HirStatement::For {
-            init,
-            condition,
-            increment,
-            body,
-        } => HirStatement::For {
+        HirStatement::For { init, condition, increment, body } => HirStatement::For {
             init: init.into_iter().map(fold_constants_stmt).collect(),
             condition: condition.map(fold_constants_expr),
             increment: increment.into_iter().map(fold_constants_stmt).collect(),
@@ -133,29 +121,17 @@ fn fold_constants_expr(expr: HirExpression) -> HirExpression {
                 }
             }
 
-            HirExpression::BinaryOp {
-                op,
-                left: Box::new(left),
-                right: Box::new(right),
-            }
+            HirExpression::BinaryOp { op, left: Box::new(left), right: Box::new(right) }
         }
         HirExpression::UnaryOp { op, operand } => {
             let operand = fold_constants_expr(*operand);
-            if let (decy_hir::UnaryOperator::Minus, HirExpression::IntLiteral(v)) =
-                (op, &operand)
-            {
+            if let (decy_hir::UnaryOperator::Minus, HirExpression::IntLiteral(v)) = (op, &operand) {
                 return HirExpression::IntLiteral(-v);
             }
-            HirExpression::UnaryOp {
-                op,
-                operand: Box::new(operand),
-            }
+            HirExpression::UnaryOp { op, operand: Box::new(operand) }
         }
         // Recurse into nested expressions
-        HirExpression::FunctionCall {
-            function,
-            arguments,
-        } => HirExpression::FunctionCall {
+        HirExpression::FunctionCall { function, arguments } => HirExpression::FunctionCall {
             function,
             arguments: arguments.into_iter().map(fold_constants_expr).collect(),
         },
@@ -214,27 +190,17 @@ fn remove_dead_branches(stmts: Vec<HirStatement>) -> Vec<HirStatement> {
 
     for stmt in stmts {
         match stmt {
-            HirStatement::If {
-                condition,
-                then_block,
-                else_block,
-            } => {
+            HirStatement::If { condition, then_block, else_block } => {
                 if let Some(always_true) = is_constant_truthy(&condition) {
                     if always_true {
                         // if(1) { body } → body
                         result.extend(
-                            then_block
-                                .into_iter()
-                                .map(fold_constants_stmt)
-                                .collect::<Vec<_>>(),
+                            then_block.into_iter().map(fold_constants_stmt).collect::<Vec<_>>(),
                         );
                     } else if let Some(else_body) = else_block {
                         // if(0) { ... } else { body } → body
                         result.extend(
-                            else_body
-                                .into_iter()
-                                .map(fold_constants_stmt)
-                                .collect::<Vec<_>>(),
+                            else_body.into_iter().map(fold_constants_stmt).collect::<Vec<_>>(),
                         );
                     }
                     // if(0) { ... } with no else → removed entirely
@@ -252,10 +218,8 @@ fn remove_dead_branches(stmts: Vec<HirStatement>) -> Vec<HirStatement> {
                 if let Some(false) = is_constant_truthy(&condition) {
                     // Dead loop, skip
                 } else {
-                    result.push(HirStatement::While {
-                        condition,
-                        body: remove_dead_branches(body),
-                    });
+                    result
+                        .push(HirStatement::While { condition, body: remove_dead_branches(body) });
                 }
             }
             other => result.push(other),
@@ -301,11 +265,7 @@ fn eliminate_temporaries(stmts: Vec<HirStatement>) -> Vec<HirStatement> {
         // Check for pattern: let tmp = expr; return tmp;
         if i + 1 < stmts.len() {
             if let (
-                HirStatement::VariableDeclaration {
-                    name,
-                    initializer: Some(init_expr),
-                    ..
-                },
+                HirStatement::VariableDeclaration { name, initializer: Some(init_expr), .. },
                 HirStatement::Return(Some(HirExpression::Variable(ret_var))),
             ) = (&stmts[i], &stmts[i + 1])
             {
@@ -357,11 +317,7 @@ fn count_uses_in_stmt(name: &str, stmt: &HirStatement) -> usize {
         HirStatement::Return(Some(expr)) => count_uses_in_expr(name, expr),
         HirStatement::Assignment { value, .. } => count_uses_in_expr(name, value),
         HirStatement::Expression(expr) => count_uses_in_expr(name, expr),
-        HirStatement::If {
-            condition,
-            then_block,
-            else_block,
-        } => {
+        HirStatement::If { condition, then_block, else_block } => {
             let mut c = count_uses_in_expr(name, condition);
             for s in then_block {
                 c += count_uses_in_stmt(name, s);
@@ -470,10 +426,7 @@ mod tests {
 
         let result = remove_dead_branches(stmts);
         assert_eq!(result.len(), 1);
-        assert_eq!(
-            result[0],
-            HirStatement::Return(Some(HirExpression::IntLiteral(42)))
-        );
+        assert_eq!(result[0], HirStatement::Return(Some(HirExpression::IntLiteral(42))));
     }
 
     #[test]
@@ -495,17 +448,12 @@ mod tests {
         let stmts = vec![HirStatement::If {
             condition: HirExpression::IntLiteral(0),
             then_block: vec![HirStatement::Return(Some(HirExpression::IntLiteral(42)))],
-            else_block: Some(vec![HirStatement::Return(Some(
-                HirExpression::IntLiteral(99),
-            ))]),
+            else_block: Some(vec![HirStatement::Return(Some(HirExpression::IntLiteral(99)))]),
         }];
 
         let result = remove_dead_branches(stmts);
         assert_eq!(result.len(), 1);
-        assert_eq!(
-            result[0],
-            HirStatement::Return(Some(HirExpression::IntLiteral(99)))
-        );
+        assert_eq!(result[0], HirStatement::Return(Some(HirExpression::IntLiteral(99))));
     }
 
     #[test]
@@ -534,10 +482,7 @@ mod tests {
 
         let result = eliminate_temporaries(stmts);
         assert_eq!(result.len(), 1);
-        assert_eq!(
-            result[0],
-            HirStatement::Return(Some(HirExpression::IntLiteral(42)))
-        );
+        assert_eq!(result[0], HirStatement::Return(Some(HirExpression::IntLiteral(42))));
     }
 
     #[test]
@@ -571,11 +516,7 @@ mod tests {
         // After optimization: constant folding turns 2+3→5, dead branch removal inlines the if(1)
         // Result: let x = 5; return x; → return 5; (after temp elimination)
         let body = optimized.body();
-        assert!(
-            body.len() <= 2,
-            "Expected at most 2 statements, got {}",
-            body.len()
-        );
+        assert!(body.len() <= 2, "Expected at most 2 statements, got {}", body.len());
     }
 
     #[test]
@@ -741,10 +682,7 @@ mod tests {
             }],
         };
         match fold_constants_expr(expr) {
-            HirExpression::FunctionCall {
-                function,
-                arguments,
-            } => {
+            HirExpression::FunctionCall { function, arguments } => {
                 assert_eq!(function, "foo");
                 assert_eq!(arguments, vec![HirExpression::IntLiteral(5)]);
             }
@@ -770,16 +708,12 @@ mod tests {
                 left: Box::new(HirExpression::IntLiteral(2)),
                 right: Box::new(HirExpression::IntLiteral(3)),
             }),
-            increment: vec![HirStatement::Expression(HirExpression::Variable(
-                "i".to_string(),
-            ))],
+            increment: vec![HirStatement::Expression(HirExpression::Variable("i".to_string()))],
             body: vec![HirStatement::Return(Some(HirExpression::IntLiteral(1)))],
         };
 
         match fold_constants_stmt(stmt) {
-            HirStatement::For {
-                condition, body, ..
-            } => {
+            HirStatement::For { condition, body, .. } => {
                 assert_eq!(condition, Some(HirExpression::IntLiteral(5)));
                 assert!(!body.is_empty());
             }
@@ -890,9 +824,7 @@ mod tests {
     fn test_is_allocation_expr_cast_wrapping_malloc() {
         assert!(is_allocation_expr(&HirExpression::Cast {
             target_type: HirType::Pointer(Box::new(HirType::Int)),
-            expr: Box::new(HirExpression::Malloc {
-                size: Box::new(HirExpression::IntLiteral(4)),
-            }),
+            expr: Box::new(HirExpression::Malloc { size: Box::new(HirExpression::IntLiteral(4)) }),
         }));
     }
 
@@ -936,9 +868,7 @@ mod tests {
 
     #[test]
     fn test_count_uses_in_return() {
-        let stmts = vec![HirStatement::Return(Some(HirExpression::Variable(
-            "x".to_string(),
-        )))];
+        let stmts = vec![HirStatement::Return(Some(HirExpression::Variable("x".to_string())))];
         assert_eq!(count_uses("x", &stmts), 1);
         assert_eq!(count_uses("y", &stmts), 0);
     }
@@ -968,9 +898,7 @@ mod tests {
     fn test_count_uses_in_if_with_else() {
         let stmts = vec![HirStatement::If {
             condition: HirExpression::Variable("x".to_string()),
-            then_block: vec![HirStatement::Return(Some(HirExpression::Variable(
-                "x".to_string(),
-            )))],
+            then_block: vec![HirStatement::Return(Some(HirExpression::Variable("x".to_string())))],
             else_block: Some(vec![HirStatement::Return(Some(HirExpression::Variable(
                 "x".to_string(),
             )))]),
@@ -1079,9 +1007,7 @@ mod tests {
         let stmts = vec![HirStatement::If {
             condition: HirExpression::Variable("x".to_string()),
             then_block: vec![HirStatement::Return(Some(HirExpression::IntLiteral(1)))],
-            else_block: Some(vec![HirStatement::Return(Some(
-                HirExpression::IntLiteral(0),
-            ))]),
+            else_block: Some(vec![HirStatement::Return(Some(HirExpression::IntLiteral(0)))]),
         }];
         let result = remove_dead_branches(stmts);
         assert_eq!(result.len(), 1);
@@ -1136,12 +1062,7 @@ mod tests {
 
     #[test]
     fn test_optimize_empty_function() {
-        let func = HirFunction::new_with_body(
-            "empty".to_string(),
-            HirType::Void,
-            vec![],
-            vec![],
-        );
+        let func = HirFunction::new_with_body("empty".to_string(), HirType::Void, vec![], vec![]);
         let optimized = optimize_function(&func);
         assert!(optimized.body().is_empty());
     }
@@ -1234,11 +1155,7 @@ mod tests {
             }))]),
         };
         match fold_constants_stmt(stmt) {
-            HirStatement::If {
-                condition,
-                then_block,
-                else_block,
-            } => {
+            HirStatement::If { condition, then_block, else_block } => {
                 assert_eq!(condition, HirExpression::IntLiteral(3));
                 match &then_block[0] {
                     HirStatement::Return(Some(HirExpression::IntLiteral(12))) => {}
@@ -1285,9 +1202,7 @@ mod tests {
         // If with no else block — exercises the None path at line 369
         let stmts = vec![HirStatement::If {
             condition: HirExpression::Variable("x".to_string()),
-            then_block: vec![HirStatement::Return(Some(HirExpression::Variable(
-                "x".to_string(),
-            )))],
+            then_block: vec![HirStatement::Return(Some(HirExpression::Variable("x".to_string())))],
             else_block: None,
         }];
         assert_eq!(count_uses("x", &stmts), 2); // condition + then
@@ -1310,9 +1225,7 @@ mod tests {
         // While falls through to _ => 0
         let stmts = vec![HirStatement::While {
             condition: HirExpression::Variable("x".to_string()),
-            body: vec![HirStatement::Expression(HirExpression::Variable(
-                "x".to_string(),
-            ))],
+            body: vec![HirStatement::Expression(HirExpression::Variable("x".to_string()))],
         }];
         // While is handled by _ => 0
         assert_eq!(count_uses("x", &stmts), 0);
@@ -1437,11 +1350,7 @@ mod tests {
             body: vec![HirStatement::Break],
         };
         match fold_constants_stmt(stmt) {
-            HirStatement::For {
-                init,
-                increment,
-                ..
-            } => {
+            HirStatement::For { init, increment, .. } => {
                 // init: let i = 0 (2*0 folded)
                 match &init[0] {
                     HirStatement::VariableDeclaration {
@@ -1486,12 +1395,10 @@ mod tests {
     fn test_count_uses_in_stmt_if_with_else() {
         let stmt = HirStatement::If {
             condition: HirExpression::Variable("x".to_string()),
-            then_block: vec![HirStatement::Return(Some(HirExpression::Variable(
+            then_block: vec![HirStatement::Return(Some(HirExpression::Variable("x".to_string())))],
+            else_block: Some(vec![HirStatement::Expression(HirExpression::Variable(
                 "x".to_string(),
-            )))],
-            else_block: Some(vec![HirStatement::Expression(
-                HirExpression::Variable("x".to_string()),
-            )]),
+            ))]),
         };
         // condition(1) + then_block(1) + else_block(1) = 3
         assert_eq!(count_uses_in_stmt("x", &stmt), 3);

@@ -118,17 +118,10 @@ int ts_unify_selftest(void) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1551: HM unification should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1551: HM unification should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1551: Output should not be empty");
-    assert!(
-        code.contains("fn ts_unify_find"),
-        "C1551: Should contain ts_unify_find function"
-    );
+    assert!(code.contains("fn ts_unify_find"), "C1551: Should contain ts_unify_find function");
 }
 
 /// C1552: Type variable substitution with walk-through and compose
@@ -217,17 +210,10 @@ int ts_subst_selftest(void) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1552: Type var substitution should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1552: Type var substitution should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1552: Output should not be empty");
-    assert!(
-        code.contains("fn ts_subst_walk"),
-        "C1552: Should contain ts_subst_walk function"
-    );
+    assert!(code.contains("fn ts_subst_walk"), "C1552: Should contain ts_subst_walk function");
 }
 
 /// C1553: Constraint generation from expression types
@@ -300,17 +286,10 @@ int ts_con_selftest(void) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1553: Constraint generation should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1553: Constraint generation should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1553: Output should not be empty");
-    assert!(
-        code.contains("fn ts_con_add"),
-        "C1553: Should contain ts_con_add function"
-    );
+    assert!(code.contains("fn ts_con_add"), "C1553: Should contain ts_con_add function");
 }
 
 /// C1554: Occurs check for infinite type detection
@@ -385,17 +364,10 @@ int ts_occ_selftest(void) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1554: Occur check should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1554: Occur check should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1554: Output should not be empty");
-    assert!(
-        code.contains("fn ts_occ_check"),
-        "C1554: Should contain ts_occ_check function"
-    );
+    assert!(code.contains("fn ts_occ_check"), "C1554: Should contain ts_occ_check function");
 }
 
 /// C1555: Let-polymorphism with generalization and instantiation
@@ -485,11 +457,7 @@ int ts_poly_selftest(void) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1555: Let-polymorphism should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1555: Let-polymorphism should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1555: Output should not be empty");
     assert!(
@@ -562,11 +530,7 @@ int ts_struct_sub_selftest(void) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1556: Structural subtyping should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1556: Structural subtyping should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1556: Output should not be empty");
     assert!(
@@ -642,17 +606,10 @@ int ts_rec_selftest(void) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1557: Record types should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1557: Record types should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1557: Output should not be empty");
-    assert!(
-        code.contains("fn ts_rec_project"),
-        "C1557: Should contain ts_rec_project function"
-    );
+    assert!(code.contains("fn ts_rec_project"), "C1557: Should contain ts_rec_project function");
 }
 
 /// C1558: Variant (sum) types with case analysis and exhaustiveness
@@ -727,11 +684,7 @@ int ts_variant_selftest(void) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1558: Variant types should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1558: Variant types should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1558: Output should not be empty");
     assert!(
@@ -806,11 +759,7 @@ int ts_fn_selftest(void) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1559: Function types should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1559: Function types should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1559: Output should not be empty");
     assert!(
@@ -904,17 +853,10 @@ int ts_rec_selftest(void) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1560: Recursive types should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1560: Recursive types should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1560: Output should not be empty");
-    assert!(
-        code.contains("fn ts_rec_unfold"),
-        "C1560: Should contain ts_rec_unfold function"
-    );
+    assert!(code.contains("fn ts_rec_unfold"), "C1560: Should contain ts_rec_unfold function");
 }
 
 // ============================================================================
@@ -994,17 +936,10 @@ int ts_mono_selftest(void) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1561: Monomorphization should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1561: Monomorphization should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1561: Output should not be empty");
-    assert!(
-        code.contains("fn ts_mono_lookup"),
-        "C1561: Should contain ts_mono_lookup function"
-    );
+    assert!(code.contains("fn ts_mono_lookup"), "C1561: Should contain ts_mono_lookup function");
 }
 
 /// C1562: Type erasure with runtime tag preservation
@@ -1070,11 +1005,7 @@ int ts_erasure_selftest(void) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1562: Type erasure should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1562: Type erasure should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1562: Output should not be empty");
     assert!(
@@ -1157,11 +1088,7 @@ int ts_dict_selftest(void) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1563: Dictionary passing should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1563: Dictionary passing should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1563: Output should not be empty");
     assert!(
@@ -1235,17 +1162,10 @@ int ts_spec_selftest(void) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1564: Specialization should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1564: Specialization should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1564: Output should not be empty");
-    assert!(
-        code.contains("fn ts_spec_resolve"),
-        "C1564: Should contain ts_spec_resolve function"
-    );
+    assert!(code.contains("fn ts_spec_resolve"), "C1564: Should contain ts_spec_resolve function");
 }
 
 /// C1565: Implicit type coercion with cost-based selection
@@ -1319,11 +1239,7 @@ int ts_coercion_selftest(void) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1565: Coercion should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1565: Coercion should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1565: Output should not be empty");
     assert!(
@@ -1397,11 +1313,7 @@ int ts_tagged_selftest(void) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1566: Tagged union should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1566: Tagged union should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1566: Output should not be empty");
     assert!(
@@ -1481,11 +1393,7 @@ int ts_vtable_selftest(void) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1567: Vtable dispatch should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1567: Vtable dispatch should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1567: Output should not be empty");
     assert!(
@@ -1569,11 +1477,7 @@ int ts_desc_selftest(void) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1568: Type descriptor should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1568: Type descriptor should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1568: Output should not be empty");
     assert!(
@@ -1661,11 +1565,7 @@ int ts_meta_selftest(void) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1569: Reflection metadata should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1569: Reflection metadata should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1569: Output should not be empty");
     assert!(
@@ -1724,17 +1624,10 @@ int ts_type_id_selftest(void) {
 }
 "##;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1570: Type ID hashing should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1570: Type ID hashing should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1570: Output should not be empty");
-    assert!(
-        code.contains("fn ts_hash_combine"),
-        "C1570: Should contain ts_hash_combine function"
-    );
+    assert!(code.contains("fn ts_hash_combine"), "C1570: Should contain ts_hash_combine function");
 }
 
 // ============================================================================
@@ -1823,11 +1716,7 @@ int ts_dep_selftest(void) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1571: Dependent type index should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1571: Dependent type index should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1571: Output should not be empty");
     assert!(
@@ -1929,17 +1818,10 @@ int ts_lin_selftest(void) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1572: Linear type tracker should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1572: Linear type tracker should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1572: Output should not be empty");
-    assert!(
-        code.contains("fn ts_lin_consume"),
-        "C1572: Should contain ts_lin_consume function"
-    );
+    assert!(code.contains("fn ts_lin_consume"), "C1572: Should contain ts_lin_consume function");
 }
 
 /// C1573: Affine type checker allowing at-most-once use
@@ -2038,17 +1920,10 @@ int ts_aff_selftest(void) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1573: Affine type checker should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1573: Affine type checker should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1573: Output should not be empty");
-    assert!(
-        code.contains("fn ts_aff_move"),
-        "C1573: Should contain ts_aff_move function"
-    );
+    assert!(code.contains("fn ts_aff_move"), "C1573: Should contain ts_aff_move function");
 }
 
 /// C1574: Effect system with effect bitmask tracking and subeffect checks
@@ -2126,17 +2001,10 @@ int ts_eff_selftest(void) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1574: Effect system should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1574: Effect system should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1574: Output should not be empty");
-    assert!(
-        code.contains("fn ts_eff_join"),
-        "C1574: Should contain ts_eff_join function"
-    );
+    assert!(code.contains("fn ts_eff_join"), "C1574: Should contain ts_eff_join function");
 }
 
 /// C1575: Row polymorphism for extensible records with restriction and compatibility
@@ -2228,15 +2096,8 @@ int ts_row_selftest(void) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1575: Row polymorphism should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1575: Row polymorphism should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1575: Output should not be empty");
-    assert!(
-        code.contains("fn ts_row_restrict"),
-        "C1575: Should contain ts_row_restrict function"
-    );
+    assert!(code.contains("fn ts_row_restrict"), "C1575: Should contain ts_row_restrict function");
 }

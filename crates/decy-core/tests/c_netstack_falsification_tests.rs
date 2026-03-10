@@ -67,21 +67,11 @@ int ns_pktbuf_prepend(ns_pktbuf_t *pb, const uint8_t *hdr, uint16_t hlen) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1501: Packet buffer management should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1501: Packet buffer management should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1501: Output should not be empty");
-    assert!(
-        code.contains("fn ns_pktbuf_init"),
-        "C1501: Should contain ns_pktbuf_init"
-    );
-    assert!(
-        code.contains("fn ns_pktbuf_append"),
-        "C1501: Should contain ns_pktbuf_append"
-    );
+    assert!(code.contains("fn ns_pktbuf_init"), "C1501: Should contain ns_pktbuf_init");
+    assert!(code.contains("fn ns_pktbuf_append"), "C1501: Should contain ns_pktbuf_append");
 }
 
 /// C1502: Internet checksum (RFC 1071) computation over a buffer
@@ -123,17 +113,10 @@ uint16_t ns_checksum_update(uint16_t old_cksum, uint16_t old_val, uint16_t new_v
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1502: Internet checksum should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1502: Internet checksum should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1502: Output should not be empty");
-    assert!(
-        code.contains("fn ns_checksum_compute"),
-        "C1502: Should contain ns_checksum_compute"
-    );
+    assert!(code.contains("fn ns_checksum_compute"), "C1502: Should contain ns_checksum_compute");
 }
 
 /// C1503: IP packet fragmentation with offset and more-fragments flag
@@ -177,17 +160,10 @@ int ns_fragment_build(ns_fragment_t *frag, uint16_t id, uint16_t offset,
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1503: IP fragmentation should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1503: IP fragmentation should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1503: Output should not be empty");
-    assert!(
-        code.contains("fn ns_fragment_count"),
-        "C1503: Should contain ns_fragment_count"
-    );
+    assert!(code.contains("fn ns_fragment_count"), "C1503: Should contain ns_fragment_count");
 }
 
 /// C1504: Fragment reassembly tracking with bitmap for received fragments
@@ -237,21 +213,11 @@ int ns_reasm_is_complete(const ns_reassembly_t *r) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1504: Fragment reassembly should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1504: Fragment reassembly should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1504: Output should not be empty");
-    assert!(
-        code.contains("fn ns_reasm_init"),
-        "C1504: Should contain ns_reasm_init"
-    );
-    assert!(
-        code.contains("fn ns_reasm_add"),
-        "C1504: Should contain ns_reasm_add"
-    );
+    assert!(code.contains("fn ns_reasm_init"), "C1504: Should contain ns_reasm_init");
+    assert!(code.contains("fn ns_reasm_add"), "C1504: Should contain ns_reasm_add");
 }
 
 /// C1505: Byte order conversion (host to network, network to host) for 16/32-bit
@@ -287,21 +253,11 @@ int ns_byteorder_selftest(void) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1505: Byte order conversion should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1505: Byte order conversion should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1505: Output should not be empty");
-    assert!(
-        code.contains("fn ns_htons"),
-        "C1505: Should contain ns_htons"
-    );
-    assert!(
-        code.contains("fn ns_htonl"),
-        "C1505: Should contain ns_htonl"
-    );
+    assert!(code.contains("fn ns_htons"), "C1505: Should contain ns_htons");
+    assert!(code.contains("fn ns_htonl"), "C1505: Should contain ns_htonl");
 }
 
 // ============================================================================
@@ -346,17 +302,10 @@ int ns_eth_is_broadcast(const ns_eth_header_t *hdr) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1506: Ethernet frame builder should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1506: Ethernet frame builder should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1506: Output should not be empty");
-    assert!(
-        code.contains("fn ns_eth_set_addrs"),
-        "C1506: Should contain ns_eth_set_addrs"
-    );
+    assert!(code.contains("fn ns_eth_set_addrs"), "C1506: Should contain ns_eth_set_addrs");
 }
 
 /// C1507: IPv4 header builder with TTL, protocol, and address fields
@@ -404,21 +353,11 @@ void ns_ipv4_set_proto(ns_ipv4_hdr_t *hdr, uint8_t proto, uint16_t payload_len) 
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1507: IPv4 header builder should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1507: IPv4 header builder should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1507: Output should not be empty");
-    assert!(
-        code.contains("fn ns_ipv4_init"),
-        "C1507: Should contain ns_ipv4_init"
-    );
-    assert!(
-        code.contains("fn ns_ipv4_set_addrs"),
-        "C1507: Should contain ns_ipv4_set_addrs"
-    );
+    assert!(code.contains("fn ns_ipv4_init"), "C1507: Should contain ns_ipv4_init");
+    assert!(code.contains("fn ns_ipv4_set_addrs"), "C1507: Should contain ns_ipv4_set_addrs");
 }
 
 /// C1508: TCP segment builder with flags, sequence, and acknowledgment numbers
@@ -466,17 +405,10 @@ void ns_tcp_set_ack(ns_tcp_hdr_t *hdr, uint32_t seq, uint32_t ack) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1508: TCP segment builder should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1508: TCP segment builder should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1508: Output should not be empty");
-    assert!(
-        code.contains("fn ns_tcp_init"),
-        "C1508: Should contain ns_tcp_init"
-    );
+    assert!(code.contains("fn ns_tcp_init"), "C1508: Should contain ns_tcp_init");
 }
 
 /// C1509: UDP datagram builder with port and length fields
@@ -511,17 +443,10 @@ int ns_udp_validate(const ns_udp_hdr_t *hdr) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1509: UDP datagram builder should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1509: UDP datagram builder should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1509: Output should not be empty");
-    assert!(
-        code.contains("fn ns_udp_init"),
-        "C1509: Should contain ns_udp_init"
-    );
+    assert!(code.contains("fn ns_udp_init"), "C1509: Should contain ns_udp_init");
 }
 
 /// C1510: ICMP echo request/reply builder with identifier and sequence
@@ -563,17 +488,10 @@ int ns_icmp_is_echo_reply(const ns_icmp_echo_t *pkt, uint16_t expected_id) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1510: ICMP echo builder should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1510: ICMP echo builder should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1510: Output should not be empty");
-    assert!(
-        code.contains("fn ns_icmp_echo_request"),
-        "C1510: Should contain ns_icmp_echo_request"
-    );
+    assert!(code.contains("fn ns_icmp_echo_request"), "C1510: Should contain ns_icmp_echo_request");
 }
 
 // ============================================================================
@@ -640,21 +558,11 @@ int ns_tcp_fsm_is_connected(const ns_tcp_fsm_t *fsm) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1511: TCP state machine should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1511: TCP state machine should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1511: Output should not be empty");
-    assert!(
-        code.contains("fn ns_tcp_fsm_init"),
-        "C1511: Should contain ns_tcp_fsm_init"
-    );
-    assert!(
-        code.contains("fn ns_tcp_fsm_event"),
-        "C1511: Should contain ns_tcp_fsm_event"
-    );
+    assert!(code.contains("fn ns_tcp_fsm_init"), "C1511: Should contain ns_tcp_fsm_init");
+    assert!(code.contains("fn ns_tcp_fsm_event"), "C1511: Should contain ns_tcp_fsm_event");
 }
 
 /// C1512: Connection table mapping 4-tuple keys to connection state
@@ -721,17 +629,10 @@ int ns_conn_table_find(const ns_conn_table_t *tbl, uint32_t sip, uint32_t dip,
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1512: Connection table should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1512: Connection table should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1512: Output should not be empty");
-    assert!(
-        code.contains("fn ns_conn_table_init"),
-        "C1512: Should contain ns_conn_table_init"
-    );
+    assert!(code.contains("fn ns_conn_table_init"), "C1512: Should contain ns_conn_table_init");
 }
 
 /// C1513: TCP sequence number tracking with wraparound comparison
@@ -776,21 +677,11 @@ int ns_seq_ack_received(ns_seq_tracker_t *t, uint32_t ack) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1513: Sequence number tracking should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1513: Sequence number tracking should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1513: Output should not be empty");
-    assert!(
-        code.contains("fn ns_seq_before"),
-        "C1513: Should contain ns_seq_before"
-    );
-    assert!(
-        code.contains("fn ns_seq_init"),
-        "C1513: Should contain ns_seq_init"
-    );
+    assert!(code.contains("fn ns_seq_before"), "C1513: Should contain ns_seq_before");
+    assert!(code.contains("fn ns_seq_init"), "C1513: Should contain ns_seq_init");
 }
 
 /// C1514: TCP sliding window management for flow control
@@ -838,21 +729,11 @@ void ns_window_update(ns_window_t *w, uint16_t new_size) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1514: Window management should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1514: Window management should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1514: Output should not be empty");
-    assert!(
-        code.contains("fn ns_window_init"),
-        "C1514: Should contain ns_window_init"
-    );
-    assert!(
-        code.contains("fn ns_window_can_send"),
-        "C1514: Should contain ns_window_can_send"
-    );
+    assert!(code.contains("fn ns_window_init"), "C1514: Should contain ns_window_init");
+    assert!(code.contains("fn ns_window_can_send"), "C1514: Should contain ns_window_can_send");
 }
 
 /// C1515: Retransmission timer with exponential backoff
@@ -905,21 +786,11 @@ void ns_rto_backoff(ns_rto_timer_t *t) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1515: Retransmission timer should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1515: Retransmission timer should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1515: Output should not be empty");
-    assert!(
-        code.contains("fn ns_rto_init"),
-        "C1515: Should contain ns_rto_init"
-    );
-    assert!(
-        code.contains("fn ns_rto_update"),
-        "C1515: Should contain ns_rto_update"
-    );
+    assert!(code.contains("fn ns_rto_init"), "C1515: Should contain ns_rto_init");
+    assert!(code.contains("fn ns_rto_update"), "C1515: Should contain ns_rto_update");
 }
 
 // ============================================================================
@@ -975,21 +846,11 @@ int ns_rt_add(ns_routing_table_t *rt, uint32_t net, uint8_t prefix_len, uint32_t
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1516: Routing table should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1516: Routing table should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1516: Output should not be empty");
-    assert!(
-        code.contains("fn ns_rt_init"),
-        "C1516: Should contain ns_rt_init"
-    );
-    assert!(
-        code.contains("fn ns_rt_add"),
-        "C1516: Should contain ns_rt_add"
-    );
+    assert!(code.contains("fn ns_rt_init"), "C1516: Should contain ns_rt_init");
+    assert!(code.contains("fn ns_rt_add"), "C1516: Should contain ns_rt_add");
 }
 
 /// C1517: Longest prefix match for IP routing decisions
@@ -1041,21 +902,11 @@ int ns_lpm_lookup(const ns_lpm_table_t *t, uint32_t addr, uint32_t *next_hop) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1517: Longest prefix match should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1517: Longest prefix match should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1517: Output should not be empty");
-    assert!(
-        code.contains("fn ns_lpm_init"),
-        "C1517: Should contain ns_lpm_init"
-    );
-    assert!(
-        code.contains("fn ns_lpm_lookup"),
-        "C1517: Should contain ns_lpm_lookup"
-    );
+    assert!(code.contains("fn ns_lpm_init"), "C1517: Should contain ns_lpm_init");
+    assert!(code.contains("fn ns_lpm_lookup"), "C1517: Should contain ns_lpm_lookup");
 }
 
 /// C1518: Next hop lookup with interface selection and metric comparison
@@ -1118,21 +969,11 @@ int ns_nh_best(const ns_nexthop_table_t *t, uint32_t *gw) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1518: Next hop lookup should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1518: Next hop lookup should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1518: Output should not be empty");
-    assert!(
-        code.contains("fn ns_nh_init"),
-        "C1518: Should contain ns_nh_init"
-    );
-    assert!(
-        code.contains("fn ns_nh_best"),
-        "C1518: Should contain ns_nh_best"
-    );
+    assert!(code.contains("fn ns_nh_init"), "C1518: Should contain ns_nh_init");
+    assert!(code.contains("fn ns_nh_best"), "C1518: Should contain ns_nh_best");
 }
 
 /// C1519: ARP cache with MAC-to-IP mapping and TTL expiration
@@ -1202,21 +1043,11 @@ int ns_arp_insert(ns_arp_cache_t *c, uint32_t ip, const uint8_t *mac, uint32_t t
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1519: ARP cache should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1519: ARP cache should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1519: Output should not be empty");
-    assert!(
-        code.contains("fn ns_arp_init"),
-        "C1519: Should contain ns_arp_init"
-    );
-    assert!(
-        code.contains("fn ns_arp_lookup"),
-        "C1519: Should contain ns_arp_lookup"
-    );
+    assert!(code.contains("fn ns_arp_init"), "C1519: Should contain ns_arp_init");
+    assert!(code.contains("fn ns_arp_lookup"), "C1519: Should contain ns_arp_lookup");
 }
 
 /// C1520: Routing metrics computation with hop count, latency, and bandwidth
@@ -1266,21 +1097,11 @@ void ns_metric_add_hop(ns_route_metric_t *m, uint32_t lat, uint32_t bw) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1520: Routing metrics should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1520: Routing metrics should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1520: Output should not be empty");
-    assert!(
-        code.contains("fn ns_metric_init"),
-        "C1520: Should contain ns_metric_init"
-    );
-    assert!(
-        code.contains("fn ns_metric_composite"),
-        "C1520: Should contain ns_metric_composite"
-    );
+    assert!(code.contains("fn ns_metric_init"), "C1520: Should contain ns_metric_init");
+    assert!(code.contains("fn ns_metric_composite"), "C1520: Should contain ns_metric_composite");
 }
 
 // ============================================================================
@@ -1343,21 +1164,11 @@ void ns_dns_add_question(ns_dns_query_t *q, uint16_t qtype) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1521: DNS query builder should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1521: DNS query builder should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1521: Output should not be empty");
-    assert!(
-        code.contains("fn ns_dns_query_init"),
-        "C1521: Should contain ns_dns_query_init"
-    );
-    assert!(
-        code.contains("fn ns_dns_encode_name"),
-        "C1521: Should contain ns_dns_encode_name"
-    );
+    assert!(code.contains("fn ns_dns_query_init"), "C1521: Should contain ns_dns_query_init");
+    assert!(code.contains("fn ns_dns_encode_name"), "C1521: Should contain ns_dns_encode_name");
 }
 
 /// C1522: HTTP header parser extracting key-value pairs from header lines
@@ -1420,21 +1231,11 @@ int ns_http_find_header(const ns_http_headers_t *h, const char *name) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1522: HTTP header parser should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1522: HTTP header parser should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1522: Output should not be empty");
-    assert!(
-        code.contains("fn ns_http_headers_init"),
-        "C1522: Should contain ns_http_headers_init"
-    );
-    assert!(
-        code.contains("fn ns_http_parse_header"),
-        "C1522: Should contain ns_http_parse_header"
-    );
+    assert!(code.contains("fn ns_http_headers_init"), "C1522: Should contain ns_http_headers_init");
+    assert!(code.contains("fn ns_http_parse_header"), "C1522: Should contain ns_http_parse_header");
 }
 
 /// C1523: TLS record layer framing with content type and length
@@ -1486,21 +1287,11 @@ int ns_tls_parse(const uint8_t *buf, int len, ns_tls_record_hdr_t *hdr) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1523: TLS record layer should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1523: TLS record layer should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1523: Output should not be empty");
-    assert!(
-        code.contains("fn ns_tls_build_header"),
-        "C1523: Should contain ns_tls_build_header"
-    );
-    assert!(
-        code.contains("fn ns_tls_parse"),
-        "C1523: Should contain ns_tls_parse"
-    );
+    assert!(code.contains("fn ns_tls_build_header"), "C1523: Should contain ns_tls_build_header");
+    assert!(code.contains("fn ns_tls_parse"), "C1523: Should contain ns_tls_parse");
 }
 
 /// C1524: DHCP option parser/builder for TLV-encoded options
@@ -1554,21 +1345,11 @@ void ns_dhcp_opts_end(ns_dhcp_opts_t *opts) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1524: DHCP options should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1524: DHCP options should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1524: Output should not be empty");
-    assert!(
-        code.contains("fn ns_dhcp_opts_init"),
-        "C1524: Should contain ns_dhcp_opts_init"
-    );
-    assert!(
-        code.contains("fn ns_dhcp_opts_add"),
-        "C1524: Should contain ns_dhcp_opts_add"
-    );
+    assert!(code.contains("fn ns_dhcp_opts_init"), "C1524: Should contain ns_dhcp_opts_init");
+    assert!(code.contains("fn ns_dhcp_opts_add"), "C1524: Should contain ns_dhcp_opts_add");
 }
 
 /// C1525: NTP timestamp conversion between epoch seconds and NTP 64-bit format
@@ -1616,19 +1397,9 @@ uint32_t ns_ntp_diff_ms(const ns_ntp_timestamp_t *a, const ns_ntp_timestamp_t *b
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1525: NTP timestamp should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1525: NTP timestamp should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1525: Output should not be empty");
-    assert!(
-        code.contains("fn ns_ntp_from_epoch"),
-        "C1525: Should contain ns_ntp_from_epoch"
-    );
-    assert!(
-        code.contains("fn ns_ntp_to_epoch"),
-        "C1525: Should contain ns_ntp_to_epoch"
-    );
+    assert!(code.contains("fn ns_ntp_from_epoch"), "C1525: Should contain ns_ntp_from_epoch");
+    assert!(code.contains("fn ns_ntp_to_epoch"), "C1525: Should contain ns_ntp_to_epoch");
 }

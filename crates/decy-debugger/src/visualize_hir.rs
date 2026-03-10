@@ -23,21 +23,15 @@ pub fn visualize_hir(file_path: &Path, use_colors: bool) -> Result<String> {
     let ast = parser.parse(&source).context("Failed to parse C source")?;
 
     // Convert to HIR
-    let hir_functions: Vec<HirFunction> = ast
-        .functions()
-        .iter()
-        .map(HirFunction::from_ast_function)
-        .collect();
+    let hir_functions: Vec<HirFunction> =
+        ast.functions().iter().map(HirFunction::from_ast_function).collect();
 
     // Format output
     let mut output = String::new();
 
     // Header
     if use_colors {
-        output.push_str(&format!(
-            "{}\n",
-            "╔═══ HIR Visualization ═══╗".green().bold()
-        ));
+        output.push_str(&format!("{}\n", "╔═══ HIR Visualization ═══╗".green().bold()));
     } else {
         output.push_str("╔═══ HIR Visualization ═══╗\n");
     }
@@ -60,11 +54,7 @@ pub fn visualize_hir(file_path: &Path, use_colors: bool) -> Result<String> {
 
         // Show parameter details
         for param in hir_func.parameters() {
-            output.push_str(&format!(
-                "    - {} : {:?}\n",
-                param.name(),
-                param.param_type()
-            ));
+            output.push_str(&format!("    - {} : {:?}\n", param.name(), param.param_type()));
         }
 
         output.push_str(&format!("  Body statements: {}\n", hir_func.body().len()));

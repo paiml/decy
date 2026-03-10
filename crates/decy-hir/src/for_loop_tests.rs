@@ -43,12 +43,7 @@ fn test_create_for_loop_statement() {
     };
 
     match for_loop {
-        HirStatement::For {
-            init,
-            condition,
-            increment,
-            body,
-        } => {
+        HirStatement::For { init, condition, increment, body } => {
             assert!(!init.is_empty());
             assert!(!increment.is_empty());
             assert_eq!(body.len(), 1);
@@ -116,12 +111,8 @@ fn test_for_loop_without_increment() {
         },
     }];
 
-    let for_loop = HirStatement::For {
-        init: vec![init],
-        condition: Some(condition),
-        increment: vec![],
-        body,
-    };
+    let for_loop =
+        HirStatement::For { init: vec![init], condition: Some(condition), increment: vec![], body };
 
     match for_loop {
         HirStatement::For { increment, .. } => {
@@ -142,12 +133,7 @@ fn test_for_loop_infinite() {
     };
 
     match for_loop {
-        HirStatement::For {
-            init,
-            increment,
-            body,
-            ..
-        } => {
+        HirStatement::For { init, increment, body, .. } => {
             assert!(init.is_empty());
             assert!(increment.is_empty());
             assert_eq!(body.len(), 1);
@@ -167,9 +153,7 @@ fn test_for_loop_no_condition() {
     };
 
     match for_loop {
-        HirStatement::For {
-            condition, body, ..
-        } => {
+        HirStatement::For { condition, body, .. } => {
             assert!(condition.is_none(), "for(;;) should have None condition");
             assert_eq!(body.len(), 1);
         }

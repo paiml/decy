@@ -73,12 +73,7 @@ fn cli_diagnostic_contains_code_snippet() {
     let temp = TempDir::new().unwrap();
     let file = create_temp_file(&temp, "bad.c", "int main( { }");
 
-    decy_cmd()
-        .arg("transpile")
-        .arg(&file)
-        .assert()
-        .failure()
-        .stderr(predicate::str::contains("|"));
+    decy_cmd().arg("transpile").arg(&file).assert().failure().stderr(predicate::str::contains("|"));
 }
 
 #[test]
@@ -86,12 +81,7 @@ fn cli_diagnostic_contains_caret() {
     let temp = TempDir::new().unwrap();
     let file = create_temp_file(&temp, "bad.c", "int main( { }");
 
-    decy_cmd()
-        .arg("transpile")
-        .arg(&file)
-        .assert()
-        .failure()
-        .stderr(predicate::str::contains("^"));
+    decy_cmd().arg("transpile").arg(&file).assert().failure().stderr(predicate::str::contains("^"));
 }
 
 // ============================================================================
@@ -161,11 +151,7 @@ fn cli_diagnostic_missing_semicolon() {
 #[test]
 fn cli_diagnostic_undeclared_identifier() {
     let temp = TempDir::new().unwrap();
-    let file = create_temp_file(
-        &temp,
-        "undeclared.c",
-        "int main() { return undefined_var; }",
-    );
+    let file = create_temp_file(&temp, "undeclared.c", "int main() { return undefined_var; }");
 
     decy_cmd()
         .arg("transpile")
@@ -185,10 +171,5 @@ fn cli_diagnostic_multiline_source_shows_context() {
     let code = "int foo() {\n    return 0;\n}\n\nint main( {\n    return 0;\n}\n";
     let file = create_temp_file(&temp, "multiline.c", code);
 
-    decy_cmd()
-        .arg("transpile")
-        .arg(&file)
-        .assert()
-        .failure()
-        .stderr(predicate::str::contains("|"));
+    decy_cmd().arg("transpile").arg(&file).assert().failure().stderr(predicate::str::contains("|"));
 }

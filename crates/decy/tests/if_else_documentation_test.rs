@@ -555,10 +555,7 @@ int main() {
     let rust_code = result.unwrap();
 
     // This is a documentation test
-    assert!(
-        rust_code.contains("fn main") || rust_code.contains("main"),
-        "Expected main function"
-    );
+    assert!(rust_code.contains("fn main") || rust_code.contains("main"), "Expected main function");
 
     println!("\n=== If/Else Transformation Rules ===");
     println!("1. Simple if: Same structure, boolean condition");
@@ -673,8 +670,5 @@ fn test_if_else_documentation_summary() {
     println!("======================================\n");
 
     assert_eq!(unsafe_blocks, 0, "All if/else transformations must be safe");
-    assert!(
-        total_tests >= 10,
-        "Need at least 10 tests for comprehensive coverage"
-    );
+    assert!(total_tests >= 10, "Need at least 10 tests for comprehensive coverage");
 }

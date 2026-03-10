@@ -491,10 +491,7 @@ fn test_ternary_to_match() {
         Type::String => string_val.len() as f64,
     };
 
-    assert!(
-        (result - std::f64::consts::PI).abs() < 0.001,
-        "Match selects float branch"
-    );
+    assert!((result - std::f64::consts::PI).abs() < 0.001, "Match selects float branch");
 }
 
 /// Verify that ternary transformations introduce no unsafe blocks
@@ -512,10 +509,7 @@ fn test_ternary_transformation_unsafe_count() {
 
     // Count unsafe blocks (should be 0)
     let unsafe_count = combined.matches("unsafe").count();
-    assert_eq!(
-        unsafe_count, 0,
-        "Ternary transformations should not introduce unsafe blocks"
-    );
+    assert_eq!(unsafe_count, 0, "Ternary transformations should not introduce unsafe blocks");
 }
 
 /// Summary of ternary operator transformation rules
@@ -568,10 +562,7 @@ fn test_ternary_transformation_rules_summary() {
 
     // Rule 4: No unsafe needed
     let unsafe_blocks = 0;
-    assert_eq!(
-        unsafe_blocks, 0,
-        "Ternary transformations introduce 0 unsafe blocks"
-    );
+    assert_eq!(unsafe_blocks, 0, "Ternary transformations introduce 0 unsafe blocks");
 
     // Rule 5: More readable than nested ternary
     let score = 85;

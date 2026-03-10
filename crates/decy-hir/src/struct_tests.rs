@@ -73,20 +73,14 @@ fn test_pointer_field_access_expression() {
 #[test]
 fn test_struct_with_pointer_fields() {
     let fields = vec![
-        HirStructField::new(
-            "next".to_string(),
-            HirType::Pointer(Box::new(HirType::Void)),
-        ),
+        HirStructField::new("next".to_string(), HirType::Pointer(Box::new(HirType::Void))),
         HirStructField::new("value".to_string(), HirType::Int),
     ];
 
     let node_struct = HirStruct::new("Node".to_string(), fields);
 
     assert_eq!(node_struct.fields()[0].name(), "next");
-    assert!(matches!(
-        node_struct.fields()[0].field_type(),
-        HirType::Pointer(_)
-    ));
+    assert!(matches!(node_struct.fields()[0].field_type(), HirType::Pointer(_)));
 }
 
 #[test]

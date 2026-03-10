@@ -54,18 +54,9 @@ int main() {
         .expect("Transpilation should succeed");
 
     // Should transpile both the include and main function
-    assert!(
-        rust_code.contains("fn add"),
-        "Should contain add function signature"
-    );
-    assert!(
-        rust_code.contains("fn main"),
-        "Should contain main function"
-    );
-    assert!(
-        rust_code.contains("add(1, 2)"),
-        "Should contain function call"
-    );
+    assert!(rust_code.contains("fn add"), "Should contain add function signature");
+    assert!(rust_code.contains("fn main"), "Should contain main function");
+    assert!(rust_code.contains("add(1, 2)"), "Should contain function call");
 }
 
 #[test]
@@ -96,14 +87,8 @@ int main() {
         .expect("Transpilation should succeed");
 
     assert!(rust_code.contains("fn add"), "Should contain add function");
-    assert!(
-        rust_code.contains("fn strlen"),
-        "Should contain strlen function"
-    );
-    assert!(
-        rust_code.contains("fn main"),
-        "Should contain main function"
-    );
+    assert!(rust_code.contains("fn strlen"), "Should contain strlen function");
+    assert!(rust_code.contains("fn main"), "Should contain main function");
 }
 
 #[test]
@@ -141,10 +126,7 @@ int main() {
         rust_code.contains("number_t") || rust_code.contains("i32"),
         "Should contain typedef or resolved type"
     );
-    assert!(
-        rust_code.contains("fn process"),
-        "Should contain process function"
-    );
+    assert!(rust_code.contains("fn process"), "Should contain process function");
 }
 
 #[test]
@@ -171,10 +153,7 @@ int main() {
     let rust_code =
         transpile_with_includes(&c_code, Some(src_dir)).expect("Transpilation should succeed");
 
-    assert!(
-        rust_code.contains("fn helper"),
-        "Should resolve relative include path"
-    );
+    assert!(rust_code.contains("fn helper"), "Should resolve relative include path");
 }
 
 #[test]
@@ -227,10 +206,7 @@ int main() {
 
     // Should only define value_t ONCE (not duplicate)
     let typedef_count = rust_code.matches("type value_t").count();
-    assert!(
-        typedef_count <= 1,
-        "Should not duplicate typedef due to header guards"
-    );
+    assert!(typedef_count <= 1, "Should not duplicate typedef due to header guards");
 
     assert!(rust_code.contains("fn func_a"), "Should contain func_a");
     assert!(rust_code.contains("fn func_b"), "Should contain func_b");
@@ -352,18 +328,9 @@ int main() {
 
     // Should have complete add function implementation (not just signature)
     assert!(rust_code.contains("fn add"), "Should contain add function");
-    assert!(
-        rust_code.contains("a + b"),
-        "Should contain add implementation"
-    );
-    assert!(
-        rust_code.contains("fn main"),
-        "Should contain main function"
-    );
-    assert!(
-        rust_code.contains("add(10, 20)"),
-        "Should contain function call"
-    );
+    assert!(rust_code.contains("a + b"), "Should contain add implementation");
+    assert!(rust_code.contains("fn main"), "Should contain main function");
+    assert!(rust_code.contains("add(10, 20)"), "Should contain function call");
 }
 
 #[test]
@@ -382,8 +349,5 @@ int main() {
 
     // Should handle gracefully (either transpile or skip system headers)
     // At minimum, should not panic
-    assert!(
-        result.is_ok() || result.is_err(),
-        "Should handle system includes"
-    );
+    assert!(result.is_ok() || result.is_err(), "Should handle system includes");
 }

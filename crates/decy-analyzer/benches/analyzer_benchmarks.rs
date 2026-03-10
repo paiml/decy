@@ -105,11 +105,9 @@ fn bench_box_detection_scaling(c: &mut Criterion) {
     for num_allocs in [1, 5, 10, 20, 50].iter() {
         let func = create_complex_function(*num_allocs);
 
-        group.bench_with_input(
-            BenchmarkId::from_parameter(num_allocs),
-            num_allocs,
-            |b, _| b.iter(|| detector.find_box_candidates(black_box(&func))),
-        );
+        group.bench_with_input(BenchmarkId::from_parameter(num_allocs), num_allocs, |b, _| {
+            b.iter(|| detector.find_box_candidates(black_box(&func)))
+        });
     }
     group.finish();
 }
@@ -121,11 +119,9 @@ fn bench_vec_detection_scaling(c: &mut Criterion) {
     for num_allocs in [1, 5, 10, 20, 50].iter() {
         let func = create_complex_function(*num_allocs);
 
-        group.bench_with_input(
-            BenchmarkId::from_parameter(num_allocs),
-            num_allocs,
-            |b, _| b.iter(|| detector.find_vec_candidates(black_box(&func))),
-        );
+        group.bench_with_input(BenchmarkId::from_parameter(num_allocs), num_allocs, |b, _| {
+            b.iter(|| detector.find_vec_candidates(black_box(&func)))
+        });
     }
     group.finish();
 }

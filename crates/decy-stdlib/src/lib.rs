@@ -106,10 +106,7 @@ pub struct Parameter {
 
 impl Parameter {
     pub fn new(name: impl Into<String>, type_str: impl Into<String>) -> Self {
-        Self {
-            name: name.into(),
-            type_str: type_str.into(),
-        }
+        Self { name: name.into(), type_str: type_str.into() }
     }
 }
 
@@ -197,10 +194,7 @@ impl StdlibPrototypes {
             FunctionProto {
                 name: "realloc".to_string(),
                 return_type: "void*".to_string(),
-                parameters: vec![
-                    Parameter::new("ptr", "void*"),
-                    Parameter::new("size", "size_t"),
-                ],
+                parameters: vec![Parameter::new("ptr", "void*"), Parameter::new("size", "size_t")],
                 is_variadic: false,
                 header: StdHeader::Stdlib,
                 c99_section: "§7.22.3.5".to_string(),
@@ -672,10 +666,7 @@ impl StdlibPrototypes {
             FunctionProto {
                 name: "fputc".to_string(),
                 return_type: "int".to_string(),
-                parameters: vec![
-                    Parameter::new("c", "int"),
-                    Parameter::new("stream", "FILE*"),
-                ],
+                parameters: vec![Parameter::new("c", "int"), Parameter::new("stream", "FILE*")],
                 is_variadic: false,
                 header: StdHeader::Stdio,
                 c99_section: "§7.21.7.3".to_string(),
@@ -895,10 +886,7 @@ impl StdlibPrototypes {
             FunctionProto {
                 name: "strchr".to_string(),
                 return_type: "char*".to_string(),
-                parameters: vec![
-                    Parameter::new("s", "const char*"),
-                    Parameter::new("c", "int"),
-                ],
+                parameters: vec![Parameter::new("s", "const char*"), Parameter::new("c", "int")],
                 is_variadic: false,
                 header: StdHeader::String,
                 c99_section: "§7.23.5.2".to_string(),
@@ -910,10 +898,7 @@ impl StdlibPrototypes {
             FunctionProto {
                 name: "strrchr".to_string(),
                 return_type: "char*".to_string(),
-                parameters: vec![
-                    Parameter::new("s", "const char*"),
-                    Parameter::new("c", "int"),
-                ],
+                parameters: vec![Parameter::new("s", "const char*"), Parameter::new("c", "int")],
                 is_variadic: false,
                 header: StdHeader::String,
                 c99_section: "§7.23.5.5".to_string(),
@@ -1459,10 +1444,7 @@ impl StdlibPrototypes {
             FunctionProto {
                 name: "dup2".to_string(),
                 return_type: "int".to_string(),
-                parameters: vec![
-                    Parameter::new("oldfd", "int"),
-                    Parameter::new("newfd", "int"),
-                ],
+                parameters: vec![Parameter::new("oldfd", "int"), Parameter::new("newfd", "int")],
                 is_variadic: false,
                 header: StdHeader::Unistd,
                 c99_section: "POSIX".to_string(),
@@ -1546,10 +1528,7 @@ impl StdlibPrototypes {
         let mut result = String::new();
 
         // Type definitions (always needed)
-        result.push_str(&format!(
-            "// Built-in prototypes for {:?} (ISO C99 §7)\n",
-            header
-        ));
+        result.push_str(&format!("// Built-in prototypes for {:?} (ISO C99 §7)\n", header));
         result.push_str("typedef unsigned long size_t;\n");
         result.push_str("typedef long ssize_t;\n");
         result.push_str("typedef long ptrdiff_t;\n");
@@ -1722,9 +1701,7 @@ impl StdlibPrototypes {
             .filter(|p| p.header == header)
             .filter(|p| {
                 // Skip functions with function pointer parameters (contain "(*" in type)
-                !p.parameters
-                    .iter()
-                    .any(|param| param.type_str.contains("(*"))
+                !p.parameters.iter().any(|param| param.type_str.contains("(*"))
             })
             .collect();
         protos.sort_by_key(|p| &p.name);
@@ -1835,10 +1812,7 @@ mod tests {
             c99_section: "§7.21.6.1".to_string(),
         };
 
-        assert_eq!(
-            proto.to_c_declaration(),
-            "int printf(const char* format, ...);"
-        );
+        assert_eq!(proto.to_c_declaration(), "int printf(const char* format, ...);");
     }
 
     #[test]
@@ -1895,21 +1869,9 @@ mod tests {
                 "{:?} missing size_t",
                 header
             );
-            assert!(
-                result.contains("typedef long ssize_t;"),
-                "{:?} missing ssize_t",
-                header
-            );
-            assert!(
-                result.contains("typedef long ptrdiff_t;"),
-                "{:?} missing ptrdiff_t",
-                header
-            );
-            assert!(
-                result.contains("#define NULL 0"),
-                "{:?} missing NULL",
-                header
-            );
+            assert!(result.contains("typedef long ssize_t;"), "{:?} missing ssize_t", header);
+            assert!(result.contains("typedef long ptrdiff_t;"), "{:?} missing ptrdiff_t", header);
+            assert!(result.contains("#define NULL 0"), "{:?} missing NULL", header);
             assert!(
                 result.contains("// Built-in prototypes for"),
                 "{:?} missing comment header",
@@ -2628,7 +2590,14 @@ mod tests {
         let result = stdlib.inject_prototypes_for_header(StdHeader::Stdlib);
         // All function lines should end with ";\n"
         for line in result.lines() {
-            if line.contains('(') && line.contains(')') && !line.starts_with("//") && !line.starts_with("#") && !line.starts_with("typedef") && !line.starts_with("struct") && !line.starts_with("extern") {
+            if line.contains('(')
+                && line.contains(')')
+                && !line.starts_with("//")
+                && !line.starts_with("#")
+                && !line.starts_with("typedef")
+                && !line.starts_with("struct")
+                && !line.starts_with("extern")
+            {
                 assert!(
                     line.ends_with(';'),
                     "Function declaration line should end with semicolon: {}",

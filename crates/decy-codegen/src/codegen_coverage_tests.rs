@@ -12,8 +12,8 @@
 
 use decy_hir::{
     BinaryOperator, HirConstant, HirEnum, HirEnumVariant, HirExpression, HirFunction,
-    HirMacroDefinition, HirParameter, HirStatement, HirStruct, HirStructField, HirType,
-    HirTypedef, SwitchCase, UnaryOperator,
+    HirMacroDefinition, HirParameter, HirStatement, HirStruct, HirStructField, HirType, HirTypedef,
+    SwitchCase, UnaryOperator,
 };
 
 use crate::CodeGenerator;
@@ -59,34 +59,22 @@ fn map_type_signed_char() {
 
 #[test]
 fn map_type_pointer_int() {
-    assert_eq!(
-        CodeGenerator::map_type(&HirType::Pointer(Box::new(HirType::Int))),
-        "*mut i32"
-    );
+    assert_eq!(CodeGenerator::map_type(&HirType::Pointer(Box::new(HirType::Int))), "*mut i32");
 }
 
 #[test]
 fn map_type_box_int() {
-    assert_eq!(
-        CodeGenerator::map_type(&HirType::Box(Box::new(HirType::Int))),
-        "Box<i32>"
-    );
+    assert_eq!(CodeGenerator::map_type(&HirType::Box(Box::new(HirType::Int))), "Box<i32>");
 }
 
 #[test]
 fn map_type_vec_int() {
-    assert_eq!(
-        CodeGenerator::map_type(&HirType::Vec(Box::new(HirType::Int))),
-        "Vec<i32>"
-    );
+    assert_eq!(CodeGenerator::map_type(&HirType::Vec(Box::new(HirType::Int))), "Vec<i32>");
 }
 
 #[test]
 fn map_type_option_int() {
-    assert_eq!(
-        CodeGenerator::map_type(&HirType::Option(Box::new(HirType::Int))),
-        "Option<i32>"
-    );
+    assert_eq!(CodeGenerator::map_type(&HirType::Option(Box::new(HirType::Int))), "Option<i32>");
 }
 
 #[test]
@@ -137,18 +125,12 @@ fn map_type_reference_to_vec_mutable_slice() {
 
 #[test]
 fn map_type_struct() {
-    assert_eq!(
-        CodeGenerator::map_type(&HirType::Struct("MyStruct".to_string())),
-        "MyStruct"
-    );
+    assert_eq!(CodeGenerator::map_type(&HirType::Struct("MyStruct".to_string())), "MyStruct");
 }
 
 #[test]
 fn map_type_enum() {
-    assert_eq!(
-        CodeGenerator::map_type(&HirType::Enum("MyEnum".to_string())),
-        "MyEnum"
-    );
+    assert_eq!(CodeGenerator::map_type(&HirType::Enum("MyEnum".to_string())), "MyEnum");
 }
 
 #[test]
@@ -212,18 +194,12 @@ fn map_type_string_reference() {
 
 #[test]
 fn map_type_union() {
-    assert_eq!(
-        CodeGenerator::map_type(&HirType::Union(vec![])),
-        "/* Union type */"
-    );
+    assert_eq!(CodeGenerator::map_type(&HirType::Union(vec![])), "/* Union type */");
 }
 
 #[test]
 fn map_type_type_alias() {
-    assert_eq!(
-        CodeGenerator::map_type(&HirType::TypeAlias("size_t".to_string())),
-        "size_t"
-    );
+    assert_eq!(CodeGenerator::map_type(&HirType::TypeAlias("size_t".to_string())), "size_t");
 }
 
 // ============================================================================
@@ -248,10 +224,7 @@ fn expr_float_literal_with_dot() {
 #[test]
 fn expr_float_literal_without_dot() {
     let gen = CodeGenerator::new();
-    assert_eq!(
-        gen.generate_expression(&HirExpression::FloatLiteral("42".to_string())),
-        "42.0f64"
-    );
+    assert_eq!(gen.generate_expression(&HirExpression::FloatLiteral("42".to_string())), "42.0f64");
 }
 
 #[test]
@@ -276,37 +249,25 @@ fn expr_string_literal() {
 #[test]
 fn expr_char_literal_printable() {
     let gen = CodeGenerator::new();
-    assert_eq!(
-        gen.generate_expression(&HirExpression::CharLiteral(b'a' as i8)),
-        "b'a'"
-    );
+    assert_eq!(gen.generate_expression(&HirExpression::CharLiteral(b'a' as i8)), "b'a'");
 }
 
 #[test]
 fn expr_char_literal_null() {
     let gen = CodeGenerator::new();
-    assert_eq!(
-        gen.generate_expression(&HirExpression::CharLiteral(0)),
-        "0u8"
-    );
+    assert_eq!(gen.generate_expression(&HirExpression::CharLiteral(0)), "0u8");
 }
 
 #[test]
 fn expr_char_literal_non_printable() {
     let gen = CodeGenerator::new();
-    assert_eq!(
-        gen.generate_expression(&HirExpression::CharLiteral(1)),
-        "1u8"
-    );
+    assert_eq!(gen.generate_expression(&HirExpression::CharLiteral(1)), "1u8");
 }
 
 #[test]
 fn expr_variable() {
     let gen = CodeGenerator::new();
-    assert_eq!(
-        gen.generate_expression(&HirExpression::Variable("x".to_string())),
-        "x"
-    );
+    assert_eq!(gen.generate_expression(&HirExpression::Variable("x".to_string())), "x");
 }
 
 #[test]
@@ -348,37 +309,25 @@ fn expr_variable_errno() {
 #[test]
 fn expr_variable_erange() {
     let gen = CodeGenerator::new();
-    assert_eq!(
-        gen.generate_expression(&HirExpression::Variable("ERANGE".to_string())),
-        "34i32"
-    );
+    assert_eq!(gen.generate_expression(&HirExpression::Variable("ERANGE".to_string())), "34i32");
 }
 
 #[test]
 fn expr_variable_einval() {
     let gen = CodeGenerator::new();
-    assert_eq!(
-        gen.generate_expression(&HirExpression::Variable("EINVAL".to_string())),
-        "22i32"
-    );
+    assert_eq!(gen.generate_expression(&HirExpression::Variable("EINVAL".to_string())), "22i32");
 }
 
 #[test]
 fn expr_variable_enoent() {
     let gen = CodeGenerator::new();
-    assert_eq!(
-        gen.generate_expression(&HirExpression::Variable("ENOENT".to_string())),
-        "2i32"
-    );
+    assert_eq!(gen.generate_expression(&HirExpression::Variable("ENOENT".to_string())), "2i32");
 }
 
 #[test]
 fn expr_variable_eacces() {
     let gen = CodeGenerator::new();
-    assert_eq!(
-        gen.generate_expression(&HirExpression::Variable("EACCES".to_string())),
-        "13i32"
-    );
+    assert_eq!(gen.generate_expression(&HirExpression::Variable("EACCES".to_string())), "13i32");
 }
 
 #[test]
@@ -618,9 +567,7 @@ fn expr_slice_index() {
 #[test]
 fn expr_sizeof_int() {
     let gen = CodeGenerator::new();
-    let result = gen.generate_expression(&HirExpression::Sizeof {
-        type_name: "int".to_string(),
-    });
+    let result = gen.generate_expression(&HirExpression::Sizeof { type_name: "int".to_string() });
     assert!(result.contains("std::mem::size_of::<i32>()"));
     assert!(result.contains("as i32"));
 }
@@ -628,9 +575,8 @@ fn expr_sizeof_int() {
 #[test]
 fn expr_sizeof_struct() {
     let gen = CodeGenerator::new();
-    let result = gen.generate_expression(&HirExpression::Sizeof {
-        type_name: "struct Data".to_string(),
-    });
+    let result =
+        gen.generate_expression(&HirExpression::Sizeof { type_name: "struct Data".to_string() });
     assert!(result.contains("Data"));
     assert!(result.contains("size_of"));
 }
@@ -847,10 +793,7 @@ fn expr_compound_literal_struct_with_values() {
 fn expr_compound_literal_array_empty_sized() {
     let gen = CodeGenerator::new();
     let result = gen.generate_expression(&HirExpression::CompoundLiteral {
-        literal_type: HirType::Array {
-            element_type: Box::new(HirType::Int),
-            size: Some(5),
-        },
+        literal_type: HirType::Array { element_type: Box::new(HirType::Int), size: Some(5) },
         initializers: vec![],
     });
     assert!(result.contains("[0i32; 5]"));
@@ -860,10 +803,7 @@ fn expr_compound_literal_array_empty_sized() {
 fn expr_compound_literal_array_empty_unsized() {
     let gen = CodeGenerator::new();
     let result = gen.generate_expression(&HirExpression::CompoundLiteral {
-        literal_type: HirType::Array {
-            element_type: Box::new(HirType::Int),
-            size: None,
-        },
+        literal_type: HirType::Array { element_type: Box::new(HirType::Int), size: None },
         initializers: vec![],
     });
     assert_eq!(result, "[]");
@@ -873,10 +813,7 @@ fn expr_compound_literal_array_empty_unsized() {
 fn expr_compound_literal_array_single_init() {
     let gen = CodeGenerator::new();
     let result = gen.generate_expression(&HirExpression::CompoundLiteral {
-        literal_type: HirType::Array {
-            element_type: Box::new(HirType::Int),
-            size: Some(10),
-        },
+        literal_type: HirType::Array { element_type: Box::new(HirType::Int), size: Some(10) },
         initializers: vec![HirExpression::IntLiteral(0)],
     });
     assert!(result.contains("[0; 10]"));
@@ -886,10 +823,7 @@ fn expr_compound_literal_array_single_init() {
 fn expr_compound_literal_array_with_values() {
     let gen = CodeGenerator::new();
     let result = gen.generate_expression(&HirExpression::CompoundLiteral {
-        literal_type: HirType::Array {
-            element_type: Box::new(HirType::Int),
-            size: None,
-        },
+        literal_type: HirType::Array { element_type: Box::new(HirType::Int), size: None },
         initializers: vec![HirExpression::IntLiteral(1), HirExpression::IntLiteral(2)],
     });
     assert!(result.contains("[1, 2]"));
@@ -1219,10 +1153,7 @@ fn expr_realloc_function_call() {
     let gen = CodeGenerator::new();
     let result = gen.generate_expression(&HirExpression::FunctionCall {
         function: "realloc".to_string(),
-        arguments: vec![
-            HirExpression::Variable("ptr".to_string()),
-            HirExpression::IntLiteral(200),
-        ],
+        arguments: vec![HirExpression::Variable("ptr".to_string()), HirExpression::IntLiteral(200)],
     });
     assert!(result.contains("realloc"));
 }
@@ -1298,10 +1229,7 @@ fn stmt_break() {
 #[test]
 fn stmt_continue() {
     let gen = CodeGenerator::new();
-    assert_eq!(
-        gen.generate_statement(&HirStatement::Continue),
-        "continue;"
-    );
+    assert_eq!(gen.generate_statement(&HirStatement::Continue), "continue;");
 }
 
 #[test]
@@ -1330,9 +1258,7 @@ fn stmt_if_else() {
             right: Box::new(HirExpression::IntLiteral(0)),
         },
         then_block: vec![HirStatement::Return(Some(HirExpression::IntLiteral(0)))],
-        else_block: Some(vec![HirStatement::Return(Some(HirExpression::IntLiteral(
-            1,
-        )))]),
+        else_block: Some(vec![HirStatement::Return(Some(HirExpression::IntLiteral(1)))]),
     });
     assert!(result.contains("if"));
     assert!(result.contains("} else {"));
@@ -1614,9 +1540,7 @@ fn return_int() {
 #[test]
 fn return_unsigned_int() {
     let gen = CodeGenerator::new();
-    assert!(gen
-        .generate_return(&HirType::UnsignedInt)
-        .contains("return 0"));
+    assert!(gen.generate_return(&HirType::UnsignedInt).contains("return 0"));
 }
 
 #[test]
@@ -1628,9 +1552,7 @@ fn return_float() {
 #[test]
 fn return_double() {
     let gen = CodeGenerator::new();
-    assert!(gen
-        .generate_return(&HirType::Double)
-        .contains("return 0.0"));
+    assert!(gen.generate_return(&HirType::Double).contains("return 0.0"));
 }
 
 #[test]
@@ -1642,51 +1564,38 @@ fn return_char() {
 #[test]
 fn return_signed_char() {
     let gen = CodeGenerator::new();
-    assert!(gen
-        .generate_return(&HirType::SignedChar)
-        .contains("return 0"));
+    assert!(gen.generate_return(&HirType::SignedChar).contains("return 0"));
 }
 
 #[test]
 fn return_pointer() {
     let gen = CodeGenerator::new();
-    assert!(gen
-        .generate_return(&HirType::Pointer(Box::new(HirType::Int)))
-        .contains("null_mut"));
+    assert!(gen.generate_return(&HirType::Pointer(Box::new(HirType::Int))).contains("null_mut"));
 }
 
 #[test]
 fn return_box() {
     let gen = CodeGenerator::new();
-    assert!(gen
-        .generate_return(&HirType::Box(Box::new(HirType::Int)))
-        .contains("Box::new"));
+    assert!(gen.generate_return(&HirType::Box(Box::new(HirType::Int))).contains("Box::new"));
 }
 
 #[test]
 fn return_vec() {
     let gen = CodeGenerator::new();
-    assert!(gen
-        .generate_return(&HirType::Vec(Box::new(HirType::Int)))
-        .contains("Vec::new"));
+    assert!(gen.generate_return(&HirType::Vec(Box::new(HirType::Int))).contains("Vec::new"));
 }
 
 #[test]
 fn return_option() {
     let gen = CodeGenerator::new();
-    assert!(gen
-        .generate_return(&HirType::Option(Box::new(HirType::Int)))
-        .contains("None"));
+    assert!(gen.generate_return(&HirType::Option(Box::new(HirType::Int))).contains("None"));
 }
 
 #[test]
 fn return_reference() {
     let gen = CodeGenerator::new();
     assert_eq!(
-        gen.generate_return(&HirType::Reference {
-            inner: Box::new(HirType::Int),
-            mutable: false,
-        }),
+        gen.generate_return(&HirType::Reference { inner: Box::new(HirType::Int), mutable: false }),
         ""
     );
 }
@@ -1710,10 +1619,8 @@ fn return_enum() {
 #[test]
 fn return_array_sized() {
     let gen = CodeGenerator::new();
-    let result = gen.generate_return(&HirType::Array {
-        element_type: Box::new(HirType::Int),
-        size: Some(3),
-    });
+    let result = gen
+        .generate_return(&HirType::Array { element_type: Box::new(HirType::Int), size: Some(3) });
     assert!(result.contains("[0i32; 3]"));
 }
 
@@ -1721,10 +1628,7 @@ fn return_array_sized() {
 fn return_array_unsized() {
     let gen = CodeGenerator::new();
     assert_eq!(
-        gen.generate_return(&HirType::Array {
-            element_type: Box::new(HirType::Int),
-            size: None,
-        }),
+        gen.generate_return(&HirType::Array { element_type: Box::new(HirType::Int), size: None }),
         ""
     );
 }
@@ -1744,57 +1648,43 @@ fn return_function_pointer() {
 #[test]
 fn return_string_literal() {
     let gen = CodeGenerator::new();
-    assert!(gen
-        .generate_return(&HirType::StringLiteral)
-        .contains("\"\""));
+    assert!(gen.generate_return(&HirType::StringLiteral).contains("\"\""));
 }
 
 #[test]
 fn return_owned_string() {
     let gen = CodeGenerator::new();
-    assert!(gen
-        .generate_return(&HirType::OwnedString)
-        .contains("String::new"));
+    assert!(gen.generate_return(&HirType::OwnedString).contains("String::new"));
 }
 
 #[test]
 fn return_string_reference() {
     let gen = CodeGenerator::new();
-    assert!(gen
-        .generate_return(&HirType::StringReference)
-        .contains("\"\""));
+    assert!(gen.generate_return(&HirType::StringReference).contains("\"\""));
 }
 
 #[test]
 fn return_type_alias_size_t() {
     let gen = CodeGenerator::new();
-    assert!(gen
-        .generate_return(&HirType::TypeAlias("size_t".to_string()))
-        .contains("0usize"));
+    assert!(gen.generate_return(&HirType::TypeAlias("size_t".to_string())).contains("0usize"));
 }
 
 #[test]
 fn return_type_alias_ssize_t() {
     let gen = CodeGenerator::new();
-    assert!(gen
-        .generate_return(&HirType::TypeAlias("ssize_t".to_string()))
-        .contains("0isize"));
+    assert!(gen.generate_return(&HirType::TypeAlias("ssize_t".to_string())).contains("0isize"));
 }
 
 #[test]
 fn return_type_alias_ptrdiff_t() {
     let gen = CodeGenerator::new();
-    assert!(gen
-        .generate_return(&HirType::TypeAlias("ptrdiff_t".to_string()))
-        .contains("0isize"));
+    assert!(gen.generate_return(&HirType::TypeAlias("ptrdiff_t".to_string())).contains("0isize"));
 }
 
 #[test]
 fn return_type_alias_other() {
     let gen = CodeGenerator::new();
-    assert!(gen
-        .generate_return(&HirType::TypeAlias("custom_t".to_string()))
-        .contains("return 0;"));
+    assert!(gen.generate_return(&HirType::TypeAlias("custom_t".to_string())).contains("return 0;"));
 }
 
 // ============================================================================
@@ -1841,10 +1731,7 @@ fn struct_with_large_array_no_default() {
         "Buffer".to_string(),
         vec![HirStructField::new(
             "data".to_string(),
-            HirType::Array {
-                element_type: Box::new(HirType::Char),
-                size: Some(1024),
-            },
+            HirType::Array { element_type: Box::new(HirType::Char), size: Some(1024) },
         )],
     );
     let result = gen.generate_struct(&s);
@@ -1858,10 +1745,7 @@ fn struct_with_reference_has_lifetime() {
         "RefStruct".to_string(),
         vec![HirStructField::new(
             "data".to_string(),
-            HirType::Reference {
-                inner: Box::new(HirType::Int),
-                mutable: false,
-            },
+            HirType::Reference { inner: Box::new(HirType::Int), mutable: false },
         )],
     );
     let result = gen.generate_struct(&s);
@@ -1877,10 +1761,7 @@ fn struct_with_flexible_array_member() {
             HirStructField::new("size".to_string(), HirType::Int),
             HirStructField::new(
                 "data".to_string(),
-                HirType::Array {
-                    element_type: Box::new(HirType::Char),
-                    size: None,
-                },
+                HirType::Array { element_type: Box::new(HirType::Char), size: None },
             ),
         ],
     );
@@ -1958,10 +1839,7 @@ fn enum_auto_incrementing() {
 #[test]
 fn enum_empty_name() {
     let gen = CodeGenerator::new();
-    let e = HirEnum::new(
-        "".to_string(),
-        vec![HirEnumVariant::new("VALUE".to_string(), Some(42))],
-    );
+    let e = HirEnum::new("".to_string(), vec![HirEnumVariant::new("VALUE".to_string(), Some(42))]);
     let result = gen.generate_enum(&e);
     // Empty name should not produce "pub type = i32;"
     assert!(!result.contains("pub type  = i32;"));
@@ -1983,10 +1861,7 @@ fn typedef_simple() {
 #[test]
 fn typedef_pointer() {
     let gen = CodeGenerator::new();
-    let td = HirTypedef::new(
-        "IntPtr".to_string(),
-        HirType::Pointer(Box::new(HirType::Int)),
-    );
+    let td = HirTypedef::new("IntPtr".to_string(), HirType::Pointer(Box::new(HirType::Int)));
     let result = gen.generate_typedef(&td).unwrap();
     assert!(result.contains("pub type IntPtr = *mut i32;"));
 }
@@ -2028,10 +1903,7 @@ fn typedef_array_fixed_size() {
     let gen = CodeGenerator::new();
     let td = HirTypedef::new(
         "IntArray".to_string(),
-        HirType::Array {
-            element_type: Box::new(HirType::Int),
-            size: Some(10),
-        },
+        HirType::Array { element_type: Box::new(HirType::Int), size: Some(10) },
     );
     let result = gen.generate_typedef(&td).unwrap();
     assert!(result.contains("pub type IntArray = [i32; 10];"));
@@ -2042,10 +1914,7 @@ fn typedef_array_assertion_pattern() {
     let gen = CodeGenerator::new();
     let td = HirTypedef::new(
         "_assert".to_string(),
-        HirType::Array {
-            element_type: Box::new(HirType::Char),
-            size: None,
-        },
+        HirType::Array { element_type: Box::new(HirType::Char), size: None },
     );
     let result = gen.generate_typedef(&td).unwrap();
     assert!(result.contains("Compile-time assertion"));
@@ -2082,11 +1951,7 @@ fn constant_string() {
 #[test]
 fn global_static_mutable() {
     let gen = CodeGenerator::new();
-    let g = HirConstant::new(
-        "counter".to_string(),
-        HirType::Int,
-        HirExpression::IntLiteral(0),
-    );
+    let g = HirConstant::new("counter".to_string(), HirType::Int, HirExpression::IntLiteral(0));
     let result = gen.generate_global_variable(&g, true, false, false);
     assert!(result.contains("static mut counter: i32 = 0;"));
 }
@@ -2094,11 +1959,7 @@ fn global_static_mutable() {
 #[test]
 fn global_extern() {
     let gen = CodeGenerator::new();
-    let g = HirConstant::new(
-        "global_var".to_string(),
-        HirType::Int,
-        HirExpression::IntLiteral(0),
-    );
+    let g = HirConstant::new("global_var".to_string(), HirType::Int, HirExpression::IntLiteral(0));
     let result = gen.generate_global_variable(&g, false, true, false);
     assert!(result.contains("extern \"C\""));
     assert!(result.contains("static global_var: i32;"));
@@ -2107,11 +1968,7 @@ fn global_extern() {
 #[test]
 fn global_const() {
     let gen = CodeGenerator::new();
-    let g = HirConstant::new(
-        "MAX_SIZE".to_string(),
-        HirType::Int,
-        HirExpression::IntLiteral(1024),
-    );
+    let g = HirConstant::new("MAX_SIZE".to_string(), HirType::Int, HirExpression::IntLiteral(1024));
     let result = gen.generate_global_variable(&g, true, false, true);
     assert!(result.contains("const MAX_SIZE: i32 = 1024;"));
 }
@@ -2133,10 +1990,7 @@ fn global_array_init() {
     let gen = CodeGenerator::new();
     let g = HirConstant::new(
         "buffer".to_string(),
-        HirType::Array {
-            element_type: Box::new(HirType::Int),
-            size: Some(10),
-        },
+        HirType::Array { element_type: Box::new(HirType::Int), size: Some(10) },
         HirExpression::IntLiteral(0),
     );
     let result = gen.generate_global_variable(&g, true, false, false);
@@ -2178,8 +2032,7 @@ fn macro_object_like_empty() {
 #[test]
 fn macro_object_like_string() {
     let gen = CodeGenerator::new();
-    let m =
-        HirMacroDefinition::new_object_like("GREETING".to_string(), "\"Hello\"".to_string());
+    let m = HirMacroDefinition::new_object_like("GREETING".to_string(), "\"Hello\"".to_string());
     let result = gen.generate_macro(&m).unwrap();
     assert!(result.contains("&str"));
 }
@@ -2255,50 +2108,32 @@ fn default_void() {
 
 #[test]
 fn default_int() {
-    assert_eq!(
-        CodeGenerator::default_value_for_type(&HirType::Int),
-        "0i32"
-    );
+    assert_eq!(CodeGenerator::default_value_for_type(&HirType::Int), "0i32");
 }
 
 #[test]
 fn default_unsigned_int() {
-    assert_eq!(
-        CodeGenerator::default_value_for_type(&HirType::UnsignedInt),
-        "0u32"
-    );
+    assert_eq!(CodeGenerator::default_value_for_type(&HirType::UnsignedInt), "0u32");
 }
 
 #[test]
 fn default_float() {
-    assert_eq!(
-        CodeGenerator::default_value_for_type(&HirType::Float),
-        "0.0f32"
-    );
+    assert_eq!(CodeGenerator::default_value_for_type(&HirType::Float), "0.0f32");
 }
 
 #[test]
 fn default_double() {
-    assert_eq!(
-        CodeGenerator::default_value_for_type(&HirType::Double),
-        "0.0f64"
-    );
+    assert_eq!(CodeGenerator::default_value_for_type(&HirType::Double), "0.0f64");
 }
 
 #[test]
 fn default_char() {
-    assert_eq!(
-        CodeGenerator::default_value_for_type(&HirType::Char),
-        "0u8"
-    );
+    assert_eq!(CodeGenerator::default_value_for_type(&HirType::Char), "0u8");
 }
 
 #[test]
 fn default_signed_char() {
-    assert_eq!(
-        CodeGenerator::default_value_for_type(&HirType::SignedChar),
-        "0i8"
-    );
+    assert_eq!(CodeGenerator::default_value_for_type(&HirType::SignedChar), "0i8");
 }
 
 #[test]
@@ -2362,26 +2197,17 @@ fn default_function_pointer() {
 
 #[test]
 fn default_string_literal() {
-    assert_eq!(
-        CodeGenerator::default_value_for_type(&HirType::StringLiteral),
-        "\"\""
-    );
+    assert_eq!(CodeGenerator::default_value_for_type(&HirType::StringLiteral), "\"\"");
 }
 
 #[test]
 fn default_owned_string() {
-    assert_eq!(
-        CodeGenerator::default_value_for_type(&HirType::OwnedString),
-        "String::new()"
-    );
+    assert_eq!(CodeGenerator::default_value_for_type(&HirType::OwnedString), "String::new()");
 }
 
 #[test]
 fn default_string_reference() {
-    assert_eq!(
-        CodeGenerator::default_value_for_type(&HirType::StringReference),
-        "\"\""
-    );
+    assert_eq!(CodeGenerator::default_value_for_type(&HirType::StringReference), "\"\"");
 }
 
 #[test]
@@ -2866,10 +2692,7 @@ fn stmt_vla_declaration_int() {
     let gen = CodeGenerator::new();
     let result = gen.generate_statement(&HirStatement::VariableDeclaration {
         name: "arr".to_string(),
-        var_type: HirType::Array {
-            element_type: Box::new(HirType::Int),
-            size: None,
-        },
+        var_type: HirType::Array { element_type: Box::new(HirType::Int), size: None },
         initializer: Some(HirExpression::Variable("n".to_string())),
     });
     assert!(result.contains("vec!"));
@@ -2881,10 +2704,7 @@ fn stmt_vla_declaration_unsigned() {
     let gen = CodeGenerator::new();
     let result = gen.generate_statement(&HirStatement::VariableDeclaration {
         name: "arr".to_string(),
-        var_type: HirType::Array {
-            element_type: Box::new(HirType::UnsignedInt),
-            size: None,
-        },
+        var_type: HirType::Array { element_type: Box::new(HirType::UnsignedInt), size: None },
         initializer: Some(HirExpression::Variable("n".to_string())),
     });
     assert!(result.contains("0u32"));
@@ -2895,10 +2715,7 @@ fn stmt_vla_declaration_float() {
     let gen = CodeGenerator::new();
     let result = gen.generate_statement(&HirStatement::VariableDeclaration {
         name: "arr".to_string(),
-        var_type: HirType::Array {
-            element_type: Box::new(HirType::Float),
-            size: None,
-        },
+        var_type: HirType::Array { element_type: Box::new(HirType::Float), size: None },
         initializer: Some(HirExpression::Variable("n".to_string())),
     });
     assert!(result.contains("0.0f32"));
@@ -2909,10 +2726,7 @@ fn stmt_vla_declaration_double() {
     let gen = CodeGenerator::new();
     let result = gen.generate_statement(&HirStatement::VariableDeclaration {
         name: "arr".to_string(),
-        var_type: HirType::Array {
-            element_type: Box::new(HirType::Double),
-            size: None,
-        },
+        var_type: HirType::Array { element_type: Box::new(HirType::Double), size: None },
         initializer: Some(HirExpression::Variable("n".to_string())),
     });
     assert!(result.contains("0.0f64"));
@@ -2923,10 +2737,7 @@ fn stmt_vla_declaration_char() {
     let gen = CodeGenerator::new();
     let result = gen.generate_statement(&HirStatement::VariableDeclaration {
         name: "arr".to_string(),
-        var_type: HirType::Array {
-            element_type: Box::new(HirType::Char),
-            size: None,
-        },
+        var_type: HirType::Array { element_type: Box::new(HirType::Char), size: None },
         initializer: Some(HirExpression::Variable("n".to_string())),
     });
     assert!(result.contains("0u8"));
@@ -2937,10 +2748,7 @@ fn stmt_vla_declaration_signed_char() {
     let gen = CodeGenerator::new();
     let result = gen.generate_statement(&HirStatement::VariableDeclaration {
         name: "arr".to_string(),
-        var_type: HirType::Array {
-            element_type: Box::new(HirType::SignedChar),
-            size: None,
-        },
+        var_type: HirType::Array { element_type: Box::new(HirType::SignedChar), size: None },
         initializer: Some(HirExpression::Variable("n".to_string())),
     });
     assert!(result.contains("0i8"));
@@ -3018,9 +2826,7 @@ fn stmt_switch_with_char_literal_case() {
                     HirStatement::Break,
                 ],
             }],
-            default_case: Some(vec![HirStatement::Return(Some(
-                HirExpression::IntLiteral(-1),
-            ))]),
+            default_case: Some(vec![HirStatement::Return(Some(HirExpression::IntLiteral(-1)))]),
         }],
     );
     let result = gen.generate_function(&func);
@@ -3281,10 +3087,7 @@ fn struct_with_box_field_no_copy() {
     let gen = CodeGenerator::new();
     let s = HirStruct::new(
         "BoxStruct".to_string(),
-        vec![HirStructField::new(
-            "data".to_string(),
-            HirType::Box(Box::new(HirType::Int)),
-        )],
+        vec![HirStructField::new("data".to_string(), HirType::Box(Box::new(HirType::Int)))],
     );
     let result = gen.generate_struct(&s);
     assert!(!result.contains("Copy"));
@@ -3299,10 +3102,7 @@ fn struct_with_box_field_no_copy() {
 fn expr_compound_literal_array_partial_init() {
     let gen = CodeGenerator::new();
     let result = gen.generate_expression(&HirExpression::CompoundLiteral {
-        literal_type: HirType::Array {
-            element_type: Box::new(HirType::Int),
-            size: Some(5),
-        },
+        literal_type: HirType::Array { element_type: Box::new(HirType::Int), size: Some(5) },
         initializers: vec![HirExpression::IntLiteral(1), HirExpression::IntLiteral(2)],
     });
     // Partial: 2 values for size 5 array, should pad with defaults

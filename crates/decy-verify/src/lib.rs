@@ -88,17 +88,11 @@ pub struct UnsafeAuditReport {
 impl UnsafeAuditReport {
     /// Create a new audit report
     pub fn new(total_lines: usize, unsafe_lines: usize, unsafe_blocks: Vec<UnsafeBlock>) -> Self {
-        let unsafe_density_percent = if total_lines > 0 {
-            (unsafe_lines as f64 / total_lines as f64) * 100.0
-        } else {
-            0.0
-        };
+        let unsafe_density_percent =
+            if total_lines > 0 { (unsafe_lines as f64 / total_lines as f64) * 100.0 } else { 0.0 };
 
         let average_confidence = if !unsafe_blocks.is_empty() {
-            unsafe_blocks
-                .iter()
-                .map(|b| b.confidence as f64)
-                .sum::<f64>()
+            unsafe_blocks.iter().map(|b| b.confidence as f64).sum::<f64>()
                 / unsafe_blocks.len() as f64
         } else {
             0.0
@@ -120,10 +114,7 @@ impl UnsafeAuditReport {
 
     /// Get blocks with high confidence for elimination (≥70)
     pub fn high_confidence_blocks(&self) -> Vec<&UnsafeBlock> {
-        self.unsafe_blocks
-            .iter()
-            .filter(|b| b.confidence >= 70)
-            .collect()
+        self.unsafe_blocks.iter().filter(|b| b.confidence >= 70).collect()
     }
 }
 
@@ -160,11 +151,7 @@ impl UnsafeAuditor {
         // Visit the AST to find unsafe blocks
         self.visit_file(&syntax_tree);
 
-        Ok(UnsafeAuditReport::new(
-            self.total_lines,
-            self.unsafe_lines,
-            self.unsafe_blocks.clone(),
-        ))
+        Ok(UnsafeAuditReport::new(self.total_lines, self.unsafe_lines, self.unsafe_blocks.clone()))
     }
 
     /// Detect the pattern type and assign confidence score
@@ -242,12 +229,7 @@ impl<'ast> Visit<'ast> for UnsafeAuditor {
             // Get line number (approximation using span start)
             let line = 0; // syn doesn't provide easy line number access without proc_macro2 spans
 
-            self.unsafe_blocks.push(UnsafeBlock {
-                line,
-                confidence,
-                pattern,
-                suggestion,
-            });
+            self.unsafe_blocks.push(UnsafeBlock { line, confidence, pattern, suggestion });
         }
 
         // Continue visiting nested expressions
@@ -328,10 +310,7 @@ pub fn verify_compilation(rust_code: &str) -> Result<CompilationResult> {
     use std::process::Command;
     use std::time::{SystemTime, UNIX_EPOCH};
 
-    let unique_id = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .map(|d| d.as_nanos())
-        .unwrap_or(0);
+    let unique_id = SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_nanos()).unwrap_or(0);
     let temp_dir = std::env::temp_dir();
     let temp_file = temp_dir.join(format!("decy_verify_{}.rs", unique_id));
     let temp_output = temp_dir.join(format!("decy_verify_{}.rmeta", unique_id));
@@ -355,16 +334,9 @@ pub fn verify_compilation(rust_code: &str) -> Result<CompilationResult> {
     let stderr = String::from_utf8_lossy(&output.stderr);
 
     if output.status.success() {
-        let warnings: Vec<String> = stderr
-            .lines()
-            .filter(|l| l.contains("warning"))
-            .map(|l| l.to_string())
-            .collect();
-        Ok(CompilationResult {
-            success: true,
-            errors: vec![],
-            warnings,
-        })
+        let warnings: Vec<String> =
+            stderr.lines().filter(|l| l.contains("warning")).map(|l| l.to_string()).collect();
+        Ok(CompilationResult { success: true, errors: vec![], warnings })
     } else {
         let mut errors = Vec::new();
         for line in stderr.lines() {
@@ -374,17 +346,10 @@ pub fn verify_compilation(rust_code: &str) -> Result<CompilationResult> {
                     .find('[')
                     .and_then(|start| line.find(']').map(|end| (start, end)))
                     .map(|(start, end)| line[start + 1..end].to_string());
-                errors.push(CompilationError {
-                    code,
-                    message: line.to_string(),
-                });
+                errors.push(CompilationError { code, message: line.to_string() });
             }
         }
-        Ok(CompilationResult {
-            success: false,
-            errors,
-            warnings: vec![],
-        })
+        Ok(CompilationResult { success: false, errors, warnings: vec![] })
     }
 }
 
@@ -424,11 +389,7 @@ mod tests {
         "#;
 
         let report = audit_rust_code(code).expect("Audit failed");
-        assert_eq!(
-            report.unsafe_blocks.len(),
-            1,
-            "Should detect one unsafe block"
-        );
+        assert_eq!(report.unsafe_blocks.len(), 1, "Should detect one unsafe block");
         assert!(report.unsafe_lines > 0, "Should count unsafe lines");
     }
 
@@ -450,11 +411,7 @@ mod tests {
         "#;
 
         let report = audit_rust_code(code).expect("Audit failed");
-        assert_eq!(
-            report.unsafe_blocks.len(),
-            2,
-            "Should detect two unsafe blocks"
-        );
+        assert_eq!(report.unsafe_blocks.len(), 2, "Should detect two unsafe blocks");
     }
 
     #[test]
@@ -494,10 +451,7 @@ fn example() {
 
         let report = audit_rust_code(code).expect("Audit failed");
         // Should detect nested blocks (implementation choice: count as 2 or 1)
-        assert!(
-            !report.unsafe_blocks.is_empty(),
-            "Should detect unsafe blocks"
-        );
+        assert!(!report.unsafe_blocks.is_empty(), "Should detect unsafe blocks");
     }
 
     #[test]
@@ -522,11 +476,7 @@ fn example() {
         "#;
 
         let report = audit_rust_code(code).expect("Audit failed");
-        assert_eq!(
-            report.unsafe_blocks.len(),
-            3,
-            "Should detect unsafe in all items"
-        );
+        assert_eq!(report.unsafe_blocks.len(), 3, "Should detect unsafe in all items");
     }
 
     #[test]
@@ -563,10 +513,7 @@ fn example() {
 
         let report = audit_rust_code(code).expect("Audit failed");
         assert_eq!(report.unsafe_blocks.len(), 1);
-        assert_eq!(
-            report.unsafe_blocks[0].pattern,
-            UnsafePattern::RawPointerDeref
-        );
+        assert_eq!(report.unsafe_blocks[0].pattern, UnsafePattern::RawPointerDeref);
     }
 
     #[test]
@@ -582,10 +529,7 @@ fn example() {
 
         let report = audit_rust_code(code).expect("Audit failed");
         assert_eq!(report.unsafe_blocks.len(), 1);
-        assert!(
-            !report.unsafe_blocks[0].suggestion.is_empty(),
-            "Should provide a suggestion"
-        );
+        assert!(!report.unsafe_blocks[0].suggestion.is_empty(), "Should provide a suggestion");
     }
 
     #[test]
@@ -659,21 +603,19 @@ fn example() {
 
     #[test]
     fn test_verify_compilation_type_error() {
-        let result = verify_compilation("fn main() { let x: i32 = \"bad\"; }")
-            .expect("rustc failed to run");
+        let result =
+            verify_compilation("fn main() { let x: i32 = \"bad\"; }").expect("rustc failed to run");
         assert!(!result.success, "Type error should fail compilation");
         assert!(!result.errors.is_empty(), "Should have at least one error");
         // E0308 is the mismatched types error
-        let has_e0308 = result.errors.iter().any(|e| {
-            e.code.as_deref() == Some("E0308")
-        });
+        let has_e0308 = result.errors.iter().any(|e| e.code.as_deref() == Some("E0308"));
         assert!(has_e0308, "Should contain E0308 error code");
     }
 
     #[test]
     fn test_verify_compilation_missing_function() {
-        let result = verify_compilation("fn main() { undefined_function(); }")
-            .expect("rustc failed to run");
+        let result =
+            verify_compilation("fn main() { undefined_function(); }").expect("rustc failed to run");
         assert!(!result.success);
         assert!(!result.errors.is_empty());
     }

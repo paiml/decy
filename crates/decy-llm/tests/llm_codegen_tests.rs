@@ -41,14 +41,16 @@ fn test_prompt_with_instructions() {
 #[test]
 fn test_render_prompt_includes_context() {
     let mut builder = ContextBuilder::new();
-    builder
-        .add_function("transfer", "void transfer(int* dest, int* src)")
-        .add_ownership("transfer", "dest", "mutable_borrow", 0.9, "Modified");
-
-    let prompt = CodegenPrompt::new(
-        "void transfer(int* dest, int* src) { *dest = *src; }",
-        builder.build(),
+    builder.add_function("transfer", "void transfer(int* dest, int* src)").add_ownership(
+        "transfer",
+        "dest",
+        "mutable_borrow",
+        0.9,
+        "Modified",
     );
+
+    let prompt =
+        CodegenPrompt::new("void transfer(int* dest, int* src) { *dest = *src; }", builder.build());
 
     let rendered = prompt.render();
 
@@ -213,16 +215,8 @@ fn test_render_prompt_with_instructions_section() {
 
     let rendered = prompt.render();
 
-    assert!(
-        rendered.contains("Additional Instructions"),
-        "Got: {}",
-        rendered
-    );
-    assert!(
-        rendered.contains("Prefer safe Rust patterns"),
-        "Got: {}",
-        rendered
-    );
+    assert!(rendered.contains("Additional Instructions"), "Got: {}", rendered);
+    assert!(rendered.contains("Prefer safe Rust patterns"), "Got: {}", rendered);
     assert!(rendered.contains("Task"), "Got: {}", rendered);
 }
 
@@ -339,8 +333,7 @@ fn test_parse_response_plain_code_block() {
 fn test_parse_response_extracts_reasoning() {
     let codegen = LlmCodegen::new("test-model");
 
-    let response =
-        "```rust\nfn hello() {}\n```\nThis converts the C function to idiomatic Rust.";
+    let response = "```rust\nfn hello() {}\n```\nThis converts the C function to idiomatic Rust.";
 
     let result = codegen.parse_response(response);
     assert!(result.is_ok());
@@ -365,11 +358,7 @@ fn test_render_prompt_includes_json_context() {
     let rendered = prompt.render();
 
     // Should have JSON context block
-    assert!(
-        rendered.contains("Static Analysis Context"),
-        "Got: {}",
-        rendered
-    );
+    assert!(rendered.contains("Static Analysis Context"), "Got: {}", rendered);
     assert!(rendered.contains("```json"), "Got: {}", rendered);
     assert!(rendered.contains("test_fn"), "Got: {}", rendered);
 }

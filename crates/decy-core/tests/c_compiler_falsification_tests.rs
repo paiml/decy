@@ -169,17 +169,10 @@ int count_tokens(const char *src, int len) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C376: Lexer with token types - failed: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C376: Lexer with token types - failed: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C376: empty output");
-    assert!(
-        code.contains("fn lexer_next"),
-        "C376: Should contain lexer_next function"
-    );
+    assert!(code.contains("fn lexer_next"), "C376: Should contain lexer_next function");
 }
 
 #[test]
@@ -317,17 +310,10 @@ int eval_node(const struct parser *p, int idx) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C377: Recursive descent parser - failed: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C377: Recursive descent parser - failed: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C377: empty output");
-    assert!(
-        code.contains("fn eval_node"),
-        "C377: Should contain eval_node function"
-    );
+    assert!(code.contains("fn eval_node"), "C377: Should contain eval_node function");
 }
 
 #[test]
@@ -412,17 +398,10 @@ int pool_count_kind(const struct ast_pool *pool, enum ast_kind kind) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C378: AST node allocation - failed: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C378: AST node allocation - failed: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C378: empty output");
-    assert!(
-        code.contains("fn pool_alloc"),
-        "C378: Should contain pool_alloc function"
-    );
+    assert!(code.contains("fn pool_alloc"), "C378: Should contain pool_alloc function");
 }
 
 #[test]
@@ -529,17 +508,10 @@ int symtab_current_depth(const struct sym_table *st) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C379: Symbol table with scope chaining - failed: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C379: Symbol table with scope chaining - failed: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C379: empty output");
-    assert!(
-        code.contains("fn symtab_lookup"),
-        "C379: Should contain symtab_lookup function"
-    );
+    assert!(code.contains("fn symtab_lookup"), "C379: Should contain symtab_lookup function");
 }
 
 #[test]
@@ -635,17 +607,10 @@ int type_resolve(struct type_env *env, int idx) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C380: Type checker unification - failed: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C380: Type checker unification - failed: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C380: empty output");
-    assert!(
-        code.contains("fn type_unify"),
-        "C380: Should contain type_unify function"
-    );
+    assert!(code.contains("fn type_unify"), "C380: Should contain type_unify function");
 }
 
 // ============================================================================
@@ -810,17 +775,10 @@ int vm_top(const struct vm *vm) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C381: Stack-based bytecode interpreter - failed: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C381: Stack-based bytecode interpreter - failed: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C381: empty output");
-    assert!(
-        code.contains("fn vm_run"),
-        "C381: Should contain vm_run function"
-    );
+    assert!(code.contains("fn vm_run"), "C381: Should contain vm_run function");
 }
 
 #[test]
@@ -926,17 +884,10 @@ int regalloc_spill_count(const struct reg_allocator *ra) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C382: Register allocation linear scan - failed: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C382: Register allocation linear scan - failed: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C382: empty output");
-    assert!(
-        code.contains("fn regalloc_run"),
-        "C382: Should contain regalloc_run function"
-    );
+    assert!(code.contains("fn regalloc_run"), "C382: Should contain regalloc_run function");
 }
 
 #[test]
@@ -1047,17 +998,10 @@ int ssa_count_phis(const struct ssa_builder *ssa) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C383: SSA phi node insertion - failed: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C383: SSA phi node insertion - failed: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C383: empty output");
-    assert!(
-        code.contains("fn ssa_insert_phi"),
-        "C383: Should contain ssa_insert_phi function"
-    );
+    assert!(code.contains("fn ssa_insert_phi"), "C383: Should contain ssa_insert_phi function");
 }
 
 #[test]
@@ -1175,17 +1119,10 @@ int gc_live_count(const struct gc_heap *heap) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C384: Mark-and-sweep garbage collector - failed: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C384: Mark-and-sweep garbage collector - failed: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C384: empty output");
-    assert!(
-        code.contains("fn gc_collect"),
-        "C384: Should contain gc_collect function"
-    );
+    assert!(code.contains("fn gc_collect"), "C384: Should contain gc_collect function");
 }
 
 #[test]
@@ -1273,17 +1210,10 @@ int semi_gc_used(const struct semispace_gc *gc) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C385: Copying/compacting GC semispace - failed: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C385: Copying/compacting GC semispace - failed: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C385: empty output");
-    assert!(
-        code.contains("fn semi_gc_collect"),
-        "C385: Should contain semi_gc_collect function"
-    );
+    assert!(code.contains("fn semi_gc_collect"), "C385: Should contain semi_gc_collect function");
 }
 
 // ============================================================================
@@ -1474,11 +1404,7 @@ int is_nop(uint32_t encoded) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C387: Instruction encoding/decoding - failed: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C387: Instruction encoding/decoding - failed: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C387: empty output");
     assert!(
@@ -1595,11 +1521,7 @@ int opt_folded_count(const struct optimizer *opt) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C388: Constant folding optimizer - failed: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C388: Constant folding optimizer - failed: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C388: empty output");
     assert!(
@@ -1687,17 +1609,10 @@ int dce_eliminated_count(const struct dce_pass *dce) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C389: Dead code elimination - failed: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C389: Dead code elimination - failed: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C389: empty output");
-    assert!(
-        code.contains("fn dce_eliminate"),
-        "C389: Should contain dce_eliminate function"
-    );
+    assert!(code.contains("fn dce_eliminate"), "C389: Should contain dce_eliminate function");
 }
 
 #[test]
@@ -1798,17 +1713,10 @@ int closure_get_env(const struct closure_runtime *rt, int closure_id) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C390: Closure environment capture - failed: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C390: Closure environment capture - failed: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C390: empty output");
-    assert!(
-        code.contains("fn closure_env_get"),
-        "C390: Should contain closure_env_get function"
-    );
+    assert!(code.contains("fn closure_env_get"), "C390: Should contain closure_env_get function");
 }
 
 // ============================================================================
@@ -1915,17 +1823,10 @@ int match_count_wildcards(const struct match_compiler *mc) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C391: Pattern matching compiler - failed: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C391: Pattern matching compiler - failed: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C391: empty output");
-    assert!(
-        code.contains("fn match_execute"),
-        "C391: Should contain match_execute function"
-    );
+    assert!(code.contains("fn match_execute"), "C391: Should contain match_execute function");
 }
 
 #[test]
@@ -2012,17 +1913,10 @@ int tco_tail_call_ratio(const struct tco_analyzer *tco) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C392: Tail call optimization detector - failed: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C392: Tail call optimization detector - failed: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C392: empty output");
-    assert!(
-        code.contains("fn tco_analyze"),
-        "C392: Should contain tco_analyze function"
-    );
+    assert!(code.contains("fn tco_analyze"), "C392: Should contain tco_analyze function");
 }
 
 #[test]
@@ -2129,17 +2023,10 @@ int exc_depth(const struct exception_table *et) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C393: Exception handling table - failed: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C393: Exception handling table - failed: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C393: empty output");
-    assert!(
-        code.contains("fn exc_throw"),
-        "C393: Should contain exc_throw function"
-    );
+    assert!(code.contains("fn exc_throw"), "C393: Should contain exc_throw function");
 }
 
 #[test]
@@ -2231,17 +2118,10 @@ int intern_same(const struct intern_table *table, int a, int b) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C394: String interning table - failed: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C394: String interning table - failed: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C394: empty output");
-    assert!(
-        code.contains("fn intern_insert"),
-        "C394: Should contain intern_insert function"
-    );
+    assert!(code.contains("fn intern_insert"), "C394: Should contain intern_insert function");
 }
 
 #[test]
@@ -2340,11 +2220,7 @@ int dispatch_verify_stack(const struct dispatch_table *dt, const uint8_t *byteco
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C395: Opcode dispatch table - failed: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C395: Opcode dispatch table - failed: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C395: empty output");
     assert!(
@@ -2431,11 +2307,7 @@ int codebuf_remaining(const struct code_buffer *buf) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C396: JIT code buffer allocation - failed: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C396: JIT code buffer allocation - failed: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C396: empty output");
     assert!(
@@ -2548,11 +2420,7 @@ int debug_locals_in_scope(const struct debug_info *di, int code_offset) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C397: Debug info source map generation - failed: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C397: Debug info source map generation - failed: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C397: empty output");
     assert!(
@@ -2694,11 +2562,7 @@ int registry_has_cycle(const struct module_registry *reg) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C398: Module/import resolution - failed: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C398: Module/import resolution - failed: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C398: empty output");
     assert!(
@@ -2834,17 +2698,10 @@ int peep_optimized_count(const struct peephole *ph) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C399: Peephole optimizer - failed: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C399: Peephole optimizer - failed: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C399: empty output");
-    assert!(
-        code.contains("fn peep_optimize"),
-        "C399: Should contain peep_optimize function"
-    );
+    assert!(code.contains("fn peep_optimize"), "C399: Should contain peep_optimize function");
 }
 
 #[test]
@@ -2972,15 +2829,8 @@ int td_type_name_len(const struct type_dispatch *td, int idx) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C400: Runtime type tag dispatch - failed: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C400: Runtime type tag dispatch - failed: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C400: empty output");
-    assert!(
-        code.contains("fn td_is_truthy"),
-        "C400: Should contain td_is_truthy function"
-    );
+    assert!(code.contains("fn td_is_truthy"), "C400: Should contain td_is_truthy function");
 }

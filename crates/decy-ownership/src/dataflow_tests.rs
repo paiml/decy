@@ -24,10 +24,7 @@ fn test_build_dataflow_graph() {
     let graph = analyzer.analyze(&func);
 
     // Should have one node for ptr
-    assert!(
-        graph.nodes_for("ptr").is_some(),
-        "Graph should track pointer variable"
-    );
+    assert!(graph.nodes_for("ptr").is_some(), "Graph should track pointer variable");
     let nodes = graph.nodes_for("ptr").unwrap();
     assert_eq!(nodes.len(), 1, "Should have one node for ptr");
     assert_eq!(nodes[0].kind, NodeKind::Allocation);
@@ -61,10 +58,7 @@ fn test_track_pointer_assignments() {
     let graph = analyzer.analyze(&func);
 
     // ptr2 should depend on ptr1
-    assert!(
-        graph.dependencies_for("ptr2").is_some(),
-        "ptr2 should have dependencies"
-    );
+    assert!(graph.dependencies_for("ptr2").is_some(), "ptr2 should have dependencies");
     let deps = graph.dependencies_for("ptr2").unwrap();
     assert!(deps.contains("ptr1"), "ptr2 should depend on ptr1");
 }
@@ -158,10 +152,7 @@ fn test_track_function_parameters() {
     let func = HirFunction::new_with_body(
         "process".to_string(),
         HirType::Void,
-        vec![HirParameter::new(
-            "ptr".to_string(),
-            HirType::Pointer(Box::new(HirType::Int)),
-        )],
+        vec![HirParameter::new("ptr".to_string(), HirType::Pointer(Box::new(HirType::Int)))],
         vec![HirStatement::Assignment {
             target: "x".to_string(),
             value: HirExpression::Dereference(Box::new(HirExpression::Variable("ptr".to_string()))),
@@ -172,16 +163,9 @@ fn test_track_function_parameters() {
     let graph = analyzer.analyze(&func);
 
     // Should track parameter as a node
-    assert!(
-        graph.nodes_for("ptr").is_some(),
-        "Should track parameter pointer"
-    );
+    assert!(graph.nodes_for("ptr").is_some(), "Should track parameter pointer");
     let nodes = graph.nodes_for("ptr").unwrap();
-    assert_eq!(
-        nodes[0].kind,
-        NodeKind::Parameter,
-        "Should mark as parameter"
-    );
+    assert_eq!(nodes[0].kind, NodeKind::Parameter, "Should mark as parameter");
 }
 
 #[test]
@@ -203,9 +187,9 @@ fn test_track_dereference_operations() {
             HirStatement::VariableDeclaration {
                 name: "x".to_string(),
                 var_type: HirType::Int,
-                initializer: Some(HirExpression::Dereference(Box::new(
-                    HirExpression::Variable("ptr".to_string()),
-                ))),
+                initializer: Some(HirExpression::Dereference(Box::new(HirExpression::Variable(
+                    "ptr".to_string(),
+                )))),
             },
         ],
     );
@@ -226,11 +210,7 @@ fn test_empty_function() {
     let graph = analyzer.analyze(&func);
 
     // Should have empty graph
-    assert_eq!(
-        graph.variables().len(),
-        0,
-        "Empty function should have no tracked variables"
-    );
+    assert_eq!(graph.variables().len(), 0, "Empty function should have no tracked variables");
 }
 
 #[test]
@@ -254,11 +234,7 @@ fn test_non_pointer_variables_not_tracked() {
     let graph = analyzer.analyze(&func);
 
     // Should not track non-pointer variables
-    assert_eq!(
-        graph.variables().len(),
-        0,
-        "Should not track non-pointer variables"
-    );
+    assert_eq!(graph.variables().len(), 0, "Should not track non-pointer variables");
 }
 
 #[test]
@@ -318,10 +294,7 @@ fn test_detect_stack_array_allocation() {
         vec![],
         vec![HirStatement::VariableDeclaration {
             name: "arr".to_string(),
-            var_type: HirType::Array {
-                element_type: Box::new(HirType::Int),
-                size: Some(10),
-            },
+            var_type: HirType::Array { element_type: Box::new(HirType::Int), size: Some(10) },
             initializer: None,
         }],
     );
@@ -330,9 +303,7 @@ fn test_detect_stack_array_allocation() {
     let graph = analyzer.analyze(&func);
 
     // Should detect array allocation
-    let nodes = graph
-        .nodes_for("arr")
-        .expect("Array should be tracked in dataflow");
+    let nodes = graph.nodes_for("arr").expect("Array should be tracked in dataflow");
     assert_eq!(nodes.len(), 1, "Should have one node for array");
 
     // This will FAIL until we implement NodeKind::ArrayAllocation
@@ -340,10 +311,7 @@ fn test_detect_stack_array_allocation() {
         assert_eq!(*size, Some(10));
         assert_eq!(*element_type, HirType::Int);
     } else {
-        panic!(
-            "Expected ArrayAllocation node kind, got {:?}",
-            nodes[0].kind
-        );
+        panic!("Expected ArrayAllocation node kind, got {:?}", nodes[0].kind);
     }
 }
 
@@ -364,9 +332,7 @@ fn test_detect_heap_array_allocation() {
                 arguments: vec![HirExpression::BinaryOp {
                     op: decy_hir::BinaryOperator::Multiply,
                     left: Box::new(HirExpression::Variable("n".to_string())),
-                    right: Box::new(HirExpression::Sizeof {
-                        type_name: "int".to_string(),
-                    }),
+                    right: Box::new(HirExpression::Sizeof { type_name: "int".to_string() }),
                 }],
             }),
         }],
@@ -375,9 +341,7 @@ fn test_detect_heap_array_allocation() {
     let analyzer = DataflowAnalyzer::new();
     let graph = analyzer.analyze(&func);
 
-    let nodes = graph
-        .nodes_for("arr")
-        .expect("Heap array should be tracked");
+    let nodes = graph.nodes_for("arr").expect("Heap array should be tracked");
     assert_eq!(nodes.len(), 1);
 
     // Should detect as array allocation (heap)
@@ -401,10 +365,7 @@ fn test_track_pointer_from_array() {
         vec![
             HirStatement::VariableDeclaration {
                 name: "arr".to_string(),
-                var_type: HirType::Array {
-                    element_type: Box::new(HirType::Int),
-                    size: Some(10),
-                },
+                var_type: HirType::Array { element_type: Box::new(HirType::Int), size: Some(10) },
                 initializer: None,
             },
             HirStatement::VariableDeclaration {
@@ -426,9 +387,7 @@ fn test_track_pointer_from_array() {
         assert_eq!(source, "arr", "Should track array base");
 
         // Should also have array base metadata
-        let array_base = graph
-            .array_base_for("p")
-            .expect("Pointer should have array base tracked");
+        let array_base = graph.array_base_for("p").expect("Pointer should have array base tracked");
         assert_eq!(array_base, "arr");
     } else {
         panic!("Expected Assignment with ArrayBase tracking");
@@ -454,27 +413,17 @@ fn test_track_array_parameter() {
     let graph = analyzer.analyze(&func);
 
     // arr parameter should be tracked
-    let arr_nodes = graph
-        .nodes_for("arr")
-        .expect("Array parameter should be tracked");
+    let arr_nodes = graph.nodes_for("arr").expect("Array parameter should be tracked");
     assert_eq!(arr_nodes.len(), 1);
 
     // Should be marked as array pointer parameter
     // This will FAIL until we add array parameter detection
-    assert_eq!(
-        arr_nodes[0].kind,
-        NodeKind::Parameter,
-        "Should be parameter node"
-    );
+    assert_eq!(arr_nodes[0].kind, NodeKind::Parameter, "Should be parameter node");
 
     // Check for array metadata (pointer + length parameter pattern)
-    let is_array_param = graph
-        .is_array_parameter("arr")
-        .expect("Should have array parameter metadata");
-    assert!(
-        is_array_param,
-        "arr should be detected as array parameter (has length param)"
-    );
+    let is_array_param =
+        graph.is_array_parameter("arr").expect("Should have array parameter metadata");
+    assert!(is_array_param, "arr should be detected as array parameter (has length param)");
 }
 
 #[test]
@@ -508,13 +457,7 @@ fn test_detect_multidimensional_array() {
     if let NodeKind::ArrayAllocation { size, element_type } = &nodes[0].kind {
         assert_eq!(*size, Some(5));
         // Element type should be array of int[10]
-        assert!(matches!(
-            element_type,
-            HirType::Array {
-                element_type: _,
-                size: Some(10)
-            }
-        ));
+        assert!(matches!(element_type, HirType::Array { element_type: _, size: Some(10) }));
     } else {
         panic!("Expected ArrayAllocation for multidimensional array");
     }
@@ -584,10 +527,7 @@ fn test_detect_array_parameter_with_count() {
         "process".to_string(),
         HirType::Void,
         vec![
-            HirParameter::new(
-                "array".to_string(),
-                HirType::Pointer(Box::new(HirType::Int)),
-            ),
+            HirParameter::new("array".to_string(), HirType::Pointer(Box::new(HirType::Int))),
             HirParameter::new("count".to_string(), HirType::Int),
         ],
         vec![],
@@ -611,10 +551,7 @@ fn test_no_detect_single_pointer_without_length() {
     let func = HirFunction::new_with_body(
         "process".to_string(),
         HirType::Void,
-        vec![HirParameter::new(
-            "ptr".to_string(),
-            HirType::Pointer(Box::new(HirType::Int)),
-        )],
+        vec![HirParameter::new("ptr".to_string(), HirType::Pointer(Box::new(HirType::Int)))],
         vec![],
     );
 
@@ -815,10 +752,7 @@ fn test_unnamed_pointer_parameter() {
         "process".to_string(),
         HirType::Void,
         vec![
-            HirParameter::new(
-                "_arg0".to_string(),
-                HirType::Pointer(Box::new(HirType::Int)),
-            ),
+            HirParameter::new("_arg0".to_string(), HirType::Pointer(Box::new(HirType::Int))),
             HirParameter::new("_arg1".to_string(), HirType::Int),
         ],
         vec![],
@@ -877,10 +811,7 @@ fn test_is_modified_with_array_index_assignment() {
     let func = HirFunction::new_with_body(
         "test".to_string(),
         HirType::Void,
-        vec![HirParameter::new(
-            "arr".to_string(),
-            HirType::Pointer(Box::new(HirType::Int)),
-        )],
+        vec![HirParameter::new("arr".to_string(), HirType::Pointer(Box::new(HirType::Int)))],
         vec![HirStatement::ArrayIndexAssignment {
             array: Box::new(HirExpression::Variable("arr".to_string())),
             index: Box::new(HirExpression::IntLiteral(0)),
@@ -899,10 +830,7 @@ fn test_is_modified_with_deref_assignment() {
     let func = HirFunction::new_with_body(
         "test".to_string(),
         HirType::Void,
-        vec![HirParameter::new(
-            "ptr".to_string(),
-            HirType::Pointer(Box::new(HirType::Int)),
-        )],
+        vec![HirParameter::new("ptr".to_string(), HirType::Pointer(Box::new(HirType::Int)))],
         vec![HirStatement::DerefAssignment {
             target: HirExpression::Variable("ptr".to_string()),
             value: HirExpression::IntLiteral(42),
@@ -920,10 +848,7 @@ fn test_is_modified_in_if_block() {
     let func = HirFunction::new_with_body(
         "test".to_string(),
         HirType::Void,
-        vec![HirParameter::new(
-            "arr".to_string(),
-            HirType::Pointer(Box::new(HirType::Int)),
-        )],
+        vec![HirParameter::new("arr".to_string(), HirType::Pointer(Box::new(HirType::Int)))],
         vec![HirStatement::If {
             condition: HirExpression::IntLiteral(1),
             then_block: vec![HirStatement::ArrayIndexAssignment {
@@ -946,10 +871,7 @@ fn test_is_modified_in_else_block() {
     let func = HirFunction::new_with_body(
         "test".to_string(),
         HirType::Void,
-        vec![HirParameter::new(
-            "arr".to_string(),
-            HirType::Pointer(Box::new(HirType::Int)),
-        )],
+        vec![HirParameter::new("arr".to_string(), HirType::Pointer(Box::new(HirType::Int)))],
         vec![HirStatement::If {
             condition: HirExpression::IntLiteral(0),
             then_block: vec![],
@@ -972,10 +894,7 @@ fn test_is_modified_in_while_loop() {
     let func = HirFunction::new_with_body(
         "test".to_string(),
         HirType::Void,
-        vec![HirParameter::new(
-            "arr".to_string(),
-            HirType::Pointer(Box::new(HirType::Int)),
-        )],
+        vec![HirParameter::new("arr".to_string(), HirType::Pointer(Box::new(HirType::Int)))],
         vec![HirStatement::While {
             condition: HirExpression::IntLiteral(1),
             body: vec![HirStatement::ArrayIndexAssignment {
@@ -997,10 +916,7 @@ fn test_is_modified_in_for_loop() {
     let func = HirFunction::new_with_body(
         "test".to_string(),
         HirType::Void,
-        vec![HirParameter::new(
-            "arr".to_string(),
-            HirType::Pointer(Box::new(HirType::Int)),
-        )],
+        vec![HirParameter::new("arr".to_string(), HirType::Pointer(Box::new(HirType::Int)))],
         vec![HirStatement::For {
             init: vec![],
             condition: Some(HirExpression::IntLiteral(1)),
@@ -1024,10 +940,7 @@ fn test_is_modified_false() {
     let func = HirFunction::new_with_body(
         "test".to_string(),
         HirType::Void,
-        vec![HirParameter::new(
-            "arr".to_string(),
-            HirType::Pointer(Box::new(HirType::Int)),
-        )],
+        vec![HirParameter::new("arr".to_string(), HirType::Pointer(Box::new(HirType::Int)))],
         vec![HirStatement::Return(Some(HirExpression::IntLiteral(0)))],
     );
 
@@ -1119,30 +1032,21 @@ fn test_node_kind_debug() {
 
 #[test]
 fn test_node_kind_assignment() {
-    let kind = NodeKind::Assignment {
-        source: "other".to_string(),
-    };
+    let kind = NodeKind::Assignment { source: "other".to_string() };
     let debug = format!("{:?}", kind);
     assert!(debug.contains("other"));
 }
 
 #[test]
 fn test_node_kind_array_allocation() {
-    let kind = NodeKind::ArrayAllocation {
-        size: Some(10),
-        element_type: HirType::Int,
-    };
+    let kind = NodeKind::ArrayAllocation { size: Some(10), element_type: HirType::Int };
     let debug = format!("{:?}", kind);
     assert!(debug.contains("ArrayAllocation"));
 }
 
 #[test]
 fn test_pointer_node_clone_eq() {
-    let node = PointerNode {
-        name: "ptr".to_string(),
-        def_index: 0,
-        kind: NodeKind::Allocation,
-    };
+    let node = PointerNode { name: "ptr".to_string(), def_index: 0, kind: NodeKind::Allocation };
     let cloned = node.clone();
     assert_eq!(node, cloned);
 }
@@ -1269,11 +1173,7 @@ fn test_array_param_with_multiply_binop_not_pointer_arithmetic() {
 
     let analyzer = DataflowAnalyzer::new();
     let graph = analyzer.analyze(&func);
-    assert_eq!(
-        graph.is_array_parameter("arr"),
-        Some(true),
-        "Multiply is not pointer arithmetic"
-    );
+    assert_eq!(graph.is_array_parameter("arr"), Some(true), "Multiply is not pointer arithmetic");
 }
 
 // ============================================================================
@@ -1291,11 +1191,7 @@ fn test_array_param_with_break_continue_in_body() {
             HirParameter::new("arr".to_string(), HirType::Pointer(Box::new(HirType::Int))),
             HirParameter::new("n".to_string(), HirType::Int),
         ],
-        vec![
-            HirStatement::Break,
-            HirStatement::Continue,
-            HirStatement::Return(None),
-        ],
+        vec![HirStatement::Break, HirStatement::Continue, HirStatement::Return(None)],
     );
 
     let analyzer = DataflowAnalyzer::new();
@@ -1382,10 +1278,7 @@ fn test_get_array_parameters_last_param_no_length() {
     let func = HirFunction::new_with_body(
         "sum".to_string(),
         HirType::Void,
-        vec![HirParameter::new(
-            "arr".to_string(),
-            HirType::Pointer(Box::new(HirType::Int)),
-        )],
+        vec![HirParameter::new("arr".to_string(), HirType::Pointer(Box::new(HirType::Int)))],
         vec![],
     );
 
@@ -1396,10 +1289,7 @@ fn test_get_array_parameters_last_param_no_length() {
     if !array_params.is_empty() {
         assert_eq!(array_params[0].0, "arr");
         // No length param because it's the last parameter
-        assert!(
-            array_params[0].1.is_none(),
-            "Last param has no next param for length"
-        );
+        assert!(array_params[0].1.is_none(), "Last param has no next param for length");
     }
 }
 
@@ -1410,10 +1300,7 @@ fn test_get_array_parameters_with_length_detection() {
         "process".to_string(),
         HirType::Void,
         vec![
-            HirParameter::new(
-                "data".to_string(),
-                HirType::Pointer(Box::new(HirType::Int)),
-            ),
+            HirParameter::new("data".to_string(), HirType::Pointer(Box::new(HirType::Int))),
             HirParameter::new("len".to_string(), HirType::Int),
         ],
         vec![],

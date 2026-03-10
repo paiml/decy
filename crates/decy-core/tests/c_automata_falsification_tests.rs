@@ -482,7 +482,10 @@ int fa_thompson_test(void) {
     assert!(!code.is_empty(), "C880: empty output");
     assert!(code.contains("fn fa_thompson_init"), "C880: Should contain fa_thompson_init");
     assert!(code.contains("fn fa_thompson_literal"), "C880: Should contain fa_thompson_literal");
-    assert!(code.contains("fn fa_thompson_kleene_star"), "C880: Should contain fa_thompson_kleene_star");
+    assert!(
+        code.contains("fn fa_thompson_kleene_star"),
+        "C880: Should contain fa_thompson_kleene_star"
+    );
     Ok(())
 }
 
@@ -557,7 +560,10 @@ int fa_pda_test(void) {
     assert!(!code.is_empty(), "C881: empty output");
     assert!(code.contains("fn fa_pda_init"), "C881: Should contain fa_pda_init");
     assert!(code.contains("fn fa_pda_push"), "C881: Should contain fa_pda_push");
-    assert!(code.contains("fn fa_pda_check_balanced"), "C881: Should contain fa_pda_check_balanced");
+    assert!(
+        code.contains("fn fa_pda_check_balanced"),
+        "C881: Should contain fa_pda_check_balanced"
+    );
     Ok(())
 }
 
@@ -2002,7 +2008,10 @@ int fa_weighted_test(void) {
     let code = result.unwrap();
     assert!(!code.is_empty(), "C896: empty output");
     assert!(code.contains("fn fa_weighted_init"), "C896: Should contain fa_weighted_init");
-    assert!(code.contains("fn fa_weighted_shortest_path"), "C896: Should contain fa_weighted_shortest_path");
+    assert!(
+        code.contains("fn fa_weighted_shortest_path"),
+        "C896: Should contain fa_weighted_shortest_path"
+    );
     Ok(())
 }
 

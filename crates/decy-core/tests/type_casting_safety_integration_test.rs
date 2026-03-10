@@ -34,11 +34,7 @@ fn test_int_to_char_cast() {
     assert!(result.contains("fn main"), "Should have main function");
 
     let unsafe_count = result.matches("unsafe").count();
-    assert!(
-        unsafe_count <= 2,
-        "Integer cast should minimize unsafe (found {})",
-        unsafe_count
-    );
+    assert!(unsafe_count <= 2, "Integer cast should minimize unsafe (found {})", unsafe_count);
 }
 
 #[test]
@@ -58,11 +54,7 @@ fn test_char_to_int_cast() {
     assert!(result.contains("fn main"), "Should have main function");
 
     let unsafe_count = result.matches("unsafe").count();
-    assert!(
-        unsafe_count <= 2,
-        "Char to int cast should minimize unsafe (found {})",
-        unsafe_count
-    );
+    assert!(unsafe_count <= 2, "Char to int cast should minimize unsafe (found {})", unsafe_count);
 }
 
 #[test]
@@ -106,11 +98,7 @@ fn test_long_to_int_cast() {
     assert!(result.contains("fn main"), "Should have main function");
 
     let unsafe_count = result.matches("unsafe").count();
-    assert!(
-        unsafe_count <= 2,
-        "Long to int cast should minimize unsafe (found {})",
-        unsafe_count
-    );
+    assert!(unsafe_count <= 2, "Long to int cast should minimize unsafe (found {})", unsafe_count);
 }
 
 // ============================================================================
@@ -142,11 +130,7 @@ fn test_void_pointer_cast() {
     assert!(result.contains("fn main"), "Should have main function");
 
     let unsafe_count = result.matches("unsafe").count();
-    assert!(
-        unsafe_count <= 4,
-        "Void pointer cast should minimize unsafe (found {})",
-        unsafe_count
-    );
+    assert!(unsafe_count <= 4, "Void pointer cast should minimize unsafe (found {})", unsafe_count);
 }
 
 #[test]
@@ -194,11 +178,7 @@ fn test_const_cast_away() {
     assert!(result.contains("fn main"), "Should have main function");
 
     let unsafe_count = result.matches("unsafe").count();
-    assert!(
-        unsafe_count <= 3,
-        "Const cast should minimize unsafe (found {})",
-        unsafe_count
-    );
+    assert!(unsafe_count <= 3, "Const cast should minimize unsafe (found {})", unsafe_count);
 }
 
 // ============================================================================
@@ -247,11 +227,7 @@ fn test_implicit_float_conversion() {
     assert!(result.contains("fn main"), "Should have main function");
 
     let unsafe_count = result.matches("unsafe").count();
-    assert!(
-        unsafe_count <= 2,
-        "Float conversion should minimize unsafe (found {})",
-        unsafe_count
-    );
+    assert!(unsafe_count <= 2, "Float conversion should minimize unsafe (found {})", unsafe_count);
 }
 
 // ============================================================================
@@ -310,11 +286,7 @@ fn test_array_to_pointer_decay() {
     assert!(result.contains("fn main"), "Should have main function");
 
     let unsafe_count = result.matches("unsafe").count();
-    assert!(
-        unsafe_count <= 2,
-        "Array decay should minimize unsafe (found {})",
-        unsafe_count
-    );
+    assert!(unsafe_count <= 2, "Array decay should minimize unsafe (found {})", unsafe_count);
 }
 
 // ============================================================================
@@ -378,11 +350,7 @@ fn test_enum_to_int_cast() {
     assert!(result.contains("fn main"), "Should have main function");
 
     let unsafe_count = result.matches("unsafe").count();
-    assert!(
-        unsafe_count <= 2,
-        "Enum to int cast should minimize unsafe (found {})",
-        unsafe_count
-    );
+    assert!(unsafe_count <= 2, "Enum to int cast should minimize unsafe (found {})", unsafe_count);
 }
 
 #[test]
@@ -407,11 +375,7 @@ fn test_int_to_enum_cast() {
     assert!(result.contains("fn main"), "Should have main function");
 
     let unsafe_count = result.matches("unsafe").count();
-    assert!(
-        unsafe_count <= 2,
-        "Int to enum cast should minimize unsafe (found {})",
-        unsafe_count
-    );
+    assert!(unsafe_count <= 2, "Int to enum cast should minimize unsafe (found {})", unsafe_count);
 }
 
 // ============================================================================
@@ -435,11 +399,7 @@ fn test_truncation_safety() {
     assert!(result.contains("fn main"), "Should have main function");
 
     let unsafe_count = result.matches("unsafe").count();
-    assert!(
-        unsafe_count <= 2,
-        "Truncation cast should minimize unsafe (found {})",
-        unsafe_count
-    );
+    assert!(unsafe_count <= 2, "Truncation cast should minimize unsafe (found {})", unsafe_count);
 }
 
 // ============================================================================
@@ -476,11 +436,8 @@ fn test_unsafe_block_count_target() {
     let unsafe_count = result.matches("unsafe").count();
     let lines_of_code = result.lines().count();
 
-    let unsafe_per_1000 = if lines_of_code > 0 {
-        (unsafe_count as f64 / lines_of_code as f64) * 1000.0
-    } else {
-        0.0
-    };
+    let unsafe_per_1000 =
+        if lines_of_code > 0 { (unsafe_count as f64 / lines_of_code as f64) * 1000.0 } else { 0.0 };
 
     // Target: <100 unsafe per 1000 LOC for type casts
     assert!(
@@ -545,9 +502,5 @@ fn test_type_safety_documentation() {
 
     // If unsafe blocks exist, they should be minimal
     let unsafe_count = result.matches("unsafe").count();
-    assert!(
-        unsafe_count < 10,
-        "Should have minimal unsafe blocks (found {})",
-        unsafe_count
-    );
+    assert!(unsafe_count < 10, "Should have minimal unsafe blocks (found {})", unsafe_count);
 }

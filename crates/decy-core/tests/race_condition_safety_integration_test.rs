@@ -35,11 +35,7 @@ fn test_global_variable_shared_state() {
     assert!(result.contains("fn main"), "Should have main function");
 
     let unsafe_count = result.matches("unsafe").count();
-    assert!(
-        unsafe_count <= 3,
-        "Global variable should minimize unsafe (found {})",
-        unsafe_count
-    );
+    assert!(unsafe_count <= 3, "Global variable should minimize unsafe (found {})", unsafe_count);
 }
 
 #[test]
@@ -61,11 +57,7 @@ fn test_multiple_global_variables() {
     assert!(result.contains("fn main"), "Should have main function");
 
     let unsafe_count = result.matches("unsafe").count();
-    assert!(
-        unsafe_count <= 4,
-        "Multiple globals should minimize unsafe (found {})",
-        unsafe_count
-    );
+    assert!(unsafe_count <= 4, "Multiple globals should minimize unsafe (found {})", unsafe_count);
 }
 
 #[test]
@@ -84,11 +76,7 @@ fn test_static_variable_thread_unsafe() {
     assert!(result.contains("fn main"), "Should have main function");
 
     let unsafe_count = result.matches("unsafe").count();
-    assert!(
-        unsafe_count <= 4,
-        "Static variable should minimize unsafe (found {})",
-        unsafe_count
-    );
+    assert!(unsafe_count <= 4, "Static variable should minimize unsafe (found {})", unsafe_count);
 }
 
 // ============================================================================
@@ -119,11 +107,7 @@ fn test_read_modify_write_pattern() {
     assert!(result.contains("fn main"), "Should have main function");
 
     let unsafe_count = result.matches("unsafe").count();
-    assert!(
-        unsafe_count <= 4,
-        "Read-modify-write should minimize unsafe (found {})",
-        unsafe_count
-    );
+    assert!(unsafe_count <= 4, "Read-modify-write should minimize unsafe (found {})", unsafe_count);
 }
 
 #[test]
@@ -216,11 +200,7 @@ fn test_shared_buffer_modification() {
     assert!(result.contains("fn main"), "Should have main function");
 
     let unsafe_count = result.matches("unsafe").count();
-    assert!(
-        unsafe_count <= 5,
-        "Shared buffer should minimize unsafe (found {})",
-        unsafe_count
-    );
+    assert!(unsafe_count <= 5, "Shared buffer should minimize unsafe (found {})", unsafe_count);
 }
 
 // ============================================================================
@@ -289,11 +269,7 @@ fn test_check_then_act_race() {
     assert!(result.contains("fn main"), "Should have main function");
 
     let unsafe_count = result.matches("unsafe").count();
-    assert!(
-        unsafe_count <= 4,
-        "Check-then-act should minimize unsafe (found {})",
-        unsafe_count
-    );
+    assert!(unsafe_count <= 4, "Check-then-act should minimize unsafe (found {})", unsafe_count);
 }
 
 // ============================================================================
@@ -443,11 +419,7 @@ fn test_flag_based_sync() {
     assert!(result.contains("fn main"), "Should have main function");
 
     let unsafe_count = result.matches("unsafe").count();
-    assert!(
-        unsafe_count <= 5,
-        "Flag-based sync should minimize unsafe (found {})",
-        unsafe_count
-    );
+    assert!(unsafe_count <= 5, "Flag-based sync should minimize unsafe (found {})", unsafe_count);
 }
 
 // ============================================================================
@@ -477,11 +449,7 @@ fn test_memory_ordering() {
     let unsafe_count = result.matches("unsafe").count();
     // DECY-261: 4 global accesses (2 writes + 2 reads) = 4 unsafe blocks minimum
     // Future optimization: combine consecutive global ops into single unsafe block
-    assert!(
-        unsafe_count <= 4,
-        "Memory ordering should minimize unsafe (found {})",
-        unsafe_count
-    );
+    assert!(unsafe_count <= 4, "Memory ordering should minimize unsafe (found {})", unsafe_count);
 }
 
 // ============================================================================
@@ -513,11 +481,8 @@ fn test_unsafe_block_count_target() {
     let unsafe_count = result.matches("unsafe").count();
     let lines_of_code = result.lines().count();
 
-    let unsafe_per_1000 = if lines_of_code > 0 {
-        (unsafe_count as f64 / lines_of_code as f64) * 1000.0
-    } else {
-        0.0
-    };
+    let unsafe_per_1000 =
+        if lines_of_code > 0 { (unsafe_count as f64 / lines_of_code as f64) * 1000.0 } else { 0.0 };
 
     // DECY-261: One unsafe per global variable access; 3 global ops in ~13 LOC = ~230/1000 LOC
     assert!(
@@ -582,9 +547,5 @@ fn test_race_condition_safety_documentation() {
 
     // If unsafe blocks exist, they should be minimal
     let unsafe_count = result.matches("unsafe").count();
-    assert!(
-        unsafe_count < 10,
-        "Should have minimal unsafe blocks (found {})",
-        unsafe_count
-    );
+    assert!(unsafe_count < 10, "Should have minimal unsafe blocks (found {})", unsafe_count);
 }

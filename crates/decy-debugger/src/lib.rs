@@ -76,10 +76,7 @@ impl Debugger {
     /// Create a new debugger instance
     #[must_use]
     pub fn new() -> Self {
-        Self {
-            verbose: false,
-            colored: true,
-        }
+        Self { verbose: false, colored: true }
     }
 
     /// Visualize C AST from source file
@@ -154,4 +151,3 @@ mod coverage_tests;
 
 #[cfg(test)]
 mod debugger_coverage_tests;
-

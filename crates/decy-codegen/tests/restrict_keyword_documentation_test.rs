@@ -213,10 +213,7 @@ struct Buffer {
         length: usize,
     }
 
-    let buf = Buffer {
-        data: vec![1, 2, 3],
-        length: 3,
-    };
+    let buf = Buffer { data: vec![1, 2, 3], length: 3 };
 
     assert_eq!(buf.data.len(), 3);
     assert_eq!(buf.length, 3);
@@ -605,17 +602,11 @@ fn test_restrict_summary() {
     let rust_borrow_checker_enforced = true;
 
     assert_ne!(c_restrict_verified, rust_borrow_checker_enforced);
-    assert!(
-        rust_borrow_checker_enforced,
-        "Rust provides stronger guarantees"
-    );
+    assert!(rust_borrow_checker_enforced, "Rust provides stronger guarantees");
 
     // No unsafe blocks needed
     let unsafe_blocks = 0;
-    assert_eq!(
-        unsafe_blocks, 0,
-        "Borrow checker makes restrict transformations safe"
-    );
+    assert_eq!(unsafe_blocks, 0, "Borrow checker makes restrict transformations safe");
 
     // Test that Rust prevents aliasing at compile time
     let mut x = 10;

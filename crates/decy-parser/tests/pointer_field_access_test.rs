@@ -120,17 +120,11 @@ fn test_pointer_vs_direct_field_access() {
     let ast = parser.parse(source).expect("Parsing should succeed");
 
     let func = &ast.functions()[0];
-    assert_eq!(
-        func.body.len(),
-        3,
-        "Should have 3 statements (2 decls + return)"
-    );
+    assert_eq!(func.body.len(), 3, "Should have 3 statements (2 decls + return)");
 
     // First variable: obj.value (direct field access)
-    if let decy_parser::parser::Statement::VariableDeclaration {
-        initializer: Some(expr),
-        ..
-    } = &func.body[0]
+    if let decy_parser::parser::Statement::VariableDeclaration { initializer: Some(expr), .. } =
+        &func.body[0]
     {
         assert!(
             matches!(expr, Expression::FieldAccess { .. }),
@@ -139,10 +133,8 @@ fn test_pointer_vs_direct_field_access() {
     }
 
     // Second variable: ptr->value (pointer field access)
-    if let decy_parser::parser::Statement::VariableDeclaration {
-        initializer: Some(expr),
-        ..
-    } = &func.body[1]
+    if let decy_parser::parser::Statement::VariableDeclaration { initializer: Some(expr), .. } =
+        &func.body[1]
     {
         assert!(
             matches!(expr, Expression::PointerFieldAccess { .. }),

@@ -75,10 +75,7 @@ fn test_identify_data_accessed_in_locked_region() {
     let analyzer = LockAnalyzer::new();
     let mapping = analyzer.analyze_lock_data_mapping(&func);
 
-    assert!(
-        mapping.is_protected_by("data", "lock"),
-        "data should be protected by lock"
-    );
+    assert!(mapping.is_protected_by("data", "lock"), "data should be protected by lock");
 
     let protected = mapping.get_protected_data("lock");
     assert_eq!(protected.len(), 1);
@@ -267,10 +264,7 @@ fn test_data_read_in_locked_region() {
     let analyzer = LockAnalyzer::new();
     let mapping = analyzer.analyze_lock_data_mapping(&func);
 
-    assert!(
-        mapping.is_protected_by("data", "lock"),
-        "Read-only access should count as protected"
-    );
+    assert!(mapping.is_protected_by("data", "lock"), "Read-only access should count as protected");
 }
 
 #[test]
@@ -335,11 +329,7 @@ fn test_return_without_value_in_locked_region() {
         "test".to_string(),
         HirType::Void,
         vec![],
-        vec![
-            lock_call("lock"),
-            HirStatement::Return(None),
-            unlock_call("lock"),
-        ],
+        vec![lock_call("lock"), HirStatement::Return(None), unlock_call("lock")],
     );
 
     let analyzer = LockAnalyzer::new();
@@ -485,12 +475,7 @@ fn test_break_continue_in_locked_region() {
         "test".to_string(),
         HirType::Void,
         vec![],
-        vec![
-            lock_call("lock"),
-            HirStatement::Break,
-            HirStatement::Continue,
-            unlock_call("lock"),
-        ],
+        vec![lock_call("lock"), HirStatement::Break, HirStatement::Continue, unlock_call("lock")],
     );
 
     let analyzer = LockAnalyzer::new();
@@ -727,9 +712,9 @@ fn test_address_of_expression_in_locked_region() {
             lock_call("lock"),
             HirStatement::Expression(HirExpression::FunctionCall {
                 function: "send".to_string(),
-                arguments: vec![HirExpression::AddressOf(Box::new(
-                    HirExpression::Variable("data".to_string()),
-                ))],
+                arguments: vec![HirExpression::AddressOf(Box::new(HirExpression::Variable(
+                    "data".to_string(),
+                )))],
             }),
             unlock_call("lock"),
         ],
@@ -795,9 +780,7 @@ fn test_lock_call_with_non_variable_inside_addressof() {
         vec![
             HirStatement::Expression(HirExpression::FunctionCall {
                 function: "pthread_mutex_lock".to_string(),
-                arguments: vec![HirExpression::AddressOf(Box::new(
-                    HirExpression::IntLiteral(0),
-                ))],
+                arguments: vec![HirExpression::AddressOf(Box::new(HirExpression::IntLiteral(0)))],
             }),
             HirStatement::Assignment {
                 target: "data".to_string(),
@@ -832,12 +815,7 @@ fn test_lock_call_with_no_arguments() {
 #[test]
 fn test_lock_analyzer_default() {
     let analyzer = decy_analyzer::lock_analysis::LockAnalyzer::default();
-    let func = HirFunction::new_with_body(
-        "test".to_string(),
-        HirType::Void,
-        vec![],
-        vec![],
-    );
+    let func = HirFunction::new_with_body("test".to_string(), HirType::Void, vec![], vec![]);
     let regions = analyzer.find_lock_regions(&func);
     assert!(regions.is_empty());
 }
@@ -855,14 +833,12 @@ fn test_non_lock_function_call_not_treated_as_lock() {
         "test".to_string(),
         HirType::Void,
         vec![],
-        vec![
-            HirStatement::Expression(HirExpression::FunctionCall {
-                function: "some_other_function".to_string(),
-                arguments: vec![HirExpression::AddressOf(Box::new(
-                    HirExpression::Variable("lock".to_string()),
-                ))],
-            }),
-        ],
+        vec![HirStatement::Expression(HirExpression::FunctionCall {
+            function: "some_other_function".to_string(),
+            arguments: vec![HirExpression::AddressOf(Box::new(HirExpression::Variable(
+                "lock".to_string(),
+            )))],
+        })],
     );
 
     let analyzer = LockAnalyzer::new();

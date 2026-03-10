@@ -120,10 +120,7 @@ fn deep_transpile_enum_definition() {
     let result = transpile(c_code);
     assert!(result.is_ok(), "Enum transpilation should succeed: {:?}", result.err());
     let rust = result.unwrap();
-    assert!(
-        rust.contains("RED") || rust.contains("Color"),
-        "Should contain enum definition"
-    );
+    assert!(rust.contains("RED") || rust.contains("Color"), "Should contain enum definition");
 }
 
 #[test]
@@ -223,10 +220,7 @@ fn deep_transpile_global_float_uninit() {
     let result = transpile(c_code);
     assert!(result.is_ok(), "Global float should transpile: {:?}", result.err());
     let rust = result.unwrap();
-    assert!(
-        rust.contains("0.0") || rust.contains("temperature"),
-        "Should default-init float"
-    );
+    assert!(rust.contains("0.0") || rust.contains("temperature"), "Should default-init float");
 }
 
 #[test]
@@ -303,10 +297,7 @@ fn deep_transpile_global_array_int_uninit() {
     let result = transpile(c_code);
     assert!(result.is_ok(), "Global int array should transpile: {:?}", result.err());
     let rust = result.unwrap();
-    assert!(
-        rust.contains("100") || rust.contains("buffer"),
-        "Should preserve array size"
-    );
+    assert!(rust.contains("100") || rust.contains("buffer"), "Should preserve array size");
 }
 
 #[test]
@@ -470,11 +461,7 @@ fn deep_transpile_function_deduplication() {
     let rust = result.unwrap();
     // Should only have one fn add definition, not two
     let add_count = rust.matches("fn add").count();
-    assert!(
-        add_count <= 2,
-        "Should deduplicate: found {} occurrences of fn add",
-        add_count
-    );
+    assert!(add_count <= 2, "Should deduplicate: found {} occurrences of fn add", add_count);
 }
 
 // ============================================================================
@@ -644,10 +631,7 @@ fn deep_transpile_switch_statement() {
     let result = transpile(c_code);
     assert!(result.is_ok(), "Switch should transpile: {:?}", result.err());
     let rust = result.unwrap();
-    assert!(
-        rust.contains("match") || rust.contains("classify"),
-        "Should convert switch to match"
-    );
+    assert!(rust.contains("match") || rust.contains("classify"), "Should convert switch to match");
 }
 
 // ============================================================================
@@ -841,11 +825,7 @@ fn deep_transpile_with_includes_enum_and_typedef() {
 #[test]
 fn deep_transpile_from_file_path_simple() {
     let temp = TempDir::new().unwrap();
-    let file = create_temp_c_file(
-        &temp,
-        "simple.c",
-        "int main() { return 0; }",
-    );
+    let file = create_temp_c_file(&temp, "simple.c", "int main() { return 0; }");
     let result = transpile_from_file_path(&file);
     assert!(result.is_ok(), "File path transpilation should succeed: {:?}", result.err());
     let rust = result.unwrap();
@@ -1391,10 +1371,7 @@ fn deep_transpile_errno_generation() {
     // Every transpilation should generate the ERRNO global
     let c_code = "int main() { return 0; }";
     let result = transpile(c_code).unwrap();
-    assert!(
-        result.contains("ERRNO"),
-        "Should generate ERRNO static variable"
-    );
+    assert!(result.contains("ERRNO"), "Should generate ERRNO static variable");
 }
 
 // ============================================================================

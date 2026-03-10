@@ -25,11 +25,7 @@ fn deep_bootstrap_exact_count_25() {
 #[test]
 fn deep_bootstrap_all_error_codes_start_with_e() {
     for p in get_bootstrap_patterns() {
-        assert!(
-            p.error_code.starts_with('E'),
-            "Bad error_code: {}",
-            p.error_code
-        );
+        assert!(p.error_code.starts_with('E'), "Bad error_code: {}", p.error_code);
     }
 }
 
@@ -58,73 +54,49 @@ fn deep_bootstrap_all_error_codes_numeric_suffix() {
 
 #[test]
 fn deep_e0308_count() {
-    let count = get_bootstrap_patterns()
-        .iter()
-        .filter(|p| p.error_code == "E0308")
-        .count();
+    let count = get_bootstrap_patterns().iter().filter(|p| p.error_code == "E0308").count();
     assert_eq!(count, 12);
 }
 
 #[test]
 fn deep_e0133_count() {
-    let count = get_bootstrap_patterns()
-        .iter()
-        .filter(|p| p.error_code == "E0133")
-        .count();
+    let count = get_bootstrap_patterns().iter().filter(|p| p.error_code == "E0133").count();
     assert_eq!(count, 3);
 }
 
 #[test]
 fn deep_e0382_count() {
-    let count = get_bootstrap_patterns()
-        .iter()
-        .filter(|p| p.error_code == "E0382")
-        .count();
+    let count = get_bootstrap_patterns().iter().filter(|p| p.error_code == "E0382").count();
     assert_eq!(count, 3);
 }
 
 #[test]
 fn deep_e0499_count() {
-    let count = get_bootstrap_patterns()
-        .iter()
-        .filter(|p| p.error_code == "E0499")
-        .count();
+    let count = get_bootstrap_patterns().iter().filter(|p| p.error_code == "E0499").count();
     assert_eq!(count, 2);
 }
 
 #[test]
 fn deep_e0506_count() {
-    let count = get_bootstrap_patterns()
-        .iter()
-        .filter(|p| p.error_code == "E0506")
-        .count();
+    let count = get_bootstrap_patterns().iter().filter(|p| p.error_code == "E0506").count();
     assert_eq!(count, 1);
 }
 
 #[test]
 fn deep_e0597_count() {
-    let count = get_bootstrap_patterns()
-        .iter()
-        .filter(|p| p.error_code == "E0597")
-        .count();
+    let count = get_bootstrap_patterns().iter().filter(|p| p.error_code == "E0597").count();
     assert_eq!(count, 2);
 }
 
 #[test]
 fn deep_e0515_count() {
-    let count = get_bootstrap_patterns()
-        .iter()
-        .filter(|p| p.error_code == "E0515")
-        .count();
+    let count = get_bootstrap_patterns().iter().filter(|p| p.error_code == "E0515").count();
     assert_eq!(count, 2);
 }
 
 #[test]
 fn deep_exactly_7_distinct_error_codes() {
-    let codes: HashSet<&str> = get_bootstrap_patterns()
-        .iter()
-        .map(|p| p.error_code)
-        .collect();
+    let codes: HashSet<&str> = get_bootstrap_patterns().iter().map(|p| p.error_code).collect();
     assert_eq!(codes.len(), 7);
 }
 
@@ -145,19 +117,14 @@ fn deep_error_code_sum_equals_total() {
 
 #[test]
 fn deep_exactly_21_distinct_decisions() {
-    let decisions: HashSet<&str> = get_bootstrap_patterns()
-        .iter()
-        .map(|p| p.decision)
-        .collect();
+    let decisions: HashSet<&str> = get_bootstrap_patterns().iter().map(|p| p.decision).collect();
     assert_eq!(decisions.len(), 21);
 }
 
 #[test]
 fn deep_decision_type_coercion() {
-    let ps: Vec<_> = get_bootstrap_patterns()
-        .into_iter()
-        .filter(|p| p.decision == "type_coercion")
-        .collect();
+    let ps: Vec<_> =
+        get_bootstrap_patterns().into_iter().filter(|p| p.decision == "type_coercion").collect();
     assert_eq!(ps.len(), 2);
     assert!(ps.iter().all(|p| p.error_code == "E0308"));
 }
@@ -185,10 +152,8 @@ fn deep_decision_mutable_reference() {
 
 #[test]
 fn deep_decision_unsafe_deref() {
-    let ps: Vec<_> = get_bootstrap_patterns()
-        .into_iter()
-        .filter(|p| p.decision == "unsafe_deref")
-        .collect();
+    let ps: Vec<_> =
+        get_bootstrap_patterns().into_iter().filter(|p| p.decision == "unsafe_deref").collect();
     assert_eq!(ps.len(), 2);
     for p in &ps {
         assert_eq!(p.error_code, "E0133");
@@ -198,10 +163,8 @@ fn deep_decision_unsafe_deref() {
 
 #[test]
 fn deep_decision_unsafe_extern() {
-    let ps: Vec<_> = get_bootstrap_patterns()
-        .into_iter()
-        .filter(|p| p.decision == "unsafe_extern")
-        .collect();
+    let ps: Vec<_> =
+        get_bootstrap_patterns().into_iter().filter(|p| p.decision == "unsafe_extern").collect();
     assert_eq!(ps.len(), 1);
     assert!(ps[0].fix_diff.contains("extern_fn"));
 }
@@ -229,10 +192,8 @@ fn deep_decision_borrow_instead_of_move() {
 
 #[test]
 fn deep_decision_borrow_parameter() {
-    let ps: Vec<_> = get_bootstrap_patterns()
-        .into_iter()
-        .filter(|p| p.decision == "borrow_parameter")
-        .collect();
+    let ps: Vec<_> =
+        get_bootstrap_patterns().into_iter().filter(|p| p.decision == "borrow_parameter").collect();
     assert_eq!(ps.len(), 1);
     assert!(ps[0].fix_diff.contains("&String"));
 }
@@ -259,20 +220,16 @@ fn deep_decision_use_stdlib_method() {
 
 #[test]
 fn deep_decision_reorder_borrow() {
-    let ps: Vec<_> = get_bootstrap_patterns()
-        .into_iter()
-        .filter(|p| p.decision == "reorder_borrow")
-        .collect();
+    let ps: Vec<_> =
+        get_bootstrap_patterns().into_iter().filter(|p| p.decision == "reorder_borrow").collect();
     assert_eq!(ps.len(), 1);
     assert_eq!(ps[0].error_code, "E0506");
 }
 
 #[test]
 fn deep_decision_extend_lifetime() {
-    let ps: Vec<_> = get_bootstrap_patterns()
-        .into_iter()
-        .filter(|p| p.decision == "extend_lifetime")
-        .collect();
+    let ps: Vec<_> =
+        get_bootstrap_patterns().into_iter().filter(|p| p.decision == "extend_lifetime").collect();
     assert_eq!(ps.len(), 1);
     assert_eq!(ps[0].error_code, "E0597");
     assert!(ps[0].description.contains("outer scope"));
@@ -280,10 +237,8 @@ fn deep_decision_extend_lifetime() {
 
 #[test]
 fn deep_decision_return_owned() {
-    let ps: Vec<_> = get_bootstrap_patterns()
-        .into_iter()
-        .filter(|p| p.decision == "return_owned")
-        .collect();
+    let ps: Vec<_> =
+        get_bootstrap_patterns().into_iter().filter(|p| p.decision == "return_owned").collect();
     assert_eq!(ps.len(), 2);
     let codes: HashSet<&str> = ps.iter().map(|p| p.error_code).collect();
     assert!(codes.contains("E0597"));
@@ -292,10 +247,8 @@ fn deep_decision_return_owned() {
 
 #[test]
 fn deep_decision_clone_return() {
-    let ps: Vec<_> = get_bootstrap_patterns()
-        .into_iter()
-        .filter(|p| p.decision == "clone_return")
-        .collect();
+    let ps: Vec<_> =
+        get_bootstrap_patterns().into_iter().filter(|p| p.decision == "clone_return").collect();
     assert_eq!(ps.len(), 1);
     assert!(ps[0].fix_diff.contains(".clone()"));
     assert_eq!(ps[0].error_code, "E0515");
@@ -303,10 +256,8 @@ fn deep_decision_clone_return() {
 
 #[test]
 fn deep_decision_array_to_slice() {
-    let ps: Vec<_> = get_bootstrap_patterns()
-        .into_iter()
-        .filter(|p| p.decision == "array_to_slice")
-        .collect();
+    let ps: Vec<_> =
+        get_bootstrap_patterns().into_iter().filter(|p| p.decision == "array_to_slice").collect();
     assert_eq!(ps.len(), 1);
     assert!(ps[0].fix_diff.contains("&[i32]"));
 }
@@ -334,10 +285,8 @@ fn deep_decision_safe_pointer_arithmetic() {
 
 #[test]
 fn deep_decision_malloc_to_box() {
-    let ps: Vec<_> = get_bootstrap_patterns()
-        .into_iter()
-        .filter(|p| p.decision == "malloc_to_box")
-        .collect();
+    let ps: Vec<_> =
+        get_bootstrap_patterns().into_iter().filter(|p| p.decision == "malloc_to_box").collect();
     assert_eq!(ps.len(), 1);
     assert!(ps[0].fix_diff.contains("Box::new"));
     assert!(ps[0].fix_diff.contains("malloc"));
@@ -355,10 +304,8 @@ fn deep_decision_malloc_array_to_vec() {
 
 #[test]
 fn deep_decision_arrow_to_dot() {
-    let ps: Vec<_> = get_bootstrap_patterns()
-        .into_iter()
-        .filter(|p| p.decision == "arrow_to_dot")
-        .collect();
+    let ps: Vec<_> =
+        get_bootstrap_patterns().into_iter().filter(|p| p.decision == "arrow_to_dot").collect();
     assert_eq!(ps.len(), 1);
     assert!(ps[0].fix_diff.contains("p->field"));
     assert!(ps[0].fix_diff.contains("p.field"));
@@ -428,11 +375,7 @@ fn deep_all_fix_diffs_contain_newline() {
 #[test]
 fn deep_all_descriptions_nonempty() {
     for p in get_bootstrap_patterns() {
-        assert!(
-            !p.description.is_empty(),
-            "Empty description for {}",
-            p.decision
-        );
+        assert!(!p.description.is_empty(), "Empty description for {}", p.decision);
     }
 }
 
@@ -440,11 +383,7 @@ fn deep_all_descriptions_nonempty() {
 fn deep_all_descriptions_start_uppercase() {
     for p in get_bootstrap_patterns() {
         let first = p.description.chars().next().unwrap();
-        assert!(
-            first.is_uppercase(),
-            "Description should start uppercase: '{}'",
-            p.description
-        );
+        assert!(first.is_uppercase(), "Description should start uppercase: '{}'", p.description);
     }
 }
 
@@ -917,11 +856,7 @@ fn deep_all_e0133_patterns_mention_unsafe_in_diff() {
 
 #[test]
 fn deep_all_e0382_patterns_relate_to_ownership() {
-    let ownership_decisions = [
-        "clone_before_move",
-        "borrow_instead_of_move",
-        "borrow_parameter",
-    ];
+    let ownership_decisions = ["clone_before_move", "borrow_instead_of_move", "borrow_parameter"];
     for p in get_bootstrap_patterns() {
         if p.error_code == "E0382" {
             assert!(
@@ -942,11 +877,7 @@ fn deep_no_duplicate_patterns() {
                 let same = a.error_code == b.error_code
                     && a.decision == b.decision
                     && a.fix_diff == b.fix_diff;
-                assert!(
-                    !same,
-                    "Duplicate pattern found at indices {} and {}",
-                    i, j
-                );
+                assert!(!same, "Duplicate pattern found at indices {} and {}", i, j);
             }
         }
     }

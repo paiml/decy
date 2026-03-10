@@ -69,7 +69,7 @@ pub fn run() -> Result<()> {
     if rl.is_err() {
         anyhow::bail!("Failed to initialize REPL");
     }
-    let mut rl = rl.unwrap();
+    let mut rl = rl.expect("REPL already validated above");
 
     loop {
         let readline = rl.readline("decy> ");
@@ -187,10 +187,7 @@ mod tests {
     #[test]
     fn test_parse_colon_prefix_not_command() {
         // Colon-prefixed strings that aren't valid commands should be Code
-        assert_eq!(
-            parse_command(":unknown"),
-            ReplCommand::Code(":unknown".to_string())
-        );
+        assert_eq!(parse_command(":unknown"), ReplCommand::Code(":unknown".to_string()));
         assert_eq!(parse_command(":foo"), ReplCommand::Code(":foo".to_string()));
     }
 
@@ -223,10 +220,7 @@ mod tests {
         assert_eq!(ReplCommand::Quit, ReplCommand::Quit);
         assert_eq!(ReplCommand::Help, ReplCommand::Help);
         assert_eq!(ReplCommand::Clear, ReplCommand::Clear);
-        assert_eq!(
-            ReplCommand::Code("test".into()),
-            ReplCommand::Code("test".into())
-        );
+        assert_eq!(ReplCommand::Code("test".into()), ReplCommand::Code("test".into()));
 
         assert_ne!(ReplCommand::Quit, ReplCommand::Help);
         assert_ne!(ReplCommand::Code("a".into()), ReplCommand::Code("b".into()));
@@ -259,10 +253,7 @@ mod tests {
         let c_code = "x + y";
         let result = transpile_snippet(c_code);
 
-        assert!(
-            result.is_err(),
-            "Expression-only code should fail (not yet supported)"
-        );
+        assert!(result.is_err(), "Expression-only code should fail (not yet supported)");
     }
 
     #[test]

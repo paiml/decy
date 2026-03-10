@@ -44,11 +44,7 @@ fn test_local_pointer_stays_raw_pointer() {
     );
 
     // Should still have &mut x somewhere (either as reference or cast)
-    assert!(
-        result.contains("&mut x"),
-        "Should have address-of expression\nGenerated:\n{}",
-        result
-    );
+    assert!(result.contains("&mut x"), "Should have address-of expression\nGenerated:\n{}", result);
 }
 
 /// Test that local pointer to ref compiles.

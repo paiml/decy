@@ -17,10 +17,7 @@ fn test_function_pointer_simple() {
     };
 
     match fn_ptr {
-        HirType::FunctionPointer {
-            param_types,
-            return_type,
-        } => {
+        HirType::FunctionPointer { param_types, return_type } => {
             assert_eq!(param_types.len(), 1);
             assert_eq!(param_types[0], HirType::Int);
             assert_eq!(*return_type, HirType::Int);
@@ -64,10 +61,8 @@ fn test_function_pointer_void_return() {
 #[test]
 fn test_function_pointer_no_params() {
     // Test function pointer with no parameters
-    let fn_ptr = HirType::FunctionPointer {
-        param_types: vec![],
-        return_type: Box::new(HirType::Int),
-    };
+    let fn_ptr =
+        HirType::FunctionPointer { param_types: vec![], return_type: Box::new(HirType::Int) };
 
     match fn_ptr {
         HirType::FunctionPointer { param_types, .. } => {
@@ -90,10 +85,7 @@ fn test_function_pointer_as_parameter() {
     assert_eq!(callback_param.name(), "callback");
 
     match callback_param.param_type() {
-        HirType::FunctionPointer {
-            param_types,
-            return_type,
-        } => {
+        HirType::FunctionPointer { param_types, return_type } => {
             assert_eq!(param_types.len(), 1);
             assert_eq!(return_type.as_ref(), &HirType::Int);
         }
@@ -110,10 +102,7 @@ fn test_function_pointer_with_float_types() {
     };
 
     match fn_ptr {
-        HirType::FunctionPointer {
-            param_types,
-            return_type,
-        } => {
+        HirType::FunctionPointer { param_types, return_type } => {
             assert_eq!(param_types[0], HirType::Float);
             assert_eq!(param_types[1], HirType::Float);
             assert_eq!(*return_type, HirType::Float);

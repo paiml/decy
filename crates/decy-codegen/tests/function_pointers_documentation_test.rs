@@ -397,19 +397,11 @@ struct Shape {
             2 * (s.width + s.height)
         }
 
-        let rect = Shape {
-            width: 10,
-            height: 5,
-            area: rectangle_area,
-            perimeter: rectangle_perimeter,
-        };
+        let rect =
+            Shape { width: 10, height: 5, area: rectangle_area, perimeter: rectangle_perimeter };
 
         assert_eq!((rect.area)(&rect), 50, "Area via function pointer");
-        assert_eq!(
-            (rect.perimeter)(&rect),
-            30,
-            "Perimeter via function pointer"
-        );
+        assert_eq!((rect.perimeter)(&rect), 30, "Perimeter via function pointer");
 
         assert!(c_code.contains("int (*area)"));
         assert!(rust_equivalent.contains("area: fn(&Shape) -> i32"));

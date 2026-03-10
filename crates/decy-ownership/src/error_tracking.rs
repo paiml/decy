@@ -218,18 +218,12 @@ impl ErrorTracker {
 
         // Update feature stats
         for feature in &error.c_features {
-            self.feature_stats
-                .entry(feature.clone())
-                .or_default()
-                .record(true);
+            self.feature_stats.entry(feature.clone()).or_default().record(true);
         }
 
         // Update defect stats
         let defect_key = format!("{:?}", error.defect);
-        self.defect_stats
-            .entry(defect_key.clone())
-            .or_default()
-            .record(true);
+        self.defect_stats.entry(defect_key.clone()).or_default().record(true);
 
         // Update feature-defect combination stats
         for feature in &error.c_features {
@@ -247,10 +241,7 @@ impl ErrorTracker {
         self.total_successes += 1;
 
         for feature in c_features {
-            self.feature_stats
-                .entry(feature.clone())
-                .or_default()
-                .record(false);
+            self.feature_stats.entry(feature.clone()).or_default().record(false);
         }
     }
 
@@ -301,11 +292,7 @@ impl ErrorTracker {
         }
 
         // Sort by suspiciousness (highest first)
-        results.sort_by(|a, b| {
-            b.score
-                .partial_cmp(&a.score)
-                .unwrap_or(std::cmp::Ordering::Equal)
-        });
+        results.sort_by(|a, b| b.score.partial_cmp(&a.score).unwrap_or(std::cmp::Ordering::Equal));
 
         results
     }
@@ -319,18 +306,12 @@ impl ErrorTracker {
     /// Get errors by defect category.
     pub fn errors_by_defect(&self, defect: &OwnershipDefect) -> Vec<&InferenceError> {
         let defect_key = format!("{:?}", defect);
-        self.errors
-            .iter()
-            .filter(|e| format!("{:?}", e.defect) == defect_key)
-            .collect()
+        self.errors.iter().filter(|e| format!("{:?}", e.defect) == defect_key).collect()
     }
 
     /// Get errors by C feature.
     pub fn errors_by_feature(&self, feature: &str) -> Vec<&InferenceError> {
-        self.errors
-            .iter()
-            .filter(|e| e.c_features.contains(&feature.to_string()))
-            .collect()
+        self.errors.iter().filter(|e| e.c_features.contains(&feature.to_string())).collect()
     }
 
     /// Get defect distribution.
@@ -467,12 +448,7 @@ impl ErrorTracker {
         if !suggestions.is_empty() {
             report.push_str("### Improvement Suggestions\n\n");
             for (i, s) in suggestions.iter().enumerate() {
-                report.push_str(&format!(
-                    "{}. **[{:?}]** {}\n",
-                    i + 1,
-                    s.priority,
-                    s.description
-                ));
+                report.push_str(&format!("{}. **[{:?}]** {}\n", i + 1, s.priority, s.description));
             }
         }
 
@@ -557,10 +533,7 @@ mod tests {
             0.6,
             OwnershipDefect::PointerMisclassification,
         )
-        .with_features(vec![
-            "malloc_free".to_string(),
-            "pointer_arithmetic".to_string(),
-        ]);
+        .with_features(vec!["malloc_free".to_string(), "pointer_arithmetic".to_string()]);
 
         assert_eq!(error.c_features.len(), 2);
     }
@@ -727,14 +700,8 @@ mod tests {
         let suspicious = tracker.calculate_suspiciousness();
 
         // Feature A should be more suspicious than Feature B
-        let feature_a = suspicious
-            .iter()
-            .find(|s| s.feature == "feature_a")
-            .unwrap();
-        let feature_b = suspicious
-            .iter()
-            .find(|s| s.feature == "feature_b")
-            .unwrap();
+        let feature_a = suspicious.iter().find(|s| s.feature == "feature_a").unwrap();
+        let feature_b = suspicious.iter().find(|s| s.feature == "feature_b").unwrap();
 
         assert!(feature_a.score > feature_b.score);
     }
@@ -948,15 +915,25 @@ mod tests {
     fn feature_distribution_multiple_features() {
         let mut tracker = ErrorTracker::new();
         let error1 = InferenceError::new(
-            "ptr1", "test.c", 1,
-            InferredOwnership::Borrowed, InferredOwnership::Owned,
-            0.6, OwnershipDefect::PointerMisclassification,
-        ).with_features(vec!["malloc_free".into(), "pointer_arithmetic".into()]);
+            "ptr1",
+            "test.c",
+            1,
+            InferredOwnership::Borrowed,
+            InferredOwnership::Owned,
+            0.6,
+            OwnershipDefect::PointerMisclassification,
+        )
+        .with_features(vec!["malloc_free".into(), "pointer_arithmetic".into()]);
         let error2 = InferenceError::new(
-            "ptr2", "test.c", 2,
-            InferredOwnership::Borrowed, InferredOwnership::Owned,
-            0.6, OwnershipDefect::PointerMisclassification,
-        ).with_features(vec!["malloc_free".into(), "struct_field".into()]);
+            "ptr2",
+            "test.c",
+            2,
+            InferredOwnership::Borrowed,
+            InferredOwnership::Owned,
+            0.6,
+            OwnershipDefect::PointerMisclassification,
+        )
+        .with_features(vec!["malloc_free".into(), "struct_field".into()]);
         tracker.record_error(error1);
         tracker.record_error(error2);
 
@@ -970,10 +947,15 @@ mod tests {
     fn feature_defect_correlation_test() {
         let mut tracker = ErrorTracker::new();
         let error = InferenceError::new(
-            "ptr", "test.c", 1,
-            InferredOwnership::Borrowed, InferredOwnership::Owned,
-            0.6, OwnershipDefect::PointerMisclassification,
-        ).with_features(vec!["malloc_free".into()]);
+            "ptr",
+            "test.c",
+            1,
+            InferredOwnership::Borrowed,
+            InferredOwnership::Owned,
+            0.6,
+            OwnershipDefect::PointerMisclassification,
+        )
+        .with_features(vec!["malloc_free".into()]);
         tracker.record_error(error);
 
         let correlations = tracker.feature_defect_correlation();
@@ -999,9 +981,13 @@ mod tests {
         // Add 10 errors for the same defect (count > 5 but <= 20 = Medium)
         for i in 0..10 {
             tracker.record_error(InferenceError::new(
-                format!("ptr{}", i), "test.c", i as u32,
-                InferredOwnership::Borrowed, InferredOwnership::Owned,
-                0.6, OwnershipDefect::LifetimeInferenceGap,
+                format!("ptr{}", i),
+                "test.c",
+                i as u32,
+                InferredOwnership::Borrowed,
+                InferredOwnership::Owned,
+                0.6,
+                OwnershipDefect::LifetimeInferenceGap,
             ));
         }
         // Also add a few successes so suspiciousness isn't max
@@ -1010,7 +996,8 @@ mod tests {
         }
 
         let suggestions = tracker.generate_suggestions();
-        let defect_suggestions: Vec<_> = suggestions.iter()
+        let defect_suggestions: Vec<_> = suggestions
+            .iter()
             .filter(|s| s.category == SuggestionCategory::DefectPrevention)
             .collect();
         assert!(!defect_suggestions.is_empty());
@@ -1023,9 +1010,13 @@ mod tests {
         // Add 25 errors for the same defect (count > 20 = High)
         for i in 0..25 {
             tracker.record_error(InferenceError::new(
-                format!("ptr{}", i), "test.c", i as u32,
-                InferredOwnership::Borrowed, InferredOwnership::Owned,
-                0.6, OwnershipDefect::PointerMisclassification,
+                format!("ptr{}", i),
+                "test.c",
+                i as u32,
+                InferredOwnership::Borrowed,
+                InferredOwnership::Owned,
+                0.6,
+                OwnershipDefect::PointerMisclassification,
             ));
         }
         for _ in 0..5 {
@@ -1033,7 +1024,8 @@ mod tests {
         }
 
         let suggestions = tracker.generate_suggestions();
-        let defect_suggestions: Vec<_> = suggestions.iter()
+        let defect_suggestions: Vec<_> = suggestions
+            .iter()
             .filter(|s| s.category == SuggestionCategory::DefectPrevention)
             .collect();
         assert!(!defect_suggestions.is_empty());
@@ -1079,10 +1071,15 @@ mod tests {
         // Add many errors to trigger suggestions
         for i in 0..30 {
             let error = InferenceError::new(
-                format!("ptr{}", i), "test.c", i as u32,
-                InferredOwnership::Borrowed, InferredOwnership::Owned,
-                0.6, OwnershipDefect::PointerMisclassification,
-            ).with_features(vec!["problematic".into()]);
+                format!("ptr{}", i),
+                "test.c",
+                i as u32,
+                InferredOwnership::Borrowed,
+                InferredOwnership::Owned,
+                0.6,
+                OwnershipDefect::PointerMisclassification,
+            )
+            .with_features(vec!["problematic".into()]);
             tracker.record_error(error);
         }
         for _ in 0..2 {
@@ -1097,16 +1094,22 @@ mod tests {
     #[test]
     fn inference_error_confidence_clamp() {
         let error = InferenceError::new(
-            "ptr", "test.c", 1,
-            InferredOwnership::Borrowed, InferredOwnership::Owned,
+            "ptr",
+            "test.c",
+            1,
+            InferredOwnership::Borrowed,
+            InferredOwnership::Owned,
             1.5, // above 1.0
             OwnershipDefect::PointerMisclassification,
         );
         assert_eq!(error.confidence, 1.0);
 
         let error2 = InferenceError::new(
-            "ptr", "test.c", 1,
-            InferredOwnership::Borrowed, InferredOwnership::Owned,
+            "ptr",
+            "test.c",
+            1,
+            InferredOwnership::Borrowed,
+            InferredOwnership::Owned,
             -0.5, // below 0.0
             OwnershipDefect::PointerMisclassification,
         );
@@ -1116,10 +1119,16 @@ mod tests {
     #[test]
     fn serialization_round_trip_inference_error() {
         let error = InferenceError::new(
-            "ptr", "test.c", 1,
-            InferredOwnership::Borrowed, InferredOwnership::Owned,
-            0.6, OwnershipDefect::PointerMisclassification,
-        ).with_features(vec!["malloc_free".into()]).with_rust_error("E0382");
+            "ptr",
+            "test.c",
+            1,
+            InferredOwnership::Borrowed,
+            InferredOwnership::Owned,
+            0.6,
+            OwnershipDefect::PointerMisclassification,
+        )
+        .with_features(vec!["malloc_free".into()])
+        .with_rust_error("E0382");
 
         let json = serde_json::to_string(&error).unwrap();
         let restored: InferenceError = serde_json::from_str(&json).unwrap();
@@ -1149,9 +1158,13 @@ mod tests {
         let mut tracker = ErrorTracker::new();
         for i in 0..5 {
             tracker.record_error(InferenceError::new(
-                format!("ptr{}", i), "test.c", i as u32,
-                InferredOwnership::Borrowed, InferredOwnership::Owned,
-                0.6, OwnershipDefect::PointerMisclassification,
+                format!("ptr{}", i),
+                "test.c",
+                i as u32,
+                InferredOwnership::Borrowed,
+                InferredOwnership::Owned,
+                0.6,
+                OwnershipDefect::PointerMisclassification,
             ));
         }
         let ids: Vec<u64> = tracker.errors().iter().map(|e| e.id).collect();
@@ -1167,11 +1180,18 @@ mod tests {
         let mut tracker = ErrorTracker::new();
         // 3 errors, 7 successes => 30% error rate
         for i in 0..3 {
-            tracker.record_error(InferenceError::new(
-                format!("ptr{}", i), "test.c", i as u32,
-                InferredOwnership::Borrowed, InferredOwnership::Owned,
-                0.6, OwnershipDefect::PointerMisclassification,
-            ).with_features(vec!["feat_a".into()]));
+            tracker.record_error(
+                InferenceError::new(
+                    format!("ptr{}", i),
+                    "test.c",
+                    i as u32,
+                    InferredOwnership::Borrowed,
+                    InferredOwnership::Owned,
+                    0.6,
+                    OwnershipDefect::PointerMisclassification,
+                )
+                .with_features(vec!["feat_a".into()]),
+            );
         }
         for _ in 0..7 {
             tracker.record_success(&["feat_a".into()]);
@@ -1190,11 +1210,18 @@ mod tests {
         // Create distinct features with varying suspiciousness
         for i in 0..10 {
             let feature = format!("feature_{}", i % 3);
-            tracker.record_error(InferenceError::new(
-                format!("ptr{}", i), "test.c", i as u32,
-                InferredOwnership::Borrowed, InferredOwnership::Owned,
-                0.5, OwnershipDefect::PointerMisclassification,
-            ).with_features(vec![feature.clone()]));
+            tracker.record_error(
+                InferenceError::new(
+                    format!("ptr{}", i),
+                    "test.c",
+                    i as u32,
+                    InferredOwnership::Borrowed,
+                    InferredOwnership::Owned,
+                    0.5,
+                    OwnershipDefect::PointerMisclassification,
+                )
+                .with_features(vec![feature.clone()]),
+            );
         }
         for i in 0..5 {
             let feature = format!("feature_{}", i % 3);
@@ -1215,22 +1242,34 @@ mod tests {
         // Multiple defect types
         for _ in 0..5 {
             tracker.record_error(InferenceError::new(
-                "ptr", "test.c", 1,
-                InferredOwnership::Borrowed, InferredOwnership::Owned,
-                0.6, OwnershipDefect::PointerMisclassification,
+                "ptr",
+                "test.c",
+                1,
+                InferredOwnership::Borrowed,
+                InferredOwnership::Owned,
+                0.6,
+                OwnershipDefect::PointerMisclassification,
             ));
         }
         for _ in 0..3 {
             tracker.record_error(InferenceError::new(
-                "ptr", "test.c", 2,
-                InferredOwnership::Borrowed, InferredOwnership::Owned,
-                0.6, OwnershipDefect::LifetimeInferenceGap,
+                "ptr",
+                "test.c",
+                2,
+                InferredOwnership::Borrowed,
+                InferredOwnership::Owned,
+                0.6,
+                OwnershipDefect::LifetimeInferenceGap,
             ));
         }
         tracker.record_error(InferenceError::new(
-            "ptr", "test.c", 3,
-            InferredOwnership::Borrowed, InferredOwnership::Owned,
-            0.6, OwnershipDefect::DanglingPointerRisk,
+            "ptr",
+            "test.c",
+            3,
+            InferredOwnership::Borrowed,
+            InferredOwnership::Owned,
+            0.6,
+            OwnershipDefect::DanglingPointerRisk,
         ));
 
         let md = tracker.generate_markdown_report();
@@ -1249,9 +1288,13 @@ mod tests {
         // Only 2 errors - not enough to trigger suggestions (need > 5)
         for i in 0..2 {
             tracker.record_error(InferenceError::new(
-                format!("ptr{}", i), "test.c", i as u32,
-                InferredOwnership::Borrowed, InferredOwnership::Owned,
-                0.6, OwnershipDefect::PointerMisclassification,
+                format!("ptr{}", i),
+                "test.c",
+                i as u32,
+                InferredOwnership::Borrowed,
+                InferredOwnership::Owned,
+                0.6,
+                OwnershipDefect::PointerMisclassification,
             ));
         }
         for _ in 0..20 {
@@ -1269,11 +1312,18 @@ mod tests {
         let mut tracker = ErrorTracker::new();
         // Create enough errors to trigger both feature and defect suggestions
         for i in 0..30 {
-            tracker.record_error(InferenceError::new(
-                format!("ptr{}", i), "test.c", i as u32,
-                InferredOwnership::Borrowed, InferredOwnership::Owned,
-                0.6, OwnershipDefect::PointerMisclassification,
-            ).with_features(vec!["dangerous_pattern".into()]));
+            tracker.record_error(
+                InferenceError::new(
+                    format!("ptr{}", i),
+                    "test.c",
+                    i as u32,
+                    InferredOwnership::Borrowed,
+                    InferredOwnership::Owned,
+                    0.6,
+                    OwnershipDefect::PointerMisclassification,
+                )
+                .with_features(vec!["dangerous_pattern".into()]),
+            );
         }
         for _ in 0..3 {
             tracker.record_success(&["dangerous_pattern".into()]);
@@ -1294,11 +1344,18 @@ mod tests {
         let mut tracker = ErrorTracker::new();
         // Feature with only failures (0 successes)
         for _ in 0..5 {
-            tracker.record_error(InferenceError::new(
-                "ptr", "test.c", 1,
-                InferredOwnership::Borrowed, InferredOwnership::Owned,
-                0.6, OwnershipDefect::PointerMisclassification,
-            ).with_features(vec!["only_failures".into()]));
+            tracker.record_error(
+                InferenceError::new(
+                    "ptr",
+                    "test.c",
+                    1,
+                    InferredOwnership::Borrowed,
+                    InferredOwnership::Owned,
+                    0.6,
+                    OwnershipDefect::PointerMisclassification,
+                )
+                .with_features(vec!["only_failures".into()]),
+            );
         }
 
         let suspicious = tracker.calculate_suspiciousness();
@@ -1314,11 +1371,18 @@ mod tests {
     fn calculate_suspiciousness_only_successes() {
         let mut tracker = ErrorTracker::new();
         // We need at least one failure to have total_failures > 0
-        tracker.record_error(InferenceError::new(
-            "ptr", "test.c", 1,
-            InferredOwnership::Borrowed, InferredOwnership::Owned,
-            0.6, OwnershipDefect::PointerMisclassification,
-        ).with_features(vec!["has_failure".into()]));
+        tracker.record_error(
+            InferenceError::new(
+                "ptr",
+                "test.c",
+                1,
+                InferredOwnership::Borrowed,
+                InferredOwnership::Owned,
+                0.6,
+                OwnershipDefect::PointerMisclassification,
+            )
+            .with_features(vec!["has_failure".into()]),
+        );
 
         // Feature with only successes
         for _ in 0..5 {
@@ -1339,20 +1403,34 @@ mod tests {
         let mut tracker = ErrorTracker::new();
         // Feature A: high suspiciousness (mostly failures)
         for _ in 0..9 {
-            tracker.record_error(InferenceError::new(
-                "ptr", "test.c", 1,
-                InferredOwnership::Borrowed, InferredOwnership::Owned,
-                0.6, OwnershipDefect::PointerMisclassification,
-            ).with_features(vec!["high_susp".into()]));
+            tracker.record_error(
+                InferenceError::new(
+                    "ptr",
+                    "test.c",
+                    1,
+                    InferredOwnership::Borrowed,
+                    InferredOwnership::Owned,
+                    0.6,
+                    OwnershipDefect::PointerMisclassification,
+                )
+                .with_features(vec!["high_susp".into()]),
+            );
         }
         tracker.record_success(&["high_susp".into()]);
 
         // Feature B: low suspiciousness (mostly successes)
-        tracker.record_error(InferenceError::new(
-            "ptr", "test.c", 1,
-            InferredOwnership::Borrowed, InferredOwnership::Owned,
-            0.6, OwnershipDefect::PointerMisclassification,
-        ).with_features(vec!["low_susp".into()]));
+        tracker.record_error(
+            InferenceError::new(
+                "ptr",
+                "test.c",
+                1,
+                InferredOwnership::Borrowed,
+                InferredOwnership::Owned,
+                0.6,
+                OwnershipDefect::PointerMisclassification,
+            )
+            .with_features(vec!["low_susp".into()]),
+        );
         for _ in 0..9 {
             tracker.record_success(&["low_susp".into()]);
         }
@@ -1369,11 +1447,18 @@ mod tests {
     fn calculate_suspiciousness_updates_stats_in_place() {
         let mut tracker = ErrorTracker::new();
         for _ in 0..3 {
-            tracker.record_error(InferenceError::new(
-                "ptr", "test.c", 1,
-                InferredOwnership::Borrowed, InferredOwnership::Owned,
-                0.6, OwnershipDefect::PointerMisclassification,
-            ).with_features(vec!["feat".into()]));
+            tracker.record_error(
+                InferenceError::new(
+                    "ptr",
+                    "test.c",
+                    1,
+                    InferredOwnership::Borrowed,
+                    InferredOwnership::Owned,
+                    0.6,
+                    OwnershipDefect::PointerMisclassification,
+                )
+                .with_features(vec!["feat".into()]),
+            );
         }
         for _ in 0..2 {
             tracker.record_success(&["feat".into()]);
@@ -1392,11 +1477,18 @@ mod tests {
     fn calculate_suspiciousness_multiple_features_per_error() {
         let mut tracker = ErrorTracker::new();
         // Error with two features
-        tracker.record_error(InferenceError::new(
-            "ptr", "test.c", 1,
-            InferredOwnership::Borrowed, InferredOwnership::Owned,
-            0.6, OwnershipDefect::PointerMisclassification,
-        ).with_features(vec!["feat_x".into(), "feat_y".into()]));
+        tracker.record_error(
+            InferenceError::new(
+                "ptr",
+                "test.c",
+                1,
+                InferredOwnership::Borrowed,
+                InferredOwnership::Owned,
+                0.6,
+                OwnershipDefect::PointerMisclassification,
+            )
+            .with_features(vec!["feat_x".into(), "feat_y".into()]),
+        );
 
         tracker.record_success(&["feat_y".into()]);
 
@@ -1420,11 +1512,18 @@ mod tests {
         let mut tracker = ErrorTracker::new();
         // Just a few errors, not enough for defect suggestions
         for i in 0..3 {
-            tracker.record_error(InferenceError::new(
-                format!("ptr{}", i), "test.c", i as u32,
-                InferredOwnership::Borrowed, InferredOwnership::Owned,
-                0.6, OwnershipDefect::PointerMisclassification,
-            ).with_features(vec![format!("unique_feat_{}", i)]));
+            tracker.record_error(
+                InferenceError::new(
+                    format!("ptr{}", i),
+                    "test.c",
+                    i as u32,
+                    InferredOwnership::Borrowed,
+                    InferredOwnership::Owned,
+                    0.6,
+                    OwnershipDefect::PointerMisclassification,
+                )
+                .with_features(vec![format!("unique_feat_{}", i)]),
+            );
         }
         // Many successes for those features (makes them not suspicious)
         for i in 0..3 {
@@ -1437,7 +1536,8 @@ mod tests {
         // 3 errors for PointerMisclassification but <= 5, no defect suggestion
         // Features have low suspiciousness due to many successes
         // So either empty or only has low-suspiciousness feature suggestions
-        let feature_suggestions: Vec<_> = suggestions.iter()
+        let feature_suggestions: Vec<_> = suggestions
+            .iter()
             .filter(|s| s.category == SuggestionCategory::FeatureHandling)
             .collect();
         assert!(feature_suggestions.is_empty(), "Features should not be highly suspicious");
@@ -1449,23 +1549,35 @@ mod tests {
         // Three defect categories with different counts
         for _ in 0..25 {
             tracker.record_error(InferenceError::new(
-                "ptr", "test.c", 1,
-                InferredOwnership::Borrowed, InferredOwnership::Owned,
-                0.6, OwnershipDefect::PointerMisclassification,
+                "ptr",
+                "test.c",
+                1,
+                InferredOwnership::Borrowed,
+                InferredOwnership::Owned,
+                0.6,
+                OwnershipDefect::PointerMisclassification,
             ));
         }
         for _ in 0..10 {
             tracker.record_error(InferenceError::new(
-                "ptr", "test.c", 2,
-                InferredOwnership::Borrowed, InferredOwnership::Owned,
-                0.6, OwnershipDefect::LifetimeInferenceGap,
+                "ptr",
+                "test.c",
+                2,
+                InferredOwnership::Borrowed,
+                InferredOwnership::Owned,
+                0.6,
+                OwnershipDefect::LifetimeInferenceGap,
             ));
         }
         for _ in 0..8 {
             tracker.record_error(InferenceError::new(
-                "ptr", "test.c", 3,
-                InferredOwnership::Borrowed, InferredOwnership::Owned,
-                0.6, OwnershipDefect::DanglingPointerRisk,
+                "ptr",
+                "test.c",
+                3,
+                InferredOwnership::Borrowed,
+                InferredOwnership::Owned,
+                0.6,
+                OwnershipDefect::DanglingPointerRisk,
             ));
         }
         for _ in 0..5 {
@@ -1473,7 +1585,8 @@ mod tests {
         }
 
         let suggestions = tracker.generate_suggestions();
-        let defect_suggestions: Vec<_> = suggestions.iter()
+        let defect_suggestions: Vec<_> = suggestions
+            .iter()
             .filter(|s| s.category == SuggestionCategory::DefectPrevention)
             .collect();
 
@@ -1493,10 +1606,15 @@ mod tests {
     fn record_error_updates_feature_defect_stats() {
         let mut tracker = ErrorTracker::new();
         let error = InferenceError::new(
-            "ptr", "test.c", 1,
-            InferredOwnership::Borrowed, InferredOwnership::Owned,
-            0.6, OwnershipDefect::AliasViolation,
-        ).with_features(vec!["feature_alpha".into(), "feature_beta".into()]);
+            "ptr",
+            "test.c",
+            1,
+            InferredOwnership::Borrowed,
+            InferredOwnership::Owned,
+            0.6,
+            OwnershipDefect::AliasViolation,
+        )
+        .with_features(vec!["feature_alpha".into(), "feature_beta".into()]);
 
         tracker.record_error(error);
 
@@ -1506,24 +1624,42 @@ mod tests {
 
         // Check feature-defect correlation
         let correlations = tracker.feature_defect_correlation();
-        assert!(correlations.iter().any(|(f, d, c)| f == "feature_alpha" && d.contains("AliasViolation") && *c == 1));
-        assert!(correlations.iter().any(|(f, d, c)| f == "feature_beta" && d.contains("AliasViolation") && *c == 1));
+        assert!(correlations
+            .iter()
+            .any(|(f, d, c)| f == "feature_alpha" && d.contains("AliasViolation") && *c == 1));
+        assert!(correlations
+            .iter()
+            .any(|(f, d, c)| f == "feature_beta" && d.contains("AliasViolation") && *c == 1));
     }
 
     #[test]
     fn record_multiple_errors_same_feature_different_defects() {
         let mut tracker = ErrorTracker::new();
-        tracker.record_error(InferenceError::new(
-            "ptr1", "test.c", 1,
-            InferredOwnership::Borrowed, InferredOwnership::Owned,
-            0.6, OwnershipDefect::PointerMisclassification,
-        ).with_features(vec!["shared_feature".into()]));
+        tracker.record_error(
+            InferenceError::new(
+                "ptr1",
+                "test.c",
+                1,
+                InferredOwnership::Borrowed,
+                InferredOwnership::Owned,
+                0.6,
+                OwnershipDefect::PointerMisclassification,
+            )
+            .with_features(vec!["shared_feature".into()]),
+        );
 
-        tracker.record_error(InferenceError::new(
-            "ptr2", "test.c", 2,
-            InferredOwnership::Borrowed, InferredOwnership::Owned,
-            0.6, OwnershipDefect::DanglingPointerRisk,
-        ).with_features(vec!["shared_feature".into()]));
+        tracker.record_error(
+            InferenceError::new(
+                "ptr2",
+                "test.c",
+                2,
+                InferredOwnership::Borrowed,
+                InferredOwnership::Owned,
+                0.6,
+                OwnershipDefect::DanglingPointerRisk,
+            )
+            .with_features(vec!["shared_feature".into()]),
+        );
 
         // Feature stats should have 2 failures
         let suspicious = tracker.calculate_suspiciousness();
@@ -1532,9 +1668,8 @@ mod tests {
 
         // Feature-defect correlation should have 2 entries
         let correlations = tracker.feature_defect_correlation();
-        let shared_correlations: Vec<_> = correlations.iter()
-            .filter(|(f, _, _)| f == "shared_feature")
-            .collect();
+        let shared_correlations: Vec<_> =
+            correlations.iter().filter(|(f, _, _)| f == "shared_feature").collect();
         assert_eq!(shared_correlations.len(), 2);
     }
 }

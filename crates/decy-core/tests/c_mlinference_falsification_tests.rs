@@ -65,11 +65,7 @@ int main(void) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C776: Dense layer forward pass should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C776: Dense layer forward pass should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C776: should produce non-empty output");
     assert!(
@@ -123,17 +119,10 @@ int main(void) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C777: ReLU activation should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C777: ReLU activation should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C777: should produce non-empty output");
-    assert!(
-        code.contains("fn mli_relu"),
-        "C777: Should contain mli_relu function"
-    );
+    assert!(code.contains("fn mli_relu"), "C777: Should contain mli_relu function");
 }
 
 #[test]
@@ -189,10 +178,7 @@ int main(void) {
     );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C778: should produce non-empty output");
-    assert!(
-        code.contains("fn mli_softmax"),
-        "C778: Should contain mli_softmax function"
-    );
+    assert!(code.contains("fn mli_softmax"), "C778: Should contain mli_softmax function");
 }
 
 #[test]
@@ -247,11 +233,7 @@ int main(void) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C779: Cross-entropy loss should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C779: Cross-entropy loss should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C779: should produce non-empty output");
     assert!(
@@ -362,10 +344,7 @@ int main(void) {
     );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C781: should produce non-empty output");
-    assert!(
-        code.contains("fn mli_conv1d"),
-        "C781: Should contain mli_conv1d function"
-    );
+    assert!(code.contains("fn mli_conv1d"), "C781: Should contain mli_conv1d function");
 }
 
 #[test]
@@ -482,17 +461,10 @@ int main(void) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C783: Max pooling 2D should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C783: Max pooling 2D should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C783: should produce non-empty output");
-    assert!(
-        code.contains("fn mli_maxpool2d"),
-        "C783: Should contain mli_maxpool2d function"
-    );
+    assert!(code.contains("fn mli_maxpool2d"), "C783: Should contain mli_maxpool2d function");
 }
 
 #[test]
@@ -548,17 +520,10 @@ int main(void) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C784: Average pooling 2D should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C784: Average pooling 2D should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C784: should produce non-empty output");
-    assert!(
-        code.contains("fn mli_avgpool2d"),
-        "C784: Should contain mli_avgpool2d function"
-    );
+    assert!(code.contains("fn mli_avgpool2d"), "C784: Should contain mli_avgpool2d function");
 }
 
 #[test]
@@ -613,10 +578,7 @@ int main(void) {
     );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C785: should produce non-empty output");
-    assert!(
-        code.contains("fn mli_dropout"),
-        "C785: Should contain mli_dropout function"
-    );
+    assert!(code.contains("fn mli_dropout"), "C785: Should contain mli_dropout function");
 }
 
 // ============================================================================
@@ -694,17 +656,10 @@ int main(void) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C786: LSTM cell forward pass should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C786: LSTM cell forward pass should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C786: should produce non-empty output");
-    assert!(
-        code.contains("fn mli_lstm_cell"),
-        "C786: Should contain mli_lstm_cell function"
-    );
+    assert!(code.contains("fn mli_lstm_cell"), "C786: Should contain mli_lstm_cell function");
 }
 
 #[test]
@@ -781,17 +736,10 @@ int main(void) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C787: GRU cell forward pass should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C787: GRU cell forward pass should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C787: should produce non-empty output");
-    assert!(
-        code.contains("fn mli_gru_cell"),
-        "C787: Should contain mli_gru_cell function"
-    );
+    assert!(code.contains("fn mli_gru_cell"), "C787: Should contain mli_gru_cell function");
 }
 
 #[test]
@@ -879,10 +827,7 @@ int main(void) {
     );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C788: should produce non-empty output");
-    assert!(
-        code.contains("fn mli_attention"),
-        "C788: Should contain mli_attention function"
-    );
+    assert!(code.contains("fn mli_attention"), "C788: Should contain mli_attention function");
 }
 
 #[test]
@@ -933,17 +878,10 @@ int main(void) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C789: Layer normalization should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C789: Layer normalization should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C789: should produce non-empty output");
-    assert!(
-        code.contains("fn mli_layer_norm"),
-        "C789: Should contain mli_layer_norm function"
-    );
+    assert!(code.contains("fn mli_layer_norm"), "C789: Should contain mli_layer_norm function");
 }
 
 #[test]
@@ -1004,11 +942,7 @@ int main(void) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C790: Embedding lookup should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C790: Embedding lookup should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C790: should produce non-empty output");
     assert!(
@@ -1288,17 +1222,10 @@ int main(void) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C794: KNN classifier should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C794: KNN classifier should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C794: should produce non-empty output");
-    assert!(
-        code.contains("fn mli_knn_classify"),
-        "C794: Should contain mli_knn_classify function"
-    );
+    assert!(code.contains("fn mli_knn_classify"), "C794: Should contain mli_knn_classify function");
 }
 
 #[test]
@@ -1356,17 +1283,10 @@ int main(void) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C795: Decision tree inference should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C795: Decision tree inference should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C795: should produce non-empty output");
-    assert!(
-        code.contains("fn mli_tree_predict"),
-        "C795: Should contain mli_tree_predict function"
-    );
+    assert!(code.contains("fn mli_tree_predict"), "C795: Should contain mli_tree_predict function");
 }
 
 // ============================================================================
@@ -1443,11 +1363,7 @@ int main(void) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C796: Random forest ensemble should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C796: Random forest ensemble should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C796: should produce non-empty output");
     assert!(
@@ -1524,11 +1440,7 @@ int main(void) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C797: K-means single iteration should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C797: K-means single iteration should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C797: should produce non-empty output");
     assert!(
@@ -1617,10 +1529,7 @@ int main(void) {
     );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C798: should produce non-empty output");
-    assert!(
-        code.contains("fn mli_pca_project"),
-        "C798: Should contain mli_pca_project function"
-    );
+    assert!(code.contains("fn mli_pca_project"), "C798: Should contain mli_pca_project function");
 }
 
 #[test]
@@ -1701,17 +1610,10 @@ int main(void) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C799: Sigmoid activation should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C799: Sigmoid activation should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C799: should produce non-empty output");
-    assert!(
-        code.contains("fn mli_sigmoid"),
-        "C799: Should contain mli_sigmoid function"
-    );
+    assert!(code.contains("fn mli_sigmoid"), "C799: Should contain mli_sigmoid function");
 }
 
 #[test]
@@ -1788,15 +1690,8 @@ int main(void) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C800: Tanh activation should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C800: Tanh activation should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C800: should produce non-empty output");
-    assert!(
-        code.contains("fn mli_tanh"),
-        "C800: Should contain mli_tanh function"
-    );
+    assert!(code.contains("fn mli_tanh"), "C800: Should contain mli_tanh function");
 }

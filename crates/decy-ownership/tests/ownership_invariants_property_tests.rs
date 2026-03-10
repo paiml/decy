@@ -63,11 +63,7 @@ impl OwnershipAnalyzer {
     }
 
     fn owners_of(&self, alloc_id: AllocationId) -> Vec<PointerId> {
-        self.allocations
-            .iter()
-            .filter(|(id, _)| **id == alloc_id)
-            .map(|(_, ptr)| *ptr)
-            .collect()
+        self.allocations.iter().filter(|(id, _)| **id == alloc_id).map(|(_, ptr)| *ptr).collect()
     }
 
     fn classify_pointer(&self, ptr: PointerId) -> PointerClassification {
@@ -351,10 +347,7 @@ fn test_typical_c_pattern() {
     analyzer.register_allocation(alloc, ptr);
 
     // Classification should be Owning (maps to Box<i32>)
-    assert_eq!(
-        analyzer.classify_pointer(ptr),
-        PointerClassification::Owning
-    );
+    assert_eq!(analyzer.classify_pointer(ptr), PointerClassification::Owning);
 
     // Should have exactly one owner
     let owners = analyzer.owners_of(alloc);
@@ -374,16 +367,10 @@ fn test_borrow_pattern() {
     analyzer.register_borrow(borrower, alloc, false);
 
     // Owner should be Owning
-    assert_eq!(
-        analyzer.classify_pointer(owner),
-        PointerClassification::Owning
-    );
+    assert_eq!(analyzer.classify_pointer(owner), PointerClassification::Owning);
 
     // Borrower should be BorrowImmutable
-    assert_eq!(
-        analyzer.classify_pointer(borrower),
-        PointerClassification::BorrowImmutable
-    );
+    assert_eq!(analyzer.classify_pointer(borrower), PointerClassification::BorrowImmutable);
 }
 
 // ============================================================================

@@ -41,9 +41,7 @@ fn make_varied_samples(n: usize) -> Vec<TrainingSample> {
                 _ => InferredOwnership::Shared,
             };
             TrainingSample::new(
-                OwnershipFeaturesBuilder::default()
-                    .pointer_depth((i % 3) as u8)
-                    .build(),
+                OwnershipFeaturesBuilder::default().pointer_depth((i % 3) as u8).build(),
                 label,
                 &format!("src/file{}.c", i),
                 i as u32 + 1,
@@ -79,9 +77,7 @@ struct ConfigurableTrainer {
 
 impl ConfigurableTrainer {
     fn failure(msg: &str) -> Self {
-        Self {
-            result: Err(msg.to_string()),
-        }
+        Self { result: Err(msg.to_string()) }
     }
 }
 
@@ -127,10 +123,7 @@ fn execute_records_insufficient_data_in_history() {
     pipeline.execute(samples);
 
     assert_eq!(pipeline.history().len(), 1);
-    assert!(matches!(
-        pipeline.history()[0].result,
-        ExecutionSummary::InsufficientData
-    ));
+    assert!(matches!(pipeline.history()[0].result, ExecutionSummary::InsufficientData));
     assert_eq!(pipeline.history()[0].sample_count, 3);
 }
 
@@ -282,11 +275,7 @@ fn execute_degradation_detected() {
 
     assert!(!result.is_success());
     match result {
-        RetrainingResult::Degraded {
-            degradation,
-            new_metrics,
-            current_metrics,
-        } => {
+        RetrainingResult::Degraded { degradation, new_metrics, current_metrics } => {
             assert!(degradation > 0.02);
             assert!((new_metrics.precision - 0.86).abs() < 0.001);
             assert!(current_metrics.f1_score > 0.9);
@@ -495,16 +484,11 @@ fn execute_result_metrics_for_all_variants() {
     assert!(degraded.metrics().is_some());
 
     // InsufficientData
-    let insuf = RetrainingResult::InsufficientData {
-        actual: 5,
-        required: 100,
-    };
+    let insuf = RetrainingResult::InsufficientData { actual: 5, required: 100 };
     assert!(insuf.metrics().is_none());
 
     // TrainingError
-    let err = RetrainingResult::TrainingError {
-        error: "boom".to_string(),
-    };
+    let err = RetrainingResult::TrainingError { error: "boom".to_string() };
     assert!(err.metrics().is_none());
 }
 
@@ -655,10 +639,7 @@ fn classify_pointer_parameter_not_mutated_is_immutable_borrow() {
     let func = HirFunction::new_with_body(
         "read".to_string(),
         HirType::Int,
-        vec![HirParameter::new(
-            "data".to_string(),
-            HirType::Pointer(Box::new(HirType::Int)),
-        )],
+        vec![HirParameter::new("data".to_string(), HirType::Pointer(Box::new(HirType::Int)))],
         vec![HirStatement::Return(Some(HirExpression::IntLiteral(0)))],
     );
 
@@ -676,10 +657,7 @@ fn classify_pointer_parameter_with_deref_is_mutable_borrow() {
     let func = HirFunction::new_with_body(
         "write".to_string(),
         HirType::Void,
-        vec![HirParameter::new(
-            "out".to_string(),
-            HirType::Pointer(Box::new(HirType::Int)),
-        )],
+        vec![HirParameter::new("out".to_string(), HirType::Pointer(Box::new(HirType::Int)))],
         vec![HirStatement::DerefAssignment {
             target: HirExpression::Variable("out".to_string()),
             value: HirExpression::IntLiteral(42),
@@ -696,10 +674,7 @@ fn classify_pointer_parameter_with_deref_is_mutable_borrow() {
     // which returns ImmutableBorrow, OR if nodes are ordered differently, MutableBorrow
     let kind = &inferences["out"].kind;
     assert!(
-        matches!(
-            kind,
-            OwnershipKind::MutableBorrow | OwnershipKind::ImmutableBorrow
-        ),
+        matches!(kind, OwnershipKind::MutableBorrow | OwnershipKind::ImmutableBorrow),
         "Expected borrow for deref parameter, got {:?}",
         kind
     );
@@ -749,15 +724,11 @@ fn classify_pointer_dereference_node_is_immutable_borrow() {
         "deref_test".to_string(),
         HirType::Void,
         vec![],
-        vec![
-            HirStatement::VariableDeclaration {
-                name: "ptr".to_string(),
-                var_type: HirType::Pointer(Box::new(HirType::Int)),
-                initializer: Some(HirExpression::Dereference(Box::new(
-                    HirExpression::NullLiteral,
-                ))),
-            },
-        ],
+        vec![HirStatement::VariableDeclaration {
+            name: "ptr".to_string(),
+            var_type: HirType::Pointer(Box::new(HirType::Int)),
+            initializer: Some(HirExpression::Dereference(Box::new(HirExpression::NullLiteral))),
+        }],
     );
 
     let analyzer = DataflowAnalyzer::new();
@@ -778,10 +749,7 @@ fn classify_pointer_array_allocation_is_array_pointer() {
         vec![],
         vec![HirStatement::VariableDeclaration {
             name: "arr".to_string(),
-            var_type: HirType::Array {
-                element_type: Box::new(HirType::Int),
-                size: Some(10),
-            },
+            var_type: HirType::Array { element_type: Box::new(HirType::Int), size: Some(10) },
             initializer: None,
         }],
     );
@@ -793,11 +761,7 @@ fn classify_pointer_array_allocation_is_array_pointer() {
 
     assert!(inferences.contains_key("arr"));
     match &inferences["arr"].kind {
-        OwnershipKind::ArrayPointer {
-            base_array,
-            element_type,
-            base_index,
-        } => {
+        OwnershipKind::ArrayPointer { base_array, element_type, base_index } => {
             assert_eq!(base_array, "arr");
             assert_eq!(*element_type, HirType::Int);
             assert_eq!(*base_index, Some(0));
@@ -821,9 +785,7 @@ fn classify_pointer_heap_array_malloc_sizeof_pattern() {
                 arguments: vec![HirExpression::BinaryOp {
                     op: decy_hir::BinaryOperator::Multiply,
                     left: Box::new(HirExpression::IntLiteral(100)),
-                    right: Box::new(HirExpression::Sizeof {
-                        type_name: "int".to_string(),
-                    }),
+                    right: Box::new(HirExpression::Sizeof { type_name: "int".to_string() }),
                 }],
             }),
         }],
@@ -851,10 +813,7 @@ fn classify_pointer_assignment_from_array_is_array_pointer() {
         vec![
             HirStatement::VariableDeclaration {
                 name: "arr".to_string(),
-                var_type: HirType::Array {
-                    element_type: Box::new(HirType::Float),
-                    size: Some(5),
-                },
+                var_type: HirType::Array { element_type: Box::new(HirType::Float), size: Some(5) },
                 initializer: None,
             },
             HirStatement::VariableDeclaration {
@@ -921,10 +880,7 @@ fn confidence_borrow_reduced_when_escaping() {
     let func = HirFunction::new_with_body(
         "leak".to_string(),
         HirType::Pointer(Box::new(HirType::Int)),
-        vec![HirParameter::new(
-            "src".to_string(),
-            HirType::Pointer(Box::new(HirType::Int)),
-        )],
+        vec![HirParameter::new("src".to_string(), HirType::Pointer(Box::new(HirType::Int)))],
         vec![
             HirStatement::VariableDeclaration {
                 name: "alias".to_string(),
@@ -942,7 +898,11 @@ fn confidence_borrow_reduced_when_escaping() {
 
     if let Some(inf) = inferences.get("alias") {
         // Borrow that escapes should have reduced confidence
-        assert!(inf.confidence <= 0.8, "Escaping borrow should have reduced confidence, got {}", inf.confidence);
+        assert!(
+            inf.confidence <= 0.8,
+            "Escaping borrow should have reduced confidence, got {}",
+            inf.confidence
+        );
     }
 }
 
@@ -976,10 +936,7 @@ fn reasoning_assignment_immutable_contains_source() {
     let func = HirFunction::new_with_body(
         "test".to_string(),
         HirType::Void,
-        vec![HirParameter::new(
-            "src".to_string(),
-            HirType::Pointer(Box::new(HirType::Int)),
-        )],
+        vec![HirParameter::new("src".to_string(), HirType::Pointer(Box::new(HirType::Int)))],
         vec![HirStatement::VariableDeclaration {
             name: "dst".to_string(),
             var_type: HirType::Pointer(Box::new(HirType::Int)),
@@ -1009,10 +966,7 @@ fn reasoning_array_allocation_mentions_array() {
         vec![],
         vec![HirStatement::VariableDeclaration {
             name: "data".to_string(),
-            var_type: HirType::Array {
-                element_type: Box::new(HirType::Int),
-                size: Some(20),
-            },
+            var_type: HirType::Array { element_type: Box::new(HirType::Int), size: Some(20) },
             initializer: None,
         }],
     );
@@ -1036,10 +990,7 @@ fn reasoning_parameter_read_only_mentions_parameter() {
     let func = HirFunction::new_with_body(
         "reader".to_string(),
         HirType::Int,
-        vec![HirParameter::new(
-            "input".to_string(),
-            HirType::Pointer(Box::new(HirType::Int)),
-        )],
+        vec![HirParameter::new("input".to_string(), HirType::Pointer(Box::new(HirType::Int)))],
         vec![HirStatement::Return(Some(HirExpression::IntLiteral(0)))],
     );
 
@@ -1076,10 +1027,7 @@ fn classify_multiple_pointers_in_same_function() {
             },
             HirStatement::VariableDeclaration {
                 name: "local_arr".to_string(),
-                var_type: HirType::Array {
-                    element_type: Box::new(HirType::Int),
-                    size: Some(4),
-                },
+                var_type: HirType::Array { element_type: Box::new(HirType::Int), size: Some(4) },
                 initializer: None,
             },
         ],
@@ -1093,10 +1041,7 @@ fn classify_multiple_pointers_in_same_function() {
     // Should have at least 3 inferences (in_ptr, out_ptr, heap, local_arr)
     assert!(inferences.len() >= 3);
     assert_eq!(inferences["heap"].kind, OwnershipKind::Owning);
-    assert!(matches!(
-        inferences["local_arr"].kind,
-        OwnershipKind::ArrayPointer { .. }
-    ));
+    assert!(matches!(inferences["local_arr"].kind, OwnershipKind::ArrayPointer { .. }));
 }
 
 #[test]
@@ -1113,9 +1058,7 @@ fn classify_pointer_with_char_array_allocation() {
                 arguments: vec![HirExpression::BinaryOp {
                     op: decy_hir::BinaryOperator::Multiply,
                     left: Box::new(HirExpression::IntLiteral(256)),
-                    right: Box::new(HirExpression::Sizeof {
-                        type_name: "char".to_string(),
-                    }),
+                    right: Box::new(HirExpression::Sizeof { type_name: "char".to_string() }),
                 }],
             }),
         }],
@@ -1149,9 +1092,7 @@ fn classify_pointer_with_float_array_allocation() {
                 arguments: vec![HirExpression::BinaryOp {
                     op: decy_hir::BinaryOperator::Multiply,
                     left: Box::new(HirExpression::IntLiteral(50)),
-                    right: Box::new(HirExpression::Sizeof {
-                        type_name: "float".to_string(),
-                    }),
+                    right: Box::new(HirExpression::Sizeof { type_name: "float".to_string() }),
                 }],
             }),
         }],
@@ -1184,9 +1125,7 @@ fn classify_pointer_with_double_array_allocation() {
                 arguments: vec![HirExpression::BinaryOp {
                     op: decy_hir::BinaryOperator::Multiply,
                     left: Box::new(HirExpression::IntLiteral(10)),
-                    right: Box::new(HirExpression::Sizeof {
-                        type_name: "double".to_string(),
-                    }),
+                    right: Box::new(HirExpression::Sizeof { type_name: "double".to_string() }),
                 }],
             }),
         }],

@@ -172,12 +172,7 @@ impl Diagnostic {
         if let Some(col) = column {
             let col_idx = (col as usize).saturating_sub(1);
             let padding = " ".repeat(col_idx);
-            out.push_str(&format!(
-                "{:>width$}|    {}^\n",
-                "",
-                padding,
-                width = gutter_width
-            ));
+            out.push_str(&format!("{:>width$}|    {}^\n", "", padding, width = gutter_width));
         }
 
         // Line after (context)
@@ -311,11 +306,7 @@ impl fmt::Display for DiagnosticError {
         for diag in &self.diagnostics {
             write!(f, "{}", diag)?;
         }
-        let error_count = self
-            .diagnostics
-            .iter()
-            .filter(|d| d.severity >= Severity::Error)
-            .count();
+        let error_count = self.diagnostics.iter().filter(|d| d.severity >= Severity::Error).count();
         if error_count > 0 {
             write!(
                 f,
@@ -514,10 +505,7 @@ mod tests {
     #[test]
     fn test_diagnostic_error_is_std_error() {
         let err: Box<dyn std::error::Error> =
-            Box::new(DiagnosticError::new(vec![Diagnostic::new(
-                Severity::Error,
-                "test",
-            )]));
+            Box::new(DiagnosticError::new(vec![Diagnostic::new(Severity::Error, "test")]));
         assert!(!err.to_string().is_empty());
     }
 

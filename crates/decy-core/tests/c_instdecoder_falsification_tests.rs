@@ -82,11 +82,7 @@ int dec_riscv_rtype_selftest(void) {
 }
 "##;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1676: RISC-V R-type decode should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1676: RISC-V R-type decode should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1676: Output should not be empty");
     assert!(
@@ -161,11 +157,7 @@ int dec_rv_itype_selftest(void) {
 }
 "##;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1677: RISC-V I-type decode should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1677: RISC-V I-type decode should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1677: Output should not be empty");
     assert!(
@@ -227,11 +219,7 @@ int dec_rv_stype_selftest(void) {
 }
 "##;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1678: RISC-V S-type decode should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1678: RISC-V S-type decode should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1678: Output should not be empty");
     assert!(
@@ -302,11 +290,7 @@ int dec_rv_btype_selftest(void) {
 }
 "##;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1679: RISC-V B-type decode should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1679: RISC-V B-type decode should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1679: Output should not be empty");
     assert!(
@@ -362,11 +346,7 @@ int dec_rv_utype_selftest(void) {
 }
 "##;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1680: RISC-V U-type decode should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1680: RISC-V U-type decode should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1680: Output should not be empty");
     assert!(
@@ -524,11 +504,7 @@ int dec_arm_ls_selftest(void) {
 }
 "##;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1682: ARM load/store decode should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1682: ARM load/store decode should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1682: Output should not be empty");
     assert!(
@@ -600,11 +576,7 @@ int dec_arm_branch_selftest(void) {
 }
 "##;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1683: ARM branch decode should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1683: ARM branch decode should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1683: Output should not be empty");
     assert!(
@@ -676,11 +648,7 @@ int dec_arm_mul_selftest(void) {
 }
 "##;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1684: ARM multiply decode should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1684: ARM multiply decode should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1684: Output should not be empty");
     assert!(
@@ -748,11 +716,7 @@ int dec_arm_coproc_selftest(void) {
 }
 "##;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1685: ARM coprocessor decode should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1685: ARM coprocessor decode should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1685: Output should not be empty");
     assert!(
@@ -841,11 +805,7 @@ int dec_x86_prefix_selftest(void) {
 }
 "##;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1686: x86 prefix parsing should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1686: x86 prefix parsing should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1686: Output should not be empty");
     assert!(
@@ -919,11 +879,7 @@ int dec_x86_modrm_selftest(void) {
 }
 "##;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1687: x86 ModR/M decode should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1687: x86 ModR/M decode should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1687: Output should not be empty");
     assert!(
@@ -986,11 +942,7 @@ int dec_x86_sib_selftest(void) {
 }
 "##;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1688: x86 SIB byte decode should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1688: x86 SIB byte decode should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1688: Output should not be empty");
     assert!(
@@ -1065,11 +1017,7 @@ int dec_x86_disp_selftest(void) {
 }
 "##;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1689: x86 displacement decode should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1689: x86 displacement decode should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1689: Output should not be empty");
     assert!(
@@ -1137,11 +1085,7 @@ int dec_x86_imm_selftest(void) {
 }
 "##;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1690: x86 immediate extraction should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1690: x86 immediate extraction should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1690: Output should not be empty");
     assert!(
@@ -1218,11 +1162,7 @@ int dec_mips_rtype_selftest(void) {
 }
 "##;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1691: MIPS R-format decode should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1691: MIPS R-format decode should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1691: Output should not be empty");
     assert!(
@@ -1292,11 +1232,7 @@ int dec_mips_itype_selftest(void) {
 }
 "##;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1692: MIPS I-format decode should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1692: MIPS I-format decode should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1692: Output should not be empty");
     assert!(
@@ -1353,11 +1289,7 @@ int dec_mips_jtype_selftest(void) {
 }
 "##;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1693: MIPS J-format decode should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1693: MIPS J-format decode should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1693: Output should not be empty");
     assert!(
@@ -1430,11 +1362,7 @@ int dec_mips_fpu_selftest(void) {
 }
 "##;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1694: MIPS FPU decode should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1694: MIPS FPU decode should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1694: Output should not be empty");
     assert!(
@@ -1511,11 +1439,7 @@ int dec_mips_special_selftest(void) {
 }
 "##;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1695: MIPS special decode should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1695: MIPS special decode should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1695: Output should not be empty");
     assert!(
@@ -1586,11 +1510,7 @@ int dec_cpu_regfile_selftest(void) {
 }
 "##;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1696: CPU register file should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1696: CPU register file should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1696: Output should not be empty");
     assert!(
@@ -1691,21 +1611,11 @@ int dec_alu_selftest(void) {
 }
 "##;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1697: CPU ALU operations should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1697: CPU ALU operations should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1697: Output should not be empty");
-    assert!(
-        code.contains("fn dec_alu_add"),
-        "C1697: Should contain dec_alu_add function"
-    );
-    assert!(
-        code.contains("fn dec_alu_sub"),
-        "C1697: Should contain dec_alu_sub function"
-    );
+    assert!(code.contains("fn dec_alu_add"), "C1697: Should contain dec_alu_add function");
+    assert!(code.contains("fn dec_alu_sub"), "C1697: Should contain dec_alu_sub function");
 }
 
 #[test]
@@ -1784,11 +1694,7 @@ int dec_cpu_flags_selftest(void) {
 }
 "##;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1698: CPU condition flags should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1698: CPU condition flags should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1698: Output should not be empty");
     assert!(
@@ -1898,11 +1804,7 @@ int dec_pipeline_selftest(void) {
 }
 "##;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1699: CPU pipeline stage should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1699: CPU pipeline stage should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1699: Output should not be empty");
     assert!(
@@ -2002,11 +1904,7 @@ int dec_fetch_selftest(void) {
 }
 "##;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1700: CPU instruction fetch should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1700: CPU instruction fetch should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1700: Output should not be empty");
     assert!(

@@ -27,10 +27,7 @@ pub enum VerificationResult {
 impl VerificationResult {
     /// Check if verification allows pattern promotion
     pub fn allows_promotion(&self) -> bool {
-        matches!(
-            self,
-            VerificationResult::FullyVerified | VerificationResult::CompilesOnly
-        )
+        matches!(self, VerificationResult::FullyVerified | VerificationResult::CompilesOnly)
     }
 
     /// Get confidence weight for pattern scoring
@@ -89,12 +86,7 @@ pub struct VerificationConfig {
 
 impl Default for VerificationConfig {
     fn default() -> Self {
-        Self {
-            compile_timeout_secs: 60,
-            test_timeout_secs: 120,
-            run_tests: true,
-            work_dir: None,
-        }
+        Self { compile_timeout_secs: 60, test_timeout_secs: 120, run_tests: true, work_dir: None }
     }
 }
 
@@ -228,9 +220,7 @@ pub fn run_test_suite(test_path: &Path, _rust_code: &str) -> TestResult {
 
     // Check for test files
     let has_tests = test_path.is_dir()
-        && std::fs::read_dir(test_path)
-            .map(|entries| entries.count() > 0)
-            .unwrap_or(false);
+        && std::fs::read_dir(test_path).map(|entries| entries.count() > 0).unwrap_or(false);
 
     if !has_tests {
         return TestResult::NoTests;
@@ -508,10 +498,7 @@ mod tests {
         let code = r#"
             fn main() {}
         "#;
-        let config = VerificationConfig {
-            run_tests: false,
-            ..Default::default()
-        };
+        let config = VerificationConfig { run_tests: false, ..Default::default() };
         let result = verify_fix_semantically(code, None, &config);
         // Under coverage instrumentation, rustc subprocess may fail.
         // Accept either CompilesOnly (normal) or CompileFailed (instrumented).
@@ -625,7 +612,7 @@ mod tests {
         let mut stats = VerificationStats::new();
         stats.record(&VerificationResult::FullyVerified); // 1.0
         stats.record(&VerificationResult::CompileFailed("err".into())); // 0.0
-        // Average: (1.0 + 0.0) / 2 = 0.5
+                                                                        // Average: (1.0 + 0.0) / 2 = 0.5
         assert!((stats.average_confidence() - 0.5).abs() < 0.01);
     }
 
@@ -676,10 +663,8 @@ mod tests {
     #[test]
     fn test_check_compilation_with_work_dir() {
         let temp = tempfile::tempdir().unwrap();
-        let config = VerificationConfig {
-            work_dir: Some(temp.path().to_path_buf()),
-            ..Default::default()
-        };
+        let config =
+            VerificationConfig { work_dir: Some(temp.path().to_path_buf()), ..Default::default() };
         // Under coverage instrumentation, rustc subprocess may fail.
         let _result = check_rust_compilation("fn valid() -> i32 { 42 }", &config);
     }

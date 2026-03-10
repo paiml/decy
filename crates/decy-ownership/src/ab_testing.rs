@@ -127,10 +127,7 @@ impl VariantMetrics {
         self.latency_sum_us += obs.latency.as_micros() as u64;
 
         // Track ownership distribution
-        *self
-            .by_ownership
-            .entry(format!("{:?}", obs.predicted))
-            .or_insert(0) += 1;
+        *self.by_ownership.entry(format!("{:?}", obs.predicted)).or_insert(0) += 1;
 
         // Track method distribution
         *self.by_method.entry(obs.method.to_string()).or_insert(0) += 1;
@@ -312,11 +309,7 @@ impl ABExperiment {
     /// Generate markdown report.
     pub fn to_markdown(&self) -> String {
         let (is_better, p_value) = self.is_treatment_better();
-        let status = if !self.is_active() {
-            "COMPLETED"
-        } else {
-            "ACTIVE"
-        };
+        let status = if !self.is_active() { "COMPLETED" } else { "ACTIVE" };
 
         let recommendation = if is_better {
             "✅ ADOPT TREATMENT - Statistically significant improvement"
@@ -427,12 +420,7 @@ impl ABTestRunner {
         description: impl Into<String>,
         strategy: AssignmentStrategy,
     ) -> Self {
-        Self {
-            experiment: ABExperiment::new(name, description),
-            strategy,
-            seed: 42,
-            counter: 0,
-        }
+        Self { experiment: ABExperiment::new(name, description), strategy, seed: 42, counter: 0 }
     }
 
     /// Set random seed for reproducible assignments.

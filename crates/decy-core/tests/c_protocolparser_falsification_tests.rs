@@ -82,11 +82,7 @@ int proto_http_parse_request_line(const char *buf, int len, proto_http_request_l
 }
 "#;
     let result = transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1101 HTTP request line parser failed: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1101 HTTP request line parser failed: {:?}", result.err());
 }
 
 /// C1102: HTTP header parser - parses key-value header lines
@@ -163,11 +159,7 @@ int proto_http_parse_header_line(const char *line, int len, proto_http_headers_t
 }
 "#;
     let result = transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1102 HTTP header parser failed: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1102 HTTP header parser failed: {:?}", result.err());
 }
 
 /// C1103: HTTP chunked transfer decoder - decodes chunked encoding body
@@ -254,11 +246,7 @@ int proto_http_chunked_decode(proto_http_chunked_t *ctx, const char *input,
 }
 "#;
     let result = transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1103 HTTP chunked transfer decoder failed: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1103 HTTP chunked transfer decoder failed: {:?}", result.err());
 }
 
 /// C1104: URL parser - splits URL into scheme, host, port, path components
@@ -340,11 +328,7 @@ int proto_url_parse(const char *url, int url_len, proto_url_parts_t *parts) {
 }
 "#;
     let result = transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1104 URL parser failed: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1104 URL parser failed: {:?}", result.err());
 }
 
 /// C1105: HTTP cookie parser - parses Set-Cookie header value into structured fields
@@ -445,11 +429,7 @@ int proto_cookie_parse(const char *header, int len, proto_cookie_t *cookie) {
 }
 "#;
     let result = transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1105 HTTP cookie parser failed: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1105 HTTP cookie parser failed: {:?}", result.err());
 }
 
 // ============================================================================
@@ -527,11 +507,7 @@ int proto_dns_parse_question(const uint8_t *buf, int buf_len, int offset,
 }
 "#;
     let result = transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1106 DNS query parser failed: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1106 DNS query parser failed: {:?}", result.err());
 }
 
 /// C1107: DNS response builder - constructs DNS response packets
@@ -616,11 +592,7 @@ int proto_dns_resp_add_a_record(proto_dns_response_t *resp, const char *name,
 }
 "#;
     let result = transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1107 DNS response builder failed: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1107 DNS response builder failed: {:?}", result.err());
 }
 
 /// C1108: DNS name compression - implements RFC 1035 message compression
@@ -708,11 +680,7 @@ int proto_dns_comp_write_name(proto_dns_comp_table_t *table, uint8_t *buf,
 }
 "#;
     let result = transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1108 DNS name compression failed: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1108 DNS name compression failed: {:?}", result.err());
 }
 
 /// C1109: DNS record type decoder - decodes various DNS record types from wire format
@@ -780,11 +748,7 @@ int proto_dns_decode_rdata(const uint8_t *buf, int buf_len, int offset,
 }
 "#;
     let result = transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1109 DNS record type decoder failed: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1109 DNS record type decoder failed: {:?}", result.err());
 }
 
 /// C1110: DNS zone file parser - parses simplified zone file entries
@@ -864,11 +828,7 @@ int proto_dns_zone_parse_line(const char *line, int len, proto_dns_zone_entry_t 
 }
 "#;
     let result = transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1110 DNS zone file parser failed: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1110 DNS zone file parser failed: {:?}", result.err());
 }
 
 // ============================================================================
@@ -940,11 +900,7 @@ uint16_t proto_tlv_get_u16(const uint8_t *data, const proto_tlv_element_t *elem)
 }
 "#;
     let result = transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1111 TLV parser failed: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1111 TLV parser failed: {:?}", result.err());
 }
 
 /// C1112: Protobuf varint decoder - decodes variable-length integers (LEB128)
@@ -1026,11 +982,7 @@ int proto_pb_skip_field(const uint8_t *buf, int buf_len, uint32_t wire_type) {
 }
 "#;
     let result = transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1112 protobuf varint decoder failed: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1112 protobuf varint decoder failed: {:?}", result.err());
 }
 
 /// C1113: MQTT packet parser - parses MQTT fixed header and variable header
@@ -1131,11 +1083,7 @@ int proto_mqtt_parse_publish(const uint8_t *buf, int buf_len,
 }
 "#;
     let result = transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1113 MQTT packet parser failed: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1113 MQTT packet parser failed: {:?}", result.err());
 }
 
 /// C1114: Redis RESP protocol parser - parses Redis Serialization Protocol
@@ -1247,11 +1195,7 @@ int proto_resp_parse(const char *buf, int buf_len, int offset, proto_resp_value_
 }
 "#;
     let result = transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1114 Redis RESP parser failed: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1114 Redis RESP parser failed: {:?}", result.err());
 }
 
 /// C1115: MessagePack decoder - decodes MessagePack binary format
@@ -1381,11 +1325,7 @@ int proto_msgpack_decode(const uint8_t *buf, int buf_len, int offset,
 }
 "#;
     let result = transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1115 MessagePack decoder failed: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1115 MessagePack decoder failed: {:?}", result.err());
 }
 
 // ============================================================================
@@ -1469,11 +1409,7 @@ int proto_ipv4_parse(const uint8_t *pkt, int pkt_len, proto_ipv4_header_t *hdr) 
 }
 "#;
     let result = transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1116 IPv4 header parser failed: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1116 IPv4 header parser failed: {:?}", result.err());
 }
 
 /// C1117: TCP header parser - parses TCP segment header and flags
@@ -1547,11 +1483,7 @@ int proto_tcp_is_fin(const proto_tcp_header_t *hdr) {
 }
 "#;
     let result = transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1117 TCP header parser failed: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1117 TCP header parser failed: {:?}", result.err());
 }
 
 /// C1118: UDP checksum calculator - computes UDP pseudo-header checksum
@@ -1630,11 +1562,7 @@ int proto_udp_verify_checksum(uint32_t src_ip, uint32_t dst_ip,
 }
 "#;
     let result = transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1118 UDP checksum calculator failed: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1118 UDP checksum calculator failed: {:?}", result.err());
 }
 
 /// C1119: ARP packet parser - parses Address Resolution Protocol packets
@@ -1732,11 +1660,7 @@ int proto_arp_build_reply(const proto_arp_packet_t *request,
 }
 "#;
     let result = transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1119 ARP packet parser failed: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1119 ARP packet parser failed: {:?}", result.err());
 }
 
 /// C1120: ICMP packet parser - parses ICMP echo request/reply
@@ -1822,11 +1746,7 @@ int proto_icmp_build_echo_reply(const uint8_t *request, int req_len,
 }
 "#;
     let result = transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1120 ICMP packet parser failed: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1120 ICMP packet parser failed: {:?}", result.err());
 }
 
 // ============================================================================
@@ -1919,11 +1839,7 @@ int proto_smtp_extract_email(const char *arg, char *email, int email_cap) {
 }
 "#;
     let result = transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1121 SMTP command parser failed: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1121 SMTP command parser failed: {:?}", result.err());
 }
 
 /// C1122: FTP response parser - parses FTP response codes and messages
@@ -2025,11 +1941,7 @@ int proto_ftp_parse_pasv(const char *msg, int msg_len,
 }
 "#;
     let result = transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1122 FTP response parser failed: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1122 FTP response parser failed: {:?}", result.err());
 }
 
 /// C1123: SIP header parser - parses Session Initiation Protocol headers
@@ -2138,11 +2050,7 @@ int proto_sip_parse_header(const char *line, int len, proto_sip_header_t *hdr) {
 }
 "#;
     let result = transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1123 SIP header parser failed: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1123 SIP header parser failed: {:?}", result.err());
 }
 
 /// C1124: RTSP request parser - parses Real Time Streaming Protocol requests
@@ -2251,11 +2159,7 @@ int proto_rtsp_method_id(const char *method) {
 }
 "#;
     let result = transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1124 RTSP request parser failed: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1124 RTSP request parser failed: {:?}", result.err());
 }
 
 /// C1125: WebSocket frame parser - parses WebSocket frame header per RFC 6455
@@ -2357,9 +2261,5 @@ int proto_ws_is_pong(uint8_t opcode) {
 }
 "#;
     let result = transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1125 WebSocket frame parser failed: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1125 WebSocket frame parser failed: {:?}", result.err());
 }

@@ -85,11 +85,7 @@ int main() {
     let rust_code = result.unwrap();
 
     // Verify function transformation
-    assert!(
-        rust_code.contains("fn add"),
-        "Expected function definition, got: {}",
-        rust_code
-    );
+    assert!(rust_code.contains("fn add"), "Expected function definition, got: {}", rust_code);
     assert!(
         rust_code.contains("a") && rust_code.contains("b"),
         "Expected parameters, got: {}",
@@ -122,11 +118,7 @@ int main() {
     let rust_code = result.unwrap();
 
     // Verify control flow transformation
-    assert!(
-        rust_code.contains("if"),
-        "Expected if statement, got: {}",
-        rust_code
-    );
+    assert!(rust_code.contains("if"), "Expected if statement, got: {}", rust_code);
     assert!(
         rust_code.contains("> 5") || rust_code.contains("x >"),
         "Expected comparison, got: {}",
@@ -215,21 +207,9 @@ int main() {
     let rust_code = result.unwrap();
 
     // Verify multiple function definitions
-    assert!(
-        rust_code.contains("fn add"),
-        "Expected add function, got: {}",
-        rust_code
-    );
-    assert!(
-        rust_code.contains("fn subtract"),
-        "Expected subtract function, got: {}",
-        rust_code
-    );
-    assert!(
-        rust_code.contains("fn main"),
-        "Expected main function, got: {}",
-        rust_code
-    );
+    assert!(rust_code.contains("fn add"), "Expected add function, got: {}", rust_code);
+    assert!(rust_code.contains("fn subtract"), "Expected subtract function, got: {}", rust_code);
+    assert!(rust_code.contains("fn main"), "Expected main function, got: {}", rust_code);
 }
 
 /// Integration test summary

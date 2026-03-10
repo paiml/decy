@@ -108,11 +108,7 @@ int bmp_is_valid(const bmp_file_header_t *fh, const bmp_info_header_t *ih) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C576: BMP header parsing should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C576: BMP header parsing should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C576: Output should not be empty");
     assert!(
@@ -181,11 +177,7 @@ uint32_t bmp_pixel_to_packed(const pixel_t *p) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C577: BMP pixel data reading should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C577: BMP pixel data reading should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C577: Output should not be empty");
     assert!(
@@ -276,17 +268,10 @@ int wav_is_valid_header(const wav_header_t *h) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C578: WAV header creation should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C578: WAV header creation should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C578: Output should not be empty");
-    assert!(
-        code.contains("fn wav_init_header"),
-        "C578: Should contain wav_init_header function"
-    );
+    assert!(code.contains("fn wav_init_header"), "C578: Should contain wav_init_header function");
 }
 
 #[test]
@@ -357,11 +342,7 @@ float wav_compute_rms(const float *samples, int count) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C579: WAV PCM data writing should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C579: WAV PCM data writing should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C579: Output should not be empty");
     assert!(
@@ -434,17 +415,10 @@ int csv_count_rows(const char *data) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C580: CSV parser (simple) should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C580: CSV parser (simple) should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C580: Output should not be empty");
-    assert!(
-        code.contains("fn csv_parse_row"),
-        "C580: Should contain csv_parse_row function"
-    );
+    assert!(code.contains("fn csv_parse_row"), "C580: Should contain csv_parse_row function");
 }
 
 // ============================================================================
@@ -630,17 +604,10 @@ int ini_parse_line(const char *line, ini_entry_t *entry) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C582: INI file parser should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C582: INI file parser should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C582: Output should not be empty");
-    assert!(
-        code.contains("fn ini_parse_line"),
-        "C582: Should contain ini_parse_line function"
-    );
+    assert!(code.contains("fn ini_parse_line"), "C582: Should contain ini_parse_line function");
 }
 
 #[test]
@@ -717,17 +684,10 @@ int json_is_structural(int tok) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C583: JSON tokenizer should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C583: JSON tokenizer should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C583: Output should not be empty");
-    assert!(
-        code.contains("fn json_next_token"),
-        "C583: Should contain json_next_token function"
-    );
+    assert!(code.contains("fn json_next_token"), "C583: Should contain json_next_token function");
 }
 
 #[test]
@@ -815,11 +775,7 @@ json_number_t json_parse_number(const char *s, int len) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C584: JSON number parsing should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C584: JSON number parsing should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C584: Output should not be empty");
     assert!(
@@ -982,17 +938,10 @@ uint8_t pgm_get_pixel(const uint8_t *data, int data_offset, int width, int x, in
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C586: PGM image reader should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C586: PGM image reader should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C586: Output should not be empty");
-    assert!(
-        code.contains("fn pgm_parse_header"),
-        "C586: Should contain pgm_parse_header function"
-    );
+    assert!(code.contains("fn pgm_parse_header"), "C586: Should contain pgm_parse_header function");
 }
 
 #[test]
@@ -1071,17 +1020,10 @@ rgb_pixel_t ppm_blend_pixels(rgb_pixel_t a, rgb_pixel_t b, int alpha) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C587: PPM image writer should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C587: PPM image writer should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C587: Output should not be empty");
-    assert!(
-        code.contains("fn ppm_write_header"),
-        "C587: Should contain ppm_write_header function"
-    );
+    assert!(code.contains("fn ppm_write_header"), "C587: Should contain ppm_write_header function");
 }
 
 #[test]
@@ -1149,17 +1091,10 @@ int tga_bytes_per_pixel(const tga_header_t *hdr) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C588: TGA image reader should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C588: TGA image reader should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C588: Output should not be empty");
-    assert!(
-        code.contains("fn tga_parse_header"),
-        "C588: Should contain tga_parse_header function"
-    );
+    assert!(code.contains("fn tga_parse_header"), "C588: Should contain tga_parse_header function");
 }
 
 #[test]
@@ -1246,17 +1181,10 @@ int midi_event_size(uint8_t status) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C589: MIDI event parser should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C589: MIDI event parser should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C589: Output should not be empty");
-    assert!(
-        code.contains("fn midi_parse_event"),
-        "C589: Should contain midi_parse_event function"
-    );
+    assert!(code.contains("fn midi_parse_event"), "C589: Should contain midi_parse_event function");
 }
 
 #[test]
@@ -1346,17 +1274,10 @@ int elf_is_shared_object(const elf_header_t *hdr) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C590: ELF header parser should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C590: ELF header parser should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C590: Output should not be empty");
-    assert!(
-        code.contains("fn elf_parse_header"),
-        "C590: Should contain elf_parse_header function"
-    );
+    assert!(code.contains("fn elf_parse_header"), "C590: Should contain elf_parse_header function");
 }
 
 // ============================================================================
@@ -1430,17 +1351,10 @@ int pe_is_x64(const pe_header_t *hdr) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C591: PE header parser should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C591: PE header parser should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C591: Output should not be empty");
-    assert!(
-        code.contains("fn pe_parse_header"),
-        "C591: Should contain pe_parse_header function"
-    );
+    assert!(code.contains("fn pe_parse_header"), "C591: Should contain pe_parse_header function");
 }
 
 #[test]
@@ -1525,17 +1439,10 @@ uint32_t tar_compute_checksum(const uint8_t *header) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C592: TAR header creation should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C592: TAR header creation should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C592: Output should not be empty");
-    assert!(
-        code.contains("fn tar_init_header"),
-        "C592: Should contain tar_init_header function"
-    );
+    assert!(code.contains("fn tar_init_header"), "C592: Should contain tar_init_header function");
 }
 
 #[test]
@@ -1622,11 +1529,7 @@ uint32_t zip_crc32_update(uint32_t crc, uint8_t byte) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C593: ZIP local file header should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C593: ZIP local file header should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C593: Output should not be empty");
     assert!(
@@ -1710,17 +1613,10 @@ int lzw_get_stack_value(const lzw_state_t *st, int idx) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C594: GIF LZW decompression should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C594: GIF LZW decompression should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C594: Output should not be empty");
-    assert!(
-        code.contains("fn lzw_init"),
-        "C594: Should contain lzw_init function"
-    );
+    assert!(code.contains("fn lzw_init"), "C594: Should contain lzw_init function");
 }
 
 #[test]
@@ -1805,17 +1701,10 @@ uint32_t png_crc32_update(uint32_t crc, const uint8_t *data, int len) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C595: PNG chunk reader should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C595: PNG chunk reader should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C595: Output should not be empty");
-    assert!(
-        code.contains("fn png_read_chunk"),
-        "C595: Should contain png_read_chunk function"
-    );
+    assert!(code.contains("fn png_read_chunk"), "C595: Should contain png_read_chunk function");
 }
 
 // ============================================================================
@@ -1900,11 +1789,7 @@ int tiff_type_size(uint16_t type) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C596: TIFF tag parser should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C596: TIFF tag parser should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C596: Output should not be empty");
     assert!(
@@ -2025,17 +1910,10 @@ int pdf_parse_literal_string(const char *data, int pos, int len, pdf_object_t *o
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C597: PDF object parser should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C597: PDF object parser should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C597: Output should not be empty");
-    assert!(
-        code.contains("fn pdf_parse_name"),
-        "C597: Should contain pdf_parse_name function"
-    );
+    assert!(code.contains("fn pdf_parse_name"), "C597: Should contain pdf_parse_name function");
 }
 
 #[test]
@@ -2155,17 +2033,10 @@ int xml_next_token(const char *data, int pos, int len, xml_token_t *tok) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C598: XML tag tokenizer should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C598: XML tag tokenizer should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C598: Output should not be empty");
-    assert!(
-        code.contains("fn xml_next_token"),
-        "C598: Should contain xml_next_token function"
-    );
+    assert!(code.contains("fn xml_next_token"), "C598: Should contain xml_next_token function");
 }
 
 #[test]
@@ -2297,17 +2168,10 @@ int sexp_count_top_level(const char *data, int len) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C599: S-expression parser should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C599: S-expression parser should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C599: Output should not be empty");
-    assert!(
-        code.contains("fn sexp_next_token"),
-        "C599: Should contain sexp_next_token function"
-    );
+    assert!(code.contains("fn sexp_next_token"), "C599: Should contain sexp_next_token function");
 }
 
 #[test]
@@ -2405,15 +2269,8 @@ int pb_skip_field(const uint8_t *buf, int pos, int len, uint32_t wire_type) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C600: Protocol buffer varint should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C600: Protocol buffer varint should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C600: Output should not be empty");
-    assert!(
-        code.contains("fn pb_encode_varint"),
-        "C600: Should contain pb_encode_varint function"
-    );
+    assert!(code.contains("fn pb_encode_varint"), "C600: Should contain pb_encode_varint function");
 }

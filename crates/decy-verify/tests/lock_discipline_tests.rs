@@ -64,10 +64,7 @@ fn test_detect_unprotected_data_access() {
     let violations = checker.check_unprotected_access(&func);
 
     assert_eq!(violations.len(), 1, "Should detect one unprotected access");
-    assert!(
-        violations[0].contains("data"),
-        "Violation should mention 'data'"
-    );
+    assert!(violations[0].contains("data"), "Violation should mention 'data'");
     assert!(
         violations[0].contains("3") || violations[0].contains("statement 3"),
         "Should include line/statement number: {}",
@@ -101,11 +98,7 @@ fn test_no_violation_when_data_always_protected() {
     let checker = LockDisciplineChecker::new(&analyzer);
     let violations = checker.check_unprotected_access(&func);
 
-    assert_eq!(
-        violations.len(),
-        0,
-        "Should have no violations when all accesses are protected"
-    );
+    assert_eq!(violations.len(), 0, "Should have no violations when all accesses are protected");
 }
 
 #[test]
@@ -167,11 +160,7 @@ fn test_allow_local_variable_without_lock() {
     let checker = LockDisciplineChecker::new(&analyzer);
     let violations = checker.check_unprotected_access(&func);
 
-    assert_eq!(
-        violations.len(),
-        0,
-        "Local variables should not trigger violations"
-    );
+    assert_eq!(violations.len(), 0, "Local variables should not trigger violations");
 }
 
 // ============================================================================
@@ -188,24 +177,14 @@ fn test_detect_potential_deadlock_from_lock_ordering() {
         "thread1".to_string(),
         HirType::Void,
         vec![],
-        vec![
-            lock_call("lockA"),
-            lock_call("lockB"),
-            unlock_call("lockB"),
-            unlock_call("lockA"),
-        ],
+        vec![lock_call("lockA"), lock_call("lockB"), unlock_call("lockB"), unlock_call("lockA")],
     );
 
     let func2 = HirFunction::new_with_body(
         "thread2".to_string(),
         HirType::Void,
         vec![],
-        vec![
-            lock_call("lockB"),
-            lock_call("lockA"),
-            unlock_call("lockA"),
-            unlock_call("lockB"),
-        ],
+        vec![lock_call("lockB"), lock_call("lockA"), unlock_call("lockA"), unlock_call("lockB")],
     );
 
     let analyzer = LockAnalyzer::new();
@@ -235,35 +214,21 @@ fn test_no_deadlock_warning_for_consistent_ordering() {
         "thread1".to_string(),
         HirType::Void,
         vec![],
-        vec![
-            lock_call("lockA"),
-            lock_call("lockB"),
-            unlock_call("lockB"),
-            unlock_call("lockA"),
-        ],
+        vec![lock_call("lockA"), lock_call("lockB"), unlock_call("lockB"), unlock_call("lockA")],
     );
 
     let func2 = HirFunction::new_with_body(
         "thread2".to_string(),
         HirType::Void,
         vec![],
-        vec![
-            lock_call("lockA"),
-            lock_call("lockB"),
-            unlock_call("lockB"),
-            unlock_call("lockA"),
-        ],
+        vec![lock_call("lockA"), lock_call("lockB"), unlock_call("lockB"), unlock_call("lockA")],
     );
 
     let analyzer = LockAnalyzer::new();
     let checker = LockDisciplineChecker::new(&analyzer);
     let warnings = checker.check_deadlock_risk(&[func1, func2]);
 
-    assert_eq!(
-        warnings.len(),
-        0,
-        "Consistent lock ordering should not trigger deadlock warnings"
-    );
+    assert_eq!(warnings.len(), 0, "Consistent lock ordering should not trigger deadlock warnings");
 }
 
 #[test]
@@ -342,10 +307,7 @@ fn test_report_all_violation_types() {
     let checker = LockDisciplineChecker::new(&analyzer);
     let report = checker.check_all(&func);
 
-    assert!(
-        report.unprotected_accesses > 0,
-        "Should detect unprotected access"
-    );
+    assert!(report.unprotected_accesses > 0, "Should detect unprotected access");
     assert!(report.lock_violations > 0, "Should detect unmatched lock");
     assert!(!report.is_clean(), "Should not be clean with violations");
 }
@@ -386,10 +348,7 @@ fn test_collect_accessed_vars_default_arm() {
     let analyzer = LockAnalyzer::new();
     let checker = LockDisciplineChecker::new(&analyzer);
     let violations = checker.check_unprotected_access(&func);
-    assert!(
-        violations.is_empty(),
-        "Break/Continue/Return(None) don't access data"
-    );
+    assert!(violations.is_empty(), "Break/Continue/Return(None) don't access data");
 }
 
 // ============================================================================
@@ -420,10 +379,7 @@ fn test_unprotected_access_through_unary_op() {
     let analyzer = LockAnalyzer::new();
     let checker = LockDisciplineChecker::new(&analyzer);
     let violations = checker.check_unprotected_access(&func);
-    assert!(
-        !violations.is_empty(),
-        "Should detect unprotected access through UnaryOp"
-    );
+    assert!(!violations.is_empty(), "Should detect unprotected access through UnaryOp");
 }
 
 #[test]
@@ -450,10 +406,7 @@ fn test_unprotected_access_through_function_call_args() {
     let analyzer = LockAnalyzer::new();
     let checker = LockDisciplineChecker::new(&analyzer);
     let violations = checker.check_unprotected_access(&func);
-    assert!(
-        !violations.is_empty(),
-        "Should detect unprotected access through function call args"
-    );
+    assert!(!violations.is_empty(), "Should detect unprotected access through function call args");
 }
 
 #[test]
@@ -480,10 +433,7 @@ fn test_unprotected_access_through_cast() {
     let analyzer = LockAnalyzer::new();
     let checker = LockDisciplineChecker::new(&analyzer);
     let violations = checker.check_unprotected_access(&func);
-    assert!(
-        !violations.is_empty(),
-        "Should detect unprotected access through cast"
-    );
+    assert!(!violations.is_empty(), "Should detect unprotected access through cast");
 }
 
 #[test]
@@ -507,10 +457,7 @@ fn test_unprotected_return_with_protected_data() {
     let analyzer = LockAnalyzer::new();
     let checker = LockDisciplineChecker::new(&analyzer);
     let violations = checker.check_unprotected_access(&func);
-    assert!(
-        !violations.is_empty(),
-        "Should detect unprotected access in return"
-    );
+    assert!(!violations.is_empty(), "Should detect unprotected access in return");
 }
 
 // ============================================================================
@@ -534,10 +481,7 @@ fn test_lock_with_non_addressof_arg_not_tracked() {
     let analyzer = LockAnalyzer::new();
     let checker = LockDisciplineChecker::new(&analyzer);
     let warnings = checker.check_deadlock_risk(&[func]);
-    assert!(
-        warnings.is_empty(),
-        "Non-AddressOf lock args shouldn't produce ordering"
-    );
+    assert!(warnings.is_empty(), "Non-AddressOf lock args shouldn't produce ordering");
 }
 
 #[test]
@@ -576,10 +520,7 @@ fn test_three_lock_ordering_conflict() {
     let analyzer = LockAnalyzer::new();
     let checker = LockDisciplineChecker::new(&analyzer);
     let warnings = checker.check_deadlock_risk(&[func1, func2]);
-    assert!(
-        !warnings.is_empty(),
-        "Should detect deadlock with 3-lock ordering conflict"
-    );
+    assert!(!warnings.is_empty(), "Should detect deadlock with 3-lock ordering conflict");
 }
 
 #[test]
@@ -607,15 +548,8 @@ fn test_unprotected_access_through_array_index() {
     let analyzer = LockAnalyzer::new();
     let checker = LockDisciplineChecker::new(&analyzer);
     let violations = checker.check_unprotected_access(&func);
-    assert!(
-        !violations.is_empty(),
-        "Should detect unprotected access through ArrayIndex"
-    );
-    assert!(
-        violations[0].contains("data"),
-        "Violation should mention 'data': {}",
-        violations[0]
-    );
+    assert!(!violations.is_empty(), "Should detect unprotected access through ArrayIndex");
+    assert!(violations[0].contains("data"), "Violation should mention 'data': {}", violations[0]);
 }
 
 #[test]
@@ -632,19 +566,16 @@ fn test_unprotected_access_through_addressof_dereference() {
                 value: HirExpression::IntLiteral(42),
             },
             unlock_call("lock"),
-            HirStatement::Expression(HirExpression::AddressOf(Box::new(
-                HirExpression::Variable("data".to_string()),
-            ))),
+            HirStatement::Expression(HirExpression::AddressOf(Box::new(HirExpression::Variable(
+                "data".to_string(),
+            )))),
         ],
     );
 
     let analyzer = LockAnalyzer::new();
     let checker = LockDisciplineChecker::new(&analyzer);
     let violations = checker.check_unprotected_access(&func);
-    assert!(
-        !violations.is_empty(),
-        "Should detect unprotected access through AddressOf"
-    );
+    assert!(!violations.is_empty(), "Should detect unprotected access through AddressOf");
 }
 
 #[test]
@@ -671,10 +602,7 @@ fn test_unprotected_access_through_field_access() {
     let analyzer = LockAnalyzer::new();
     let checker = LockDisciplineChecker::new(&analyzer);
     let violations = checker.check_unprotected_access(&func);
-    assert!(
-        !violations.is_empty(),
-        "Should detect unprotected access through FieldAccess"
-    );
+    assert!(!violations.is_empty(), "Should detect unprotected access through FieldAccess");
 }
 
 #[test]
@@ -699,10 +627,7 @@ fn test_unprotected_dereference_outside_lock() {
     let analyzer = LockAnalyzer::new();
     let checker = LockDisciplineChecker::new(&analyzer);
     let violations = checker.check_unprotected_access(&func);
-    assert!(
-        !violations.is_empty(),
-        "Should detect unprotected access through Dereference"
-    );
+    assert!(!violations.is_empty(), "Should detect unprotected access through Dereference");
 }
 
 #[test]
@@ -729,10 +654,7 @@ fn test_unprotected_binary_op_outside_lock() {
     let analyzer = LockAnalyzer::new();
     let checker = LockDisciplineChecker::new(&analyzer);
     let violations = checker.check_unprotected_access(&func);
-    assert!(
-        !violations.is_empty(),
-        "Should detect unprotected access through BinaryOp"
-    );
+    assert!(!violations.is_empty(), "Should detect unprotected access through BinaryOp");
 }
 
 #[test]

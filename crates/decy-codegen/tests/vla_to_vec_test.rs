@@ -75,10 +75,7 @@ fn test_vla_with_expression_size() {
             },
             HirStatement::VariableDeclaration {
                 name: "arr".to_string(),
-                var_type: HirType::Array {
-                    element_type: Box::new(HirType::Int),
-                    size: None,
-                },
+                var_type: HirType::Array { element_type: Box::new(HirType::Int), size: None },
                 initializer: Some(HirExpression::BinaryOp {
                     op: decy_hir::BinaryOperator::Multiply,
                     left: Box::new(HirExpression::Variable("n".to_string())),
@@ -113,16 +110,10 @@ fn test_vla_with_parameter_size() {
     let func = HirFunction::new_with_body(
         "allocate_array".to_string(),
         HirType::Void,
-        vec![decy_hir::HirParameter::new(
-            "size".to_string(),
-            HirType::Int,
-        )],
+        vec![decy_hir::HirParameter::new("size".to_string(), HirType::Int)],
         vec![HirStatement::VariableDeclaration {
             name: "arr".to_string(),
-            var_type: HirType::Array {
-                element_type: Box::new(HirType::Int),
-                size: None,
-            },
+            var_type: HirType::Array { element_type: Box::new(HirType::Int), size: None },
             initializer: Some(HirExpression::Variable("size".to_string())),
         }],
     );
@@ -160,10 +151,7 @@ fn test_vla_float_array() {
             },
             HirStatement::VariableDeclaration {
                 name: "arr".to_string(),
-                var_type: HirType::Array {
-                    element_type: Box::new(HirType::Float),
-                    size: None,
-                },
+                var_type: HirType::Array { element_type: Box::new(HirType::Float), size: None },
                 initializer: Some(HirExpression::Variable("n".to_string())),
             },
         ],
@@ -203,10 +191,7 @@ fn test_vla_with_usage() {
             },
             HirStatement::VariableDeclaration {
                 name: "arr".to_string(),
-                var_type: HirType::Array {
-                    element_type: Box::new(HirType::Int),
-                    size: None,
-                },
+                var_type: HirType::Array { element_type: Box::new(HirType::Int), size: None },
                 initializer: Some(HirExpression::Variable("n".to_string())),
             },
             HirStatement::ArrayIndexAssignment {
@@ -283,10 +268,7 @@ fn test_vla_transformation_unsafe_count() {
             },
             HirStatement::VariableDeclaration {
                 name: "arr".to_string(),
-                var_type: HirType::Array {
-                    element_type: Box::new(HirType::Int),
-                    size: None,
-                },
+                var_type: HirType::Array { element_type: Box::new(HirType::Int), size: None },
                 initializer: Some(HirExpression::Variable("n".to_string())),
             },
         ],
@@ -297,8 +279,5 @@ fn test_vla_transformation_unsafe_count() {
 
     // Count unsafe blocks (should be 0)
     let unsafe_count = result.matches("unsafe").count();
-    assert_eq!(
-        unsafe_count, 0,
-        "VLA → Vec transformation should not introduce unsafe blocks"
-    );
+    assert_eq!(unsafe_count, 0, "VLA → Vec transformation should not introduce unsafe blocks");
 }

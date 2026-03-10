@@ -62,11 +62,8 @@ impl VoidPtrAnalyzer {
         let mut results = Vec::new();
 
         // Find void* parameters
-        let void_ptr_params: Vec<_> = func
-            .parameters()
-            .iter()
-            .filter(|p| self.is_void_ptr(p.param_type()))
-            .collect();
+        let void_ptr_params: Vec<_> =
+            func.parameters().iter().filter(|p| self.is_void_ptr(p.param_type())).collect();
 
         if void_ptr_params.is_empty() {
             return results;
@@ -141,10 +138,7 @@ impl VoidPtrAnalyzer {
 
     fn analyze_statement(&self, stmt: &HirStatement, param_name: &str, info: &mut VoidPtrInfo) {
         match stmt {
-            HirStatement::VariableDeclaration {
-                initializer: Some(init),
-                ..
-            } => {
+            HirStatement::VariableDeclaration { initializer: Some(init), .. } => {
                 self.analyze_expression(init, param_name, info);
             }
             HirStatement::DerefAssignment { target, value } => {
@@ -163,21 +157,14 @@ impl VoidPtrAnalyzer {
                 self.analyze_expression(target, param_name, info);
                 self.analyze_expression(value, param_name, info);
             }
-            HirStatement::If {
-                condition,
-                then_block,
-                else_block,
-                ..
-            } => {
+            HirStatement::If { condition, then_block, else_block, .. } => {
                 self.analyze_expression(condition, param_name, info);
                 self.analyze_body(then_block, param_name, info);
                 if let Some(else_stmts) = else_block {
                     self.analyze_body(else_stmts, param_name, info);
                 }
             }
-            HirStatement::While {
-                condition, body, ..
-            } => {
+            HirStatement::While { condition, body, .. } => {
                 self.analyze_expression(condition, param_name, info);
                 self.analyze_body(body, param_name, info);
             }
@@ -196,10 +183,7 @@ impl VoidPtrAnalyzer {
 
     fn analyze_expression(&self, expr: &HirExpression, param_name: &str, info: &mut VoidPtrInfo) {
         match expr {
-            HirExpression::Cast {
-                expr: inner,
-                target_type,
-            } => {
+            HirExpression::Cast { expr: inner, target_type } => {
                 // Found a cast - extract the type
                 if self.expr_uses_param(inner, param_name) {
                     if let HirType::Pointer(inner_type) = target_type {

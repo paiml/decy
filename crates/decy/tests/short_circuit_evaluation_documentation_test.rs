@@ -445,10 +445,7 @@ int main() {
     let rust_code = result.unwrap();
 
     // This is a documentation test - verify basic structure
-    assert!(
-        rust_code.contains("fn main") || rust_code.contains("main"),
-        "Expected main function"
-    );
+    assert!(rust_code.contains("fn main") || rust_code.contains("main"), "Expected main function");
 
     // Verify key transformations documented in comments above
     println!("\n=== Short-Circuit Evaluation Transformation Rules ===");
@@ -463,11 +460,7 @@ int main() {
 
     // All short-circuit transformations are SAFE
     let unsafe_count = rust_code.matches("unsafe").count();
-    assert_eq!(
-        unsafe_count, 0,
-        "Expected 0 unsafe blocks, found {}",
-        unsafe_count
-    );
+    assert_eq!(unsafe_count, 0, "Expected 0 unsafe blocks, found {}", unsafe_count);
 }
 
 /// Test Statistics and Coverage Summary
@@ -549,12 +542,6 @@ fn test_short_circuit_evaluation_documentation_summary() {
     println!("Critical for: Null checks, bounds checks, lazy eval");
     println!("======================================================\n");
 
-    assert_eq!(
-        unsafe_blocks, 0,
-        "All short-circuit transformations must be safe"
-    );
-    assert!(
-        total_tests >= 10,
-        "Need at least 10 tests for comprehensive coverage"
-    );
+    assert_eq!(unsafe_blocks, 0, "All short-circuit transformations must be safe");
+    assert!(total_tests >= 10, "Need at least 10 tests for comprehensive coverage");
 }

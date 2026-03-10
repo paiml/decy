@@ -27,10 +27,7 @@ fn test_typedef_float() {
 
 #[test]
 fn test_typedef_pointer() {
-    let typedef = HirTypedef::new(
-        "IntPtr".to_string(),
-        HirType::Pointer(Box::new(HirType::Int)),
-    );
+    let typedef = HirTypedef::new("IntPtr".to_string(), HirType::Pointer(Box::new(HirType::Int)));
 
     assert_eq!(typedef.name(), "IntPtr");
 
@@ -75,10 +72,7 @@ fn test_typedef_function_pointer() {
     assert_eq!(typedef.name(), "Callback");
 
     match typedef.underlying_type() {
-        HirType::FunctionPointer {
-            param_types,
-            return_type,
-        } => {
+        HirType::FunctionPointer { param_types, return_type } => {
             assert_eq!(param_types.len(), 2);
             assert_eq!(param_types[0], HirType::Int);
             assert_eq!(param_types[1], HirType::Int);
@@ -90,10 +84,7 @@ fn test_typedef_function_pointer() {
 
 #[test]
 fn test_typedef_char_pointer() {
-    let typedef = HirTypedef::new(
-        "String".to_string(),
-        HirType::Pointer(Box::new(HirType::Char)),
-    );
+    let typedef = HirTypedef::new("String".to_string(), HirType::Pointer(Box::new(HirType::Char)));
 
     assert_eq!(typedef.name(), "String");
 
@@ -112,10 +103,7 @@ fn test_typedef_array() {
     // This will fail until we add array typedef support
     let typedef = HirTypedef::new(
         "IntArray".to_string(),
-        HirType::Array {
-            element_type: Box::new(HirType::Int),
-            size: Some(10),
-        },
+        HirType::Array { element_type: Box::new(HirType::Int), size: Some(10) },
     );
 
     assert_eq!(typedef.name(), "IntArray");

@@ -763,7 +763,10 @@ int graph_find_articulation_points(const graph_BridgeGraph *g, int *ap_list) {
     assert!(result.is_ok(), "C936: Articulation points - failed: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C936: empty output");
-    assert!(code.contains("fn graph_find_articulation_points"), "C936: Should contain graph_find_articulation_points");
+    assert!(
+        code.contains("fn graph_find_articulation_points"),
+        "C936: Should contain graph_find_articulation_points"
+    );
 }
 
 #[test]
@@ -956,7 +959,10 @@ int graph_hamiltonian_path(const graph_HamGraph *g, int *path) {
     assert!(result.is_ok(), "C939: Hamiltonian path - failed: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C939: empty output");
-    assert!(code.contains("fn graph_hamiltonian_path"), "C939: Should contain graph_hamiltonian_path");
+    assert!(
+        code.contains("fn graph_hamiltonian_path"),
+        "C939: Should contain graph_hamiltonian_path"
+    );
 }
 
 #[test]
@@ -1327,7 +1333,10 @@ int graph_greedy_coloring(const graph_ColorGraph *g, int *colors) {
     assert!(result.is_ok(), "C943: Graph coloring (greedy) - failed: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C943: empty output");
-    assert!(code.contains("fn graph_greedy_coloring"), "C943: Should contain graph_greedy_coloring");
+    assert!(
+        code.contains("fn graph_greedy_coloring"),
+        "C943: Should contain graph_greedy_coloring"
+    );
 }
 
 #[test]
@@ -1429,7 +1438,10 @@ void graph_transitive_closure(graph_TCGraph *g) {
     assert!(result.is_ok(), "C945: Transitive closure - failed: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C945: empty output");
-    assert!(code.contains("fn graph_transitive_closure"), "C945: Should contain graph_transitive_closure");
+    assert!(
+        code.contains("fn graph_transitive_closure"),
+        "C945: Should contain graph_transitive_closure"
+    );
 }
 
 // ============================================================================
@@ -1517,7 +1529,10 @@ int graph_longest_path_dag(const graph_DagWGraph *g, int src, int *dist) {
     assert!(result.is_ok(), "C946: Longest path in DAG - failed: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C946: empty output");
-    assert!(code.contains("fn graph_longest_path_dag"), "C946: Should contain graph_longest_path_dag");
+    assert!(
+        code.contains("fn graph_longest_path_dag"),
+        "C946: Should contain graph_longest_path_dag"
+    );
 }
 
 #[test]
@@ -1564,7 +1579,10 @@ int graph_vertex_cover_approx(const graph_VCGraph *g, int *cover) {
     assert!(result.is_ok(), "C947: Vertex cover (approx) - failed: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C947: empty output");
-    assert!(code.contains("fn graph_vertex_cover_approx"), "C947: Should contain graph_vertex_cover_approx");
+    assert!(
+        code.contains("fn graph_vertex_cover_approx"),
+        "C947: Should contain graph_vertex_cover_approx"
+    );
 }
 
 #[test]
@@ -1635,7 +1653,10 @@ int graph_max_independent_set(const graph_MISGraph *g, int *mis) {
     assert!(result.is_ok(), "C948: Max independent set (greedy) - failed: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C948: empty output");
-    assert!(code.contains("fn graph_max_independent_set"), "C948: Should contain graph_max_independent_set");
+    assert!(
+        code.contains("fn graph_max_independent_set"),
+        "C948: Should contain graph_max_independent_set"
+    );
 }
 
 #[test]
@@ -1785,8 +1806,15 @@ int graph_label_propagation(const graph_CDGraph *g, int *labels, int max_iter) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(result.is_ok(), "C950: Community detection (label propagation) - failed: {:?}", result.err());
+    assert!(
+        result.is_ok(),
+        "C950: Community detection (label propagation) - failed: {:?}",
+        result.err()
+    );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C950: empty output");
-    assert!(code.contains("fn graph_label_propagation"), "C950: Should contain graph_label_propagation");
+    assert!(
+        code.contains("fn graph_label_propagation"),
+        "C950: Should contain graph_label_propagation"
+    );
 }

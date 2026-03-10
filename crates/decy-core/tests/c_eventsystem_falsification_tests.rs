@@ -730,7 +730,10 @@ int evt_wild_test(void) {
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1632: Output should not be empty");
     assert!(code.contains("fn evt_wild_init"), "C1632: Should contain evt_wild_init");
-    assert!(code.contains("fn evt_wild_match_segment"), "C1632: Should contain evt_wild_match_segment");
+    assert!(
+        code.contains("fn evt_wild_match_segment"),
+        "C1632: Should contain evt_wild_match_segment"
+    );
     assert!(code.contains("fn evt_wild_dispatch"), "C1632: Should contain evt_wild_dispatch");
 }
 
@@ -1038,7 +1041,10 @@ int evt_fanout_test(void) {
     assert!(!code.is_empty(), "C1635: Output should not be empty");
     assert!(code.contains("fn evt_fanout_init"), "C1635: Should contain evt_fanout_init");
     assert!(code.contains("fn evt_fanout_dispatch"), "C1635: Should contain evt_fanout_dispatch");
-    assert!(code.contains("fn evt_fanout_least_loaded"), "C1635: Should contain evt_fanout_least_loaded");
+    assert!(
+        code.contains("fn evt_fanout_least_loaded"),
+        "C1635: Should contain evt_fanout_least_loaded"
+    );
 }
 
 // ============================================================================
@@ -1129,7 +1135,10 @@ int evt_store_test(void) {
     assert!(!code.is_empty(), "C1636: Output should not be empty");
     assert!(code.contains("fn evt_store_init"), "C1636: Should contain evt_store_init");
     assert!(code.contains("fn evt_store_append"), "C1636: Should contain evt_store_append");
-    assert!(code.contains("fn evt_store_last_sequence"), "C1636: Should contain evt_store_last_sequence");
+    assert!(
+        code.contains("fn evt_store_last_sequence"),
+        "C1636: Should contain evt_store_last_sequence"
+    );
 }
 
 /// C1637: Event replay from stored log
@@ -1225,7 +1234,10 @@ int evt_replay_test(void) {
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1637: Output should not be empty");
     assert!(code.contains("fn evt_replay_log_init"), "C1637: Should contain evt_replay_log_init");
-    assert!(code.contains("fn evt_replay_apply_event"), "C1637: Should contain evt_replay_apply_event");
+    assert!(
+        code.contains("fn evt_replay_apply_event"),
+        "C1637: Should contain evt_replay_apply_event"
+    );
     assert!(code.contains("fn evt_replay_all"), "C1637: Should contain evt_replay_all");
 }
 
@@ -1674,8 +1686,14 @@ int evt_stream_test(void) {
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1642: Output should not be empty");
     assert!(code.contains("fn evt_stream_init"), "C1642: Should contain evt_stream_init");
-    assert!(code.contains("fn evt_stream_map_double"), "C1642: Should contain evt_stream_map_double");
-    assert!(code.contains("fn evt_stream_filter_positive"), "C1642: Should contain evt_stream_filter_positive");
+    assert!(
+        code.contains("fn evt_stream_map_double"),
+        "C1642: Should contain evt_stream_map_double"
+    );
+    assert!(
+        code.contains("fn evt_stream_filter_positive"),
+        "C1642: Should contain evt_stream_filter_positive"
+    );
 }
 
 /// C1643: Merge multiple streams into one
@@ -2119,7 +2137,10 @@ int evt_mask_test(void) {
     assert!(!code.is_empty(), "C1647: Output should not be empty");
     assert!(code.contains("fn evt_mask_init"), "C1647: Should contain evt_mask_init");
     assert!(code.contains("fn evt_mask_block"), "C1647: Should contain evt_mask_block");
-    assert!(code.contains("fn evt_mask_flush_pending"), "C1647: Should contain evt_mask_flush_pending");
+    assert!(
+        code.contains("fn evt_mask_flush_pending"),
+        "C1647: Should contain evt_mask_flush_pending"
+    );
 }
 
 /// C1648: Signal queue with FIFO delivery ordering
@@ -2323,8 +2344,14 @@ int evt_async_test(void) {
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1649: Output should not be empty");
     assert!(code.contains("fn evt_async_init"), "C1649: Should contain evt_async_init");
-    assert!(code.contains("fn evt_async_set_pending"), "C1649: Should contain evt_async_set_pending");
-    assert!(code.contains("fn evt_async_process_pending"), "C1649: Should contain evt_async_process_pending");
+    assert!(
+        code.contains("fn evt_async_set_pending"),
+        "C1649: Should contain evt_async_set_pending"
+    );
+    assert!(
+        code.contains("fn evt_async_process_pending"),
+        "C1649: Should contain evt_async_process_pending"
+    );
 }
 
 /// C1650: Signal forwarding with chain of handlers

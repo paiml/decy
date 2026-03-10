@@ -376,10 +376,7 @@ fn transpile_file(
     let (rust_code, oracle_result) = if oracle_opts.should_use_oracle() {
         let result =
             oracle_integration::transpile_with_oracle(&c_code, oracle_opts).with_context(|| {
-                format!(
-                    "Oracle-assisted transpilation failed for {}",
-                    input.display()
-                )
+                format!("Oracle-assisted transpilation failed for {}", input.display())
             })?;
         let code = result.rust_code.clone();
         (code, Some(result))
@@ -410,8 +407,8 @@ fn transpile_file(
 
     // Verify compilation if requested
     if verify {
-        let result = decy_verify::verify_compilation(&rust_code)
-            .context("Failed to verify compilation")?;
+        let result =
+            decy_verify::verify_compilation(&rust_code).context("Failed to verify compilation")?;
         if result.success {
             eprintln!("Compilation verified: output passes rustc type-check");
         } else {
@@ -419,10 +416,7 @@ fn transpile_file(
             for err in &result.errors {
                 eprintln!("  {}", err.message);
             }
-            anyhow::bail!(
-                "Generated Rust does not compile ({} errors)",
-                result.errors.len()
-            );
+            anyhow::bail!("Generated Rust does not compile ({} errors)", result.errors.len());
         }
     }
 
@@ -435,11 +429,7 @@ fn transpile_file(
             fs::write(&output_path, &rust_code).with_context(|| {
                 format!("Failed to write output file: {}", output_path.display())
             })?;
-            eprintln!(
-                "✓ Transpiled {} → {}",
-                input.display(),
-                output_path.display()
-            );
+            eprintln!("✓ Transpiled {} → {}", input.display(), output_path.display());
 
             // Show oracle statistics if used
             if let Some(ref result) = oracle_result {
@@ -540,20 +530,14 @@ fn print_oracle_report(result: &OracleTranspileResult, format: &str) {
                 println!("{}", m.to_prometheus());
             }
             _ => {
-                eprintln!(
-                    "Unknown report format: {}. Use: json, markdown, prometheus",
-                    format
-                );
+                eprintln!("Unknown report format: {}. Use: json, markdown, prometheus", format);
             }
         }
     }
 
     #[cfg(not(feature = "oracle"))]
     {
-        eprintln!(
-            "Oracle report format '{}' requires --features oracle",
-            format
-        );
+        eprintln!("Oracle report format '{}' requires --features oracle", format);
     }
 }
 
@@ -576,11 +560,7 @@ fn audit_file(input: PathBuf, verbose: bool) -> Result<()> {
     println!(
         "Unsafe Density: {:.2}% {}",
         report.unsafe_density_percent,
-        if report.meets_density_target() {
-            "✅ (Target: <5%)"
-        } else {
-            "❌ (Target: <5%)"
-        }
+        if report.meets_density_target() { "✅ (Target: <5%)" } else { "❌ (Target: <5%)" }
     );
     println!();
 
@@ -596,10 +576,7 @@ fn audit_file(input: PathBuf, verbose: bool) -> Result<()> {
     // Show high-confidence blocks
     let high_conf = report.high_confidence_blocks();
     if !high_conf.is_empty() {
-        println!(
-            "⚠️  {} blocks with HIGH confidence for elimination (≥70):",
-            high_conf.len()
-        );
+        println!("⚠️  {} blocks with HIGH confidence for elimination (≥70):", high_conf.len());
         println!();
     }
 
@@ -612,11 +589,7 @@ fn audit_file(input: PathBuf, verbose: bool) -> Result<()> {
             println!(
                 "{}. Line {} [Confidence: {}/100 - {}]",
                 idx + 1,
-                if block.line > 0 {
-                    block.line.to_string()
-                } else {
-                    "N/A".to_string()
-                },
+                if block.line > 0 { block.line.to_string() } else { "N/A".to_string() },
                 block.confidence,
                 if block.confidence >= 70 {
                     "HIGH"
@@ -631,27 +604,13 @@ fn audit_file(input: PathBuf, verbose: bool) -> Result<()> {
         }
     } else {
         println!("Summary by Confidence:");
-        let high = report
-            .unsafe_blocks
-            .iter()
-            .filter(|b| b.confidence >= 70)
-            .count();
-        let medium = report
-            .unsafe_blocks
-            .iter()
-            .filter(|b| b.confidence >= 40 && b.confidence < 70)
-            .count();
-        let low = report
-            .unsafe_blocks
-            .iter()
-            .filter(|b| b.confidence < 40)
-            .count();
+        let high = report.unsafe_blocks.iter().filter(|b| b.confidence >= 70).count();
+        let medium =
+            report.unsafe_blocks.iter().filter(|b| b.confidence >= 40 && b.confidence < 70).count();
+        let low = report.unsafe_blocks.iter().filter(|b| b.confidence < 40).count();
 
         println!("  HIGH (≥70):   {} blocks - likely can be eliminated", high);
-        println!(
-            "  MEDIUM (40-69): {} blocks - review possible alternatives",
-            medium
-        );
+        println!("  MEDIUM (40-69): {} blocks - review possible alternatives", medium);
         println!("  LOW (<40):    {} blocks - may require unsafe", low);
         println!();
         println!("Use --verbose flag to see detailed information for each block");
@@ -686,10 +645,7 @@ fn diff_test_file(input: PathBuf, timeout_secs: u64) -> Result<()> {
     })?;
 
     // Run differential test
-    let config = DiffTestConfig {
-        timeout_secs,
-        ..Default::default()
-    };
+    let config = DiffTestConfig { timeout_secs, ..Default::default() };
 
     let result = diff_test(&c_code, &rust_code, &config)?;
 
@@ -706,10 +662,7 @@ fn diff_test_file(input: PathBuf, timeout_secs: u64) -> Result<()> {
         for divergence in &result.divergences {
             println!("  {}", divergence);
         }
-        anyhow::bail!(
-            "Differential test failed: {} divergence(s)",
-            result.divergences.len()
-        );
+        anyhow::bail!("Differential test failed: {} divergence(s)", result.divergences.len());
     }
 
     Ok(())
@@ -742,10 +695,7 @@ fn transpile_project(
     // Create output directory if needed (unless dry-run)
     if !dry_run {
         fs::create_dir_all(&output_dir).with_context(|| {
-            format!(
-                "Failed to create output directory: {}",
-                output_dir.display()
-            )
+            format!("Failed to create output directory: {}", output_dir.display())
         })?;
     }
 
@@ -805,7 +755,7 @@ fn transpile_project(
         pb.set_style(
             ProgressStyle::default_bar()
                 .template("[{elapsed_precise}] {bar:40.cyan/blue} {pos}/{len} {msg}")
-                .unwrap()
+                .expect("valid progress template")
                 .progress_chars("=>-"),
         );
         pb
@@ -867,11 +817,7 @@ fn transpile_project(
             .with_context(|| format!("Failed to write {}", output_path.display()))?;
 
         if verbose {
-            println!(
-                "✓ Transpiled: {} → {}",
-                relative_path.display(),
-                output_path.display()
-            );
+            println!("✓ Transpiled: {} → {}", relative_path.display(), output_path.display());
         }
 
         // Update cache
@@ -908,11 +854,7 @@ fn transpile_project(
                 elapsed.as_secs_f64()
             );
         } else {
-            println!(
-                "✓ Transpiled {} files in {:.2}s",
-                transpiled_count,
-                elapsed.as_secs_f64()
-            );
+            println!("✓ Transpiled {} files in {:.2}s", transpiled_count, elapsed.as_secs_f64());
         }
     }
 
@@ -1163,29 +1105,19 @@ fn handle_oracle_command(action: OracleAction) -> Result<()> {
                     println!("=== Import Results ===");
                     println!("Patterns imported: {}", count);
                     println!("Total evaluated: {}", stats.total_evaluated);
-                    println!(
-                        "Acceptance rate: {:.1}%",
-                        stats.overall_acceptance_rate() * 100.0
-                    );
+                    println!("Acceptance rate: {:.1}%", stats.overall_acceptance_rate() * 100.0);
                     println!();
                     println!("Import statistics by strategy:");
                     for (strategy, count) in &stats.accepted_by_strategy {
-                        let rejected = stats
-                            .rejected_by_strategy
-                            .get(strategy)
-                            .copied()
-                            .unwrap_or(0);
+                        let rejected =
+                            stats.rejected_by_strategy.get(strategy).copied().unwrap_or(0);
                         let total = count + rejected;
                         println!(
                             "  {:?}: {}/{} accepted ({:.1}%)",
                             strategy,
                             count,
                             total,
-                            if total > 0 {
-                                (*count as f64 / total as f64) * 100.0
-                            } else {
-                                0.0
-                            }
+                            if total > 0 { (*count as f64 / total as f64) * 100.0 } else { 0.0 }
                         );
                     }
 
@@ -1244,10 +1176,7 @@ fn handle_oracle_command(action: OracleAction) -> Result<()> {
                 Ok(())
             }
 
-            OracleAction::Retire {
-                dry_run,
-                archive_path,
-            } => {
+            OracleAction::Retire { dry_run, archive_path } => {
                 let config = OracleConfig::default();
                 let oracle = DecyOracle::new(config)?;
 
@@ -1395,11 +1324,7 @@ fn handle_oracle_command(action: OracleAction) -> Result<()> {
                 Ok(())
             }
 
-            OracleAction::Export {
-                output,
-                format,
-                with_card,
-            } => {
+            OracleAction::Export { output, format, with_card } => {
                 use decy_oracle::dataset::{generate_dataset_card, DatasetExporter};
 
                 println!("=== Oracle Dataset Export ===");
@@ -1453,11 +1378,7 @@ fn handle_oracle_command(action: OracleAction) -> Result<()> {
                 Ok(())
             }
 
-            OracleAction::Train {
-                corpus,
-                tier,
-                dry_run,
-            } => {
+            OracleAction::Train { corpus, tier, dry_run } => {
                 // Validate corpus exists
                 if !corpus.exists() {
                     anyhow::bail!(
@@ -1533,10 +1454,8 @@ fn handle_oracle_command(action: OracleAction) -> Result<()> {
 
                     // Parse errors from rustc output
                     let stderr = String::from_utf8_lossy(&output.stderr);
-                    let errors: Vec<&str> = stderr
-                        .lines()
-                        .filter(|l| l.contains("\"level\":\"error\""))
-                        .collect();
+                    let errors: Vec<&str> =
+                        stderr.lines().filter(|l| l.contains("\"level\":\"error\"")).collect();
 
                     let error_count = errors.len();
                     total_errors += error_count;
@@ -1589,12 +1508,7 @@ fn handle_oracle_command(action: OracleAction) -> Result<()> {
                 Ok(())
             }
 
-            OracleAction::GenerateTraces {
-                corpus,
-                output,
-                tier,
-                dry_run,
-            } => {
+            OracleAction::GenerateTraces { corpus, output, tier, dry_run } => {
                 use decy_oracle::golden_trace::{GoldenTrace, GoldenTraceDataset, TraceTier};
                 use decy_oracle::trace_verifier::TraceVerifier;
 
@@ -1656,10 +1570,7 @@ fn handle_oracle_command(action: OracleAction) -> Result<()> {
 
                 for entry in &c_files {
                     let c_path = entry.path();
-                    let filename = c_path
-                        .file_name()
-                        .and_then(|s| s.to_str())
-                        .unwrap_or("unknown");
+                    let filename = c_path.file_name().and_then(|s| s.to_str()).unwrap_or("unknown");
 
                     println!("Processing: {}", c_path.display());
 
@@ -1743,11 +1654,7 @@ fn handle_oracle_command(action: OracleAction) -> Result<()> {
                 Ok(())
             }
 
-            OracleAction::Query {
-                error,
-                context,
-                format,
-            } => {
+            OracleAction::Query { error, context, format } => {
                 use decy_oracle::bootstrap::get_bootstrap_patterns;
 
                 // Validate error code format (EXXXX)

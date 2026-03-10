@@ -43,11 +43,7 @@ fn test_for_loop_array_iteration() {
 
     // Count unsafe blocks - should be minimal
     let unsafe_count = result.matches("unsafe").count();
-    assert!(
-        unsafe_count <= 3,
-        "Array iteration should minimize unsafe (found {})",
-        unsafe_count
-    );
+    assert!(unsafe_count <= 3, "Array iteration should minimize unsafe (found {})", unsafe_count);
 }
 
 #[test]
@@ -103,11 +99,7 @@ fn test_for_loop_with_array_bounds() {
 
     // Bounds should be respected
     let unsafe_count = result.matches("unsafe").count();
-    assert!(
-        unsafe_count <= 3,
-        "Bounded loop should minimize unsafe (found {})",
-        unsafe_count
-    );
+    assert!(unsafe_count <= 3, "Bounded loop should minimize unsafe (found {})", unsafe_count);
 }
 
 // ============================================================================
@@ -172,11 +164,7 @@ fn test_while_loop_array_search() {
 
     // Should handle break statement
     let unsafe_count = result.matches("unsafe").count();
-    assert!(
-        unsafe_count <= 4,
-        "Search pattern should minimize unsafe (found {})",
-        unsafe_count
-    );
+    assert!(unsafe_count <= 4, "Search pattern should minimize unsafe (found {})", unsafe_count);
 }
 
 // ============================================================================
@@ -245,11 +233,8 @@ fn test_array_out_of_bounds_prevention() {
     // Should be safe due to matching bounds
     let unsafe_count = result.matches("unsafe").count();
     let lines = result.lines().count();
-    let unsafe_per_1000 = if lines > 0 {
-        (unsafe_count as f64 / lines as f64) * 1000.0
-    } else {
-        0.0
-    };
+    let unsafe_per_1000 =
+        if lines > 0 { (unsafe_count as f64 / lines as f64) * 1000.0 } else { 0.0 };
 
     assert!(
         unsafe_per_1000 < 50.0,
@@ -312,11 +297,7 @@ fn test_array_copy_loop() {
 
     // Array copy should be safe
     let unsafe_count = result.matches("unsafe").count();
-    assert!(
-        unsafe_count <= 4,
-        "Array copy should minimize unsafe (found {})",
-        unsafe_count
-    );
+    assert!(unsafe_count <= 4, "Array copy should minimize unsafe (found {})", unsafe_count);
 }
 
 #[test]
@@ -342,11 +323,7 @@ fn test_array_reverse_loop() {
 
     // In-place swap should be safe
     let unsafe_count = result.matches("unsafe").count();
-    assert!(
-        unsafe_count <= 5,
-        "Array reverse should minimize unsafe (found {})",
-        unsafe_count
-    );
+    assert!(unsafe_count <= 5, "Array reverse should minimize unsafe (found {})", unsafe_count);
 }
 
 #[test]
@@ -373,11 +350,7 @@ fn test_array_max_find_loop() {
 
     // Max find should be safe
     let unsafe_count = result.matches("unsafe").count();
-    assert!(
-        unsafe_count <= 4,
-        "Max find should minimize unsafe (found {})",
-        unsafe_count
-    );
+    assert!(unsafe_count <= 4, "Max find should minimize unsafe (found {})", unsafe_count);
 }
 
 // ============================================================================
@@ -406,11 +379,7 @@ fn test_empty_loop_array() {
 
     // Empty loop should be safe
     let unsafe_count = result.matches("unsafe").count();
-    assert!(
-        unsafe_count <= 2,
-        "Empty loop should minimize unsafe (found {})",
-        unsafe_count
-    );
+    assert!(unsafe_count <= 2, "Empty loop should minimize unsafe (found {})", unsafe_count);
 }
 
 #[test]
@@ -470,11 +439,8 @@ fn test_unsafe_minimization_target() {
     let unsafe_count = result.matches("unsafe").count();
     let lines_of_code = result.lines().count();
 
-    let unsafe_per_1000 = if lines_of_code > 0 {
-        (unsafe_count as f64 / lines_of_code as f64) * 1000.0
-    } else {
-        0.0
-    };
+    let unsafe_per_1000 =
+        if lines_of_code > 0 { (unsafe_count as f64 / lines_of_code as f64) * 1000.0 } else { 0.0 };
 
     // Target: <5 unsafe per 1000 LOC
     assert!(
@@ -527,10 +493,7 @@ fn test_transpiled_loop_array_compiles() {
     );
 
     // Should not have excessive semicolons
-    assert!(
-        !result.contains(";;;;"),
-        "Should not have excessive semicolons"
-    );
+    assert!(!result.contains(";;;;"), "Should not have excessive semicolons");
 }
 
 #[test]
@@ -556,9 +519,5 @@ fn test_loop_array_safety_documentation() {
 
     // If unsafe blocks exist, they should be minimal
     let unsafe_count = result.matches("unsafe").count();
-    assert!(
-        unsafe_count < 10,
-        "Should have minimal unsafe blocks (found {})",
-        unsafe_count
-    );
+    assert!(unsafe_count < 10, "Should have minimal unsafe blocks (found {})", unsafe_count);
 }

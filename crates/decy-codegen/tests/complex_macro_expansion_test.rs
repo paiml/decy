@@ -53,14 +53,8 @@ fn get_clamped(x: i32, y: i32, z: i32) -> i32 {
     // assert!(result.contains("std::cmp::min"));
 
     // For now, just verify test structure
-    assert!(
-        c_code.contains("MAX(x, MIN(y, z))"),
-        "C has nested macro call"
-    );
-    assert!(
-        expected_rust.contains("max(x, std::cmp::min(y, z))"),
-        "Rust has nested function call"
-    );
+    assert!(c_code.contains("MAX(x, MIN(y, z))"), "C has nested macro call");
+    assert!(expected_rust.contains("max(x, std::cmp::min(y, z))"), "Rust has nested function call");
 }
 
 /// Test deeply nested macro calls (3 levels)
@@ -91,10 +85,7 @@ fn deep_nest(a: i32, b: i32, c: i32, d: i32) -> i32 {
 "#;
 
     // Verify test structure
-    assert!(
-        c_code.contains("MAX(a, MAX(b, MIN(c, d)))"),
-        "C has 3-level nesting"
-    );
+    assert!(c_code.contains("MAX(a, MAX(b, MIN(c, d)))"), "C has 3-level nesting");
     assert!(
         expected_rust.contains("max(a, std::cmp::max(b, std::cmp::min(c, d)))"),
         "Rust preserves nesting"
@@ -186,10 +177,7 @@ int dangerous() {
     // assert!(warnings.iter().any(|w| w.contains("multiple evaluation")));
 
     // Document the danger
-    assert!(
-        c_code.contains("SQR(i++)"),
-        "Dangerous: side effect in macro"
-    );
+    assert!(c_code.contains("SQR(i++)"), "Dangerous: side effect in macro");
 }
 
 /// Test macro transformation to inline function
@@ -271,14 +259,8 @@ fn max_double(x: f64, y: f64) -> f64 {
 "#;
 
     // Note: Verify generic function generated
-    assert!(
-        c_code.contains("MAX(x, y)"),
-        "C uses same macro for different types"
-    );
-    assert!(
-        expected_rust.contains("<T: Ord>"),
-        "Rust uses generic function"
-    );
+    assert!(c_code.contains("MAX(x, y)"), "C uses same macro for different types");
+    assert!(expected_rust.contains("<T: Ord>"), "Rust uses generic function");
 }
 
 /// Test statement macro transformation
@@ -318,10 +300,7 @@ fn sort_two(x: &mut i32, y: &mut i32) {
 
     // Note: Recognize SWAP pattern and use std::mem::swap
     assert!(c_code.contains("SWAP(*x, *y)"), "C uses swap macro");
-    assert!(
-        expected_rust.contains("std::mem::swap"),
-        "Rust uses std library"
-    );
+    assert!(expected_rust.contains("std::mem::swap"), "Rust uses std library");
 }
 
 /// Test macro hygiene: local variable capture
@@ -359,10 +338,7 @@ fn test() {
 
     // Note: Verify transformation avoids hygiene issues
     assert!(c_code.contains("int tmp = 100"), "C has potential capture");
-    assert!(
-        expected_rust.contains("std::mem::swap"),
-        "Rust uses safe function"
-    );
+    assert!(expected_rust.contains("std::mem::swap"), "Rust uses safe function");
 }
 
 /// Test empty macro argument
@@ -462,17 +438,11 @@ fn test_complex_macro_transformation_unsafe_count() {
     let generic_fn = "fn max<T: Ord>(a: T, b: T) -> T { if a > b { a } else { b } }";
     let std_swap = "std::mem::swap(&mut x, &mut y)";
 
-    let combined = format!(
-        "{}\n{}\n{}\n{}",
-        nested_call, inline_fn, generic_fn, std_swap
-    );
+    let combined = format!("{}\n{}\n{}\n{}", nested_call, inline_fn, generic_fn, std_swap);
 
     // Count unsafe blocks (should be 0)
     let unsafe_count = combined.matches("unsafe").count();
-    assert_eq!(
-        unsafe_count, 0,
-        "Complex macro transformations should not introduce unsafe blocks"
-    );
+    assert_eq!(unsafe_count, 0, "Complex macro transformations should not introduce unsafe blocks");
 }
 
 /// Summary of complex macro expansion test coverage
@@ -515,16 +485,9 @@ fn test_complex_macro_expansion_summary() {
         "Constant: DOUBLE_BUFFER",
     ];
 
-    assert_eq!(
-        patterns_tested.len(),
-        10,
-        "10 complex macro patterns tested"
-    );
+    assert_eq!(patterns_tested.len(), 10, "10 complex macro patterns tested");
 
     // All transformations are safe
     let unsafe_blocks = 0;
-    assert_eq!(
-        unsafe_blocks, 0,
-        "Complex macro expansion introduces 0 unsafe blocks"
-    );
+    assert_eq!(unsafe_blocks, 0, "Complex macro expansion introduces 0 unsafe blocks");
 }

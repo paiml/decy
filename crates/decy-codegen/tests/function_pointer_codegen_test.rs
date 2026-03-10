@@ -55,10 +55,8 @@ fn test_function_pointer_void_return_codegen() {
 fn test_function_pointer_no_params_codegen() {
     // Test that function pointer with no parameters generates correctly
     // C: int (*get_value)(void) → Rust: fn() -> i32
-    let fn_ptr_type = HirType::FunctionPointer {
-        param_types: vec![],
-        return_type: Box::new(HirType::Int),
-    };
+    let fn_ptr_type =
+        HirType::FunctionPointer { param_types: vec![], return_type: Box::new(HirType::Int) };
 
     let rust_type = CodeGenerator::map_type(&fn_ptr_type);
 
@@ -77,9 +75,7 @@ fn test_function_pointer_typedef_codegen() {
     let typedef = HirTypedef::new("Callback".to_string(), fn_ptr_type);
     let generator = CodeGenerator::new();
 
-    let rust_code = generator
-        .generate_typedef(&typedef)
-        .expect("Failed to generate typedef");
+    let rust_code = generator.generate_typedef(&typedef).expect("Failed to generate typedef");
 
     assert!(rust_code.contains("type Callback = fn(i32, i32) -> i32;"));
 }
@@ -151,9 +147,8 @@ fn test_callback_pattern_typedef_codegen() {
     );
 
     let generator = CodeGenerator::new();
-    let typedef_code = generator
-        .generate_typedef(&callback_typedef)
-        .expect("Failed to generate typedef");
+    let typedef_code =
+        generator.generate_typedef(&callback_typedef).expect("Failed to generate typedef");
 
     assert!(typedef_code.contains("type Callback = fn(i32, i32) -> i32;"));
 }

@@ -5,10 +5,7 @@ use super::*;
 #[test]
 fn test_create_simple_typedef() {
     // typedef int Integer;
-    let typedef = HirTypedef {
-        name: "Integer".to_string(),
-        underlying_type: HirType::Int,
-    };
+    let typedef = HirTypedef { name: "Integer".to_string(), underlying_type: HirType::Int };
 
     assert_eq!(typedef.name(), "Integer");
     assert_eq!(typedef.underlying_type(), &HirType::Int);
@@ -53,10 +50,7 @@ fn test_typedef_array_type() {
     // typedef int IntArray[10];
     let typedef = HirTypedef {
         name: "IntArray".to_string(),
-        underlying_type: HirType::Array {
-            element_type: Box::new(HirType::Int),
-            size: Some(10),
-        },
+        underlying_type: HirType::Array { element_type: Box::new(HirType::Int), size: Some(10) },
     };
 
     assert_eq!(typedef.name(), "IntArray");
@@ -71,10 +65,7 @@ fn test_typedef_array_type() {
 
 #[test]
 fn test_typedef_clone() {
-    let typedef = HirTypedef {
-        name: "MyInt".to_string(),
-        underlying_type: HirType::Int,
-    };
+    let typedef = HirTypedef { name: "MyInt".to_string(), underlying_type: HirType::Int };
 
     let cloned = typedef.clone();
     assert_eq!(typedef, cloned);
@@ -84,10 +75,7 @@ fn test_typedef_clone() {
 fn test_multiple_typedefs() {
     // typedef int Integer;
     // typedef Integer SignedInt;
-    let typedef1 = HirTypedef {
-        name: "Integer".to_string(),
-        underlying_type: HirType::Int,
-    };
+    let typedef1 = HirTypedef { name: "Integer".to_string(), underlying_type: HirType::Int };
 
     let typedef2 = HirTypedef {
         name: "SignedInt".to_string(),

@@ -45,13 +45,7 @@ impl fmt::Display for SourceSpan {
 impl SourceSpan {
     /// Create a span for a single line
     pub fn line(file: impl Into<String>, line: usize) -> Self {
-        Self {
-            file: file.into(),
-            start_line: line,
-            start_col: 1,
-            end_line: line,
-            end_col: 1,
-        }
+        Self { file: file.into(), start_line: line, start_col: 1, end_line: line, end_col: 1 }
     }
 
     /// Check if this span overlaps with another
@@ -68,10 +62,7 @@ pub enum CConstruct {
     /// Raw pointer: *T
     RawPointer { is_const: bool, pointee: String },
     /// Array: T[N] or T[]
-    Array {
-        element: String,
-        size: Option<usize>,
-    },
+    Array { element: String, size: Option<usize> },
     /// String: char* or const char*
     String { is_const: bool },
     /// Struct with potential pointer fields
@@ -156,11 +147,7 @@ impl CDecisionContext {
 
     /// Convert to context strings for pattern matching
     pub fn to_context_strings(&self) -> Vec<String> {
-        vec![
-            self.c_construct.to_string(),
-            self.category.to_string(),
-            self.c_context.clone(),
-        ]
+        vec![self.c_construct.to_string(), self.category.to_string(), self.c_context.clone()]
     }
 }
 
@@ -170,33 +157,21 @@ mod tests {
 
     #[test]
     fn test_c_construct_display() {
-        let ptr = CConstruct::RawPointer {
-            is_const: true,
-            pointee: "int".into(),
-        };
+        let ptr = CConstruct::RawPointer { is_const: true, pointee: "int".into() };
         assert_eq!(ptr.to_string(), "const int*");
 
-        let arr = CConstruct::Array {
-            element: "char".into(),
-            size: Some(256),
-        };
+        let arr = CConstruct::Array { element: "char".into(), size: Some(256) };
         assert_eq!(arr.to_string(), "char[256]");
     }
 
     #[test]
     fn test_c_construct_all_variants() {
         // RawPointer mutable
-        let ptr_mut = CConstruct::RawPointer {
-            is_const: false,
-            pointee: "float".into(),
-        };
+        let ptr_mut = CConstruct::RawPointer { is_const: false, pointee: "float".into() };
         assert_eq!(ptr_mut.to_string(), "float*");
 
         // Array without size
-        let arr_unsized = CConstruct::Array {
-            element: "int".into(),
-            size: None,
-        };
+        let arr_unsized = CConstruct::Array { element: "int".into(), size: None };
         assert_eq!(arr_unsized.to_string(), "int[]");
 
         // String const
@@ -208,22 +183,15 @@ mod tests {
         assert_eq!(str_mut.to_string(), "char*");
 
         // Struct
-        let s = CConstruct::Struct {
-            name: "Node".into(),
-            has_pointers: true,
-        };
+        let s = CConstruct::Struct { name: "Node".into(), has_pointers: true };
         assert_eq!(s.to_string(), "struct Node");
 
         // Union
-        let u = CConstruct::Union {
-            name: "Data".into(),
-        };
+        let u = CConstruct::Union { name: "Data".into() };
         assert_eq!(u.to_string(), "union Data");
 
         // Function pointer
-        let fp = CConstruct::FunctionPointer {
-            signature: "int, int".into(),
-        };
+        let fp = CConstruct::FunctionPointer { signature: "int, int".into() };
         assert_eq!(fp.to_string(), "(*)(int, int)");
 
         // Void pointer
@@ -270,10 +238,7 @@ mod tests {
     #[test]
     fn test_context_strings() {
         let ctx = CDecisionContext::new(
-            CConstruct::RawPointer {
-                is_const: false,
-                pointee: "int".into(),
-            },
+            CConstruct::RawPointer { is_const: false, pointee: "int".into() },
             CDecisionCategory::PointerOwnership,
         )
         .with_context("function argument");

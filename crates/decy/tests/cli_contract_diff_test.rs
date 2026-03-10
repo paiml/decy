@@ -30,11 +30,7 @@ fn cli_diff_test_valid_file_exits_zero() {
     let temp = TempDir::new().unwrap();
     let file = create_temp_file(&temp, "test.c", RETURN_ONLY_C);
 
-    decy_cmd()
-        .arg("diff-test")
-        .arg(&file)
-        .assert()
-        .success();
+    decy_cmd().arg("diff-test").arg(&file).assert().success();
 }
 
 #[test]
@@ -52,11 +48,7 @@ fn cli_diff_test_invalid_c_exits_nonzero() {
     let temp = TempDir::new().unwrap();
     let file = create_temp_file(&temp, "bad.c", INVALID_C);
 
-    decy_cmd()
-        .arg("diff-test")
-        .arg(&file)
-        .assert()
-        .failure();
+    decy_cmd().arg("diff-test").arg(&file).assert().failure();
 }
 
 // ============================================================================
@@ -95,13 +87,7 @@ fn cli_diff_test_timeout_flag() {
     let temp = TempDir::new().unwrap();
     let file = create_temp_file(&temp, "test.c", RETURN_ONLY_C);
 
-    decy_cmd()
-        .arg("diff-test")
-        .arg(&file)
-        .arg("--timeout")
-        .arg("10")
-        .assert()
-        .success();
+    decy_cmd().arg("diff-test").arg(&file).arg("--timeout").arg("10").assert().success();
 }
 
 #[test]
@@ -116,9 +102,5 @@ fn cli_diff_test_help_flag() {
 
 #[test]
 fn cli_diff_test_requires_input_file() {
-    decy_cmd()
-        .arg("diff-test")
-        .assert()
-        .failure()
-        .stderr(predicate::str::contains("required"));
+    decy_cmd().arg("diff-test").assert().failure().stderr(predicate::str::contains("required"));
 }

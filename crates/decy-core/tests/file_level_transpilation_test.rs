@@ -29,14 +29,8 @@ fn test_transpile_single_file_without_dependencies() {
 
     let transpiled = result.unwrap();
     assert_eq!(transpiled.source_path, c_file);
-    assert!(
-        transpiled.rust_code.contains("fn add"),
-        "Should contain function"
-    );
-    assert!(
-        transpiled.dependencies.is_empty(),
-        "Should have no dependencies"
-    );
+    assert!(transpiled.rust_code.contains("fn add"), "Should contain function");
+    assert!(transpiled.dependencies.is_empty(), "Should have no dependencies");
 }
 
 #[test]
@@ -51,18 +45,9 @@ fn test_transpiled_file_has_metadata() {
     assert!(result.is_ok());
 
     let transpiled = result.unwrap();
-    assert!(
-        transpiled.source_path.exists(),
-        "Source path should be valid"
-    );
-    assert!(
-        !transpiled.rust_code.is_empty(),
-        "Should have generated Rust code"
-    );
-    assert!(
-        !transpiled.functions_exported.is_empty(),
-        "Should track exported functions"
-    );
+    assert!(transpiled.source_path.exists(), "Source path should be valid");
+    assert!(!transpiled.rust_code.is_empty(), "Should have generated Rust code");
+    assert!(!transpiled.functions_exported.is_empty(), "Should track exported functions");
 }
 
 #[test]
@@ -97,13 +82,8 @@ fn test_transpile_file_with_header_dependency() {
     assert!(impl_result.is_ok(), "Should transpile implementation file");
 
     let impl_transpiled = impl_result.unwrap();
-    assert!(
-        !impl_transpiled.rust_code.is_empty(),
-        "Should generate Rust code"
-    );
-    assert!(impl_transpiled
-        .functions_exported
-        .contains(&"utility_function".to_string()));
+    assert!(!impl_transpiled.rust_code.is_empty(), "Should generate Rust code");
+    assert!(impl_transpiled.functions_exported.contains(&"utility_function".to_string()));
 }
 
 #[test]
@@ -133,10 +113,7 @@ fn test_project_context_tracks_types() {
     let mut context_with_types = ProjectContext::new();
     context_with_types.add_transpiled_file(&transpiled);
 
-    assert!(
-        context_with_types.has_type("Point"),
-        "Context should track Point struct"
-    );
+    assert!(context_with_types.has_type("Point"), "Context should track Point struct");
 }
 
 #[test]
@@ -167,11 +144,8 @@ fn test_ffi_boundary_generation_for_c_functions() {
     let temp = TempDir::new().unwrap();
 
     // File with function that will be called from C
-    let file = create_temp_c_file(
-        &temp,
-        "api.c",
-        "int public_api(int value) { return value * 2; }",
-    );
+    let file =
+        create_temp_c_file(&temp, "api.c", "int public_api(int value) { return value * 2; }");
 
     let context = ProjectContext::new();
     let result = transpile_file(&file, &context);
@@ -228,10 +202,7 @@ fn test_transpile_multiple_files_with_cross_references() {
     let main_transpiled = main_result.unwrap();
 
     // main should reference helper from utils
-    assert!(
-        main_transpiled.rust_code.contains("helper"),
-        "Should call helper function"
-    );
+    assert!(main_transpiled.rust_code.contains("helper"), "Should call helper function");
 }
 
 #[test]
@@ -262,15 +233,11 @@ fn test_transpile_header_only_file() {
 
     // Header should track function declarations for context
     assert!(
-        transpiled
-            .functions_exported
-            .contains(&"compute".to_string()),
+        transpiled.functions_exported.contains(&"compute".to_string()),
         "Should track compute declaration"
     );
     assert!(
-        transpiled
-            .functions_exported
-            .contains(&"process".to_string()),
+        transpiled.functions_exported.contains(&"process".to_string()),
         "Should track process declaration"
     );
 }

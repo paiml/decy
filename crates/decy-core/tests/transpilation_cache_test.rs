@@ -42,11 +42,8 @@ fn test_cache_stores_transpiled_file() {
 fn test_cache_hit_on_unchanged_file() {
     // Test: Cache returns cached result when file hasn't changed
     let temp = TempDir::new().unwrap();
-    let c_file = create_temp_c_file(
-        &temp,
-        "test.c",
-        "int multiply(int x, int y) { return x * y; }",
-    );
+    let c_file =
+        create_temp_c_file(&temp, "test.c", "int multiply(int x, int y) { return x * y; }");
 
     let mut cache = TranspilationCache::new();
     let context = ProjectContext::new();
@@ -81,10 +78,7 @@ fn test_cache_miss_on_changed_file() {
 
     // Cache should detect change
     let cached = cache.get(&c_file);
-    assert!(
-        cached.is_none(),
-        "Should detect file change and invalidate cache"
-    );
+    assert!(cached.is_none(), "Should detect file change and invalidate cache");
 }
 
 #[test]
@@ -110,20 +104,14 @@ fn test_cache_invalidation_on_dependency_change() {
 
     // Verify cache hit before change
     let cached = cache.get(&impl_file);
-    assert!(
-        cached.is_some(),
-        "Should have cached entry before dependency change"
-    );
+    assert!(cached.is_some(), "Should have cached entry before dependency change");
 
     // Modify dependency (header)
     std::fs::write(&header, "int helper(); // changed").expect("Should write");
 
     // Cache should invalidate main.c because dependency changed
     let cached = cache.get(&impl_file);
-    assert!(
-        cached.is_none(),
-        "Should invalidate cache when dependency changes"
-    );
+    assert!(cached.is_none(), "Should invalidate cache when dependency changes");
 }
 
 #[test]
@@ -176,10 +164,7 @@ fn test_cache_statistics() {
 
     let stats = cache.statistics();
     assert_eq!(stats.hits, 3, "Should count 3 cache hits");
-    assert_eq!(
-        stats.misses, 0,
-        "Should count 0 misses (insert doesn't count)"
-    );
+    assert_eq!(stats.misses, 0, "Should count 0 misses (insert doesn't count)");
     assert_eq!(stats.total_files, 2, "Should track 2 files");
 }
 
@@ -225,10 +210,7 @@ fn test_cache_clears_all_entries() {
     cache.clear();
 
     // Verify cleared
-    assert!(
-        cache.get(&c_file).is_none(),
-        "Cache should be empty after clear"
-    );
+    assert!(cache.get(&c_file).is_none(), "Cache should be empty after clear");
     let stats = cache.statistics();
     assert_eq!(stats.total_files, 0, "Should have 0 files after clear");
 }

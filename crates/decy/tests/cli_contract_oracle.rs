@@ -29,14 +29,9 @@ fn cli_oracle_stats_exits_zero() {
 
 #[test]
 fn cli_oracle_stats_default_format_markdown() {
-    decy_cmd()
-        .arg("oracle")
-        .arg("stats")
-        .assert()
-        .success()
-        .stdout(
-            predicate::str::contains("Oracle CI Report").or(predicate::str::contains("oracle")),
-        );
+    decy_cmd().arg("oracle").arg("stats").assert().success().stdout(
+        predicate::str::contains("Oracle CI Report").or(predicate::str::contains("oracle")),
+    );
 }
 
 #[test]
@@ -69,12 +64,7 @@ fn cli_oracle_stats_prometheus_format() {
 
 #[test]
 fn cli_oracle_retire_dry_run_exits_zero() {
-    decy_cmd()
-        .arg("oracle")
-        .arg("retire")
-        .arg("--dry-run")
-        .assert()
-        .success();
+    decy_cmd().arg("oracle").arg("retire").arg("--dry-run").assert().success();
 }
 
 #[test]

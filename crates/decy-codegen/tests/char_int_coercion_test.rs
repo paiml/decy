@@ -24,9 +24,7 @@ use tempfile::NamedTempFile;
 /// Helper to transpile C code and return the generated Rust
 fn transpile_c(c_code: &str) -> String {
     let mut temp_file = NamedTempFile::new().expect("Failed to create temp file");
-    temp_file
-        .write_all(c_code.as_bytes())
-        .expect("Failed to write C code");
+    temp_file.write_all(c_code.as_bytes()).expect("Failed to write C code");
 
     let output = Command::new("cargo")
         .args(["run", "-p", "decy", "--quiet", "--", "transpile"])
@@ -105,10 +103,9 @@ int string_compare(char* s1, char* s2) {
 
     match compiles(&rust_code) {
         Ok(()) => {}
-        Err(e) => panic!(
-            "DECY-151: String compare should compile.\nCode:\n{}\nErrors:\n{}",
-            rust_code, e
-        ),
+        Err(e) => {
+            panic!("DECY-151: String compare should compile.\nCode:\n{}\nErrors:\n{}", rust_code, e)
+        }
     }
 }
 
@@ -126,11 +123,7 @@ fn test_string_utils_compiles() {
             "examples/real-world/string_utils.c",
         ])
         .current_dir(
-            std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-                .parent()
-                .unwrap()
-                .parent()
-                .unwrap(),
+            std::path::Path::new(env!("CARGO_MANIFEST_DIR")).parent().unwrap().parent().unwrap(),
         )
         .output()
         .expect("Failed to run decy transpile");
@@ -139,9 +132,8 @@ fn test_string_utils_compiles() {
 
     match compiles(&rust_code) {
         Ok(()) => {}
-        Err(e) => panic!(
-            "DECY-151: string_utils.c should compile.\nCode:\n{}\nErrors:\n{}",
-            rust_code, e
-        ),
+        Err(e) => {
+            panic!("DECY-151: string_utils.c should compile.\nCode:\n{}\nErrors:\n{}", rust_code, e)
+        }
     }
 }

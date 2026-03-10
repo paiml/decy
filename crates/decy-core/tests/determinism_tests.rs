@@ -197,11 +197,7 @@ fn determinism_013_multiple_runs_consistent() {
     let first = decy_core::transpile(c_code).expect("transpilation failed");
     for run in 1..10 {
         let result = decy_core::transpile(c_code).expect("transpilation failed");
-        assert_eq!(
-            first, result,
-            "Divergence detected on run {} of 10",
-            run + 1
-        );
+        assert_eq!(first, result, "Divergence detected on run {} of 10", run + 1);
     }
 }
 

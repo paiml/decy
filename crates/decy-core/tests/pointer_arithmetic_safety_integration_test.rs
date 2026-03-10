@@ -39,11 +39,7 @@ fn test_pointer_increment() {
 
     // Pointer increment should be handled
     let unsafe_count = result.matches("unsafe").count();
-    assert!(
-        unsafe_count <= 5,
-        "Pointer increment should minimize unsafe (found {})",
-        unsafe_count
-    );
+    assert!(unsafe_count <= 5, "Pointer increment should minimize unsafe (found {})", unsafe_count);
 }
 
 #[test]
@@ -67,11 +63,7 @@ fn test_pointer_decrement() {
     assert!(result.contains("fn main"), "Should have main function");
 
     let unsafe_count = result.matches("unsafe").count();
-    assert!(
-        unsafe_count <= 5,
-        "Pointer decrement should minimize unsafe (found {})",
-        unsafe_count
-    );
+    assert!(unsafe_count <= 5, "Pointer decrement should minimize unsafe (found {})", unsafe_count);
 }
 
 // ============================================================================
@@ -97,11 +89,7 @@ fn test_pointer_addition() {
     assert!(result.contains("fn main"), "Should have main function");
 
     let unsafe_count = result.matches("unsafe").count();
-    assert!(
-        unsafe_count <= 4,
-        "Pointer addition should minimize unsafe (found {})",
-        unsafe_count
-    );
+    assert!(unsafe_count <= 4, "Pointer addition should minimize unsafe (found {})", unsafe_count);
 }
 
 #[test]
@@ -188,11 +176,7 @@ fn test_array_traversal_with_pointer() {
     assert!(result.contains("fn main"), "Should have main function");
 
     let unsafe_count = result.matches("unsafe").count();
-    assert!(
-        unsafe_count <= 5,
-        "Array traversal should minimize unsafe (found {})",
-        unsafe_count
-    );
+    assert!(unsafe_count <= 5, "Array traversal should minimize unsafe (found {})", unsafe_count);
 }
 
 #[test]
@@ -284,11 +268,7 @@ fn test_pointer_indexing() {
     assert!(result.contains("fn main"), "Should have main function");
 
     let unsafe_count = result.matches("unsafe").count();
-    assert!(
-        unsafe_count <= 3,
-        "Pointer indexing should minimize unsafe (found {})",
-        unsafe_count
-    );
+    assert!(unsafe_count <= 3, "Pointer indexing should minimize unsafe (found {})", unsafe_count);
 }
 
 #[test]
@@ -496,11 +476,8 @@ fn test_unsafe_block_count_target() {
     let unsafe_count = result.matches("unsafe").count();
     let lines_of_code = result.lines().count();
 
-    let unsafe_per_1000 = if lines_of_code > 0 {
-        (unsafe_count as f64 / lines_of_code as f64) * 1000.0
-    } else {
-        0.0
-    };
+    let unsafe_per_1000 =
+        if lines_of_code > 0 { (unsafe_count as f64 / lines_of_code as f64) * 1000.0 } else { 0.0 };
 
     // Target: <250 unsafe per 1000 LOC (pointer arithmetic is inherently complex)
     assert!(
@@ -575,9 +552,5 @@ fn test_pointer_safety_documentation() {
 
     // If unsafe blocks exist, they should be minimal
     let unsafe_count = result.matches("unsafe").count();
-    assert!(
-        unsafe_count < 10,
-        "Should have minimal unsafe blocks (found {})",
-        unsafe_count
-    );
+    assert!(unsafe_count < 10, "Should have minimal unsafe blocks (found {})", unsafe_count);
 }

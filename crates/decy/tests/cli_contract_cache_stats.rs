@@ -23,11 +23,7 @@ fn create_c_file(dir: &TempDir, name: &str, content: &str) {
 fn cli_cache_stats_exits_zero() {
     let temp = TempDir::new().unwrap();
 
-    decy_cmd()
-        .arg("cache-stats")
-        .arg(temp.path())
-        .assert()
-        .success();
+    decy_cmd().arg("cache-stats").arg(temp.path()).assert().success();
 }
 
 #[test]
@@ -37,32 +33,22 @@ fn cli_cache_stats_shows_metrics() {
     // Create cache directory so stats show metrics
     std::fs::create_dir_all(temp.path().join(".decy/cache")).unwrap();
 
-    decy_cmd()
-        .arg("cache-stats")
-        .arg(temp.path())
-        .assert()
-        .success()
-        .stdout(
-            predicate::str::contains("Cache")
-                .or(predicate::str::contains("hits"))
-                .or(predicate::str::contains("misses")),
-        );
+    decy_cmd().arg("cache-stats").arg(temp.path()).assert().success().stdout(
+        predicate::str::contains("Cache")
+            .or(predicate::str::contains("hits"))
+            .or(predicate::str::contains("misses")),
+    );
 }
 
 #[test]
 fn cli_cache_stats_empty_cache() {
     let temp = TempDir::new().unwrap();
 
-    decy_cmd()
-        .arg("cache-stats")
-        .arg(temp.path())
-        .assert()
-        .success()
-        .stdout(
-            predicate::str::contains("0")
-                .or(predicate::str::contains("empty"))
-                .or(predicate::str::contains("No cache")),
-        );
+    decy_cmd().arg("cache-stats").arg(temp.path()).assert().success().stdout(
+        predicate::str::contains("0")
+            .or(predicate::str::contains("empty"))
+            .or(predicate::str::contains("No cache")),
+    );
 }
 
 #[test]

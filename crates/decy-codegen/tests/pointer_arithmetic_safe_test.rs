@@ -30,17 +30,14 @@ fn test_pointer_addition_to_slice_index() {
     let func = HirFunction::new_with_body(
         "get_next".to_string(),
         HirType::Int,
-        vec![HirParameter::new(
-            "p".to_string(),
-            HirType::Pointer(Box::new(HirType::Int)),
-        )],
-        vec![HirStatement::Return(Some(HirExpression::Dereference(
-            Box::new(HirExpression::BinaryOp {
+        vec![HirParameter::new("p".to_string(), HirType::Pointer(Box::new(HirType::Int)))],
+        vec![HirStatement::Return(Some(HirExpression::Dereference(Box::new(
+            HirExpression::BinaryOp {
                 op: BinaryOperator::Add,
                 left: Box::new(HirExpression::Variable("p".to_string())),
                 right: Box::new(HirExpression::IntLiteral(1)),
-            }),
-        )))],
+            },
+        ))))],
     );
 
     let result = codegen.generate_function(&func);
@@ -48,10 +45,7 @@ fn test_pointer_addition_to_slice_index() {
     println!("Generated code:\n{}", result);
 
     // Verify NO unsafe blocks
-    assert!(
-        !result.contains("unsafe"),
-        "Pointer arithmetic should NOT generate unsafe blocks"
-    );
+    assert!(!result.contains("unsafe"), "Pointer arithmetic should NOT generate unsafe blocks");
 
     // Verify slice indexing pattern (either p[1] or similar safe access)
     // The exact syntax depends on how ownership inference represents this
@@ -86,17 +80,14 @@ fn test_pointer_subtraction_to_slice_index() {
     let func = HirFunction::new_with_body(
         "get_prev".to_string(),
         HirType::Int,
-        vec![HirParameter::new(
-            "p".to_string(),
-            HirType::Pointer(Box::new(HirType::Int)),
-        )],
-        vec![HirStatement::Return(Some(HirExpression::Dereference(
-            Box::new(HirExpression::BinaryOp {
+        vec![HirParameter::new("p".to_string(), HirType::Pointer(Box::new(HirType::Int)))],
+        vec![HirStatement::Return(Some(HirExpression::Dereference(Box::new(
+            HirExpression::BinaryOp {
                 op: BinaryOperator::Subtract,
                 left: Box::new(HirExpression::Variable("p".to_string())),
                 right: Box::new(HirExpression::IntLiteral(2)),
-            }),
-        )))],
+            },
+        ))))],
     );
 
     let result = codegen.generate_function(&func);
@@ -104,10 +95,7 @@ fn test_pointer_subtraction_to_slice_index() {
     println!("Generated code:\n{}", result);
 
     // Verify NO unsafe blocks
-    assert!(
-        !result.contains("unsafe"),
-        "Pointer subtraction should NOT generate unsafe blocks"
-    );
+    assert!(!result.contains("unsafe"), "Pointer subtraction should NOT generate unsafe blocks");
     assert!(
         !result.contains("wrapping_sub"),
         "Should not use wrapping_sub (unsafe pointer arithmetic)"
@@ -136,10 +124,7 @@ fn test_pointer_difference_to_index_difference() {
         "distance".to_string(),
         HirType::Int,
         vec![
-            HirParameter::new(
-                "start".to_string(),
-                HirType::Pointer(Box::new(HirType::Int)),
-            ),
+            HirParameter::new("start".to_string(), HirType::Pointer(Box::new(HirType::Int))),
             HirParameter::new("end".to_string(), HirType::Pointer(Box::new(HirType::Int))),
         ],
         vec![HirStatement::Return(Some(HirExpression::BinaryOp {
@@ -154,10 +139,7 @@ fn test_pointer_difference_to_index_difference() {
     println!("Generated code:\n{}", result);
 
     // Verify NO unsafe blocks
-    assert!(
-        !result.contains("unsafe"),
-        "Pointer difference should NOT generate unsafe blocks"
-    );
+    assert!(!result.contains("unsafe"), "Pointer difference should NOT generate unsafe blocks");
     assert!(
         !result.contains("offset_from"),
         "Should not use offset_from (unsafe pointer arithmetic)"
@@ -209,10 +191,7 @@ fn test_pointer_array_access_with_arithmetic() {
     );
 
     // Verify safe array indexing
-    assert!(
-        result.contains("[") && result.contains("]"),
-        "Should use safe slice indexing syntax"
-    );
+    assert!(result.contains("[") && result.contains("]"), "Should use safe slice indexing syntax");
 }
 
 /// Test multiple pointer arithmetic operations in sequence
@@ -268,14 +247,8 @@ fn test_pointer_arithmetic_in_loop() {
     println!("Generated code:\n{}", result);
 
     // Verify NO unsafe blocks
-    assert!(
-        !result.contains("unsafe"),
-        "Pointer arithmetic should NOT generate unsafe blocks"
-    );
-    assert!(
-        !result.contains("wrapping_add"),
-        "Should not use unsafe pointer methods"
-    );
+    assert!(!result.contains("unsafe"), "Pointer arithmetic should NOT generate unsafe blocks");
+    assert!(!result.contains("wrapping_add"), "Should not use unsafe pointer methods");
 }
 
 /// Test pointer arithmetic with negative offset
@@ -301,13 +274,13 @@ fn test_pointer_arithmetic_negative_offset() {
             HirParameter::new("p".to_string(), HirType::Pointer(Box::new(HirType::Int))),
             HirParameter::new("offset".to_string(), HirType::Int),
         ],
-        vec![HirStatement::Return(Some(HirExpression::Dereference(
-            Box::new(HirExpression::BinaryOp {
+        vec![HirStatement::Return(Some(HirExpression::Dereference(Box::new(
+            HirExpression::BinaryOp {
                 op: BinaryOperator::Subtract,
                 left: Box::new(HirExpression::Variable("p".to_string())),
                 right: Box::new(HirExpression::Variable("offset".to_string())),
-            }),
-        )))],
+            },
+        ))))],
     );
 
     let result = codegen.generate_function(&func);
@@ -319,10 +292,7 @@ fn test_pointer_arithmetic_negative_offset() {
         !result.contains("unsafe"),
         "Pointer arithmetic with negative offset should NOT generate unsafe blocks"
     );
-    assert!(
-        !result.contains("wrapping_sub"),
-        "Should not use unsafe pointer methods"
-    );
+    assert!(!result.contains("wrapping_sub"), "Should not use unsafe pointer methods");
 }
 
 /// Test pointer arithmetic with multiplication (array of structs)
@@ -368,10 +338,7 @@ fn test_pointer_arithmetic_struct_array() {
         !result.contains("unsafe"),
         "Struct array pointer arithmetic should NOT generate unsafe blocks"
     );
-    assert!(
-        !result.contains("wrapping_add"),
-        "Should not use unsafe pointer methods"
-    );
+    assert!(!result.contains("wrapping_add"), "Should not use unsafe pointer methods");
 }
 
 /// Verify unsafe block count remains 0
@@ -404,10 +371,7 @@ fn test_pointer_arithmetic_transformation_unsafe_count() {
         let func = HirFunction::new_with_body(
             format!("test_{}", i),
             HirType::Pointer(Box::new(HirType::Int)),
-            vec![HirParameter::new(
-                "p".to_string(),
-                HirType::Pointer(Box::new(HirType::Int)),
-            )],
+            vec![HirParameter::new("p".to_string(), HirType::Pointer(Box::new(HirType::Int)))],
             vec![HirStatement::Return(Some(expr.clone()))],
         );
 
@@ -437,10 +401,7 @@ fn test_pointer_arithmetic_expression_is_safe() {
     let func = HirFunction::new_with_body(
         "ptr_advance".to_string(),
         HirType::Pointer(Box::new(HirType::Int)),
-        vec![HirParameter::new(
-            "p".to_string(),
-            HirType::Pointer(Box::new(HirType::Int)),
-        )],
+        vec![HirParameter::new("p".to_string(), HirType::Pointer(Box::new(HirType::Int)))],
         vec![
             // p = p + 1; (this forces p to stay as raw pointer)
             HirStatement::Assignment {

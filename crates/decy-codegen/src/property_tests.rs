@@ -15,9 +15,8 @@ const RUST_KEYWORDS: &[&str] = &[
 
 /// Strategy for valid Rust identifiers (excludes keywords)
 fn valid_identifier_strategy() -> impl Strategy<Value = String> {
-    "[a-z_][a-z0-9_]{0,10}".prop_filter("must not be a Rust keyword", |s| {
-        !RUST_KEYWORDS.contains(&s.as_str())
-    })
+    "[a-z_][a-z0-9_]{0,10}"
+        .prop_filter("must not be a Rust keyword", |s| !RUST_KEYWORDS.contains(&s.as_str()))
 }
 
 // Strategy for generating HIR types (reuse from decy-hir concepts)

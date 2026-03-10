@@ -53,10 +53,7 @@ println!("{}", *p);
         assert!(rust_expected.contains("let p: &i32 = &x"));
 
         // Semantic difference: Rust's & is a borrow, not a raw pointer
-        assert!(
-            rust_expected.contains("&i32"),
-            "Rust uses reference type, not pointer"
-        );
+        assert!(rust_expected.contains("&i32"), "Rust uses reference type, not pointer");
     }
 
     #[test]
@@ -80,10 +77,7 @@ let p: &mut i32 = &mut x;
         assert!(rust_expected.contains("let p: &mut i32 = &mut x"));
 
         // CRITICAL: Rust requires `mut` on both variable and borrow
-        assert!(
-            rust_expected.contains("let mut x"),
-            "Variable must be mutable"
-        );
+        assert!(rust_expected.contains("let mut x"), "Variable must be mutable");
         assert!(rust_expected.contains("&mut i32"), "Borrow must be mutable");
     }
 
@@ -144,10 +138,7 @@ let p: &mut i32 = &mut arr[2];
         assert!(rust_expected.contains("&mut arr[2]"));
 
         // Safety: Rust enforces bounds checking
-        assert!(
-            rust_expected.contains("[i32; 5]"),
-            "Array type includes length"
-        );
+        assert!(rust_expected.contains("[i32; 5]"), "Array type includes length");
     }
 
     #[test]
@@ -319,10 +310,7 @@ fn get_larger<'a>(a: &'a i32, b: &'a i32) -> &'a i32 {
         assert!(rust_expected.contains("fn get_larger<'a>(a: &'a i32, b: &'a i32) -> &'a i32"));
 
         // CRITICAL: Lifetime 'a ensures returned reference is valid
-        assert!(
-            rust_expected.contains("<'a>"),
-            "Lifetime parameter required"
-        );
+        assert!(rust_expected.contains("<'a>"), "Lifetime parameter required");
     }
 
     #[test]
@@ -526,14 +514,8 @@ if let Some(val) = p {
         ];
 
         // Validation checks
-        assert_eq!(
-            c_patterns[0], rust_patterns[0],
-            "Syntax similar but semantics differ"
-        );
-        assert!(
-            rust_patterns[1].contains("mut"),
-            "Rust requires explicit mutability"
-        );
+        assert_eq!(c_patterns[0], rust_patterns[0], "Syntax similar but semantics differ");
+        assert!(rust_patterns[1].contains("mut"), "Rust requires explicit mutability");
 
         // Key semantic differences documented
         let semantics = "

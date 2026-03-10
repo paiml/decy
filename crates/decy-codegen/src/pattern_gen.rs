@@ -61,12 +61,7 @@ impl PatternGenerator {
     ///
     /// Rust match expression as a string, or empty string if not a tag check
     pub fn transform_tag_check(&self, stmt: &HirStatement) -> String {
-        if let HirStatement::If {
-            condition,
-            then_block: _,
-            else_block: _,
-        } = stmt
-        {
+        if let HirStatement::If { condition, then_block: _, else_block: _ } = stmt {
             // Check if this is a tag comparison
             if let Some((var_name, _tag_field, _tag_value)) = Self::extract_tag_check(condition) {
                 let mut result = String::new();
@@ -120,12 +115,7 @@ impl PatternGenerator {
 
     /// Recursively collect match arms from nested if statements.
     fn collect_arms_recursive(&self, stmt: &HirStatement, arms: &mut Vec<String>) {
-        if let HirStatement::If {
-            condition,
-            then_block,
-            else_block,
-        } = stmt
-        {
+        if let HirStatement::If { condition, then_block, else_block } = stmt {
             if let Some((_var_name, _tag_field, tag_value)) = Self::extract_tag_check(condition) {
                 // Generate match arm for this variant
                 let variant_name = Self::capitalize_tag_value(&tag_value);
@@ -206,10 +196,7 @@ impl PatternGenerator {
     fn find_union_field_in_expr(expr: &HirExpression) -> Option<String> {
         if let HirExpression::FieldAccess { object, field } = expr {
             // Check if object is v.data
-            if let HirExpression::FieldAccess {
-                object: _inner_obj,
-                field: inner_field,
-            } = &**object
+            if let HirExpression::FieldAccess { object: _inner_obj, field: inner_field } = &**object
             {
                 if inner_field == "data" {
                     return Some(field.clone());
@@ -296,9 +283,7 @@ mod tests {
         let stmt = HirStatement::If {
             condition,
             then_block: vec![],
-            else_block: Some(vec![HirStatement::Return(Some(
-                HirExpression::IntLiteral(-1),
-            ))]),
+            else_block: Some(vec![HirStatement::Return(Some(HirExpression::IntLiteral(-1)))]),
         };
 
         let result = gen.transform_tag_check(&stmt);

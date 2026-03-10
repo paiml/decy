@@ -188,11 +188,7 @@ mod compound_literals_documentation_tests {
         }
 
         // Compound literal with designated initializers
-        let color_value = set_color(RGB {
-            r: 255,
-            g: 128,
-            b: 0,
-        });
+        let color_value = set_color(RGB { r: 255, g: 128, b: 0 });
         assert_eq!(color_value, 0xFF8000);
 
         assert!(c_code.contains(".r = 255"));
@@ -288,9 +284,7 @@ p.x = 10;
         }
 
         // Nested compound literals
-        let result = process(Outer {
-            inner: Inner { x: 1, y: 2 },
-        });
+        let result = process(Outer { inner: Inner { x: 1, y: 2 } });
         assert_eq!(result, 3);
 
         assert!(c_code.contains("(struct Outer)"));
@@ -375,10 +369,7 @@ p.x = 10;
             format!("{} is {} years old", person.name, person.age)
         }
 
-        let greeting = greet(Person {
-            name: "Alice",
-            age: 30,
-        });
+        let greeting = greet(Person { name: "Alice", age: 30 });
         assert_eq!(greeting, "Alice is 30 years old");
 
         assert!(c_code.contains(".name = \"Alice\""));
@@ -431,10 +422,7 @@ p.x = 10;
             p.x * 2 + p.y
         }
 
-        let result = process(Point {
-            x: 10,
-            ..Default::default()
-        });
+        let result = process(Point { x: 10, ..Default::default() });
         assert_eq!(result, 20); // 10*2 + 0
 
         assert!(c_code.contains(".x = 10"));

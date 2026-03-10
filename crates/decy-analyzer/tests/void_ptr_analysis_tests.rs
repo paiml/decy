@@ -56,10 +56,7 @@ fn test_detect_cast_to_type() {
     let patterns = analyzer.analyze(&func);
 
     assert!(!patterns.is_empty());
-    assert!(
-        patterns[0].inferred_types.contains(&HirType::Int),
-        "Should infer int from cast"
-    );
+    assert!(patterns[0].inferred_types.contains(&HirType::Int), "Should infer int from cast");
 }
 
 // ============================================================================
@@ -110,9 +107,7 @@ fn test_detect_compare_pattern() {
     let patterns = analyzer.analyze(&func);
 
     assert!(
-        patterns
-            .iter()
-            .any(|p| p.pattern == VoidPtrPattern::Compare),
+        patterns.iter().any(|p| p.pattern == VoidPtrPattern::Compare),
         "Should detect compare pattern"
     );
 }
@@ -193,10 +188,7 @@ fn test_no_void_ptr_empty_result() {
     let analyzer = VoidPtrAnalyzer::new();
     let patterns = analyzer.analyze(&func);
 
-    assert!(
-        patterns.is_empty(),
-        "Should be empty for non-void* functions"
-    );
+    assert!(patterns.is_empty(), "Should be empty for non-void* functions");
 }
 
 // ============================================================================
@@ -217,9 +209,7 @@ fn test_detect_cmp_function_pattern() {
     let patterns = analyzer.analyze(&func);
 
     assert!(
-        patterns
-            .iter()
-            .any(|p| p.pattern == VoidPtrPattern::Compare),
+        patterns.iter().any(|p| p.pattern == VoidPtrPattern::Compare),
         "Should detect compare pattern for cmp function"
     );
 }
@@ -279,9 +269,7 @@ fn test_detect_partial_ord_constraint() {
 
     assert!(!patterns.is_empty());
     assert!(
-        patterns[0]
-            .constraints
-            .contains(&TypeConstraint::PartialOrd),
+        patterns[0].constraints.contains(&TypeConstraint::PartialOrd),
         "Should infer PartialOrd from < comparison"
     );
 }
@@ -348,10 +336,7 @@ fn test_detect_clone_constraint() {
     let dest_info = patterns.iter().find(|p| p.param_name == "dest");
     assert!(dest_info.is_some());
     assert!(
-        dest_info
-            .unwrap()
-            .constraints
-            .contains(&TypeConstraint::Clone),
+        dest_info.unwrap().constraints.contains(&TypeConstraint::Clone),
         "Should infer Clone constraint from copying through deref"
     );
 }
@@ -499,12 +484,12 @@ fn test_return_statement_analysis() {
         "get_data".to_string(),
         HirType::Int,
         vec![void_ptr_param("data")],
-        vec![HirStatement::Return(Some(HirExpression::Dereference(
-            Box::new(HirExpression::Cast {
+        vec![HirStatement::Return(Some(HirExpression::Dereference(Box::new(
+            HirExpression::Cast {
                 expr: Box::new(HirExpression::Variable("data".to_string())),
                 target_type: HirType::Pointer(Box::new(HirType::Int)),
-            }),
-        )))],
+            },
+        ))))],
     );
 
     let analyzer = VoidPtrAnalyzer::new();
@@ -542,9 +527,7 @@ fn test_greater_than_constraint() {
 
     assert!(!patterns.is_empty());
     assert!(
-        patterns[0]
-            .constraints
-            .contains(&TypeConstraint::PartialOrd),
+        patterns[0].constraints.contains(&TypeConstraint::PartialOrd),
         "Should infer PartialOrd from > comparison"
     );
 }
@@ -603,9 +586,7 @@ fn test_less_equal_constraint() {
 
     assert!(!patterns.is_empty());
     assert!(
-        patterns[0]
-            .constraints
-            .contains(&TypeConstraint::PartialOrd),
+        patterns[0].constraints.contains(&TypeConstraint::PartialOrd),
         "Should infer PartialOrd from <= comparison"
     );
 }
@@ -634,9 +615,7 @@ fn test_greater_equal_constraint() {
 
     assert!(!patterns.is_empty());
     assert!(
-        patterns[0]
-            .constraints
-            .contains(&TypeConstraint::PartialOrd),
+        patterns[0].constraints.contains(&TypeConstraint::PartialOrd),
         "Should infer PartialOrd from >= comparison"
     );
 }
@@ -654,11 +633,7 @@ fn test_generic_pattern_fallback() {
     let patterns = analyzer.analyze(&func);
 
     assert!(!patterns.is_empty());
-    assert_eq!(
-        patterns[0].pattern,
-        VoidPtrPattern::Generic,
-        "Should fallback to Generic pattern"
-    );
+    assert_eq!(patterns[0].pattern, VoidPtrPattern::Generic, "Should fallback to Generic pattern");
 }
 
 // ============================================================================
@@ -723,11 +698,7 @@ fn test_analyze_statement_default_arm() {
     let func = create_function(
         "process",
         vec![void_ptr_param("data")],
-        vec![
-            HirStatement::Break,
-            HirStatement::Continue,
-            HirStatement::Return(None),
-        ],
+        vec![HirStatement::Break, HirStatement::Continue, HirStatement::Return(None)],
     );
 
     let analyzer = VoidPtrAnalyzer::new();
@@ -756,9 +727,7 @@ fn test_binop_non_comparison_default_arm() {
     let patterns = analyzer.analyze(&func);
     assert!(!patterns.is_empty());
     assert!(
-        !patterns[0]
-            .constraints
-            .contains(&TypeConstraint::PartialOrd),
+        !patterns[0].constraints.contains(&TypeConstraint::PartialOrd),
         "Add should not infer PartialOrd"
     );
     assert!(
@@ -821,11 +790,7 @@ fn test_duplicate_cast_type_not_added_twice() {
     let analyzer = VoidPtrAnalyzer::new();
     let patterns = analyzer.analyze(&func);
     assert!(!patterns.is_empty());
-    assert_eq!(
-        patterns[0].inferred_types.len(),
-        1,
-        "Duplicate type should not be added twice"
-    );
+    assert_eq!(patterns[0].inferred_types.len(), 1, "Duplicate type should not be added twice");
 }
 
 #[test]

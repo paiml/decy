@@ -27,10 +27,7 @@ fn test_classify_owning_pointer() {
     let inferencer = OwnershipInferencer::new();
     let inferences = inferencer.infer(&graph);
 
-    assert!(
-        inferences.contains_key("ptr"),
-        "Should infer ownership for ptr"
-    );
+    assert!(inferences.contains_key("ptr"), "Should infer ownership for ptr");
     assert_eq!(
         inferences["ptr"].kind,
         OwnershipKind::Owning,
@@ -87,10 +84,7 @@ fn test_detect_mutation() {
     let func = HirFunction::new_with_body(
         "test".to_string(),
         HirType::Void,
-        vec![HirParameter::new(
-            "ptr".to_string(),
-            HirType::Pointer(Box::new(HirType::Int)),
-        )],
+        vec![HirParameter::new("ptr".to_string(), HirType::Pointer(Box::new(HirType::Int)))],
         vec![HirStatement::Assignment {
             target: "x".to_string(),
             value: HirExpression::Dereference(Box::new(HirExpression::Variable("ptr".to_string()))),
@@ -114,13 +108,10 @@ fn test_infer_immutable_borrow() {
     let func = HirFunction::new_with_body(
         "read_only".to_string(),
         HirType::Int,
-        vec![HirParameter::new(
-            "data".to_string(),
-            HirType::Pointer(Box::new(HirType::Int)),
-        )],
-        vec![HirStatement::Return(Some(HirExpression::Dereference(
-            Box::new(HirExpression::Variable("data".to_string())),
-        )))],
+        vec![HirParameter::new("data".to_string(), HirType::Pointer(Box::new(HirType::Int)))],
+        vec![HirStatement::Return(Some(HirExpression::Dereference(Box::new(
+            HirExpression::Variable("data".to_string()),
+        ))))],
     );
 
     let analyzer = DataflowAnalyzer::new();
@@ -145,10 +136,7 @@ fn test_infer_mutable_borrow() {
     let func = HirFunction::new_with_body(
         "modify".to_string(),
         HirType::Void,
-        vec![HirParameter::new(
-            "data".to_string(),
-            HirType::Pointer(Box::new(HirType::Int)),
-        )],
+        vec![HirParameter::new("data".to_string(), HirType::Pointer(Box::new(HirType::Int)))],
         vec![
             // In a real scenario, this would be: *data = 5;
             // For now, we test with assignment which indicates mutation intent
@@ -176,14 +164,8 @@ fn test_function_parameter_ownership() {
         "process".to_string(),
         HirType::Void,
         vec![
-            HirParameter::new(
-                "input".to_string(),
-                HirType::Pointer(Box::new(HirType::Int)),
-            ),
-            HirParameter::new(
-                "output".to_string(),
-                HirType::Pointer(Box::new(HirType::Int)),
-            ),
+            HirParameter::new("input".to_string(), HirType::Pointer(Box::new(HirType::Int))),
+            HirParameter::new("output".to_string(), HirType::Pointer(Box::new(HirType::Int))),
         ],
         vec![],
     );
@@ -235,10 +217,7 @@ fn test_confidence_scores() {
             inference.confidence >= 0.0 && inference.confidence <= 1.0,
             "Confidence should be between 0 and 1"
         );
-        assert!(
-            inference.confidence > 0.5,
-            "malloc allocation should have high confidence"
-        );
+        assert!(inference.confidence > 0.5, "malloc allocation should have high confidence");
     }
 }
 
@@ -253,11 +232,7 @@ fn test_empty_function_inferences() {
     let inferencer = OwnershipInferencer::new();
     let inferences = inferencer.infer(&graph);
 
-    assert_eq!(
-        inferences.len(),
-        0,
-        "Empty function should have no inferences"
-    );
+    assert_eq!(inferences.len(), 0, "Empty function should have no inferences");
 }
 
 #[test]
@@ -283,11 +258,7 @@ fn test_non_pointer_variables_not_inferred() {
     let inferencer = OwnershipInferencer::new();
     let inferences = inferencer.infer(&graph);
 
-    assert_eq!(
-        inferences.len(),
-        0,
-        "Non-pointer variables should not be inferred"
-    );
+    assert_eq!(inferences.len(), 0, "Non-pointer variables should not be inferred");
 }
 
 #[test]
@@ -314,10 +285,7 @@ fn test_inference_reasoning() {
     let inferences = inferencer.infer(&graph);
 
     if let Some(inference) = inferences.get("ptr") {
-        assert!(
-            !inference.reason.is_empty(),
-            "Inference should include reasoning"
-        );
+        assert!(!inference.reason.is_empty(), "Inference should include reasoning");
     }
 }
 
@@ -330,13 +298,10 @@ fn test_const_parameter_is_immutable_borrow() {
     let func = HirFunction::new_with_body(
         "read_data".to_string(),
         HirType::Int,
-        vec![HirParameter::new(
-            "data".to_string(),
-            HirType::Pointer(Box::new(HirType::Int)),
-        )],
-        vec![HirStatement::Return(Some(HirExpression::Dereference(
-            Box::new(HirExpression::Variable("data".to_string())),
-        )))],
+        vec![HirParameter::new("data".to_string(), HirType::Pointer(Box::new(HirType::Int)))],
+        vec![HirStatement::Return(Some(HirExpression::Dereference(Box::new(
+            HirExpression::Variable("data".to_string()),
+        ))))],
     );
 
     let analyzer = DataflowAnalyzer::new();
@@ -385,10 +350,7 @@ fn test_pointer_returned_from_function_is_owning() {
         OwnershipKind::Owning,
         "Returned malloc pointer should be owning"
     );
-    assert!(
-        inferences["ptr"].confidence > 0.85,
-        "Should have high confidence for returned malloc"
-    );
+    assert!(inferences["ptr"].confidence > 0.85, "Should have high confidence for returned malloc");
 }
 
 #[test]
@@ -398,10 +360,7 @@ fn test_free_called_implies_owning() {
     let func = HirFunction::new_with_body(
         "cleanup".to_string(),
         HirType::Void,
-        vec![HirParameter::new(
-            "ptr".to_string(),
-            HirType::Pointer(Box::new(HirType::Int)),
-        )],
+        vec![HirParameter::new("ptr".to_string(), HirType::Pointer(Box::new(HirType::Int)))],
         vec![HirStatement::Return(None)],
     );
 
@@ -773,10 +732,7 @@ fn test_classify_stack_array_pointer() {
         vec![
             HirStatement::VariableDeclaration {
                 name: "arr".to_string(),
-                var_type: HirType::Array {
-                    element_type: Box::new(HirType::Int),
-                    size: Some(10),
-                },
+                var_type: HirType::Array { element_type: Box::new(HirType::Int), size: Some(10) },
                 initializer: None,
             },
             HirStatement::VariableDeclaration {
@@ -796,11 +752,8 @@ fn test_classify_stack_array_pointer() {
     assert!(inferences.contains_key("p"), "Should infer ownership for p");
 
     // This will FAIL until we add ArrayPointer variant
-    if let OwnershipKind::ArrayPointer {
-        base_array,
-        element_type,
-        base_index,
-    } = &inferences["p"].kind
+    if let OwnershipKind::ArrayPointer { base_array, element_type, base_index } =
+        &inferences["p"].kind
     {
         assert_eq!(base_array, "arr", "Should track array base");
         assert_eq!(*element_type, HirType::Int, "Should preserve element type");
@@ -827,9 +780,7 @@ fn test_classify_heap_array_pointer() {
                 arguments: vec![HirExpression::BinaryOp {
                     op: decy_hir::BinaryOperator::Multiply,
                     left: Box::new(HirExpression::Variable("n".to_string())),
-                    right: Box::new(HirExpression::Sizeof {
-                        type_name: "int".to_string(),
-                    }),
+                    right: Box::new(HirExpression::Sizeof { type_name: "int".to_string() }),
                 }],
             }),
         }],
@@ -841,25 +792,14 @@ fn test_classify_heap_array_pointer() {
     let inferencer = OwnershipInferencer::new();
     let inferences = inferencer.infer(&graph);
 
-    assert!(
-        inferences.contains_key("arr"),
-        "Should infer ownership for arr"
-    );
+    assert!(inferences.contains_key("arr"), "Should infer ownership for arr");
 
     // Heap array should be classified as ArrayPointer
-    if let OwnershipKind::ArrayPointer {
-        base_array,
-        element_type,
-        ..
-    } = &inferences["arr"].kind
-    {
+    if let OwnershipKind::ArrayPointer { base_array, element_type, .. } = &inferences["arr"].kind {
         assert_eq!(base_array, "arr", "Heap array is its own base");
         assert_eq!(*element_type, HirType::Int);
     } else {
-        panic!(
-            "Expected ArrayPointer for heap array, got {:?}",
-            inferences["arr"].kind
-        );
+        panic!("Expected ArrayPointer for heap array, got {:?}", inferences["arr"].kind);
     }
 }
 
@@ -884,19 +824,13 @@ fn test_classify_array_parameter() {
     let inferencer = OwnershipInferencer::new();
     let inferences = inferencer.infer(&graph);
 
-    assert!(
-        inferences.contains_key("arr"),
-        "Should infer ownership for arr parameter"
-    );
+    assert!(inferences.contains_key("arr"), "Should infer ownership for arr parameter");
 
     // Array parameter should be ArrayPointer
     if let OwnershipKind::ArrayPointer { base_array, .. } = &inferences["arr"].kind {
         assert_eq!(base_array, "arr", "Parameter is its own base");
     } else {
-        panic!(
-            "Expected ArrayPointer for array parameter, got {:?}",
-            inferences["arr"].kind
-        );
+        panic!("Expected ArrayPointer for array parameter, got {:?}", inferences["arr"].kind);
     }
 }
 
@@ -928,9 +862,7 @@ fn test_distinguish_array_pointer_from_owning() {
                     arguments: vec![HirExpression::BinaryOp {
                         op: decy_hir::BinaryOperator::Multiply,
                         left: Box::new(HirExpression::IntLiteral(10)),
-                        right: Box::new(HirExpression::Sizeof {
-                            type_name: "int".to_string(),
-                        }),
+                        right: Box::new(HirExpression::Sizeof { type_name: "int".to_string() }),
                     }],
                 }),
             },
@@ -944,11 +876,7 @@ fn test_distinguish_array_pointer_from_owning() {
     let inferences = inferencer.infer(&graph);
 
     // Regular malloc should be Owning
-    assert_eq!(
-        inferences["ptr"].kind,
-        OwnershipKind::Owning,
-        "Single malloc should be Owning"
-    );
+    assert_eq!(inferences["ptr"].kind, OwnershipKind::Owning, "Single malloc should be Owning");
 
     // Array malloc should be ArrayPointer
     assert!(
@@ -969,10 +897,7 @@ fn test_array_pointer_confidence_score() {
         vec![
             HirStatement::VariableDeclaration {
                 name: "arr".to_string(),
-                var_type: HirType::Array {
-                    element_type: Box::new(HirType::Int),
-                    size: Some(10),
-                },
+                var_type: HirType::Array { element_type: Box::new(HirType::Int), size: Some(10) },
                 initializer: None,
             },
             HirStatement::VariableDeclaration {
@@ -1024,10 +949,7 @@ fn test_default_trait_implementation() {
 fn test_ownership_kind_equality() {
     // Test OwnershipKind Eq implementation
     assert_eq!(OwnershipKind::Owning, OwnershipKind::Owning);
-    assert_eq!(
-        OwnershipKind::ImmutableBorrow,
-        OwnershipKind::ImmutableBorrow
-    );
+    assert_eq!(OwnershipKind::ImmutableBorrow, OwnershipKind::ImmutableBorrow);
     assert_eq!(OwnershipKind::MutableBorrow, OwnershipKind::MutableBorrow);
     assert_eq!(OwnershipKind::Unknown, OwnershipKind::Unknown);
     assert_ne!(OwnershipKind::Owning, OwnershipKind::ImmutableBorrow);
@@ -1122,10 +1044,7 @@ fn test_dereference_indicates_mutation() {
     let func = HirFunction::new_with_body(
         "test".to_string(),
         HirType::Void,
-        vec![HirParameter::new(
-            "ptr".to_string(),
-            HirType::Pointer(Box::new(HirType::Int)),
-        )],
+        vec![HirParameter::new("ptr".to_string(), HirType::Pointer(Box::new(HirType::Int)))],
         vec![HirStatement::Assignment {
             target: "val".to_string(),
             value: HirExpression::Dereference(Box::new(HirExpression::Variable("ptr".to_string()))),
@@ -1140,10 +1059,7 @@ fn test_dereference_indicates_mutation() {
     // ptr is a parameter with dereference - should be MutableBorrow
     if let Some(inf) = inferences.get("ptr") {
         assert!(
-            matches!(
-                inf.kind,
-                OwnershipKind::MutableBorrow | OwnershipKind::ImmutableBorrow
-            ),
+            matches!(inf.kind, OwnershipKind::MutableBorrow | OwnershipKind::ImmutableBorrow),
             "Dereferenced pointer should be a borrow"
         );
     }
@@ -1197,10 +1113,7 @@ fn test_inferencer_default() {
 #[test]
 fn test_ownership_kind_eq() {
     assert_eq!(OwnershipKind::Owning, OwnershipKind::Owning);
-    assert_eq!(
-        OwnershipKind::ImmutableBorrow,
-        OwnershipKind::ImmutableBorrow
-    );
+    assert_eq!(OwnershipKind::ImmutableBorrow, OwnershipKind::ImmutableBorrow);
     assert_eq!(OwnershipKind::MutableBorrow, OwnershipKind::MutableBorrow);
     assert_ne!(OwnershipKind::Owning, OwnershipKind::ImmutableBorrow);
 }
@@ -1232,10 +1145,7 @@ fn test_classify_dereference_node() {
     let func = HirFunction::new_with_body(
         "test".to_string(),
         HirType::Void,
-        vec![HirParameter::new(
-            "ptr".to_string(),
-            HirType::Pointer(Box::new(HirType::Int)),
-        )],
+        vec![HirParameter::new("ptr".to_string(), HirType::Pointer(Box::new(HirType::Int)))],
         vec![HirStatement::Assignment {
             target: "val".to_string(),
             value: HirExpression::Dereference(Box::new(HirExpression::Variable("ptr".to_string()))),
@@ -1346,10 +1256,7 @@ fn test_array_allocation_classification() {
         vec![],
         vec![HirStatement::VariableDeclaration {
             name: "arr".to_string(),
-            var_type: HirType::Array {
-                element_type: Box::new(HirType::Int),
-                size: Some(10),
-            },
+            var_type: HirType::Array { element_type: Box::new(HirType::Int), size: Some(10) },
             initializer: None,
         }],
     );
@@ -1370,13 +1277,10 @@ fn test_parameter_immutable_borrow_reasoning() {
     let func = HirFunction::new_with_body(
         "test".to_string(),
         HirType::Int,
-        vec![HirParameter::new(
-            "data".to_string(),
-            HirType::Pointer(Box::new(HirType::Int)),
-        )],
-        vec![HirStatement::Return(Some(HirExpression::Dereference(
-            Box::new(HirExpression::Variable("data".to_string())),
-        )))],
+        vec![HirParameter::new("data".to_string(), HirType::Pointer(Box::new(HirType::Int)))],
+        vec![HirStatement::Return(Some(HirExpression::Dereference(Box::new(
+            HirExpression::Variable("data".to_string()),
+        ))))],
     );
     let analyzer = DataflowAnalyzer::new();
     let graph = analyzer.analyze(&func);
@@ -1414,10 +1318,7 @@ fn test_confidence_array_pointer() {
         vec![],
         vec![HirStatement::VariableDeclaration {
             name: "arr".to_string(),
-            var_type: HirType::Array {
-                element_type: Box::new(HirType::Int),
-                size: Some(10),
-            },
+            var_type: HirType::Array { element_type: Box::new(HirType::Int), size: Some(10) },
             initializer: None,
         }],
     );
@@ -1427,10 +1328,7 @@ fn test_confidence_array_pointer() {
     let inferences = inferencer.infer(&graph);
     if let Some(inf) = inferences.get("arr") {
         if matches!(inf.kind, OwnershipKind::ArrayPointer { .. }) {
-            assert!(
-                inf.confidence >= 0.9,
-                "ArrayPointer should have high confidence"
-            );
+            assert!(inf.confidence >= 0.9, "ArrayPointer should have high confidence");
         }
     }
 }
@@ -1441,10 +1339,7 @@ fn test_mutable_borrow_confidence() {
     let func = HirFunction::new_with_body(
         "test".to_string(),
         HirType::Void,
-        vec![HirParameter::new(
-            "ptr".to_string(),
-            HirType::Pointer(Box::new(HirType::Int)),
-        )],
+        vec![HirParameter::new("ptr".to_string(), HirType::Pointer(Box::new(HirType::Int)))],
         vec![HirStatement::Assignment {
             target: "x".to_string(),
             value: HirExpression::Dereference(Box::new(HirExpression::Variable("ptr".to_string()))),
@@ -1473,10 +1368,7 @@ fn test_classify_pointer_assignment_from_array() {
         vec![
             HirStatement::VariableDeclaration {
                 name: "arr".to_string(),
-                var_type: HirType::Array {
-                    element_type: Box::new(HirType::Int),
-                    size: Some(10),
-                },
+                var_type: HirType::Array { element_type: Box::new(HirType::Int), size: Some(10) },
                 initializer: None,
             },
             HirStatement::VariableDeclaration {
@@ -1529,13 +1421,10 @@ fn test_immutable_borrow_readonly() {
     let func = HirFunction::new_with_body(
         "test".to_string(),
         HirType::Int,
-        vec![HirParameter::new(
-            "data".to_string(),
-            HirType::Pointer(Box::new(HirType::Int)),
-        )],
-        vec![HirStatement::Return(Some(HirExpression::Dereference(
-            Box::new(HirExpression::Variable("data".to_string())),
-        )))],
+        vec![HirParameter::new("data".to_string(), HirType::Pointer(Box::new(HirType::Int)))],
+        vec![HirStatement::Return(Some(HirExpression::Dereference(Box::new(
+            HirExpression::Variable("data".to_string()),
+        ))))],
     );
     let analyzer = DataflowAnalyzer::new();
     let graph = analyzer.analyze(&func);
@@ -1556,10 +1445,7 @@ fn test_mutable_borrow_with_deref_assignment() {
     let func = HirFunction::new_with_body(
         "test".to_string(),
         HirType::Void,
-        vec![HirParameter::new(
-            "out".to_string(),
-            HirType::Pointer(Box::new(HirType::Int)),
-        )],
+        vec![HirParameter::new("out".to_string(), HirType::Pointer(Box::new(HirType::Int)))],
         vec![HirStatement::DerefAssignment {
             target: HirExpression::Variable("out".to_string()),
             value: HirExpression::IntLiteral(42),
@@ -1728,10 +1614,7 @@ fn test_reasoning_parameter_immutable() {
     let func = HirFunction::new_with_body(
         "test".to_string(),
         HirType::Int,
-        vec![HirParameter::new(
-            "data".to_string(),
-            HirType::Pointer(Box::new(HirType::Int)),
-        )],
+        vec![HirParameter::new("data".to_string(), HirType::Pointer(Box::new(HirType::Int)))],
         vec![HirStatement::Return(Some(HirExpression::IntLiteral(0)))],
     );
     let analyzer = DataflowAnalyzer::new();
@@ -1749,10 +1632,7 @@ fn test_reasoning_parameter_mutable() {
     let func = HirFunction::new_with_body(
         "test".to_string(),
         HirType::Void,
-        vec![HirParameter::new(
-            "out".to_string(),
-            HirType::Pointer(Box::new(HirType::Int)),
-        )],
+        vec![HirParameter::new("out".to_string(), HirType::Pointer(Box::new(HirType::Int)))],
         vec![HirStatement::DerefAssignment {
             target: HirExpression::Variable("out".to_string()),
             value: HirExpression::IntLiteral(42),
@@ -1773,10 +1653,7 @@ fn test_reasoning_assignment_immutable() {
     let func = HirFunction::new_with_body(
         "test".to_string(),
         HirType::Int,
-        vec![HirParameter::new(
-            "src".to_string(),
-            HirType::Pointer(Box::new(HirType::Int)),
-        )],
+        vec![HirParameter::new("src".to_string(), HirType::Pointer(Box::new(HirType::Int)))],
         vec![
             HirStatement::VariableDeclaration {
                 name: "ptr".to_string(),
@@ -1849,10 +1726,7 @@ fn test_calculate_confidence_borrow_escapes() {
     let func = HirFunction::new_with_body(
         "get_ptr".to_string(),
         HirType::Pointer(Box::new(HirType::Int)),
-        vec![HirParameter::new(
-            "data".to_string(),
-            HirType::Pointer(Box::new(HirType::Int)),
-        )],
+        vec![HirParameter::new("data".to_string(), HirType::Pointer(Box::new(HirType::Int)))],
         vec![
             HirStatement::VariableDeclaration {
                 name: "ptr".to_string(),
@@ -1921,10 +1795,7 @@ fn test_array_pointer_high_confidence() {
         vec![],
         vec![HirStatement::VariableDeclaration {
             name: "arr".to_string(),
-            var_type: HirType::Array {
-                element_type: Box::new(HirType::Int),
-                size: Some(10),
-            },
+            var_type: HirType::Array { element_type: Box::new(HirType::Int), size: Some(10) },
             initializer: None,
         }],
     );
@@ -1945,13 +1816,10 @@ fn test_classify_pointer_dereference() {
     let func = HirFunction::new_with_body(
         "test".to_string(),
         HirType::Int,
-        vec![HirParameter::new(
-            "ptr".to_string(),
-            HirType::Pointer(Box::new(HirType::Int)),
-        )],
-        vec![HirStatement::Return(Some(HirExpression::Dereference(
-            Box::new(HirExpression::Variable("ptr".to_string())),
-        )))],
+        vec![HirParameter::new("ptr".to_string(), HirType::Pointer(Box::new(HirType::Int)))],
+        vec![HirStatement::Return(Some(HirExpression::Dereference(Box::new(
+            HirExpression::Variable("ptr".to_string()),
+        ))))],
     );
     let analyzer = DataflowAnalyzer::new();
     let graph = analyzer.analyze(&func);
@@ -2013,12 +1881,7 @@ fn test_classify_pointer_empty_nodes_returns_unknown() {
     // This is hard to trigger through the public API since the analyzer always
     // adds at least one node per variable. But we test indirectly via the graph.
     let inferencer = OwnershipInferencer::new();
-    let func = HirFunction::new_with_body(
-        "test".to_string(),
-        HirType::Void,
-        vec![],
-        vec![],
-    );
+    let func = HirFunction::new_with_body("test".to_string(), HirType::Void, vec![], vec![]);
     let analyzer = DataflowAnalyzer::new();
     let graph = analyzer.analyze(&func);
     let inferences = inferencer.infer(&graph);
@@ -2032,10 +1895,7 @@ fn test_classify_pointer_parameter_not_array_not_mutated() {
     let func = HirFunction::new_with_body(
         "test".to_string(),
         HirType::Int,
-        vec![HirParameter::new(
-            "input".to_string(),
-            HirType::Pointer(Box::new(HirType::Int)),
-        )],
+        vec![HirParameter::new("input".to_string(), HirType::Pointer(Box::new(HirType::Int)))],
         vec![
             // No mutation, just return a constant
             HirStatement::Return(Some(HirExpression::IntLiteral(0))),
@@ -2049,7 +1909,10 @@ fn test_classify_pointer_parameter_not_array_not_mutated() {
     assert!(inferences.contains_key("input"));
     assert_eq!(inferences["input"].kind, OwnershipKind::ImmutableBorrow);
     assert!(inferences["input"].confidence >= 0.75);
-    assert!(inferences["input"].reason.contains("parameter") || inferences["input"].reason.contains("input"));
+    assert!(
+        inferences["input"].reason.contains("parameter")
+            || inferences["input"].reason.contains("input")
+    );
 }
 
 #[test]
@@ -2058,10 +1921,7 @@ fn test_classify_pointer_parameter_mutated() {
     let func = HirFunction::new_with_body(
         "test".to_string(),
         HirType::Void,
-        vec![HirParameter::new(
-            "out".to_string(),
-            HirType::Pointer(Box::new(HirType::Int)),
-        )],
+        vec![HirParameter::new("out".to_string(), HirType::Pointer(Box::new(HirType::Int)))],
         vec![
             // Dereference assignment indicates mutation
             HirStatement::DerefAssignment {
@@ -2095,10 +1955,7 @@ fn test_classify_pointer_assignment_not_from_array_immutable() {
     let func = HirFunction::new_with_body(
         "test".to_string(),
         HirType::Int,
-        vec![HirParameter::new(
-            "src".to_string(),
-            HirType::Pointer(Box::new(HirType::Int)),
-        )],
+        vec![HirParameter::new("src".to_string(), HirType::Pointer(Box::new(HirType::Int)))],
         vec![
             HirStatement::VariableDeclaration {
                 name: "alias".to_string(),
@@ -2135,10 +1992,7 @@ fn test_classify_pointer_assignment_from_array_becomes_array_pointer() {
             // Declare array
             HirStatement::VariableDeclaration {
                 name: "arr".to_string(),
-                var_type: HirType::Array {
-                    element_type: Box::new(HirType::Int),
-                    size: Some(10),
-                },
+                var_type: HirType::Array { element_type: Box::new(HirType::Int), size: Some(10) },
                 initializer: None,
             },
             // Assign pointer from array
@@ -2155,11 +2009,8 @@ fn test_classify_pointer_assignment_from_array_becomes_array_pointer() {
     let inferences = inferencer.infer(&graph);
 
     assert!(inferences.contains_key("ptr"));
-    if let OwnershipKind::ArrayPointer {
-        base_array,
-        element_type,
-        base_index,
-    } = &inferences["ptr"].kind
+    if let OwnershipKind::ArrayPointer { base_array, element_type, base_index } =
+        &inferences["ptr"].kind
     {
         assert_eq!(base_array, "arr");
         assert_eq!(*element_type, HirType::Int);
@@ -2188,15 +2039,13 @@ fn test_classify_pointer_dereference_node_returns_immutable_borrow() {
             "pp".to_string(),
             HirType::Pointer(Box::new(HirType::Pointer(Box::new(HirType::Int)))),
         )],
-        vec![
-            HirStatement::VariableDeclaration {
-                name: "inner".to_string(),
-                var_type: HirType::Pointer(Box::new(HirType::Int)),
-                initializer: Some(HirExpression::Dereference(Box::new(
-                    HirExpression::Variable("pp".to_string()),
-                ))),
-            },
-        ],
+        vec![HirStatement::VariableDeclaration {
+            name: "inner".to_string(),
+            var_type: HirType::Pointer(Box::new(HirType::Int)),
+            initializer: Some(HirExpression::Dereference(Box::new(HirExpression::Variable(
+                "pp".to_string(),
+            )))),
+        }],
     );
     let analyzer = DataflowAnalyzer::new();
     let graph = analyzer.analyze(&func);
@@ -2228,9 +2077,7 @@ fn test_classify_pointer_free_node_returns_owning() {
                     arguments: vec![HirExpression::IntLiteral(4)],
                 }),
             },
-            HirStatement::Free {
-                pointer: HirExpression::Variable("ptr".to_string()),
-            },
+            HirStatement::Free { pointer: HirExpression::Variable("ptr".to_string()) },
         ],
     );
     let analyzer = DataflowAnalyzer::new();
@@ -2251,10 +2098,7 @@ fn test_classify_pointer_array_allocation_node() {
         vec![],
         vec![HirStatement::VariableDeclaration {
             name: "data".to_string(),
-            var_type: HirType::Array {
-                element_type: Box::new(HirType::Float),
-                size: Some(20),
-            },
+            var_type: HirType::Array { element_type: Box::new(HirType::Float), size: Some(20) },
             initializer: None,
         }],
     );
@@ -2264,12 +2108,7 @@ fn test_classify_pointer_array_allocation_node() {
     let inferences = inferencer.infer(&graph);
 
     if let Some(inf) = inferences.get("data") {
-        if let OwnershipKind::ArrayPointer {
-            base_array,
-            element_type,
-            base_index,
-        } = &inf.kind
-        {
+        if let OwnershipKind::ArrayPointer { base_array, element_type, base_index } = &inf.kind {
             assert_eq!(base_array, "data");
             assert_eq!(*element_type, HirType::Float);
             assert_eq!(*base_index, Some(0));
@@ -2351,10 +2190,7 @@ fn test_confidence_borrow_escapes_reduced() {
     let func = HirFunction::new_with_body(
         "get_ref".to_string(),
         HirType::Pointer(Box::new(HirType::Int)),
-        vec![HirParameter::new(
-            "src".to_string(),
-            HirType::Pointer(Box::new(HirType::Int)),
-        )],
+        vec![HirParameter::new("src".to_string(), HirType::Pointer(Box::new(HirType::Int)))],
         vec![
             HirStatement::VariableDeclaration {
                 name: "ref_ptr".to_string(),
@@ -2412,10 +2248,7 @@ fn test_reasoning_parameter_immutable_message() {
     let func = HirFunction::new_with_body(
         "test".to_string(),
         HirType::Int,
-        vec![HirParameter::new(
-            "read_only".to_string(),
-            HirType::Pointer(Box::new(HirType::Int)),
-        )],
+        vec![HirParameter::new("read_only".to_string(), HirType::Pointer(Box::new(HirType::Int)))],
         vec![HirStatement::Return(Some(HirExpression::IntLiteral(0)))],
     );
     let analyzer = DataflowAnalyzer::new();
@@ -2437,10 +2270,7 @@ fn test_reasoning_assignment_immutable_borrow_message() {
     let func = HirFunction::new_with_body(
         "test".to_string(),
         HirType::Int,
-        vec![HirParameter::new(
-            "src".to_string(),
-            HirType::Pointer(Box::new(HirType::Int)),
-        )],
+        vec![HirParameter::new("src".to_string(), HirType::Pointer(Box::new(HirType::Int)))],
         vec![
             HirStatement::VariableDeclaration {
                 name: "copy".to_string(),
@@ -2457,7 +2287,9 @@ fn test_reasoning_assignment_immutable_borrow_message() {
 
     if let Some(inf) = inferences.get("copy") {
         assert!(
-            inf.reason.contains("assigned") || inf.reason.contains("copy") || inf.reason.contains("src"),
+            inf.reason.contains("assigned")
+                || inf.reason.contains("copy")
+                || inf.reason.contains("src"),
             "Reasoning should mention assignment, got: {}",
             inf.reason
         );
@@ -2472,10 +2304,7 @@ fn test_reasoning_array_allocation_message() {
         vec![],
         vec![HirStatement::VariableDeclaration {
             name: "arr".to_string(),
-            var_type: HirType::Array {
-                element_type: Box::new(HirType::Int),
-                size: Some(10),
-            },
+            var_type: HirType::Array { element_type: Box::new(HirType::Int), size: Some(10) },
             initializer: None,
         }],
     );
@@ -2504,10 +2333,7 @@ fn test_reasoning_assignment_from_array_message() {
         vec![
             HirStatement::VariableDeclaration {
                 name: "arr".to_string(),
-                var_type: HirType::Array {
-                    element_type: Box::new(HirType::Int),
-                    size: Some(10),
-                },
+                var_type: HirType::Array { element_type: Box::new(HirType::Int), size: Some(10) },
                 initializer: None,
             },
             HirStatement::VariableDeclaration {
@@ -2525,7 +2351,9 @@ fn test_reasoning_assignment_from_array_message() {
     if let Some(inf) = inferences.get("p") {
         if matches!(inf.kind, OwnershipKind::ArrayPointer { .. }) {
             assert!(
-                inf.reason.contains("array") || inf.reason.contains("Array") || inf.reason.contains("arr"),
+                inf.reason.contains("array")
+                    || inf.reason.contains("Array")
+                    || inf.reason.contains("arr"),
                 "Reasoning should mention array derivation, got: {}",
                 inf.reason
             );
@@ -2545,15 +2373,13 @@ fn test_reasoning_default_arm() {
             "pp".to_string(),
             HirType::Pointer(Box::new(HirType::Pointer(Box::new(HirType::Int)))),
         )],
-        vec![
-            HirStatement::VariableDeclaration {
-                name: "inner".to_string(),
-                var_type: HirType::Pointer(Box::new(HirType::Int)),
-                initializer: Some(HirExpression::Dereference(Box::new(
-                    HirExpression::Variable("pp".to_string()),
-                ))),
-            },
-        ],
+        vec![HirStatement::VariableDeclaration {
+            name: "inner".to_string(),
+            var_type: HirType::Pointer(Box::new(HirType::Int)),
+            initializer: Some(HirExpression::Dereference(Box::new(HirExpression::Variable(
+                "pp".to_string(),
+            )))),
+        }],
     );
     let analyzer = DataflowAnalyzer::new();
     let graph = analyzer.analyze(&func);
@@ -2585,10 +2411,7 @@ fn test_classify_assignment_from_array_with_matching_element_type() {
         vec![
             HirStatement::VariableDeclaration {
                 name: "float_arr".to_string(),
-                var_type: HirType::Array {
-                    element_type: Box::new(HirType::Float),
-                    size: Some(5),
-                },
+                var_type: HirType::Array { element_type: Box::new(HirType::Float), size: Some(5) },
                 initializer: None,
             },
             HirStatement::VariableDeclaration {
@@ -2620,10 +2443,7 @@ fn test_is_mutated_no_dereference() {
     let func = HirFunction::new_with_body(
         "test".to_string(),
         HirType::Void,
-        vec![HirParameter::new(
-            "data".to_string(),
-            HirType::Pointer(Box::new(HirType::Int)),
-        )],
+        vec![HirParameter::new("data".to_string(), HirType::Pointer(Box::new(HirType::Int)))],
         vec![
             // Just pass data to a function, no dereference
             HirStatement::Expression(HirExpression::FunctionCall {
@@ -2666,9 +2486,7 @@ fn test_pointer_does_not_escape() {
                     arguments: vec![HirExpression::IntLiteral(4)],
                 }),
             },
-            HirStatement::Free {
-                pointer: HirExpression::Variable("local".to_string()),
-            },
+            HirStatement::Free { pointer: HirExpression::Variable("local".to_string()) },
         ],
     );
     let analyzer = DataflowAnalyzer::new();
@@ -2710,19 +2528,11 @@ fn test_classify_parameter_mutated_returns_mutable_borrow() {
     let graph = DataflowGraph::new()
         .with_node(
             "ptr",
-            PointerNode {
-                name: "ptr".to_string(),
-                def_index: 0,
-                kind: NodeKind::Parameter,
-            },
+            PointerNode { name: "ptr".to_string(), def_index: 0, kind: NodeKind::Parameter },
         )
         .with_node(
             "ptr",
-            PointerNode {
-                name: "ptr".to_string(),
-                def_index: 1,
-                kind: NodeKind::Dereference,
-            },
+            PointerNode { name: "ptr".to_string(), def_index: 1, kind: NodeKind::Dereference },
         );
 
     let inferencer = OwnershipInferencer::new();
@@ -2745,18 +2555,12 @@ fn test_classify_assignment_mutated_returns_mutable_borrow() {
             PointerNode {
                 name: "alias".to_string(),
                 def_index: 0,
-                kind: NodeKind::Assignment {
-                    source: "original".to_string(),
-                },
+                kind: NodeKind::Assignment { source: "original".to_string() },
             },
         )
         .with_node(
             "alias",
-            PointerNode {
-                name: "alias".to_string(),
-                def_index: 1,
-                kind: NodeKind::Dereference,
-            },
+            PointerNode { name: "alias".to_string(), def_index: 1, kind: NodeKind::Dereference },
         );
 
     let inferencer = OwnershipInferencer::new();
@@ -2775,11 +2579,7 @@ fn test_classify_free_node_returns_owning_direct() {
     // Free as first node → Owning (line 162)
     let graph = DataflowGraph::new().with_node(
         "freed",
-        PointerNode {
-            name: "freed".to_string(),
-            def_index: 0,
-            kind: NodeKind::Free,
-        },
+        PointerNode { name: "freed".to_string(), def_index: 0, kind: NodeKind::Free },
     );
 
     let inferencer = OwnershipInferencer::new();
@@ -2795,19 +2595,11 @@ fn test_confidence_mutable_borrow() {
     let graph = DataflowGraph::new()
         .with_node(
             "ptr",
-            PointerNode {
-                name: "ptr".to_string(),
-                def_index: 0,
-                kind: NodeKind::Parameter,
-            },
+            PointerNode { name: "ptr".to_string(), def_index: 0, kind: NodeKind::Parameter },
         )
         .with_node(
             "ptr",
-            PointerNode {
-                name: "ptr".to_string(),
-                def_index: 1,
-                kind: NodeKind::Dereference,
-            },
+            PointerNode { name: "ptr".to_string(), def_index: 1, kind: NodeKind::Dereference },
         );
 
     let inferencer = OwnershipInferencer::new();
@@ -2844,19 +2636,11 @@ fn test_reasoning_parameter_mutable_borrow() {
     let graph = DataflowGraph::new()
         .with_node(
             "out",
-            PointerNode {
-                name: "out".to_string(),
-                def_index: 0,
-                kind: NodeKind::Parameter,
-            },
+            PointerNode { name: "out".to_string(), def_index: 0, kind: NodeKind::Parameter },
         )
         .with_node(
             "out",
-            PointerNode {
-                name: "out".to_string(),
-                def_index: 1,
-                kind: NodeKind::Dereference,
-            },
+            PointerNode { name: "out".to_string(), def_index: 1, kind: NodeKind::Dereference },
         );
 
     let inferencer = OwnershipInferencer::new();
@@ -2880,18 +2664,12 @@ fn test_reasoning_assignment_mutable_borrow() {
             PointerNode {
                 name: "alias".to_string(),
                 def_index: 0,
-                kind: NodeKind::Assignment {
-                    source: "original".to_string(),
-                },
+                kind: NodeKind::Assignment { source: "original".to_string() },
             },
         )
         .with_node(
             "alias",
-            PointerNode {
-                name: "alias".to_string(),
-                def_index: 1,
-                kind: NodeKind::Dereference,
-            },
+            PointerNode { name: "alias".to_string(), def_index: 1, kind: NodeKind::Dereference },
         );
 
     let inferencer = OwnershipInferencer::new();
@@ -2928,19 +2706,11 @@ fn test_confidence_mutable_borrow_escapes_reduced() {
     let graph = DataflowGraph::new()
         .with_node(
             "ptr",
-            PointerNode {
-                name: "ptr".to_string(),
-                def_index: 0,
-                kind: NodeKind::Parameter,
-            },
+            PointerNode { name: "ptr".to_string(), def_index: 0, kind: NodeKind::Parameter },
         )
         .with_node(
             "ptr",
-            PointerNode {
-                name: "ptr".to_string(),
-                def_index: 1,
-                kind: NodeKind::Dereference,
-            },
+            PointerNode { name: "ptr".to_string(), def_index: 1, kind: NodeKind::Dereference },
         )
         // Assignment node makes escapes_function return true
         .with_node(
@@ -2948,9 +2718,7 @@ fn test_confidence_mutable_borrow_escapes_reduced() {
             PointerNode {
                 name: "ptr".to_string(),
                 def_index: 2,
-                kind: NodeKind::Assignment {
-                    source: "other".to_string(),
-                },
+                kind: NodeKind::Assignment { source: "other".to_string() },
             },
         );
 
@@ -2984,9 +2752,7 @@ fn test_classify_assignment_from_array_with_source_not_array_alloc() {
             PointerNode {
                 name: "ptr".to_string(),
                 def_index: 1,
-                kind: NodeKind::Assignment {
-                    source: "arr".to_string(),
-                },
+                kind: NodeKind::Assignment { source: "arr".to_string() },
             },
         )
         .with_array_base("ptr", "arr");
@@ -2999,10 +2765,7 @@ fn test_classify_assignment_from_array_with_source_not_array_alloc() {
     if let OwnershipKind::ArrayPointer { element_type, .. } = &inferences["ptr"].kind {
         assert_eq!(*element_type, decy_hir::HirType::Int);
     } else {
-        panic!(
-            "Expected ArrayPointer, got {:?}",
-            inferences["ptr"].kind
-        );
+        panic!("Expected ArrayPointer, got {:?}", inferences["ptr"].kind);
     }
 }
 
@@ -3017,9 +2780,7 @@ fn test_classify_assignment_from_array_source_empty_nodes() {
             PointerNode {
                 name: "ptr".to_string(),
                 def_index: 0,
-                kind: NodeKind::Assignment {
-                    source: "arr".to_string(),
-                },
+                kind: NodeKind::Assignment { source: "arr".to_string() },
             },
         )
         .with_array_base("ptr", "arr");
@@ -3031,10 +2792,7 @@ fn test_classify_assignment_from_array_source_empty_nodes() {
     if let OwnershipKind::ArrayPointer { element_type, .. } = &inferences["ptr"].kind {
         assert_eq!(*element_type, decy_hir::HirType::Int);
     } else {
-        panic!(
-            "Expected ArrayPointer, got {:?}",
-            inferences["ptr"].kind
-        );
+        panic!("Expected ArrayPointer, got {:?}", inferences["ptr"].kind);
     }
 }
 
@@ -3048,9 +2806,7 @@ fn test_classify_assignment_from_array_no_source_nodes() {
             PointerNode {
                 name: "ptr".to_string(),
                 def_index: 0,
-                kind: NodeKind::Assignment {
-                    source: "nonexistent".to_string(),
-                },
+                kind: NodeKind::Assignment { source: "nonexistent".to_string() },
             },
         )
         .with_array_base("ptr", "missing_arr");
@@ -3062,10 +2818,7 @@ fn test_classify_assignment_from_array_no_source_nodes() {
     if let OwnershipKind::ArrayPointer { element_type, .. } = &inferences["ptr"].kind {
         assert_eq!(*element_type, decy_hir::HirType::Int);
     } else {
-        panic!(
-            "Expected ArrayPointer, got {:?}",
-            inferences["ptr"].kind
-        );
+        panic!("Expected ArrayPointer, got {:?}", inferences["ptr"].kind);
     }
 }
 
@@ -3074,11 +2827,7 @@ fn test_is_mutated_returns_false_no_dereference() {
     // Variable with only Parameter node → is_mutated returns false
     let graph = DataflowGraph::new().with_node(
         "ptr",
-        PointerNode {
-            name: "ptr".to_string(),
-            def_index: 0,
-            kind: NodeKind::Parameter,
-        },
+        PointerNode { name: "ptr".to_string(), def_index: 0, kind: NodeKind::Parameter },
     );
 
     let inferencer = OwnershipInferencer::new();
@@ -3093,11 +2842,7 @@ fn test_reasoning_default_arm_dereference_unknown() {
     // Dereference node with non-standard kind triggers default reasoning arm (line 316)
     let graph = DataflowGraph::new().with_node(
         "d",
-        PointerNode {
-            name: "d".to_string(),
-            def_index: 0,
-            kind: NodeKind::Dereference,
-        },
+        PointerNode { name: "d".to_string(), def_index: 0, kind: NodeKind::Dereference },
     );
 
     let inferencer = OwnershipInferencer::new();
@@ -3116,14 +2861,8 @@ fn test_reasoning_default_arm_dereference_unknown() {
 #[test]
 fn test_reasoning_free_node_owning() {
     // Free node → Owning, but Free+Owning isn't in the reasoning match → default arm
-    let graph = DataflowGraph::new().with_node(
-        "f",
-        PointerNode {
-            name: "f".to_string(),
-            def_index: 0,
-            kind: NodeKind::Free,
-        },
-    );
+    let graph = DataflowGraph::new()
+        .with_node("f", PointerNode { name: "f".to_string(), def_index: 0, kind: NodeKind::Free });
 
     let inferencer = OwnershipInferencer::new();
     let inferences = inferencer.infer(&graph);
@@ -3145,20 +2884,14 @@ fn test_owning_pointer_escapes_confidence_boost() {
     let graph = DataflowGraph::new()
         .with_node(
             "ptr",
-            PointerNode {
-                name: "ptr".to_string(),
-                def_index: 0,
-                kind: NodeKind::Allocation,
-            },
+            PointerNode { name: "ptr".to_string(), def_index: 0, kind: NodeKind::Allocation },
         )
         .with_node(
             "ptr",
             PointerNode {
                 name: "ptr".to_string(),
                 def_index: 1,
-                kind: NodeKind::Assignment {
-                    source: "other".to_string(),
-                },
+                kind: NodeKind::Assignment { source: "other".to_string() },
             },
         );
 
@@ -3179,17 +2912,14 @@ fn test_owning_pointer_escapes_confidence_boost() {
 fn test_immutable_borrow_escapes_confidence_reduction() {
     // A borrow (Assignment) that escapes (also has an Assignment node) reduces confidence
     // (lines 256-258)
-    let graph = DataflowGraph::new()
-        .with_node(
-            "ref",
-            PointerNode {
-                name: "ref".to_string(),
-                def_index: 0,
-                kind: NodeKind::Assignment {
-                    source: "ptr".to_string(),
-                },
-            },
-        );
+    let graph = DataflowGraph::new().with_node(
+        "ref",
+        PointerNode {
+            name: "ref".to_string(),
+            def_index: 0,
+            kind: NodeKind::Assignment { source: "ptr".to_string() },
+        },
+    );
 
     let inferencer = OwnershipInferencer::new();
     let inferences = inferencer.infer(&graph);

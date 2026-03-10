@@ -1193,7 +1193,11 @@ int sched_dm_test(void) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(result.is_ok(), "C862: Deadline-monotonic scheduler should transpile: {:?}", result.err());
+    assert!(
+        result.is_ok(),
+        "C862: Deadline-monotonic scheduler should transpile: {:?}",
+        result.err()
+    );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C862: Output should not be empty");
     assert!(code.contains("fn sched_dm_init"), "C862: Should contain sched_dm_init");
@@ -1770,7 +1774,10 @@ int sched_gang_test(void) {
     let code = result.unwrap();
     assert!(!code.is_empty(), "C868: Output should not be empty");
     assert!(code.contains("fn sched_gang_init"), "C868: Should contain sched_gang_init");
-    assert!(code.contains("fn sched_gang_schedule_group"), "C868: Should contain sched_gang_schedule_group");
+    assert!(
+        code.contains("fn sched_gang_schedule_group"),
+        "C868: Should contain sched_gang_schedule_group"
+    );
 }
 
 /// C869: Real-time clock with tick counter
@@ -2022,7 +2029,10 @@ int sched_cpuload_test(void) {
     let code = result.unwrap();
     assert!(!code.is_empty(), "C871: Output should not be empty");
     assert!(code.contains("fn sched_cpuload_init"), "C871: Should contain sched_cpuload_init");
-    assert!(code.contains("fn sched_cpuload_average"), "C871: Should contain sched_cpuload_average");
+    assert!(
+        code.contains("fn sched_cpuload_average"),
+        "C871: Should contain sched_cpuload_average"
+    );
 }
 
 /// C872: Stack overflow detector with canary and watermark
@@ -2112,7 +2122,10 @@ int sched_stackmon_test(void) {
     let code = result.unwrap();
     assert!(!code.is_empty(), "C872: Output should not be empty");
     assert!(code.contains("fn sched_stackmon_init"), "C872: Should contain sched_stackmon_init");
-    assert!(code.contains("fn sched_stackmon_check_canary"), "C872: Should contain sched_stackmon_check_canary");
+    assert!(
+        code.contains("fn sched_stackmon_check_canary"),
+        "C872: Should contain sched_stackmon_check_canary"
+    );
 }
 
 /// C873: Power management with sleep states
@@ -2290,11 +2303,18 @@ int sched_irqctrl_test(void) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(result.is_ok(), "C874: Interrupt priority controller should transpile: {:?}", result.err());
+    assert!(
+        result.is_ok(),
+        "C874: Interrupt priority controller should transpile: {:?}",
+        result.err()
+    );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C874: Output should not be empty");
     assert!(code.contains("fn sched_irqctrl_init"), "C874: Should contain sched_irqctrl_init");
-    assert!(code.contains("fn sched_irqctrl_trigger"), "C874: Should contain sched_irqctrl_trigger");
+    assert!(
+        code.contains("fn sched_irqctrl_trigger"),
+        "C874: Should contain sched_irqctrl_trigger"
+    );
 }
 
 /// C875: DMA transfer scheduler with channel management

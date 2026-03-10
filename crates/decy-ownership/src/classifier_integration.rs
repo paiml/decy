@@ -255,10 +255,7 @@ mod tests {
         let func = HirFunction::new_with_body(
             "test".to_string(),
             HirType::Void,
-            vec![HirParameter::new(
-                "data".to_string(),
-                HirType::Pointer(Box::new(HirType::Int)),
-            )],
+            vec![HirParameter::new("data".to_string(), HirType::Pointer(Box::new(HirType::Int)))],
             vec![],
         );
 
@@ -279,10 +276,7 @@ mod tests {
         let func = HirFunction::new_with_body(
             "test".to_string(),
             HirType::Void,
-            vec![HirParameter::new(
-                "ptr".to_string(),
-                HirType::Pointer(Box::new(HirType::Int)),
-            )],
+            vec![HirParameter::new("ptr".to_string(), HirType::Pointer(Box::new(HirType::Int)))],
             vec![],
         );
 
@@ -301,10 +295,7 @@ mod tests {
         let func = HirFunction::new_with_body(
             "test".to_string(),
             HirType::Void,
-            vec![HirParameter::new(
-                "arr".to_string(),
-                HirType::Pointer(Box::new(HirType::Int)),
-            )],
+            vec![HirParameter::new("arr".to_string(), HirType::Pointer(Box::new(HirType::Int)))],
             vec![],
         );
 
@@ -319,10 +310,7 @@ mod tests {
     #[test]
     fn test_calculate_pointer_depth() {
         assert_eq!(calculate_pointer_depth(&HirType::Int), 0);
-        assert_eq!(
-            calculate_pointer_depth(&HirType::Pointer(Box::new(HirType::Int))),
-            1
-        );
+        assert_eq!(calculate_pointer_depth(&HirType::Pointer(Box::new(HirType::Int))), 1);
         assert_eq!(
             calculate_pointer_depth(&HirType::Pointer(Box::new(HirType::Pointer(Box::new(
                 HirType::Int
@@ -465,10 +453,7 @@ mod tests {
             "test".to_string(),
             HirType::Void,
             vec![
-                HirParameter::new(
-                    "data_ptr".to_string(),
-                    HirType::Pointer(Box::new(HirType::Int)),
-                ),
+                HirParameter::new("data_ptr".to_string(), HirType::Pointer(Box::new(HirType::Int))),
                 HirParameter::new("data_len".to_string(), HirType::Int),
             ],
             vec![],
@@ -503,10 +488,7 @@ mod tests {
             "test".to_string(),
             HirType::Void,
             vec![
-                HirParameter::new(
-                    "buf".to_string(),
-                    HirType::Pointer(Box::new(HirType::Int)),
-                ),
+                HirParameter::new("buf".to_string(), HirType::Pointer(Box::new(HirType::Int))),
                 HirParameter::new("buflen".to_string(), HirType::Int),
             ],
             vec![],
@@ -522,10 +504,7 @@ mod tests {
             "test".to_string(),
             HirType::Void,
             vec![
-                HirParameter::new(
-                    "data".to_string(),
-                    HirType::Pointer(Box::new(HirType::Int)),
-                ),
+                HirParameter::new("data".to_string(), HirType::Pointer(Box::new(HirType::Int))),
                 HirParameter::new("flags".to_string(), HirType::Int),
             ],
             vec![],
@@ -553,10 +532,7 @@ mod tests {
         let graph = analyzer.analyze(&func);
 
         let inferences = classify_function_variables(&classifier, &graph, &func);
-        assert!(
-            inferences.is_empty(),
-            "No pointer params → no inferences"
-        );
+        assert!(inferences.is_empty(), "No pointer params → no inferences");
     }
 
     #[test]
@@ -565,10 +541,7 @@ mod tests {
         let func = HirFunction::new_with_body(
             "test".to_string(),
             HirType::Void,
-            vec![HirParameter::new(
-                "data".to_string(),
-                HirType::Pointer(Box::new(HirType::Int)),
-            )],
+            vec![HirParameter::new("data".to_string(), HirType::Pointer(Box::new(HirType::Int)))],
             vec![],
         );
 
@@ -618,10 +591,7 @@ mod tests {
             HirType::Void,
             vec![HirParameter::new(
                 "data".to_string(),
-                HirType::Reference {
-                    inner: Box::new(HirType::Int),
-                    mutable: false,
-                },
+                HirType::Reference { inner: Box::new(HirType::Int), mutable: false },
             )],
             vec![],
         );

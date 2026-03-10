@@ -24,21 +24,15 @@ fn bench_type_mapping(c: &mut Criterion) {
 
     // Pointer types
     let ptr_type = HirType::Pointer(Box::new(HirType::Int));
-    group.bench_function("pointer", |b| {
-        b.iter(|| CodeGenerator::map_type(black_box(&ptr_type)))
-    });
+    group.bench_function("pointer", |b| b.iter(|| CodeGenerator::map_type(black_box(&ptr_type))));
 
     // Box types
     let box_type = HirType::Box(Box::new(HirType::Int));
-    group.bench_function("box_type", |b| {
-        b.iter(|| CodeGenerator::map_type(black_box(&box_type)))
-    });
+    group.bench_function("box_type", |b| b.iter(|| CodeGenerator::map_type(black_box(&box_type))));
 
     // Vec types
     let vec_type = HirType::Vec(Box::new(HirType::Int));
-    group.bench_function("vec_type", |b| {
-        b.iter(|| CodeGenerator::map_type(black_box(&vec_type)))
-    });
+    group.bench_function("vec_type", |b| b.iter(|| CodeGenerator::map_type(black_box(&vec_type))));
 
     // Nested types (pointer to pointer)
     let nested_ptr = HirType::Pointer(Box::new(HirType::Pointer(Box::new(HirType::Int))));
@@ -145,9 +139,7 @@ fn bench_statement_generation(c: &mut Criterion) {
             right: Box::new(HirExpression::IntLiteral(10)),
         },
         then_block: vec![HirStatement::Return(Some(HirExpression::IntLiteral(1)))],
-        else_block: Some(vec![HirStatement::Return(Some(HirExpression::IntLiteral(
-            0,
-        )))]),
+        else_block: Some(vec![HirStatement::Return(Some(HirExpression::IntLiteral(0)))]),
     };
     group.bench_function("if_statement", |b| {
         b.iter(|| codegen.generate_statement(black_box(&if_stmt)))
@@ -213,9 +205,8 @@ fn bench_signature_generation(c: &mut Criterion) {
     });
 
     // Function with many parameters (10 params)
-    let many_params: Vec<HirParameter> = (0..10)
-        .map(|i| HirParameter::new(format!("param{}", i), HirType::Int))
-        .collect();
+    let many_params: Vec<HirParameter> =
+        (0..10).map(|i| HirParameter::new(format!("param{}", i), HirType::Int)).collect();
     let func_many_params = HirFunction::new("complex".to_string(), HirType::Int, many_params);
     c.bench_function("signature_many_params", |b| {
         b.iter(|| codegen.generate_signature(black_box(&func_many_params)))

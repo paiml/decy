@@ -675,7 +675,10 @@ int dp_min_palindrome_cuts(const char *s, int n) {
     assert!(result.is_ok(), "C1019: Palindrome partitioning - failed: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1019: empty output");
-    assert!(code.contains("fn dp_min_palindrome_cuts"), "C1019: Should contain dp_min_palindrome_cuts");
+    assert!(
+        code.contains("fn dp_min_palindrome_cuts"),
+        "C1019: Should contain dp_min_palindrome_cuts"
+    );
 }
 
 #[test]

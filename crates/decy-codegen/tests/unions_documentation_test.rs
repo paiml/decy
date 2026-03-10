@@ -47,10 +47,7 @@ fn test_union_to_enum() {
     let rust_equivalent = "enum Value { Int(i32), Float(f32) }";
 
     assert!(c_code.contains("union"), "C uses union");
-    assert!(
-        rust_equivalent.contains("enum"),
-        "Rust uses enum for safety"
-    );
+    assert!(rust_equivalent.contains("enum"), "Rust uses enum for safety");
 
     // Demonstrate type-safe enum
     enum Value {
@@ -355,9 +352,7 @@ fn test_anonymous_union() {
         data: Data,
     }
 
-    let c = Container {
-        data: Data::Int(42),
-    };
+    let c = Container { data: Data::Int(42) };
 
     match c.data {
         Data::Int(i) => assert_eq!(i, 42, "Container holds int"),
@@ -402,10 +397,7 @@ fn test_union_size_and_alignment() {
     let enum_size = size_of::<U>();
     // Enum size includes discriminant tag
     // Typically 16 bytes (8 for f64 + 8 for tag/padding)
-    assert!(
-        enum_size >= 8,
-        "Enum is at least as large as largest variant"
-    );
+    assert!(enum_size >= 8, "Enum is at least as large as largest variant");
 
     // Demonstrate that all variants fit
     let _c = U::Char(42);
@@ -546,10 +538,7 @@ fn test_union_copy_behavior() {
     let rust_equivalent = "let u2 = u1; // Move or Copy";
 
     assert!(c_code.contains("copy"), "C copies");
-    assert!(
-        rust_equivalent.contains("Move or Copy"),
-        "Rust moves or copies"
-    );
+    assert!(rust_equivalent.contains("Move or Copy"), "Rust moves or copies");
 
     // Demonstrate Copy enum
     #[derive(Copy, Clone)]
@@ -593,10 +582,7 @@ fn test_union_initialization() {
     let rust_equivalent = "let u = U::Int(42);";
 
     assert!(c_code.contains(".i"), "C designated init");
-    assert!(
-        rust_equivalent.contains("::Int"),
-        "Rust variant constructor"
-    );
+    assert!(rust_equivalent.contains("::Int"), "Rust variant constructor");
 
     // Demonstrate enum construction
     enum U {
@@ -743,10 +729,7 @@ fn test_union_transformation_rules_summary() {
 
     // Rule 4: No unsafe needed for enum (0 unsafe blocks)
     let unsafe_blocks = 0;
-    assert_eq!(
-        unsafe_blocks, 0,
-        "Safe union transformations introduce 0 unsafe blocks"
-    );
+    assert_eq!(unsafe_blocks, 0, "Safe union transformations introduce 0 unsafe blocks");
 
     // Rule 5: More memory safe than C
     let type_safe = true;

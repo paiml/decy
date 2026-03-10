@@ -104,33 +104,33 @@ pub use classifier_integration::{
 };
 
 #[cfg(test)]
+mod ab_testing_coverage_tests;
+#[cfg(test)]
 mod classifier_coverage_tests;
+#[cfg(test)]
+mod deep_coverage_tests;
+#[cfg(test)]
+mod deep_coverage_tests2;
+#[cfg(test)]
+mod inference_coverage_tests;
 #[cfg(test)]
 mod lifetime_gen_coverage_tests;
 #[cfg(test)]
 mod ml_features_tests;
 #[cfg(test)]
+mod ml_stmt_coverage_tests;
+#[cfg(test)]
 mod model_versioning_coverage_tests;
+#[cfg(test)]
+mod model_versioning_deep_tests;
 #[cfg(test)]
 mod ownership_coverage_tests;
 #[cfg(test)]
 #[path = "pattern_library_tests.rs"]
 mod pattern_library_tests;
 #[cfg(test)]
-mod ab_testing_coverage_tests;
-#[cfg(test)]
-mod ml_stmt_coverage_tests;
-#[cfg(test)]
-mod model_versioning_deep_tests;
-#[cfg(test)]
-mod deep_coverage_tests;
-#[cfg(test)]
 mod pipeline_inference_tests;
-#[cfg(test)]
-mod inference_coverage_tests;
-#[cfg(test)]
-mod training_data_coverage_tests;
 #[cfg(test)]
 mod struct_lifetime_coverage_tests;
 #[cfg(test)]
-mod deep_coverage_tests2;
+mod training_data_coverage_tests;

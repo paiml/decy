@@ -8,8 +8,9 @@
 //! PatternLibrary get_mut/iter, and OwnershipErrorKind to_defect for all variants.
 
 use crate::ml_features::*;
-use decy_hir::{BinaryOperator, HirExpression, HirFunction, HirParameter, HirStatement, HirType,
-               UnaryOperator};
+use decy_hir::{
+    BinaryOperator, HirExpression, HirFunction, HirParameter, HirStatement, HirType, UnaryOperator,
+};
 
 // ============================================================================
 // HELPERS
@@ -34,10 +35,8 @@ fn make_param(name: &str, ty: HirType) -> HirParameter {
 
 #[test]
 fn to_vector_allocation_kind_calloc() {
-    let features = OwnershipFeatures {
-        allocation_site: AllocationKind::Calloc,
-        ..Default::default()
-    };
+    let features =
+        OwnershipFeatures { allocation_site: AllocationKind::Calloc, ..Default::default() };
     let vec = features.to_vector();
     assert_eq!(vec.len(), OwnershipFeatures::DIMENSION);
     // allocation kind is at index 4 (after 4 syntactic features)
@@ -46,60 +45,48 @@ fn to_vector_allocation_kind_calloc() {
 
 #[test]
 fn to_vector_allocation_kind_realloc() {
-    let features = OwnershipFeatures {
-        allocation_site: AllocationKind::Realloc,
-        ..Default::default()
-    };
+    let features =
+        OwnershipFeatures { allocation_site: AllocationKind::Realloc, ..Default::default() };
     let vec = features.to_vector();
     assert!((vec[4] - 3.0).abs() < f32::EPSILON, "Realloc should map to 3.0");
 }
 
 #[test]
 fn to_vector_allocation_kind_stack() {
-    let features = OwnershipFeatures {
-        allocation_site: AllocationKind::Stack,
-        ..Default::default()
-    };
+    let features =
+        OwnershipFeatures { allocation_site: AllocationKind::Stack, ..Default::default() };
     let vec = features.to_vector();
     assert!((vec[4] - 4.0).abs() < f32::EPSILON, "Stack should map to 4.0");
 }
 
 #[test]
 fn to_vector_allocation_kind_static() {
-    let features = OwnershipFeatures {
-        allocation_site: AllocationKind::Static,
-        ..Default::default()
-    };
+    let features =
+        OwnershipFeatures { allocation_site: AllocationKind::Static, ..Default::default() };
     let vec = features.to_vector();
     assert!((vec[4] - 5.0).abs() < f32::EPSILON, "Static should map to 5.0");
 }
 
 #[test]
 fn to_vector_allocation_kind_parameter() {
-    let features = OwnershipFeatures {
-        allocation_site: AllocationKind::Parameter,
-        ..Default::default()
-    };
+    let features =
+        OwnershipFeatures { allocation_site: AllocationKind::Parameter, ..Default::default() };
     let vec = features.to_vector();
     assert!((vec[4] - 6.0).abs() < f32::EPSILON, "Parameter should map to 6.0");
 }
 
 #[test]
 fn to_vector_allocation_kind_unknown() {
-    let features = OwnershipFeatures {
-        allocation_site: AllocationKind::Unknown,
-        ..Default::default()
-    };
+    let features =
+        OwnershipFeatures { allocation_site: AllocationKind::Unknown, ..Default::default() };
     let vec = features.to_vector();
     assert!((vec[4] - 0.0).abs() < f32::EPSILON, "Unknown should map to 0.0");
 }
 
 #[test]
 fn to_vector_allocation_kind_malloc() {
-    let features = OwnershipFeatures {
-        allocation_site: AllocationKind::Malloc,
-        ..Default::default()
-    };
+    let features =
+        OwnershipFeatures { allocation_site: AllocationKind::Malloc, ..Default::default() };
     let vec = features.to_vector();
     assert!((vec[4] - 1.0).abs() < f32::EPSILON, "Malloc should map to 1.0");
 }
@@ -127,17 +114,17 @@ fn to_vector_all_features_populated() {
     assert!((vec[1] - 1.0).abs() < f32::EPSILON); // is_const = true
     assert!((vec[2] - 1.0).abs() < f32::EPSILON); // is_array_decay = true
     assert!((vec[3] - 1.0).abs() < f32::EPSILON); // has_size_param = true
-    // Semantic
+                                                  // Semantic
     assert!((vec[4] - 3.0).abs() < f32::EPSILON); // Realloc
     assert!((vec[5] - 2.0).abs() < f32::EPSILON); // deallocation_count
     assert!((vec[6] - 4.0).abs() < f32::EPSILON); // alias_count
     assert!((vec[7] - 1.0).abs() < f32::EPSILON); // escape_scope = true
-    // Usage patterns
+                                                  // Usage patterns
     assert!((vec[8] - 100.0).abs() < f32::EPSILON); // read_count
-    assert!((vec[9] - 50.0).abs() < f32::EPSILON);  // write_count
-    assert!((vec[10] - 7.0).abs() < f32::EPSILON);  // arithmetic_ops
-    assert!((vec[11] - 3.0).abs() < f32::EPSILON);  // null_checks
-    // Padding should be zeros
+    assert!((vec[9] - 50.0).abs() < f32::EPSILON); // write_count
+    assert!((vec[10] - 7.0).abs() < f32::EPSILON); // arithmetic_ops
+    assert!((vec[11] - 3.0).abs() < f32::EPSILON); // null_checks
+                                                   // Padding should be zeros
     for i in 12..OwnershipFeatures::DIMENSION {
         assert!((vec[i] - 0.0).abs() < f32::EPSILON, "Padding at index {} should be 0.0", i);
     }
@@ -167,10 +154,7 @@ fn feature_extractor_pointer_depth_box_nested() {
     let extractor = FeatureExtractor::new();
     let func = make_function(
         "test",
-        vec![make_param(
-            "ptr",
-            HirType::Box(Box::new(HirType::Box(Box::new(HirType::Int)))),
-        )],
+        vec![make_param("ptr", HirType::Box(Box::new(HirType::Box(Box::new(HirType::Int)))))],
         vec![],
         HirType::Void,
     );
@@ -187,10 +171,7 @@ fn feature_extractor_pointer_depth_mutable_reference() {
         "test",
         vec![make_param(
             "ptr",
-            HirType::Reference {
-                inner: Box::new(HirType::Int),
-                mutable: true,
-            },
+            HirType::Reference { inner: Box::new(HirType::Int), mutable: true },
         )],
         vec![],
         HirType::Void,
@@ -400,10 +381,7 @@ fn feature_extractor_no_array_decay_non_pointer_current() {
     let func = make_function(
         "test",
         vec![
-            make_param("ptr", HirType::Reference {
-                inner: Box::new(HirType::Int),
-                mutable: false,
-            }),
+            make_param("ptr", HirType::Reference { inner: Box::new(HirType::Int), mutable: false }),
             make_param("len", HirType::Int),
         ],
         vec![],
@@ -618,9 +596,7 @@ fn feature_extractor_free_in_while_loop() {
         vec![make_param("ptr", HirType::Pointer(Box::new(HirType::Int)))],
         vec![HirStatement::While {
             condition: HirExpression::Variable("flag".to_string()),
-            body: vec![HirStatement::Free {
-                pointer: HirExpression::Variable("ptr".to_string()),
-            }],
+            body: vec![HirStatement::Free { pointer: HirExpression::Variable("ptr".to_string()) }],
         }],
         HirType::Void,
     );
@@ -640,9 +616,7 @@ fn feature_extractor_free_in_for_loop() {
             init: vec![],
             condition: Some(HirExpression::Variable("flag".to_string())),
             increment: vec![],
-            body: vec![HirStatement::Free {
-                pointer: HirExpression::Variable("ptr".to_string()),
-            }],
+            body: vec![HirStatement::Free { pointer: HirExpression::Variable("ptr".to_string()) }],
         }],
         HirType::Void,
     );
@@ -658,9 +632,7 @@ fn feature_extractor_free_not_matching_var() {
     let func = make_function(
         "test",
         vec![make_param("ptr", HirType::Pointer(Box::new(HirType::Int)))],
-        vec![HirStatement::Free {
-            pointer: HirExpression::Variable("other".to_string()),
-        }],
+        vec![HirStatement::Free { pointer: HirExpression::Variable("other".to_string()) }],
         HirType::Void,
     );
 
@@ -695,9 +667,7 @@ fn feature_extractor_escape_via_return() {
     let func = make_function(
         "test",
         vec![make_param("ptr", HirType::Pointer(Box::new(HirType::Int)))],
-        vec![HirStatement::Return(Some(HirExpression::Variable(
-            "ptr".to_string(),
-        )))],
+        vec![HirStatement::Return(Some(HirExpression::Variable("ptr".to_string())))],
         HirType::Pointer(Box::new(HirType::Int)),
     );
 
@@ -712,9 +682,7 @@ fn feature_extractor_no_escape_return_other_var() {
     let func = make_function(
         "test",
         vec![make_param("ptr", HirType::Pointer(Box::new(HirType::Int)))],
-        vec![HirStatement::Return(Some(HirExpression::Variable(
-            "other".to_string(),
-        )))],
+        vec![HirStatement::Return(Some(HirExpression::Variable("other".to_string())))],
         HirType::Pointer(Box::new(HirType::Int)),
     );
 
@@ -1070,9 +1038,7 @@ fn feature_extractor_expr_uses_var_dereference() {
         vec![make_param("ptr", HirType::Pointer(Box::new(HirType::Int)))],
         vec![HirStatement::Assignment {
             target: "x".to_string(),
-            value: HirExpression::Dereference(Box::new(HirExpression::Variable(
-                "ptr".to_string(),
-            ))),
+            value: HirExpression::Dereference(Box::new(HirExpression::Variable("ptr".to_string()))),
         }],
         HirType::Void,
     );
@@ -1090,9 +1056,7 @@ fn feature_extractor_expr_uses_var_address_of() {
         vec![make_param("ptr", HirType::Pointer(Box::new(HirType::Int)))],
         vec![HirStatement::Assignment {
             target: "x".to_string(),
-            value: HirExpression::AddressOf(Box::new(HirExpression::Variable(
-                "ptr".to_string(),
-            ))),
+            value: HirExpression::AddressOf(Box::new(HirExpression::Variable("ptr".to_string()))),
         }],
         HirType::Void,
     );
@@ -1260,9 +1224,7 @@ fn feature_extractor_expr_uses_var_is_not_null() {
         vec![make_param("ptr", HirType::Pointer(Box::new(HirType::Int)))],
         vec![HirStatement::Assignment {
             target: "x".to_string(),
-            value: HirExpression::IsNotNull(Box::new(HirExpression::Variable(
-                "ptr".to_string(),
-            ))),
+            value: HirExpression::IsNotNull(Box::new(HirExpression::Variable("ptr".to_string()))),
         }],
         HirType::Void,
     );
@@ -1336,13 +1298,28 @@ fn ownership_defect_severity_all_variants() {
 
 #[test]
 fn ownership_defect_from_code_all_variants() {
-    assert_eq!(OwnershipDefect::from_code("DECY-O-001"), Some(OwnershipDefect::PointerMisclassification));
-    assert_eq!(OwnershipDefect::from_code("DECY-O-002"), Some(OwnershipDefect::LifetimeInferenceGap));
-    assert_eq!(OwnershipDefect::from_code("DECY-O-003"), Some(OwnershipDefect::DanglingPointerRisk));
+    assert_eq!(
+        OwnershipDefect::from_code("DECY-O-001"),
+        Some(OwnershipDefect::PointerMisclassification)
+    );
+    assert_eq!(
+        OwnershipDefect::from_code("DECY-O-002"),
+        Some(OwnershipDefect::LifetimeInferenceGap)
+    );
+    assert_eq!(
+        OwnershipDefect::from_code("DECY-O-003"),
+        Some(OwnershipDefect::DanglingPointerRisk)
+    );
     assert_eq!(OwnershipDefect::from_code("DECY-O-004"), Some(OwnershipDefect::AliasViolation));
-    assert_eq!(OwnershipDefect::from_code("DECY-O-005"), Some(OwnershipDefect::UnsafeMinimizationFailure));
+    assert_eq!(
+        OwnershipDefect::from_code("DECY-O-005"),
+        Some(OwnershipDefect::UnsafeMinimizationFailure)
+    );
     assert_eq!(OwnershipDefect::from_code("DECY-O-006"), Some(OwnershipDefect::ArraySliceMismatch));
-    assert_eq!(OwnershipDefect::from_code("DECY-O-007"), Some(OwnershipDefect::ResourceLeakPattern));
+    assert_eq!(
+        OwnershipDefect::from_code("DECY-O-007"),
+        Some(OwnershipDefect::ResourceLeakPattern)
+    );
     assert_eq!(OwnershipDefect::from_code("DECY-O-008"), Some(OwnershipDefect::MutabilityMismatch));
     assert_eq!(OwnershipDefect::from_code("DECY-O-009"), None);
     assert_eq!(OwnershipDefect::from_code(""), None);
@@ -1366,10 +1343,7 @@ fn ownership_error_kind_to_defect_all_variants() {
         OwnershipErrorKind::DanglingPointerRisk.to_defect(),
         OwnershipDefect::DanglingPointerRisk
     );
-    assert_eq!(
-        OwnershipErrorKind::AliasViolation.to_defect(),
-        OwnershipDefect::AliasViolation
-    );
+    assert_eq!(OwnershipErrorKind::AliasViolation.to_defect(), OwnershipDefect::AliasViolation);
     assert_eq!(
         OwnershipErrorKind::UnsafeMinimizationFailure.to_defect(),
         OwnershipDefect::UnsafeMinimizationFailure
@@ -1394,31 +1368,19 @@ fn ownership_error_kind_to_defect_all_variants() {
 
 #[test]
 fn ownership_prediction_partial_eq_different_kind() {
-    let p1 = OwnershipPrediction {
-        kind: InferredOwnership::Owned,
-        confidence: 0.8,
-        fallback: None,
-    };
-    let p2 = OwnershipPrediction {
-        kind: InferredOwnership::Borrowed,
-        confidence: 0.8,
-        fallback: None,
-    };
+    let p1 =
+        OwnershipPrediction { kind: InferredOwnership::Owned, confidence: 0.8, fallback: None };
+    let p2 =
+        OwnershipPrediction { kind: InferredOwnership::Borrowed, confidence: 0.8, fallback: None };
     assert_ne!(p1, p2, "Different kinds should not be equal");
 }
 
 #[test]
 fn ownership_prediction_partial_eq_different_confidence() {
-    let p1 = OwnershipPrediction {
-        kind: InferredOwnership::Owned,
-        confidence: 0.8,
-        fallback: None,
-    };
-    let p2 = OwnershipPrediction {
-        kind: InferredOwnership::Owned,
-        confidence: 0.5,
-        fallback: None,
-    };
+    let p1 =
+        OwnershipPrediction { kind: InferredOwnership::Owned, confidence: 0.8, fallback: None };
+    let p2 =
+        OwnershipPrediction { kind: InferredOwnership::Owned, confidence: 0.5, fallback: None };
     assert_ne!(p1, p2, "Different confidences should not be equal");
 }
 
@@ -1467,11 +1429,8 @@ fn inferred_ownership_requires_unsafe_all_variants() {
 
 #[test]
 fn error_pattern_record_occurrence() {
-    let mut pattern = ErrorPattern::new(
-        "test",
-        OwnershipErrorKind::PointerMisclassification,
-        "test pattern",
-    );
+    let mut pattern =
+        ErrorPattern::new("test", OwnershipErrorKind::PointerMisclassification, "test pattern");
     assert_eq!(pattern.occurrence_count(), 0);
 
     pattern.record_occurrence();
@@ -1499,11 +1458,7 @@ fn error_pattern_description_accessor() {
 #[test]
 fn pattern_library_get_mut_existing() {
     let mut library = PatternLibrary::new();
-    library.add(ErrorPattern::new(
-        "mutable_test",
-        OwnershipErrorKind::ResourceLeakPattern,
-        "test",
-    ));
+    library.add(ErrorPattern::new("mutable_test", OwnershipErrorKind::ResourceLeakPattern, "test"));
 
     let pattern = library.get_mut("mutable_test");
     assert!(pattern.is_some());
@@ -1548,11 +1503,7 @@ fn pattern_library_match_rust_error_no_match() {
 fn pattern_library_match_rust_error_pattern_without_rust_error() {
     // Patterns without rust_error set should not match
     let mut library = PatternLibrary::new();
-    library.add(ErrorPattern::new(
-        "no_rust_err",
-        OwnershipErrorKind::ResourceLeakPattern,
-        "test",
-    ));
+    library.add(ErrorPattern::new("no_rust_err", OwnershipErrorKind::ResourceLeakPattern, "test"));
 
     let matches = library.match_rust_error("E0308");
     assert!(matches.is_empty(), "Patterns without rust_error should not match");
@@ -1565,16 +1516,8 @@ fn pattern_library_match_rust_error_pattern_without_rust_error() {
 #[test]
 fn pattern_library_iter() {
     let mut library = PatternLibrary::new();
-    library.add(ErrorPattern::new(
-        "p1",
-        OwnershipErrorKind::AliasViolation,
-        "alias",
-    ));
-    library.add(ErrorPattern::new(
-        "p2",
-        OwnershipErrorKind::DanglingPointerRisk,
-        "dangling",
-    ));
+    library.add(ErrorPattern::new("p1", OwnershipErrorKind::AliasViolation, "alias"));
+    library.add(ErrorPattern::new("p2", OwnershipErrorKind::DanglingPointerRisk, "dangling"));
 
     let count = library.iter().count();
     assert_eq!(count, 2);
@@ -1752,14 +1695,22 @@ fn error_pattern_full_builder_chain() {
 fn default_library_has_minimum_patterns() {
     let library = default_pattern_library();
     // The source code adds at least 16 patterns
-    assert!(library.len() >= 16, "Default library should have at least 16 patterns, got {}", library.len());
+    assert!(
+        library.len() >= 16,
+        "Default library should have at least 16 patterns, got {}",
+        library.len()
+    );
 }
 
 #[test]
 fn default_library_patterns_have_descriptions() {
     let library = default_pattern_library();
     for pattern in library.iter() {
-        assert!(!pattern.description().is_empty(), "Pattern {} should have description", pattern.id());
+        assert!(
+            !pattern.description().is_empty(),
+            "Pattern {} should have description",
+            pattern.id()
+        );
     }
 }
 
@@ -1795,8 +1746,7 @@ fn default_library_interior_mutability_pattern() {
     let library = default_pattern_library();
     let mut_patterns = library.get_by_error_kind(OwnershipErrorKind::MutabilityMismatch);
     let has_interior = mut_patterns.iter().any(|p| {
-        p.description().to_lowercase().contains("interior")
-            || p.id().contains("interior")
+        p.description().to_lowercase().contains("interior") || p.id().contains("interior")
     });
     assert!(has_interior, "Should have interior mutability pattern");
 }
@@ -1810,10 +1760,7 @@ fn feature_extractor_extract_all_no_pointers() {
     let extractor = FeatureExtractor::new();
     let func = make_function(
         "test",
-        vec![
-            make_param("x", HirType::Int),
-            make_param("y", HirType::Float),
-        ],
+        vec![make_param("x", HirType::Int), make_param("y", HirType::Float)],
         vec![],
         HirType::Void,
     );
@@ -1838,9 +1785,7 @@ fn feature_extractor_extract_all_with_body_accesses() {
                     "data".to_string(),
                 ))),
             },
-            HirStatement::Free {
-                pointer: HirExpression::Variable("data".to_string()),
-            },
+            HirStatement::Free { pointer: HirExpression::Variable("data".to_string()) },
         ],
         HirType::Void,
     );
@@ -1871,11 +1816,7 @@ fn feature_extractor_default() {
 #[test]
 fn pattern_library_add_replaces_existing_id() {
     let mut library = PatternLibrary::new();
-    library.add(ErrorPattern::new(
-        "dup",
-        OwnershipErrorKind::AliasViolation,
-        "first version",
-    ));
+    library.add(ErrorPattern::new("dup", OwnershipErrorKind::AliasViolation, "first version"));
     library.add(ErrorPattern::new(
         "dup",
         OwnershipErrorKind::DanglingPointerRisk,
@@ -2180,10 +2121,7 @@ fn default_library_interior_mutability_pattern_detailed() {
     assert_eq!(p.error_kind(), OwnershipErrorKind::MutabilityMismatch);
     assert_eq!(p.severity(), ErrorSeverity::Warning);
     assert_eq!(p.curriculum_level(), 5);
-    assert_eq!(
-        p.c_pattern(),
-        Some("void inc(Counter *c) { c->count++; } // called via const ptr")
-    );
+    assert_eq!(p.c_pattern(), Some("void inc(Counter *c) { c->count++; } // called via const ptr"));
     assert_eq!(p.rust_error(), Some("E0596"));
     assert!(p.description().contains("Cell/RefCell"));
     let fix = p.suggested_fix().expect("Should have fix");
@@ -2445,10 +2383,8 @@ fn default_library_match_no_match() {
 #[test]
 fn default_library_critical_severity_patterns() {
     let library = default_pattern_library();
-    let critical: Vec<_> = library
-        .iter()
-        .filter(|p| p.severity() == ErrorSeverity::Critical)
-        .collect();
+    let critical: Vec<_> =
+        library.iter().filter(|p| p.severity() == ErrorSeverity::Critical).collect();
     assert_eq!(critical.len(), 2, "Should have 2 Critical patterns");
     let ids: std::collections::HashSet<&str> = critical.iter().map(|p| p.id()).collect();
     assert!(ids.contains("use-after-free"));
@@ -2458,20 +2394,15 @@ fn default_library_critical_severity_patterns() {
 #[test]
 fn default_library_error_severity_patterns() {
     let library = default_pattern_library();
-    let errors: Vec<_> = library
-        .iter()
-        .filter(|p| p.severity() == ErrorSeverity::Error)
-        .collect();
+    let errors: Vec<_> = library.iter().filter(|p| p.severity() == ErrorSeverity::Error).collect();
     assert_eq!(errors.len(), 6, "Should have 6 Error severity patterns");
 }
 
 #[test]
 fn default_library_warning_severity_patterns() {
     let library = default_pattern_library();
-    let warnings: Vec<_> = library
-        .iter()
-        .filter(|p| p.severity() == ErrorSeverity::Warning)
-        .collect();
+    let warnings: Vec<_> =
+        library.iter().filter(|p| p.severity() == ErrorSeverity::Warning).collect();
     assert_eq!(warnings.len(), 9, "Should have 9 Warning severity patterns");
 }
 

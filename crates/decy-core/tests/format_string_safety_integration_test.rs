@@ -51,11 +51,7 @@ fn test_safe_printf_with_format_string() {
     assert!(result.contains("fn main"), "Should have main function");
 
     let unsafe_count = result.matches("unsafe").count();
-    assert!(
-        unsafe_count <= 2,
-        "Safe printf should minimize unsafe (found {})",
-        unsafe_count
-    );
+    assert!(unsafe_count <= 2, "Safe printf should minimize unsafe (found {})", unsafe_count);
 }
 
 #[test]
@@ -77,11 +73,7 @@ fn test_printf_multiple_arguments() {
     assert!(result.contains("fn main"), "Should have main function");
 
     let unsafe_count = result.matches("unsafe").count();
-    assert!(
-        unsafe_count <= 2,
-        "Multi-arg printf should minimize unsafe (found {})",
-        unsafe_count
-    );
+    assert!(unsafe_count <= 2, "Multi-arg printf should minimize unsafe (found {})", unsafe_count);
 }
 
 #[test]
@@ -102,11 +94,7 @@ fn test_printf_string_format() {
     assert!(result.contains("fn main"), "Should have main function");
 
     let unsafe_count = result.matches("unsafe").count();
-    assert!(
-        unsafe_count <= 3,
-        "String printf should minimize unsafe (found {})",
-        unsafe_count
-    );
+    assert!(unsafe_count <= 3, "String printf should minimize unsafe (found {})", unsafe_count);
 }
 
 // ============================================================================
@@ -132,11 +120,7 @@ fn test_sprintf_with_bounds() {
     assert!(result.contains("fn main"), "Should have main function");
 
     let unsafe_count = result.matches("unsafe").count();
-    assert!(
-        unsafe_count <= 3,
-        "sprintf should minimize unsafe (found {})",
-        unsafe_count
-    );
+    assert!(unsafe_count <= 3, "sprintf should minimize unsafe (found {})", unsafe_count);
 }
 
 #[test]
@@ -158,11 +142,7 @@ fn test_snprintf_bounded() {
     assert!(result.contains("fn main"), "Should have main function");
 
     let unsafe_count = result.matches("unsafe").count();
-    assert!(
-        unsafe_count <= 3,
-        "snprintf should minimize unsafe (found {})",
-        unsafe_count
-    );
+    assert!(unsafe_count <= 3, "snprintf should minimize unsafe (found {})", unsafe_count);
 }
 
 // ============================================================================
@@ -187,11 +167,7 @@ fn test_scanf_with_width_specifier() {
     assert!(result.contains("fn main"), "Should have main function");
 
     let unsafe_count = result.matches("unsafe").count();
-    assert!(
-        unsafe_count <= 3,
-        "scanf with width should minimize unsafe (found {})",
-        unsafe_count
-    );
+    assert!(unsafe_count <= 3, "scanf with width should minimize unsafe (found {})", unsafe_count);
 }
 
 #[test]
@@ -212,11 +188,7 @@ fn test_scanf_integer() {
     assert!(result.contains("fn main"), "Should have main function");
 
     let unsafe_count = result.matches("unsafe").count();
-    assert!(
-        unsafe_count <= 3,
-        "scanf integer should minimize unsafe (found {})",
-        unsafe_count
-    );
+    assert!(unsafe_count <= 3, "scanf integer should minimize unsafe (found {})", unsafe_count);
 }
 
 // ============================================================================
@@ -242,11 +214,7 @@ fn test_printf_integer_formats() {
     assert!(result.contains("fn main"), "Should have main function");
 
     let unsafe_count = result.matches("unsafe").count();
-    assert!(
-        unsafe_count <= 3,
-        "Integer formats should minimize unsafe (found {})",
-        unsafe_count
-    );
+    assert!(unsafe_count <= 3, "Integer formats should minimize unsafe (found {})", unsafe_count);
 }
 
 #[test]
@@ -267,11 +235,7 @@ fn test_printf_float_formats() {
     assert!(result.contains("fn main"), "Should have main function");
 
     let unsafe_count = result.matches("unsafe").count();
-    assert!(
-        unsafe_count <= 3,
-        "Float formats should minimize unsafe (found {})",
-        unsafe_count
-    );
+    assert!(unsafe_count <= 3, "Float formats should minimize unsafe (found {})", unsafe_count);
 }
 
 #[test]
@@ -292,11 +256,7 @@ fn test_printf_char_format() {
     assert!(result.contains("fn main"), "Should have main function");
 
     let unsafe_count = result.matches("unsafe").count();
-    assert!(
-        unsafe_count <= 2,
-        "Char format should minimize unsafe (found {})",
-        unsafe_count
-    );
+    assert!(unsafe_count <= 2, "Char format should minimize unsafe (found {})", unsafe_count);
 }
 
 // ============================================================================
@@ -321,11 +281,7 @@ fn test_printf_width_specifier() {
     assert!(result.contains("fn main"), "Should have main function");
 
     let unsafe_count = result.matches("unsafe").count();
-    assert!(
-        unsafe_count <= 2,
-        "Width specifier should minimize unsafe (found {})",
-        unsafe_count
-    );
+    assert!(unsafe_count <= 2, "Width specifier should minimize unsafe (found {})", unsafe_count);
 }
 
 #[test]
@@ -379,11 +335,7 @@ fn test_printf_complex_format() {
     assert!(result.contains("fn main"), "Should have main function");
 
     let unsafe_count = result.matches("unsafe").count();
-    assert!(
-        unsafe_count <= 4,
-        "Complex format should minimize unsafe (found {})",
-        unsafe_count
-    );
+    assert!(unsafe_count <= 4, "Complex format should minimize unsafe (found {})", unsafe_count);
 }
 
 // ============================================================================
@@ -411,11 +363,7 @@ fn test_sprintf_to_buffer() {
     assert!(result.contains("fn main"), "Should have main function");
 
     let unsafe_count = result.matches("unsafe").count();
-    assert!(
-        unsafe_count <= 4,
-        "sprintf to buffer should minimize unsafe (found {})",
-        unsafe_count
-    );
+    assert!(unsafe_count <= 4, "sprintf to buffer should minimize unsafe (found {})", unsafe_count);
 }
 
 // ============================================================================
@@ -439,11 +387,7 @@ fn test_printf_escape_sequences() {
     assert!(result.contains("fn main"), "Should have main function");
 
     let unsafe_count = result.matches("unsafe").count();
-    assert!(
-        unsafe_count <= 2,
-        "Escape sequences should minimize unsafe (found {})",
-        unsafe_count
-    );
+    assert!(unsafe_count <= 2, "Escape sequences should minimize unsafe (found {})", unsafe_count);
 }
 
 // ============================================================================
@@ -468,11 +412,7 @@ fn test_printf_percent_escape() {
     assert!(result.contains("fn main"), "Should have main function");
 
     let unsafe_count = result.matches("unsafe").count();
-    assert!(
-        unsafe_count <= 2,
-        "Percent escape should minimize unsafe (found {})",
-        unsafe_count
-    );
+    assert!(unsafe_count <= 2, "Percent escape should minimize unsafe (found {})", unsafe_count);
 }
 
 // ============================================================================
@@ -504,11 +444,8 @@ fn test_unsafe_block_count_target() {
     let unsafe_count = result.matches("unsafe").count();
     let lines_of_code = result.lines().count();
 
-    let unsafe_per_1000 = if lines_of_code > 0 {
-        (unsafe_count as f64 / lines_of_code as f64) * 1000.0
-    } else {
-        0.0
-    };
+    let unsafe_per_1000 =
+        if lines_of_code > 0 { (unsafe_count as f64 / lines_of_code as f64) * 1000.0 } else { 0.0 };
 
     // Target: <=30 unsafe per 1000 LOC for format strings
     assert!(
@@ -577,9 +514,5 @@ fn test_format_string_safety_documentation() {
 
     // If unsafe blocks exist, they should be minimal
     let unsafe_count = result.matches("unsafe").count();
-    assert!(
-        unsafe_count < 10,
-        "Should have minimal unsafe blocks (found {})",
-        unsafe_count
-    );
+    assert!(unsafe_count < 10, "Should have minimal unsafe blocks (found {})", unsafe_count);
 }

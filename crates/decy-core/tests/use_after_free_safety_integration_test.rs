@@ -158,17 +158,10 @@ fn test_dangling_pointer_local_variable() {
     let result = transpile(c_code).expect("Should transpile");
 
     assert!(result.contains("fn main"), "Should have main function");
-    assert!(
-        result.contains("fn get_pointer"),
-        "Should have get_pointer function"
-    );
+    assert!(result.contains("fn get_pointer"), "Should have get_pointer function");
 
     let unsafe_count = result.matches("unsafe").count();
-    assert!(
-        unsafe_count <= 4,
-        "Dangling pointer should minimize unsafe (found {})",
-        unsafe_count
-    );
+    assert!(unsafe_count <= 4, "Dangling pointer should minimize unsafe (found {})", unsafe_count);
 }
 
 // ============================================================================
@@ -249,11 +242,7 @@ fn test_conditional_free() {
     assert!(result.contains("fn main"), "Should have main function");
 
     let unsafe_count = result.matches("unsafe").count();
-    assert!(
-        unsafe_count <= 7,
-        "Conditional free should minimize unsafe (found {})",
-        unsafe_count
-    );
+    assert!(unsafe_count <= 7, "Conditional free should minimize unsafe (found {})", unsafe_count);
 }
 
 // ============================================================================
@@ -383,11 +372,7 @@ fn test_realloc_invalidates_old_pointer() {
     assert!(result.contains("fn main"), "Should have main function");
 
     let unsafe_count = result.matches("unsafe").count();
-    assert!(
-        unsafe_count <= 8,
-        "Realloc should minimize unsafe (found {})",
-        unsafe_count
-    );
+    assert!(unsafe_count <= 8, "Realloc should minimize unsafe (found {})", unsafe_count);
 }
 
 // ============================================================================
@@ -423,10 +408,7 @@ fn test_function_frees_argument() {
     let result = transpile(c_code).expect("Should transpile");
 
     assert!(result.contains("fn main"), "Should have main function");
-    assert!(
-        result.contains("fn process_and_free"),
-        "Should have process_and_free function"
-    );
+    assert!(result.contains("fn process_and_free"), "Should have process_and_free function");
 
     let unsafe_count = result.matches("unsafe").count();
     assert!(
@@ -518,17 +500,10 @@ fn test_global_pointer_lifetime() {
     let result = transpile(c_code).expect("Should transpile");
 
     assert!(result.contains("fn main"), "Should have main function");
-    assert!(
-        result.contains("fn cleanup"),
-        "Should have cleanup function"
-    );
+    assert!(result.contains("fn cleanup"), "Should have cleanup function");
 
     let unsafe_count = result.matches("unsafe").count();
-    assert!(
-        unsafe_count <= 7,
-        "Global pointer should minimize unsafe (found {})",
-        unsafe_count
-    );
+    assert!(unsafe_count <= 7, "Global pointer should minimize unsafe (found {})", unsafe_count);
 }
 
 // ============================================================================
@@ -578,21 +553,11 @@ fn test_raii_pattern() {
     let result = transpile(c_code).expect("Should transpile");
 
     assert!(result.contains("fn main"), "Should have main function");
-    assert!(
-        result.contains("fn create_resource"),
-        "Should have create_resource function"
-    );
-    assert!(
-        result.contains("fn destroy_resource"),
-        "Should have destroy_resource function"
-    );
+    assert!(result.contains("fn create_resource"), "Should have create_resource function");
+    assert!(result.contains("fn destroy_resource"), "Should have destroy_resource function");
 
     let unsafe_count = result.matches("unsafe").count();
-    assert!(
-        unsafe_count <= 10,
-        "RAII pattern should minimize unsafe (found {})",
-        unsafe_count
-    );
+    assert!(unsafe_count <= 10, "RAII pattern should minimize unsafe (found {})", unsafe_count);
 }
 
 // ============================================================================
@@ -626,11 +591,8 @@ fn test_unsafe_block_count_target() {
     let unsafe_count = result.matches("unsafe").count();
     let lines_of_code = result.lines().count();
 
-    let unsafe_per_1000 = if lines_of_code > 0 {
-        (unsafe_count as f64 / lines_of_code as f64) * 1000.0
-    } else {
-        0.0
-    };
+    let unsafe_per_1000 =
+        if lines_of_code > 0 { (unsafe_count as f64 / lines_of_code as f64) * 1000.0 } else { 0.0 };
 
     // Target: <=100 unsafe per 1000 LOC for use-after-free
     assert!(
@@ -708,9 +670,5 @@ fn test_use_after_free_safety_documentation() {
 
     // If unsafe blocks exist, they should be minimal
     let unsafe_count = result.matches("unsafe").count();
-    assert!(
-        unsafe_count < 10,
-        "Should have minimal unsafe blocks (found {})",
-        unsafe_count
-    );
+    assert!(unsafe_count < 10, "Should have minimal unsafe blocks (found {})", unsafe_count);
 }

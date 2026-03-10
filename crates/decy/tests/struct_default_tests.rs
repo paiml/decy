@@ -32,11 +32,7 @@ fn test_struct_derives_default() {
     println!("Generated Rust code:\n{}", result);
 
     // Should have Default in the derive list
-    assert!(
-        result.contains("Default"),
-        "Struct should derive Default\nGenerated:\n{}",
-        result
-    );
+    assert!(result.contains("Default"), "Struct should derive Default\nGenerated:\n{}", result);
 }
 
 /// Test that struct initialization uses Default::default().

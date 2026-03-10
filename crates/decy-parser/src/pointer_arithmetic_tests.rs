@@ -196,11 +196,7 @@ mod tests {
 
         // RED: This will fail
         match &func.body[1] {
-            Statement::CompoundAssignment {
-                target,
-                op,
-                value: _,
-            } => {
+            Statement::CompoundAssignment { target, op, value: _ } => {
                 assert_eq!(target, "x", "Should assign to x");
                 assert_eq!(*op, BinaryOperator::Multiply, "Should use * operator");
             }
@@ -224,11 +220,7 @@ mod tests {
 
         // RED: This will fail
         match &func.body[1] {
-            Statement::CompoundAssignment {
-                target,
-                op,
-                value: _,
-            } => {
+            Statement::CompoundAssignment { target, op, value: _ } => {
                 assert_eq!(target, "x", "Should assign to x");
                 assert_eq!(*op, BinaryOperator::Divide, "Should use / operator");
             }
@@ -252,11 +244,7 @@ mod tests {
 
         // RED: This will fail
         match &func.body[1] {
-            Statement::CompoundAssignment {
-                target,
-                op,
-                value: _,
-            } => {
+            Statement::CompoundAssignment { target, op, value: _ } => {
                 assert_eq!(target, "x", "Should assign to x");
                 assert_eq!(*op, BinaryOperator::Modulo, "Should use % operator");
             }
@@ -389,11 +377,7 @@ mod tests {
         match &func.body[0] {
             Statement::Return(Some(expr)) => {
                 match expr {
-                    Expression::BinaryOp {
-                        op,
-                        left: _,
-                        right: _,
-                    } => {
+                    Expression::BinaryOp { op, left: _, right: _ } => {
                         assert_eq!(*op, BinaryOperator::Subtract);
                         // This should work already, but let's verify
                     }
@@ -445,10 +429,9 @@ mod tests {
                     _ => panic!("Expected int literal 2 as value, got {:?}", value),
                 }
             }
-            other => panic!(
-                "DECY-185: Expected DerefCompoundAssignment for *ptr *= 2, got {:?}",
-                other
-            ),
+            other => {
+                panic!("DECY-185: Expected DerefCompoundAssignment for *ptr *= 2, got {:?}", other)
+            }
         }
     }
 

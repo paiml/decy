@@ -18,186 +18,117 @@ use std::collections::HashMap;
 
 #[test]
 fn strategy_clone_via_dot_clone() {
-    assert_eq!(
-        analyze_fix_strategy("let x = value.clone();"),
-        FixStrategy::AddClone
-    );
+    assert_eq!(analyze_fix_strategy("let x = value.clone();"), FixStrategy::AddClone);
 }
 
 #[test]
 fn strategy_clone_via_to_owned() {
-    assert_eq!(
-        analyze_fix_strategy("let s = slice.to_owned();"),
-        FixStrategy::AddClone
-    );
+    assert_eq!(analyze_fix_strategy("let s = slice.to_owned();"), FixStrategy::AddClone);
 }
 
 #[test]
 fn strategy_lifetime_via_angle_bracket_a() {
-    assert_eq!(
-        analyze_fix_strategy("fn foo<'a>(x: &'a str) -> &'a str"),
-        FixStrategy::AddLifetime
-    );
+    assert_eq!(analyze_fix_strategy("fn foo<'a>(x: &'a str) -> &'a str"), FixStrategy::AddLifetime);
 }
 
 #[test]
 fn strategy_lifetime_via_static() {
-    assert_eq!(
-        analyze_fix_strategy("let s: &'static str = \"hello\";"),
-        FixStrategy::AddLifetime
-    );
+    assert_eq!(analyze_fix_strategy("let s: &'static str = \"hello\";"), FixStrategy::AddLifetime);
 }
 
 #[test]
 fn strategy_lifetime_via_underscore() {
-    assert_eq!(
-        analyze_fix_strategy("fn bar(x: &'_ str)"),
-        FixStrategy::AddLifetime
-    );
+    assert_eq!(analyze_fix_strategy("fn bar(x: &'_ str)"), FixStrategy::AddLifetime);
 }
 
 #[test]
 fn strategy_lifetime_via_tick_a_in_fn() {
-    assert_eq!(
-        analyze_fix_strategy("fn process<'a>(data: &'a [u8])"),
-        FixStrategy::AddLifetime
-    );
+    assert_eq!(analyze_fix_strategy("fn process<'a>(data: &'a [u8])"), FixStrategy::AddLifetime);
 }
 
 #[test]
 fn strategy_borrow_via_ref_type() {
-    assert_eq!(
-        analyze_fix_strategy("fn foo(x: &String)"),
-        FixStrategy::AddBorrow
-    );
+    assert_eq!(analyze_fix_strategy("fn foo(x: &String)"), FixStrategy::AddBorrow);
 }
 
 #[test]
 fn strategy_borrow_via_mut_ref() {
-    assert_eq!(
-        analyze_fix_strategy("fn foo(x: &mut Vec<i32>)"),
-        FixStrategy::AddBorrow
-    );
+    assert_eq!(analyze_fix_strategy("fn foo(x: &mut Vec<i32>)"), FixStrategy::AddBorrow);
 }
 
 #[test]
 fn strategy_borrow_via_self_ref() {
-    assert_eq!(
-        analyze_fix_strategy("fn method(&self) -> i32"),
-        FixStrategy::AddBorrow
-    );
+    assert_eq!(analyze_fix_strategy("fn method(&self) -> i32"), FixStrategy::AddBorrow);
 }
 
 #[test]
 fn strategy_borrow_via_mut_self() {
-    assert_eq!(
-        analyze_fix_strategy("fn method(&mut self) { }"),
-        FixStrategy::AddBorrow
-    );
+    assert_eq!(analyze_fix_strategy("fn method(&mut self) { }"), FixStrategy::AddBorrow);
 }
 
 #[test]
 fn strategy_borrow_via_param_x_ref() {
-    assert_eq!(
-        analyze_fix_strategy("fn foo(x: &i32)"),
-        FixStrategy::AddBorrow
-    );
+    assert_eq!(analyze_fix_strategy("fn foo(x: &i32)"), FixStrategy::AddBorrow);
 }
 
 #[test]
 fn strategy_borrow_via_param_y_ref() {
-    assert_eq!(
-        analyze_fix_strategy("fn bar(y: &str)"),
-        FixStrategy::AddBorrow
-    );
+    assert_eq!(analyze_fix_strategy("fn bar(y: &str)"), FixStrategy::AddBorrow);
 }
 
 #[test]
 fn strategy_borrow_via_param_z_ref() {
-    assert_eq!(
-        analyze_fix_strategy("fn baz(z: &[u8])"),
-        FixStrategy::AddBorrow
-    );
+    assert_eq!(analyze_fix_strategy("fn baz(z: &[u8])"), FixStrategy::AddBorrow);
 }
 
 #[test]
 fn strategy_borrow_via_ampersand_plus_fn() {
-    assert_eq!(
-        analyze_fix_strategy("+ fn handle(data: &[u8]) {}\n& used"),
-        FixStrategy::AddBorrow
-    );
+    assert_eq!(analyze_fix_strategy("+ fn handle(data: &[u8]) {}\n& used"), FixStrategy::AddBorrow);
 }
 
 #[test]
 fn strategy_option_via_option_type() {
-    assert_eq!(
-        analyze_fix_strategy("let x: Option<i32> = None;"),
-        FixStrategy::WrapInOption
-    );
+    assert_eq!(analyze_fix_strategy("let x: Option<i32> = None;"), FixStrategy::WrapInOption);
 }
 
 #[test]
 fn strategy_option_via_some() {
-    assert_eq!(
-        analyze_fix_strategy("let x = Some(42);"),
-        FixStrategy::WrapInOption
-    );
+    assert_eq!(analyze_fix_strategy("let x = Some(42);"), FixStrategy::WrapInOption);
 }
 
 #[test]
 fn strategy_option_via_unwrap() {
-    assert_eq!(
-        analyze_fix_strategy("let v = opt.unwrap();"),
-        FixStrategy::WrapInOption
-    );
+    assert_eq!(analyze_fix_strategy("let v = opt.unwrap();"), FixStrategy::WrapInOption);
 }
 
 #[test]
 fn strategy_option_via_is_none() {
-    assert_eq!(
-        analyze_fix_strategy("if x.is_none() { return; }"),
-        FixStrategy::WrapInOption
-    );
+    assert_eq!(analyze_fix_strategy("if x.is_none() { return; }"), FixStrategy::WrapInOption);
 }
 
 #[test]
 fn strategy_option_via_is_some() {
-    assert_eq!(
-        analyze_fix_strategy("if x.is_some() { process(x); }"),
-        FixStrategy::WrapInOption
-    );
+    assert_eq!(analyze_fix_strategy("if x.is_some() { process(x); }"), FixStrategy::WrapInOption);
 }
 
 #[test]
 fn strategy_result_via_result_type() {
-    assert_eq!(
-        analyze_fix_strategy("fn foo() -> Result<i32, Error>"),
-        FixStrategy::WrapInResult
-    );
+    assert_eq!(analyze_fix_strategy("fn foo() -> Result<i32, Error>"), FixStrategy::WrapInResult);
 }
 
 #[test]
 fn strategy_result_via_ok() {
-    assert_eq!(
-        analyze_fix_strategy("return Ok(42);"),
-        FixStrategy::WrapInResult
-    );
+    assert_eq!(analyze_fix_strategy("return Ok(42);"), FixStrategy::WrapInResult);
 }
 
 #[test]
 fn strategy_result_via_err() {
-    assert_eq!(
-        analyze_fix_strategy("return Err(\"failed\");"),
-        FixStrategy::WrapInResult
-    );
+    assert_eq!(analyze_fix_strategy("return Err(\"failed\");"), FixStrategy::WrapInResult);
 }
 
 #[test]
 fn strategy_type_annotation_via_i32() {
-    assert_eq!(
-        analyze_fix_strategy("let x: i32 = 5;"),
-        FixStrategy::AddTypeAnnotation
-    );
+    assert_eq!(analyze_fix_strategy("let x: i32 = 5;"), FixStrategy::AddTypeAnnotation);
 }
 
 #[test]
@@ -211,18 +142,12 @@ fn strategy_type_annotation_via_string() {
 #[test]
 fn strategy_type_annotation_generic_colon_space() {
     // ": " without "&" matches AddTypeAnnotation
-    assert_eq!(
-        analyze_fix_strategy("let v: Vec<u8> = vec![];"),
-        FixStrategy::AddTypeAnnotation
-    );
+    assert_eq!(analyze_fix_strategy("let v: Vec<u8> = vec![];"), FixStrategy::AddTypeAnnotation);
 }
 
 #[test]
 fn strategy_unknown_for_gibberish() {
-    assert_eq!(
-        analyze_fix_strategy("random text without patterns"),
-        FixStrategy::Unknown
-    );
+    assert_eq!(analyze_fix_strategy("random text without patterns"), FixStrategy::Unknown);
 }
 
 #[test]
@@ -464,10 +389,7 @@ fn filter_type_annotation_python_warns() {
         ImportDecision::AcceptWithWarning(msg) => {
             assert!(msg.contains("type mapping"));
         }
-        _ => panic!(
-            "Expected AcceptWithWarning for Python type annotation, got {:?}",
-            decision
-        ),
+        _ => panic!("Expected AcceptWithWarning for Python type annotation, got {:?}", decision),
     }
 }
 
@@ -552,10 +474,7 @@ fn stats_record_accept_increments() {
 
     assert_eq!(stats.total_evaluated, 1);
     assert_eq!(stats.warnings, 0);
-    assert_eq!(
-        stats.accepted_by_strategy.get(&FixStrategy::AddBorrow),
-        Some(&1)
-    );
+    assert_eq!(stats.accepted_by_strategy.get(&FixStrategy::AddBorrow), Some(&1));
 }
 
 #[test]
@@ -568,26 +487,17 @@ fn stats_record_warning_increments_both() {
 
     assert_eq!(stats.total_evaluated, 1);
     assert_eq!(stats.warnings, 1);
-    assert_eq!(
-        stats.accepted_by_strategy.get(&FixStrategy::WrapInOption),
-        Some(&1)
-    );
+    assert_eq!(stats.accepted_by_strategy.get(&FixStrategy::WrapInOption), Some(&1));
 }
 
 #[test]
 fn stats_record_reject_increments() {
     let mut stats = ImportStats::new();
-    stats.record(
-        FixStrategy::AddClone,
-        &ImportDecision::Reject("python collection".to_string()),
-    );
+    stats.record(FixStrategy::AddClone, &ImportDecision::Reject("python collection".to_string()));
 
     assert_eq!(stats.total_evaluated, 1);
     assert_eq!(stats.warnings, 0);
-    assert_eq!(
-        stats.rejected_by_strategy.get(&FixStrategy::AddClone),
-        Some(&1)
-    );
+    assert_eq!(stats.rejected_by_strategy.get(&FixStrategy::AddClone), Some(&1));
 }
 
 #[test]
@@ -596,10 +506,7 @@ fn stats_acceptance_rate_for_strategy() {
     stats.record(FixStrategy::AddBorrow, &ImportDecision::Accept);
     stats.record(FixStrategy::AddBorrow, &ImportDecision::Accept);
     stats.record(FixStrategy::AddBorrow, &ImportDecision::Accept);
-    stats.record(
-        FixStrategy::AddBorrow,
-        &ImportDecision::Reject("r".to_string()),
-    );
+    stats.record(FixStrategy::AddBorrow, &ImportDecision::Reject("r".to_string()));
 
     let rate = stats.acceptance_rate(FixStrategy::AddBorrow);
     assert!((rate - 0.75).abs() < 0.01);
@@ -616,14 +523,8 @@ fn stats_overall_acceptance_rate_mixed() {
     let mut stats = ImportStats::new();
     stats.record(FixStrategy::AddBorrow, &ImportDecision::Accept);
     stats.record(FixStrategy::AddClone, &ImportDecision::Accept);
-    stats.record(
-        FixStrategy::Unknown,
-        &ImportDecision::Reject("unknown".to_string()),
-    );
-    stats.record(
-        FixStrategy::WrapInOption,
-        &ImportDecision::AcceptWithWarning("w".to_string()),
-    );
+    stats.record(FixStrategy::Unknown, &ImportDecision::Reject("unknown".to_string()));
+    stats.record(FixStrategy::WrapInOption, &ImportDecision::AcceptWithWarning("w".to_string()));
 
     // 3 accepted (AddBorrow + AddClone + WrapInOption with warning) / 4 total
     let rate = stats.overall_acceptance_rate();
@@ -649,10 +550,7 @@ fn stats_overall_acceptance_rate_all_accepted() {
 fn stats_overall_acceptance_rate_all_rejected() {
     let mut stats = ImportStats::new();
     for _ in 0..5 {
-        stats.record(
-            FixStrategy::Unknown,
-            &ImportDecision::Reject("bad".to_string()),
-        );
+        stats.record(FixStrategy::Unknown, &ImportDecision::Reject("bad".to_string()));
     }
     assert_eq!(stats.overall_acceptance_rate(), 0.0);
 }
@@ -766,9 +664,6 @@ fn import_decision_eq() {
         ImportDecision::AcceptWithWarning("a".to_string()),
         ImportDecision::AcceptWithWarning("b".to_string())
     );
-    assert_eq!(
-        ImportDecision::Reject("x".to_string()),
-        ImportDecision::Reject("x".to_string())
-    );
+    assert_eq!(ImportDecision::Reject("x".to_string()), ImportDecision::Reject("x".to_string()));
     assert_ne!(ImportDecision::Accept, ImportDecision::Reject("r".to_string()));
 }

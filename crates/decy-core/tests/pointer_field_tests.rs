@@ -30,12 +30,10 @@ fn test_pointer_field_access_deref() {
             HirType::Pointer(Box::new(HirType::Struct("Point".to_string()))),
         )],
         HirType::Int,
-        vec![HirStatement::Return(Some(
-            HirExpression::PointerFieldAccess {
-                pointer: Box::new(HirExpression::Variable("p".to_string())),
-                field: "x".to_string(),
-            },
-        ))],
+        vec![HirStatement::Return(Some(HirExpression::PointerFieldAccess {
+            pointer: Box::new(HirExpression::Variable("p".to_string())),
+            field: "x".to_string(),
+        }))],
     );
 
     let generator = CodeGenerator::new();
@@ -48,11 +46,7 @@ fn test_pointer_field_access_deref() {
         || code.contains("(*p).x")
         || code.contains("p->x"); // Raw C syntax would be wrong in Rust
 
-    assert!(
-        has_proper_access || code.contains(".x"),
-        "Should have field access .x:\n{}",
-        code
-    );
+    assert!(has_proper_access || code.contains(".x"), "Should have field access .x:\n{}", code);
 }
 
 // ============================================================================
@@ -69,12 +63,10 @@ fn test_arrow_operator_codegen() {
             HirType::Pointer(Box::new(HirType::Struct("Data".to_string()))),
         )],
         HirType::Int,
-        vec![HirStatement::Return(Some(
-            HirExpression::PointerFieldAccess {
-                pointer: Box::new(HirExpression::Variable("ptr".to_string())),
-                field: "value".to_string(),
-            },
-        ))],
+        vec![HirStatement::Return(Some(HirExpression::PointerFieldAccess {
+            pointer: Box::new(HirExpression::Variable("ptr".to_string())),
+            field: "value".to_string(),
+        }))],
     );
 
     let generator = CodeGenerator::new();
@@ -88,11 +80,7 @@ fn test_arrow_operator_codegen() {
         "Rust code should NOT contain C's ptr-> field access:\n{}",
         code
     );
-    assert!(
-        code.contains(".value"),
-        "Should access .value field:\n{}",
-        code
-    );
+    assert!(code.contains(".value"), "Should access .value field:\n{}", code);
 }
 
 // ============================================================================
@@ -109,15 +97,13 @@ fn test_chained_pointer_field_access() {
             HirType::Pointer(Box::new(HirType::Struct("Node".to_string()))),
         )],
         HirType::Int,
-        vec![HirStatement::Return(Some(
-            HirExpression::PointerFieldAccess {
-                pointer: Box::new(HirExpression::PointerFieldAccess {
-                    pointer: Box::new(HirExpression::Variable("n".to_string())),
-                    field: "next".to_string(),
-                }),
-                field: "value".to_string(),
-            },
-        ))],
+        vec![HirStatement::Return(Some(HirExpression::PointerFieldAccess {
+            pointer: Box::new(HirExpression::PointerFieldAccess {
+                pointer: Box::new(HirExpression::Variable("n".to_string())),
+                field: "next".to_string(),
+            }),
+            field: "value".to_string(),
+        }))],
     );
 
     let generator = CodeGenerator::new();

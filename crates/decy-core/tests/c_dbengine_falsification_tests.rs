@@ -1295,7 +1295,10 @@ int db_stats_estimate_selectivity(db_col_stats_t *s, int low, int high) {
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1547: Output should not be empty");
     assert!(code.contains("fn db_stats_observe"), "C1547: Should contain db_stats_observe");
-    assert!(code.contains("fn db_stats_estimate_selectivity"), "C1547: Should contain db_stats_estimate_selectivity");
+    assert!(
+        code.contains("fn db_stats_estimate_selectivity"),
+        "C1547: Should contain db_stats_estimate_selectivity"
+    );
 }
 
 /// C1548: Query plan node with cost estimation

@@ -8,10 +8,8 @@ fn test_create_array_index_expression() {
     let array_expr = HirExpression::Variable("arr".to_string());
     let index_expr = HirExpression::Variable("i".to_string());
 
-    let array_index = HirExpression::ArrayIndex {
-        array: Box::new(array_expr),
-        index: Box::new(index_expr),
-    };
+    let array_index =
+        HirExpression::ArrayIndex { array: Box::new(array_expr), index: Box::new(index_expr) };
 
     match array_index {
         HirExpression::ArrayIndex { array, index } => match (*array, *index) {
@@ -31,10 +29,8 @@ fn test_array_index_with_literal() {
     let array_expr = HirExpression::Variable("arr".to_string());
     let index_expr = HirExpression::IntLiteral(0);
 
-    let array_index = HirExpression::ArrayIndex {
-        array: Box::new(array_expr),
-        index: Box::new(index_expr),
-    };
+    let array_index =
+        HirExpression::ArrayIndex { array: Box::new(array_expr), index: Box::new(index_expr) };
 
     match array_index {
         HirExpression::ArrayIndex { array, index } => {
@@ -51,16 +47,12 @@ fn test_nested_array_index() {
     let inner_array = HirExpression::Variable("matrix".to_string());
     let i_index = HirExpression::Variable("i".to_string());
 
-    let first_index = HirExpression::ArrayIndex {
-        array: Box::new(inner_array),
-        index: Box::new(i_index),
-    };
+    let first_index =
+        HirExpression::ArrayIndex { array: Box::new(inner_array), index: Box::new(i_index) };
 
     let j_index = HirExpression::Variable("j".to_string());
-    let nested_index = HirExpression::ArrayIndex {
-        array: Box::new(first_index),
-        index: Box::new(j_index),
-    };
+    let nested_index =
+        HirExpression::ArrayIndex { array: Box::new(first_index), index: Box::new(j_index) };
 
     // Verify nested structure
     match nested_index {
@@ -82,10 +74,8 @@ fn test_array_index_with_expression() {
         right: Box::new(HirExpression::IntLiteral(1)),
     };
 
-    let array_index = HirExpression::ArrayIndex {
-        array: Box::new(array_expr),
-        index: Box::new(index_expr),
-    };
+    let array_index =
+        HirExpression::ArrayIndex { array: Box::new(array_expr), index: Box::new(index_expr) };
 
     match array_index {
         HirExpression::ArrayIndex { index, .. } => {
@@ -115,10 +105,8 @@ fn test_pointer_array_index() {
     let array_expr = HirExpression::Variable("ptr".to_string());
     let index_expr = HirExpression::Variable("i".to_string());
 
-    let array_index = HirExpression::ArrayIndex {
-        array: Box::new(array_expr),
-        index: Box::new(index_expr),
-    };
+    let array_index =
+        HirExpression::ArrayIndex { array: Box::new(array_expr), index: Box::new(index_expr) };
 
     assert!(matches!(array_index, HirExpression::ArrayIndex { .. }));
 }
@@ -126,10 +114,7 @@ fn test_pointer_array_index() {
 #[test]
 fn test_array_type_declaration() {
     // int arr[10]; - fixed-size array type
-    let array_type = HirType::Array {
-        element_type: Box::new(HirType::Int),
-        size: Some(10),
-    };
+    let array_type = HirType::Array { element_type: Box::new(HirType::Int), size: Some(10) };
 
     match array_type {
         HirType::Array { element_type, size } => {
@@ -143,10 +128,7 @@ fn test_array_type_declaration() {
 #[test]
 fn test_unsized_array_type() {
     // int arr[]; - unsized array (common in function parameters)
-    let array_type = HirType::Array {
-        element_type: Box::new(HirType::Int),
-        size: None,
-    };
+    let array_type = HirType::Array { element_type: Box::new(HirType::Int), size: None };
 
     match array_type {
         HirType::Array { element_type, size } => {

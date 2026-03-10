@@ -67,13 +67,7 @@ impl TranspiledFile {
         functions_exported: Vec<String>,
         ffi_declarations: String,
     ) -> Self {
-        Self {
-            source_path,
-            rust_code,
-            dependencies,
-            functions_exported,
-            ffi_declarations,
-        }
+        Self { source_path, rust_code, dependencies, functions_exported, ffi_declarations }
     }
 }
 
@@ -105,8 +99,7 @@ impl ProjectContext {
     /// cross-file reference resolution.
     pub fn add_transpiled_file(&mut self, file: &TranspiledFile) {
         // Track file
-        self.transpiled_files
-            .insert(file.source_path.clone(), file.clone());
+        self.transpiled_files.insert(file.source_path.clone(), file.clone());
 
         // Extract types from rust_code (simplified: just track that types exist)
         // In real implementation, would parse the Rust code
@@ -123,10 +116,8 @@ impl ProjectContext {
 
         // Track exported functions
         for func_name in &file.functions_exported {
-            self.functions.insert(
-                func_name.clone(),
-                file.source_path.to_string_lossy().to_string(),
-            );
+            self.functions
+                .insert(func_name.clone(), file.source_path.to_string_lossy().to_string());
         }
     }
 
@@ -175,10 +166,7 @@ pub struct DependencyGraph {
 impl DependencyGraph {
     /// Create a new empty dependency graph.
     pub fn new() -> Self {
-        Self {
-            graph: DiGraph::new(),
-            path_to_node: HashMap::new(),
-        }
+        Self { graph: DiGraph::new(), path_to_node: HashMap::new() }
     }
 
     /// Check if the graph is empty (has no files).
@@ -210,14 +198,9 @@ impl DependencyGraph {
     ///
     /// Both files must already be added to the graph via `add_file`.
     pub fn add_dependency(&mut self, from: &Path, to: &Path) {
-        let from_node = *self
-            .path_to_node
-            .get(from)
-            .expect("from file must be added to graph first");
-        let to_node = *self
-            .path_to_node
-            .get(to)
-            .expect("to file must be added to graph first");
+        let from_node =
+            *self.path_to_node.get(from).expect("from file must be added to graph first");
+        let to_node = *self.path_to_node.get(to).expect("to file must be added to graph first");
 
         self.graph.add_edge(from_node, to_node, ());
     }
@@ -240,9 +223,7 @@ impl DependencyGraph {
     pub fn topological_sort(&self) -> Result<Vec<PathBuf>> {
         // Check for cycles first
         if petgraph::algo::is_cyclic_directed(&self.graph) {
-            return Err(anyhow::anyhow!(
-                "Circular dependency detected in file dependencies"
-            ));
+            return Err(anyhow::anyhow!("Circular dependency detected in file dependencies"));
         }
 
         let mut topo = Topo::new(&self.graph);
@@ -305,11 +286,7 @@ impl DependencyGraph {
             if trimmed.starts_with("#include") {
                 // Extract filename from #include "file.h" or #include <file.h>
                 if let Some(start) = trimmed.find('"').or_else(|| trimmed.find('<')) {
-                    let end_char = if trimmed.chars().nth(start) == Some('"') {
-                        '"'
-                    } else {
-                        '>'
-                    };
+                    let end_char = if trimmed.chars().nth(start) == Some('"') { '"' } else { '>' };
                     if let Some(end) = trimmed[start + 1..].find(end_char) {
                         let filename = &trimmed[start + 1..start + 1 + end];
                         includes.push(filename.to_string());
@@ -331,12 +308,8 @@ impl DependencyGraph {
             trimmed.starts_with("#ifndef") || trimmed.starts_with("#if !defined")
         });
 
-        let has_define = content
-            .lines()
-            .any(|line| line.trim().starts_with("#define"));
-        let has_endif = content
-            .lines()
-            .any(|line| line.trim().starts_with("#endif"));
+        let has_define = content.lines().any(|line| line.trim().starts_with("#define"));
+        let has_endif = content.lines().any(|line| line.trim().starts_with("#endif"));
 
         Ok(has_ifndef && has_define && has_endif)
     }
@@ -409,12 +382,7 @@ pub struct TranspilationCache {
 impl TranspilationCache {
     /// Create a new empty transpilation cache.
     pub fn new() -> Self {
-        Self {
-            entries: HashMap::new(),
-            cache_dir: None,
-            hits: 0,
-            misses: 0,
-        }
+        Self { entries: HashMap::new(), cache_dir: None, hits: 0, misses: 0 }
     }
 
     /// Create a cache with a specific directory for persistence.
@@ -458,11 +426,7 @@ impl TranspilationCache {
             }
         }
 
-        let entry = CacheEntry {
-            hash,
-            transpiled: transpiled.clone(),
-            dependency_hashes,
-        };
+        let entry = CacheEntry { hash, transpiled: transpiled.clone(), dependency_hashes };
 
         self.entries.insert(path.to_path_buf(), entry);
     }
@@ -499,10 +463,8 @@ impl TranspilationCache {
 
     /// Save the cache to disk (if cache_dir is set).
     pub fn save(&self) -> Result<()> {
-        let cache_dir = self
-            .cache_dir
-            .as_ref()
-            .ok_or_else(|| anyhow::anyhow!("Cache directory not set"))?;
+        let cache_dir =
+            self.cache_dir.as_ref().ok_or_else(|| anyhow::anyhow!("Cache directory not set"))?;
 
         std::fs::create_dir_all(cache_dir).with_context(|| {
             format!("Failed to create cache directory: {}", cache_dir.display())
@@ -533,12 +495,7 @@ impl TranspilationCache {
         let entries: HashMap<PathBuf, CacheEntry> =
             serde_json::from_str(&json).context("Failed to deserialize cache")?;
 
-        Ok(Self {
-            entries,
-            cache_dir: Some(cache_dir.to_path_buf()),
-            hits: 0,
-            misses: 0,
-        })
+        Ok(Self { entries, cache_dir: Some(cache_dir.to_path_buf()), hits: 0, misses: 0 })
     }
 
     /// Clear all cached entries.
@@ -550,11 +507,7 @@ impl TranspilationCache {
 
     /// Get cache statistics.
     pub fn statistics(&self) -> CacheStatistics {
-        CacheStatistics {
-            hits: self.hits,
-            misses: self.misses,
-            total_files: self.entries.len(),
-        }
+        CacheStatistics { hits: self.hits, misses: self.misses, total_files: self.entries.len() }
     }
 }
 
@@ -780,10 +733,7 @@ pub fn transpile_with_trace(c_code: &str) -> Result<(String, trace::TraceCollect
         chosen: "completed".to_string(),
         alternatives: vec![],
         confidence: 1.0,
-        reason: format!(
-            "Transpilation produced {} lines of Rust",
-            rust_code.lines().count()
-        ),
+        reason: format!("Transpilation produced {} lines of Rust", rust_code.lines().count()),
     });
 
     Ok((rust_code, collector))
@@ -817,10 +767,7 @@ pub fn transpile_with_verification(c_code: &str) -> Result<TranspilationResult> 
         Ok(rust_code) => Ok(TranspilationResult::success(rust_code)),
         Err(e) => {
             // Return empty code with error
-            Ok(TranspilationResult::failure(
-                String::new(),
-                vec![e.to_string()],
-            ))
+            Ok(TranspilationResult::failure(String::new(), vec![e.to_string()]))
         }
     }
 }
@@ -861,16 +808,11 @@ pub fn transpile_with_includes(c_code: &str, base_dir: Option<&Path>) -> Result<
     // 2. If code doesn't have includes and uses size_t, it should typedef it explicitly
     // 3. Adding conflicting typedefs breaks parsing
     let parser = CParser::new().context("Failed to create C parser")?;
-    let ast = parser
-        .parse(&preprocessed)
-        .context("Failed to parse C code")?;
+    let ast = parser.parse(&preprocessed).context("Failed to parse C code")?;
 
     // Step 2: Convert to HIR
-    let all_hir_functions: Vec<HirFunction> = ast
-        .functions()
-        .iter()
-        .map(HirFunction::from_ast_function)
-        .collect();
+    let all_hir_functions: Vec<HirFunction> =
+        ast.functions().iter().map(HirFunction::from_ast_function).collect();
 
     // DECY-190: Deduplicate functions - when a C file has both a declaration
     // (prototype) and a definition, only keep the definition.
@@ -958,9 +900,7 @@ pub fn transpile_with_includes(c_code: &str, base_dir: Option<&Path>) -> Result<
         .map(|v| decy_hir::HirStatement::VariableDeclaration {
             name: v.name().to_string(),
             var_type: decy_hir::HirType::from_ast_type(v.var_type()),
-            initializer: v
-                .initializer()
-                .map(decy_hir::HirExpression::from_ast_expression),
+            initializer: v.initializer().map(decy_hir::HirExpression::from_ast_expression),
         })
         .collect();
 
@@ -1110,10 +1050,7 @@ pub fn transpile_with_includes(c_code: &str, base_dir: Option<&Path>) -> Result<
                         decy_hir::HirType::Float => "0.0".to_string(),
                         decy_hir::HirType::Double => "0.0".to_string(),
                         decy_hir::HirType::Pointer(_) => "std::ptr::null_mut()".to_string(),
-                        decy_hir::HirType::Array {
-                            size: Some(n),
-                            element_type,
-                        } => {
+                        decy_hir::HirType::Array { size: Some(n), element_type } => {
                             let elem = match element_type.as_ref() {
                                 decy_hir::HirType::Char => "0u8",
                                 decy_hir::HirType::SignedChar => "0i8", // DECY-250
@@ -1139,11 +1076,8 @@ pub fn transpile_with_includes(c_code: &str, base_dir: Option<&Path>) -> Result<
     // DECY-233: Also collect types for proper type inference in function bodies
     let mut global_vars: Vec<(String, decy_hir::HirType)> = Vec::new();
     for var_stmt in &hir_variables {
-        if let decy_hir::HirStatement::VariableDeclaration {
-            name,
-            var_type,
-            initializer,
-        } = var_stmt
+        if let decy_hir::HirStatement::VariableDeclaration { name, var_type, initializer } =
+            var_stmt
         {
             // DECY-220/233: Track global name and type for unsafe access and type inference
             global_vars.push((name.clone(), var_type.clone()));
@@ -1153,37 +1087,34 @@ pub fn transpile_with_includes(c_code: &str, base_dir: Option<&Path>) -> Result<
             if let Some(init_expr) = initializer {
                 // DECY-201: Special handling for array initialization
                 // DECY-246: Handle struct arrays using StructName::default()
-                let init_code = if let decy_hir::HirType::Array {
-                    element_type,
-                    size: Some(size_val),
-                } = var_type
-                {
-                    // Check if init_expr is just an integer (uninitialized or zero-initialized array)
-                    if matches!(init_expr, decy_hir::HirExpression::IntLiteral(_)) {
-                        // Use type-appropriate const default value (for static context)
-                        let element_init = match element_type.as_ref() {
-                            decy_hir::HirType::Char => "0u8".to_string(),
-                            decy_hir::HirType::SignedChar => "0i8".to_string(), // DECY-250
-                            decy_hir::HirType::Int => "0i32".to_string(),
-                            decy_hir::HirType::UnsignedInt => "0u32".to_string(),
-                            decy_hir::HirType::Float => "0.0f32".to_string(),
-                            decy_hir::HirType::Double => "0.0f64".to_string(),
-                            decy_hir::HirType::Pointer(_) => "std::ptr::null_mut()".to_string(),
-                            // DECY-246: Use const struct literal for statics
-                            decy_hir::HirType::Struct(name) => const_struct_literal(name),
-                            _ => "0".to_string(),
-                        };
-                        format!("[{}; {}]", element_init, size_val)
+                let init_code =
+                    if let decy_hir::HirType::Array { element_type, size: Some(size_val) } =
+                        var_type
+                    {
+                        // Check if init_expr is just an integer (uninitialized or zero-initialized array)
+                        if matches!(init_expr, decy_hir::HirExpression::IntLiteral(_)) {
+                            // Use type-appropriate const default value (for static context)
+                            let element_init = match element_type.as_ref() {
+                                decy_hir::HirType::Char => "0u8".to_string(),
+                                decy_hir::HirType::SignedChar => "0i8".to_string(), // DECY-250
+                                decy_hir::HirType::Int => "0i32".to_string(),
+                                decy_hir::HirType::UnsignedInt => "0u32".to_string(),
+                                decy_hir::HirType::Float => "0.0f32".to_string(),
+                                decy_hir::HirType::Double => "0.0f64".to_string(),
+                                decy_hir::HirType::Pointer(_) => "std::ptr::null_mut()".to_string(),
+                                // DECY-246: Use const struct literal for statics
+                                decy_hir::HirType::Struct(name) => const_struct_literal(name),
+                                _ => "0".to_string(),
+                            };
+                            format!("[{}; {}]", element_init, size_val)
+                        } else {
+                            code_generator.generate_expression(init_expr)
+                        }
                     } else {
                         code_generator.generate_expression(init_expr)
-                    }
-                } else {
-                    code_generator.generate_expression(init_expr)
-                };
-                rust_code.push_str(&format!(
-                    "static mut {}: {} = {};\n",
-                    name, type_str, init_code
-                ));
+                    };
+                rust_code
+                    .push_str(&format!("static mut {}: {} = {};\n", name, type_str, init_code));
             } else {
                 // DECY-215: Use appropriate default values for uninitialized globals
                 // Only use Option for function pointers and complex types
@@ -1226,10 +1157,8 @@ pub fn transpile_with_includes(c_code: &str, base_dir: Option<&Path>) -> Result<
                     }
                     _ => "Default::default()".to_string(),
                 };
-                rust_code.push_str(&format!(
-                    "static mut {}: {} = {};\n",
-                    name, type_str, default_value
-                ));
+                rust_code
+                    .push_str(&format!("static mut {}: {} = {};\n", name, type_str, default_value));
             }
         }
     }
@@ -1258,10 +1187,7 @@ pub fn transpile_with_includes(c_code: &str, base_dir: Option<&Path>) -> Result<
                             // Keep as raw pointer
                             p.param_type().clone()
                         } else {
-                            decy_hir::HirType::Reference {
-                                inner: inner.clone(),
-                                mutable: true,
-                            }
+                            decy_hir::HirType::Reference { inner: inner.clone(), mutable: true }
                         }
                     } else {
                         p.param_type().clone()
@@ -1343,9 +1269,7 @@ fn transpile_with_file(c_code: &str, file_path: &Path) -> Result<String> {
 
     // Step 1: Parse C code using file-based parsing for proper header resolution
     let parser = CParser::new().context("Failed to create C parser")?;
-    let ast = parser
-        .parse_file(file_path)
-        .context("Failed to parse C code")?;
+    let ast = parser.parse_file(file_path).context("Failed to parse C code")?;
 
     // The rest is the same as transpile_with_includes
     process_ast_to_rust(ast, base_dir)
@@ -1354,11 +1278,8 @@ fn transpile_with_file(c_code: &str, file_path: &Path) -> Result<String> {
 /// Process an AST into Rust code (shared implementation)
 fn process_ast_to_rust(ast: decy_parser::Ast, _base_dir: Option<&Path>) -> Result<String> {
     // Step 2: Convert to HIR
-    let all_hir_functions: Vec<HirFunction> = ast
-        .functions()
-        .iter()
-        .map(HirFunction::from_ast_function)
-        .collect();
+    let all_hir_functions: Vec<HirFunction> =
+        ast.functions().iter().map(HirFunction::from_ast_function).collect();
 
     // DECY-190: Deduplicate functions
     let hir_functions: Vec<HirFunction> = {
@@ -1429,9 +1350,7 @@ fn process_ast_to_rust(ast: decy_parser::Ast, _base_dir: Option<&Path>) -> Resul
         .map(|v| decy_hir::HirStatement::VariableDeclaration {
             name: v.name().to_string(),
             var_type: decy_hir::HirType::from_ast_type(v.var_type()),
-            initializer: v
-                .initializer()
-                .map(decy_hir::HirExpression::from_ast_expression),
+            initializer: v.initializer().map(decy_hir::HirExpression::from_ast_expression),
         })
         .collect();
 
@@ -1492,19 +1411,14 @@ fn process_ast_to_rust(ast: decy_parser::Ast, _base_dir: Option<&Path>) -> Resul
 
     // Generate global variables
     for var_stmt in &hir_variables {
-        if let decy_hir::HirStatement::VariableDeclaration {
-            name,
-            var_type,
-            initializer,
-        } = var_stmt
+        if let decy_hir::HirStatement::VariableDeclaration { name, var_type, initializer } =
+            var_stmt
         {
             let type_str = CodeGenerator::map_type(var_type);
             if let Some(init_expr) = initializer {
                 let init_code = code_generator.generate_expression(init_expr);
-                rust_code.push_str(&format!(
-                    "static mut {}: {} = {};\n",
-                    name, type_str, init_code
-                ));
+                rust_code
+                    .push_str(&format!("static mut {}: {} = {};\n", name, type_str, init_code));
             } else {
                 let default_value = match var_type {
                     decy_hir::HirType::Int => "0".to_string(),
@@ -1532,10 +1446,8 @@ fn process_ast_to_rust(ast: decy_parser::Ast, _base_dir: Option<&Path>) -> Resul
                     }
                     _ => "Default::default()".to_string(),
                 };
-                rust_code.push_str(&format!(
-                    "static mut {}: {} = {};\n",
-                    name, type_str, default_value
-                ));
+                rust_code
+                    .push_str(&format!("static mut {}: {} = {};\n", name, type_str, default_value));
             }
         }
     }
@@ -1577,11 +1489,8 @@ pub fn transpile_with_box_transform(c_code: &str) -> Result<String> {
     let ast = parser.parse(c_code).context("Failed to parse C code")?;
 
     // Step 2: Convert to HIR
-    let hir_functions: Vec<HirFunction> = ast
-        .functions()
-        .iter()
-        .map(HirFunction::from_ast_function)
-        .collect();
+    let hir_functions: Vec<HirFunction> =
+        ast.functions().iter().map(HirFunction::from_ast_function).collect();
 
     // Step 3: Generate Rust code with Box transformation
     let code_generator = CodeGenerator::new();
@@ -1762,19 +1671,13 @@ fn pointer_compared_to_null(func: &HirFunction, param_name: &str) -> bool {
 /// DECY-159: Recursively check if a statement compares a variable to NULL.
 fn statement_compares_to_null(stmt: &HirStatement, var_name: &str) -> bool {
     match stmt {
-        HirStatement::If {
-            condition,
-            then_block,
-            else_block,
-        } => {
+        HirStatement::If { condition, then_block, else_block } => {
             // Check if condition is var == NULL or var != NULL
             if expression_compares_to_null(condition, var_name) {
                 return true;
             }
             // Recurse into blocks
-            then_block
-                .iter()
-                .any(|s| statement_compares_to_null(s, var_name))
+            then_block.iter().any(|s| statement_compares_to_null(s, var_name))
                 || else_block
                     .as_ref()
                     .is_some_and(|blk| blk.iter().any(|s| statement_compares_to_null(s, var_name)))
@@ -1783,23 +1686,15 @@ fn statement_compares_to_null(stmt: &HirStatement, var_name: &str) -> bool {
             expression_compares_to_null(condition, var_name)
                 || body.iter().any(|s| statement_compares_to_null(s, var_name))
         }
-        HirStatement::For {
-            condition, body, ..
-        } => {
-            condition
-                .as_ref()
-                .is_some_and(|c| expression_compares_to_null(c, var_name))
+        HirStatement::For { condition, body, .. } => {
+            condition.as_ref().is_some_and(|c| expression_compares_to_null(c, var_name))
                 || body.iter().any(|s| statement_compares_to_null(s, var_name))
         }
-        HirStatement::Switch {
-            condition, cases, ..
-        } => {
+        HirStatement::Switch { condition, cases, .. } => {
             expression_compares_to_null(condition, var_name)
-                || cases.iter().any(|c| {
-                    c.body
-                        .iter()
-                        .any(|s| statement_compares_to_null(s, var_name))
-                })
+                || cases
+                    .iter()
+                    .any(|c| c.body.iter().any(|s| statement_compares_to_null(s, var_name)))
         }
         _ => false,
     }
@@ -1822,14 +1717,10 @@ fn expression_compares_to_null(expr: &HirExpression, var_name: &str) -> bool {
                 let right_is_var =
                     matches!(&**right, HirExpression::Variable(name) if name == var_name);
                 // NULL can be NullLiteral or IntLiteral(0) (when NULL macro expands to 0)
-                let left_is_null = matches!(
-                    &**left,
-                    HirExpression::NullLiteral | HirExpression::IntLiteral(0)
-                );
-                let right_is_null = matches!(
-                    &**right,
-                    HirExpression::NullLiteral | HirExpression::IntLiteral(0)
-                );
+                let left_is_null =
+                    matches!(&**left, HirExpression::NullLiteral | HirExpression::IntLiteral(0));
+                let right_is_null =
+                    matches!(&**right, HirExpression::NullLiteral | HirExpression::IntLiteral(0));
 
                 if (left_is_var && right_is_null) || (right_is_var && left_is_null) {
                     return true;
@@ -1863,22 +1754,15 @@ fn statement_uses_pointer_arithmetic(stmt: &HirStatement, var_name: &str) -> boo
             }
             false
         }
-        HirStatement::If {
-            then_block,
-            else_block,
-            ..
-        } => {
-            then_block
-                .iter()
-                .any(|s| statement_uses_pointer_arithmetic(s, var_name))
+        HirStatement::If { then_block, else_block, .. } => {
+            then_block.iter().any(|s| statement_uses_pointer_arithmetic(s, var_name))
                 || else_block.as_ref().is_some_and(|blk| {
-                    blk.iter()
-                        .any(|s| statement_uses_pointer_arithmetic(s, var_name))
+                    blk.iter().any(|s| statement_uses_pointer_arithmetic(s, var_name))
                 })
         }
-        HirStatement::While { body, .. } | HirStatement::For { body, .. } => body
-            .iter()
-            .any(|s| statement_uses_pointer_arithmetic(s, var_name)),
+        HirStatement::While { body, .. } | HirStatement::For { body, .. } => {
+            body.iter().any(|s| statement_uses_pointer_arithmetic(s, var_name))
+        }
         _ => false,
     }
 }
@@ -1966,10 +1850,7 @@ mod tests {
         // For now, we test that the pipeline runs successfully
         let c_code = "int add(int a, int b) { return a + b; }";
         let result = transpile(c_code);
-        assert!(
-            result.is_ok(),
-            "Transpilation with lifetime analysis should succeed"
-        );
+        assert!(result.is_ok(), "Transpilation with lifetime analysis should succeed");
 
         let rust_code = result.unwrap();
         // Basic transpilation should work
@@ -2090,19 +1971,13 @@ mod tests {
     #[test]
     fn test_project_context_extract_type_name_struct() {
         let ctx = ProjectContext::new();
-        assert_eq!(
-            ctx.extract_type_name("pub struct Point {"),
-            Some("Point".to_string())
-        );
+        assert_eq!(ctx.extract_type_name("pub struct Point {"), Some("Point".to_string()));
     }
 
     #[test]
     fn test_project_context_extract_type_name_enum() {
         let ctx = ProjectContext::new();
-        assert_eq!(
-            ctx.extract_type_name("pub enum Color {"),
-            Some("Color".to_string())
-        );
+        assert_eq!(ctx.extract_type_name("pub enum Color {"), Some("Color".to_string()));
     }
 
     #[test]
@@ -2259,10 +2134,7 @@ mod tests {
 
         let result = graph.topological_sort();
         assert!(result.is_err());
-        assert!(result
-            .unwrap_err()
-            .to_string()
-            .contains("Circular dependency"));
+        assert!(result.unwrap_err().to_string().contains("Circular dependency"));
     }
 
     #[test]
@@ -2489,11 +2361,7 @@ mod tests {
         let main_path = temp_dir.path().join("main.c");
         let dep_path = temp_dir.path().join("dep.h");
 
-        std::fs::write(
-            &main_path,
-            "#include \"dep.h\"\nint main() { return foo(); }",
-        )
-        .unwrap();
+        std::fs::write(&main_path, "#include \"dep.h\"\nint main() { return foo(); }").unwrap();
         std::fs::write(&dep_path, "int foo();").unwrap();
 
         let mut cache = TranspilationCache::new();
@@ -2690,10 +2558,8 @@ mod tests {
     fn test_uses_pointer_arithmetic_true() {
         use decy_hir::{BinaryOperator, HirParameter, HirType};
 
-        let params = vec![HirParameter::new(
-            "ptr".to_string(),
-            HirType::Pointer(Box::new(HirType::Int)),
-        )];
+        let params =
+            vec![HirParameter::new("ptr".to_string(), HirType::Pointer(Box::new(HirType::Int)))];
 
         // Add statement: ptr = ptr + 1
         let body = vec![HirStatement::Assignment {
@@ -2715,10 +2581,8 @@ mod tests {
     fn test_uses_pointer_arithmetic_subtract() {
         use decy_hir::{BinaryOperator, HirParameter, HirType};
 
-        let params = vec![HirParameter::new(
-            "ptr".to_string(),
-            HirType::Pointer(Box::new(HirType::Int)),
-        )];
+        let params =
+            vec![HirParameter::new("ptr".to_string(), HirType::Pointer(Box::new(HirType::Int)))];
 
         // Add statement: ptr = ptr - 1
         let body = vec![HirStatement::Assignment {
@@ -2739,10 +2603,8 @@ mod tests {
     fn test_uses_pointer_arithmetic_in_if() {
         use decy_hir::{BinaryOperator, HirParameter, HirType};
 
-        let params = vec![HirParameter::new(
-            "ptr".to_string(),
-            HirType::Pointer(Box::new(HirType::Int)),
-        )];
+        let params =
+            vec![HirParameter::new("ptr".to_string(), HirType::Pointer(Box::new(HirType::Int)))];
 
         // Add statement inside if block
         let body = vec![HirStatement::If {
@@ -2767,10 +2629,8 @@ mod tests {
     fn test_uses_pointer_arithmetic_in_else() {
         use decy_hir::{BinaryOperator, HirParameter, HirType};
 
-        let params = vec![HirParameter::new(
-            "ptr".to_string(),
-            HirType::Pointer(Box::new(HirType::Int)),
-        )];
+        let params =
+            vec![HirParameter::new("ptr".to_string(), HirType::Pointer(Box::new(HirType::Int)))];
 
         let body = vec![HirStatement::If {
             condition: HirExpression::IntLiteral(1), // true condition
@@ -2794,10 +2654,8 @@ mod tests {
     fn test_uses_pointer_arithmetic_in_while() {
         use decy_hir::{BinaryOperator, HirParameter, HirType};
 
-        let params = vec![HirParameter::new(
-            "ptr".to_string(),
-            HirType::Pointer(Box::new(HirType::Int)),
-        )];
+        let params =
+            vec![HirParameter::new("ptr".to_string(), HirType::Pointer(Box::new(HirType::Int)))];
 
         let body = vec![HirStatement::While {
             condition: HirExpression::IntLiteral(1), // true condition
@@ -2820,10 +2678,8 @@ mod tests {
     fn test_uses_pointer_arithmetic_in_for() {
         use decy_hir::{BinaryOperator, HirParameter, HirType};
 
-        let params = vec![HirParameter::new(
-            "ptr".to_string(),
-            HirType::Pointer(Box::new(HirType::Int)),
-        )];
+        let params =
+            vec![HirParameter::new("ptr".to_string(), HirType::Pointer(Box::new(HirType::Int)))];
 
         let body = vec![HirStatement::For {
             init: vec![],
@@ -2848,10 +2704,8 @@ mod tests {
     fn test_uses_pointer_arithmetic_false() {
         use decy_hir::{HirParameter, HirType};
 
-        let params = vec![HirParameter::new(
-            "ptr".to_string(),
-            HirType::Pointer(Box::new(HirType::Int)),
-        )];
+        let params =
+            vec![HirParameter::new("ptr".to_string(), HirType::Pointer(Box::new(HirType::Int)))];
 
         // Simple assignment without pointer arithmetic
         let body = vec![HirStatement::Assignment {
@@ -3110,9 +2964,7 @@ mod tests {
     fn test_pointer_not_compared_to_null() {
         use decy_hir::HirType;
 
-        let body = vec![HirStatement::Expression(HirExpression::Variable(
-            "ptr".to_string(),
-        ))];
+        let body = vec![HirStatement::Expression(HirExpression::Variable("ptr".to_string()))];
 
         let func = HirFunction::new_with_body(
             "test".to_string(),
@@ -3323,10 +3175,7 @@ mod tests {
         assert!(!expression_compares_to_null(&expr, "ptr"));
 
         // Function call
-        let expr = HirExpression::FunctionCall {
-            function: "foo".to_string(),
-            arguments: vec![],
-        };
+        let expr = HirExpression::FunctionCall { function: "foo".to_string(), arguments: vec![] };
         assert!(!expression_compares_to_null(&expr, "ptr"));
     }
 
@@ -3559,10 +3408,7 @@ mod tests {
         let func = HirFunction::new(
             "test".to_string(),
             HirType::Void,
-            vec![HirParameter::new(
-                "p".to_string(),
-                HirType::Pointer(Box::new(HirType::Int)),
-            )],
+            vec![HirParameter::new("p".to_string(), HirType::Pointer(Box::new(HirType::Int)))],
         );
         assert!(!uses_pointer_arithmetic(&func, "p"));
     }
@@ -3573,10 +3419,7 @@ mod tests {
         let func = HirFunction::new_with_body(
             "test".to_string(),
             HirType::Void,
-            vec![HirParameter::new(
-                "p".to_string(),
-                HirType::Pointer(Box::new(HirType::Int)),
-            )],
+            vec![HirParameter::new("p".to_string(), HirType::Pointer(Box::new(HirType::Int)))],
             vec![HirStatement::Assignment {
                 target: "p".to_string(),
                 value: HirExpression::BinaryOp {
@@ -3610,12 +3453,8 @@ mod tests {
     #[test]
     fn test_statement_compares_to_null_for_none_condition() {
         // for(;;) with no condition — should not match null comparison
-        let stmt = HirStatement::For {
-            init: vec![],
-            condition: None,
-            increment: vec![],
-            body: vec![],
-        };
+        let stmt =
+            HirStatement::For { init: vec![], condition: None, increment: vec![], body: vec![] };
         assert!(!statement_compares_to_null(&stmt, "ptr"));
     }
 

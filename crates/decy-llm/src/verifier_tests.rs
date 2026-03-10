@@ -4,12 +4,7 @@ use crate::llm_codegen::GeneratedCode;
 use crate::verifier::*;
 
 fn code(s: &str) -> GeneratedCode {
-    GeneratedCode {
-        code: s.into(),
-        confidence: 0.9,
-        reasoning: "test".into(),
-        warnings: vec![],
-    }
+    GeneratedCode { code: s.into(), confidence: 0.9, reasoning: "test".into(), warnings: vec![] }
 }
 
 #[test]
@@ -346,9 +341,7 @@ fn verifier_with_struct() {
 #[test]
 fn verifier_with_function() {
     let v = CodeVerifier::new();
-    let r = v
-        .verify(&code("fn add(a: i32, b: i32) -> i32 { a + b }"))
-        .unwrap();
+    let r = v.verify(&code("fn add(a: i32, b: i32) -> i32 { a + b }")).unwrap();
     assert!(r.success);
 }
 

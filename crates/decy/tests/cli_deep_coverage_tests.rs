@@ -20,11 +20,7 @@ use tempfile::TempDir;
 
 #[test]
 fn cli_oracle_bootstrap_dry_run() {
-    let result = decy_cmd()
-        .arg("oracle")
-        .arg("bootstrap")
-        .arg("--dry-run")
-        .assert();
+    let result = decy_cmd().arg("oracle").arg("bootstrap").arg("--dry-run").assert();
     // Exercises the bootstrap dry_run path - may succeed or fail depending on feature flags
     let _ = result;
 }
@@ -42,56 +38,31 @@ fn cli_oracle_bootstrap_no_dry_run() {
 
 #[test]
 fn cli_oracle_stats_json_format() {
-    let result = decy_cmd()
-        .arg("oracle")
-        .arg("stats")
-        .arg("--format")
-        .arg("json")
-        .assert();
+    let result = decy_cmd().arg("oracle").arg("stats").arg("--format").arg("json").assert();
     let _ = result;
 }
 
 #[test]
 fn cli_oracle_stats_markdown_format() {
-    let result = decy_cmd()
-        .arg("oracle")
-        .arg("stats")
-        .arg("--format")
-        .arg("markdown")
-        .assert();
+    let result = decy_cmd().arg("oracle").arg("stats").arg("--format").arg("markdown").assert();
     let _ = result;
 }
 
 #[test]
 fn cli_oracle_stats_prometheus_format() {
-    let result = decy_cmd()
-        .arg("oracle")
-        .arg("stats")
-        .arg("--format")
-        .arg("prometheus")
-        .assert();
+    let result = decy_cmd().arg("oracle").arg("stats").arg("--format").arg("prometheus").assert();
     let _ = result;
 }
 
 #[test]
 fn cli_oracle_stats_default_format() {
-    let result = decy_cmd()
-        .arg("oracle")
-        .arg("stats")
-        .arg("--format")
-        .arg("default")
-        .assert();
+    let result = decy_cmd().arg("oracle").arg("stats").arg("--format").arg("default").assert();
     let _ = result;
 }
 
 #[test]
 fn cli_oracle_stats_unknown_format() {
-    let result = decy_cmd()
-        .arg("oracle")
-        .arg("stats")
-        .arg("--format")
-        .arg("yaml")
-        .assert();
+    let result = decy_cmd().arg("oracle").arg("stats").arg("--format").arg("yaml").assert();
     let _ = result;
 }
 
@@ -101,11 +72,7 @@ fn cli_oracle_stats_unknown_format() {
 
 #[test]
 fn cli_oracle_retire_dry_run() {
-    let result = decy_cmd()
-        .arg("oracle")
-        .arg("retire")
-        .arg("--dry-run")
-        .assert();
+    let result = decy_cmd().arg("oracle").arg("retire").arg("--dry-run").assert();
     let _ = result;
 }
 
@@ -119,12 +86,8 @@ fn cli_oracle_retire_no_dry_run() {
 fn cli_oracle_retire_with_archive_path() {
     let temp = TempDir::new().unwrap();
     let archive = temp.path().join("archive.apr");
-    let result = decy_cmd()
-        .arg("oracle")
-        .arg("retire")
-        .arg("--archive-path")
-        .arg(&archive)
-        .assert();
+    let result =
+        decy_cmd().arg("oracle").arg("retire").arg("--archive-path").arg(&archive).assert();
     let _ = result;
 }
 
@@ -148,35 +111,20 @@ fn cli_oracle_retire_dry_run_with_archive() {
 
 #[test]
 fn cli_oracle_query_valid_error_code() {
-    let result = decy_cmd()
-        .arg("oracle")
-        .arg("query")
-        .arg("--error")
-        .arg("E0308")
-        .assert();
+    let result = decy_cmd().arg("oracle").arg("query").arg("--error").arg("E0308").assert();
     let _ = result;
 }
 
 #[test]
 fn cli_oracle_query_invalid_error_code_short() {
-    let result = decy_cmd()
-        .arg("oracle")
-        .arg("query")
-        .arg("--error")
-        .arg("E01")
-        .assert();
+    let result = decy_cmd().arg("oracle").arg("query").arg("--error").arg("E01").assert();
     // Should fail with invalid error code format message
     let _ = result;
 }
 
 #[test]
 fn cli_oracle_query_invalid_error_code_no_e() {
-    let result = decy_cmd()
-        .arg("oracle")
-        .arg("query")
-        .arg("--error")
-        .arg("X0308")
-        .assert();
+    let result = decy_cmd().arg("oracle").arg("query").arg("--error").arg("X0308").assert();
     let _ = result;
 }
 
@@ -221,12 +169,7 @@ fn cli_oracle_query_text_format() {
 
 #[test]
 fn cli_oracle_query_unknown_error_code() {
-    let result = decy_cmd()
-        .arg("oracle")
-        .arg("query")
-        .arg("--error")
-        .arg("E9999")
-        .assert();
+    let result = decy_cmd().arg("oracle").arg("query").arg("--error").arg("E9999").assert();
     let _ = result;
 }
 
@@ -265,12 +208,7 @@ fn cli_oracle_seed_missing_file() {
 fn cli_oracle_seed_existing_file() {
     let temp = TempDir::new().unwrap();
     let patterns_file = create_temp_file(&temp, "patterns.apr", "{}");
-    let result = decy_cmd()
-        .arg("oracle")
-        .arg("seed")
-        .arg("--from")
-        .arg(&patterns_file)
-        .assert();
+    let result = decy_cmd().arg("oracle").arg("seed").arg("--from").arg(&patterns_file).assert();
     let _ = result;
 }
 
@@ -280,11 +218,8 @@ fn cli_oracle_seed_existing_file() {
 
 #[test]
 fn cli_oracle_validate_nonexistent_corpus() {
-    let result = decy_cmd()
-        .arg("oracle")
-        .arg("validate")
-        .arg("/tmp/nonexistent_corpus_dir_98765")
-        .assert();
+    let result =
+        decy_cmd().arg("oracle").arg("validate").arg("/tmp/nonexistent_corpus_dir_98765").assert();
     // Should fail with corpus not found
     let _ = result;
 }
@@ -292,11 +227,7 @@ fn cli_oracle_validate_nonexistent_corpus() {
 #[test]
 fn cli_oracle_validate_empty_corpus() {
     let temp = TempDir::new().unwrap();
-    let result = decy_cmd()
-        .arg("oracle")
-        .arg("validate")
-        .arg(temp.path())
-        .assert();
+    let result = decy_cmd().arg("oracle").arg("validate").arg(temp.path()).assert();
     let _ = result;
 }
 
@@ -306,11 +237,7 @@ fn cli_oracle_validate_corpus_with_files() {
     create_temp_file(&temp, "hello.c", "int main() { return 0; }");
     create_temp_file(&temp, "add.c", "int add(int a, int b) { return a + b; }");
 
-    let result = decy_cmd()
-        .arg("oracle")
-        .arg("validate")
-        .arg(temp.path())
-        .assert();
+    let result = decy_cmd().arg("oracle").arg("validate").arg(temp.path()).assert();
     let _ = result;
 }
 
@@ -322,13 +249,8 @@ fn cli_oracle_validate_corpus_with_files() {
 fn cli_oracle_export_jsonl() {
     let temp = TempDir::new().unwrap();
     let output = temp.path().join("export.jsonl");
-    let result = decy_cmd()
-        .arg("oracle")
-        .arg("export")
-        .arg(&output)
-        .arg("--format")
-        .arg("jsonl")
-        .assert();
+    let result =
+        decy_cmd().arg("oracle").arg("export").arg(&output).arg("--format").arg("jsonl").assert();
     let _ = result;
 }
 
@@ -336,13 +258,8 @@ fn cli_oracle_export_jsonl() {
 fn cli_oracle_export_chatml() {
     let temp = TempDir::new().unwrap();
     let output = temp.path().join("export.jsonl");
-    let result = decy_cmd()
-        .arg("oracle")
-        .arg("export")
-        .arg(&output)
-        .arg("--format")
-        .arg("chatml")
-        .assert();
+    let result =
+        decy_cmd().arg("oracle").arg("export").arg(&output).arg("--format").arg("chatml").assert();
     let _ = result;
 }
 
@@ -350,13 +267,8 @@ fn cli_oracle_export_chatml() {
 fn cli_oracle_export_alpaca() {
     let temp = TempDir::new().unwrap();
     let output = temp.path().join("export.jsonl");
-    let result = decy_cmd()
-        .arg("oracle")
-        .arg("export")
-        .arg(&output)
-        .arg("--format")
-        .arg("alpaca")
-        .assert();
+    let result =
+        decy_cmd().arg("oracle").arg("export").arg(&output).arg("--format").arg("alpaca").assert();
     let _ = result;
 }
 
@@ -364,13 +276,8 @@ fn cli_oracle_export_alpaca() {
 fn cli_oracle_export_parquet() {
     let temp = TempDir::new().unwrap();
     let output = temp.path().join("export.parquet");
-    let result = decy_cmd()
-        .arg("oracle")
-        .arg("export")
-        .arg(&output)
-        .arg("--format")
-        .arg("parquet")
-        .assert();
+    let result =
+        decy_cmd().arg("oracle").arg("export").arg(&output).arg("--format").arg("parquet").assert();
     let _ = result;
 }
 
@@ -378,13 +285,8 @@ fn cli_oracle_export_parquet() {
 fn cli_oracle_export_unknown_format() {
     let temp = TempDir::new().unwrap();
     let output = temp.path().join("export.txt");
-    let result = decy_cmd()
-        .arg("oracle")
-        .arg("export")
-        .arg(&output)
-        .arg("--format")
-        .arg("xml")
-        .assert();
+    let result =
+        decy_cmd().arg("oracle").arg("export").arg(&output).arg("--format").arg("xml").assert();
     let _ = result;
 }
 
@@ -421,12 +323,7 @@ fn cli_oracle_train_nonexistent_corpus() {
 #[test]
 fn cli_oracle_train_empty_corpus() {
     let temp = TempDir::new().unwrap();
-    let result = decy_cmd()
-        .arg("oracle")
-        .arg("train")
-        .arg("--corpus")
-        .arg(temp.path())
-        .assert();
+    let result = decy_cmd().arg("oracle").arg("train").arg("--corpus").arg(temp.path()).assert();
     let _ = result;
 }
 
@@ -607,11 +504,7 @@ fn cli_transpile_with_oracle_flag() {
     let temp = TempDir::new().unwrap();
     let input = create_temp_file(&temp, "oracle_test.c", VALID_C_CODE);
 
-    let result = decy_cmd()
-        .arg("transpile")
-        .arg(&input)
-        .arg("--oracle")
-        .assert();
+    let result = decy_cmd().arg("transpile").arg(&input).arg("--oracle").assert();
     // May succeed with basic transpilation (non-citl stub)
     let _ = result;
 }
@@ -636,12 +529,7 @@ fn cli_transpile_with_oracle_auto_fix() {
     let temp = TempDir::new().unwrap();
     let input = create_temp_file(&temp, "oracle_fix.c", VALID_C_CODE);
 
-    let result = decy_cmd()
-        .arg("transpile")
-        .arg(&input)
-        .arg("--oracle")
-        .arg("--auto-fix")
-        .assert();
+    let result = decy_cmd().arg("transpile").arg(&input).arg("--oracle").arg("--auto-fix").assert();
     let _ = result;
 }
 
@@ -650,12 +538,7 @@ fn cli_transpile_with_oracle_capture() {
     let temp = TempDir::new().unwrap();
     let input = create_temp_file(&temp, "oracle_capture.c", VALID_C_CODE);
 
-    let result = decy_cmd()
-        .arg("transpile")
-        .arg(&input)
-        .arg("--oracle")
-        .arg("--capture")
-        .assert();
+    let result = decy_cmd().arg("transpile").arg(&input).arg("--oracle").arg("--capture").assert();
     let _ = result;
 }
 
@@ -907,10 +790,7 @@ fn cli_cache_stats_after_transpile() {
         .success();
 
     // Then check cache stats
-    let result = decy_cmd()
-        .arg("cache-stats")
-        .arg(temp.path())
-        .assert();
+    let result = decy_cmd().arg("cache-stats").arg(temp.path()).assert();
     // May show cache stats or "No cache found" depending on implementation
     let _ = result;
 }
@@ -1251,22 +1131,14 @@ fn cli_transpile_verify_stdout_mode() {
     let c_code = "int main() { int x = 42; return x; }";
     let input = create_temp_file(&temp, "verify_stdout.c", c_code);
 
-    let assert = decy_cmd()
-        .arg("transpile")
-        .arg(&input)
-        .arg("--verify")
-        .assert()
-        .success();
+    let assert = decy_cmd().arg("transpile").arg(&input).arg("--verify").assert().success();
 
     // Stdout should contain Rust code, stderr should contain verification
     let output = assert.get_output();
     let stdout = String::from_utf8_lossy(&output.stdout);
     let stderr = String::from_utf8_lossy(&output.stderr);
     assert!(stdout.contains("fn main"), "Expected Rust code on stdout");
-    assert!(
-        stderr.contains("Compilation verified"),
-        "Expected verification message on stderr"
-    );
+    assert!(stderr.contains("Compilation verified"), "Expected verification message on stderr");
 }
 
 // ============================================================================

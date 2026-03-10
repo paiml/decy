@@ -347,7 +347,7 @@ impl ThresholdTuner {
         let t = threshold.clamp(0.0, 1.0);
         if !self.candidates.contains(&t) {
             self.candidates.push(t);
-            self.candidates.sort_by(|a, b| a.partial_cmp(b).unwrap());
+            self.candidates.sort_by(|a, b| a.partial_cmp(b).expect("finite f64"));
         }
     }
 
@@ -374,11 +374,8 @@ impl ThresholdTuner {
         let ml_only_accuracy = ml_only_correct as f64 / samples.len() as f64;
 
         // Calculate metrics at each threshold
-        let all_thresholds: Vec<ThresholdMetrics> = self
-            .candidates
-            .iter()
-            .map(|&t| ThresholdMetrics::calculate(samples, t))
-            .collect();
+        let all_thresholds: Vec<ThresholdMetrics> =
+            self.candidates.iter().map(|&t| ThresholdMetrics::calculate(samples, t)).collect();
 
         // Find optimal threshold based on criteria
         let optimal = self.select_optimal(&all_thresholds, baseline_accuracy);
@@ -417,15 +414,15 @@ impl ThresholdTuner {
         match self.criteria {
             SelectionCriteria::MaxAccuracy => metrics
                 .iter()
-                .max_by(|a, b| a.accuracy.partial_cmp(&b.accuracy).unwrap())
+                .max_by(|a, b| a.accuracy.partial_cmp(&b.accuracy).expect("finite f64"))
                 .cloned()
-                .unwrap(),
+                .expect("non-empty metrics"),
 
             SelectionCriteria::MaxF1 => metrics
                 .iter()
-                .max_by(|a, b| a.f1_score.partial_cmp(&b.f1_score).unwrap())
+                .max_by(|a, b| a.f1_score.partial_cmp(&b.f1_score).expect("finite f64"))
                 .cloned()
-                .unwrap(),
+                .expect("non-empty metrics"),
 
             SelectionCriteria::BalancedAccuracyFallback => {
                 // Weighted score: 0.7 * accuracy + 0.3 * ml_usage
@@ -434,33 +431,33 @@ impl ThresholdTuner {
                     .max_by(|a, b| {
                         let score_a = 0.7 * a.accuracy + 0.3 * a.ml_usage_rate;
                         let score_b = 0.7 * b.accuracy + 0.3 * b.ml_usage_rate;
-                        score_a.partial_cmp(&score_b).unwrap()
+                        score_a.partial_cmp(&score_b).expect("finite f64")
                     })
                     .cloned()
-                    .unwrap()
+                    .expect("non-empty metrics")
             }
 
             SelectionCriteria::MinFallbackAboveBaseline => {
                 // Filter to thresholds that maintain accuracy above baseline
-                let above_baseline: Vec<_> = metrics
-                    .iter()
-                    .filter(|m| m.accuracy >= baseline_accuracy)
-                    .collect();
+                let above_baseline: Vec<_> =
+                    metrics.iter().filter(|m| m.accuracy >= baseline_accuracy).collect();
 
                 if above_baseline.is_empty() {
                     // Fall back to max accuracy
                     metrics
                         .iter()
-                        .max_by(|a, b| a.accuracy.partial_cmp(&b.accuracy).unwrap())
+                        .max_by(|a, b| a.accuracy.partial_cmp(&b.accuracy).expect("finite f64"))
                         .cloned()
-                        .unwrap()
+                        .expect("non-empty metrics")
                 } else {
                     // Select minimum fallback among those above baseline
                     above_baseline
                         .into_iter()
-                        .min_by(|a, b| a.fallback_rate.partial_cmp(&b.fallback_rate).unwrap())
+                        .min_by(|a, b| {
+                            a.fallback_rate.partial_cmp(&b.fallback_rate).expect("finite f64")
+                        })
                         .cloned()
-                        .unwrap()
+                        .expect("non-empty above_baseline")
                 }
             }
         }
@@ -684,13 +681,10 @@ mod tests {
             ),
         ];
 
-        let max_acc = ThresholdTuner::new()
-            .with_criteria(SelectionCriteria::MaxAccuracy)
-            .tune(&samples);
+        let max_acc =
+            ThresholdTuner::new().with_criteria(SelectionCriteria::MaxAccuracy).tune(&samples);
 
-        let max_f1 = ThresholdTuner::new()
-            .with_criteria(SelectionCriteria::MaxF1)
-            .tune(&samples);
+        let max_f1 = ThresholdTuner::new().with_criteria(SelectionCriteria::MaxF1).tune(&samples);
 
         // Both should find optimal (all correct samples)
         assert!((max_acc.optimal_metrics.accuracy - 1.0).abs() < 0.001);
@@ -802,14 +796,8 @@ mod tests {
     fn selection_criteria_display() {
         assert_eq!(SelectionCriteria::MaxAccuracy.to_string(), "max-accuracy");
         assert_eq!(SelectionCriteria::MaxF1.to_string(), "max-f1");
-        assert_eq!(
-            SelectionCriteria::BalancedAccuracyFallback.to_string(),
-            "balanced"
-        );
-        assert_eq!(
-            SelectionCriteria::MinFallbackAboveBaseline.to_string(),
-            "min-fallback"
-        );
+        assert_eq!(SelectionCriteria::BalancedAccuracyFallback.to_string(), "balanced");
+        assert_eq!(SelectionCriteria::MinFallbackAboveBaseline.to_string(), "min-fallback");
     }
 
     // ========================================================================
@@ -822,8 +810,8 @@ mod tests {
         let samples = vec![
             ValidationSample::new(
                 InferredOwnership::Owned,
-                InferredOwnership::Owned,    // Rule correct
-                InferredOwnership::Owned,    // ML correct
+                InferredOwnership::Owned, // Rule correct
+                InferredOwnership::Owned, // ML correct
                 0.9,
             ),
             ValidationSample::new(
@@ -840,8 +828,8 @@ mod tests {
             ),
             ValidationSample::new(
                 InferredOwnership::Borrowed,
-                InferredOwnership::Owned,    // Rule wrong
-                InferredOwnership::Owned,    // ML wrong
+                InferredOwnership::Owned, // Rule wrong
+                InferredOwnership::Owned, // ML wrong
                 0.3,
             ),
         ];
@@ -867,8 +855,8 @@ mod tests {
             ),
             ValidationSample::new(
                 InferredOwnership::Borrowed,
-                InferredOwnership::Owned,    // Rule wrong
-                InferredOwnership::Owned,    // ML wrong
+                InferredOwnership::Owned, // Rule wrong
+                InferredOwnership::Owned, // ML wrong
                 0.8,
             ),
         ];
@@ -935,14 +923,12 @@ mod tests {
     #[test]
     fn threshold_metrics_precision_recall_edge_zero_tp() {
         // All predictions wrong: 0 TP, all FP and FN
-        let samples = vec![
-            ValidationSample::new(
-                InferredOwnership::Owned,
-                InferredOwnership::Borrowed,
-                InferredOwnership::Borrowed,
-                0.9,
-            ),
-        ];
+        let samples = vec![ValidationSample::new(
+            InferredOwnership::Owned,
+            InferredOwnership::Borrowed,
+            InferredOwnership::Borrowed,
+            0.9,
+        )];
 
         let metrics = ThresholdMetrics::calculate(&samples, 0.5);
         // 0 TP, 1 FP, 1 FN
@@ -958,14 +944,12 @@ mod tests {
     #[test]
     fn select_optimal_empty_metrics() {
         let tuner = ThresholdTuner::with_candidates(vec![]);
-        let result = tuner.tune(&[
-            ValidationSample::new(
-                InferredOwnership::Owned,
-                InferredOwnership::Owned,
-                InferredOwnership::Owned,
-                0.9,
-            ),
-        ]);
+        let result = tuner.tune(&[ValidationSample::new(
+            InferredOwnership::Owned,
+            InferredOwnership::Owned,
+            InferredOwnership::Owned,
+            0.9,
+        )]);
         // With empty candidates, all_thresholds is empty, falls to default
         assert!((result.optimal_threshold - 0.65).abs() < 0.001);
     }
@@ -1017,8 +1001,8 @@ mod tests {
             ));
         }
 
-        let tuner = ThresholdTuner::new()
-            .with_criteria(SelectionCriteria::BalancedAccuracyFallback);
+        let tuner =
+            ThresholdTuner::new().with_criteria(SelectionCriteria::BalancedAccuracyFallback);
         let result = tuner.tune(&samples);
 
         // The balanced criteria should consider both accuracy and ML usage rate
@@ -1049,8 +1033,8 @@ mod tests {
             ));
         }
 
-        let tuner = ThresholdTuner::new()
-            .with_criteria(SelectionCriteria::MinFallbackAboveBaseline);
+        let tuner =
+            ThresholdTuner::new().with_criteria(SelectionCriteria::MinFallbackAboveBaseline);
         let result = tuner.tune(&samples);
 
         // Baseline accuracy is 20% (only low-conf rules correct)
@@ -1080,8 +1064,8 @@ mod tests {
             ),
         ];
 
-        let tuner = ThresholdTuner::new()
-            .with_criteria(SelectionCriteria::MinFallbackAboveBaseline);
+        let tuner =
+            ThresholdTuner::new().with_criteria(SelectionCriteria::MinFallbackAboveBaseline);
         let result = tuner.tune(&samples);
 
         // Baseline accuracy is 1.0 (rules always correct)
@@ -1147,14 +1131,12 @@ mod tests {
     fn threshold_tuner_with_candidates_clamps() {
         let tuner = ThresholdTuner::with_candidates(vec![-0.5, 1.5, 0.5]);
         // -0.5 should be clamped to 0.0, 1.5 to 1.0
-        let result = tuner.tune(&[
-            ValidationSample::new(
-                InferredOwnership::Owned,
-                InferredOwnership::Owned,
-                InferredOwnership::Owned,
-                0.9,
-            ),
-        ]);
+        let result = tuner.tune(&[ValidationSample::new(
+            InferredOwnership::Owned,
+            InferredOwnership::Owned,
+            InferredOwnership::Owned,
+            0.9,
+        )]);
         assert!(result.all_thresholds.len() == 3);
     }
 
@@ -1231,14 +1213,12 @@ mod tests {
 
     #[test]
     fn tuning_result_to_markdown_threshold_table_rows() {
-        let samples = vec![
-            ValidationSample::new(
-                InferredOwnership::Owned,
-                InferredOwnership::Owned,
-                InferredOwnership::Owned,
-                0.9,
-            ),
-        ];
+        let samples = vec![ValidationSample::new(
+            InferredOwnership::Owned,
+            InferredOwnership::Owned,
+            InferredOwnership::Owned,
+            0.9,
+        )];
 
         let result = ThresholdTuner::new().tune(&samples);
         let md = result.to_markdown();

@@ -41,11 +41,7 @@ fn cli_transpile_invalid_syntax_exits_nonzero() {
 
 #[test]
 fn cli_transpile_missing_file_exits_nonzero() {
-    decy_cmd()
-        .arg("transpile")
-        .arg("nonexistent_file.c")
-        .assert()
-        .failure(); // Exit code != 0
+    decy_cmd().arg("transpile").arg("nonexistent_file.c").assert().failure(); // Exit code != 0
 }
 
 // ============================================================================
@@ -90,22 +86,12 @@ fn cli_transpile_to_file_creates_output() {
     let input = create_temp_file(&temp, "input.c", VALID_C_CODE);
     let output = temp.path().join("output.rs");
 
-    decy_cmd()
-        .arg("transpile")
-        .arg(&input)
-        .arg("-o")
-        .arg(&output)
-        .assert()
-        .success();
+    decy_cmd().arg("transpile").arg(&input).arg("-o").arg(&output).assert().success();
 
     // Verify output file exists and contains Rust code
     assert!(output.exists(), "Output file should exist");
     let content = fs::read_to_string(&output).unwrap();
-    assert!(
-        content.contains("fn main"),
-        "Should contain Rust fn main, got: {}",
-        content
-    );
+    assert!(content.contains("fn main"), "Should contain Rust fn main, got: {}", content);
 }
 
 #[test]
@@ -130,13 +116,7 @@ fn cli_transpile_output_flag_long_form() {
     let input = create_temp_file(&temp, "input.c", VALID_C_CODE);
     let output = temp.path().join("long_form.rs");
 
-    decy_cmd()
-        .arg("transpile")
-        .arg(&input)
-        .arg("--output")
-        .arg(&output)
-        .assert()
-        .success();
+    decy_cmd().arg("transpile").arg(&input).arg("--output").arg(&output).assert().success();
 
     assert!(output.exists());
 }
@@ -160,17 +140,12 @@ fn cli_transpile_invalid_syntax_writes_stderr() {
 
 #[test]
 fn cli_transpile_missing_file_writes_stderr() {
-    decy_cmd()
-        .arg("transpile")
-        .arg("missing.c")
-        .assert()
-        .failure()
-        .stderr(
-            predicate::str::contains("not found")
-                .or(predicate::str::contains("No such file"))
-                .or(predicate::str::contains("does not exist"))
-                .or(predicate::str::contains("Failed to read")),
-        );
+    decy_cmd().arg("transpile").arg("missing.c").assert().failure().stderr(
+        predicate::str::contains("not found")
+            .or(predicate::str::contains("No such file"))
+            .or(predicate::str::contains("does not exist"))
+            .or(predicate::str::contains("Failed to read")),
+    );
 }
 
 #[test]
@@ -203,11 +178,7 @@ fn cli_transpile_empty_file_handles_gracefully() {
 #[test]
 fn cli_transpile_comment_only_succeeds() {
     let temp = TempDir::new().unwrap();
-    let file = create_temp_file(
-        &temp,
-        "comments.c",
-        "// Just a comment\n/* Block comment */\n",
-    );
+    let file = create_temp_file(&temp, "comments.c", "// Just a comment\n/* Block comment */\n");
 
     // Comment-only should transpile successfully (generates empty Rust or just comments)
     decy_cmd().arg("transpile").arg(&file).assert().success();
@@ -279,11 +250,7 @@ fn cli_transpile_help_flag() {
 
 #[test]
 fn cli_transpile_requires_input_file() {
-    decy_cmd()
-        .arg("transpile")
-        .assert()
-        .failure()
-        .stderr(predicate::str::contains("required"));
+    decy_cmd().arg("transpile").assert().failure().stderr(predicate::str::contains("required"));
 }
 
 // ============================================================================
@@ -298,11 +265,7 @@ fn cli_transpile_relative_path() {
     // Use relative path from temp dir
     std::env::set_current_dir(temp.path()).unwrap();
 
-    decy_cmd()
-        .arg("transpile")
-        .arg("relative.c")
-        .assert()
-        .success();
+    decy_cmd().arg("transpile").arg("relative.c").assert().success();
 }
 
 #[test]
@@ -310,11 +273,7 @@ fn cli_transpile_absolute_path() {
     let temp = TempDir::new().unwrap();
     let file = create_temp_file(&temp, "absolute.c", VALID_C_CODE);
 
-    decy_cmd()
-        .arg("transpile")
-        .arg(file.canonicalize().unwrap())
-        .assert()
-        .success();
+    decy_cmd().arg("transpile").arg(file.canonicalize().unwrap()).assert().success();
 }
 
 // ============================================================================
@@ -327,13 +286,7 @@ fn cli_transpile_output_is_valid_rust_syntax() {
     let input = create_temp_file(&temp, "input.c", VALID_C_CODE);
     let output = temp.path().join("output.rs");
 
-    decy_cmd()
-        .arg("transpile")
-        .arg(&input)
-        .arg("-o")
-        .arg(&output)
-        .assert()
-        .success();
+    decy_cmd().arg("transpile").arg(&input).arg("-o").arg(&output).assert().success();
 
     // Verify output is parseable as Rust
     let content = fs::read_to_string(&output).unwrap();
@@ -351,26 +304,11 @@ fn cli_transpile_generates_consistent_output() {
     let input = create_temp_file(&temp, "input.c", VALID_C_CODE);
 
     // Run twice and compare outputs
-    let output1 = decy_cmd()
-        .arg("transpile")
-        .arg(&input)
-        .assert()
-        .success()
-        .get_output()
-        .stdout
-        .clone();
+    let output1 =
+        decy_cmd().arg("transpile").arg(&input).assert().success().get_output().stdout.clone();
 
-    let output2 = decy_cmd()
-        .arg("transpile")
-        .arg(&input)
-        .assert()
-        .success()
-        .get_output()
-        .stdout
-        .clone();
+    let output2 =
+        decy_cmd().arg("transpile").arg(&input).assert().success().get_output().stdout.clone();
 
-    assert_eq!(
-        output1, output2,
-        "Transpiler should produce consistent output"
-    );
+    assert_eq!(output1, output2, "Transpiler should produce consistent output");
 }

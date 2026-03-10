@@ -20,19 +20,13 @@ use decy_hir::{HirConstant, HirExpression, HirType};
 fn test_simple_integer_define() {
     let codegen = CodeGenerator::new();
 
-    let constant = HirConstant::new(
-        "MAX".to_string(),
-        HirType::Int,
-        HirExpression::IntLiteral(100),
-    );
+    let constant =
+        HirConstant::new("MAX".to_string(), HirType::Int, HirExpression::IntLiteral(100));
 
     let result = codegen.generate_constant(&constant);
 
     // Verify const declaration
-    assert!(
-        result.contains("const MAX: i32 = 100"),
-        "Should generate const declaration"
-    );
+    assert!(result.contains("const MAX: i32 = 100"), "Should generate const declaration");
 
     // Should end with semicolon
     assert!(result.trim().ends_with(';'), "Should end with semicolon");
@@ -52,11 +46,8 @@ fn test_simple_integer_define() {
 fn test_negative_integer_define() {
     let codegen = CodeGenerator::new();
 
-    let constant = HirConstant::new(
-        "MIN".to_string(),
-        HirType::Int,
-        HirExpression::IntLiteral(-100),
-    );
+    let constant =
+        HirConstant::new("MIN".to_string(), HirType::Int, HirExpression::IntLiteral(-100));
 
     let result = codegen.generate_constant(&constant);
 
@@ -103,11 +94,8 @@ fn test_string_define() {
 fn test_hex_define() {
     let codegen = CodeGenerator::new();
 
-    let constant = HirConstant::new(
-        "FLAGS".to_string(),
-        HirType::Int,
-        HirExpression::IntLiteral(0xFF),
-    );
+    let constant =
+        HirConstant::new("FLAGS".to_string(), HirType::Int, HirExpression::IntLiteral(0xFF));
 
     let result = codegen.generate_constant(&constant);
 
@@ -145,10 +133,7 @@ fn test_expression_define() {
     let result = codegen.generate_constant(&constant);
 
     // Verify expression constant (can be evaluated or kept as expression)
-    assert!(
-        result.contains("const SIZE: i32 ="),
-        "Should generate const declaration"
-    );
+    assert!(result.contains("const SIZE: i32 ="), "Should generate const declaration");
     // Accept either "200" (evaluated) or "10 * 20" (expression)
     assert!(
         result.contains("200") || (result.contains("10") && result.contains("20")),
@@ -197,16 +182,10 @@ fn test_define_with_underscores() {
 fn test_multiple_defines() {
     let codegen = CodeGenerator::new();
 
-    let constant1 = HirConstant::new(
-        "WIDTH".to_string(),
-        HirType::Int,
-        HirExpression::IntLiteral(800),
-    );
-    let constant2 = HirConstant::new(
-        "HEIGHT".to_string(),
-        HirType::Int,
-        HirExpression::IntLiteral(600),
-    );
+    let constant1 =
+        HirConstant::new("WIDTH".to_string(), HirType::Int, HirExpression::IntLiteral(800));
+    let constant2 =
+        HirConstant::new("HEIGHT".to_string(), HirType::Int, HirExpression::IntLiteral(600));
 
     let result1 = codegen.generate_constant(&constant1);
     let result2 = codegen.generate_constant(&constant2);
@@ -232,11 +211,8 @@ fn test_define_constant_usage() {
     let codegen = CodeGenerator::new();
 
     // First, generate the constant
-    let constant = HirConstant::new(
-        "MAX".to_string(),
-        HirType::Int,
-        HirExpression::IntLiteral(100),
-    );
+    let constant =
+        HirConstant::new("MAX".to_string(), HirType::Int, HirExpression::IntLiteral(100));
     let const_result = codegen.generate_constant(&constant);
 
     // Verify constant is generated
@@ -261,11 +237,8 @@ fn test_define_constant_usage() {
 fn test_zero_define() {
     let codegen = CodeGenerator::new();
 
-    let constant = HirConstant::new(
-        "NULL_VALUE".to_string(),
-        HirType::Int,
-        HirExpression::IntLiteral(0),
-    );
+    let constant =
+        HirConstant::new("NULL_VALUE".to_string(), HirType::Int, HirExpression::IntLiteral(0));
 
     let result = codegen.generate_constant(&constant);
 
@@ -300,14 +273,8 @@ fn test_define_with_const_reference() {
     let result = codegen.generate_constant(&constant);
 
     // Verify constant expression with reference to another constant
-    assert!(
-        result.contains("const OFFSET: i32 ="),
-        "Should generate const declaration"
-    );
-    assert!(
-        result.contains("BASE") && result.contains("10"),
-        "Should reference BASE constant"
-    );
+    assert!(result.contains("const OFFSET: i32 ="), "Should generate const declaration");
+    assert!(result.contains("BASE") && result.contains("10"), "Should reference BASE constant");
     assert!(!result.contains("unsafe"));
 }
 
@@ -318,11 +285,8 @@ fn test_define_with_const_reference() {
 fn test_define_const_transformation_unsafe_count() {
     let codegen = CodeGenerator::new();
 
-    let constant1 = HirConstant::new(
-        "MAX".to_string(),
-        HirType::Int,
-        HirExpression::IntLiteral(100),
-    );
+    let constant1 =
+        HirConstant::new("MAX".to_string(), HirType::Int, HirExpression::IntLiteral(100));
     let constant2 = HirConstant::new(
         "MSG".to_string(),
         HirType::Pointer(Box::new(HirType::Char)),

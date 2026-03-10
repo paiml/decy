@@ -218,10 +218,7 @@ fn test_calloc_transformation_unsafe_count() {
 
     // Count unsafe blocks (should be 0)
     let unsafe_count = result.matches("unsafe").count();
-    assert_eq!(
-        unsafe_count, 0,
-        "calloc → Vec transformation should not introduce unsafe blocks"
-    );
+    assert_eq!(unsafe_count, 0, "calloc → Vec transformation should not introduce unsafe blocks");
 }
 
 /// Test zero-initialization verification

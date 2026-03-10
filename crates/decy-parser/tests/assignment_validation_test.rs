@@ -69,10 +69,7 @@ fn test_assignment_with_variable_value() {
 
     if let Statement::Assignment { target, value } = assignment {
         assert_eq!(target, "x");
-        assert!(
-            matches!(value, Expression::Variable(_)),
-            "Value should be variable reference"
-        );
+        assert!(matches!(value, Expression::Variable(_)), "Value should be variable reference");
     }
 }
 
@@ -99,10 +96,7 @@ fn test_assignment_with_expression() {
 
     if let Statement::Assignment { target, value } = assignment {
         assert_eq!(target, "x");
-        assert!(
-            matches!(value, Expression::BinaryOp { .. }),
-            "Value should be binary operation"
-        );
+        assert!(matches!(value, Expression::BinaryOp { .. }), "Value should be binary operation");
     }
 }
 
@@ -125,17 +119,10 @@ fn test_multiple_assignments_in_sequence() {
     let ast = parser.parse(source).expect("Parsing should succeed");
     let func = &ast.functions()[0];
 
-    let assignments: Vec<_> = func
-        .body
-        .iter()
-        .filter(|stmt| matches!(stmt, Statement::Assignment { .. }))
-        .collect();
+    let assignments: Vec<_> =
+        func.body.iter().filter(|stmt| matches!(stmt, Statement::Assignment { .. })).collect();
 
-    assert_eq!(
-        assignments.len(),
-        3,
-        "Should have exactly 3 assignment statements"
-    );
+    assert_eq!(assignments.len(), 3, "Should have exactly 3 assignment statements");
 
     // Verify each assignment
     let targets: Vec<String> = assignments
@@ -175,11 +162,8 @@ fn test_assignment_vs_declaration_with_initializer() {
         .filter(|stmt| matches!(stmt, Statement::VariableDeclaration { .. }))
         .collect();
 
-    let assignments: Vec<_> = func
-        .body
-        .iter()
-        .filter(|stmt| matches!(stmt, Statement::Assignment { .. }))
-        .collect();
+    let assignments: Vec<_> =
+        func.body.iter().filter(|stmt| matches!(stmt, Statement::Assignment { .. })).collect();
 
     assert_eq!(declarations.len(), 2, "Should have 2 variable declarations");
     assert_eq!(assignments.len(), 1, "Should have 1 assignment statement");
@@ -207,11 +191,8 @@ fn test_assignment_with_function_call() {
     let ast = parser.parse(source).expect("Parsing should succeed");
 
     // Find the test function (not malloc prototype)
-    let func = ast
-        .functions()
-        .iter()
-        .find(|f| f.name == "test")
-        .expect("Should find test function");
+    let func =
+        ast.functions().iter().find(|f| f.name == "test").expect("Should find test function");
 
     let assignment = func
         .body
@@ -221,10 +202,7 @@ fn test_assignment_with_function_call() {
 
     if let Statement::Assignment { target, value } = assignment {
         assert_eq!(target, "x");
-        assert!(
-            matches!(value, Expression::FunctionCall { .. }),
-            "Value should be function call"
-        );
+        assert!(matches!(value, Expression::FunctionCall { .. }), "Value should be function call");
     }
 }
 
@@ -255,10 +233,7 @@ fn test_assignment_with_dereference() {
             matches!(target, Expression::Variable(_)),
             "Target should be variable (the pointer being dereferenced)"
         );
-        assert!(
-            matches!(value, Expression::Variable(_)),
-            "Value should be variable"
-        );
+        assert!(matches!(value, Expression::Variable(_)), "Value should be variable");
     }
 }
 
@@ -283,24 +258,10 @@ fn test_assignment_with_array_index() {
         .find(|stmt| matches!(stmt, Statement::ArrayIndexAssignment { .. }))
         .expect("Should have array index assignment");
 
-    if let Statement::ArrayIndexAssignment {
-        array,
-        index,
-        value,
-    } = array_assignment
-    {
-        assert!(
-            matches!(**array, Expression::Variable(_)),
-            "Array should be variable"
-        );
-        assert!(
-            matches!(**index, Expression::Variable(_)),
-            "Index should be variable"
-        );
-        assert!(
-            matches!(value, Expression::Variable(_)),
-            "Value should be variable"
-        );
+    if let Statement::ArrayIndexAssignment { array, index, value } = array_assignment {
+        assert!(matches!(**array, Expression::Variable(_)), "Array should be variable");
+        assert!(matches!(**index, Expression::Variable(_)), "Index should be variable");
+        assert!(matches!(value, Expression::Variable(_)), "Value should be variable");
     }
 }
 
@@ -321,11 +282,8 @@ fn test_assignment_with_complex_lhs() {
     let ast = parser.parse(source).expect("Parsing should succeed");
     let func = &ast.functions()[0];
 
-    let assignments: Vec<_> = func
-        .body
-        .iter()
-        .filter(|stmt| matches!(stmt, Statement::Assignment { .. }))
-        .collect();
+    let assignments: Vec<_> =
+        func.body.iter().filter(|stmt| matches!(stmt, Statement::Assignment { .. })).collect();
 
     // Both assignments should be present and valid
     assert_eq!(assignments.len(), 2);

@@ -147,11 +147,7 @@ pub struct TrainingDataset {
 impl TrainingDataset {
     /// Create a new empty dataset.
     pub fn new(name: &str, version: &str) -> Self {
-        Self {
-            samples: Vec::new(),
-            name: name.to_string(),
-            version: version.to_string(),
-        }
+        Self { samples: Vec::new(), name: name.to_string(), version: version.to_string() }
     }
 
     /// Add a sample to the dataset.
@@ -181,18 +177,12 @@ impl TrainingDataset {
 
     /// Get samples by source.
     pub fn samples_by_source(&self, source_type: &str) -> Vec<&LabeledSample> {
-        self.samples
-            .iter()
-            .filter(|s| source_type_name(&s.source) == source_type)
-            .collect()
+        self.samples.iter().filter(|s| source_type_name(&s.source) == source_type).collect()
     }
 
     /// Get samples by label.
     pub fn samples_by_label(&self, label: InferredOwnership) -> Vec<&LabeledSample> {
-        self.samples
-            .iter()
-            .filter(|s| s.sample.label == label)
-            .collect()
+        self.samples.iter().filter(|s| s.sample.label == label).collect()
     }
 
     /// Convert to training samples for the pipeline.
@@ -223,40 +213,25 @@ impl TrainingDataset {
             max_conf = max_conf.max(sample.label_confidence);
         }
 
-        let avg_confidence = if self.samples.is_empty() {
-            0.0
-        } else {
-            confidence_sum / self.samples.len() as f64
-        };
+        let avg_confidence =
+            if self.samples.is_empty() { 0.0 } else { confidence_sum / self.samples.len() as f64 };
 
         DatasetStats {
             total_samples: self.samples.len(),
             label_distribution: label_dist,
             source_distribution: source_dist,
             avg_confidence,
-            min_confidence: if self.samples.is_empty() {
-                0.0
-            } else {
-                min_conf
-            },
+            min_confidence: if self.samples.is_empty() { 0.0 } else { min_conf },
             max_confidence: max_conf,
         }
     }
 
     /// Filter samples by confidence threshold.
     pub fn filter_by_confidence(&self, min_confidence: f64) -> TrainingDataset {
-        let samples = self
-            .samples
-            .iter()
-            .filter(|s| s.label_confidence >= min_confidence)
-            .cloned()
-            .collect();
+        let samples =
+            self.samples.iter().filter(|s| s.label_confidence >= min_confidence).cloned().collect();
 
-        TrainingDataset {
-            samples,
-            name: self.name.clone(),
-            version: self.version.clone(),
-        }
+        TrainingDataset { samples, name: self.name.clone(), version: self.version.clone() }
     }
 
     /// Merge with another dataset.
@@ -298,11 +273,7 @@ pub struct SyntheticConfig {
 
 impl Default for SyntheticConfig {
     fn default() -> Self {
-        Self {
-            samples_per_pattern: 100,
-            seed: 42,
-            include_edge_cases: true,
-        }
+        Self { samples_per_pattern: 100, seed: 42, include_edge_cases: true }
     }
 }
 
@@ -344,9 +315,7 @@ impl SyntheticDataGenerator {
 
             samples.push(LabeledSample::new(
                 sample,
-                DataSource::Synthetic {
-                    template: "malloc_free_box".to_string(),
-                },
+                DataSource::Synthetic { template: "malloc_free_box".to_string() },
                 &c_code,
                 &rust_code,
             ));
@@ -385,9 +354,7 @@ impl SyntheticDataGenerator {
 
             samples.push(LabeledSample::new(
                 sample,
-                DataSource::Synthetic {
-                    template: "array_vec".to_string(),
-                },
+                DataSource::Synthetic { template: "array_vec".to_string() },
                 &c_code,
                 &rust_code,
             ));
@@ -401,10 +368,8 @@ impl SyntheticDataGenerator {
         let mut samples = Vec::new();
 
         for i in 0..self.config.samples_per_pattern {
-            let features = OwnershipFeaturesBuilder::default()
-                .pointer_depth(1)
-                .const_qualified(true)
-                .build();
+            let features =
+                OwnershipFeaturesBuilder::default().pointer_depth(1).const_qualified(true).build();
 
             let sample = TrainingSample::new(
                 features,
@@ -413,17 +378,12 @@ impl SyntheticDataGenerator {
                 i as u32,
             );
 
-            let c_code = format!(
-                "void process{}(const int* ptr) {{ printf(\"%d\", *ptr); }}",
-                i
-            );
+            let c_code = format!("void process{}(const int* ptr) {{ printf(\"%d\", *ptr); }}", i);
             let rust_code = format!("fn process{}(ptr: &i32) {{ println!(\"{{}}\", ptr); }}", i);
 
             samples.push(LabeledSample::new(
                 sample,
-                DataSource::Synthetic {
-                    template: "const_ref".to_string(),
-                },
+                DataSource::Synthetic { template: "const_ref".to_string() },
                 &c_code,
                 &rust_code,
             ));
@@ -455,9 +415,7 @@ impl SyntheticDataGenerator {
 
             samples.push(LabeledSample::new(
                 sample,
-                DataSource::Synthetic {
-                    template: "mut_ref".to_string(),
-                },
+                DataSource::Synthetic { template: "mut_ref".to_string() },
                 &c_code,
                 &rust_code,
             ));
@@ -493,9 +451,7 @@ impl SyntheticDataGenerator {
 
             samples.push(LabeledSample::new(
                 sample,
-                DataSource::Synthetic {
-                    template: "slice".to_string(),
-                },
+                DataSource::Synthetic { template: "slice".to_string() },
                 &c_code,
                 &rust_code,
             ));
@@ -540,10 +496,7 @@ pub struct TrainingDataCollector {
 impl TrainingDataCollector {
     /// Create a new collector.
     pub fn new() -> Self {
-        Self {
-            samples: Vec::new(),
-            errors: Vec::new(),
-        }
+        Self { samples: Vec::new(), errors: Vec::new() }
     }
 
     /// Add synthetic data from generator.
@@ -600,33 +553,25 @@ mod tests {
 
     #[test]
     fn data_source_rust_port() {
-        let source = DataSource::RustPort {
-            project: "rusqlite".to_string(),
-        };
+        let source = DataSource::RustPort { project: "rusqlite".to_string() };
         assert_eq!(source_type_name(&source), "RustPort");
     }
 
     #[test]
     fn data_source_compiler_feedback() {
-        let source = DataSource::CompilerFeedback {
-            error_code: "E0382".to_string(),
-        };
+        let source = DataSource::CompilerFeedback { error_code: "E0382".to_string() };
         assert_eq!(source_type_name(&source), "CompilerFeedback");
     }
 
     #[test]
     fn data_source_synthetic() {
-        let source = DataSource::Synthetic {
-            template: "malloc_box".to_string(),
-        };
+        let source = DataSource::Synthetic { template: "malloc_box".to_string() };
         assert_eq!(source_type_name(&source), "Synthetic");
     }
 
     #[test]
     fn data_source_human_annotated() {
-        let source = DataSource::HumanAnnotated {
-            annotator: "expert1".to_string(),
-        };
+        let source = DataSource::HumanAnnotated { annotator: "expert1".to_string() };
         assert_eq!(source_type_name(&source), "HumanAnnotated");
     }
 
@@ -641,9 +586,7 @@ mod tests {
 
         let labeled = LabeledSample::new(
             sample,
-            DataSource::Synthetic {
-                template: "test".to_string(),
-            },
+            DataSource::Synthetic { template: "test".to_string() },
             "int* p = malloc(4);",
             "let p: Box<i32> = Box::new(0);",
         );
@@ -660,9 +603,7 @@ mod tests {
 
         let labeled = LabeledSample::new(
             sample,
-            DataSource::Synthetic {
-                template: "test".to_string(),
-            },
+            DataSource::Synthetic { template: "test".to_string() },
             "",
             "",
         )
@@ -678,9 +619,7 @@ mod tests {
 
         let labeled = LabeledSample::new(
             sample,
-            DataSource::Synthetic {
-                template: "test".to_string(),
-            },
+            DataSource::Synthetic { template: "test".to_string() },
             "",
             "",
         )
@@ -696,9 +635,7 @@ mod tests {
 
         let labeled = LabeledSample::new(
             sample,
-            DataSource::Synthetic {
-                template: "test".to_string(),
-            },
+            DataSource::Synthetic { template: "test".to_string() },
             "",
             "",
         )
@@ -761,9 +698,7 @@ mod tests {
         let sample = TrainingSample::new(features, InferredOwnership::Owned, "test.c", 1);
         let labeled = LabeledSample::new(
             sample,
-            DataSource::Synthetic {
-                template: "test".to_string(),
-            },
+            DataSource::Synthetic { template: "test".to_string() },
             "",
             "",
         );
@@ -779,9 +714,7 @@ mod tests {
         let sample = TrainingSample::new(features, InferredOwnership::Owned, "test.c", 1);
         dataset.add(LabeledSample::new(
             sample,
-            DataSource::Synthetic {
-                template: "test".to_string(),
-            },
+            DataSource::Synthetic { template: "test".to_string() },
             "int* p;",
             "let p: Box<i32>;",
         ));
@@ -799,9 +732,7 @@ mod tests {
         let sample = TrainingSample::new(features.clone(), InferredOwnership::Owned, "test.c", 1);
         dataset.add(LabeledSample::new(
             sample,
-            DataSource::Synthetic {
-                template: "test".to_string(),
-            },
+            DataSource::Synthetic { template: "test".to_string() },
             "",
             "",
         ));
@@ -809,9 +740,7 @@ mod tests {
         let sample2 = TrainingSample::new(features, InferredOwnership::Borrowed, "test.c", 2);
         dataset.add(LabeledSample::new(
             sample2,
-            DataSource::RustPort {
-                project: "curl".to_string(),
-            },
+            DataSource::RustPort { project: "curl".to_string() },
             "",
             "",
         ));
@@ -829,9 +758,7 @@ mod tests {
         let sample = TrainingSample::new(features.clone(), InferredOwnership::Owned, "test.c", 1);
         dataset.add(LabeledSample::new(
             sample,
-            DataSource::Synthetic {
-                template: "test".to_string(),
-            },
+            DataSource::Synthetic { template: "test".to_string() },
             "",
             "",
         ));
@@ -839,18 +766,13 @@ mod tests {
         let sample2 = TrainingSample::new(features, InferredOwnership::Borrowed, "test.c", 2);
         dataset.add(LabeledSample::new(
             sample2,
-            DataSource::Synthetic {
-                template: "test".to_string(),
-            },
+            DataSource::Synthetic { template: "test".to_string() },
             "",
             "",
         ));
 
         assert_eq!(dataset.samples_by_label(InferredOwnership::Owned).len(), 1);
-        assert_eq!(
-            dataset.samples_by_label(InferredOwnership::Borrowed).len(),
-            1
-        );
+        assert_eq!(dataset.samples_by_label(InferredOwnership::Borrowed).len(), 1);
         assert_eq!(dataset.samples_by_label(InferredOwnership::Vec).len(), 0);
     }
 
@@ -861,9 +783,7 @@ mod tests {
         let sample = TrainingSample::new(features.clone(), InferredOwnership::Owned, "test.c", 1);
         dataset1.add(LabeledSample::new(
             sample,
-            DataSource::Synthetic {
-                template: "test".to_string(),
-            },
+            DataSource::Synthetic { template: "test".to_string() },
             "",
             "",
         ));
@@ -872,9 +792,7 @@ mod tests {
         let sample2 = TrainingSample::new(features, InferredOwnership::Borrowed, "test.c", 2);
         dataset2.add(LabeledSample::new(
             sample2,
-            DataSource::Synthetic {
-                template: "test".to_string(),
-            },
+            DataSource::Synthetic { template: "test".to_string() },
             "",
             "",
         ));
@@ -893,9 +811,7 @@ mod tests {
             let sample = TrainingSample::new(features, InferredOwnership::Owned, "test.c", 1);
             dataset.add(LabeledSample::new(
                 sample,
-                DataSource::Synthetic {
-                    template: "test".to_string(),
-                },
+                DataSource::Synthetic { template: "test".to_string() },
                 "",
                 "",
             ));
@@ -906,9 +822,7 @@ mod tests {
         let sample = TrainingSample::new(features, InferredOwnership::Borrowed, "test.c", 1);
         dataset.add(LabeledSample::new(
             sample,
-            DataSource::Synthetic {
-                template: "test".to_string(),
-            },
+            DataSource::Synthetic { template: "test".to_string() },
             "",
             "",
         ));
@@ -928,9 +842,7 @@ mod tests {
         dataset.add(
             LabeledSample::new(
                 sample,
-                DataSource::Synthetic {
-                    template: "test".to_string(),
-                },
+                DataSource::Synthetic { template: "test".to_string() },
                 "",
                 "",
             )
@@ -941,9 +853,7 @@ mod tests {
         dataset.add(
             LabeledSample::new(
                 sample2,
-                DataSource::Synthetic {
-                    template: "test".to_string(),
-                },
+                DataSource::Synthetic { template: "test".to_string() },
                 "",
                 "",
             )
@@ -962,9 +872,7 @@ mod tests {
         let sample = TrainingSample::new(features, InferredOwnership::Owned, "test.c", 1);
         dataset.add(LabeledSample::new(
             sample,
-            DataSource::Synthetic {
-                template: "test".to_string(),
-            },
+            DataSource::Synthetic { template: "test".to_string() },
             "",
             "",
         ));
@@ -987,10 +895,7 @@ mod tests {
 
     #[test]
     fn synthetic_generator_malloc_box() {
-        let config = SyntheticConfig {
-            samples_per_pattern: 10,
-            ..Default::default()
-        };
+        let config = SyntheticConfig { samples_per_pattern: 10, ..Default::default() };
         let generator = SyntheticDataGenerator::new(config);
         let samples = generator.generate_malloc_box_samples();
 
@@ -1004,10 +909,7 @@ mod tests {
 
     #[test]
     fn synthetic_generator_array_vec() {
-        let config = SyntheticConfig {
-            samples_per_pattern: 10,
-            ..Default::default()
-        };
+        let config = SyntheticConfig { samples_per_pattern: 10, ..Default::default() };
         let generator = SyntheticDataGenerator::new(config);
         let samples = generator.generate_array_vec_samples();
 
@@ -1020,10 +922,7 @@ mod tests {
 
     #[test]
     fn synthetic_generator_const_ref() {
-        let config = SyntheticConfig {
-            samples_per_pattern: 10,
-            ..Default::default()
-        };
+        let config = SyntheticConfig { samples_per_pattern: 10, ..Default::default() };
         let generator = SyntheticDataGenerator::new(config);
         let samples = generator.generate_const_ref_samples();
 
@@ -1036,29 +935,20 @@ mod tests {
 
     #[test]
     fn synthetic_generator_mut_ref() {
-        let config = SyntheticConfig {
-            samples_per_pattern: 10,
-            ..Default::default()
-        };
+        let config = SyntheticConfig { samples_per_pattern: 10, ..Default::default() };
         let generator = SyntheticDataGenerator::new(config);
         let samples = generator.generate_mut_ref_samples();
 
         assert_eq!(samples.len(), 10);
         for sample in &samples {
-            assert!(matches!(
-                sample.sample.label,
-                InferredOwnership::BorrowedMut
-            ));
+            assert!(matches!(sample.sample.label, InferredOwnership::BorrowedMut));
             assert!(sample.rust_code.contains("&mut"));
         }
     }
 
     #[test]
     fn synthetic_generator_slice() {
-        let config = SyntheticConfig {
-            samples_per_pattern: 10,
-            ..Default::default()
-        };
+        let config = SyntheticConfig { samples_per_pattern: 10, ..Default::default() };
         let generator = SyntheticDataGenerator::new(config);
         let samples = generator.generate_slice_samples();
 
@@ -1071,10 +961,7 @@ mod tests {
 
     #[test]
     fn synthetic_generator_full_dataset() {
-        let config = SyntheticConfig {
-            samples_per_pattern: 10,
-            ..Default::default()
-        };
+        let config = SyntheticConfig { samples_per_pattern: 10, ..Default::default() };
         let generator = SyntheticDataGenerator::new(config);
         let dataset = generator.generate_full_dataset();
 
@@ -1099,10 +986,7 @@ mod tests {
     #[test]
     fn collector_add_synthetic() {
         let mut collector = TrainingDataCollector::new();
-        let config = SyntheticConfig {
-            samples_per_pattern: 10,
-            ..Default::default()
-        };
+        let config = SyntheticConfig { samples_per_pattern: 10, ..Default::default() };
         let generator = SyntheticDataGenerator::new(config);
 
         collector.add_synthetic(&generator);
@@ -1122,10 +1006,7 @@ mod tests {
     #[test]
     fn collector_build() {
         let mut collector = TrainingDataCollector::new();
-        let config = SyntheticConfig {
-            samples_per_pattern: 10,
-            ..Default::default()
-        };
+        let config = SyntheticConfig { samples_per_pattern: 10, ..Default::default() };
         let generator = SyntheticDataGenerator::new(config);
 
         collector.add_synthetic(&generator);
@@ -1139,10 +1020,7 @@ mod tests {
     #[test]
     fn collector_result() {
         let mut collector = TrainingDataCollector::new();
-        let config = SyntheticConfig {
-            samples_per_pattern: 10,
-            ..Default::default()
-        };
+        let config = SyntheticConfig { samples_per_pattern: 10, ..Default::default() };
         let generator = SyntheticDataGenerator::new(config);
 
         collector.add_synthetic(&generator);
@@ -1159,10 +1037,7 @@ mod tests {
     #[test]
     fn generate_1000_samples() {
         // This test verifies we can generate 1000+ samples for training
-        let config = SyntheticConfig {
-            samples_per_pattern: 200,
-            ..Default::default()
-        };
+        let config = SyntheticConfig { samples_per_pattern: 200, ..Default::default() };
         let generator = SyntheticDataGenerator::new(config);
         let dataset = generator.generate_full_dataset();
 

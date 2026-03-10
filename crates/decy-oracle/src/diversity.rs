@@ -82,10 +82,7 @@ impl ErrorHistogram {
 
     /// Record an error
     pub fn record_error(&mut self, error_code: &str) {
-        *self
-            .by_error_code
-            .entry(error_code.to_string())
-            .or_default() += 1;
+        *self.by_error_code.entry(error_code.to_string()).or_default() += 1;
         let category = categorize_error(error_code);
         *self.by_category.entry(category).or_default() += 1;
     }
@@ -118,10 +115,7 @@ impl ErrorHistogram {
         if total == 0 {
             return HashMap::new();
         }
-        self.by_category
-            .iter()
-            .map(|(cat, count)| (*cat, *count as f64 / total as f64))
-            .collect()
+        self.by_category.iter().map(|(cat, count)| (*cat, *count as f64 / total as f64)).collect()
     }
 }
 
@@ -207,10 +201,7 @@ pub fn compare_histograms(
         passes_threshold: false, // Will be set below
     };
 
-    DiversityMetrics {
-        passes_threshold: metrics.is_acceptable(),
-        ..metrics
-    }
+    DiversityMetrics { passes_threshold: metrics.is_acceptable(), ..metrics }
 }
 
 /// Calculate Jensen-Shannon divergence between two distributions
@@ -279,11 +270,7 @@ pub struct DiversityConfig {
 
 impl Default for DiversityConfig {
     fn default() -> Self {
-        Self {
-            max_js_divergence: 0.15,
-            min_coverage_ratio: 0.6,
-            min_error_codes: 5,
-        }
+        Self { max_js_divergence: 0.15, min_coverage_ratio: 0.6, min_error_codes: 5 }
     }
 }
 
@@ -337,8 +324,7 @@ impl DiversityValidation {
             self.passed = false;
         }
 
-        self.comparisons
-            .push((name.to_string(), histogram, metrics));
+        self.comparisons.push((name.to_string(), histogram, metrics));
     }
 
     /// Generate a validation report
@@ -361,11 +347,7 @@ impl DiversityValidation {
             report.push_str("|--------|---------------|----------|--------|\n");
 
             for (name, _, metrics) in &self.comparisons {
-                let status = if metrics.passes_threshold {
-                    "✅ PASS"
-                } else {
-                    "❌ FAIL"
-                };
+                let status = if metrics.passes_threshold { "✅ PASS" } else { "❌ FAIL" };
                 report.push_str(&format!(
                     "| {} | {:.3} | {:.1}% | {} |\n",
                     name,
@@ -700,10 +682,7 @@ mod tests {
         hist.record_construct(CConstruct::RawPointer);
         hist.record_construct(CConstruct::Struct);
 
-        assert_eq!(
-            hist.construct_coverage.get(&CConstruct::RawPointer),
-            Some(&2)
-        );
+        assert_eq!(hist.construct_coverage.get(&CConstruct::RawPointer), Some(&2));
         assert_eq!(hist.construct_coverage.get(&CConstruct::Struct), Some(&1));
     }
 
@@ -865,7 +844,7 @@ mod tests {
         comparison.record_error("E0308"); // Completely different
 
         let config = DiversityConfig {
-            max_js_divergence: 1.0, // Very lenient on divergence
+            max_js_divergence: 1.0,  // Very lenient on divergence
             min_coverage_ratio: 0.9, // Strict on coverage
             min_error_codes: 1,
         };

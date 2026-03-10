@@ -48,10 +48,7 @@ void phys_particle_apply_gravity(phys_particle_t *p, float g, float dt) {
     assert!(result.is_ok(), "C1476 failed: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1476: empty output");
-    assert!(
-        code.contains("fn phys_particle_init"),
-        "C1476: should contain phys_particle_init"
-    );
+    assert!(code.contains("fn phys_particle_init"), "C1476: should contain phys_particle_init");
 }
 
 #[test]
@@ -88,10 +85,7 @@ void phys_emitter_update(phys_emitter_t *e, float dt) {
     assert!(result.is_ok(), "C1477 failed: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1477: empty output");
-    assert!(
-        code.contains("fn phys_emitter_init"),
-        "C1477: should contain phys_emitter_init"
-    );
+    assert!(code.contains("fn phys_emitter_init"), "C1477: should contain phys_emitter_init");
 }
 
 #[test]
@@ -128,10 +122,7 @@ phys_vec3_t phys_accum_total(const phys_force_accum_t *a) {
     assert!(result.is_ok(), "C1478 failed: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1478: empty output");
-    assert!(
-        code.contains("fn phys_accum_total"),
-        "C1478: should contain phys_accum_total"
-    );
+    assert!(code.contains("fn phys_accum_total"), "C1478: should contain phys_accum_total");
 }
 
 #[test]
@@ -161,10 +152,7 @@ void phys_resolve_collision(phys_ball_t *a, phys_ball_t *b) {
     assert!(result.is_ok(), "C1479 failed: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1479: empty output");
-    assert!(
-        code.contains("fn phys_balls_collide"),
-        "C1479: should contain phys_balls_collide"
-    );
+    assert!(code.contains("fn phys_balls_collide"), "C1479: should contain phys_balls_collide");
 }
 
 #[test]
@@ -197,10 +185,7 @@ float phys_lpart_alpha(const phys_lpart_t *p) {
     assert!(result.is_ok(), "C1480 failed: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1480: empty output");
-    assert!(
-        code.contains("fn phys_lpart_alpha"),
-        "C1480: should contain phys_lpart_alpha"
-    );
+    assert!(code.contains("fn phys_lpart_alpha"), "C1480: should contain phys_lpart_alpha");
 }
 
 // ============================================================================
@@ -237,10 +222,7 @@ float phys_rbody_kinetic_energy(const phys_rbody_t *b) {
     assert!(result.is_ok(), "C1481 failed: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1481: empty output");
-    assert!(
-        code.contains("fn phys_rbody_init"),
-        "C1481: should contain phys_rbody_init"
-    );
+    assert!(code.contains("fn phys_rbody_init"), "C1481: should contain phys_rbody_init");
 }
 
 #[test]
@@ -310,10 +292,7 @@ float phys_aabb_area(const phys_aabb_t *a) {
     assert!(result.is_ok(), "C1483 failed: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1483: empty output");
-    assert!(
-        code.contains("fn phys_aabb_overlap"),
-        "C1483: should contain phys_aabb_overlap"
-    );
+    assert!(code.contains("fn phys_aabb_overlap"), "C1483: should contain phys_aabb_overlap");
 }
 
 #[test]
@@ -344,10 +323,7 @@ float phys_impulse_magnitude(float v_rel, float e, float inv_mass_sum) {
     assert!(result.is_ok(), "C1484 failed: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1484: empty output");
-    assert!(
-        code.contains("fn phys_impulse_apply"),
-        "C1484: should contain phys_impulse_apply"
-    );
+    assert!(code.contains("fn phys_impulse_apply"), "C1484: should contain phys_impulse_apply");
 }
 
 #[test]
@@ -379,10 +355,7 @@ void phys_solve_distance(phys_cpoint_t *pts, const phys_constraint_t *c) {
     assert!(result.is_ok(), "C1485 failed: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1485: empty output");
-    assert!(
-        code.contains("fn phys_solve_distance"),
-        "C1485: should contain phys_solve_distance"
-    );
+    assert!(code.contains("fn phys_solve_distance"), "C1485: should contain phys_solve_distance");
 }
 
 // ============================================================================
@@ -419,10 +392,7 @@ void phys_sph_compute_density(phys_sph_t *particles, int n, float h) {
     assert!(result.is_ok(), "C1486 failed: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1486: empty output");
-    assert!(
-        code.contains("fn phys_sph_kernel"),
-        "C1486: should contain phys_sph_kernel"
-    );
+    assert!(code.contains("fn phys_sph_kernel"), "C1486: should contain phys_sph_kernel");
 }
 
 #[test]
@@ -461,10 +431,7 @@ void phys_pressure_force(phys_fluid_t *particles, int n, float h) {
     assert!(result.is_ok(), "C1487 failed: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1487: empty output");
-    assert!(
-        code.contains("fn phys_pressure_force"),
-        "C1487: should contain phys_pressure_force"
-    );
+    assert!(code.contains("fn phys_pressure_force"), "C1487: should contain phys_pressure_force");
 }
 
 #[test]
@@ -501,10 +468,7 @@ void phys_apply_viscosity(phys_visc_t *p, int n, float h, float mu) {
     assert!(result.is_ok(), "C1488 failed: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1488: empty output");
-    assert!(
-        code.contains("fn phys_apply_viscosity"),
-        "C1488: should contain phys_apply_viscosity"
-    );
+    assert!(code.contains("fn phys_apply_viscosity"), "C1488: should contain phys_apply_viscosity");
 }
 
 #[test]
@@ -534,10 +498,7 @@ float phys_grid_sample(const float *field, int nx, int ny, float x, float y) {
     assert!(result.is_ok(), "C1489 failed: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1489: empty output");
-    assert!(
-        code.contains("fn phys_grid_sample"),
-        "C1489: should contain phys_grid_sample"
-    );
+    assert!(code.contains("fn phys_grid_sample"), "C1489: should contain phys_grid_sample");
 }
 
 #[test]
@@ -567,10 +528,7 @@ int phys_is_in_bounds(const phys_bpart_t *p, const phys_bounds_t *b) {
     assert!(result.is_ok(), "C1490 failed: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1490: empty output");
-    assert!(
-        code.contains("fn phys_enforce_bounds"),
-        "C1490: should contain phys_enforce_bounds"
-    );
+    assert!(code.contains("fn phys_enforce_bounds"), "C1490: should contain phys_enforce_bounds");
 }
 
 // ============================================================================
@@ -612,10 +570,7 @@ void phys_spring_step(phys_node_t *a, phys_node_t *b, float rest) {
     assert!(result.is_ok(), "C1491 failed: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1491: empty output");
-    assert!(
-        code.contains("fn phys_verlet_step"),
-        "C1491: should contain phys_verlet_step"
-    );
+    assert!(code.contains("fn phys_verlet_step"), "C1491: should contain phys_verlet_step");
 }
 
 #[test]
@@ -690,10 +645,7 @@ void phys_bend_constraint(phys_bpt_t *p0, phys_bpt_t *p1, phys_bpt_t *p2, float 
     assert!(result.is_ok(), "C1493 failed: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1493: empty output");
-    assert!(
-        code.contains("fn phys_bend_constraint"),
-        "C1493: should contain phys_bend_constraint"
-    );
+    assert!(code.contains("fn phys_bend_constraint"), "C1493: should contain phys_bend_constraint");
 }
 
 #[test]
@@ -761,10 +713,7 @@ void phys_turbulent_wind(float *wx, float *wy, float base_x, float base_y, float
     assert!(result.is_ok(), "C1495 failed: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1495: empty output");
-    assert!(
-        code.contains("fn phys_wind_apply"),
-        "C1495: should contain phys_wind_apply"
-    );
+    assert!(code.contains("fn phys_wind_apply"), "C1495: should contain phys_wind_apply");
 }
 
 // ============================================================================
@@ -803,10 +752,7 @@ void phys_ugrid_insert(phys_ugrid_t *g, float x, float y, int id) {
     assert!(result.is_ok(), "C1496 failed: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1496: empty output");
-    assert!(
-        code.contains("fn phys_ugrid_insert"),
-        "C1496: should contain phys_ugrid_insert"
-    );
+    assert!(code.contains("fn phys_ugrid_insert"), "C1496: should contain phys_ugrid_insert");
 }
 
 #[test]
@@ -842,10 +788,7 @@ int phys_bbox_overlaps(const phys_bbox_t *a, const phys_bbox_t *b) {
     assert!(result.is_ok(), "C1497 failed: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1497: empty output");
-    assert!(
-        code.contains("fn phys_bvh_is_leaf"),
-        "C1497: should contain phys_bvh_is_leaf"
-    );
+    assert!(code.contains("fn phys_bvh_is_leaf"), "C1497: should contain phys_bvh_is_leaf");
 }
 
 #[test]
@@ -875,10 +818,7 @@ float phys_kd_axis_dist(const phys_kd_node_t *n, float qx, float qy) {
     assert!(result.is_ok(), "C1498 failed: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1498: empty output");
-    assert!(
-        code.contains("fn phys_kd_closer"),
-        "C1498: should contain phys_kd_closer"
-    );
+    assert!(code.contains("fn phys_kd_closer"), "C1498: should contain phys_kd_closer");
 }
 
 #[test]
@@ -912,10 +852,7 @@ int phys_qtree_is_leaf(const phys_qtree_t *q) {
     assert!(result.is_ok(), "C1499 failed: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1499: empty output");
-    assert!(
-        code.contains("fn phys_qtree_quadrant"),
-        "C1499: should contain phys_qtree_quadrant"
-    );
+    assert!(code.contains("fn phys_qtree_quadrant"), "C1499: should contain phys_qtree_quadrant");
 }
 
 #[test]
@@ -956,8 +893,5 @@ int phys_sweep_and_prune(phys_interval_t *intervals, int n, phys_pair_t *pairs, 
     assert!(result.is_ok(), "C1500 failed: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1500: empty output");
-    assert!(
-        code.contains("fn phys_sweep_and_prune"),
-        "C1500: should contain phys_sweep_and_prune"
-    );
+    assert!(code.contains("fn phys_sweep_and_prune"), "C1500: should contain phys_sweep_and_prune");
 }

@@ -59,13 +59,8 @@ fn cli_oracle_train_valid_corpus_exits_zero() {
     let temp = TempDir::new().unwrap();
     let corpus = create_training_corpus(&temp);
 
-    decy_cmd()
-        .arg("oracle")
-        .arg("train")
-        .arg("--corpus")
-        .arg(&corpus)
-        .assert()
-        .success(); // Exit code 0
+    decy_cmd().arg("oracle").arg("train").arg("--corpus").arg(&corpus).assert().success();
+    // Exit code 0
 }
 
 #[test]
@@ -249,11 +244,7 @@ fn cli_oracle_train_dry_run_no_side_effects() {
     let corpus = create_training_corpus(&temp);
 
     // Check patterns before
-    let before = decy_cmd()
-        .arg("oracle")
-        .arg("stats")
-        .output()
-        .expect("stats failed");
+    let before = decy_cmd().arg("oracle").arg("stats").output().expect("stats failed");
 
     // Run dry-run training
     decy_cmd()
@@ -267,16 +258,9 @@ fn cli_oracle_train_dry_run_no_side_effects() {
         .stdout(predicate::str::contains("DRY RUN").or(predicate::str::contains("dry")));
 
     // Check patterns after - should be unchanged
-    let after = decy_cmd()
-        .arg("oracle")
-        .arg("stats")
-        .output()
-        .expect("stats failed");
+    let after = decy_cmd().arg("oracle").arg("stats").output().expect("stats failed");
 
-    assert_eq!(
-        before.stdout, after.stdout,
-        "Dry run should not modify patterns"
-    );
+    assert_eq!(before.stdout, after.stdout, "Dry run should not modify patterns");
 }
 
 // ============================================================================
@@ -288,18 +272,11 @@ fn cli_oracle_train_shows_summary() {
     let temp = TempDir::new().unwrap();
     let corpus = create_training_corpus(&temp);
 
-    decy_cmd()
-        .arg("oracle")
-        .arg("train")
-        .arg("--corpus")
-        .arg(&corpus)
-        .assert()
-        .success()
-        .stdout(
-            predicate::str::contains("Summary")
-                .or(predicate::str::contains("Results"))
-                .or(predicate::str::contains("Complete")),
-        );
+    decy_cmd().arg("oracle").arg("train").arg("--corpus").arg(&corpus).assert().success().stdout(
+        predicate::str::contains("Summary")
+            .or(predicate::str::contains("Results"))
+            .or(predicate::str::contains("Complete")),
+    );
 }
 
 // ============================================================================

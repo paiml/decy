@@ -72,21 +72,11 @@ float sp_fir_group_delay(const sp_fir_t *f) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C801: FIR filter should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C801: FIR filter should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C801: Output should not be empty");
-    assert!(
-        code.contains("fn sp_fir_init"),
-        "C801: Should contain sp_fir_init function"
-    );
-    assert!(
-        code.contains("fn sp_fir_process"),
-        "C801: Should contain sp_fir_process function"
-    );
+    assert!(code.contains("fn sp_fir_init"), "C801: Should contain sp_fir_init function");
+    assert!(code.contains("fn sp_fir_process"), "C801: Should contain sp_fir_process function");
 }
 
 /// C802: IIR biquad filter -- second-order section with feedback
@@ -143,11 +133,7 @@ void sp_biquad_set_lowpass(sp_biquad_t *bq, float freq, float q, float sr) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C802: IIR biquad filter should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C802: IIR biquad filter should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C802: Output should not be empty");
     assert!(
@@ -235,17 +221,10 @@ void sp_fft_compute(sp_complex_t *buf, int n) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C803: FFT radix-2 should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C803: FFT radix-2 should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C803: Output should not be empty");
-    assert!(
-        code.contains("fn sp_fft_compute"),
-        "C803: Should contain sp_fft_compute function"
-    );
+    assert!(code.contains("fn sp_fft_compute"), "C803: Should contain sp_fft_compute function");
     assert!(
         code.contains("fn sp_fft_bitreverse"),
         "C803: Should contain sp_fft_bitreverse function"
@@ -342,17 +321,10 @@ void sp_ifft_compute(sp_cplx_t *buf, int n) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C804: Inverse FFT should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C804: Inverse FFT should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C804: Output should not be empty");
-    assert!(
-        code.contains("fn sp_ifft_compute"),
-        "C804: Should contain sp_ifft_compute function"
-    );
+    assert!(code.contains("fn sp_ifft_compute"), "C804: Should contain sp_ifft_compute function");
     assert!(
         code.contains("fn sp_ifft_conjugate"),
         "C804: Should contain sp_ifft_conjugate function"
@@ -407,25 +379,12 @@ void sp_apply_window(float *signal, const float *window, int n) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C805: Windowing functions should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C805: Windowing functions should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C805: Output should not be empty");
-    assert!(
-        code.contains("fn sp_hamming_window"),
-        "C805: Should contain sp_hamming_window"
-    );
-    assert!(
-        code.contains("fn sp_hanning_window"),
-        "C805: Should contain sp_hanning_window"
-    );
-    assert!(
-        code.contains("fn sp_blackman_window"),
-        "C805: Should contain sp_blackman_window"
-    );
+    assert!(code.contains("fn sp_hamming_window"), "C805: Should contain sp_hamming_window");
+    assert!(code.contains("fn sp_hanning_window"), "C805: Should contain sp_hanning_window");
+    assert!(code.contains("fn sp_blackman_window"), "C805: Should contain sp_blackman_window");
 }
 
 // ============================================================================
@@ -476,17 +435,10 @@ int sp_find_first_peak(const float *r, int max_lag, int min_lag) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C806: Autocorrelation should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C806: Autocorrelation should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C806: Output should not be empty");
-    assert!(
-        code.contains("fn sp_autocorrelate"),
-        "C806: Should contain sp_autocorrelate function"
-    );
+    assert!(code.contains("fn sp_autocorrelate"), "C806: Should contain sp_autocorrelate function");
     assert!(
         code.contains("fn sp_find_first_peak"),
         "C806: Should contain sp_find_first_peak function"
@@ -544,17 +496,10 @@ float sp_xcorrelate_coeff(const float *x, const float *y, int n) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C807: Cross-correlation should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C807: Cross-correlation should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C807: Output should not be empty");
-    assert!(
-        code.contains("fn sp_xcorrelate"),
-        "C807: Should contain sp_xcorrelate function"
-    );
+    assert!(code.contains("fn sp_xcorrelate"), "C807: Should contain sp_xcorrelate function");
     assert!(
         code.contains("fn sp_xcorrelate_coeff"),
         "C807: Should contain sp_xcorrelate_coeff function"
@@ -615,21 +560,11 @@ int sp_psd_peak_bin(const float *psd, int n) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C808: Power spectral density should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C808: Power spectral density should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C808: Output should not be empty");
-    assert!(
-        code.contains("fn sp_psd_compute"),
-        "C808: Should contain sp_psd_compute function"
-    );
-    assert!(
-        code.contains("fn sp_psd_to_db"),
-        "C808: Should contain sp_psd_to_db function"
-    );
+    assert!(code.contains("fn sp_psd_compute"), "C808: Should contain sp_psd_compute function");
+    assert!(code.contains("fn sp_psd_to_db"), "C808: Should contain sp_psd_to_db function");
 }
 
 /// C809: Digital resonator -- second-order oscillator with feedback
@@ -683,11 +618,7 @@ float sp_resonator_magnitude(const sp_resonator_t *r) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C809: Digital resonator should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C809: Digital resonator should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C809: Output should not be empty");
     assert!(
@@ -749,17 +680,10 @@ void sp_comb_set_delay(sp_comb_t *c, int delay) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C810: Comb filter should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C810: Comb filter should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C810: Output should not be empty");
-    assert!(
-        code.contains("fn sp_comb_init"),
-        "C810: Should contain sp_comb_init function"
-    );
+    assert!(code.contains("fn sp_comb_init"), "C810: Should contain sp_comb_init function");
     assert!(
         code.contains("fn sp_comb_ff_process"),
         "C810: Should contain sp_comb_ff_process function"
@@ -818,17 +742,10 @@ void sp_allpass_reset(sp_allpass_t *ap) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C811: All-pass filter should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C811: All-pass filter should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C811: Output should not be empty");
-    assert!(
-        code.contains("fn sp_allpass_init"),
-        "C811: Should contain sp_allpass_init function"
-    );
+    assert!(code.contains("fn sp_allpass_init"), "C811: Should contain sp_allpass_init function");
     assert!(
         code.contains("fn sp_allpass_process"),
         "C811: Should contain sp_allpass_process function"
@@ -877,11 +794,7 @@ void sp_resampler_reset(sp_resampler_t *r) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C812: Sample rate converter should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C812: Sample rate converter should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C812: Output should not be empty");
     assert!(
@@ -936,17 +849,10 @@ void sp_envelope_reset(sp_envelope_t *e) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C813: Envelope detector should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C813: Envelope detector should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C813: Output should not be empty");
-    assert!(
-        code.contains("fn sp_envelope_init"),
-        "C813: Should contain sp_envelope_init function"
-    );
+    assert!(code.contains("fn sp_envelope_init"), "C813: Should contain sp_envelope_init function");
     assert!(
         code.contains("fn sp_envelope_process"),
         "C813: Should contain sp_envelope_process function"
@@ -994,11 +900,7 @@ void sp_zero_crossing_indices(const float *signal, int n, int *indices,
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C814: Zero-crossing detector should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C814: Zero-crossing detector should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C814: Output should not be empty");
     assert!(
@@ -1070,17 +972,10 @@ void sp_sort_peaks_by_value(sp_peak_t *peaks, int n) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C815: Peak detector should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C815: Peak detector should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C815: Output should not be empty");
-    assert!(
-        code.contains("fn sp_find_peaks"),
-        "C815: Should contain sp_find_peaks function"
-    );
+    assert!(code.contains("fn sp_find_peaks"), "C815: Should contain sp_find_peaks function");
     assert!(
         code.contains("fn sp_peak_interpolate"),
         "C815: Should contain sp_peak_interpolate function"
@@ -1143,17 +1038,10 @@ void sp_movavg_reset(sp_movavg_t *ma) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C816: Moving average filter should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C816: Moving average filter should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C816: Output should not be empty");
-    assert!(
-        code.contains("fn sp_movavg_init"),
-        "C816: Should contain sp_movavg_init function"
-    );
+    assert!(code.contains("fn sp_movavg_init"), "C816: Should contain sp_movavg_init function");
     assert!(
         code.contains("fn sp_movavg_process"),
         "C816: Should contain sp_movavg_process function"
@@ -1223,17 +1111,10 @@ void sp_median_reset(sp_median_t *mf) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C817: Median filter should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C817: Median filter should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C817: Output should not be empty");
-    assert!(
-        code.contains("fn sp_median_init"),
-        "C817: Should contain sp_median_init function"
-    );
+    assert!(code.contains("fn sp_median_init"), "C817: Should contain sp_median_init function");
     assert!(
         code.contains("fn sp_median_process"),
         "C817: Should contain sp_median_process function"
@@ -1294,17 +1175,10 @@ void sp_goertzel_reset(sp_goertzel_t *g) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C818: Goertzel algorithm should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C818: Goertzel algorithm should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C818: Output should not be empty");
-    assert!(
-        code.contains("fn sp_goertzel_init"),
-        "C818: Should contain sp_goertzel_init function"
-    );
+    assert!(code.contains("fn sp_goertzel_init"), "C818: Should contain sp_goertzel_init function");
     assert!(
         code.contains("fn sp_goertzel_detect"),
         "C818: Should contain sp_goertzel_detect function"
@@ -1369,21 +1243,11 @@ void sp_pll_reset(sp_pll_t *pll) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C819: Phase-locked loop should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C819: Phase-locked loop should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C819: Output should not be empty");
-    assert!(
-        code.contains("fn sp_pll_init"),
-        "C819: Should contain sp_pll_init function"
-    );
-    assert!(
-        code.contains("fn sp_pll_process"),
-        "C819: Should contain sp_pll_process function"
-    );
+    assert!(code.contains("fn sp_pll_init"), "C819: Should contain sp_pll_init function");
+    assert!(code.contains("fn sp_pll_process"), "C819: Should contain sp_pll_process function");
 }
 
 /// C820: Noise gate -- attenuates signal below threshold
@@ -1448,11 +1312,7 @@ void sp_noisegate_process_block(sp_noisegate_t *ng, const float *input,
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C820: Noise gate should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C820: Noise gate should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C820: Output should not be empty");
     assert!(
@@ -1524,11 +1384,7 @@ void sp_compressor_reset(sp_compressor_t *c) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C821: Compressor/limiter should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C821: Compressor/limiter should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C821: Output should not be empty");
     assert!(
@@ -1610,17 +1466,10 @@ int sp_pitchdet_is_voiced(const float *signal, int n, float threshold) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C822: Pitch detector should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C822: Pitch detector should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C822: Output should not be empty");
-    assert!(
-        code.contains("fn sp_pitchdet_init"),
-        "C822: Should contain sp_pitchdet_init function"
-    );
+    assert!(code.contains("fn sp_pitchdet_init"), "C822: Should contain sp_pitchdet_init function");
     assert!(
         code.contains("fn sp_pitchdet_detect"),
         "C822: Should contain sp_pitchdet_detect function"
@@ -1709,25 +1558,12 @@ void sp_eq_reset(sp_equalizer_t *eq) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C823: Parametric equalizer should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C823: Parametric equalizer should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C823: Output should not be empty");
-    assert!(
-        code.contains("fn sp_eq_init"),
-        "C823: Should contain sp_eq_init function"
-    );
-    assert!(
-        code.contains("fn sp_eq_process"),
-        "C823: Should contain sp_eq_process function"
-    );
-    assert!(
-        code.contains("fn sp_eq_add_band"),
-        "C823: Should contain sp_eq_add_band function"
-    );
+    assert!(code.contains("fn sp_eq_init"), "C823: Should contain sp_eq_init function");
+    assert!(code.contains("fn sp_eq_process"), "C823: Should contain sp_eq_process function");
+    assert!(code.contains("fn sp_eq_add_band"), "C823: Should contain sp_eq_add_band function");
 }
 
 /// C824: Polyphase resampler -- efficient multi-rate conversion
@@ -1795,11 +1631,7 @@ void sp_polyphase_reset(sp_polyphase_t *pp) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C824: Polyphase resampler should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C824: Polyphase resampler should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C824: Output should not be empty");
     assert!(
@@ -1876,21 +1708,11 @@ float sp_haar_energy(const float *coeffs, int n) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C825: Haar wavelet transform should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C825: Haar wavelet transform should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C825: Output should not be empty");
-    assert!(
-        code.contains("fn sp_haar_forward"),
-        "C825: Should contain sp_haar_forward function"
-    );
-    assert!(
-        code.contains("fn sp_haar_inverse"),
-        "C825: Should contain sp_haar_inverse function"
-    );
+    assert!(code.contains("fn sp_haar_forward"), "C825: Should contain sp_haar_forward function");
+    assert!(code.contains("fn sp_haar_inverse"), "C825: Should contain sp_haar_inverse function");
     assert!(
         code.contains("fn sp_haar_threshold"),
         "C825: Should contain sp_haar_threshold function"

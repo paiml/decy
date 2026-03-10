@@ -75,7 +75,11 @@ fn zero_not_equal_strlen_becomes_not_is_empty() {
         }),
     };
     let result = gen().generate_expression_with_target_type(&expr, &ctx, None);
-    assert!(result.contains("!") && result.contains("is_empty"), "0 != strlen(s) should use !is_empty, got: {}", result);
+    assert!(
+        result.contains("!") && result.contains("is_empty"),
+        "0 != strlen(s) should use !is_empty, got: {}",
+        result
+    );
 }
 
 // ============================================================================
@@ -92,7 +96,11 @@ fn char_literal_left_int_var_right_comparison() {
         right: Box::new(HirExpression::Variable("c".to_string())),
     };
     let result = gen().generate_expression_with_target_type(&expr, &ctx, None);
-    assert!(result.contains("65i32") || result.contains("i32"), "Char on left should cast to i32, got: {}", result);
+    assert!(
+        result.contains("65i32") || result.contains("i32"),
+        "Char on left should cast to i32, got: {}",
+        result
+    );
 }
 
 // ============================================================================
@@ -109,7 +117,11 @@ fn int_plus_char_literal_arithmetic() {
         right: Box::new(HirExpression::CharLiteral(48)), // '0'
     };
     let result = gen().generate_expression_with_target_type(&expr, &ctx, None);
-    assert!(result.contains("48i32") || result.contains("i32"), "int + '0' should cast char to i32, got: {}", result);
+    assert!(
+        result.contains("48i32") || result.contains("i32"),
+        "int + '0' should cast char to i32, got: {}",
+        result
+    );
 }
 
 #[test]
@@ -122,7 +134,11 @@ fn char_literal_minus_int_arithmetic() {
         right: Box::new(HirExpression::Variable("n".to_string())),
     };
     let result = gen().generate_expression_with_target_type(&expr, &ctx, None);
-    assert!(result.contains("97i32") || result.contains("i32"), "'a' - int should cast char to i32, got: {}", result);
+    assert!(
+        result.contains("97i32") || result.contains("i32"),
+        "'a' - int should cast char to i32, got: {}",
+        result
+    );
 }
 
 // ============================================================================
@@ -138,7 +154,11 @@ fn comma_operator_becomes_block() {
         right: Box::new(HirExpression::Variable("b".to_string())),
     };
     let result = gen().generate_expression_with_target_type(&expr, &ctx, None);
-    assert!(result.contains("{") && result.contains(";"), "Comma should become block, got: {}", result);
+    assert!(
+        result.contains("{") && result.contains(";"),
+        "Comma should become block, got: {}",
+        result
+    );
 }
 
 // ============================================================================
@@ -154,7 +174,11 @@ fn logical_and_with_int_target_casts_to_i32() {
         right: Box::new(HirExpression::Variable("b".to_string())),
     };
     let result = gen().generate_expression_with_target_type(&expr, &ctx, Some(&HirType::Int));
-    assert!(result.contains("as i32"), "Logical && with Int target should cast to i32, got: {}", result);
+    assert!(
+        result.contains("as i32"),
+        "Logical && with Int target should cast to i32, got: {}",
+        result
+    );
 }
 
 #[test]
@@ -166,7 +190,11 @@ fn logical_or_with_int_target_casts_to_i32() {
         right: Box::new(HirExpression::Variable("b".to_string())),
     };
     let result = gen().generate_expression_with_target_type(&expr, &ctx, Some(&HirType::Int));
-    assert!(result.contains("as i32"), "Logical || with Int target should cast to i32, got: {}", result);
+    assert!(
+        result.contains("as i32"),
+        "Logical || with Int target should cast to i32, got: {}",
+        result
+    );
 }
 
 #[test]
@@ -178,7 +206,11 @@ fn logical_and_without_int_target_no_cast() {
         right: Box::new(HirExpression::Variable("b".to_string())),
     };
     let result = gen().generate_expression_with_target_type(&expr, &ctx, None);
-    assert!(!result.contains("as i32"), "Logical && without Int target should not cast, got: {}", result);
+    assert!(
+        !result.contains("as i32"),
+        "Logical && without Int target should not cast, got: {}",
+        result
+    );
     assert!(result.contains("!= 0"), "Should convert int operands to bool, got: {}", result);
 }
 
@@ -371,7 +403,8 @@ fn global_float_to_unsigned_coercion_unsafe() {
     ctx.add_variable("g_f".to_string(), HirType::Double);
     ctx.add_global("g_f".to_string());
     let expr = HirExpression::Variable("g_f".to_string());
-    let result = gen().generate_expression_with_target_type(&expr, &ctx, Some(&HirType::UnsignedInt));
+    let result =
+        gen().generate_expression_with_target_type(&expr, &ctx, Some(&HirType::UnsignedInt));
     assert!(result.contains("unsafe"), "Global double to uint should be unsafe, got: {}", result);
     assert!(result.contains("as u32"), "Should cast to u32, got: {}", result);
 }
@@ -397,7 +430,11 @@ fn int_var_to_char_target_casts_to_u8() {
     ctx.add_variable("c".to_string(), HirType::Int);
     let expr = HirExpression::Variable("c".to_string());
     let result = gen().generate_expression_with_target_type(&expr, &ctx, Some(&HirType::Char));
-    assert!(result.contains("as u8"), "int var with Char target should cast to u8, got: {}", result);
+    assert!(
+        result.contains("as u8"),
+        "int var with Char target should cast to u8, got: {}",
+        result
+    );
 }
 
 // ============================================================================
@@ -409,7 +446,11 @@ fn vec_variable_to_pointer_target() {
     let mut ctx = make_ctx();
     ctx.add_variable("arr".to_string(), HirType::Vec(Box::new(HirType::Int)));
     let expr = HirExpression::Variable("arr".to_string());
-    let result = gen().generate_expression_with_target_type(&expr, &ctx, Some(&HirType::Pointer(Box::new(HirType::Int))));
+    let result = gen().generate_expression_with_target_type(
+        &expr,
+        &ctx,
+        Some(&HirType::Pointer(Box::new(HirType::Int))),
+    );
     assert!(result.contains("as_mut_ptr"), "Vec to pointer should use as_mut_ptr, got: {}", result);
 }
 
@@ -418,7 +459,11 @@ fn vec_variable_to_void_pointer() {
     let mut ctx = make_ctx();
     ctx.add_variable("arr".to_string(), HirType::Vec(Box::new(HirType::Int)));
     let expr = HirExpression::Variable("arr".to_string());
-    let result = gen().generate_expression_with_target_type(&expr, &ctx, Some(&HirType::Pointer(Box::new(HirType::Void))));
+    let result = gen().generate_expression_with_target_type(
+        &expr,
+        &ctx,
+        Some(&HirType::Pointer(Box::new(HirType::Void))),
+    );
     // Vec to void* - codegen may simplify to just the variable name or use as_mut_ptr
     assert!(!result.is_empty(), "Should produce non-empty output, got: {}", result);
 }
@@ -444,7 +489,11 @@ fn nested_binary_ops_parenthesized() {
         }),
     };
     let result = gen().generate_expression_with_target_type(&expr, &ctx, None);
-    assert!(result.contains("(1 + 2)") || result.contains("("), "Nested ops should be parenthesized, got: {}", result);
+    assert!(
+        result.contains("(1 + 2)") || result.contains("("),
+        "Nested ops should be parenthesized, got: {}",
+        result
+    );
 }
 
 // ============================================================================

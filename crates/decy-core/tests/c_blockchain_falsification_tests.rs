@@ -65,10 +65,7 @@ void bc_sha256_round(uint32_t *state, uint32_t k, uint32_t w) {
     );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1201: Output should not be empty");
-    assert!(
-        code.contains("fn bc_sha256_round"),
-        "C1201: Should contain bc_sha256_round function"
-    );
+    assert!(code.contains("fn bc_sha256_round"), "C1201: Should contain bc_sha256_round function");
 }
 
 #[test]
@@ -104,17 +101,10 @@ int bc_md5_selftest(void) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1202: MD5-like transform should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1202: MD5-like transform should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1202: Output should not be empty");
-    assert!(
-        code.contains("fn bc_md5_step"),
-        "C1202: Should contain bc_md5_step function"
-    );
+    assert!(code.contains("fn bc_md5_step"), "C1202: Should contain bc_md5_step function");
 }
 
 #[test]
@@ -149,11 +139,7 @@ int bc_crc32_verify(const uint8_t *data, size_t len, uint32_t expected) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1203: CRC32 table lookup should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1203: CRC32 table lookup should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1203: Output should not be empty");
     assert!(
@@ -200,17 +186,10 @@ int bc_fnv_selftest(void) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1204: FNV hash should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1204: FNV hash should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1204: Output should not be empty");
-    assert!(
-        code.contains("fn bc_fnv1a_32"),
-        "C1204: Should contain bc_fnv1a_32 function"
-    );
+    assert!(code.contains("fn bc_fnv1a_32"), "C1204: Should contain bc_fnv1a_32 function");
 }
 
 #[test]
@@ -243,11 +222,7 @@ int bc_hmac_key_valid(const uint8_t *key, int key_len) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1205: HMAC construction should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1205: HMAC construction should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1205: Output should not be empty");
     assert!(
@@ -300,11 +275,7 @@ int bc_block_header_valid(const bc_block_header_t *hdr) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1206: Block header should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1206: Block header should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1206: Output should not be empty");
     assert!(
@@ -351,17 +322,10 @@ int bc_merkle_is_power_of_two(int n) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1207: Merkle tree hash should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1207: Merkle tree hash should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1207: Output should not be empty");
-    assert!(
-        code.contains("fn bc_merkle_level"),
-        "C1207: Should contain bc_merkle_level function"
-    );
+    assert!(code.contains("fn bc_merkle_level"), "C1207: Should contain bc_merkle_level function");
 }
 
 #[test]
@@ -414,11 +378,7 @@ int bc_tx_is_coinbase(const bc_tx_input_t *input) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1208: Transaction structure should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1208: Transaction structure should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1208: Output should not be empty");
     assert!(
@@ -483,17 +443,10 @@ int bc_utxo_spend(bc_utxo_set_t *set, const uint8_t *tx_hash, uint32_t index) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1209: UTXO set should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1209: UTXO set should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1209: Output should not be empty");
-    assert!(
-        code.contains("fn bc_utxo_add"),
-        "C1209: Should contain bc_utxo_add function"
-    );
+    assert!(code.contains("fn bc_utxo_add"), "C1209: Should contain bc_utxo_add function");
 }
 
 #[test]
@@ -532,11 +485,7 @@ int bc_validate_block(const uint8_t *hash, uint32_t difficulty,
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1210: Block validation should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1210: Block validation should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1210: Output should not be empty");
     assert!(
@@ -584,17 +533,10 @@ uint32_t bc_pow_mine(const uint8_t *data, int len, uint32_t target,
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1211: Proof of work should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1211: Proof of work should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1211: Output should not be empty");
-    assert!(
-        code.contains("fn bc_pow_mine"),
-        "C1211: Should contain bc_pow_mine function"
-    );
+    assert!(code.contains("fn bc_pow_mine"), "C1211: Should contain bc_pow_mine function");
 }
 
 #[test]
@@ -628,11 +570,7 @@ int bc_difficulty_valid(uint32_t difficulty, uint32_t min_diff) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1212: Difficulty adjustment should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1212: Difficulty adjustment should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1212: Output should not be empty");
     assert!(
@@ -674,11 +612,7 @@ int bc_chain_select_best(const bc_chain_tip_t *a, const bc_chain_tip_t *b) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1213: Chain selection should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1213: Chain selection should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1213: Output should not be empty");
     assert!(
@@ -720,17 +654,10 @@ int bc_is_halving_block(uint32_t height, uint32_t halving_interval) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1214: Block reward halving should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1214: Block reward halving should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1214: Output should not be empty");
-    assert!(
-        code.contains("fn bc_block_reward"),
-        "C1214: Should contain bc_block_reward function"
-    );
+    assert!(code.contains("fn bc_block_reward"), "C1214: Should contain bc_block_reward function");
 }
 
 #[test]
@@ -775,17 +702,10 @@ int bc_nonce_range_valid(const bc_nonce_range_t *range) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1215: Nonce search should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1215: Nonce search should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1215: Output should not be empty");
-    assert!(
-        code.contains("fn bc_nonce_search"),
-        "C1215: Should contain bc_nonce_search function"
-    );
+    assert!(code.contains("fn bc_nonce_search"), "C1215: Should contain bc_nonce_search function");
 }
 
 // ============================================================================
@@ -837,17 +757,10 @@ int bc_is_probable_prime(uint64_t n) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1216: Modular exponentiation should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1216: Modular exponentiation should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1216: Output should not be empty");
-    assert!(
-        code.contains("fn bc_powmod"),
-        "C1216: Should contain bc_powmod function"
-    );
+    assert!(code.contains("fn bc_powmod"), "C1216: Should contain bc_powmod function");
 }
 
 #[test]
@@ -899,17 +812,10 @@ bc_ec_point_t bc_ec_add(bc_ec_point_t a, bc_ec_point_t b, int64_t p) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1217: EC point add should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1217: EC point add should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1217: Output should not be empty");
-    assert!(
-        code.contains("fn bc_ec_add"),
-        "C1217: Should contain bc_ec_add function"
-    );
+    assert!(code.contains("fn bc_ec_add"), "C1217: Should contain bc_ec_add function");
 }
 
 #[test]
@@ -949,17 +855,10 @@ bc_sig_t bc_sig_sign(uint32_t priv_key, const uint8_t *msg, int msg_len,
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1218: Signature verify sim should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1218: Signature verify sim should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1218: Output should not be empty");
-    assert!(
-        code.contains("fn bc_sig_verify"),
-        "C1218: Should contain bc_sig_verify function"
-    );
+    assert!(code.contains("fn bc_sig_verify"), "C1218: Should contain bc_sig_verify function");
 }
 
 #[test]
@@ -999,17 +898,10 @@ int bc_key_nonzero(const uint8_t *key, int len) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1219: Key derivation should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1219: Key derivation should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1219: Output should not be empty");
-    assert!(
-        code.contains("fn bc_derive_key"),
-        "C1219: Should contain bc_derive_key function"
-    );
+    assert!(code.contains("fn bc_derive_key"), "C1219: Should contain bc_derive_key function");
 }
 
 #[test]
@@ -1054,17 +946,10 @@ void bc_rng_fill(bc_rng_t *rng, uint8_t *buf, int len) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1220: Random seed generator should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1220: Random seed generator should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1220: Output should not be empty");
-    assert!(
-        code.contains("fn bc_rng_next"),
-        "C1220: Should contain bc_rng_next function"
-    );
+    assert!(code.contains("fn bc_rng_next"), "C1220: Should contain bc_rng_next function");
 }
 
 // ============================================================================
@@ -1114,11 +999,7 @@ int bc_gossip_receive(bc_gossip_state_t *state, bc_gossip_msg_t *msg) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1221: Gossip protocol should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1221: Gossip protocol should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1221: Output should not be empty");
     assert!(
@@ -1175,17 +1056,10 @@ void bc_peer_update_score(bc_peer_table_t *table, int index, int delta) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1222: Peer table should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1222: Peer table should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1222: Output should not be empty");
-    assert!(
-        code.contains("fn bc_peer_add"),
-        "C1222: Should contain bc_peer_add function"
-    );
+    assert!(code.contains("fn bc_peer_add"), "C1222: Should contain bc_peer_add function");
 }
 
 #[test]
@@ -1239,11 +1113,7 @@ uint32_t bc_routing_lookup(const bc_routing_table_t *table, uint32_t dest) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1223: Message routing should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1223: Message routing should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1223: Output should not be empty");
     assert!(
@@ -1299,17 +1169,10 @@ int bc_bloom_check(const bc_bloom_t *bloom, const uint8_t *data, size_t len) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1224: Bloom filter index should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1224: Bloom filter index should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1224: Output should not be empty");
-    assert!(
-        code.contains("fn bc_bloom_add"),
-        "C1224: Should contain bc_bloom_add function"
-    );
+    assert!(code.contains("fn bc_bloom_add"), "C1224: Should contain bc_bloom_add function");
 }
 
 #[test]
@@ -1366,11 +1229,7 @@ int bc_voting_is_finalized(const bc_voting_round_t *round) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1225: Consensus voting should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1225: Consensus voting should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1225: Output should not be empty");
     assert!(

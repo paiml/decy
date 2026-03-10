@@ -65,17 +65,10 @@ void uart_disable(uart_regs_t *regs) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C276: Volatile register access should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C276: Volatile register access should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C276: Output should not be empty");
-    assert!(
-        code.contains("fn uart_write_reg"),
-        "C276: Should contain uart_write_reg function"
-    );
+    assert!(code.contains("fn uart_write_reg"), "C276: Should contain uart_write_reg function");
 }
 
 #[test]
@@ -135,10 +128,7 @@ uint32_t periph_read_data(const periph_regs_t *regs) {
     );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C277: Output should not be empty");
-    assert!(
-        code.contains("fn periph_set_bits"),
-        "C277: Should contain periph_set_bits function"
-    );
+    assert!(code.contains("fn periph_set_bits"), "C277: Should contain periph_set_bits function");
     assert!(
         code.contains("fn periph_modify_field"),
         "C277: Should contain periph_modify_field function"
@@ -233,10 +223,7 @@ int nvic_is_nested(const nvic_t *nvic) {
     );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C278: Output should not be empty");
-    assert!(
-        code.contains("fn nvic_init"),
-        "C278: Should contain nvic_init function"
-    );
+    assert!(code.contains("fn nvic_init"), "C278: Should contain nvic_init function");
     assert!(
         code.contains("fn nvic_register_isr"),
         "C278: Should contain nvic_register_isr function"
@@ -352,22 +339,13 @@ int dma_chain_length(const dma_channel_t *ch) {
     );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C279: Output should not be empty");
-    assert!(
-        code.contains("fn dma_init"),
-        "C279: Should contain dma_init function"
-    );
+    assert!(code.contains("fn dma_init"), "C279: Should contain dma_init function");
     assert!(
         code.contains("fn dma_add_descriptor"),
         "C279: Should contain dma_add_descriptor function"
     );
-    assert!(
-        code.contains("fn dma_step"),
-        "C279: Should contain dma_step function"
-    );
-    assert!(
-        code.contains("fn dma_is_complete"),
-        "C279: Should contain dma_is_complete function"
-    );
+    assert!(code.contains("fn dma_step"), "C279: Should contain dma_step function");
+    assert!(code.contains("fn dma_is_complete"), "C279: Should contain dma_is_complete function");
 }
 
 #[test]
@@ -465,18 +443,9 @@ int uart_get_error_count(const uart_state_t *u) {
     );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C280: Output should not be empty");
-    assert!(
-        code.contains("fn uart_buf_init"),
-        "C280: Should contain uart_buf_init function"
-    );
-    assert!(
-        code.contains("fn uart_tx_enqueue"),
-        "C280: Should contain uart_tx_enqueue function"
-    );
-    assert!(
-        code.contains("fn uart_rx_dequeue"),
-        "C280: Should contain uart_rx_dequeue function"
-    );
+    assert!(code.contains("fn uart_buf_init"), "C280: Should contain uart_buf_init function");
+    assert!(code.contains("fn uart_tx_enqueue"), "C280: Should contain uart_tx_enqueue function");
+    assert!(code.contains("fn uart_rx_dequeue"), "C280: Should contain uart_rx_dequeue function");
     assert!(
         code.contains("fn uart_tx_write_block"),
         "C280: Should contain uart_tx_write_block function"
@@ -597,10 +566,7 @@ int sched_ready_count(const scheduler_t *s) {
     );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C281: Output should not be empty");
-    assert!(
-        code.contains("fn sched_init"),
-        "C281: Should contain sched_init function"
-    );
+    assert!(code.contains("fn sched_init"), "C281: Should contain sched_init function");
     assert!(
         code.contains("fn sched_create_task"),
         "C281: Should contain sched_create_task function"
@@ -609,10 +575,7 @@ int sched_ready_count(const scheduler_t *s) {
         code.contains("fn sched_get_next_task"),
         "C281: Should contain sched_get_next_task function"
     );
-    assert!(
-        code.contains("fn sched_tick"),
-        "C281: Should contain sched_tick function"
-    );
+    assert!(code.contains("fn sched_tick"), "C281: Should contain sched_tick function");
 }
 
 #[test]
@@ -708,22 +671,10 @@ int mutex_get_owner(const mutex_pool_t *pool, int mutex_id) {
     );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C282: Output should not be empty");
-    assert!(
-        code.contains("fn mutex_pool_init"),
-        "C282: Should contain mutex_pool_init function"
-    );
-    assert!(
-        code.contains("fn mutex_create"),
-        "C282: Should contain mutex_create function"
-    );
-    assert!(
-        code.contains("fn mutex_try_lock"),
-        "C282: Should contain mutex_try_lock function"
-    );
-    assert!(
-        code.contains("fn mutex_unlock"),
-        "C282: Should contain mutex_unlock function"
-    );
+    assert!(code.contains("fn mutex_pool_init"), "C282: Should contain mutex_pool_init function");
+    assert!(code.contains("fn mutex_create"), "C282: Should contain mutex_create function");
+    assert!(code.contains("fn mutex_try_lock"), "C282: Should contain mutex_try_lock function");
+    assert!(code.contains("fn mutex_unlock"), "C282: Should contain mutex_unlock function");
 }
 
 #[test]
@@ -815,22 +766,10 @@ int pcq_size(const pc_queue_t *q) {
     );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C283: Output should not be empty");
-    assert!(
-        code.contains("fn sem_init"),
-        "C283: Should contain sem_init function"
-    );
-    assert!(
-        code.contains("fn pcq_init"),
-        "C283: Should contain pcq_init function"
-    );
-    assert!(
-        code.contains("fn pcq_produce"),
-        "C283: Should contain pcq_produce function"
-    );
-    assert!(
-        code.contains("fn pcq_consume"),
-        "C283: Should contain pcq_consume function"
-    );
+    assert!(code.contains("fn sem_init"), "C283: Should contain sem_init function");
+    assert!(code.contains("fn pcq_init"), "C283: Should contain pcq_init function");
+    assert!(code.contains("fn pcq_produce"), "C283: Should contain pcq_produce function");
+    assert!(code.contains("fn pcq_consume"), "C283: Should contain pcq_consume function");
 }
 
 #[test]
@@ -940,10 +879,7 @@ int timer_active_count(const timer_mgr_t *mgr) {
     );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C284: Output should not be empty");
-    assert!(
-        code.contains("fn timer_mgr_init"),
-        "C284: Should contain timer_mgr_init function"
-    );
+    assert!(code.contains("fn timer_mgr_init"), "C284: Should contain timer_mgr_init function");
     assert!(
         code.contains("fn timer_create_periodic"),
         "C284: Should contain timer_create_periodic function"
@@ -1067,14 +1003,8 @@ void gpio_set_alt_func(gpio_port_t *port, int pin, int func) {
     );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C285: Output should not be empty");
-    assert!(
-        code.contains("fn gpio_init"),
-        "C285: Should contain gpio_init function"
-    );
-    assert!(
-        code.contains("fn gpio_set_mode"),
-        "C285: Should contain gpio_set_mode function"
-    );
+    assert!(code.contains("fn gpio_init"), "C285: Should contain gpio_init function");
+    assert!(code.contains("fn gpio_set_mode"), "C285: Should contain gpio_set_mode function");
     assert!(
         code.contains("fn gpio_toggle_output"),
         "C285: Should contain gpio_toggle_output function"
@@ -1191,18 +1121,9 @@ uint32_t spi_get_transfer_count(const spi_bus_t *bus) {
     );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C286: Output should not be empty");
-    assert!(
-        code.contains("fn spi_init"),
-        "C286: Should contain spi_init function"
-    );
-    assert!(
-        code.contains("fn spi_transfer"),
-        "C286: Should contain spi_transfer function"
-    );
-    assert!(
-        code.contains("fn spi_select"),
-        "C286: Should contain spi_select function"
-    );
+    assert!(code.contains("fn spi_init"), "C286: Should contain spi_init function");
+    assert!(code.contains("fn spi_transfer"), "C286: Should contain spi_transfer function");
+    assert!(code.contains("fn spi_select"), "C286: Should contain spi_select function");
 }
 
 #[test]
@@ -1294,29 +1215,13 @@ uint32_t i2c_get_error_rate(const i2c_master_t *i2c) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C287: I2C master send/receive should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C287: I2C master send/receive should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C287: Output should not be empty");
-    assert!(
-        code.contains("fn i2c_init"),
-        "C287: Should contain i2c_init function"
-    );
-    assert!(
-        code.contains("fn i2c_write"),
-        "C287: Should contain i2c_write function"
-    );
-    assert!(
-        code.contains("fn i2c_read_reg"),
-        "C287: Should contain i2c_read_reg function"
-    );
-    assert!(
-        code.contains("fn i2c_scan_bus"),
-        "C287: Should contain i2c_scan_bus function"
-    );
+    assert!(code.contains("fn i2c_init"), "C287: Should contain i2c_init function");
+    assert!(code.contains("fn i2c_write"), "C287: Should contain i2c_write function");
+    assert!(code.contains("fn i2c_read_reg"), "C287: Should contain i2c_read_reg function");
+    assert!(code.contains("fn i2c_scan_bus"), "C287: Should contain i2c_scan_bus function");
 }
 
 #[test]
@@ -1417,18 +1322,9 @@ int pwm_active_channels(const pwm_controller_t *pwm) {
     );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C288: Output should not be empty");
-    assert!(
-        code.contains("fn pwm_init"),
-        "C288: Should contain pwm_init function"
-    );
-    assert!(
-        code.contains("fn pwm_configure"),
-        "C288: Should contain pwm_configure function"
-    );
-    assert!(
-        code.contains("fn pwm_set_duty"),
-        "C288: Should contain pwm_set_duty function"
-    );
+    assert!(code.contains("fn pwm_init"), "C288: Should contain pwm_init function");
+    assert!(code.contains("fn pwm_configure"), "C288: Should contain pwm_configure function");
+    assert!(code.contains("fn pwm_set_duty"), "C288: Should contain pwm_set_duty function");
     assert!(
         code.contains("fn pwm_active_channels"),
         "C288: Should contain pwm_active_channels function"
@@ -1543,22 +1439,13 @@ void adc_dma_stop(adc_controller_t *adc) {
     );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C289: Output should not be empty");
-    assert!(
-        code.contains("fn adc_init"),
-        "C289: Should contain adc_init function"
-    );
+    assert!(code.contains("fn adc_init"), "C289: Should contain adc_init function");
     assert!(
         code.contains("fn adc_enable_channel"),
         "C289: Should contain adc_enable_channel function"
     );
-    assert!(
-        code.contains("fn adc_get_average"),
-        "C289: Should contain adc_get_average function"
-    );
-    assert!(
-        code.contains("fn adc_dma_start"),
-        "C289: Should contain adc_dma_start function"
-    );
+    assert!(code.contains("fn adc_get_average"), "C289: Should contain adc_get_average function");
+    assert!(code.contains("fn adc_dma_start"), "C289: Should contain adc_dma_start function");
 }
 
 #[test]
@@ -1647,22 +1534,10 @@ uint32_t wdg_get_feed_count(const watchdog_t *wdg) {
     );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C290: Output should not be empty");
-    assert!(
-        code.contains("fn wdg_init"),
-        "C290: Should contain wdg_init function"
-    );
-    assert!(
-        code.contains("fn wdg_feed"),
-        "C290: Should contain wdg_feed function"
-    );
-    assert!(
-        code.contains("fn wdg_tick"),
-        "C290: Should contain wdg_tick function"
-    );
-    assert!(
-        code.contains("fn wdg_is_expired"),
-        "C290: Should contain wdg_is_expired function"
-    );
+    assert!(code.contains("fn wdg_init"), "C290: Should contain wdg_init function");
+    assert!(code.contains("fn wdg_feed"), "C290: Should contain wdg_feed function");
+    assert!(code.contains("fn wdg_tick"), "C290: Should contain wdg_tick function");
+    assert!(code.contains("fn wdg_is_expired"), "C290: Should contain wdg_is_expired function");
 }
 
 // ============================================================================
@@ -1778,14 +1653,8 @@ uint32_t flash_get_wear_level(const flash_mem_t *f, int page) {
     );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C291: Output should not be empty");
-    assert!(
-        code.contains("fn flash_init"),
-        "C291: Should contain flash_init function"
-    );
-    assert!(
-        code.contains("fn flash_erase_page"),
-        "C291: Should contain flash_erase_page function"
-    );
+    assert!(code.contains("fn flash_init"), "C291: Should contain flash_init function");
+    assert!(code.contains("fn flash_erase_page"), "C291: Should contain flash_erase_page function");
     assert!(
         code.contains("fn flash_write_block"),
         "C291: Should contain flash_write_block function"
@@ -1918,22 +1787,10 @@ uint32_t can_get_drop_rate(const can_bus_t *can) {
     );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C292: Output should not be empty");
-    assert!(
-        code.contains("fn can_init"),
-        "C292: Should contain can_init function"
-    );
-    assert!(
-        code.contains("fn can_add_filter"),
-        "C292: Should contain can_add_filter function"
-    );
-    assert!(
-        code.contains("fn can_receive"),
-        "C292: Should contain can_receive function"
-    );
-    assert!(
-        code.contains("fn can_read"),
-        "C292: Should contain can_read function"
-    );
+    assert!(code.contains("fn can_init"), "C292: Should contain can_init function");
+    assert!(code.contains("fn can_add_filter"), "C292: Should contain can_add_filter function");
+    assert!(code.contains("fn can_receive"), "C292: Should contain can_receive function");
+    assert!(code.contains("fn can_read"), "C292: Should contain can_read function");
 }
 
 #[test]
@@ -2064,29 +1921,13 @@ int rtc_active_alarm_count(const rtc_t *rtc) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C293: RTC alarm configuration should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C293: RTC alarm configuration should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C293: Output should not be empty");
-    assert!(
-        code.contains("fn rtc_init"),
-        "C293: Should contain rtc_init function"
-    );
-    assert!(
-        code.contains("fn rtc_add_alarm"),
-        "C293: Should contain rtc_add_alarm function"
-    );
-    assert!(
-        code.contains("fn rtc_tick_second"),
-        "C293: Should contain rtc_tick_second function"
-    );
-    assert!(
-        code.contains("fn rtc_check_alarms"),
-        "C293: Should contain rtc_check_alarms function"
-    );
+    assert!(code.contains("fn rtc_init"), "C293: Should contain rtc_init function");
+    assert!(code.contains("fn rtc_add_alarm"), "C293: Should contain rtc_add_alarm function");
+    assert!(code.contains("fn rtc_tick_second"), "C293: Should contain rtc_tick_second function");
+    assert!(code.contains("fn rtc_check_alarms"), "C293: Should contain rtc_check_alarms function");
 }
 
 #[test]
@@ -2201,18 +2042,9 @@ uint32_t pm_get_transition_count(const power_mgr_t *pm) {
     );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C294: Output should not be empty");
-    assert!(
-        code.contains("fn pm_init"),
-        "C294: Should contain pm_init function"
-    );
-    assert!(
-        code.contains("fn pm_transition"),
-        "C294: Should contain pm_transition function"
-    );
-    assert!(
-        code.contains("fn pm_tick"),
-        "C294: Should contain pm_tick function"
-    );
+    assert!(code.contains("fn pm_init"), "C294: Should contain pm_init function");
+    assert!(code.contains("fn pm_transition"), "C294: Should contain pm_transition function");
+    assert!(code.contains("fn pm_tick"), "C294: Should contain pm_tick function");
     assert!(
         code.contains("fn pm_get_active_percent"),
         "C294: Should contain pm_get_active_percent function"
@@ -2312,10 +2144,7 @@ uint32_t boot_get_version(const boot_table_t *bt) {
     );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C295: Output should not be empty");
-    assert!(
-        code.contains("fn boot_table_init"),
-        "C295: Should contain boot_table_init function"
-    );
+    assert!(code.contains("fn boot_table_init"), "C295: Should contain boot_table_init function");
     assert!(
         code.contains("fn boot_register_entry"),
         "C295: Should contain boot_register_entry function"
@@ -2442,10 +2271,7 @@ int monitor_max_usage_percent(const stack_monitor_t *mon) {
     );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C296: Output should not be empty");
-    assert!(
-        code.contains("fn stack_guard_init"),
-        "C296: Should contain stack_guard_init function"
-    );
+    assert!(code.contains("fn stack_guard_init"), "C296: Should contain stack_guard_init function");
     assert!(
         code.contains("fn stack_check_canary"),
         "C296: Should contain stack_check_canary function"
@@ -2571,18 +2397,9 @@ int mpool_fragmentation_percent(const mem_pool_t *pool) {
     );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C297: Output should not be empty");
-    assert!(
-        code.contains("fn mpool_init"),
-        "C297: Should contain mpool_init function"
-    );
-    assert!(
-        code.contains("fn mpool_alloc"),
-        "C297: Should contain mpool_alloc function"
-    );
-    assert!(
-        code.contains("fn mpool_free"),
-        "C297: Should contain mpool_free function"
-    );
+    assert!(code.contains("fn mpool_init"), "C297: Should contain mpool_init function");
+    assert!(code.contains("fn mpool_alloc"), "C297: Should contain mpool_alloc function");
+    assert!(code.contains("fn mpool_free"), "C297: Should contain mpool_free function");
     assert!(
         code.contains("fn mpool_fragmentation_percent"),
         "C297: Should contain mpool_fragmentation_percent function"
@@ -2691,18 +2508,9 @@ int evt_count_set_bits(const event_system_t *sys, int group_id) {
     );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C298: Output should not be empty");
-    assert!(
-        code.contains("fn evt_sys_init"),
-        "C298: Should contain evt_sys_init function"
-    );
-    assert!(
-        code.contains("fn evt_set_flags"),
-        "C298: Should contain evt_set_flags function"
-    );
-    assert!(
-        code.contains("fn evt_wait_check"),
-        "C298: Should contain evt_wait_check function"
-    );
+    assert!(code.contains("fn evt_sys_init"), "C298: Should contain evt_sys_init function");
+    assert!(code.contains("fn evt_set_flags"), "C298: Should contain evt_set_flags function");
+    assert!(code.contains("fn evt_wait_check"), "C298: Should contain evt_wait_check function");
     assert!(
         code.contains("fn evt_count_set_bits"),
         "C298: Should contain evt_count_set_bits function"
@@ -2825,22 +2633,10 @@ int rms_get_task_misses(const rms_scheduler_t *s, int task_id) {
     );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C299: Output should not be empty");
-    assert!(
-        code.contains("fn rms_init"),
-        "C299: Should contain rms_init function"
-    );
-    assert!(
-        code.contains("fn rms_add_task"),
-        "C299: Should contain rms_add_task function"
-    );
-    assert!(
-        code.contains("fn rms_select_task"),
-        "C299: Should contain rms_select_task function"
-    );
-    assert!(
-        code.contains("fn rms_tick"),
-        "C299: Should contain rms_tick function"
-    );
+    assert!(code.contains("fn rms_init"), "C299: Should contain rms_init function");
+    assert!(code.contains("fn rms_add_task"), "C299: Should contain rms_add_task function");
+    assert!(code.contains("fn rms_select_task"), "C299: Should contain rms_select_task function");
+    assert!(code.contains("fn rms_tick"), "C299: Should contain rms_tick function");
 }
 
 #[test]
@@ -2992,20 +2788,8 @@ uint32_t hal_get_error_count(const hal_registry_t *reg, int dev_id) {
         code.contains("fn hal_register_device"),
         "C300: Should contain hal_register_device function"
     );
-    assert!(
-        code.contains("fn hal_open"),
-        "C300: Should contain hal_open function"
-    );
-    assert!(
-        code.contains("fn hal_read"),
-        "C300: Should contain hal_read function"
-    );
-    assert!(
-        code.contains("fn hal_write"),
-        "C300: Should contain hal_write function"
-    );
-    assert!(
-        code.contains("fn hal_close"),
-        "C300: Should contain hal_close function"
-    );
+    assert!(code.contains("fn hal_open"), "C300: Should contain hal_open function");
+    assert!(code.contains("fn hal_read"), "C300: Should contain hal_read function");
+    assert!(code.contains("fn hal_write"), "C300: Should contain hal_write function");
+    assert!(code.contains("fn hal_close"), "C300: Should contain hal_close function");
 }

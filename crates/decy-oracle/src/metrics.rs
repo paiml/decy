@@ -60,42 +60,27 @@ impl OracleMetrics {
     pub fn record_hit(&mut self, error_code: &str) {
         self.queries += 1;
         self.hits += 1;
-        self.by_error_code
-            .entry(error_code.to_string())
-            .or_default()
-            .queries += 1;
-        self.by_error_code
-            .entry(error_code.to_string())
-            .or_default()
-            .hits += 1;
+        self.by_error_code.entry(error_code.to_string()).or_default().queries += 1;
+        self.by_error_code.entry(error_code.to_string()).or_default().hits += 1;
     }
 
     /// Record a query miss
     pub fn record_miss(&mut self, error_code: &str) {
         self.queries += 1;
         self.misses += 1;
-        self.by_error_code
-            .entry(error_code.to_string())
-            .or_default()
-            .queries += 1;
+        self.by_error_code.entry(error_code.to_string()).or_default().queries += 1;
     }
 
     /// Record a fix application
     pub fn record_fix_applied(&mut self, error_code: &str) {
         self.fixes_applied += 1;
-        self.by_error_code
-            .entry(error_code.to_string())
-            .or_default()
-            .fixes_applied += 1;
+        self.by_error_code.entry(error_code.to_string()).or_default().fixes_applied += 1;
     }
 
     /// Record a verified fix
     pub fn record_fix_verified(&mut self, error_code: &str) {
         self.fixes_verified += 1;
-        self.by_error_code
-            .entry(error_code.to_string())
-            .or_default()
-            .fixes_verified += 1;
+        self.by_error_code.entry(error_code.to_string()).or_default().fixes_verified += 1;
     }
 
     /// Record a pattern capture
@@ -239,11 +224,7 @@ Thresholds: Hit Rate >= {:.0}%, Fix Rate >= {:.0}%
             self.metrics.fixes_verified,
             self.fix_success_rate_pct,
             self.metrics.patterns_captured,
-            if self.passed {
-                "✅ PASSED"
-            } else {
-                "❌ FAILED"
-            },
+            if self.passed { "✅ PASSED" } else { "❌ FAILED" },
             self.thresholds.min_hit_rate * 100.0,
             self.thresholds.min_fix_rate * 100.0,
         )

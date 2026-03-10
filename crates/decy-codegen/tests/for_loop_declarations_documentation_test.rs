@@ -527,10 +527,7 @@ fn test_for_declaration_summary() {
     // Rust supports scoped loop variables
     let rust_supports_scoped_vars = true;
 
-    assert!(
-        !c89_supports_for_decl,
-        "C89/K&R did not have for loop declarations"
-    );
+    assert!(!c89_supports_for_decl, "C89/K&R did not have for loop declarations");
     assert!(c99_supports_for_decl, "C99 added for loop declarations");
     assert!(rust_supports_scoped_vars, "Rust loop variables are scoped");
 

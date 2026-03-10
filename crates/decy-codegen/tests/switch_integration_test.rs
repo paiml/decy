@@ -34,9 +34,7 @@ fn test_simple_switch_statement() {
                 value: Some(HirExpression::IntLiteral(1)),
                 body: vec![HirStatement::Return(Some(HirExpression::IntLiteral(10)))],
             }],
-            default_case: Some(vec![HirStatement::Return(Some(HirExpression::IntLiteral(
-                0,
-            )))]),
+            default_case: Some(vec![HirStatement::Return(Some(HirExpression::IntLiteral(0)))]),
         }],
     );
 
@@ -96,9 +94,7 @@ fn test_switch_with_multiple_cases() {
                     body: vec![HirStatement::Return(Some(HirExpression::IntLiteral(300)))],
                 },
             ],
-            default_case: Some(vec![HirStatement::Return(Some(HirExpression::IntLiteral(
-                -1,
-            )))]),
+            default_case: Some(vec![HirStatement::Return(Some(HirExpression::IntLiteral(-1)))]),
         }],
     );
 
@@ -268,9 +264,7 @@ fn test_switch_with_expression_condition() {
                 value: Some(HirExpression::IntLiteral(2)),
                 body: vec![HirStatement::Return(Some(HirExpression::IntLiteral(42)))],
             }],
-            default_case: Some(vec![HirStatement::Return(Some(HirExpression::IntLiteral(
-                0,
-            )))]),
+            default_case: Some(vec![HirStatement::Return(Some(HirExpression::IntLiteral(0)))]),
         }],
     );
 
@@ -306,9 +300,7 @@ fn test_switch_transformation_unsafe_count() {
                     body: vec![HirStatement::Return(Some(HirExpression::IntLiteral(20)))],
                 },
             ],
-            default_case: Some(vec![HirStatement::Return(Some(HirExpression::IntLiteral(
-                0,
-            )))]),
+            default_case: Some(vec![HirStatement::Return(Some(HirExpression::IntLiteral(0)))]),
         }],
     );
 
@@ -317,8 +309,5 @@ fn test_switch_transformation_unsafe_count() {
 
     // Count unsafe blocks (should be 0)
     let unsafe_count = result.matches("unsafe").count();
-    assert_eq!(
-        unsafe_count, 0,
-        "switch → match transformation should not introduce unsafe blocks"
-    );
+    assert_eq!(unsafe_count, 0, "switch → match transformation should not introduce unsafe blocks");
 }

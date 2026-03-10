@@ -279,7 +279,10 @@ int tp_wsdeque_test(void) {
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1703: Output should not be empty");
     assert!(code.contains("fn tp_wsdeque_init"), "C1703: Should contain tp_wsdeque_init");
-    assert!(code.contains("fn tp_wsdeque_push_bottom"), "C1703: Should contain tp_wsdeque_push_bottom");
+    assert!(
+        code.contains("fn tp_wsdeque_push_bottom"),
+        "C1703: Should contain tp_wsdeque_push_bottom"
+    );
     assert!(code.contains("fn tp_wsdeque_steal"), "C1703: Should contain tp_wsdeque_steal");
     Ok(())
 }
@@ -544,8 +547,14 @@ int tp_tpool_test(void) {
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1706: Output should not be empty");
     assert!(code.contains("fn tp_tpool_init"), "C1706: Should contain tp_tpool_init");
-    assert!(code.contains("fn tp_tpool_create_thread"), "C1706: Should contain tp_tpool_create_thread");
-    assert!(code.contains("fn tp_tpool_active_count"), "C1706: Should contain tp_tpool_active_count");
+    assert!(
+        code.contains("fn tp_tpool_create_thread"),
+        "C1706: Should contain tp_tpool_create_thread"
+    );
+    assert!(
+        code.contains("fn tp_tpool_active_count"),
+        "C1706: Should contain tp_tpool_active_count"
+    );
     Ok(())
 }
 
@@ -1229,7 +1238,11 @@ int tp_dep_test(void) {
 }
 "##;
     let result = decy_core::transpile(c_code);
-    assert!(result.is_ok(), "C1714: Dependency graph executor should transpile: {:?}", result.err());
+    assert!(
+        result.is_ok(),
+        "C1714: Dependency graph executor should transpile: {:?}",
+        result.err()
+    );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1714: Output should not be empty");
     assert!(code.contains("fn tp_dep_init"), "C1714: Should contain tp_dep_init");
@@ -1609,7 +1622,10 @@ int tp_barrier_test(void) {
     assert!(!code.is_empty(), "C1719: Output should not be empty");
     assert!(code.contains("fn tp_barrier_init"), "C1719: Should contain tp_barrier_init");
     assert!(code.contains("fn tp_barrier_wait"), "C1719: Should contain tp_barrier_wait");
-    assert!(code.contains("fn tp_barrier_generation"), "C1719: Should contain tp_barrier_generation");
+    assert!(
+        code.contains("fn tp_barrier_generation"),
+        "C1719: Should contain tp_barrier_generation"
+    );
     Ok(())
 }
 
@@ -2052,7 +2068,10 @@ int tp_adaptive_test(void) {
     assert!(!code.is_empty(), "C1724: Output should not be empty");
     assert!(code.contains("fn tp_adaptive_init"), "C1724: Should contain tp_adaptive_init");
     assert!(code.contains("fn tp_adaptive_select"), "C1724: Should contain tp_adaptive_select");
-    assert!(code.contains("fn tp_adaptive_needs_rebalance"), "C1724: Should contain tp_adaptive_needs_rebalance");
+    assert!(
+        code.contains("fn tp_adaptive_needs_rebalance"),
+        "C1724: Should contain tp_adaptive_needs_rebalance"
+    );
     Ok(())
 }
 

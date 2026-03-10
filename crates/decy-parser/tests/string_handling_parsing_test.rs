@@ -23,10 +23,7 @@ fn test_string_literal_detected() {
 
     let var = &ast.variables()[0];
     assert_eq!(var.name(), "msg");
-    assert!(
-        var.is_string_literal(),
-        "Should be recognized as string literal"
-    );
+    assert!(var.is_string_literal(), "Should be recognized as string literal");
 }
 
 #[test]
@@ -45,11 +42,8 @@ fn test_string_buffer_detected() {
     assert_eq!(ast.functions().len(), 1);
     let func = &ast.functions()[0];
 
-    if let decy_parser::parser::Statement::VariableDeclaration {
-        name,
-        var_type,
-        initializer,
-    } = &func.body[0]
+    if let decy_parser::parser::Statement::VariableDeclaration { name, var_type, initializer } =
+        &func.body[0]
     {
         assert_eq!(name, "buffer");
 
@@ -91,18 +85,14 @@ fn test_strlen_function_call_detected() {
     assert!(!func.body.is_empty(), "Should have at least one statement");
 
     // Check the variable declaration statement (first statement)
-    if let decy_parser::parser::Statement::VariableDeclaration {
-        name, initializer, ..
-    } = &func.body[0]
+    if let decy_parser::parser::Statement::VariableDeclaration { name, initializer, .. } =
+        &func.body[0]
     {
         assert_eq!(name, "len");
 
         // Check the initializer expression
         let init = initializer.as_ref().expect("Should have initializer");
-        assert!(
-            init.is_string_function_call(),
-            "Should detect strlen as string function"
-        );
+        assert!(init.is_string_function_call(), "Should detect strlen as string function");
         assert_eq!(init.string_function_name().unwrap(), "strlen");
     } else {
         panic!("Expected variable declaration statement");
@@ -201,10 +191,7 @@ fn test_char_pointer_parameter_analysis() {
 
     let param = &func.parameters[0];
     assert_eq!(param.name, "str");
-    assert!(
-        param.is_const_char_pointer(),
-        "Should recognize const char* parameter"
-    );
+    assert!(param.is_const_char_pointer(), "Should recognize const char* parameter");
 }
 
 #[test]

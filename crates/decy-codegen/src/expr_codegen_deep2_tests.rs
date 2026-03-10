@@ -56,10 +56,7 @@ fn strlen_single_arg_generates_len_cast() {
 #[test]
 fn strlen_no_args_fallback() {
     let c = ctx();
-    let expr = HirExpression::FunctionCall {
-        function: "strlen".to_string(),
-        arguments: vec![],
-    };
+    let expr = HirExpression::FunctionCall { function: "strlen".to_string(), arguments: vec![] };
     let result = expr_no_tt(&expr, &c);
     assert!(
         result.contains("strlen()"),
@@ -118,11 +115,7 @@ fn strcpy_wrong_arg_count_fallback() {
         arguments: vec![HirExpression::Variable("x".to_string())],
     };
     let result = expr_no_tt(&expr, &c);
-    assert!(
-        result.contains("strcpy("),
-        "strcpy with wrong args should fallback, got: {}",
-        result
-    );
+    assert!(result.contains("strcpy("), "strcpy with wrong args should fallback, got: {}", result);
 }
 
 // ============================================================================
@@ -254,10 +247,7 @@ fn malloc_no_target_simple_generates_with_capacity() {
 #[test]
 fn malloc_no_args_generates_vec_new() {
     let c = ctx();
-    let expr = HirExpression::FunctionCall {
-        function: "malloc".to_string(),
-        arguments: vec![],
-    };
+    let expr = HirExpression::FunctionCall { function: "malloc".to_string(), arguments: vec![] };
     let result = expr_no_tt(&expr, &c);
     assert_eq!(result, "Vec::new()");
 }
@@ -272,10 +262,7 @@ fn calloc_with_vec_target() {
     let target = HirType::Vec(Box::new(HirType::Float));
     let expr = HirExpression::FunctionCall {
         function: "calloc".to_string(),
-        arguments: vec![
-            HirExpression::IntLiteral(10),
-            HirExpression::IntLiteral(4),
-        ],
+        arguments: vec![HirExpression::IntLiteral(10), HirExpression::IntLiteral(4)],
     };
     let result = expr_tt(&expr, &c, Some(&target));
     assert!(
@@ -291,10 +278,7 @@ fn calloc_with_pointer_target() {
     let target = HirType::Pointer(Box::new(HirType::Int));
     let expr = HirExpression::FunctionCall {
         function: "calloc".to_string(),
-        arguments: vec![
-            HirExpression::IntLiteral(10),
-            HirExpression::IntLiteral(4),
-        ],
+        arguments: vec![HirExpression::IntLiteral(10), HirExpression::IntLiteral(4)],
     };
     let result = expr_tt(&expr, &c, Some(&target));
     assert!(
@@ -309,10 +293,7 @@ fn calloc_no_target_default() {
     let c = ctx();
     let expr = HirExpression::FunctionCall {
         function: "calloc".to_string(),
-        arguments: vec![
-            HirExpression::Variable("n".to_string()),
-            HirExpression::IntLiteral(4),
-        ],
+        arguments: vec![HirExpression::Variable("n".to_string()), HirExpression::IntLiteral(4)],
     };
     let result = expr_no_tt(&expr, &c);
     assert!(
@@ -325,10 +306,7 @@ fn calloc_no_target_default() {
 #[test]
 fn calloc_wrong_arg_count_fallback() {
     let c = ctx();
-    let expr = HirExpression::FunctionCall {
-        function: "calloc".to_string(),
-        arguments: vec![],
-    };
+    let expr = HirExpression::FunctionCall { function: "calloc".to_string(), arguments: vec![] };
     let result = expr_no_tt(&expr, &c);
     assert_eq!(result, "Vec::new()");
 }
@@ -343,10 +321,7 @@ fn realloc_with_pointer_target_casts_return() {
     let target = HirType::Pointer(Box::new(HirType::Int));
     let expr = HirExpression::FunctionCall {
         function: "realloc".to_string(),
-        arguments: vec![
-            HirExpression::Variable("ptr".to_string()),
-            HirExpression::IntLiteral(200),
-        ],
+        arguments: vec![HirExpression::Variable("ptr".to_string()), HirExpression::IntLiteral(200)],
     };
     let result = expr_tt(&expr, &c, Some(&target));
     assert!(
@@ -361,10 +336,7 @@ fn realloc_without_target_no_cast() {
     let c = ctx();
     let expr = HirExpression::FunctionCall {
         function: "realloc".to_string(),
-        arguments: vec![
-            HirExpression::Variable("ptr".to_string()),
-            HirExpression::IntLiteral(200),
-        ],
+        arguments: vec![HirExpression::Variable("ptr".to_string()), HirExpression::IntLiteral(200)],
     };
     let result = expr_no_tt(&expr, &c);
     // realloc always casts arg to *mut (), but without target it does not cast the return value
@@ -384,10 +356,7 @@ fn realloc_without_target_no_cast() {
 #[test]
 fn realloc_wrong_arg_count_returns_null_mut() {
     let c = ctx();
-    let expr = HirExpression::FunctionCall {
-        function: "realloc".to_string(),
-        arguments: vec![],
-    };
+    let expr = HirExpression::FunctionCall { function: "realloc".to_string(), arguments: vec![] };
     let result = expr_no_tt(&expr, &c);
     assert_eq!(result, "std::ptr::null_mut()");
 }
@@ -410,10 +379,7 @@ fn free_single_arg_generates_drop() {
 #[test]
 fn free_no_args_fallback_comment() {
     let c = ctx();
-    let expr = HirExpression::FunctionCall {
-        function: "free".to_string(),
-        arguments: vec![],
-    };
+    let expr = HirExpression::FunctionCall { function: "free".to_string(), arguments: vec![] };
     let result = expr_no_tt(&expr, &c);
     assert!(
         result.contains("free()"),
@@ -437,11 +403,7 @@ fn fopen_read_mode_generates_open() {
         ],
     };
     let result = expr_no_tt(&expr, &c);
-    assert!(
-        result.contains("File::open"),
-        "fopen(\"r\") should use File::open, got: {}",
-        result
-    );
+    assert!(result.contains("File::open"), "fopen(\"r\") should use File::open, got: {}", result);
 }
 
 #[test]
@@ -483,10 +445,7 @@ fn fopen_append_mode_generates_create() {
 #[test]
 fn fopen_wrong_arg_count_fallback() {
     let c = ctx();
-    let expr = HirExpression::FunctionCall {
-        function: "fopen".to_string(),
-        arguments: vec![],
-    };
+    let expr = HirExpression::FunctionCall { function: "fopen".to_string(), arguments: vec![] };
     let result = expr_no_tt(&expr, &c);
     assert!(
         result.contains("fopen requires 2 args"),
@@ -513,10 +472,7 @@ fn fclose_single_arg_generates_drop() {
 #[test]
 fn fclose_no_args_fallback() {
     let c = ctx();
-    let expr = HirExpression::FunctionCall {
-        function: "fclose".to_string(),
-        arguments: vec![],
-    };
+    let expr = HirExpression::FunctionCall { function: "fclose".to_string(), arguments: vec![] };
     let result = expr_no_tt(&expr, &c);
     assert!(result.contains("fclose()"));
 }
@@ -548,20 +504,13 @@ fn getc_generates_read_pattern() {
         arguments: vec![HirExpression::Variable("fp".to_string())],
     };
     let result = expr_no_tt(&expr, &c);
-    assert!(
-        result.contains("Read"),
-        "getc should generate read pattern, got: {}",
-        result
-    );
+    assert!(result.contains("Read"), "getc should generate read pattern, got: {}", result);
 }
 
 #[test]
 fn fgetc_no_args_fallback() {
     let c = ctx();
-    let expr = HirExpression::FunctionCall {
-        function: "fgetc".to_string(),
-        arguments: vec![],
-    };
+    let expr = HirExpression::FunctionCall { function: "fgetc".to_string(), arguments: vec![] };
     let result = expr_no_tt(&expr, &c);
     assert!(result.contains("fgetc requires 1 arg"));
 }
@@ -599,20 +548,13 @@ fn putc_generates_write_pattern() {
         ],
     };
     let result = expr_no_tt(&expr, &c);
-    assert!(
-        result.contains("Write"),
-        "putc should generate write pattern, got: {}",
-        result
-    );
+    assert!(result.contains("Write"), "putc should generate write pattern, got: {}", result);
 }
 
 #[test]
 fn fputc_wrong_args_fallback() {
     let c = ctx();
-    let expr = HirExpression::FunctionCall {
-        function: "fputc".to_string(),
-        arguments: vec![],
-    };
+    let expr = HirExpression::FunctionCall { function: "fputc".to_string(), arguments: vec![] };
     let result = expr_no_tt(&expr, &c);
     assert!(result.contains("fputc requires 2 args"));
 }
@@ -632,11 +574,7 @@ fn fprintf_with_format_only() {
         ],
     };
     let result = expr_no_tt(&expr, &c);
-    assert!(
-        result.contains("write!"),
-        "fprintf should use write!, got: {}",
-        result
-    );
+    assert!(result.contains("write!"), "fprintf should use write!, got: {}", result);
 }
 
 #[test]
@@ -661,10 +599,7 @@ fn fprintf_with_format_and_args() {
 #[test]
 fn fprintf_wrong_arg_count_fallback() {
     let c = ctx();
-    let expr = HirExpression::FunctionCall {
-        function: "fprintf".to_string(),
-        arguments: vec![],
-    };
+    let expr = HirExpression::FunctionCall { function: "fprintf".to_string(), arguments: vec![] };
     let result = expr_no_tt(&expr, &c);
     assert!(result.contains("fprintf requires 2+ args"));
 }
@@ -681,11 +616,7 @@ fn printf_format_only() {
         arguments: vec![HirExpression::StringLiteral("hello\\n".to_string())],
     };
     let result = expr_no_tt(&expr, &c);
-    assert!(
-        result.contains("print!("),
-        "printf single arg should use print!, got: {}",
-        result
-    );
+    assert!(result.contains("print!("), "printf single arg should use print!, got: {}", result);
 }
 
 #[test]
@@ -709,10 +640,7 @@ fn printf_with_int_arg() {
 #[test]
 fn printf_no_args_generates_empty_print() {
     let c = ctx();
-    let expr = HirExpression::FunctionCall {
-        function: "printf".to_string(),
-        arguments: vec![],
-    };
+    let expr = HirExpression::FunctionCall { function: "printf".to_string(), arguments: vec![] };
     let result = expr_no_tt(&expr, &c);
     assert_eq!(result, "print!(\"\")");
 }
@@ -744,10 +672,7 @@ fn fread_generates_read_pattern() {
 #[test]
 fn fread_wrong_args_fallback() {
     let c = ctx();
-    let expr = HirExpression::FunctionCall {
-        function: "fread".to_string(),
-        arguments: vec![],
-    };
+    let expr = HirExpression::FunctionCall { function: "fread".to_string(), arguments: vec![] };
     let result = expr_no_tt(&expr, &c);
     assert!(result.contains("fread requires 4 args"));
 }
@@ -775,10 +700,7 @@ fn fwrite_generates_write_pattern() {
 #[test]
 fn fwrite_wrong_args_fallback() {
     let c = ctx();
-    let expr = HirExpression::FunctionCall {
-        function: "fwrite".to_string(),
-        arguments: vec![],
-    };
+    let expr = HirExpression::FunctionCall { function: "fwrite".to_string(), arguments: vec![] };
     let result = expr_no_tt(&expr, &c);
     assert!(result.contains("fwrite requires 4 args"));
 }
@@ -794,20 +716,13 @@ fn fputs_generates_write_all() {
         ],
     };
     let result = expr_no_tt(&expr, &c);
-    assert!(
-        result.contains("write_all"),
-        "fputs should use write_all, got: {}",
-        result
-    );
+    assert!(result.contains("write_all"), "fputs should use write_all, got: {}", result);
 }
 
 #[test]
 fn fputs_wrong_args_fallback() {
     let c = ctx();
-    let expr = HirExpression::FunctionCall {
-        function: "fputs".to_string(),
-        arguments: vec![],
-    };
+    let expr = HirExpression::FunctionCall { function: "fputs".to_string(), arguments: vec![] };
     let result = expr_no_tt(&expr, &c);
     assert!(result.contains("fputs requires 2 args"));
 }
@@ -819,10 +734,7 @@ fn fputs_wrong_args_fallback() {
 #[test]
 fn fork_generates_comment() {
     let c = ctx();
-    let expr = HirExpression::FunctionCall {
-        function: "fork".to_string(),
-        arguments: vec![],
-    };
+    let expr = HirExpression::FunctionCall { function: "fork".to_string(), arguments: vec![] };
     let result = expr_no_tt(&expr, &c);
     assert!(
         result.contains("fork") && result.contains("0"),
@@ -844,11 +756,7 @@ fn execl_with_args_generates_command() {
         ],
     };
     let result = expr_no_tt(&expr, &c);
-    assert!(
-        result.contains("Command::new"),
-        "execl should use Command::new, got: {}",
-        result
-    );
+    assert!(result.contains("Command::new"), "execl should use Command::new, got: {}", result);
 }
 
 #[test]
@@ -863,20 +771,13 @@ fn execl_single_arg_command_no_args() {
         ],
     };
     let result = expr_no_tt(&expr, &c);
-    assert!(
-        result.contains("Command::new"),
-        "execlp should use Command::new, got: {}",
-        result
-    );
+    assert!(result.contains("Command::new"), "execlp should use Command::new, got: {}", result);
 }
 
 #[test]
 fn exec_no_args_fallback() {
     let c = ctx();
-    let expr = HirExpression::FunctionCall {
-        function: "execv".to_string(),
-        arguments: vec![],
-    };
+    let expr = HirExpression::FunctionCall { function: "execv".to_string(), arguments: vec![] };
     let result = expr_no_tt(&expr, &c);
     assert!(result.contains("exec requires args"));
 }
@@ -884,10 +785,7 @@ fn exec_no_args_fallback() {
 #[test]
 fn waitpid_generates_child_wait() {
     let c = ctx();
-    let expr = HirExpression::FunctionCall {
-        function: "waitpid".to_string(),
-        arguments: vec![],
-    };
+    let expr = HirExpression::FunctionCall { function: "waitpid".to_string(), arguments: vec![] };
     let result = expr_no_tt(&expr, &c);
     assert!(
         result.contains("child.wait()"),
@@ -899,10 +797,7 @@ fn waitpid_generates_child_wait() {
 #[test]
 fn wait_generates_child_wait() {
     let c = ctx();
-    let expr = HirExpression::FunctionCall {
-        function: "wait".to_string(),
-        arguments: vec![],
-    };
+    let expr = HirExpression::FunctionCall { function: "wait".to_string(), arguments: vec![] };
     let result = expr_no_tt(&expr, &c);
     assert!(result.contains("child.wait()"));
 }
@@ -925,10 +820,8 @@ fn wexitstatus_generates_code() {
 #[test]
 fn wexitstatus_no_args_fallback() {
     let c = ctx();
-    let expr = HirExpression::FunctionCall {
-        function: "WEXITSTATUS".to_string(),
-        arguments: vec![],
-    };
+    let expr =
+        HirExpression::FunctionCall { function: "WEXITSTATUS".to_string(), arguments: vec![] };
     let result = expr_no_tt(&expr, &c);
     assert!(result.contains("WEXITSTATUS requires"));
 }
@@ -947,10 +840,7 @@ fn wifexited_generates_success() {
 #[test]
 fn wifexited_no_args_fallback() {
     let c = ctx();
-    let expr = HirExpression::FunctionCall {
-        function: "WIFEXITED".to_string(),
-        arguments: vec![],
-    };
+    let expr = HirExpression::FunctionCall { function: "WIFEXITED".to_string(), arguments: vec![] };
     let result = expr_no_tt(&expr, &c);
     assert!(result.contains("WIFEXITED requires"));
 }
@@ -969,10 +859,8 @@ fn wifsignaled_generates_signal_check() {
 #[test]
 fn wifsignaled_no_args_fallback() {
     let c = ctx();
-    let expr = HirExpression::FunctionCall {
-        function: "WIFSIGNALED".to_string(),
-        arguments: vec![],
-    };
+    let expr =
+        HirExpression::FunctionCall { function: "WIFSIGNALED".to_string(), arguments: vec![] };
     let result = expr_no_tt(&expr, &c);
     assert!(result.contains("WIFSIGNALED requires"));
 }
@@ -991,10 +879,7 @@ fn wtermsig_generates_signal_value() {
 #[test]
 fn wtermsig_no_args_fallback() {
     let c = ctx();
-    let expr = HirExpression::FunctionCall {
-        function: "WTERMSIG".to_string(),
-        arguments: vec![],
-    };
+    let expr = HirExpression::FunctionCall { function: "WTERMSIG".to_string(), arguments: vec![] };
     let result = expr_no_tt(&expr, &c);
     assert!(result.contains("WTERMSIG requires"));
 }
@@ -1154,10 +1039,7 @@ fn mutable_ref_vec_to_pointer_uses_as_mut_ptr() {
     let mut c = ctx();
     c.add_variable(
         "arr".to_string(),
-        HirType::Reference {
-            inner: Box::new(HirType::Vec(Box::new(HirType::Int))),
-            mutable: true,
-        },
+        HirType::Reference { inner: Box::new(HirType::Vec(Box::new(HirType::Int))), mutable: true },
     );
     let target = HirType::Pointer(Box::new(HirType::Int));
     let expr = HirExpression::Variable("arr".to_string());
@@ -1174,19 +1056,12 @@ fn mutable_ref_single_to_pointer_uses_as_star_mut() {
     let mut c = ctx();
     c.add_variable(
         "val".to_string(),
-        HirType::Reference {
-            inner: Box::new(HirType::Int),
-            mutable: true,
-        },
+        HirType::Reference { inner: Box::new(HirType::Int), mutable: true },
     );
     let target = HirType::Pointer(Box::new(HirType::Int));
     let expr = HirExpression::Variable("val".to_string());
     let result = expr_tt(&expr, &c, Some(&target));
-    assert!(
-        result.contains("as *mut _"),
-        "&mut T to *mut T should cast, got: {}",
-        result
-    );
+    assert!(result.contains("as *mut _"), "&mut T to *mut T should cast, got: {}", result);
 }
 
 #[test]
@@ -1194,10 +1069,7 @@ fn immutable_ref_single_to_pointer_double_cast() {
     let mut c = ctx();
     c.add_variable(
         "val".to_string(),
-        HirType::Reference {
-            inner: Box::new(HirType::Int),
-            mutable: false,
-        },
+        HirType::Reference { inner: Box::new(HirType::Int), mutable: false },
     );
     let target = HirType::Pointer(Box::new(HirType::Int));
     let expr = HirExpression::Variable("val".to_string());
@@ -1218,10 +1090,7 @@ fn array_to_pointer_same_type_uses_as_mut_ptr() {
     let mut c = ctx();
     c.add_variable(
         "buf".to_string(),
-        HirType::Array {
-            element_type: Box::new(HirType::Char),
-            size: Some(256),
-        },
+        HirType::Array { element_type: Box::new(HirType::Char), size: Some(256) },
     );
     let target = HirType::Pointer(Box::new(HirType::Char));
     let expr = HirExpression::Variable("buf".to_string());
@@ -1238,10 +1107,7 @@ fn array_to_void_pointer_uses_as_mut_ptr_cast() {
     let mut c = ctx();
     c.add_variable(
         "buf".to_string(),
-        HirType::Array {
-            element_type: Box::new(HirType::Int),
-            size: Some(10),
-        },
+        HirType::Array { element_type: Box::new(HirType::Int), size: Some(10) },
     );
     let target = HirType::Pointer(Box::new(HirType::Void));
     let expr = HirExpression::Variable("buf".to_string());
@@ -1260,10 +1126,7 @@ fn array_to_void_pointer_uses_as_mut_ptr_cast() {
 #[test]
 fn pointer_variable_to_pointer_target_returns_directly() {
     let mut c = ctx();
-    c.add_variable(
-        "ptr".to_string(),
-        HirType::Pointer(Box::new(HirType::Int)),
-    );
+    c.add_variable("ptr".to_string(), HirType::Pointer(Box::new(HirType::Int)));
     let target = HirType::Pointer(Box::new(HirType::Int));
     let expr = HirExpression::Variable("ptr".to_string());
     let result = expr_tt(&expr, &c, Some(&target));
@@ -1281,11 +1144,7 @@ fn renamed_local_uses_renamed_name() {
     c.add_renamed_local("count".to_string(), "local_count".to_string());
     let expr = HirExpression::Variable("count".to_string());
     let result = expr_no_tt(&expr, &c);
-    assert_eq!(
-        result, "local_count",
-        "Renamed local should use renamed name, got: {}",
-        result
-    );
+    assert_eq!(result, "local_count", "Renamed local should use renamed name, got: {}", result);
 }
 
 // ============================================================================
@@ -1378,11 +1237,7 @@ fn string_method_call_len_casts_to_i32() {
         arguments: vec![],
     };
     let result = expr_no_tt(&expr, &c);
-    assert!(
-        result.contains(".len() as i32"),
-        "len() should cast to i32, got: {}",
-        result
-    );
+    assert!(result.contains(".len() as i32"), "len() should cast to i32, got: {}", result);
 }
 
 #[test]
@@ -1406,11 +1261,7 @@ fn string_method_call_clone_into_adds_mut() {
         arguments: vec![HirExpression::Variable("dest".to_string())],
     };
     let result = expr_no_tt(&expr, &c);
-    assert!(
-        result.contains("&mut dest"),
-        "clone_into should add &mut, got: {}",
-        result
-    );
+    assert!(result.contains("&mut dest"), "clone_into should add &mut, got: {}", result);
 }
 
 #[test]
@@ -1551,11 +1402,7 @@ fn bitwise_and_with_bool_right_casts_to_i32() {
         }),
     };
     let result = expr_no_tt(&expr, &c);
-    assert!(
-        result.contains("as i32"),
-        "Bitwise & with bool operand should cast, got: {}",
-        result
-    );
+    assert!(result.contains("as i32"), "Bitwise & with bool operand should cast, got: {}", result);
 }
 
 #[test]
@@ -1684,10 +1531,7 @@ fn assignment_expression_global_array_index() {
     let mut c = ctx();
     c.add_variable(
         "g_arr".to_string(),
-        HirType::Array {
-            element_type: Box::new(HirType::Int),
-            size: Some(10),
-        },
+        HirType::Array { element_type: Box::new(HirType::Int), size: Some(10) },
     );
     c.add_global("g_arr".to_string());
     let expr = HirExpression::BinaryOp {
@@ -1814,11 +1658,7 @@ fn vec_equal_null_is_false() {
         right: Box::new(HirExpression::NullLiteral),
     };
     let result = expr_no_tt(&expr, &c);
-    assert!(
-        result.contains("false"),
-        "Vec == null should be false, got: {}",
-        result
-    );
+    assert!(result.contains("false"), "Vec == null should be false, got: {}", result);
 }
 
 #[test]
@@ -1831,11 +1671,7 @@ fn vec_not_equal_zero_is_true() {
         right: Box::new(HirExpression::IntLiteral(0)),
     };
     let result = expr_no_tt(&expr, &c);
-    assert!(
-        result.contains("true"),
-        "Vec != 0 should be true, got: {}",
-        result
-    );
+    assert!(result.contains("true"), "Vec != 0 should be true, got: {}", result);
 }
 
 // ============================================================================
@@ -1874,9 +1710,9 @@ fn cast_address_of_to_int_uses_pointer_chain() {
     let c = ctx();
     let expr = HirExpression::Cast {
         target_type: HirType::Int,
-        expr: Box::new(HirExpression::AddressOf(Box::new(
-            HirExpression::Variable("x".to_string()),
-        ))),
+        expr: Box::new(HirExpression::AddressOf(Box::new(HirExpression::Variable(
+            "x".to_string(),
+        )))),
     };
     let result = expr_no_tt(&expr, &c);
     assert!(
@@ -1951,28 +1787,18 @@ fn compound_literal_struct_empty_init() {
 fn compound_literal_array_single_init_repeats() {
     let c = ctx();
     let expr = HirExpression::CompoundLiteral {
-        literal_type: HirType::Array {
-            element_type: Box::new(HirType::Int),
-            size: Some(5),
-        },
+        literal_type: HirType::Array { element_type: Box::new(HirType::Int), size: Some(5) },
         initializers: vec![HirExpression::IntLiteral(0)],
     };
     let result = expr_no_tt(&expr, &c);
-    assert!(
-        result.contains("[0; 5]"),
-        "Single init with size should repeat, got: {}",
-        result
-    );
+    assert!(result.contains("[0; 5]"), "Single init with size should repeat, got: {}", result);
 }
 
 #[test]
 fn compound_literal_array_partial_init_pads() {
     let c = ctx();
     let expr = HirExpression::CompoundLiteral {
-        literal_type: HirType::Array {
-            element_type: Box::new(HirType::Int),
-            size: Some(4),
-        },
+        literal_type: HirType::Array { element_type: Box::new(HirType::Int), size: Some(4) },
         initializers: vec![HirExpression::IntLiteral(1), HirExpression::IntLiteral(2)],
     };
     let result = expr_no_tt(&expr, &c);
@@ -1987,10 +1813,7 @@ fn compound_literal_array_partial_init_pads() {
 fn compound_literal_array_empty_with_size() {
     let c = ctx();
     let expr = HirExpression::CompoundLiteral {
-        literal_type: HirType::Array {
-            element_type: Box::new(HirType::Double),
-            size: Some(3),
-        },
+        literal_type: HirType::Array { element_type: Box::new(HirType::Double), size: Some(3) },
         initializers: vec![],
     };
     let result = expr_no_tt(&expr, &c);
@@ -2005,10 +1828,7 @@ fn compound_literal_array_empty_with_size() {
 fn compound_literal_array_no_size_empty() {
     let c = ctx();
     let expr = HirExpression::CompoundLiteral {
-        literal_type: HirType::Array {
-            element_type: Box::new(HirType::Int),
-            size: None,
-        },
+        literal_type: HirType::Array { element_type: Box::new(HirType::Int), size: None },
         initializers: vec![],
     };
     let result = expr_no_tt(&expr, &c);
@@ -2065,11 +1885,7 @@ fn ternary_non_boolean_condition_adds_not_eq_zero() {
         else_expr: Box::new(HirExpression::IntLiteral(0)),
     };
     let result = expr_no_tt(&expr, &c);
-    assert!(
-        result.contains("!= 0"),
-        "Non-boolean condition should add != 0, got: {}",
-        result
-    );
+    assert!(result.contains("!= 0"), "Non-boolean condition should add != 0, got: {}", result);
 }
 
 // ============================================================================
@@ -2095,9 +1911,8 @@ fn post_increment_pointer_uses_wrapping_add() {
 fn pre_increment_pointer_uses_wrapping_add() {
     let mut c = ctx();
     c.add_variable("p".to_string(), HirType::Pointer(Box::new(HirType::Int)));
-    let expr = HirExpression::PreIncrement {
-        operand: Box::new(HirExpression::Variable("p".to_string())),
-    };
+    let expr =
+        HirExpression::PreIncrement { operand: Box::new(HirExpression::Variable("p".to_string())) };
     let result = expr_no_tt(&expr, &c);
     assert!(
         result.contains("wrapping_add(1)"),
@@ -2125,9 +1940,8 @@ fn post_decrement_pointer_uses_wrapping_sub() {
 fn pre_decrement_pointer_uses_wrapping_sub() {
     let mut c = ctx();
     c.add_variable("p".to_string(), HirType::Pointer(Box::new(HirType::Int)));
-    let expr = HirExpression::PreDecrement {
-        operand: Box::new(HirExpression::Variable("p".to_string())),
-    };
+    let expr =
+        HirExpression::PreDecrement { operand: Box::new(HirExpression::Variable("p".to_string())) };
     let result = expr_no_tt(&expr, &c);
     assert!(
         result.contains("wrapping_sub(1)"),
@@ -2145,9 +1959,9 @@ fn post_increment_deref_pointer_unsafe() {
     let mut c = ctx();
     c.add_variable("p".to_string(), HirType::Pointer(Box::new(HirType::Int)));
     let expr = HirExpression::PostIncrement {
-        operand: Box::new(HirExpression::Dereference(Box::new(
-            HirExpression::Variable("p".to_string()),
-        ))),
+        operand: Box::new(HirExpression::Dereference(Box::new(HirExpression::Variable(
+            "p".to_string(),
+        )))),
     };
     let result = expr_no_tt(&expr, &c);
     assert!(
@@ -2162,9 +1976,9 @@ fn pre_increment_deref_pointer_unsafe() {
     let mut c = ctx();
     c.add_variable("p".to_string(), HirType::Pointer(Box::new(HirType::Int)));
     let expr = HirExpression::PreIncrement {
-        operand: Box::new(HirExpression::Dereference(Box::new(
-            HirExpression::Variable("p".to_string()),
-        ))),
+        operand: Box::new(HirExpression::Dereference(Box::new(HirExpression::Variable(
+            "p".to_string(),
+        )))),
     };
     let result = expr_no_tt(&expr, &c);
     assert!(
@@ -2179,9 +1993,9 @@ fn post_decrement_deref_pointer_unsafe() {
     let mut c = ctx();
     c.add_variable("p".to_string(), HirType::Pointer(Box::new(HirType::Int)));
     let expr = HirExpression::PostDecrement {
-        operand: Box::new(HirExpression::Dereference(Box::new(
-            HirExpression::Variable("p".to_string()),
-        ))),
+        operand: Box::new(HirExpression::Dereference(Box::new(HirExpression::Variable(
+            "p".to_string(),
+        )))),
     };
     let result = expr_no_tt(&expr, &c);
     assert!(
@@ -2196,9 +2010,9 @@ fn pre_decrement_deref_pointer_unsafe() {
     let mut c = ctx();
     c.add_variable("p".to_string(), HirType::Pointer(Box::new(HirType::Int)));
     let expr = HirExpression::PreDecrement {
-        operand: Box::new(HirExpression::Dereference(Box::new(
-            HirExpression::Variable("p".to_string()),
-        ))),
+        operand: Box::new(HirExpression::Dereference(Box::new(HirExpression::Variable(
+            "p".to_string(),
+        )))),
     };
     let result = expr_no_tt(&expr, &c);
     assert!(
@@ -2243,11 +2057,7 @@ fn logical_not_bool_with_int_target_casts() {
         }),
     };
     let result = expr_tt(&expr, &c, Some(&HirType::Int));
-    assert!(
-        result.contains("as i32"),
-        "!bool with Int target should cast, got: {}",
-        result
-    );
+    assert!(result.contains("as i32"), "!bool with Int target should cast, got: {}", result);
 }
 
 #[test]
@@ -2310,10 +2120,7 @@ fn dereference_string_iter_param_uses_index() {
     c.add_string_iter_param("dest".to_string(), "dest_idx".to_string());
     let expr = HirExpression::Dereference(Box::new(HirExpression::Variable("dest".to_string())));
     let result = expr_no_tt(&expr, &c);
-    assert_eq!(
-        result, "dest[dest_idx]",
-        "Deref of string iter should use index, got: {result}",
-    );
+    assert_eq!(result, "dest[dest_idx]", "Deref of string iter should use index, got: {result}",);
 }
 
 // ============================================================================
@@ -2370,10 +2177,7 @@ fn function_named_read_gets_renamed() {
 #[test]
 fn function_named_type_gets_renamed() {
     let c = ctx();
-    let expr = HirExpression::FunctionCall {
-        function: "type".to_string(),
-        arguments: vec![],
-    };
+    let expr = HirExpression::FunctionCall { function: "type".to_string(), arguments: vec![] };
     let result = expr_no_tt(&expr, &c);
     assert!(
         result.contains("c_type("),
@@ -2612,11 +2416,7 @@ fn calloc_hir_expr_signed_char_default() {
         element_type: Box::new(HirType::SignedChar),
     };
     let result = expr_no_tt(&expr, &c);
-    assert!(
-        result.contains("0i8"),
-        "Calloc with SignedChar should use 0i8, got: {}",
-        result
-    );
+    assert!(result.contains("0i8"), "Calloc with SignedChar should use 0i8, got: {}", result);
 }
 
 #[test]
@@ -2627,11 +2427,7 @@ fn calloc_hir_expr_double_default() {
         element_type: Box::new(HirType::Double),
     };
     let result = expr_no_tt(&expr, &c);
-    assert!(
-        result.contains("0.0f64"),
-        "Calloc with Double should use 0.0f64, got: {}",
-        result
-    );
+    assert!(result.contains("0.0f64"), "Calloc with Double should use 0.0f64, got: {}", result);
 }
 
 // ============================================================================
@@ -2659,9 +2455,7 @@ fn malloc_hir_expr_multiply_generates_vec_with_capacity() {
 #[test]
 fn malloc_hir_expr_simple_generates_box_new() {
     let c = ctx();
-    let expr = HirExpression::Malloc {
-        size: Box::new(HirExpression::IntLiteral(4)),
-    };
+    let expr = HirExpression::Malloc { size: Box::new(HirExpression::IntLiteral(4)) };
     let result = expr_no_tt(&expr, &c);
     assert_eq!(result, "Box::new(0i32)");
 }
@@ -2708,11 +2502,7 @@ fn realloc_hir_non_null_returns_pointer() {
         new_size: Box::new(HirExpression::IntLiteral(200)),
     };
     let result = expr_no_tt(&expr, &c);
-    assert!(
-        result.contains("buf"),
-        "realloc non-null should return pointer, got: {}",
-        result
-    );
+    assert!(result.contains("buf"), "realloc non-null should return pointer, got: {}", result);
 }
 
 // ============================================================================
@@ -2737,11 +2527,7 @@ fn logical_and_with_bool_operands_no_conversion() {
     };
     let result = expr_no_tt(&expr, &c);
     // Both operands are already boolean, so no != 0 conversion needed
-    assert!(
-        !result.contains("!= 0"),
-        "Bool operands should not get != 0, got: {}",
-        result
-    );
+    assert!(!result.contains("!= 0"), "Bool operands should not get != 0, got: {}", result);
 }
 
 // ============================================================================
@@ -2752,9 +2538,7 @@ fn logical_and_with_bool_operands_no_conversion() {
 fn sizeof_known_variable_uses_size_of_val() {
     let mut c = ctx();
     c.add_variable("x".to_string(), HirType::Int);
-    let expr = HirExpression::Sizeof {
-        type_name: "x".to_string(),
-    };
+    let expr = HirExpression::Sizeof { type_name: "x".to_string() };
     let result = expr_no_tt(&expr, &c);
     assert!(
         result.contains("size_of_val(&x)"),
@@ -2766,15 +2550,9 @@ fn sizeof_known_variable_uses_size_of_val() {
 #[test]
 fn sizeof_unknown_type_uses_size_of() {
     let c = ctx();
-    let expr = HirExpression::Sizeof {
-        type_name: "int".to_string(),
-    };
+    let expr = HirExpression::Sizeof { type_name: "int".to_string() };
     let result = expr_no_tt(&expr, &c);
-    assert!(
-        result.contains("size_of::<"),
-        "sizeof(type) should use size_of, got: {}",
-        result
-    );
+    assert!(result.contains("size_of::<"), "sizeof(type) should use size_of, got: {}", result);
 }
 
 // ============================================================================

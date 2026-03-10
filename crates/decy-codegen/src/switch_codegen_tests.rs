@@ -42,9 +42,7 @@ fn test_generate_switch_with_multiple_cases() {
                 body: vec![HirStatement::Return(Some(HirExpression::IntLiteral(2)))],
             },
         ],
-        default_case: Some(vec![HirStatement::Return(Some(HirExpression::IntLiteral(
-            0,
-        )))]),
+        default_case: Some(vec![HirStatement::Return(Some(HirExpression::IntLiteral(0)))]),
     };
 
     let codegen = CodeGenerator::new();
@@ -198,9 +196,7 @@ fn test_generate_switch_with_return() {
             value: Some(HirExpression::IntLiteral(1)),
             body: vec![HirStatement::Return(Some(HirExpression::IntLiteral(42)))],
         }],
-        default_case: Some(vec![HirStatement::Return(Some(HirExpression::IntLiteral(
-            0,
-        )))]),
+        default_case: Some(vec![HirStatement::Return(Some(HirExpression::IntLiteral(0)))]),
     };
 
     let codegen = CodeGenerator::new();

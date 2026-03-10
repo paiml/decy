@@ -106,10 +106,7 @@ fn test_sizeof_pointer_types() {
     assert_eq!(int_ptr_size, char_ptr_size, "All pointers same size");
 
     // Platform-specific: 4 bytes (32-bit) or 8 bytes (64-bit)
-    assert!(
-        int_ptr_size == 4 || int_ptr_size == 8,
-        "Pointer size should be 4 or 8 bytes"
-    );
+    assert!(int_ptr_size == 4 || int_ptr_size == 8, "Pointer size should be 4 or 8 bytes");
 
     // Verify pointer size matches usize
     assert_eq!(int_ptr_size, size_of::<usize>());
@@ -128,11 +125,7 @@ fn test_sizeof_array_types() {
 
     // C int[10] → Rust [i32; 10]
     let array_size = size_of::<[i32; 10]>();
-    assert_eq!(
-        array_size,
-        10 * size_of::<i32>(),
-        "Array size = element_size * count"
-    );
+    assert_eq!(array_size, 10 * size_of::<i32>(), "Array size = element_size * count");
 
     // C char[256] → Rust [u8; 256]
     let char_array_size = size_of::<[u8; 256]>();
@@ -247,10 +240,7 @@ fn test_sizeof_packed_struct() {
     }
 
     let packed_size = size_of::<Packed>();
-    assert_eq!(
-        packed_size, 5,
-        "Packed struct: 1 + 4 = 5 bytes (no padding)"
-    );
+    assert_eq!(packed_size, 5, "Packed struct: 1 + 4 = 5 bytes (no padding)");
 
     // Compare with unpacked
     #[repr(C)]
@@ -280,10 +270,7 @@ fn test_sizeof_tuple_types() {
 
     // Tuple with different types (may have padding)
     let mixed_tuple_size = size_of::<(u8, i32)>();
-    assert_eq!(
-        mixed_tuple_size, 8,
-        "Tuple (u8, i32) = 8 bytes with padding"
-    );
+    assert_eq!(mixed_tuple_size, 8, "Tuple (u8, i32) = 8 bytes with padding");
 }
 
 /// Test sizeof with enum types (C vs Rust difference)
@@ -317,10 +304,7 @@ fn test_sizeof_enum_types() {
     }
 
     let result_i32_size = size_of::<Result<i32>>();
-    assert!(
-        result_i32_size >= 4,
-        "Result<i32> includes discriminant + data"
-    );
+    assert!(result_i32_size >= 4, "Result<i32> includes discriminant + data");
 }
 
 /// Test sizeof with Option types (Rust-specific optimization)
@@ -341,18 +325,12 @@ fn test_sizeof_option_types() {
     // Option<&T> uses null pointer optimization
     let option_ref_size = size_of::<Option<&i32>>();
     let ref_size = size_of::<&i32>();
-    assert_eq!(
-        option_ref_size, ref_size,
-        "Option<&T> same size as &T (null pointer optimization)"
-    );
+    assert_eq!(option_ref_size, ref_size, "Option<&T> same size as &T (null pointer optimization)");
 
     // Option<Box<T>> also uses null pointer optimization
     let option_box_size = size_of::<Option<Box<i32>>>();
     let box_size = size_of::<Box<i32>>();
-    assert_eq!(
-        option_box_size, box_size,
-        "Option<Box<T>> same size as Box<T>"
-    );
+    assert_eq!(option_box_size, box_size, "Option<Box<T>> same size as Box<T>");
 }
 
 /// Test sizeof with Box (heap-allocated, but pointer-sized)
@@ -373,10 +351,7 @@ fn test_sizeof_box_types() {
 
     // Even for large types, Box is still pointer-sized
     let box_large_size = size_of::<Box<[i32; 1000]>>();
-    assert_eq!(
-        box_large_size, ptr_size,
-        "Box<[i32; 1000]> is still pointer-sized"
-    );
+    assert_eq!(box_large_size, ptr_size, "Box<[i32; 1000]> is still pointer-sized");
 }
 
 /// Test sizeof with Vec (size of vector struct, not elements)
@@ -458,20 +433,12 @@ fn test_sizeof_array_expression() {
 
     let arr: [i32; 10] = [0; 10];
     let array_size = size_of_val(&arr);
-    assert_eq!(
-        array_size,
-        10 * size_of::<i32>(),
-        "sizeof(arr) = total array size"
-    );
+    assert_eq!(array_size, 10 * size_of::<i32>(), "sizeof(arr) = total array size");
 
     // Not the size of the pointer!
     let ptr: &[i32] = &arr;
     let slice_size = size_of_val(ptr);
-    assert_eq!(
-        slice_size,
-        10 * size_of::<i32>(),
-        "Slice reference points to full array"
-    );
+    assert_eq!(slice_size, 10 * size_of::<i32>(), "Slice reference points to full array");
 }
 
 /// Test sizeof with multidimensional arrays
@@ -487,11 +454,7 @@ fn test_sizeof_multidimensional_array() {
 
     let matrix: [[i32; 4]; 3] = [[0; 4]; 3];
     let matrix_size = size_of_val(&matrix);
-    assert_eq!(
-        matrix_size,
-        3 * 4 * size_of::<i32>(),
-        "Matrix size = rows * cols * element_size"
-    );
+    assert_eq!(matrix_size, 3 * 4 * size_of::<i32>(), "Matrix size = rows * cols * element_size");
 }
 
 /// Test sizeof with zero-sized types (Rust-specific)
@@ -597,10 +560,7 @@ fn test_sizeof_return_type() {
     // usize is word-sized
     let usize_size = size_of::<usize>();
     let ptr_size = size_of::<*const ()>();
-    assert_eq!(
-        usize_size, ptr_size,
-        "usize is word-sized (same as pointer)"
-    );
+    assert_eq!(usize_size, ptr_size, "usize is word-sized (same as pointer)");
 }
 
 /// Verify that sizeof transformation introduces no unsafe blocks
@@ -623,10 +583,7 @@ fn test_sizeof_transformation_unsafe_count() {
 
     // Count unsafe blocks (should be 0)
     let unsafe_count = combined.matches("unsafe").count();
-    assert_eq!(
-        unsafe_count, 0,
-        "sizeof transformation should not introduce unsafe blocks"
-    );
+    assert_eq!(unsafe_count, 0, "sizeof transformation should not introduce unsafe blocks");
 }
 
 /// Summary of sizeof transformation edge cases
@@ -694,10 +651,7 @@ fn test_sizeof_edge_cases_summary() {
 
     // Rule 6: No unsafe needed
     let unsafe_blocks = 0;
-    assert_eq!(
-        unsafe_blocks, 0,
-        "sizeof transformation introduces 0 unsafe blocks"
-    );
+    assert_eq!(unsafe_blocks, 0, "sizeof transformation introduces 0 unsafe blocks");
 }
 
 //

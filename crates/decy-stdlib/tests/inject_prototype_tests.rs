@@ -49,11 +49,7 @@ fn test_every_header_has_common_preamble_size_t() {
     let stdlib = StdlibPrototypes::new();
     for header in all_headers() {
         let result = stdlib.inject_prototypes_for_header(header);
-        assert!(
-            result.contains("typedef unsigned long size_t;"),
-            "{:?} missing size_t",
-            header
-        );
+        assert!(result.contains("typedef unsigned long size_t;"), "{:?} missing size_t", header);
     }
 }
 
@@ -62,11 +58,7 @@ fn test_every_header_has_common_preamble_ssize_t() {
     let stdlib = StdlibPrototypes::new();
     for header in all_headers() {
         let result = stdlib.inject_prototypes_for_header(header);
-        assert!(
-            result.contains("typedef long ssize_t;"),
-            "{:?} missing ssize_t",
-            header
-        );
+        assert!(result.contains("typedef long ssize_t;"), "{:?} missing ssize_t", header);
     }
 }
 
@@ -75,11 +67,7 @@ fn test_every_header_has_common_preamble_ptrdiff_t() {
     let stdlib = StdlibPrototypes::new();
     for header in all_headers() {
         let result = stdlib.inject_prototypes_for_header(header);
-        assert!(
-            result.contains("typedef long ptrdiff_t;"),
-            "{:?} missing ptrdiff_t",
-            header
-        );
+        assert!(result.contains("typedef long ptrdiff_t;"), "{:?} missing ptrdiff_t", header);
     }
 }
 
@@ -88,11 +76,7 @@ fn test_every_header_has_null_macro() {
     let stdlib = StdlibPrototypes::new();
     for header in all_headers() {
         let result = stdlib.inject_prototypes_for_header(header);
-        assert!(
-            result.contains("#define NULL 0"),
-            "{:?} missing NULL macro",
-            header
-        );
+        assert!(result.contains("#define NULL 0"), "{:?} missing NULL macro", header);
     }
 }
 
@@ -101,11 +85,7 @@ fn test_every_header_has_iso_c99_comment() {
     let stdlib = StdlibPrototypes::new();
     for header in all_headers() {
         let result = stdlib.inject_prototypes_for_header(header);
-        assert!(
-            result.contains("ISO C99"),
-            "{:?} missing ISO C99 reference",
-            header
-        );
+        assert!(result.contains("ISO C99"), "{:?} missing ISO C99 reference", header);
     }
 }
 
@@ -551,11 +531,7 @@ fn test_output_ends_with_newline_after_functions() {
     let stdlib = StdlibPrototypes::new();
     for header in all_headers() {
         let result = stdlib.inject_prototypes_for_header(header);
-        assert!(
-            result.ends_with('\n'),
-            "{:?} output should end with newline",
-            header
-        );
+        assert!(result.ends_with('\n'), "{:?} output should end with newline", header);
     }
 }
 

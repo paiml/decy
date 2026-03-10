@@ -169,10 +169,7 @@ impl OutputParamDetector {
             }
 
             // Variable declarations can read from parameters
-            HirStatement::VariableDeclaration {
-                initializer: Some(expr),
-                ..
-            } => {
+            HirStatement::VariableDeclaration { initializer: Some(expr), .. } => {
                 Self::analyze_expression_internal(expr, reads);
             }
 
@@ -187,11 +184,7 @@ impl OutputParamDetector {
             }
 
             // Control flow statements
-            HirStatement::If {
-                condition,
-                then_block,
-                else_block,
-            } => {
+            HirStatement::If { condition, then_block, else_block } => {
                 Self::analyze_expression_internal(condition, reads);
                 for s in then_block {
                     Self::analyze_statement_internal(s, reads, writes);
@@ -210,12 +203,7 @@ impl OutputParamDetector {
                 }
             }
 
-            HirStatement::For {
-                init,
-                condition,
-                increment,
-                body,
-            } => {
+            HirStatement::For { init, condition, increment, body } => {
                 // DECY-224: Handle multiple init statements
                 for init_stmt in init {
                     Self::analyze_statement_internal(init_stmt, reads, writes);
@@ -232,11 +220,7 @@ impl OutputParamDetector {
                 }
             }
 
-            HirStatement::Switch {
-                condition,
-                cases,
-                default_case,
-            } => {
+            HirStatement::Switch { condition, cases, default_case } => {
                 Self::analyze_expression_internal(condition, reads);
                 for case in cases {
                     for s in &case.body {
@@ -295,19 +279,13 @@ impl OutputParamDetector {
 
             // Field access
             HirExpression::FieldAccess { object, .. }
-            | HirExpression::PointerFieldAccess {
-                pointer: object, ..
-            } => {
+            | HirExpression::PointerFieldAccess { pointer: object, .. } => {
                 Self::analyze_expression_internal(object, reads);
             }
 
             // Array indexing
             HirExpression::ArrayIndex { array, index }
-            | HirExpression::SliceIndex {
-                slice: array,
-                index,
-                ..
-            } => {
+            | HirExpression::SliceIndex { slice: array, index, .. } => {
                 Self::analyze_expression_internal(array, reads);
                 Self::analyze_expression_internal(index, reads);
             }

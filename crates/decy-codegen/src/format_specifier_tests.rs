@@ -101,10 +101,7 @@ fn test_format_float_with_precision() {
 
 #[test]
 fn test_format_float_with_width_and_precision() {
-    assert_eq!(
-        CodeGenerator::convert_format_specifiers("%8.2f"),
-        "{:8.2}"
-    );
+    assert_eq!(CodeGenerator::convert_format_specifiers("%8.2f"), "{:8.2}");
 }
 
 #[test]
@@ -114,10 +111,7 @@ fn test_format_float_with_width_only() {
 
 #[test]
 fn test_format_float_with_zero_pad_width_precision() {
-    assert_eq!(
-        CodeGenerator::convert_format_specifiers("%010.3f"),
-        "{:010.3}"
-    );
+    assert_eq!(CodeGenerator::convert_format_specifiers("%010.3f"), "{:010.3}");
 }
 
 #[test]
@@ -179,10 +173,7 @@ fn test_format_percent_literal() {
 
 #[test]
 fn test_format_percent_in_text() {
-    assert_eq!(
-        CodeGenerator::convert_format_specifiers("100%%"),
-        "100%"
-    );
+    assert_eq!(CodeGenerator::convert_format_specifiers("100%%"), "100%");
 }
 
 // ============================================================================
@@ -223,18 +214,12 @@ fn test_format_mixed_specifiers() {
 
 #[test]
 fn test_format_hex_dump_pattern() {
-    assert_eq!(
-        CodeGenerator::convert_format_specifiers("%02x %02x"),
-        "{:02x} {:02x}"
-    );
+    assert_eq!(CodeGenerator::convert_format_specifiers("%02x %02x"), "{:02x} {:02x}");
 }
 
 #[test]
 fn test_format_no_specifiers() {
-    assert_eq!(
-        CodeGenerator::convert_format_specifiers("hello world"),
-        "hello world"
-    );
+    assert_eq!(CodeGenerator::convert_format_specifiers("hello world"), "hello world");
 }
 
 #[test]

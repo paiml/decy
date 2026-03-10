@@ -67,11 +67,7 @@ fn test_string_buffer_safe_size() {
     assert!(result.contains("fn main"), "Should have main function");
 
     let unsafe_count = result.matches("unsafe").count();
-    assert!(
-        unsafe_count <= 5,
-        "String buffer should minimize unsafe (found {})",
-        unsafe_count
-    );
+    assert!(unsafe_count <= 5, "String buffer should minimize unsafe (found {})", unsafe_count);
 }
 
 // ============================================================================
@@ -100,11 +96,7 @@ fn test_array_index_validation() {
     assert!(result.contains("fn main"), "Should have main function");
 
     let unsafe_count = result.matches("unsafe").count();
-    assert!(
-        unsafe_count <= 4,
-        "Index validation should minimize unsafe (found {})",
-        unsafe_count
-    );
+    assert!(unsafe_count <= 4, "Index validation should minimize unsafe (found {})", unsafe_count);
 }
 
 #[test]
@@ -165,11 +157,7 @@ fn test_2d_array_access() {
     assert!(result.contains("fn main"), "Should have main function");
 
     let unsafe_count = result.matches("unsafe").count();
-    assert!(
-        unsafe_count <= 6,
-        "2D array access should minimize unsafe (found {})",
-        unsafe_count
-    );
+    assert!(unsafe_count <= 6, "2D array access should minimize unsafe (found {})", unsafe_count);
 }
 
 // ============================================================================
@@ -202,11 +190,7 @@ fn test_manual_buffer_copy() {
     assert!(result.contains("fn main"), "Should have main function");
 
     let unsafe_count = result.matches("unsafe").count();
-    assert!(
-        unsafe_count <= 6,
-        "Buffer copy should minimize unsafe (found {})",
-        unsafe_count
-    );
+    assert!(unsafe_count <= 6, "Buffer copy should minimize unsafe (found {})", unsafe_count);
 }
 
 #[test]
@@ -236,11 +220,7 @@ fn test_partial_buffer_copy() {
     assert!(result.contains("fn main"), "Should have main function");
 
     let unsafe_count = result.matches("unsafe").count();
-    assert!(
-        unsafe_count <= 7,
-        "Partial copy should minimize unsafe (found {})",
-        unsafe_count
-    );
+    assert!(unsafe_count <= 7, "Partial copy should minimize unsafe (found {})", unsafe_count);
 }
 
 // ============================================================================
@@ -365,11 +345,7 @@ fn test_variable_size_array() {
     assert!(result.contains("fn main"), "Should have main function");
 
     let unsafe_count = result.matches("unsafe").count();
-    assert!(
-        unsafe_count <= 5,
-        "Variable size should minimize unsafe (found {})",
-        unsafe_count
-    );
+    assert!(unsafe_count <= 5, "Variable size should minimize unsafe (found {})", unsafe_count);
 }
 
 // ============================================================================
@@ -404,11 +380,7 @@ fn test_struct_with_array() {
     assert!(result.contains("fn main"), "Should have main function");
 
     let unsafe_count = result.matches("unsafe").count();
-    assert!(
-        unsafe_count <= 5,
-        "Struct with array should minimize unsafe (found {})",
-        unsafe_count
-    );
+    assert!(unsafe_count <= 5, "Struct with array should minimize unsafe (found {})", unsafe_count);
 }
 
 // ============================================================================
@@ -441,11 +413,7 @@ fn test_nested_array_access() {
     assert!(result.contains("fn main"), "Should have main function");
 
     let unsafe_count = result.matches("unsafe").count();
-    assert!(
-        unsafe_count <= 7,
-        "Nested arrays should minimize unsafe (found {})",
-        unsafe_count
-    );
+    assert!(unsafe_count <= 7, "Nested arrays should minimize unsafe (found {})", unsafe_count);
 }
 
 // ============================================================================
@@ -522,11 +490,8 @@ fn test_unsafe_block_count_target() {
     let unsafe_count = result.matches("unsafe").count();
     let lines_of_code = result.lines().count();
 
-    let unsafe_per_1000 = if lines_of_code > 0 {
-        (unsafe_count as f64 / lines_of_code as f64) * 1000.0
-    } else {
-        0.0
-    };
+    let unsafe_per_1000 =
+        if lines_of_code > 0 { (unsafe_count as f64 / lines_of_code as f64) * 1000.0 } else { 0.0 };
 
     // Target: <=100 unsafe per 1000 LOC for buffer overflow prevention
     assert!(
@@ -598,9 +563,5 @@ fn test_buffer_overflow_safety_documentation() {
 
     // If unsafe blocks exist, they should be minimal
     let unsafe_count = result.matches("unsafe").count();
-    assert!(
-        unsafe_count < 10,
-        "Should have minimal unsafe blocks (found {})",
-        unsafe_count
-    );
+    assert!(unsafe_count < 10, "Should have minimal unsafe blocks (found {})", unsafe_count);
 }

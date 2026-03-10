@@ -99,11 +99,7 @@ impl CompileMetrics {
     /// Generate a markdown report of the metrics.
     pub fn to_markdown(&self) -> String {
         let rate_pct = self.success_rate() * 100.0;
-        let target_status = if self.meets_target(0.80) {
-            "✅ PASS"
-        } else {
-            "❌ FAIL"
-        };
+        let target_status = if self.meets_target(0.80) { "✅ PASS" } else { "❌ FAIL" };
 
         let mut report = format!(
             "## Compile Success Rate Metrics\n\n\
@@ -184,22 +180,12 @@ pub struct TranspilationResult {
 impl TranspilationResult {
     /// Create a successful result.
     pub fn success(rust_code: String) -> Self {
-        Self {
-            rust_code,
-            compiles: true,
-            errors: Vec::new(),
-            warnings: 0,
-        }
+        Self { rust_code, compiles: true, errors: Vec::new(), warnings: 0 }
     }
 
     /// Create a failed result with errors.
     pub fn failure(rust_code: String, errors: Vec<String>) -> Self {
-        Self {
-            rust_code,
-            compiles: false,
-            errors,
-            warnings: 0,
-        }
+        Self { rust_code, compiles: false, errors, warnings: 0 }
     }
 }
 
@@ -223,10 +209,7 @@ pub struct TierMetrics {
 impl TierMetrics {
     /// Create new tier metrics for a named tier.
     pub fn new(name: &str) -> Self {
-        Self {
-            tier_name: name.to_string(),
-            ..Default::default()
-        }
+        Self { tier_name: name.to_string(), ..Default::default() }
     }
 
     /// Transpilation success rate (0.0 to 1.0).
@@ -712,7 +695,7 @@ mod tests {
         let md = metrics.to_markdown();
         assert!(md.contains("0.0%"));
         assert!(md.contains("FAIL")); // 0% < 80%
-        // Should NOT contain error breakdown section
+                                      // Should NOT contain error breakdown section
         assert!(!md.contains("Error Breakdown"));
     }
 }

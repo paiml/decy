@@ -109,10 +109,7 @@ impl CParser {
         // Discover system include paths for standard header support
         let system_includes = discover_system_includes();
 
-        Ok(Self {
-            index,
-            system_includes,
-        })
+        Ok(Self { index, system_includes })
     }
 
     /// Parse C source code into an AST.
@@ -135,6 +132,7 @@ impl CParser {
     /// let ast = parser.parse("int add(int a, int b) { return a + b; }")?;
     /// # Ok::<(), anyhow::Error>(())
     /// ```
+    #[allow(clippy::disallowed_methods)] // CString::new with literals cannot fail
     pub fn parse(&self, source: &str) -> Result<Ast> {
         let filename = CString::new("input.c").context("Failed to create filename")?;
         let source_cstr = CString::new(source).context("Failed to convert source to CString")?;
@@ -164,11 +162,8 @@ impl CParser {
         // Build system include path arguments
         // We need to keep CStrings alive for the duration of parsing
         let isystem_flag = CString::new("-isystem").unwrap();
-        let include_cstrings: Vec<CString> = self
-            .system_includes
-            .iter()
-            .map(|p| CString::new(p.as_str()).unwrap())
-            .collect();
+        let include_cstrings: Vec<CString> =
+            self.system_includes.iter().map(|p| CString::new(p.as_str()).unwrap()).collect();
 
         // Prepare command line arguments for C++ mode if needed
         let cpp_flag = CString::new("-x").unwrap();
@@ -211,11 +206,7 @@ impl CParser {
             clang_parseTranslationUnit2(
                 self.index,
                 filename.as_ptr(),
-                if args_vec.is_empty() {
-                    ptr::null()
-                } else {
-                    args_vec.as_ptr()
-                },
+                if args_vec.is_empty() { ptr::null() } else { args_vec.as_ptr() },
                 args_vec.len() as std::os::raw::c_int,
                 &unsaved_file as *const CXUnsavedFile as *mut CXUnsavedFile,
                 1,
@@ -267,6 +258,7 @@ impl CParser {
     ///
     /// DECY-237: This method allows includes to resolve properly by parsing
     /// from the actual file path instead of an in-memory string.
+    #[allow(clippy::disallowed_methods)] // CString::new with literals cannot fail
     pub fn parse_file(&self, path: &Path) -> Result<Ast> {
         let source = std::fs::read_to_string(path)
             .with_context(|| format!("Failed to read file: {}", path.display()))?;
@@ -384,11 +376,7 @@ impl CParser {
             clang_parseTranslationUnit2(
                 self.index,
                 filename.as_ptr(),
-                if args_vec.is_empty() {
-                    ptr::null()
-                } else {
-                    args_vec.as_ptr()
-                },
+                if args_vec.is_empty() { ptr::null() } else { args_vec.as_ptr() },
                 args_vec.len() as std::os::raw::c_int,
                 &unsaved_file as *const CXUnsavedFile as *mut CXUnsavedFile,
                 1,
@@ -693,11 +681,7 @@ fn extract_function(cursor: CXCursor) -> Option<Function> {
                     false
                 }
             };
-            parameters.push(Parameter::new_with_const(
-                param_name,
-                param_type,
-                is_pointee_const,
-            ));
+            parameters.push(Parameter::new_with_const(param_name, param_type, is_pointee_const));
         }
     }
 
@@ -890,11 +874,7 @@ fn extract_variable(cursor: CXCursor) -> Option<Variable> {
     let initializer_ptr = &mut initializer as *mut Option<Expression>;
 
     unsafe {
-        clang_visitChildren(
-            cursor,
-            visit_variable_initializer,
-            initializer_ptr as CXClientData,
-        );
+        clang_visitChildren(cursor, visit_variable_initializer, initializer_ptr as CXClientData);
     }
 
     Some(Variable::new_with_storage_class(
@@ -933,11 +913,7 @@ fn try_extract_expression(cursor: CXCursor) -> Option<Expression> {
             let mut result: Option<Expression> = None;
             let result_ptr = &mut result as *mut Option<Expression>;
             unsafe {
-                clang_visitChildren(
-                    cursor,
-                    visit_variable_initializer,
-                    result_ptr as CXClientData,
-                );
+                clang_visitChildren(cursor, visit_variable_initializer, result_ptr as CXClientData);
             }
             result
         }
@@ -946,11 +922,7 @@ fn try_extract_expression(cursor: CXCursor) -> Option<Expression> {
             let mut result: Option<Expression> = None;
             let result_ptr = &mut result as *mut Option<Expression>;
             unsafe {
-                clang_visitChildren(
-                    cursor,
-                    visit_variable_initializer,
-                    result_ptr as CXClientData,
-                );
+                clang_visitChildren(cursor, visit_variable_initializer, result_ptr as CXClientData);
             }
             result
         }
@@ -1290,24 +1262,16 @@ fn extract_var_decl(cursor: CXCursor) -> Option<Statement> {
     // Fix: If the variable is an array type and the initializer is an integer literal
     // that matches the array size, clear the initializer (it's the size, not an init).
     let initializer = match (&var_type, &initializer) {
-        (
-            Type::Array {
-                size: Some(array_size),
-                ..
-            },
-            Some(Expression::IntLiteral(init_val)),
-        ) if i64::from(*init_val) == *array_size => {
+        (Type::Array { size: Some(array_size), .. }, Some(Expression::IntLiteral(init_val)))
+            if i64::from(*init_val) == *array_size =>
+        {
             // The "initializer" is actually the array size expression, not a real initializer
             None
         }
         _ => initializer,
     };
 
-    Some(Statement::VariableDeclaration {
-        name,
-        var_type,
-        initializer,
-    })
+    Some(Statement::VariableDeclaration { name, var_type, initializer })
 }
 
 /// Extract a return statement.
@@ -1432,11 +1396,7 @@ fn extract_assignment_stmt(cursor: CXCursor) -> Option<Statement> {
             _ => unreachable!(),
         };
 
-        return Some(Statement::FieldAssignment {
-            object,
-            field,
-            value: operands[1].clone(),
-        });
+        return Some(Statement::FieldAssignment { object, field, value: operands[1].clone() });
     }
 
     // Left side must be a variable reference for regular assignment
@@ -1445,10 +1405,7 @@ fn extract_assignment_stmt(cursor: CXCursor) -> Option<Statement> {
         _ => return None, // Can't assign to non-variables (yet)
     };
 
-    Some(Statement::Assignment {
-        target,
-        value: operands[1].clone(),
-    })
+    Some(Statement::Assignment { target, value: operands[1].clone() })
 }
 
 /// Extract an increment/decrement statement (++, --).
@@ -1596,11 +1553,7 @@ fn extract_inc_dec_stmt(cursor: CXCursor) -> Option<Statement> {
                     }
                 };
 
-                return Some(Statement::FieldAssignment {
-                    object: *pointer,
-                    field,
-                    value,
-                });
+                return Some(Statement::FieldAssignment { object: *pointer, field, value });
             }
             Expression::FieldAccess { object, field } => {
                 // Create the increment/decrement value expression
@@ -1624,11 +1577,7 @@ fn extract_inc_dec_stmt(cursor: CXCursor) -> Option<Statement> {
                     }
                 };
 
-                return Some(Statement::FieldAssignment {
-                    object: *object,
-                    field,
-                    value,
-                });
+                return Some(Statement::FieldAssignment { object: *object, field, value });
             }
             // DECY-219: Array subscript increment/decrement: arr[i]++ → arr[i] = arr[i] + 1
             Expression::ArrayIndex { array, index } => {
@@ -1653,11 +1602,7 @@ fn extract_inc_dec_stmt(cursor: CXCursor) -> Option<Statement> {
                     }
                 };
 
-                return Some(Statement::ArrayIndexAssignment {
-                    array,
-                    index,
-                    value,
-                });
+                return Some(Statement::ArrayIndexAssignment { array, index, value });
             }
             _ => {} // Fall through to simple variable handling
         }
@@ -1798,11 +1743,7 @@ fn extract_compound_assignment_stmt(cursor: CXCursor) -> Option<Statement> {
         _ => return None, // Unknown target type
     };
 
-    Some(Statement::CompoundAssignment {
-        target,
-        op,
-        value: operands[1].clone(),
-    })
+    Some(Statement::CompoundAssignment { target, op, value: operands[1].clone() })
 }
 
 /// Extract an if statement.
@@ -1820,12 +1761,8 @@ fn extract_if_stmt(cursor: CXCursor) -> Option<Statement> {
         child_index: u32,
     }
 
-    let mut if_data = IfData {
-        condition: None,
-        then_block: Vec::new(),
-        else_block: None,
-        child_index: 0,
-    };
+    let mut if_data =
+        IfData { condition: None, then_block: Vec::new(), else_block: None, child_index: 0 };
 
     let data_ptr = &mut if_data as *mut IfData;
 
@@ -1962,16 +1899,10 @@ fn extract_for_stmt(cursor: CXCursor) -> Option<Statement> {
         CXChildVisit_Continue
     }
 
-    let mut collector = ForCollector {
-        children: Vec::new(),
-    };
+    let mut collector = ForCollector { children: Vec::new() };
 
     unsafe {
-        clang_visitChildren(
-            cursor,
-            collect_for_children,
-            &mut collector as *mut _ as CXClientData,
-        );
+        clang_visitChildren(cursor, collect_for_children, &mut collector as *mut _ as CXClientData);
     }
 
     // Second pass: identify what each child is
@@ -2060,12 +1991,7 @@ fn extract_for_stmt(cursor: CXCursor) -> Option<Statement> {
     }
 
     if num_children == 0 {
-        return Some(Statement::For {
-            init,
-            condition,
-            increment,
-            body,
-        });
+        return Some(Statement::For { init, condition, increment, body });
     }
 
     // Process children based on count and types
@@ -2181,12 +2107,7 @@ fn extract_for_stmt(cursor: CXCursor) -> Option<Statement> {
         }
     }
 
-    Some(Statement::For {
-        init,
-        condition,
-        increment,
-        body,
-    })
+    Some(Statement::For { init, condition, increment, body })
 }
 
 /// Extract expression from cursor for for-loop condition
@@ -2223,15 +2144,10 @@ fn extract_single_statement(cursor: CXCursor) -> Option<Statement> {
         CXCursor_UnaryOperator => extract_inc_dec_stmt(cursor),
         CXCursor_BinaryOperator => extract_assignment_stmt(cursor),
         CXCursor_CallExpr => {
-            if let Some(Expression::FunctionCall {
-                function,
-                arguments,
-            }) = extract_function_call(cursor)
+            if let Some(Expression::FunctionCall { function, arguments }) =
+                extract_function_call(cursor)
             {
-                Some(Statement::FunctionCall {
-                    function,
-                    arguments,
-                })
+                Some(Statement::FunctionCall { function, arguments })
             } else {
                 None
             }
@@ -2255,11 +2171,7 @@ fn extract_while_stmt(cursor: CXCursor) -> Option<Statement> {
         child_index: u32,
     }
 
-    let mut while_data = WhileData {
-        condition: None,
-        body: Vec::new(),
-        child_index: 0,
-    };
+    let mut while_data = WhileData { condition: None, body: Vec::new(), child_index: 0 };
 
     let data_ptr = &mut while_data as *mut WhileData;
 
@@ -2267,10 +2179,7 @@ fn extract_while_stmt(cursor: CXCursor) -> Option<Statement> {
         clang_visitChildren(cursor, visit_while_children, data_ptr as CXClientData);
     }
 
-    Some(Statement::While {
-        condition: while_data.condition?,
-        body: while_data.body,
-    })
+    Some(Statement::While { condition: while_data.condition?, body: while_data.body })
 }
 
 /// Visitor for while loop children.
@@ -2346,12 +2255,8 @@ fn extract_switch_stmt(cursor: CXCursor) -> Option<Statement> {
         child_index: u32,
     }
 
-    let mut switch_data = SwitchData {
-        condition: None,
-        cases: Vec::new(),
-        default_case: None,
-        child_index: 0,
-    };
+    let mut switch_data =
+        SwitchData { condition: None, cases: Vec::new(), default_case: None, child_index: 0 };
 
     let data_ptr = &mut switch_data as *mut SwitchData;
 
@@ -2458,11 +2363,7 @@ fn extract_case_stmt(cursor: CXCursor) -> Option<SwitchCase> {
         child_index: u32,
     }
 
-    let mut case_data = CaseData {
-        value: None,
-        body: Vec::new(),
-        child_index: 0,
-    };
+    let mut case_data = CaseData { value: None, body: Vec::new(), child_index: 0 };
 
     let data_ptr = &mut case_data as *mut CaseData;
 
@@ -2470,10 +2371,7 @@ fn extract_case_stmt(cursor: CXCursor) -> Option<SwitchCase> {
         clang_visitChildren(cursor, visit_case_children, data_ptr as CXClientData);
     }
 
-    Some(SwitchCase {
-        value: case_data.value,
-        body: case_data.body,
-    })
+    Some(SwitchCase { value: case_data.value, body: case_data.body })
 }
 
 /// Visitor for case statement children.
@@ -2561,15 +2459,10 @@ fn extract_statement(cursor: CXCursor) -> Option<Statement> {
         CXCursor_BinaryOperator => extract_assignment_stmt(cursor),
         CXCursor_CallExpr => {
             // Function call as statement
-            if let Some(Expression::FunctionCall {
-                function,
-                arguments,
-            }) = extract_function_call(cursor)
+            if let Some(Expression::FunctionCall { function, arguments }) =
+                extract_function_call(cursor)
             {
-                return Some(Statement::FunctionCall {
-                    function,
-                    arguments,
-                });
+                return Some(Statement::FunctionCall { function, arguments });
             }
             None
         }
@@ -2910,6 +2803,7 @@ fn extract_char_literal(cursor: CXCursor) -> Option<Expression> {
 
 /// Parse a character literal string (without quotes) into its i8 value.
 /// Handles escape sequences like \0, \n, \t, \r, \\, \', \"
+#[allow(clippy::disallowed_methods)] // .unwrap() after !is_empty() check
 fn parse_char_literal(s: &str) -> i8 {
     if s.is_empty() {
         return 0;
@@ -3547,10 +3441,7 @@ fn extract_function_call(cursor: CXCursor) -> Option<Expression> {
         clang_visitChildren(cursor, visit_call_argument, args_ptr as CXClientData);
     }
 
-    Some(Expression::FunctionCall {
-        function,
-        arguments: arg_data.arguments,
-    })
+    Some(Expression::FunctionCall { function, arguments: arg_data.arguments })
 }
 
 /// Visitor callback for function call arguments.
@@ -3823,13 +3714,9 @@ fn extract_unary_op(cursor: CXCursor) -> Option<Expression> {
         // Check if pre or post increment
         let is_pre = operator_position == 0;
         if is_pre {
-            return Some(Expression::PreIncrement {
-                operand: Box::new(operand_expr),
-            });
+            return Some(Expression::PreIncrement { operand: Box::new(operand_expr) });
         } else {
-            return Some(Expression::PostIncrement {
-                operand: Box::new(operand_expr),
-            });
+            return Some(Expression::PostIncrement { operand: Box::new(operand_expr) });
         }
     }
 
@@ -3837,22 +3724,15 @@ fn extract_unary_op(cursor: CXCursor) -> Option<Expression> {
         // Check if pre or post decrement
         let is_pre = operator_position == 0;
         if is_pre {
-            return Some(Expression::PreDecrement {
-                operand: Box::new(operand_expr),
-            });
+            return Some(Expression::PreDecrement { operand: Box::new(operand_expr) });
         } else {
-            return Some(Expression::PostDecrement {
-                operand: Box::new(operand_expr),
-            });
+            return Some(Expression::PostDecrement { operand: Box::new(operand_expr) });
         }
     }
 
     // Handle other unary operators
     if let Some(op) = operator {
-        return Some(Expression::UnaryOp {
-            op,
-            operand: Box::new(operand_expr),
-        });
+        return Some(Expression::UnaryOp { op, operand: Box::new(operand_expr) });
     }
 
     // DECY-195: Fallback for system headers where tokenization fails
@@ -3962,15 +3842,9 @@ fn extract_field_access(cursor: CXCursor) -> Option<Expression> {
     let object = object_expr?;
 
     if is_arrow {
-        Some(Expression::PointerFieldAccess {
-            pointer: Box::new(object),
-            field,
-        })
+        Some(Expression::PointerFieldAccess { pointer: Box::new(object), field })
     } else {
-        Some(Expression::FieldAccess {
-            object: Box::new(object),
-            field,
-        })
+        Some(Expression::FieldAccess { object: Box::new(object), field })
     }
 }
 
@@ -4089,10 +3963,7 @@ fn extract_cast(cursor: CXCursor) -> Option<Expression> {
         clang_visitChildren(cursor, visit_cast_inner, inner_ptr as CXClientData);
     }
 
-    inner_expr.map(|expr| Expression::Cast {
-        target_type,
-        expr: Box::new(expr),
-    })
+    inner_expr.map(|expr| Expression::Cast { target_type, expr: Box::new(expr) })
 }
 
 /// Visitor callback to extract the inner expression of a cast.
@@ -4139,10 +4010,7 @@ fn extract_compound_literal(cursor: CXCursor) -> Option<Expression> {
         );
     }
 
-    Some(Expression::CompoundLiteral {
-        literal_type,
-        initializers,
-    })
+    Some(Expression::CompoundLiteral { literal_type, initializers })
 }
 
 /// DECY-192: Extract a ternary/conditional expression.
@@ -4155,11 +4023,7 @@ fn extract_conditional_op(cursor: CXCursor) -> Option<Expression> {
     let operands_ptr = &mut operands as *mut Vec<Expression>;
 
     unsafe {
-        clang_visitChildren(
-            cursor,
-            visit_conditional_operand,
-            operands_ptr as CXClientData,
-        );
+        clang_visitChildren(cursor, visit_conditional_operand, operands_ptr as CXClientData);
     }
 
     // Ternary operators should have exactly 3 operands: condition, then, else
@@ -4216,17 +4080,10 @@ fn extract_init_list(cursor: CXCursor) -> Option<Expression> {
     let initializers_ptr = &mut initializers as *mut Vec<Expression>;
 
     unsafe {
-        clang_visitChildren(
-            cursor,
-            visit_init_list_children,
-            initializers_ptr as CXClientData,
-        );
+        clang_visitChildren(cursor, visit_init_list_children, initializers_ptr as CXClientData);
     }
 
-    Some(Expression::CompoundLiteral {
-        literal_type,
-        initializers,
-    })
+    Some(Expression::CompoundLiteral { literal_type, initializers })
 }
 
 /// Visitor callback to extract initializers from an InitListExpr.
@@ -4269,12 +4126,10 @@ extern "C" fn visit_init_list_children(
             exprs: Vec<Expression>,
         }
 
-        let mut info = ChildInfo {
-            kinds: Vec::new(),
-            exprs: Vec::new(),
-        };
+        let mut info = ChildInfo { kinds: Vec::new(), exprs: Vec::new() };
         let info_ptr = &mut info as *mut ChildInfo;
 
+        #[allow(clippy::disallowed_methods)] // .unwrap() after !is_empty() check
         extern "C" fn collect_child_info(
             cursor: CXCursor,
             _parent: CXCursor,
@@ -4310,6 +4165,7 @@ extern "C" fn visit_init_list_children(
         // Second child is the value (could be InitListExpr or other expression)
         if info.kinds.len() == 2 && info.kinds[0] == 47 && !info.exprs.is_empty() {
             // Take the last expression (the value)
+            #[allow(clippy::disallowed_methods)]
             initializers.push(info.exprs.last().unwrap().clone());
             return CXChildVisit_Continue;
         }
@@ -4430,10 +4286,7 @@ fn convert_type(cx_type: CXType) -> Option<Type> {
                 }
             }
 
-            Some(Type::FunctionPointer {
-                param_types,
-                return_type: Box::new(return_type),
-            })
+            Some(Type::FunctionPointer { param_types, return_type: Box::new(return_type) })
         }
         CXType_Record => {
             // SAFETY: Getting type declaration to extract struct name
@@ -4504,16 +4357,9 @@ fn convert_type(cx_type: CXType) -> Option<Type> {
 
             // Get array size
             let array_size = unsafe { clang_getArraySize(cx_type) };
-            let size = if array_size >= 0 {
-                Some(array_size)
-            } else {
-                None
-            };
+            let size = if array_size >= 0 { Some(array_size) } else { None };
 
-            Some(Type::Array {
-                element_type: Box::new(element_type),
-                size,
-            })
+            Some(Type::Array { element_type: Box::new(element_type), size })
         }
         114 => {
             // CXType_IncompleteArray - flexible array member (C99 §6.7.2.1)
@@ -4523,10 +4369,7 @@ fn convert_type(cx_type: CXType) -> Option<Type> {
             let element_type = convert_type(element_cx_type)?;
 
             // Generate as Array with size None (will be transformed to Vec in codegen)
-            Some(Type::Array {
-                element_type: Box::new(element_type),
-                size: None,
-            })
+            Some(Type::Array { element_type: Box::new(element_type), size: None })
         }
         106 => {
             // CXType_Enum - C enums are integers
@@ -4936,9 +4779,9 @@ impl Expression {
     /// Check if this expression has a string literal argument.
     pub fn has_string_literal_argument(&self) -> bool {
         match self {
-            Expression::FunctionCall { arguments, .. } => arguments
-                .iter()
-                .any(|arg| matches!(arg, Expression::StringLiteral(_))),
+            Expression::FunctionCall { arguments, .. } => {
+                arguments.iter().any(|arg| matches!(arg, Expression::StringLiteral(_)))
+            }
             _ => false,
         }
     }
@@ -4956,10 +4799,7 @@ pub struct Typedef {
 impl Typedef {
     /// Create a new typedef.
     pub fn new(name: String, underlying_type: Type) -> Self {
-        Self {
-            name,
-            underlying_type,
-        }
+        Self { name, underlying_type }
     }
 
     /// Get the typedef name.
@@ -5122,14 +4962,7 @@ impl Variable {
         is_extern: bool,
         is_const: bool,
     ) -> Self {
-        Self {
-            name,
-            var_type,
-            initializer,
-            is_static,
-            is_extern,
-            is_const,
-        }
+        Self { name, var_type, initializer, is_static, is_extern, is_const }
     }
 
     /// Get the variable name.
@@ -5317,20 +5150,12 @@ pub struct MacroDefinition {
 impl MacroDefinition {
     /// Create a new object-like macro.
     pub fn new_object_like(name: String, body: String) -> Self {
-        Self {
-            name,
-            parameters: vec![],
-            body,
-        }
+        Self { name, parameters: vec![], body }
     }
 
     /// Create a new function-like macro.
     pub fn new_function_like(name: String, parameters: Vec<String>, body: String) -> Self {
-        Self {
-            name,
-            parameters,
-            body,
-        }
+        Self { name, parameters, body }
     }
 
     /// Get the macro name.
@@ -5459,12 +5284,7 @@ pub struct Function {
 impl Function {
     /// Create a new function.
     pub fn new(name: String, return_type: Type, parameters: Vec<Parameter>) -> Self {
-        Self {
-            name,
-            return_type,
-            parameters,
-            body: Vec::new(),
-        }
+        Self { name, return_type, parameters, body: Vec::new() }
     }
 
     /// Create a new function with body.
@@ -5474,12 +5294,7 @@ impl Function {
         parameters: Vec<Parameter>,
         body: Vec<Statement>,
     ) -> Self {
-        Self {
-            name,
-            return_type,
-            parameters,
-            body,
-        }
+        Self { name, return_type, parameters, body }
     }
 }
 
@@ -5542,21 +5357,13 @@ pub struct Parameter {
 impl Parameter {
     /// Create a new parameter.
     pub fn new(name: String, param_type: Type) -> Self {
-        Self {
-            name,
-            param_type,
-            is_pointee_const: false,
-        }
+        Self { name, param_type, is_pointee_const: false }
     }
 
     /// Create a new parameter with const pointee information.
     /// DECY-135: Used for const char* parameters
     pub fn new_with_const(name: String, param_type: Type, is_pointee_const: bool) -> Self {
-        Self {
-            name,
-            param_type,
-            is_pointee_const,
-        }
+        Self { name, param_type, is_pointee_const }
     }
 
     /// Check if this parameter is a function pointer.

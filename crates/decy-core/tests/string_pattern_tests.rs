@@ -25,11 +25,7 @@ fn test_string_literal_becomes_str_slice() {
     let code = codegen.generate_function(&func);
 
     // Should have string literal
-    assert!(
-        code.contains("\"hello\""),
-        "Expected string literal in:\n{}",
-        code
-    );
+    assert!(code.contains("\"hello\""), "Expected string literal in:\n{}", code);
     // Should generate &str type (not *mut u8)
     assert!(
         code.contains("&str") || !code.contains("*mut u8"),
@@ -91,18 +87,10 @@ fn test_strlen_to_len_method() {
     let code = codegen.generate_function(&func);
 
     // Should use .len() method
-    assert!(
-        code.contains(".len()"),
-        "Expected .len() method in:\n{}",
-        code
-    );
+    assert!(code.contains(".len()"), "Expected .len() method in:\n{}", code);
     // Should NOT have strlen function call in the body (exclude function signature)
     let body_only = code.split('{').nth(1).unwrap_or("");
-    assert!(
-        !body_only.contains("strlen("),
-        "Should not have strlen() call in body:\n{}",
-        code
-    );
+    assert!(!body_only.contains("strlen("), "Should not have strlen() call in body:\n{}", code);
 }
 
 /// Test strcpy(dest, src) → safe string copy.
@@ -134,11 +122,7 @@ fn test_strcpy_to_safe_copy() {
     );
     // Should NOT have strcpy function call in the body (exclude function signature)
     let body_only = code.split('{').nth(1).unwrap_or("");
-    assert!(
-        !body_only.contains("strcpy("),
-        "Should not have strcpy() call in body:\n{}",
-        code
-    );
+    assert!(!body_only.contains("strcpy("), "Should not have strcpy() call in body:\n{}", code);
 }
 
 /// Test type mapping for string types.

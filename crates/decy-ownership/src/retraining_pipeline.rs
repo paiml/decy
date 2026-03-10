@@ -40,12 +40,7 @@ impl TrainingSample {
         source_file: &str,
         line_number: u32,
     ) -> Self {
-        Self {
-            features,
-            label,
-            source_file: source_file.to_string(),
-            line_number,
-        }
+        Self { features, label, source_file: source_file.to_string(), line_number }
     }
 }
 
@@ -81,11 +76,7 @@ impl DataSplit {
         let validation = samples.split_off(train_end.min(samples.len()));
         let train = samples;
 
-        Self {
-            train,
-            validation,
-            test,
-        }
+        Self { train, validation, test }
     }
 
     /// Get total sample count across all splits.
@@ -281,9 +272,7 @@ pub struct NullTrainer {
 impl NullTrainer {
     /// Create a null trainer with specified metrics.
     pub fn new(precision: f64, recall: f64) -> Self {
-        Self {
-            metrics: TrainingMetrics::new(precision, recall),
-        }
+        Self { metrics: TrainingMetrics::new(precision, recall) }
     }
 }
 
@@ -352,21 +341,12 @@ pub enum ExecutionSummary {
 impl<T: ModelTrainer> RetrainingPipeline<T> {
     /// Create a new retraining pipeline.
     pub fn new(trainer: T, version_manager: ModelVersionManager, config: RetrainingConfig) -> Self {
-        Self {
-            config,
-            trainer,
-            version_manager,
-            history: Vec::new(),
-        }
+        Self { config, trainer, version_manager, history: Vec::new() }
     }
 
     /// Create pipeline with default configuration.
     pub fn with_defaults(trainer: T) -> Self {
-        Self::new(
-            trainer,
-            ModelVersionManager::new(),
-            RetrainingConfig::default(),
-        )
+        Self::new(trainer, ModelVersionManager::new(), RetrainingConfig::default())
     }
 
     /// Execute the retraining pipeline.
@@ -391,11 +371,8 @@ impl<T: ModelTrainer> RetrainingPipeline<T> {
         }
 
         // Split data
-        let data = DataSplit::new(
-            samples.clone(),
-            self.config.train_ratio,
-            self.config.validation_ratio,
-        );
+        let data =
+            DataSplit::new(samples.clone(), self.config.train_ratio, self.config.validation_ratio);
 
         if !data.meets_minimum_sizes(
             self.config.min_train_samples,
@@ -468,10 +445,7 @@ impl<T: ModelTrainer> RetrainingPipeline<T> {
         // Try to register - ignore errors for simplicity
         let _ = self.version_manager.register_version(entry);
 
-        let result = RetrainingResult::Promoted {
-            version: next_version,
-            metrics,
-        };
+        let result = RetrainingResult::Promoted { version: next_version, metrics };
         self.record_execution(timestamp, &result, samples.len());
         result
     }
@@ -479,28 +453,22 @@ impl<T: ModelTrainer> RetrainingPipeline<T> {
     /// Record an execution in history.
     fn record_execution(&mut self, timestamp: u64, result: &RetrainingResult, sample_count: usize) {
         let summary = match result {
-            RetrainingResult::Promoted { version, .. } => ExecutionSummary::Promoted {
-                version: version.to_string(),
-            },
-            RetrainingResult::QualityGateFailed { reason, .. } => {
-                ExecutionSummary::QualityGateFailed {
-                    reason: reason.clone(),
-                }
+            RetrainingResult::Promoted { version, .. } => {
+                ExecutionSummary::Promoted { version: version.to_string() }
             }
-            RetrainingResult::Degraded { degradation, .. } => ExecutionSummary::Degraded {
-                amount: *degradation,
-            },
+            RetrainingResult::QualityGateFailed { reason, .. } => {
+                ExecutionSummary::QualityGateFailed { reason: reason.clone() }
+            }
+            RetrainingResult::Degraded { degradation, .. } => {
+                ExecutionSummary::Degraded { amount: *degradation }
+            }
             RetrainingResult::InsufficientData { .. } => ExecutionSummary::InsufficientData,
-            RetrainingResult::TrainingError { error } => ExecutionSummary::Error {
-                message: error.clone(),
-            },
+            RetrainingResult::TrainingError { error } => {
+                ExecutionSummary::Error { message: error.clone() }
+            }
         };
 
-        self.history.push(PipelineExecution {
-            timestamp,
-            result: summary,
-            sample_count,
-        });
+        self.history.push(PipelineExecution { timestamp, result: summary, sample_count });
     }
 
     /// Get execution history.
@@ -525,8 +493,7 @@ impl<T: ModelTrainer> RetrainingPipeline<T> {
 
     /// Rollback to a previous version.
     pub fn rollback(&mut self, version: &ModelVersion) -> Result<RollbackResult, String> {
-        self.version_manager
-            .rollback_to(version, "Manual rollback via pipeline")
+        self.version_manager.rollback_to(version, "Manual rollback via pipeline")
     }
 
     /// Get current model version.
@@ -767,10 +734,7 @@ mod tests {
         };
         assert!(promoted.metrics().is_some());
 
-        let insufficient = RetrainingResult::InsufficientData {
-            actual: 100,
-            required: 1000,
-        };
+        let insufficient = RetrainingResult::InsufficientData { actual: 100, required: 1000 };
         assert!(insufficient.metrics().is_none());
     }
 
@@ -890,10 +854,7 @@ mod tests {
         pipeline.execute(samples);
 
         assert_eq!(pipeline.history().len(), 1);
-        assert!(matches!(
-            pipeline.history()[0].result,
-            ExecutionSummary::Promoted { .. }
-        ));
+        assert!(matches!(pipeline.history()[0].result, ExecutionSummary::Promoted { .. }));
     }
 
     #[test]
@@ -993,15 +954,10 @@ mod tests {
         };
         assert!(!degraded.is_success());
 
-        let insufficient = RetrainingResult::InsufficientData {
-            actual: 50,
-            required: 1000,
-        };
+        let insufficient = RetrainingResult::InsufficientData { actual: 50, required: 1000 };
         assert!(!insufficient.is_success());
 
-        let error = RetrainingResult::TrainingError {
-            error: "Out of memory".to_string(),
-        };
+        let error = RetrainingResult::TrainingError { error: "Out of memory".to_string() };
         assert!(!error.is_success());
     }
 
@@ -1028,9 +984,7 @@ mod tests {
 
     #[test]
     fn retraining_result_metrics_for_training_error() {
-        let error = RetrainingResult::TrainingError {
-            error: "fail".to_string(),
-        };
+        let error = RetrainingResult::TrainingError { error: "fail".to_string() };
         assert!(error.metrics().is_none());
     }
 
@@ -1050,10 +1004,7 @@ mod tests {
         assert!(!result.is_success());
         assert!(matches!(result, RetrainingResult::TrainingError { .. }));
         assert_eq!(pipeline.history().len(), 1);
-        assert!(matches!(
-            pipeline.history()[0].result,
-            ExecutionSummary::Error { .. }
-        ));
+        assert!(matches!(pipeline.history()[0].result, ExecutionSummary::Error { .. }));
     }
 
     #[test]
@@ -1130,8 +1081,8 @@ mod tests {
             min_train_samples: 80,
             min_validation_samples: 20,
             min_test_samples: 20,
-            train_ratio: 0.50,         // Only 50% to train
-            validation_ratio: 0.10,    // Only 10% to validation
+            train_ratio: 0.50,      // Only 50% to train
+            validation_ratio: 0.10, // Only 10% to validation
         };
 
         let vm = ModelVersionManager::new();
@@ -1215,11 +1166,7 @@ mod tests {
 
     #[test]
     fn class_metrics_fields() {
-        let cm = ClassMetrics {
-            precision: 0.95,
-            recall: 0.90,
-            support: 100,
-        };
+        let cm = ClassMetrics { precision: 0.95, recall: 0.90, support: 100 };
         assert!((cm.precision - 0.95).abs() < 0.001);
         assert!((cm.recall - 0.90).abs() < 0.001);
         assert_eq!(cm.support, 100);
@@ -1230,11 +1177,7 @@ mod tests {
         let mut metrics = TrainingMetrics::new(0.90, 0.85);
         metrics.class_metrics.insert(
             "Owned".to_string(),
-            ClassMetrics {
-                precision: 0.92,
-                recall: 0.88,
-                support: 50,
-            },
+            ClassMetrics { precision: 0.92, recall: 0.88, support: 50 },
         );
         assert_eq!(metrics.class_metrics.len(), 1);
         assert_eq!(metrics.class_metrics["Owned"].support, 50);
@@ -1287,14 +1230,10 @@ mod tests {
 
     #[test]
     fn execution_summary_variants_debug() {
-        let promoted = ExecutionSummary::Promoted {
-            version: "v1.0.0".to_string(),
-        };
+        let promoted = ExecutionSummary::Promoted { version: "v1.0.0".to_string() };
         assert!(format!("{:?}", promoted).contains("Promoted"));
 
-        let qgf = ExecutionSummary::QualityGateFailed {
-            reason: "low precision".to_string(),
-        };
+        let qgf = ExecutionSummary::QualityGateFailed { reason: "low precision".to_string() };
         assert!(format!("{:?}", qgf).contains("QualityGateFailed"));
 
         let degraded = ExecutionSummary::Degraded { amount: 0.05 };
@@ -1303,9 +1242,7 @@ mod tests {
         let insuf = ExecutionSummary::InsufficientData;
         assert!(format!("{:?}", insuf).contains("InsufficientData"));
 
-        let err = ExecutionSummary::Error {
-            message: "boom".to_string(),
-        };
+        let err = ExecutionSummary::Error { message: "boom".to_string() };
         assert!(format!("{:?}", err).contains("Error"));
     }
 
@@ -1318,10 +1255,7 @@ mod tests {
         pipeline.execute(samples);
 
         assert_eq!(pipeline.history().len(), 1);
-        assert!(matches!(
-            pipeline.history()[0].result,
-            ExecutionSummary::QualityGateFailed { .. }
-        ));
+        assert!(matches!(pipeline.history()[0].result, ExecutionSummary::QualityGateFailed { .. }));
     }
 
     #[test]
@@ -1333,10 +1267,7 @@ mod tests {
         pipeline.execute(samples);
 
         assert_eq!(pipeline.history().len(), 1);
-        assert!(matches!(
-            pipeline.history()[0].result,
-            ExecutionSummary::InsufficientData
-        ));
+        assert!(matches!(pipeline.history()[0].result, ExecutionSummary::InsufficientData));
     }
 
     #[test]
@@ -1359,10 +1290,7 @@ mod tests {
         pipeline.execute(samples);
 
         assert_eq!(pipeline.history().len(), 1);
-        assert!(matches!(
-            pipeline.history()[0].result,
-            ExecutionSummary::Degraded { .. }
-        ));
+        assert!(matches!(pipeline.history()[0].result, ExecutionSummary::Degraded { .. }));
     }
 
     // ========================================================================
@@ -1373,34 +1301,22 @@ mod tests {
     fn schedule_description_invalid_day_fallback() {
         // The constructor clamps day_of_week to 0-6, but direct struct construction
         // can produce values >= 7 triggering the "Unknown" fallback
-        let schedule = RetrainingSchedule {
-            day_of_week: 7,
-            hour: 12,
-            minute: 30,
-            timezone_offset: 0,
-        };
+        let schedule =
+            RetrainingSchedule { day_of_week: 7, hour: 12, minute: 30, timezone_offset: 0 };
         assert!(schedule.description().contains("Unknown"));
     }
 
     #[test]
     fn schedule_description_high_invalid_day() {
-        let schedule = RetrainingSchedule {
-            day_of_week: 255,
-            hour: 0,
-            minute: 0,
-            timezone_offset: 0,
-        };
+        let schedule =
+            RetrainingSchedule { day_of_week: 255, hour: 0, minute: 0, timezone_offset: 0 };
         assert!(schedule.description().contains("Unknown"));
     }
 
     #[test]
     fn schedule_description_negative_tz_direct() {
-        let schedule = RetrainingSchedule {
-            day_of_week: 1,
-            hour: 8,
-            minute: 0,
-            timezone_offset: -5,
-        };
+        let schedule =
+            RetrainingSchedule { day_of_week: 1, hour: 8, minute: 0, timezone_offset: -5 };
         let desc = schedule.description();
         assert!(desc.contains("Monday"));
         assert!(desc.contains("UTC-5"));
@@ -1408,12 +1324,8 @@ mod tests {
 
     #[test]
     fn schedule_description_positive_tz_direct() {
-        let schedule = RetrainingSchedule {
-            day_of_week: 5,
-            hour: 14,
-            minute: 30,
-            timezone_offset: 9,
-        };
+        let schedule =
+            RetrainingSchedule { day_of_week: 5, hour: 14, minute: 30, timezone_offset: 9 };
         let desc = schedule.description();
         assert!(desc.contains("Friday"));
         assert!(desc.contains("UTC+9"));
@@ -1423,12 +1335,8 @@ mod tests {
     #[test]
     fn schedule_all_valid_days_not_unknown() {
         for day in 0..=6u8 {
-            let schedule = RetrainingSchedule {
-                day_of_week: day,
-                hour: 0,
-                minute: 0,
-                timezone_offset: 0,
-            };
+            let schedule =
+                RetrainingSchedule { day_of_week: day, hour: 0, minute: 0, timezone_offset: 0 };
             let desc = schedule.description();
             assert!(!desc.contains("Unknown"), "Day {} should not be Unknown", day);
         }

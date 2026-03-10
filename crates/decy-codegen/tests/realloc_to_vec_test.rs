@@ -40,9 +40,7 @@ fn test_realloc_expand_to_vec_resize() {
                     new_size: Box::new(HirExpression::BinaryOp {
                         op: decy_hir::BinaryOperator::Multiply,
                         left: Box::new(HirExpression::IntLiteral(20)),
-                        right: Box::new(HirExpression::Sizeof {
-                            type_name: "int".to_string(),
-                        }),
+                        right: Box::new(HirExpression::Sizeof { type_name: "int".to_string() }),
                     }),
                 },
             },
@@ -94,9 +92,7 @@ fn test_realloc_shrink_to_vec_truncate() {
                     new_size: Box::new(HirExpression::BinaryOp {
                         op: decy_hir::BinaryOperator::Multiply,
                         left: Box::new(HirExpression::IntLiteral(10)),
-                        right: Box::new(HirExpression::Sizeof {
-                            type_name: "int".to_string(),
-                        }),
+                        right: Box::new(HirExpression::Sizeof { type_name: "int".to_string() }),
                     }),
                 },
             },
@@ -139,9 +135,7 @@ fn test_realloc_null_to_vec() {
                 new_size: Box::new(HirExpression::BinaryOp {
                     op: decy_hir::BinaryOperator::Multiply,
                     left: Box::new(HirExpression::IntLiteral(10)),
-                    right: Box::new(HirExpression::Sizeof {
-                        type_name: "int".to_string(),
-                    }),
+                    right: Box::new(HirExpression::Sizeof { type_name: "int".to_string() }),
                 }),
             }),
         }],
@@ -240,9 +234,7 @@ fn test_realloc_float_array() {
                     new_size: Box::new(HirExpression::BinaryOp {
                         op: decy_hir::BinaryOperator::Multiply,
                         left: Box::new(HirExpression::IntLiteral(10)),
-                        right: Box::new(HirExpression::Sizeof {
-                            type_name: "float".to_string(),
-                        }),
+                        right: Box::new(HirExpression::Sizeof { type_name: "float".to_string() }),
                     }),
                 },
             },
@@ -292,9 +284,7 @@ fn test_realloc_in_conditional() {
                         new_size: Box::new(HirExpression::BinaryOp {
                             op: decy_hir::BinaryOperator::Multiply,
                             left: Box::new(HirExpression::IntLiteral(20)),
-                            right: Box::new(HirExpression::Sizeof {
-                                type_name: "int".to_string(),
-                            }),
+                            right: Box::new(HirExpression::Sizeof { type_name: "int".to_string() }),
                         }),
                     },
                 }],
@@ -343,9 +333,7 @@ fn test_realloc_transformation_unsafe_count() {
                     new_size: Box::new(HirExpression::BinaryOp {
                         op: decy_hir::BinaryOperator::Multiply,
                         left: Box::new(HirExpression::IntLiteral(20)),
-                        right: Box::new(HirExpression::Sizeof {
-                            type_name: "int".to_string(),
-                        }),
+                        right: Box::new(HirExpression::Sizeof { type_name: "int".to_string() }),
                     }),
                 },
             },
@@ -357,8 +345,5 @@ fn test_realloc_transformation_unsafe_count() {
 
     // Count unsafe blocks (should be 0)
     let unsafe_count = result.matches("unsafe").count();
-    assert_eq!(
-        unsafe_count, 0,
-        "realloc → Vec transformation should not introduce unsafe blocks"
-    );
+    assert_eq!(unsafe_count, 0, "realloc → Vec transformation should not introduce unsafe blocks");
 }

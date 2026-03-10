@@ -218,11 +218,7 @@ fn test_length_parameter_references_replaced_with_len_method() {
 
     // Should have multiple uses of .len()
     let len_occurrences = rust_code.matches(".len()").count();
-    assert!(
-        len_occurrences >= 3,
-        "Should have at least 3 uses of .len():\n{}",
-        rust_code
-    );
+    assert!(len_occurrences >= 3, "Should have at least 3 uses of .len():\n{}", rust_code);
 }
 
 // ============================================================================
@@ -283,16 +279,8 @@ fn test_full_function_with_array_slice_transformation() {
     );
 
     // Verify no 'n' parameter
-    assert!(
-        !rust_code.contains(", n:"),
-        "Should not have n parameter:\n{}",
-        rust_code
-    );
+    assert!(!rust_code.contains(", n:"), "Should not have n parameter:\n{}", rust_code);
 
     // Verify .len() usage
-    assert!(
-        rust_code.contains("values.len()"),
-        "Should use values.len():\n{}",
-        rust_code
-    );
+    assert!(rust_code.contains("values.len()"), "Should use values.len():\n{}", rust_code);
 }

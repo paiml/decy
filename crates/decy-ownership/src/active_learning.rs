@@ -163,16 +163,12 @@ impl Default for UncertaintyCalculator {
 impl UncertaintyCalculator {
     /// Create with default thresholds.
     pub fn new() -> Self {
-        Self {
-            confidence_threshold: 0.65,
-        }
+        Self { confidence_threshold: 0.65 }
     }
 
     /// Create with custom confidence threshold.
     pub fn with_confidence_threshold(threshold: f64) -> Self {
-        Self {
-            confidence_threshold: threshold.clamp(0.0, 1.0),
-        }
+        Self { confidence_threshold: threshold.clamp(0.0, 1.0) }
     }
 
     /// Calculate uncertainty score using specified strategy.
@@ -375,17 +371,10 @@ impl SampleQueue {
 
     /// Get statistics.
     pub fn stats(&self) -> QueueStats {
-        let labeled_correct = self
-            .labeled
-            .iter()
-            .filter_map(|s| s.prediction_correct())
-            .filter(|&c| c)
-            .count();
-        let labeled_total = self
-            .labeled
-            .iter()
-            .filter(|s| s.prediction_correct().is_some())
-            .count();
+        let labeled_correct =
+            self.labeled.iter().filter_map(|s| s.prediction_correct()).filter(|&c| c).count();
+        let labeled_total =
+            self.labeled.iter().filter(|s| s.prediction_correct().is_some()).count();
 
         QueueStats {
             pending: self.pending.len(),
@@ -394,10 +383,7 @@ impl SampleQueue {
             avg_uncertainty: if self.pending.is_empty() {
                 0.0
             } else {
-                self.pending
-                    .iter()
-                    .map(|s| s.uncertainty_score)
-                    .sum::<f64>()
+                self.pending.iter().map(|s| s.uncertainty_score).sum::<f64>()
                     / self.pending.len() as f64
             },
             prediction_accuracy: if labeled_total > 0 {
@@ -573,11 +559,7 @@ mod tests {
     use super::*;
 
     fn make_prediction(kind: InferredOwnership, confidence: f32) -> OwnershipPrediction {
-        OwnershipPrediction {
-            kind,
-            confidence,
-            fallback: None,
-        }
+        OwnershipPrediction { kind, confidence, fallback: None }
     }
 
     // ========================================================================
@@ -586,10 +568,7 @@ mod tests {
 
     #[test]
     fn selection_strategy_display() {
-        assert_eq!(
-            SelectionStrategy::UncertaintySampling.to_string(),
-            "uncertainty"
-        );
+        assert_eq!(SelectionStrategy::UncertaintySampling.to_string(), "uncertainty");
         assert_eq!(SelectionStrategy::MarginSampling.to_string(), "margin");
         assert_eq!(SelectionStrategy::EntropySampling.to_string(), "entropy");
         assert_eq!(SelectionStrategy::Random.to_string(), "random");
@@ -1399,8 +1378,8 @@ mod tests {
 
     #[test]
     fn active_learner_process_with_margin_strategy() {
-        let mut learner =
-            ActiveLearner::with_strategy(SelectionStrategy::MarginSampling).with_min_uncertainty(0.2);
+        let mut learner = ActiveLearner::with_strategy(SelectionStrategy::MarginSampling)
+            .with_min_uncertainty(0.2);
 
         let features = OwnershipFeatures::default();
         let pred = OwnershipPrediction {
@@ -1414,8 +1393,8 @@ mod tests {
 
     #[test]
     fn active_learner_process_with_entropy_strategy() {
-        let mut learner =
-            ActiveLearner::with_strategy(SelectionStrategy::EntropySampling).with_min_uncertainty(0.2);
+        let mut learner = ActiveLearner::with_strategy(SelectionStrategy::EntropySampling)
+            .with_min_uncertainty(0.2);
 
         let features = OwnershipFeatures::default();
         let pred = make_prediction(InferredOwnership::Borrowed, 0.5);

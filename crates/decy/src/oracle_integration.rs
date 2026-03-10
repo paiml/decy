@@ -128,10 +128,7 @@ pub fn create_context_for_error(
 ) -> CDecisionContext {
     // Default context - in production this would analyze the code
     CDecisionContext::new(
-        CConstruct::RawPointer {
-            is_const: false,
-            pointee: "void".into(),
-        },
+        CConstruct::RawPointer { is_const: false, pointee: "void".into() },
         CDecisionCategory::PointerOwnership,
     )
 }
@@ -286,10 +283,7 @@ fn check_rust_compilation(rust_code: &str) -> Result<(), String> {
     use std::time::{SystemTime, UNIX_EPOCH};
 
     // Use unique scratch files to avoid race conditions
-    let unique_id = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .map(|d| d.as_nanos())
-        .unwrap_or(0);
+    let unique_id = SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_nanos()).unwrap_or(0);
     let temp_dir = std::env::temp_dir();
     let temp_file = temp_dir.join(format!("decy_oracle_check_{}.rs", unique_id));
     let temp_output = temp_dir.join(format!("decy_oracle_check_{}.rmeta", unique_id));
@@ -692,20 +686,11 @@ error[E0499]: cannot borrow `data` as mutable more than once
             eprintln!("Compilation error: {}", e);
         }
         // Skip test if rustc is not available
-        if result
-            .as_ref()
-            .err()
-            .map(|e| e.contains("Failed to run rustc"))
-            .unwrap_or(false)
-        {
+        if result.as_ref().err().map(|e| e.contains("Failed to run rustc")).unwrap_or(false) {
             eprintln!("Skipping test: rustc not available");
             return;
         }
-        assert!(
-            result.is_ok(),
-            "Expected compilation to succeed, got: {:?}",
-            result
-        );
+        assert!(result.is_ok(), "Expected compilation to succeed, got: {:?}", result);
     }
 
     #[test]

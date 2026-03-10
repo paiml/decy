@@ -90,14 +90,8 @@ fn validate_constraints_returns_error_when_return_lifetime_not_in_params_or_sign
     let result = annotator.validate_constraints(&sig);
     assert!(result.is_err());
     let err_msg = result.unwrap_err();
-    assert!(
-        err_msg.contains("'b"),
-        "Error should mention the missing lifetime"
-    );
-    assert!(
-        err_msg.contains("not found in parameters"),
-        "Error should explain the issue"
-    );
+    assert!(err_msg.contains("'b"), "Error should mention the missing lifetime");
+    assert!(err_msg.contains("not found in parameters"), "Error should explain the issue");
 }
 
 #[test]
@@ -205,10 +199,7 @@ fn type_has_lifetime_reference_none_recurses_into_inner() {
     let sig = AnnotatedSignature {
         name: "nested_func".to_string(),
         lifetimes: vec![],
-        parameters: vec![AnnotatedParameter {
-            name: "data".to_string(),
-            param_type: nested_type,
-        }],
+        parameters: vec![AnnotatedParameter { name: "data".to_string(), param_type: nested_type }],
         return_type: AnnotatedType::Reference {
             inner: Box::new(AnnotatedType::Simple(HirType::Int)),
             mutable: false,
@@ -234,10 +225,7 @@ fn type_has_lifetime_reference_none_inner_simple_returns_false() {
     let sig = AnnotatedSignature {
         name: "no_inner_lt".to_string(),
         lifetimes: vec![],
-        parameters: vec![AnnotatedParameter {
-            name: "data".to_string(),
-            param_type: outer_type,
-        }],
+        parameters: vec![AnnotatedParameter { name: "data".to_string(), param_type: outer_type }],
         return_type: AnnotatedType::Reference {
             inner: Box::new(AnnotatedType::Simple(HirType::Int)),
             mutable: false,
@@ -267,10 +255,7 @@ fn annotate_reference_type_without_lifetime_params() {
 
     let sig = annotator.annotate_function(&func);
     // Non-reference params get Simple annotation
-    assert!(matches!(
-        sig.parameters[0].param_type,
-        AnnotatedType::Simple(HirType::Int)
-    ));
+    assert!(matches!(sig.parameters[0].param_type, AnnotatedType::Simple(HirType::Int)));
 }
 
 // ============================================================================
@@ -285,16 +270,10 @@ fn infer_lifetime_params_returns_ref_and_nonempty_lifetimes() {
     // This covers the `returns_ref && !lifetimes.is_empty()` branch
     let func = HirFunction::new_with_body(
         "return_ref".to_string(),
-        HirType::Reference {
-            inner: Box::new(HirType::Int),
-            mutable: false,
-        },
+        HirType::Reference { inner: Box::new(HirType::Int), mutable: false },
         vec![HirParameter::new(
             "data".to_string(),
-            HirType::Reference {
-                inner: Box::new(HirType::Int),
-                mutable: false,
-            },
+            HirType::Reference { inner: Box::new(HirType::Int), mutable: false },
         )],
         vec![
             HirStatement::VariableDeclaration {
@@ -308,13 +287,7 @@ fn infer_lifetime_params_returns_ref_and_nonempty_lifetimes() {
 
     let sig = annotator.annotate_function(&func);
     assert!(!sig.lifetimes.is_empty(), "Should have lifetime params");
-    assert!(matches!(
-        sig.return_type,
-        AnnotatedType::Reference {
-            lifetime: Some(_),
-            ..
-        }
-    ));
+    assert!(matches!(sig.return_type, AnnotatedType::Reference { lifetime: Some(_), .. }));
 }
 
 #[test]
@@ -325,18 +298,12 @@ fn infer_lifetime_params_only_return_ref_no_ref_params() {
     // This covers returns_ref = true, has_ref_params = false
     let func = HirFunction::new(
         "return_only_ref".to_string(),
-        HirType::Reference {
-            inner: Box::new(HirType::Int),
-            mutable: false,
-        },
+        HirType::Reference { inner: Box::new(HirType::Int), mutable: false },
         vec![HirParameter::new("x".to_string(), HirType::Int)],
     );
 
     let sig = annotator.annotate_function(&func);
-    assert!(
-        !sig.lifetimes.is_empty(),
-        "Return ref should trigger lifetime param"
-    );
+    assert!(!sig.lifetimes.is_empty(), "Return ref should trigger lifetime param");
 }
 
 // ============================================================================
@@ -352,18 +319,12 @@ fn annotate_mutable_reference_preserves_mutability() {
         HirType::Void,
         vec![HirParameter::new(
             "data".to_string(),
-            HirType::Reference {
-                inner: Box::new(HirType::Int),
-                mutable: true,
-            },
+            HirType::Reference { inner: Box::new(HirType::Int), mutable: true },
         )],
     );
 
     let sig = annotator.annotate_function(&func);
-    if let AnnotatedType::Reference {
-        mutable, lifetime, ..
-    } = &sig.parameters[0].param_type
-    {
+    if let AnnotatedType::Reference { mutable, lifetime, .. } = &sig.parameters[0].param_type {
         assert!(*mutable);
         assert!(lifetime.is_some());
     } else {
@@ -411,11 +372,8 @@ fn annotated_signature_all_fields_accessible() {
 #[test]
 fn generate_lifetime_syntax_three_lifetimes() {
     let annotator = LifetimeAnnotator::new();
-    let lifetimes = vec![
-        LifetimeParam::standard(0),
-        LifetimeParam::standard(1),
-        LifetimeParam::standard(2),
-    ];
+    let lifetimes =
+        vec![LifetimeParam::standard(0), LifetimeParam::standard(1), LifetimeParam::standard(2)];
     let syntax = annotator.generate_lifetime_syntax(&lifetimes);
     assert_eq!(syntax, "<'a, 'b, 'c>");
 }
@@ -423,10 +381,8 @@ fn generate_lifetime_syntax_three_lifetimes() {
 #[test]
 fn generate_lifetime_syntax_custom_names() {
     let annotator = LifetimeAnnotator::new();
-    let lifetimes = vec![
-        LifetimeParam::new("'input".to_string()),
-        LifetimeParam::new("'output".to_string()),
-    ];
+    let lifetimes =
+        vec![LifetimeParam::new("'input".to_string()), LifetimeParam::new("'output".to_string())];
     let syntax = annotator.generate_lifetime_syntax(&lifetimes);
     assert_eq!(syntax, "<'input, 'output>");
 }
@@ -457,10 +413,7 @@ fn annotate_function_mixed_params_ref_and_nonref() {
             HirParameter::new("count".to_string(), HirType::Int),
             HirParameter::new(
                 "data".to_string(),
-                HirType::Reference {
-                    inner: Box::new(HirType::Char),
-                    mutable: false,
-                },
+                HirType::Reference { inner: Box::new(HirType::Char), mutable: false },
             ),
             HirParameter::new("flag".to_string(), HirType::Int),
         ],
@@ -469,18 +422,9 @@ fn annotate_function_mixed_params_ref_and_nonref() {
     let sig = annotator.annotate_function(&func);
     assert!(!sig.lifetimes.is_empty());
     assert_eq!(sig.parameters.len(), 3);
-    assert!(matches!(
-        sig.parameters[0].param_type,
-        AnnotatedType::Simple(HirType::Int)
-    ));
-    assert!(matches!(
-        sig.parameters[1].param_type,
-        AnnotatedType::Reference { .. }
-    ));
-    assert!(matches!(
-        sig.parameters[2].param_type,
-        AnnotatedType::Simple(HirType::Int)
-    ));
+    assert!(matches!(sig.parameters[0].param_type, AnnotatedType::Simple(HirType::Int)));
+    assert!(matches!(sig.parameters[1].param_type, AnnotatedType::Reference { .. }));
+    assert!(matches!(sig.parameters[2].param_type, AnnotatedType::Simple(HirType::Int)));
 }
 
 // ============================================================================

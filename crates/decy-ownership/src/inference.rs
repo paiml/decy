@@ -66,12 +66,7 @@ impl OwnershipInferencer {
 
             inferences.insert(
                 var_name.clone(),
-                OwnershipInference {
-                    variable: var_name.clone(),
-                    kind,
-                    confidence,
-                    reason,
-                },
+                OwnershipInference { variable: var_name.clone(), kind, confidence, reason },
             );
         }
 
@@ -161,10 +156,7 @@ impl OwnershipInferencer {
                     // Free indicates the pointer was owning
                     OwnershipKind::Owning
                 }
-                NodeKind::ArrayAllocation {
-                    size: _,
-                    element_type,
-                } => {
+                NodeKind::ArrayAllocation { size: _, element_type } => {
                     // DECY-068 GREEN: Array allocations create ArrayPointer
                     OwnershipKind::ArrayPointer {
                         base_array: var_name.to_string(), // Array is its own base
