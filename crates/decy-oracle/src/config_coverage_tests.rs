@@ -249,10 +249,7 @@ max_retries = 1
     .unwrap();
 
     let config = OracleConfig::from_file(file.path()).unwrap();
-    assert_eq!(
-        config.patterns_path,
-        PathBuf::from("/custom/oracle/patterns.apr")
-    );
+    assert_eq!(config.patterns_path, PathBuf::from("/custom/oracle/patterns.apr"));
     assert!((config.confidence_threshold - 0.6_f32).abs() < f32::EPSILON);
     assert_eq!(config.max_suggestions, 3);
     assert!(!config.auto_fix);
@@ -363,9 +360,7 @@ fn config_coverage_serde_json_round_trip() {
     let deserialized: OracleConfig = serde_json::from_str(&json).unwrap();
 
     assert_eq!(deserialized.patterns_path, config.patterns_path);
-    assert!(
-        (deserialized.confidence_threshold - config.confidence_threshold).abs() < f32::EPSILON
-    );
+    assert!((deserialized.confidence_threshold - config.confidence_threshold).abs() < f32::EPSILON);
     assert_eq!(deserialized.max_suggestions, config.max_suggestions);
     assert_eq!(deserialized.auto_fix, config.auto_fix);
     assert_eq!(deserialized.max_retries, config.max_retries);
@@ -377,9 +372,7 @@ fn config_coverage_serde_json_round_trip_defaults() {
     let json = serde_json::to_string(&config).unwrap();
     let deserialized: OracleConfig = serde_json::from_str(&json).unwrap();
 
-    assert!(
-        (deserialized.confidence_threshold - 0.7_f32).abs() < f32::EPSILON
-    );
+    assert!((deserialized.confidence_threshold - 0.7_f32).abs() < f32::EPSILON);
     assert_eq!(deserialized.max_suggestions, 5);
     assert!(!deserialized.auto_fix);
     assert_eq!(deserialized.max_retries, 3);
@@ -399,9 +392,7 @@ fn config_coverage_toml_round_trip_all_fields() {
     let deserialized: OracleConfig = toml::from_str(&toml_str).unwrap();
 
     assert_eq!(deserialized.patterns_path, config.patterns_path);
-    assert!(
-        (deserialized.confidence_threshold - config.confidence_threshold).abs() < 0.01
-    );
+    assert!((deserialized.confidence_threshold - config.confidence_threshold).abs() < 0.01);
     assert_eq!(deserialized.max_suggestions, config.max_suggestions);
     assert_eq!(deserialized.auto_fix, config.auto_fix);
     assert_eq!(deserialized.max_retries, config.max_retries);
@@ -550,10 +541,7 @@ fn config_coverage_from_env_patterns_absolute_path() {
 
     std::env::set_var("DECY_ORACLE_PATTERNS", "/absolute/path/to/patterns.apr");
     let config = OracleConfig::from_env();
-    assert_eq!(
-        config.patterns_path,
-        PathBuf::from("/absolute/path/to/patterns.apr")
-    );
+    assert_eq!(config.patterns_path, PathBuf::from("/absolute/path/to/patterns.apr"));
     assert!(config.patterns_path.is_absolute());
 
     std::env::remove_var("DECY_ORACLE_PATTERNS");
@@ -567,10 +555,7 @@ fn config_coverage_from_env_patterns_with_spaces() {
 
     std::env::set_var("DECY_ORACLE_PATTERNS", "/path with spaces/patterns.apr");
     let config = OracleConfig::from_env();
-    assert_eq!(
-        config.patterns_path,
-        PathBuf::from("/path with spaces/patterns.apr")
-    );
+    assert_eq!(config.patterns_path, PathBuf::from("/path with spaces/patterns.apr"));
 
     std::env::remove_var("DECY_ORACLE_PATTERNS");
 }
@@ -623,10 +608,7 @@ max_retries = 4
     .unwrap();
 
     let config = OracleConfig::from_file(file.path()).unwrap();
-    assert_eq!(
-        config.patterns_path,
-        PathBuf::from("/commented/path.apr")
-    );
+    assert_eq!(config.patterns_path, PathBuf::from("/commented/path.apr"));
     assert!((config.confidence_threshold - 0.75_f32).abs() < f32::EPSILON);
     assert_eq!(config.max_suggestions, 8);
     assert!(config.auto_fix);

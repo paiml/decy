@@ -272,9 +272,7 @@ fn test_lint_detects_unwrap() {
 #[test]
 fn test_lint_detects_expect() {
     let verifier = CodeVerifier::new();
-    let result = verifier
-        .lint("let x = some_option.expect(\"failed\");")
-        .unwrap();
+    let result = verifier.lint("let x = some_option.expect(\"failed\");").unwrap();
     assert!(result >= 1);
 }
 
@@ -330,21 +328,12 @@ fn test_run_tests_without_test_attr() {
 fn test_format_feedback_with_test_failures() {
     let loop_runner = VerificationLoop::new(3);
 
-    let result = VerificationResult::test_failure(vec![
-        "test_add FAILED: expected 3, got 4".to_string(),
-    ]);
+    let result =
+        VerificationResult::test_failure(vec!["test_add FAILED: expected 3, got 4".to_string()]);
 
     let feedback = loop_runner.format_feedback(&result);
-    assert!(
-        feedback.contains("Test Failures"),
-        "Got: {}",
-        feedback
-    );
-    assert!(
-        feedback.contains("test_add"),
-        "Got: {}",
-        feedback
-    );
+    assert!(feedback.contains("Test Failures"), "Got: {}", feedback);
+    assert!(feedback.contains("test_add"), "Got: {}", feedback);
 }
 
 // ============================================================================
@@ -359,11 +348,7 @@ fn test_format_feedback_with_clippy_warnings() {
     result.clippy_warnings = 5;
 
     let feedback = loop_runner.format_feedback(&result);
-    assert!(
-        feedback.contains("Clippy Warnings: 5"),
-        "Got: {}",
-        feedback
-    );
+    assert!(feedback.contains("Clippy Warnings: 5"), "Got: {}", feedback);
 }
 
 // ============================================================================
@@ -398,26 +383,10 @@ fn test_iteration_context_feedback_includes_previous_code() {
     );
 
     let feedback = ctx.get_feedback();
-    assert!(
-        feedback.contains("Previous Code"),
-        "Got: {}",
-        feedback
-    );
-    assert!(
-        feedback.contains("fn broken"),
-        "Got: {}",
-        feedback
-    );
-    assert!(
-        feedback.contains("Previous Errors"),
-        "Got: {}",
-        feedback
-    );
-    assert!(
-        feedback.contains("Instructions"),
-        "Got: {}",
-        feedback
-    );
+    assert!(feedback.contains("Previous Code"), "Got: {}", feedback);
+    assert!(feedback.contains("fn broken"), "Got: {}", feedback);
+    assert!(feedback.contains("Previous Errors"), "Got: {}", feedback);
+    assert!(feedback.contains("Instructions"), "Got: {}", feedback);
 }
 
 // ============================================================================

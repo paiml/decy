@@ -28,12 +28,7 @@ pub struct RustcError {
 impl RustcError {
     /// Create a new rustc error
     pub fn new(code: impl Into<String>, message: impl Into<String>) -> Self {
-        Self {
-            code: code.into(),
-            message: message.into(),
-            file: None,
-            line: None,
-        }
+        Self { code: code.into(), message: message.into(), file: None, line: None }
     }
 
     /// Add file location
@@ -272,12 +267,10 @@ impl DecyOracle {
     #[cfg(feature = "citl")]
     pub fn save(&self) -> Result<(), OracleError> {
         if let Some(ref store) = self.store {
-            store
-                .save_apr(&self.config.patterns_path)
-                .map_err(|e| OracleError::SaveError {
-                    path: self.config.patterns_path.display().to_string(),
-                    source: std::io::Error::new(std::io::ErrorKind::Other, e.to_string()),
-                })?;
+            store.save_apr(&self.config.patterns_path).map_err(|e| OracleError::SaveError {
+                path: self.config.patterns_path.display().to_string(),
+                source: std::io::Error::new(std::io::ErrorKind::Other, e.to_string()),
+            })?;
         }
         Ok(())
     }
@@ -342,10 +335,7 @@ mod tests {
 
     #[test]
     fn test_oracle_config_access() {
-        let config = OracleConfig {
-            confidence_threshold: 0.9,
-            ..Default::default()
-        };
+        let config = OracleConfig { confidence_threshold: 0.9, ..Default::default() };
         let oracle = DecyOracle::new(config).unwrap();
         assert!((oracle.config().confidence_threshold - 0.9).abs() < f32::EPSILON);
     }
@@ -381,10 +371,7 @@ mod tests {
 
         let error = RustcError::new("E0382", "test");
         let context = CDecisionContext::new(
-            CConstruct::RawPointer {
-                is_const: false,
-                pointee: "int".into(),
-            },
+            CConstruct::RawPointer { is_const: false, pointee: "int".into() },
             CDecisionCategory::PointerOwnership,
         );
 
@@ -656,10 +643,7 @@ mod tests {
 
         let error = RustcError::new("E0382", "borrow of moved value");
         let context = CDecisionContext::new(
-            CConstruct::RawPointer {
-                is_const: false,
-                pointee: "int".into(),
-            },
+            CConstruct::RawPointer { is_const: false, pointee: "int".into() },
             CDecisionCategory::PointerOwnership,
         );
 
@@ -675,10 +659,7 @@ mod tests {
 
         let error = RustcError::new("E0499", "cannot borrow");
         let context = CDecisionContext::new(
-            CConstruct::RawPointer {
-                is_const: true,
-                pointee: "char".into(),
-            },
+            CConstruct::RawPointer { is_const: true, pointee: "char".into() },
             CDecisionCategory::PointerOwnership,
         );
 
@@ -693,30 +674,21 @@ mod tests {
 
     #[test]
     fn test_oracle_creation_with_custom_threshold() {
-        let config = OracleConfig {
-            confidence_threshold: 0.5,
-            ..Default::default()
-        };
+        let config = OracleConfig { confidence_threshold: 0.5, ..Default::default() };
         let oracle = DecyOracle::new(config).unwrap();
         assert!((oracle.config().confidence_threshold - 0.5).abs() < f32::EPSILON);
     }
 
     #[test]
     fn test_oracle_creation_with_max_suggestions() {
-        let config = OracleConfig {
-            max_suggestions: 100,
-            ..Default::default()
-        };
+        let config = OracleConfig { max_suggestions: 100, ..Default::default() };
         let oracle = DecyOracle::new(config).unwrap();
         assert_eq!(oracle.config().max_suggestions, 100);
     }
 
     #[test]
     fn test_oracle_creation_with_auto_fix_enabled() {
-        let config = OracleConfig {
-            auto_fix: true,
-            ..Default::default()
-        };
+        let config = OracleConfig { auto_fix: true, ..Default::default() };
         let oracle = DecyOracle::new(config).unwrap();
         assert!(oracle.config().auto_fix);
     }

@@ -24,10 +24,7 @@ fn test_elision_rule1_single_input_reference() {
         HirType::Int,
         vec![HirParameter::new(
             "x".to_string(),
-            HirType::Reference {
-                inner: Box::new(HirType::Int),
-                mutable: false,
-            },
+            HirType::Reference { inner: Box::new(HirType::Int), mutable: false },
         )],
     );
 
@@ -35,10 +32,7 @@ fn test_elision_rule1_single_input_reference() {
     let sig = annotator.annotate_function(&func);
 
     // Should have 1 lifetime parameter (Rule 1)
-    assert!(
-        !sig.lifetimes.is_empty(),
-        "Single input reference should get lifetime parameter"
-    );
+    assert!(!sig.lifetimes.is_empty(), "Single input reference should get lifetime parameter");
 }
 
 #[test]
@@ -52,17 +46,11 @@ fn test_elision_rule1_multiple_input_references() {
         vec![
             HirParameter::new(
                 "x".to_string(),
-                HirType::Reference {
-                    inner: Box::new(HirType::Int),
-                    mutable: false,
-                },
+                HirType::Reference { inner: Box::new(HirType::Int), mutable: false },
             ),
             HirParameter::new(
                 "y".to_string(),
-                HirType::Reference {
-                    inner: Box::new(HirType::Int),
-                    mutable: false,
-                },
+                HirType::Reference { inner: Box::new(HirType::Int), mutable: false },
             ),
         ],
     );
@@ -71,10 +59,7 @@ fn test_elision_rule1_multiple_input_references() {
     let sig = annotator.annotate_function(&func);
 
     // Should have lifetime parameters for inputs
-    assert!(
-        !sig.lifetimes.is_empty(),
-        "Multiple input references should get lifetime parameters"
-    );
+    assert!(!sig.lifetimes.is_empty(), "Multiple input references should get lifetime parameters");
 }
 
 // ============================================================================
@@ -88,16 +73,10 @@ fn test_elision_rule2_single_input_returns_reference() {
 
     let func = HirFunction::new(
         "foo".to_string(),
-        HirType::Reference {
-            inner: Box::new(HirType::Int),
-            mutable: false,
-        },
+        HirType::Reference { inner: Box::new(HirType::Int), mutable: false },
         vec![HirParameter::new(
             "x".to_string(),
-            HirType::Reference {
-                inner: Box::new(HirType::Int),
-                mutable: false,
-            },
+            HirType::Reference { inner: Box::new(HirType::Int), mutable: false },
         )],
     );
 
@@ -119,10 +98,7 @@ fn test_elision_no_input_returns_reference_needs_annotation() {
 
     let func = HirFunction::new(
         "foo".to_string(),
-        HirType::Reference {
-            inner: Box::new(HirType::Int),
-            mutable: false,
-        },
+        HirType::Reference { inner: Box::new(HirType::Int), mutable: false },
         vec![],
     );
 
@@ -150,24 +126,15 @@ fn test_multiple_inputs_returns_reference_ambiguous() {
 
     let func = HirFunction::new(
         "foo".to_string(),
-        HirType::Reference {
-            inner: Box::new(HirType::Int),
-            mutable: false,
-        },
+        HirType::Reference { inner: Box::new(HirType::Int), mutable: false },
         vec![
             HirParameter::new(
                 "x".to_string(),
-                HirType::Reference {
-                    inner: Box::new(HirType::Int),
-                    mutable: false,
-                },
+                HirType::Reference { inner: Box::new(HirType::Int), mutable: false },
             ),
             HirParameter::new(
                 "y".to_string(),
-                HirType::Reference {
-                    inner: Box::new(HirType::Int),
-                    mutable: false,
-                },
+                HirType::Reference { inner: Box::new(HirType::Int), mutable: false },
             ),
         ],
     );
@@ -225,10 +192,7 @@ fn test_mutable_reference_input_elision() {
         HirType::Int,
         vec![HirParameter::new(
             "x".to_string(),
-            HirType::Reference {
-                inner: Box::new(HirType::Int),
-                mutable: true,
-            },
+            HirType::Reference { inner: Box::new(HirType::Int), mutable: true },
         )],
     );
 
@@ -236,10 +200,7 @@ fn test_mutable_reference_input_elision() {
     let sig = annotator.annotate_function(&func);
 
     // Should have lifetime parameter
-    assert!(
-        !sig.lifetimes.is_empty(),
-        "Mutable reference should get lifetime parameter"
-    );
+    assert!(!sig.lifetimes.is_empty(), "Mutable reference should get lifetime parameter");
 }
 
 #[test]
@@ -249,16 +210,10 @@ fn test_mutable_reference_return_elision() {
 
     let func = HirFunction::new(
         "foo".to_string(),
-        HirType::Reference {
-            inner: Box::new(HirType::Int),
-            mutable: true,
-        },
+        HirType::Reference { inner: Box::new(HirType::Int), mutable: true },
         vec![HirParameter::new(
             "x".to_string(),
-            HirType::Reference {
-                inner: Box::new(HirType::Int),
-                mutable: true,
-            },
+            HirType::Reference { inner: Box::new(HirType::Int), mutable: true },
         )],
     );
 
@@ -306,18 +261,12 @@ fn test_mixed_references_and_values() {
         vec![
             HirParameter::new(
                 "x".to_string(),
-                HirType::Reference {
-                    inner: Box::new(HirType::Int),
-                    mutable: false,
-                },
+                HirType::Reference { inner: Box::new(HirType::Int), mutable: false },
             ),
             HirParameter::new("y".to_string(), HirType::Int),
             HirParameter::new(
                 "z".to_string(),
-                HirType::Reference {
-                    inner: Box::new(HirType::Int),
-                    mutable: false,
-                },
+                HirType::Reference { inner: Box::new(HirType::Int), mutable: false },
             ),
         ],
     );
@@ -326,10 +275,7 @@ fn test_mixed_references_and_values() {
     let sig = annotator.annotate_function(&func);
 
     // Should have lifetimes for the two references
-    assert!(
-        !sig.lifetimes.is_empty(),
-        "Mixed parameters should have lifetimes for references"
-    );
+    assert!(!sig.lifetimes.is_empty(), "Mixed parameters should have lifetimes for references");
 }
 
 // ============================================================================
@@ -360,10 +306,7 @@ fn test_nested_reference_types() {
     let sig = annotator.annotate_function(&func);
 
     // Should have lifetime parameters
-    assert!(
-        !sig.lifetimes.is_empty(),
-        "Nested references should get lifetime annotations"
-    );
+    assert!(!sig.lifetimes.is_empty(), "Nested references should get lifetime annotations");
 }
 
 // ============================================================================
@@ -377,16 +320,10 @@ fn test_lifetime_constraint_validation() {
 
     let func = HirFunction::new(
         "foo".to_string(),
-        HirType::Reference {
-            inner: Box::new(HirType::Int),
-            mutable: false,
-        },
+        HirType::Reference { inner: Box::new(HirType::Int), mutable: false },
         vec![HirParameter::new(
             "x".to_string(),
-            HirType::Reference {
-                inner: Box::new(HirType::Int),
-                mutable: false,
-            },
+            HirType::Reference { inner: Box::new(HirType::Int), mutable: false },
         )],
     );
 
@@ -395,10 +332,7 @@ fn test_lifetime_constraint_validation() {
 
     // Validate constraints
     let validation = annotator.validate_constraints(&sig);
-    assert!(
-        validation.is_ok(),
-        "Valid lifetime constraints should pass validation"
-    );
+    assert!(validation.is_ok(), "Valid lifetime constraints should pass validation");
 }
 
 // ============================================================================
@@ -422,8 +356,5 @@ fn test_lifetime_syntax_generation() {
     // Multiple lifetimes
     let syntax_multiple = annotator
         .generate_lifetime_syntax(&[LifetimeParam::standard(0), LifetimeParam::standard(1)]);
-    assert_eq!(
-        syntax_multiple, "<'a, 'b>",
-        "Multiple lifetimes should be <'a, 'b>"
-    );
+    assert_eq!(syntax_multiple, "<'a, 'b>", "Multiple lifetimes should be <'a, 'b>");
 }

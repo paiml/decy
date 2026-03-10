@@ -125,18 +125,12 @@ impl Default for TraceVerifier {
 impl TraceVerifier {
     /// Create a new verifier with default config
     pub fn new() -> Self {
-        Self {
-            config: VerifierConfig::default(),
-            stats: VerifierStats::default(),
-        }
+        Self { config: VerifierConfig::default(), stats: VerifierStats::default() }
     }
 
     /// Create a verifier with custom config
     pub fn with_config(config: VerifierConfig) -> Self {
-        Self {
-            config,
-            stats: VerifierStats::default(),
-        }
+        Self { config, stats: VerifierStats::default() }
     }
 
     /// Get the current config
@@ -248,13 +242,7 @@ impl TraceVerifier {
         self.stats.avg_verification_time_ms =
             (self.stats.avg_verification_time_ms * (n - 1.0) + compilation_time_ms as f64) / n;
 
-        VerificationResult {
-            passed,
-            errors,
-            warnings,
-            unsafe_count,
-            compilation_time_ms,
-        }
+        VerificationResult { passed, errors, warnings, unsafe_count, compilation_time_ms }
     }
 
     /// Verify a batch of traces
@@ -266,10 +254,7 @@ impl TraceVerifier {
     /// Filter to only valid traces
     pub fn filter_valid<'a>(&self, traces: &'a [GoldenTrace]) -> Vec<&'a GoldenTrace> {
         let mut verifier = Self::with_config(self.config.clone());
-        traces
-            .iter()
-            .filter(|t| verifier.verify_trace(t).passed)
-            .collect()
+        traces.iter().filter(|t| verifier.verify_trace(t).passed).collect()
     }
 }
 
@@ -279,12 +264,7 @@ mod tests {
     use crate::golden_trace::{GoldenTrace, TraceTier};
 
     fn make_trace(rust_code: &str) -> GoldenTrace {
-        GoldenTrace::new(
-            "int x = 0;".to_string(),
-            rust_code.to_string(),
-            TraceTier::P0,
-            "test.c",
-        )
+        GoldenTrace::new("int x = 0;".to_string(), rust_code.to_string(), TraceTier::P0, "test.c")
     }
 
     // ========================================================================
@@ -482,10 +462,7 @@ mod tests {
 
     #[test]
     fn verify_safety_unsafe_allowed() {
-        let config = VerifierConfig {
-            allow_unsafe: true,
-            ..Default::default()
-        };
+        let config = VerifierConfig { allow_unsafe: true, ..Default::default() };
         let verifier = TraceVerifier::with_config(config);
         let result = verifier.verify_safety("unsafe { ptr::read(p) }");
         assert!(result.is_ok());
@@ -593,10 +570,7 @@ mod tests {
     #[test]
     fn verify_batch_returns_correct_count() {
         let verifier = TraceVerifier::new();
-        let traces = vec![
-            make_trace("let _x: i32 = 1;"),
-            make_trace("let _y: i32 = 2;"),
-        ];
+        let traces = vec![make_trace("let _x: i32 = 1;"), make_trace("let _y: i32 = 2;")];
         let results = verifier.verify_batch(&traces);
         assert_eq!(results.len(), 2);
     }
@@ -615,10 +589,7 @@ mod tests {
     #[test]
     fn filter_valid_returns_subset() {
         let verifier = TraceVerifier::new();
-        let traces = vec![
-            make_trace("let _x: i32 = 1;"),
-            make_trace("let _y: i32 = 2;"),
-        ];
+        let traces = vec![make_trace("let _x: i32 = 1;"), make_trace("let _y: i32 = 2;")];
         let valid = verifier.filter_valid(&traces);
         // Should return at most the full set
         assert!(valid.len() <= traces.len());

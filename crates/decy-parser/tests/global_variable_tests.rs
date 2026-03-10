@@ -19,11 +19,7 @@ fn test_parse_simple_global_variable() {
     let result = parser.parse(source).expect("Should parse successfully");
 
     // Should have 1 global variable
-    assert_eq!(
-        result.variables().len(),
-        1,
-        "Should parse 1 global variable"
-    );
+    assert_eq!(result.variables().len(), 1, "Should parse 1 global variable");
 
     let global = &result.variables()[0];
     assert_eq!(global.name(), "global_count");
@@ -72,11 +68,7 @@ fn test_parse_multiple_globals() {
     let parser = CParser::new().expect("Parser creation failed");
     let result = parser.parse(source).expect("Should parse successfully");
 
-    assert_eq!(
-        result.variables().len(),
-        3,
-        "Should parse 3 global variables"
-    );
+    assert_eq!(result.variables().len(), 3, "Should parse 3 global variables");
 
     assert_eq!(result.variables()[0].name(), "global1");
     assert_eq!(result.variables()[1].name(), "global2");
@@ -216,10 +208,7 @@ fn test_extern_global() {
     assert!(!global.is_static(), "Should not be static");
     assert!(global.is_extern(), "Should be marked as extern");
     assert!(!global.is_const(), "Should not be const");
-    assert!(
-        global.initializer().is_none(),
-        "extern should not have initializer"
-    );
+    assert!(global.initializer().is_none(), "extern should not have initializer");
 }
 
 #[test]
@@ -242,10 +231,7 @@ fn test_const_global() {
     assert!(!global.is_static(), "Should not be static");
     assert!(!global.is_extern(), "Should not be extern");
     assert!(global.is_const(), "Should be marked as const");
-    assert!(
-        global.initializer().is_some(),
-        "const should have initializer"
-    );
+    assert!(global.initializer().is_some(), "const should have initializer");
 }
 
 #[test]

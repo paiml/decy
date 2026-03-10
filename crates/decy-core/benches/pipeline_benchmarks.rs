@@ -14,15 +14,11 @@ fn bench_simple_functions(c: &mut Criterion) {
 
     // Minimal function
     let minimal = "int main() { return 0; }";
-    group.bench_function("minimal_function", |b| {
-        b.iter(|| transpile(black_box(minimal)))
-    });
+    group.bench_function("minimal_function", |b| b.iter(|| transpile(black_box(minimal))));
 
     // Function with parameters
     let with_params = "int add(int a, int b) { return a + b; }";
-    group.bench_function("function_with_params", |b| {
-        b.iter(|| transpile(black_box(with_params)))
-    });
+    group.bench_function("function_with_params", |b| b.iter(|| transpile(black_box(with_params))));
 
     // Function with variables
     let with_vars = r#"
@@ -32,9 +28,7 @@ fn bench_simple_functions(c: &mut Criterion) {
             return result;
         }
     "#;
-    group.bench_function("function_with_variables", |b| {
-        b.iter(|| transpile(black_box(with_vars)))
-    });
+    group.bench_function("function_with_variables", |b| b.iter(|| transpile(black_box(with_vars))));
 
     group.finish();
 }
@@ -72,9 +66,7 @@ fn bench_control_flow(c: &mut Criterion) {
             return sum;
         }
     "#;
-    group.bench_function("while_loop", |b| {
-        b.iter(|| transpile(black_box(while_loop)))
-    });
+    group.bench_function("while_loop", |b| b.iter(|| transpile(black_box(while_loop))));
 
     // For loop
     let for_loop = r#"
@@ -157,9 +149,7 @@ fn bench_realistic_code(c: &mut Criterion) {
             return result;
         }
     "#;
-    group.bench_function("calculator", |b| {
-        b.iter(|| transpile(black_box(calculator)))
-    });
+    group.bench_function("calculator", |b| b.iter(|| transpile(black_box(calculator))));
 
     // Nested control flow
     let nested = r#"
@@ -182,9 +172,7 @@ fn bench_realistic_code(c: &mut Criterion) {
             return result;
         }
     "#;
-    group.bench_function("nested_control", |b| {
-        b.iter(|| transpile(black_box(nested)))
-    });
+    group.bench_function("nested_control", |b| b.iter(|| transpile(black_box(nested))));
 
     // Multiple variables and operations
     let multi_var = r#"
@@ -200,9 +188,7 @@ fn bench_realistic_code(c: &mut Criterion) {
             return result;
         }
     "#;
-    group.bench_function("multiple_variables", |b| {
-        b.iter(|| transpile(black_box(multi_var)))
-    });
+    group.bench_function("multiple_variables", |b| b.iter(|| transpile(black_box(multi_var))));
 
     group.finish();
 }

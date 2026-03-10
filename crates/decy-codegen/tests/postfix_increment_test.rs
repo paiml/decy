@@ -421,8 +421,5 @@ fn test_post_increment_unsafe_count() {
 
     // Count unsafe blocks (should be 0)
     let unsafe_count = result.matches("unsafe").count();
-    assert_eq!(
-        unsafe_count, 0,
-        "Post-increment/decrement should not introduce unsafe blocks"
-    );
+    assert_eq!(unsafe_count, 0, "Post-increment/decrement should not introduce unsafe blocks");
 }

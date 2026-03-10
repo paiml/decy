@@ -31,10 +31,7 @@ fn test_project_context_get_function_source() {
     // Should find function source
     let source = context_with_func.get_function_source("foo");
     assert!(source.is_some(), "Should find function source");
-    assert!(
-        source.unwrap().contains("test.c"),
-        "Source should reference the file"
-    );
+    assert!(source.unwrap().contains("test.c"), "Source should reference the file");
 
     // Should not find unknown function
     let unknown = context_with_func.get_function_source("nonexistent");
@@ -52,14 +49,8 @@ fn test_project_context_has_function() {
     let mut context_with_func = ProjectContext::new();
     context_with_func.add_transpiled_file(&result);
 
-    assert!(
-        context_with_func.has_function("bar"),
-        "Should find bar function"
-    );
-    assert!(
-        !context_with_func.has_function("unknown"),
-        "Should not find unknown function"
-    );
+    assert!(context_with_func.has_function("bar"), "Should find bar function");
+    assert!(!context_with_func.has_function("unknown"), "Should not find unknown function");
 }
 
 #[test]
@@ -221,10 +212,7 @@ fn test_parse_include_malformed() {
     let includes = DependencyGraph::parse_include_directives(code);
 
     // Should not parse the malformed ones
-    assert!(
-        !includes.contains(&"unclosed".to_string()),
-        "Should not include malformed"
-    );
+    assert!(!includes.contains(&"unclosed".to_string()), "Should not include malformed");
 }
 
 #[test]
@@ -340,10 +328,7 @@ fn test_transpile_with_verification_success() {
 
     let transpilation_result = result.unwrap();
     assert!(transpilation_result.compiles, "Should compile successfully");
-    assert!(
-        transpilation_result.errors.is_empty(),
-        "Should have no errors"
-    );
+    assert!(transpilation_result.errors.is_empty(), "Should have no errors");
 }
 
 #[test]
@@ -747,11 +732,7 @@ fn test_cache_debug() {
 
 #[test]
 fn test_cache_statistics_debug() {
-    let stats = decy_core::CacheStatistics {
-        hits: 5,
-        misses: 2,
-        total_files: 10,
-    };
+    let stats = decy_core::CacheStatistics { hits: 5, misses: 2, total_files: 10 };
     let debug = format!("{:?}", stats);
     assert!(debug.contains("hits"));
     assert!(debug.contains("5"));

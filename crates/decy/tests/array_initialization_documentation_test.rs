@@ -395,10 +395,7 @@ int main() {
     let rust_code = result.unwrap();
 
     // This is a documentation test - verify basic structure
-    assert!(
-        rust_code.contains("fn main") || rust_code.contains("main"),
-        "Expected main function"
-    );
+    assert!(rust_code.contains("fn main") || rust_code.contains("main"), "Expected main function");
 
     // Verify key transformations documented in comments above
     println!("\n=== Array Initialization Transformation Rules ===");
@@ -413,11 +410,7 @@ int main() {
 
     // All array initialization transformations are SAFE
     let unsafe_count = rust_code.matches("unsafe").count();
-    assert_eq!(
-        unsafe_count, 0,
-        "Expected 0 unsafe blocks, found {}",
-        unsafe_count
-    );
+    assert_eq!(unsafe_count, 0, "Expected 0 unsafe blocks, found {}", unsafe_count);
 }
 
 /// Test Statistics and Coverage Summary
@@ -505,12 +498,6 @@ fn test_array_initialization_documentation_summary() {
     println!("Critical: Bounds checking, no decay, explicit init");
     println!("==================================================\n");
 
-    assert_eq!(
-        unsafe_blocks, 0,
-        "All array initialization transformations must be safe"
-    );
-    assert!(
-        total_tests >= 10,
-        "Need at least 10 tests for comprehensive coverage"
-    );
+    assert_eq!(unsafe_blocks, 0, "All array initialization transformations must be safe");
+    assert!(total_tests >= 10, "Need at least 10 tests for comprehensive coverage");
 }

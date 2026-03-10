@@ -80,17 +80,10 @@ int32_t vm_stack_peek(struct vm_stack_machine *sm) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1251: Stack VM push/pop/arithmetic - failed: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1251: Stack VM push/pop/arithmetic - failed: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1251: empty output");
-    assert!(
-        code.contains("fn vm_stack_push"),
-        "C1251: Should contain vm_stack_push function"
-    );
+    assert!(code.contains("fn vm_stack_push"), "C1251: Should contain vm_stack_push function");
 }
 
 /// C1252: Operand stack with type-tagged values
@@ -157,11 +150,7 @@ int vm_opstack_is_int(struct vm_operand *v) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1252: Operand stack typed values - failed: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1252: Operand stack typed values - failed: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1252: empty output");
     assert!(
@@ -218,11 +207,7 @@ int vm_callstack_depth(struct vm_call_stack *cs) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1253: Call frame management - failed: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1253: Call frame management - failed: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1253: empty output");
     assert!(
@@ -277,17 +262,10 @@ int vm_locals_is_defined(struct vm_locals *loc, int idx) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1254: Local variable slots - failed: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1254: Local variable slots - failed: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1254: empty output");
-    assert!(
-        code.contains("fn vm_locals_set"),
-        "C1254: Should contain vm_locals_set function"
-    );
+    assert!(code.contains("fn vm_locals_set"), "C1254: Should contain vm_locals_set function");
 }
 
 /// C1255: Return value handling across frames
@@ -336,11 +314,7 @@ int vm_retstack_pop(struct vm_return_stack *rs, int *val, int *had_value) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1255: Return value handling - failed: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1255: Return value handling - failed: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1255: empty output");
     assert!(
@@ -396,11 +370,7 @@ int vm_bytecode_size(struct vm_bytecode_buf *buf) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1256: Bytecode encoder - failed: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1256: Bytecode encoder - failed: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1256: empty output");
     assert!(
@@ -460,17 +430,10 @@ void vm_decoder_reset(struct vm_decoder *dec) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1257: Instruction decoder - failed: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1257: Instruction decoder - failed: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1257: empty output");
-    assert!(
-        code.contains("fn vm_decode_next"),
-        "C1257: Should contain vm_decode_next function"
-    );
+    assert!(code.contains("fn vm_decode_next"), "C1257: Should contain vm_decode_next function");
 }
 
 /// C1258: Opcode dispatch loop with switch-based execution
@@ -541,11 +504,7 @@ int vm_dispatch_step(struct vm_dispatch_ctx *ctx) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1258: Opcode dispatch loop - failed: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1258: Opcode dispatch loop - failed: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1258: empty output");
     assert!(
@@ -606,11 +565,7 @@ double vm_const_get_float(struct vm_const_pool *pool, int idx) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1259: Constant pool - failed: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1259: Constant pool - failed: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1259: empty output");
     assert!(
@@ -663,11 +618,7 @@ int vm_linetable_count(struct vm_line_table *lt) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1260: Line number table - failed: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1260: Line number table - failed: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1260: empty output");
     assert!(
@@ -750,17 +701,10 @@ int vm_gc_sweep(struct vm_gc_heap *heap) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1261: Mark-sweep GC - failed: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1261: Mark-sweep GC - failed: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1261: empty output");
-    assert!(
-        code.contains("fn vm_gc_sweep"),
-        "C1261: Should contain vm_gc_sweep function"
-    );
+    assert!(code.contains("fn vm_gc_sweep"), "C1261: Should contain vm_gc_sweep function");
 }
 
 /// C1262: Reference counting with increment/decrement and free
@@ -820,17 +764,10 @@ int vm_rc_get_refcount(struct vm_rc_pool *pool, int idx) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1262: Reference counting - failed: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1262: Reference counting - failed: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1262: empty output");
-    assert!(
-        code.contains("fn vm_rc_decref"),
-        "C1262: Should contain vm_rc_decref function"
-    );
+    assert!(code.contains("fn vm_rc_decref"), "C1262: Should contain vm_rc_decref function");
 }
 
 /// C1263: Arena allocator for fast bump-pointer allocation
@@ -877,17 +814,10 @@ int vm_arena_remaining(struct vm_arena *arena) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1263: Arena allocator - failed: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1263: Arena allocator - failed: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1263: empty output");
-    assert!(
-        code.contains("fn vm_arena_alloc"),
-        "C1263: Should contain vm_arena_alloc function"
-    );
+    assert!(code.contains("fn vm_arena_alloc"), "C1263: Should contain vm_arena_alloc function");
 }
 
 /// C1264: String interning table for deduplication
@@ -952,11 +882,7 @@ int vm_intern_find_or_add(struct vm_intern_table *tbl, const char *str, int len)
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1264: String interning - failed: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1264: String interning - failed: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1264: empty output");
     assert!(
@@ -1017,11 +943,7 @@ void vm_weak_advance_gen(struct vm_weak_table *wt) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1265: Weak references - failed: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1265: Weak references - failed: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1265: empty output");
     assert!(
@@ -1102,17 +1024,10 @@ int vm_values_equal(struct vm_tagged_val *a, struct vm_tagged_val *b) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1266: Tagged union values - failed: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1266: Tagged union values - failed: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1266: empty output");
-    assert!(
-        code.contains("fn vm_is_truthy"),
-        "C1266: Should contain vm_is_truthy function"
-    );
+    assert!(code.contains("fn vm_is_truthy"), "C1266: Should contain vm_is_truthy function");
 }
 
 /// C1267: Runtime type checker for dynamic dispatch
@@ -1170,11 +1085,7 @@ int vm_typecheck_is_numeric(struct vm_type_registry *reg, int id) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1267: Runtime type checker - failed: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1267: Runtime type checker - failed: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1267: empty output");
     assert!(
@@ -1228,11 +1139,7 @@ int vm_mtable_has_method(struct vm_method_table *mt, int name_hash, int class_id
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1268: Method dispatch - failed: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1268: Method dispatch - failed: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1268: empty output");
     assert!(
@@ -1303,11 +1210,7 @@ int vm_vtreg_resolve(struct vm_vtable_registry *reg, int class_idx, int slot) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1269: Vtable lookup - failed: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1269: Vtable lookup - failed: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1269: empty output");
     assert!(
@@ -1372,11 +1275,7 @@ int vm_generics_count(struct vm_generic_registry *reg) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1270: Generic instantiation - failed: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1270: Generic instantiation - failed: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1270: empty output");
     assert!(
@@ -1455,11 +1354,7 @@ int vm_peep_output_len(struct vm_peephole *p) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1271: Peephole optimizer - failed: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1271: Peephole optimizer - failed: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1271: empty output");
     assert!(
@@ -1550,11 +1445,7 @@ int vm_folder_try_fold(struct vm_folder *f, int idx) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1272: Constant folding - failed: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1272: Constant folding - failed: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1272: empty output");
     assert!(
@@ -1626,11 +1517,7 @@ int vm_dce_eliminate(struct vm_dce_pass *dce) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1273: Dead code elimination - failed: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1273: Dead code elimination - failed: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1273: empty output");
     assert!(
@@ -1707,11 +1594,7 @@ int vm_regalloc_allocate(struct vm_regalloc *ra) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1274: Register allocator - failed: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1274: Register allocator - failed: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1274: empty output");
     assert!(
@@ -1791,11 +1674,7 @@ int vm_cfg_block_count(struct vm_cfg_builder *cfg) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1275: Basic block construction - failed: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1275: Basic block construction - failed: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1275: empty output");
     assert!(

@@ -37,18 +37,11 @@ fn test_simple_function_scope() {
     let scope_tree = analyzer.build_scope_tree(&func);
 
     // Should have exactly 1 scope (function scope)
-    assert_eq!(
-        scope_tree.scopes().len(),
-        1,
-        "Simple function should have 1 scope"
-    );
+    assert_eq!(scope_tree.scopes().len(), 1, "Simple function should have 1 scope");
 
     // Root scope should contain variable 'x'
     let root = scope_tree.get_scope(0).unwrap();
-    assert!(
-        root.variables.contains(&"x".to_string()),
-        "Function scope should contain variable x"
-    );
+    assert!(root.variables.contains(&"x".to_string()), "Function scope should contain variable x");
     assert_eq!(root.parent, None, "Root scope has no parent");
 }
 
@@ -79,19 +72,11 @@ fn test_nested_if_block_scope() {
     let scope_tree = analyzer.build_scope_tree(&func);
 
     // Should have 2 scopes
-    assert_eq!(
-        scope_tree.scopes().len(),
-        2,
-        "If-block creates nested scope"
-    );
+    assert_eq!(scope_tree.scopes().len(), 2, "If-block creates nested scope");
 
     // Find the if-block scope (should be scope 1)
     let if_scope = scope_tree.get_scope(1).unwrap();
-    assert_eq!(
-        if_scope.parent,
-        Some(0),
-        "If-block scope's parent should be root"
-    );
+    assert_eq!(if_scope.parent, Some(0), "If-block scope's parent should be root");
     assert!(
         if_scope.variables.contains(&"y".to_string()),
         "If-block scope should contain variable y"
@@ -129,11 +114,7 @@ fn test_if_else_both_branches() {
     let scope_tree = analyzer.build_scope_tree(&func);
 
     // Should have 3 scopes: function, then-block, else-block
-    assert_eq!(
-        scope_tree.scopes().len(),
-        3,
-        "If-else creates 2 nested scopes"
-    );
+    assert_eq!(scope_tree.scopes().len(), 3, "If-else creates 2 nested scopes");
 
     // Both branches should be children of root
     let then_scope = scope_tree.get_scope(1).unwrap();
@@ -170,11 +151,7 @@ fn test_while_loop_scope() {
     let analyzer = LifetimeAnalyzer::new();
     let scope_tree = analyzer.build_scope_tree(&func);
 
-    assert_eq!(
-        scope_tree.scopes().len(),
-        2,
-        "While loop creates nested scope"
-    );
+    assert_eq!(scope_tree.scopes().len(), 2, "While loop creates nested scope");
 
     let loop_scope = scope_tree.get_scope(1).unwrap();
     assert_eq!(loop_scope.parent, Some(0));
@@ -211,23 +188,12 @@ fn test_deeply_nested_scopes() {
     let analyzer = LifetimeAnalyzer::new();
     let scope_tree = analyzer.build_scope_tree(&func);
 
-    assert_eq!(
-        scope_tree.scopes().len(),
-        3,
-        "Nested if-blocks create multiple scopes"
-    );
+    assert_eq!(scope_tree.scopes().len(), 3, "Nested if-blocks create multiple scopes");
 
     // Verify nesting: scope 2 -> scope 1 -> scope 0
     let inner_scope = scope_tree.get_scope(2).unwrap();
-    assert_eq!(
-        inner_scope.parent,
-        Some(1),
-        "Inner scope parent is outer scope"
-    );
-    assert!(
-        scope_tree.is_nested_in(2, 0),
-        "Innermost scope is nested in root"
-    );
+    assert_eq!(inner_scope.parent, Some(1), "Inner scope parent is outer scope");
+    assert!(scope_tree.is_nested_in(2, 0), "Innermost scope is nested in root");
 }
 
 // ============================================================================
@@ -256,10 +222,7 @@ fn test_variable_lifetime_tracking() {
     let scope_tree = analyzer.build_scope_tree(&func);
     let lifetimes = analyzer.track_lifetimes(&func, &scope_tree);
 
-    assert!(
-        lifetimes.contains_key("x"),
-        "Should track lifetime of variable x"
-    );
+    assert!(lifetimes.contains_key("x"), "Should track lifetime of variable x");
 
     let x_lifetime = &lifetimes["x"];
     assert_eq!(x_lifetime.name, "x");
@@ -336,11 +299,7 @@ fn test_multiple_variables_same_scope() {
     let scope_tree = analyzer.build_scope_tree(&func);
 
     let root = scope_tree.get_scope(0).unwrap();
-    assert_eq!(
-        root.variables.len(),
-        3,
-        "Root scope should have 3 variables"
-    );
+    assert_eq!(root.variables.len(), 3, "Root scope should have 3 variables");
     assert!(root.variables.contains(&"a".to_string()));
     assert!(root.variables.contains(&"b".to_string()));
     assert!(root.variables.contains(&"c".to_string()));
@@ -414,26 +373,11 @@ fn test_scope_nesting_is_nested_in() {
     let scope_tree = analyzer.build_scope_tree(&func);
 
     // Test is_nested_in method
-    assert!(
-        scope_tree.is_nested_in(2, 1),
-        "Inner scope should be nested in outer scope"
-    );
-    assert!(
-        scope_tree.is_nested_in(2, 0),
-        "Inner scope should be nested in root"
-    );
-    assert!(
-        scope_tree.is_nested_in(1, 0),
-        "Outer scope should be nested in root"
-    );
-    assert!(
-        !scope_tree.is_nested_in(0, 1),
-        "Root is not nested in child"
-    );
-    assert!(
-        !scope_tree.is_nested_in(1, 2),
-        "Outer scope is not nested in inner"
-    );
+    assert!(scope_tree.is_nested_in(2, 1), "Inner scope should be nested in outer scope");
+    assert!(scope_tree.is_nested_in(2, 0), "Inner scope should be nested in root");
+    assert!(scope_tree.is_nested_in(1, 0), "Outer scope should be nested in root");
+    assert!(!scope_tree.is_nested_in(0, 1), "Root is not nested in child");
+    assert!(!scope_tree.is_nested_in(1, 2), "Outer scope is not nested in inner");
 }
 
 // ============================================================================
@@ -449,15 +393,8 @@ fn test_empty_function_scope() {
     let analyzer = LifetimeAnalyzer::new();
     let scope_tree = analyzer.build_scope_tree(&func);
 
-    assert_eq!(
-        scope_tree.scopes().len(),
-        1,
-        "Empty function has root scope"
-    );
-    assert!(
-        scope_tree.scopes()[0].variables.is_empty(),
-        "Root scope should be empty"
-    );
+    assert_eq!(scope_tree.scopes().len(), 1, "Empty function has root scope");
+    assert!(scope_tree.scopes()[0].variables.is_empty(), "Root scope should be empty");
 }
 
 // ============================================================================
@@ -505,24 +442,14 @@ fn test_complex_scope_with_multiple_statements() {
     let scope_tree = analyzer.build_scope_tree(&func);
 
     // Should have: function, if-block, while-block = 3 scopes
-    assert_eq!(
-        scope_tree.scopes().len(),
-        3,
-        "Complex function should have 3 scopes"
-    );
+    assert_eq!(scope_tree.scopes().len(), 3, "Complex function should have 3 scopes");
 
     // Root should contain 'x'
     assert!(scope_tree.scopes()[0].variables.contains(&"x".to_string()));
 
     // Find scopes containing 'y' and 'z'
-    let has_y = scope_tree
-        .scopes()
-        .iter()
-        .any(|s| s.variables.contains(&"y".to_string()));
-    let has_z = scope_tree
-        .scopes()
-        .iter()
-        .any(|s| s.variables.contains(&"z".to_string()));
+    let has_y = scope_tree.scopes().iter().any(|s| s.variables.contains(&"y".to_string()));
+    let has_z = scope_tree.scopes().iter().any(|s| s.variables.contains(&"z".to_string()));
 
     assert!(has_y, "Some scope should contain 'y'");
     assert!(has_z, "Some scope should contain 'z'");

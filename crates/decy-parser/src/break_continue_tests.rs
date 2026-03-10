@@ -37,11 +37,7 @@ mod tests {
         let func = &ast.functions()[0];
 
         // Check while loop structure
-        assert_eq!(
-            func.body.len(),
-            3,
-            "Should have 3 statements: i=0, while, return"
-        );
+        assert_eq!(func.body.len(), 3, "Should have 3 statements: i=0, while, return");
 
         if let Statement::While { body, .. } = &func.body[1] {
             assert_eq!(body.len(), 2, "While loop should have 2 statements");
@@ -258,15 +254,9 @@ mod tests {
             .expect("Should have a for loop");
 
         // Outer for loop
-        if let Statement::For {
-            body: outer_body, ..
-        } = &func.body[for_stmt_idx]
-        {
+        if let Statement::For { body: outer_body, .. } = &func.body[for_stmt_idx] {
             // Inner for loop
-            if let Statement::For {
-                body: inner_body, ..
-            } = &outer_body[0]
-            {
+            if let Statement::For { body: inner_body, .. } = &outer_body[0] {
                 // If statement with break
                 if let Statement::If { then_block, .. } = &inner_body[0] {
                     // RED: This will fail
@@ -325,14 +315,8 @@ mod tests {
             .expect("Should have a for loop");
 
         // Navigate to nested loop structure
-        if let Statement::For {
-            body: outer_body, ..
-        } = &func.body[for_stmt_idx]
-        {
-            if let Statement::For {
-                body: inner_body, ..
-            } = &outer_body[0]
-            {
+        if let Statement::For { body: outer_body, .. } = &func.body[for_stmt_idx] {
+            if let Statement::For { body: inner_body, .. } = &outer_body[0] {
                 // First if with continue
                 if let Statement::If { then_block, .. } = &inner_body[0] {
                     // RED: This will fail

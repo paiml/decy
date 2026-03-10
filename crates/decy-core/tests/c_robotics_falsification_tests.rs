@@ -257,14 +257,8 @@ void comp_filter_calibrate(comp_filter_t *cf, float *gyro_samples, int n) {
 "#;
     let rust_code = decy_core::transpile(c_code)?;
     assert!(!rust_code.is_empty(), "C554: Should produce output");
-    assert!(
-        rust_code.contains("fn comp_filter_init"),
-        "C554: Should contain comp_filter_init"
-    );
-    assert!(
-        rust_code.contains("fn comp_filter_update"),
-        "C554: Should contain comp_filter_update"
-    );
+    assert!(rust_code.contains("fn comp_filter_init"), "C554: Should contain comp_filter_init");
+    assert!(rust_code.contains("fn comp_filter_update"), "C554: Should contain comp_filter_update");
     Ok(())
 }
 
@@ -725,10 +719,7 @@ int astar_is_valid(const astar_t *a, int x, int y) {
     let rust_code = decy_core::transpile(c_code)?;
     assert!(!rust_code.is_empty(), "C560: Should produce output");
     assert!(rust_code.contains("fn astar_init"), "C560: Should contain astar_init");
-    assert!(
-        rust_code.contains("fn astar_heuristic"),
-        "C560: Should contain astar_heuristic"
-    );
+    assert!(rust_code.contains("fn astar_heuristic"), "C560: Should contain astar_heuristic");
     Ok(())
 }
 
@@ -807,10 +798,7 @@ float pf_magnitude(const vec2_t *v) {
     let rust_code = decy_core::transpile(c_code)?;
     assert!(!rust_code.is_empty(), "C561: Should produce output");
     assert!(rust_code.contains("fn pf_compute"), "C561: Should contain pf_compute");
-    assert!(
-        rust_code.contains("fn pf_add_obstacle"),
-        "C561: Should contain pf_add_obstacle"
-    );
+    assert!(rust_code.contains("fn pf_add_obstacle"), "C561: Should contain pf_add_obstacle");
     Ok(())
 }
 
@@ -1243,10 +1231,7 @@ float highpass_get(const highpass_t *hp) {
     let rust_code = decy_core::transpile(c_code)?;
     assert!(!rust_code.is_empty(), "C567: Should produce output");
     assert!(rust_code.contains("fn highpass_init"), "C567: Should contain highpass_init");
-    assert!(
-        rust_code.contains("fn highpass_update"),
-        "C567: Should contain highpass_update"
-    );
+    assert!(rust_code.contains("fn highpass_update"), "C567: Should contain highpass_update");
     Ok(())
 }
 
@@ -1397,14 +1382,8 @@ void quat_conjugate(const quat_t *q, quat_t *out) {
 "#;
     let rust_code = decy_core::transpile(c_code)?;
     assert!(!rust_code.is_empty(), "C569: Should produce output");
-    assert!(
-        rust_code.contains("fn quat_normalize"),
-        "C569: Should contain quat_normalize"
-    );
-    assert!(
-        rust_code.contains("fn quat_rotate_vec"),
-        "C569: Should contain quat_rotate_vec"
-    );
+    assert!(rust_code.contains("fn quat_normalize"), "C569: Should contain quat_normalize");
+    assert!(rust_code.contains("fn quat_rotate_vec"), "C569: Should contain quat_rotate_vec");
     Ok(())
 }
 
@@ -1482,10 +1461,7 @@ void mat4_identity(mat4_t *m) {
     let rust_code = decy_core::transpile(c_code)?;
     assert!(!rust_code.is_empty(), "C570: Should produce output");
     assert!(rust_code.contains("fn dh_transform"), "C570: Should contain dh_transform");
-    assert!(
-        rust_code.contains("fn mat4_multiply"),
-        "C570: Should contain mat4_multiply"
-    );
+    assert!(rust_code.contains("fn mat4_multiply"), "C570: Should contain mat4_multiply");
     Ok(())
 }
 
@@ -1550,14 +1526,8 @@ void jacobian_multiply_vec(const jacobian2x2_t *J, float vx, float vy, float *ox
 "#;
     let rust_code = decy_core::transpile(c_code)?;
     assert!(!rust_code.is_empty(), "C571: Should produce output");
-    assert!(
-        rust_code.contains("fn jacobian_compute"),
-        "C571: Should contain jacobian_compute"
-    );
-    assert!(
-        rust_code.contains("fn jacobian_det"),
-        "C571: Should contain jacobian_det"
-    );
+    assert!(rust_code.contains("fn jacobian_compute"), "C571: Should contain jacobian_compute");
+    assert!(rust_code.contains("fn jacobian_det"), "C571: Should contain jacobian_det");
     Ok(())
 }
 
@@ -1617,14 +1587,8 @@ float vel_ctrl_speed(const wheel_speeds_t *ws) {
 "#;
     let rust_code = decy_core::transpile(c_code)?;
     assert!(!rust_code.is_empty(), "C572: Should produce output");
-    assert!(
-        rust_code.contains("fn vel_ctrl_init"),
-        "C572: Should contain vel_ctrl_init"
-    );
-    assert!(
-        rust_code.contains("fn vel_ctrl_compute"),
-        "C572: Should contain vel_ctrl_compute"
-    );
+    assert!(rust_code.contains("fn vel_ctrl_init"), "C572: Should contain vel_ctrl_init");
+    assert!(rust_code.contains("fn vel_ctrl_compute"), "C572: Should contain vel_ctrl_compute");
     Ok(())
 }
 
@@ -1916,13 +1880,7 @@ int line_lost(const line_sensors_t *ls) {
 "#;
     let rust_code = decy_core::transpile(c_code)?;
     assert!(!rust_code.is_empty(), "C575: Should produce output");
-    assert!(
-        rust_code.contains("fn line_pid_init"),
-        "C575: Should contain line_pid_init"
-    );
-    assert!(
-        rust_code.contains("fn line_pid_update"),
-        "C575: Should contain line_pid_update"
-    );
+    assert!(rust_code.contains("fn line_pid_init"), "C575: Should contain line_pid_init");
+    assert!(rust_code.contains("fn line_pid_update"), "C575: Should contain line_pid_update");
     Ok(())
 }

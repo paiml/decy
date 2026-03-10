@@ -47,16 +47,10 @@ fn demo_simple_malloc_free() -> Result<(), Box<dyn std::error::Error>> {
 
     let unsafe_count = rust_code.matches("unsafe").count();
     let lines = rust_code.lines().count();
-    let unsafe_per_1000 = if lines > 0 {
-        (unsafe_count as f64 / lines as f64) * 1000.0
-    } else {
-        0.0
-    };
+    let unsafe_per_1000 =
+        if lines > 0 { (unsafe_count as f64 / lines as f64) * 1000.0 } else { 0.0 };
 
-    println!(
-        "\n✓ Unsafe blocks: {} ({:.1} per 1000 LOC)",
-        unsafe_count, unsafe_per_1000
-    );
+    println!("\n✓ Unsafe blocks: {} ({:.1} per 1000 LOC)", unsafe_count, unsafe_per_1000);
     println!("✓ Single allocation, single free");
     println!("✓ Ownership ensures no double free\n");
 
@@ -90,16 +84,10 @@ fn demo_null_after_free() -> Result<(), Box<dyn std::error::Error>> {
 
     let unsafe_count = rust_code.matches("unsafe").count();
     let lines = rust_code.lines().count();
-    let unsafe_per_1000 = if lines > 0 {
-        (unsafe_count as f64 / lines as f64) * 1000.0
-    } else {
-        0.0
-    };
+    let unsafe_per_1000 =
+        if lines > 0 { (unsafe_count as f64 / lines as f64) * 1000.0 } else { 0.0 };
 
-    println!(
-        "\n✓ Unsafe blocks: {} ({:.1} per 1000 LOC)",
-        unsafe_count, unsafe_per_1000
-    );
+    println!("\n✓ Unsafe blocks: {} ({:.1} per 1000 LOC)", unsafe_count, unsafe_per_1000);
     println!("✓ NULL prevents accidental reuse");
     println!("✓ Ownership makes NULL unnecessary\n");
 
@@ -138,16 +126,10 @@ fn demo_ownership_transfer() -> Result<(), Box<dyn std::error::Error>> {
 
     let unsafe_count = rust_code.matches("unsafe").count();
     let lines = rust_code.lines().count();
-    let unsafe_per_1000 = if lines > 0 {
-        (unsafe_count as f64 / lines as f64) * 1000.0
-    } else {
-        0.0
-    };
+    let unsafe_per_1000 =
+        if lines > 0 { (unsafe_count as f64 / lines as f64) * 1000.0 } else { 0.0 };
 
-    println!(
-        "\n✓ Unsafe blocks: {} ({:.1} per 1000 LOC)",
-        unsafe_count, unsafe_per_1000
-    );
+    println!("\n✓ Unsafe blocks: {} ({:.1} per 1000 LOC)", unsafe_count, unsafe_per_1000);
     println!("✓ Function takes ownership");
     println!("✓ Cannot use ptr after cleanup()\n");
 

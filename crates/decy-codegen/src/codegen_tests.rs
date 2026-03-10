@@ -128,10 +128,7 @@ mod tests {
         let func = HirFunction::new(
             "process".to_string(),
             HirType::Void,
-            vec![HirParameter::new(
-                "data".to_string(),
-                HirType::Pointer(Box::new(HirType::Int)),
-            )],
+            vec![HirParameter::new("data".to_string(), HirType::Pointer(Box::new(HirType::Int)))],
         );
 
         let codegen = CodeGenerator::new();
@@ -535,9 +532,7 @@ mod tests {
                 right: Box::new(HirExpression::IntLiteral(0)),
             },
             then_block: vec![HirStatement::Return(Some(HirExpression::IntLiteral(1)))],
-            else_block: Some(vec![HirStatement::Return(Some(HirExpression::IntLiteral(
-                -1,
-            )))]),
+            else_block: Some(vec![HirStatement::Return(Some(HirExpression::IntLiteral(-1)))]),
         };
 
         let codegen = CodeGenerator::new();
@@ -627,9 +622,7 @@ mod tests {
                     right: Box::new(HirExpression::IntLiteral(0)),
                 },
                 then_block: vec![HirStatement::Return(Some(HirExpression::IntLiteral(1)))],
-                else_block: Some(vec![HirStatement::Return(Some(HirExpression::IntLiteral(
-                    -1,
-                )))]),
+                else_block: Some(vec![HirStatement::Return(Some(HirExpression::IntLiteral(-1)))]),
             }],
         );
 
@@ -814,9 +807,9 @@ mod tests {
         let var_decl = HirStatement::VariableDeclaration {
             name: "val".to_string(),
             var_type: HirType::Int,
-            initializer: Some(HirExpression::Dereference(Box::new(
-                HirExpression::Variable("ptr".to_string()),
-            ))),
+            initializer: Some(HirExpression::Dereference(Box::new(HirExpression::Variable(
+                "ptr".to_string(),
+            )))),
         };
 
         let codegen = CodeGenerator::new();
@@ -832,10 +825,7 @@ mod tests {
         // RED PHASE: This test will FAIL
         use decy_hir::HirExpression;
 
-        let expr = HirExpression::FunctionCall {
-            function: "foo".to_string(),
-            arguments: vec![],
-        };
+        let expr = HirExpression::FunctionCall { function: "foo".to_string(), arguments: vec![] };
 
         let codegen = CodeGenerator::new();
         let code = codegen.generate_expression(&expr);
@@ -920,10 +910,7 @@ mod tests {
         // DECY-130: malloc is now transformed to Vec
         // DECY-169: Vec element type matches the pointer inner type (i32, not u8)
         // DECY-170: Size wrapped in parens for correct 'as' precedence
-        assert_eq!(
-            code,
-            "let mut ptr: Vec<i32> = Vec::<i32>::with_capacity((40) as usize);"
-        );
+        assert_eq!(code, "let mut ptr: Vec<i32> = Vec::<i32>::with_capacity((40) as usize);");
     }
 
     // DECY-009 Phase 2: Assignment statement tests (RED phase)
@@ -1544,11 +1531,7 @@ fn test_const_char_becomes_str() {
     let codegen = CodeGenerator::new();
     let signature = codegen.generate_signature(&hir_func);
 
-    assert!(
-        signature.contains("&str"),
-        "const char* should become &str, got: {}",
-        signature
-    );
+    assert!(signature.contains("&str"), "const char* should become &str, got: {}", signature);
 }
 
 #[test]
@@ -1812,11 +1795,8 @@ fn test_decy191_comparison_to_int_has_cast() {
     let parser = CParser::new().expect("Failed to create parser");
     let ast = parser.parse(code).expect("Failed to parse C code");
 
-    let func = ast
-        .functions()
-        .iter()
-        .find(|f| f.name == "compare")
-        .expect("compare function not found");
+    let func =
+        ast.functions().iter().find(|f| f.name == "compare").expect("compare function not found");
     let hir_func = decy_hir::HirFunction::from_ast_function(func);
 
     let codegen = CodeGenerator::new();

@@ -36,17 +36,11 @@ void test(StringBuilder* sb) {
     let ast = parse_c_code(code).expect("Failed to parse C code");
 
     // Find the test function
-    let test_fn = ast
-        .functions()
-        .iter()
-        .find(|f| f.name == "test")
-        .expect("test function not found");
+    let test_fn =
+        ast.functions().iter().find(|f| f.name == "test").expect("test function not found");
 
     // Check the function body has statements
-    assert!(
-        !test_fn.body.is_empty(),
-        "test function should have statements"
-    );
+    assert!(!test_fn.body.is_empty(), "test function should have statements");
 
     // The first statement should be a field assignment (sb->length = sb->length + 1)
     // or an expression statement with PostIncrement on PointerFieldAccess

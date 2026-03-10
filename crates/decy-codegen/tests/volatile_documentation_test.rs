@@ -54,10 +54,7 @@ fn test_volatile_signal_to_atomic() {
     let rust_equivalent = "AtomicBool::new(false)";
 
     assert!(c_code.contains("volatile"), "C uses volatile qualifier");
-    assert!(
-        rust_equivalent.contains("Atomic"),
-        "Rust uses Atomic types for thread-safe volatile"
-    );
+    assert!(rust_equivalent.contains("Atomic"), "Rust uses Atomic types for thread-safe volatile");
 
     // Key difference: Atomic provides proper synchronization
 }
@@ -128,10 +125,7 @@ fn test_volatile_struct_to_unsafe_cell() {
     let rust_equivalent = "struct Device { status: UnsafeCell<u32> }";
 
     assert!(c_code.contains("volatile"), "C uses volatile in struct");
-    assert!(
-        rust_equivalent.contains("UnsafeCell"),
-        "Rust uses UnsafeCell for interior mutability"
-    );
+    assert!(rust_equivalent.contains("UnsafeCell"), "Rust uses UnsafeCell for interior mutability");
 }
 
 /// Document transformation of volatile atomic operation
@@ -156,10 +150,7 @@ fn test_volatile_counter_to_atomic() {
     let rust_equivalent = "COUNTER.fetch_add(1, Ordering::SeqCst)";
 
     assert!(c_code.contains("volatile"), "C uses volatile");
-    assert!(
-        rust_equivalent.contains("fetch_add"),
-        "Rust uses atomic operations"
-    );
+    assert!(rust_equivalent.contains("fetch_add"), "Rust uses atomic operations");
 
     // C volatile does NOT make ++ atomic!
 }
@@ -215,10 +206,7 @@ fn test_volatile_busy_wait_to_atomic_spin() {
     let rust_equivalent = "while !READY.load(Ordering::Acquire) { std::hint::spin_loop(); }";
 
     assert!(c_code.contains("while"), "C uses busy wait");
-    assert!(
-        rust_equivalent.contains("spin_loop"),
-        "Rust uses spin_loop hint for busy wait"
-    );
+    assert!(rust_equivalent.contains("spin_loop"), "Rust uses spin_loop hint for busy wait");
 }
 
 /// Document transformation of volatile array
@@ -267,10 +255,7 @@ fn test_const_volatile_to_read_only() {
     let rust_equivalent = "core::ptr::read_volatile(reg as *const i32)";
 
     assert!(c_code.contains("const volatile"), "C uses both qualifiers");
-    assert!(
-        rust_equivalent.contains("*const"),
-        "Rust uses const pointer for read-only"
-    );
+    assert!(rust_equivalent.contains("*const"), "Rust uses const pointer for read-only");
 }
 
 /// Document that volatile does NOT prevent data races
@@ -297,14 +282,8 @@ fn test_volatile_not_atomic_warning() {
     let c_misconception = "volatile int shared;  // Does NOT prevent data races!";
     let rust_correct = "AtomicI32 provides actual thread safety";
 
-    assert!(
-        c_misconception.contains("volatile"),
-        "C volatile is often misunderstood"
-    );
-    assert!(
-        rust_correct.contains("Atomic"),
-        "Rust Atomic types provide real synchronization"
-    );
+    assert!(c_misconception.contains("volatile"), "C volatile is often misunderstood");
+    assert!(rust_correct.contains("Atomic"), "Rust Atomic types provide real synchronization");
 }
 
 /// Document transformation of volatile for setjmp/longjmp
@@ -335,10 +314,7 @@ fn test_volatile_setjmp_to_result() {
     let rust_equivalent = "Result<T, E>";
 
     assert!(c_code.contains("volatile"), "C uses volatile with setjmp");
-    assert!(
-        rust_equivalent.contains("Result"),
-        "Rust uses Result instead of setjmp"
-    );
+    assert!(rust_equivalent.contains("Result"), "Rust uses Result instead of setjmp");
 }
 
 /// Verify unsafe block usage for volatile operations
@@ -361,18 +337,12 @@ fn test_volatile_unsafe_count() {
     // Count unsafe in MMIO operations
     let mmio_combined = format!("{}\n{}", mmio_read, mmio_write);
     let mmio_unsafe_count = mmio_combined.matches("unsafe").count();
-    assert_eq!(
-        mmio_unsafe_count, 2,
-        "MMIO operations require unsafe blocks"
-    );
+    assert_eq!(mmio_unsafe_count, 2, "MMIO operations require unsafe blocks");
 
     // Count unsafe in atomic operations
     let atomic_combined = format!("{}\n{}", atomic_load, atomic_store);
     let atomic_unsafe_count = atomic_combined.matches("unsafe").count();
-    assert_eq!(
-        atomic_unsafe_count, 0,
-        "Atomic operations are SAFE (no unsafe needed)"
-    );
+    assert_eq!(atomic_unsafe_count, 0, "Atomic operations are SAFE (no unsafe needed)");
 }
 
 /// Summary of transformation rules
@@ -402,10 +372,7 @@ fn test_volatile_unsafe_count() {
 fn test_volatile_transformation_rules_summary() {
     // Rule 1: Prefer Atomic types for concurrency
     let prefer_atomic = true;
-    assert!(
-        prefer_atomic,
-        "Use std::sync::atomic for thread-safe volatile"
-    );
+    assert!(prefer_atomic, "Use std::sync::atomic for thread-safe volatile");
 
     // Rule 2: Use volatile ptr operations for MMIO
     let mmio_needs_volatile = true;
@@ -421,8 +388,5 @@ fn test_volatile_transformation_rules_summary() {
 
     // Rule 5: C volatile does NOT provide atomicity
     let c_volatile_not_atomic = true;
-    assert!(
-        c_volatile_not_atomic,
-        "C volatile does not prevent data races"
-    );
+    assert!(c_volatile_not_atomic, "C volatile does not prevent data races");
 }

@@ -141,56 +141,36 @@ impl ArrayParameterTransformer {
         array_param_map: &HashMap<String, Option<String>>,
     ) -> HirStatement {
         match stmt {
-            HirStatement::VariableDeclaration {
-                name,
-                var_type,
-                initializer,
-            } => HirStatement::VariableDeclaration {
-                name: name.clone(),
-                var_type: var_type.clone(),
-                initializer: initializer
-                    .as_ref()
-                    .map(|expr| Self::transform_expression(expr, array_param_map)),
-            },
+            HirStatement::VariableDeclaration { name, var_type, initializer } => {
+                HirStatement::VariableDeclaration {
+                    name: name.clone(),
+                    var_type: var_type.clone(),
+                    initializer: initializer
+                        .as_ref()
+                        .map(|expr| Self::transform_expression(expr, array_param_map)),
+                }
+            }
             HirStatement::Assignment { target, value } => HirStatement::Assignment {
                 target: target.clone(),
                 value: Self::transform_expression(value, array_param_map),
             },
-            HirStatement::If {
-                condition,
-                then_block,
-                else_block,
-            } => HirStatement::If {
+            HirStatement::If { condition, then_block, else_block } => HirStatement::If {
                 condition: Self::transform_expression(condition, array_param_map),
                 then_block: then_block
                     .iter()
                     .map(|s| Self::transform_statement(s, array_param_map))
                     .collect(),
                 else_block: else_block.as_ref().map(|block| {
-                    block
-                        .iter()
-                        .map(|s| Self::transform_statement(s, array_param_map))
-                        .collect()
+                    block.iter().map(|s| Self::transform_statement(s, array_param_map)).collect()
                 }),
             },
             HirStatement::While { condition, body } => HirStatement::While {
                 condition: Self::transform_expression(condition, array_param_map),
-                body: body
-                    .iter()
-                    .map(|s| Self::transform_statement(s, array_param_map))
-                    .collect(),
+                body: body.iter().map(|s| Self::transform_statement(s, array_param_map)).collect(),
             },
-            HirStatement::For {
-                init,
-                condition,
-                increment,
-                body,
-            } => HirStatement::For {
+            HirStatement::For { init, condition, increment, body } => HirStatement::For {
                 // DECY-224: Transform all init statements
-                init: init
-                    .iter()
-                    .map(|s| Self::transform_statement(s, array_param_map))
-                    .collect(),
+                init: init.iter().map(|s| Self::transform_statement(s, array_param_map)).collect(),
                 condition: condition
                     .as_ref()
                     .map(|c| Self::transform_expression(c, array_param_map)),
@@ -199,23 +179,18 @@ impl ArrayParameterTransformer {
                     .iter()
                     .map(|s| Self::transform_statement(s, array_param_map))
                     .collect(),
-                body: body
-                    .iter()
-                    .map(|s| Self::transform_statement(s, array_param_map))
-                    .collect(),
+                body: body.iter().map(|s| Self::transform_statement(s, array_param_map)).collect(),
             },
             HirStatement::Return(Some(expr)) => {
                 HirStatement::Return(Some(Self::transform_expression(expr, array_param_map)))
             }
-            HirStatement::ArrayIndexAssignment {
-                array,
-                index,
-                value,
-            } => HirStatement::ArrayIndexAssignment {
-                array: Box::new(Self::transform_expression(array, array_param_map)),
-                index: Box::new(Self::transform_expression(index, array_param_map)),
-                value: Self::transform_expression(value, array_param_map),
-            },
+            HirStatement::ArrayIndexAssignment { array, index, value } => {
+                HirStatement::ArrayIndexAssignment {
+                    array: Box::new(Self::transform_expression(array, array_param_map)),
+                    index: Box::new(Self::transform_expression(index, array_param_map)),
+                    value: Self::transform_expression(value, array_param_map),
+                }
+            }
             HirStatement::Expression(expr) => {
                 HirStatement::Expression(Self::transform_expression(expr, array_param_map))
             }
@@ -260,10 +235,7 @@ impl ArrayParameterTransformer {
                 op: *op,
                 operand: Box::new(Self::transform_expression(operand, array_param_map)),
             },
-            HirExpression::FunctionCall {
-                function,
-                arguments,
-            } => HirExpression::FunctionCall {
+            HirExpression::FunctionCall { function, arguments } => HirExpression::FunctionCall {
                 function: function.clone(),
                 arguments: arguments
                     .iter()
@@ -327,22 +299,15 @@ impl ArrayParameterTransformer {
             HirStatement::Expression(expr) => {
                 Self::expression_uses_pointer_arithmetic(expr, var_name)
             }
-            HirStatement::If {
-                then_block,
-                else_block,
-                ..
-            } => {
-                then_block
-                    .iter()
-                    .any(|s| Self::statement_uses_pointer_arithmetic(s, var_name))
+            HirStatement::If { then_block, else_block, .. } => {
+                then_block.iter().any(|s| Self::statement_uses_pointer_arithmetic(s, var_name))
                     || else_block.as_ref().is_some_and(|blk| {
-                        blk.iter()
-                            .any(|s| Self::statement_uses_pointer_arithmetic(s, var_name))
+                        blk.iter().any(|s| Self::statement_uses_pointer_arithmetic(s, var_name))
                     })
             }
-            HirStatement::While { body, .. } | HirStatement::For { body, .. } => body
-                .iter()
-                .any(|s| Self::statement_uses_pointer_arithmetic(s, var_name)),
+            HirStatement::While { body, .. } | HirStatement::For { body, .. } => {
+                body.iter().any(|s| Self::statement_uses_pointer_arithmetic(s, var_name))
+            }
             _ => false,
         }
     }
@@ -466,11 +431,7 @@ mod tests {
 
         // Should transform to arr.len()
         match result {
-            HirExpression::StringMethodCall {
-                receiver,
-                method,
-                arguments,
-            } => {
+            HirExpression::StringMethodCall { receiver, method, arguments } => {
                 assert_eq!(method, "len");
                 assert!(arguments.is_empty());
                 match *receiver {
@@ -503,10 +464,7 @@ mod tests {
         };
         let result = ArrayParameterTransformer::transform_expression(&expr, &map);
         match result {
-            HirExpression::FunctionCall {
-                function,
-                arguments,
-            } => {
+            HirExpression::FunctionCall { function, arguments } => {
                 assert_eq!(function, "test");
                 assert_eq!(arguments.len(), 1);
             }
@@ -574,9 +532,7 @@ mod tests {
         };
         let result = ArrayParameterTransformer::transform_statement(&stmt, &map);
         match result {
-            HirStatement::VariableDeclaration {
-                name, initializer, ..
-            } => {
+            HirStatement::VariableDeclaration { name, initializer, .. } => {
                 assert_eq!(name, "x");
                 assert!(initializer.is_some());
             }
@@ -605,11 +561,7 @@ mod tests {
         };
         let result = ArrayParameterTransformer::transform_statement(&stmt, &map);
         match result {
-            HirStatement::If {
-                then_block,
-                else_block,
-                ..
-            } => {
+            HirStatement::If { then_block, else_block, .. } => {
                 assert_eq!(then_block.len(), 1);
                 assert!(else_block.is_none());
             }
@@ -726,14 +678,9 @@ mod tests {
         let func = HirFunction::new(
             "test".to_string(),
             HirType::Void,
-            vec![HirParameter::new(
-                "arr".to_string(),
-                HirType::Pointer(Box::new(HirType::Int)),
-            )],
+            vec![HirParameter::new("arr".to_string(), HirType::Pointer(Box::new(HirType::Int)))],
         );
-        assert!(!ArrayParameterTransformer::uses_pointer_arithmetic(
-            &func, "arr"
-        ));
+        assert!(!ArrayParameterTransformer::uses_pointer_arithmetic(&func, "arr"));
     }
 
     #[test]
@@ -831,11 +778,9 @@ mod tests {
         let stmt = HirStatement::If {
             condition: HirExpression::Variable("cond".to_string()),
             then_block: vec![],
-            else_block: Some(vec![HirStatement::Expression(
-                HirExpression::PostIncrement {
-                    operand: Box::new(HirExpression::Variable("ptr".to_string())),
-                },
-            )]),
+            else_block: Some(vec![HirStatement::Expression(HirExpression::PostIncrement {
+                operand: Box::new(HirExpression::Variable("ptr".to_string())),
+            })]),
         };
         assert!(ArrayParameterTransformer::statement_uses_pointer_arithmetic(&stmt, "ptr"));
     }
@@ -880,11 +825,7 @@ mod tests {
         };
         let result = ArrayParameterTransformer::transform_statement(&stmt, &map);
         match result {
-            HirStatement::ArrayIndexAssignment {
-                array,
-                index,
-                value,
-            } => {
+            HirStatement::ArrayIndexAssignment { array, index, value } => {
                 // array stays as Variable (not a length param)
                 assert!(matches!(*array, HirExpression::Variable(_)));
                 // index was "len" → should be transformed to arr.len()
@@ -995,8 +936,7 @@ mod tests {
         let mut map: HashMap<String, Option<String>> = HashMap::new();
         map.insert("arr".to_string(), Some("len".to_string()));
 
-        let expr =
-            HirExpression::Dereference(Box::new(HirExpression::Variable("len".to_string())));
+        let expr = HirExpression::Dereference(Box::new(HirExpression::Variable("len".to_string())));
         let result = ArrayParameterTransformer::transform_expression(&expr, &map);
         match result {
             HirExpression::Dereference(inner) => {
@@ -1099,10 +1039,7 @@ mod tests {
         let func = HirFunction::new_with_body(
             "test".to_string(),
             HirType::Void,
-            vec![HirParameter::new(
-                "arr".to_string(),
-                HirType::Pointer(Box::new(HirType::Int)),
-            )],
+            vec![HirParameter::new("arr".to_string(), HirType::Pointer(Box::new(HirType::Int)))],
             vec![
                 HirStatement::VariableDeclaration {
                     name: "x".to_string(),
@@ -1119,9 +1056,7 @@ mod tests {
                 },
             ],
         );
-        assert!(ArrayParameterTransformer::uses_pointer_arithmetic(
-            &func, "arr"
-        ));
+        assert!(ArrayParameterTransformer::uses_pointer_arithmetic(&func, "arr"));
     }
 
     #[test]
@@ -1146,11 +1081,7 @@ mod tests {
         };
         let result = ArrayParameterTransformer::transform_statement(&stmt, &map);
         match result {
-            HirStatement::If {
-                condition,
-                then_block,
-                else_block,
-            } => {
+            HirStatement::If { condition, then_block, else_block } => {
                 // condition should have len transformed
                 if let HirExpression::BinaryOp { right, .. } = condition {
                     assert!(matches!(*right, HirExpression::StringMethodCall { .. }));
@@ -1217,15 +1148,11 @@ mod tests {
                     right: Box::new(HirExpression::IntLiteral(1)),
                 },
             }],
-            body: vec![HirStatement::Return(Some(HirExpression::Variable(
-                "n".to_string(),
-            )))],
+            body: vec![HirStatement::Return(Some(HirExpression::Variable("n".to_string())))],
         };
         let result = ArrayParameterTransformer::transform_statement(&stmt, &map);
         match result {
-            HirStatement::For {
-                condition, body, ..
-            } => {
+            HirStatement::For { condition, body, .. } => {
                 // Condition should have "n" transformed
                 let cond = condition.unwrap();
                 if let HirExpression::BinaryOp { right, .. } = cond {
@@ -1252,10 +1179,7 @@ mod tests {
         let result = ArrayParameterTransformer::transform_statement(&stmt, &map);
         match result {
             HirStatement::Expression(HirExpression::FunctionCall { arguments, .. }) => {
-                assert!(matches!(
-                    arguments[0],
-                    HirExpression::StringMethodCall { .. }
-                ));
+                assert!(matches!(arguments[0], HirExpression::StringMethodCall { .. }));
             }
             _ => panic!("Expected Expression(FunctionCall)"),
         }
@@ -1284,15 +1208,10 @@ mod tests {
             "process".to_string(),
             HirType::Void,
             vec![
-                HirParameter::new(
-                    "arr".to_string(),
-                    HirType::Pointer(Box::new(HirType::Int)),
-                ),
+                HirParameter::new("arr".to_string(), HirType::Pointer(Box::new(HirType::Int))),
                 HirParameter::new("len".to_string(), HirType::Int),
             ],
-            vec![HirStatement::Return(Some(HirExpression::Variable(
-                "len".to_string(),
-            )))],
+            vec![HirStatement::Return(Some(HirExpression::Variable("len".to_string())))],
         );
 
         let dfg = crate::dataflow::DataflowAnalyzer::new().analyze(&func);
@@ -1314,9 +1233,7 @@ mod tests {
 
         // Body should have len replaced with arr.len()
         match &result.body()[0] {
-            HirStatement::Return(Some(HirExpression::StringMethodCall {
-                method, ..
-            })) => {
+            HirStatement::Return(Some(HirExpression::StringMethodCall { method, .. })) => {
                 assert_eq!(method, "len");
             }
             other => panic!("Expected Return with .len() call, got {:?}", other),
@@ -1331,10 +1248,7 @@ mod tests {
             "modify".to_string(),
             HirType::Void,
             vec![
-                HirParameter::new(
-                    "data".to_string(),
-                    HirType::Pointer(Box::new(HirType::Int)),
-                ),
+                HirParameter::new("data".to_string(), HirType::Pointer(Box::new(HirType::Int))),
                 HirParameter::new("size".to_string(), HirType::Int),
             ],
             vec![HirStatement::ArrayIndexAssignment {
@@ -1367,10 +1281,7 @@ mod tests {
             "walk".to_string(),
             HirType::Void,
             vec![
-                HirParameter::new(
-                    "arr".to_string(),
-                    HirType::Pointer(Box::new(HirType::Int)),
-                ),
+                HirParameter::new("arr".to_string(), HirType::Pointer(Box::new(HirType::Int))),
                 HirParameter::new("len".to_string(), HirType::Int),
             ],
             vec![HirStatement::Assignment {

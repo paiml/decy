@@ -63,11 +63,7 @@ impl SubprocessDetector {
 
     fn analyze_statement(&self, stmt: &HirStatement, pattern: &mut ForkExecPattern) {
         match stmt {
-            HirStatement::VariableDeclaration {
-                name,
-                initializer: Some(init),
-                ..
-            } => {
+            HirStatement::VariableDeclaration { name, initializer: Some(init), .. } => {
                 if self.is_fork_call(init) {
                     pattern.has_fork = true;
                     pattern.pid_var = Some(name.clone());
@@ -77,11 +73,7 @@ impl SubprocessDetector {
             HirStatement::Expression(expr) => {
                 self.analyze_expression(expr, pattern);
             }
-            HirStatement::If {
-                then_block,
-                else_block,
-                ..
-            } => {
+            HirStatement::If { then_block, else_block, .. } => {
                 self.analyze_statements(then_block, pattern);
                 if let Some(else_stmts) = else_block {
                     self.analyze_statements(else_stmts, pattern);
@@ -95,11 +87,7 @@ impl SubprocessDetector {
     }
 
     fn analyze_expression(&self, expr: &HirExpression, pattern: &mut ForkExecPattern) {
-        if let HirExpression::FunctionCall {
-            function,
-            arguments,
-        } = expr
-        {
+        if let HirExpression::FunctionCall { function, arguments } = expr {
             if function == "fork" {
                 pattern.has_fork = true;
             } else if self.exec_functions.contains(&function.as_str()) {

@@ -270,64 +270,43 @@ fn pattern_idx_24_nullable_to_option() {
 
 #[test]
 fn error_codes_e0308_has_12_patterns() {
-    let count = get_bootstrap_patterns()
-        .iter()
-        .filter(|p| p.error_code == "E0308")
-        .count();
+    let count = get_bootstrap_patterns().iter().filter(|p| p.error_code == "E0308").count();
     assert_eq!(count, 12);
 }
 
 #[test]
 fn error_codes_e0133_has_3_patterns() {
-    let count = get_bootstrap_patterns()
-        .iter()
-        .filter(|p| p.error_code == "E0133")
-        .count();
+    let count = get_bootstrap_patterns().iter().filter(|p| p.error_code == "E0133").count();
     assert_eq!(count, 3);
 }
 
 #[test]
 fn error_codes_e0382_has_3_patterns() {
-    let count = get_bootstrap_patterns()
-        .iter()
-        .filter(|p| p.error_code == "E0382")
-        .count();
+    let count = get_bootstrap_patterns().iter().filter(|p| p.error_code == "E0382").count();
     assert_eq!(count, 3);
 }
 
 #[test]
 fn error_codes_e0499_has_2_patterns() {
-    let count = get_bootstrap_patterns()
-        .iter()
-        .filter(|p| p.error_code == "E0499")
-        .count();
+    let count = get_bootstrap_patterns().iter().filter(|p| p.error_code == "E0499").count();
     assert_eq!(count, 2);
 }
 
 #[test]
 fn error_codes_e0506_has_1_pattern() {
-    let count = get_bootstrap_patterns()
-        .iter()
-        .filter(|p| p.error_code == "E0506")
-        .count();
+    let count = get_bootstrap_patterns().iter().filter(|p| p.error_code == "E0506").count();
     assert_eq!(count, 1);
 }
 
 #[test]
 fn error_codes_e0597_has_2_patterns() {
-    let count = get_bootstrap_patterns()
-        .iter()
-        .filter(|p| p.error_code == "E0597")
-        .count();
+    let count = get_bootstrap_patterns().iter().filter(|p| p.error_code == "E0597").count();
     assert_eq!(count, 2);
 }
 
 #[test]
 fn error_codes_e0515_has_2_patterns() {
-    let count = get_bootstrap_patterns()
-        .iter()
-        .filter(|p| p.error_code == "E0515")
-        .count();
+    let count = get_bootstrap_patterns().iter().filter(|p| p.error_code == "E0515").count();
     assert_eq!(count, 2);
 }
 
@@ -618,10 +597,7 @@ fn c_specific_struct_patterns_have_correct_content() {
 #[test]
 fn e0133_unsafe_patterns_all_mention_unsafe_in_diff() {
     let patterns = get_bootstrap_patterns();
-    let unsafe_patterns: Vec<_> = patterns
-        .iter()
-        .filter(|p| p.error_code == "E0133")
-        .collect();
+    let unsafe_patterns: Vec<_> = patterns.iter().filter(|p| p.error_code == "E0133").collect();
     for p in &unsafe_patterns {
         assert!(
             p.fix_diff.contains("unsafe"),
@@ -634,10 +610,7 @@ fn e0133_unsafe_patterns_all_mention_unsafe_in_diff() {
 #[test]
 fn e0382_ownership_patterns_cover_all_strategies() {
     let patterns = get_bootstrap_patterns();
-    let e0382: Vec<_> = patterns
-        .iter()
-        .filter(|p| p.error_code == "E0382")
-        .collect();
+    let e0382: Vec<_> = patterns.iter().filter(|p| p.error_code == "E0382").collect();
     let decisions: HashSet<&str> = e0382.iter().map(|p| p.decision).collect();
     assert!(decisions.contains("clone_before_move"));
     assert!(decisions.contains("borrow_instead_of_move"));
@@ -647,10 +620,7 @@ fn e0382_ownership_patterns_cover_all_strategies() {
 #[test]
 fn e0499_borrow_patterns_cover_both_strategies() {
     let patterns = get_bootstrap_patterns();
-    let e0499: Vec<_> = patterns
-        .iter()
-        .filter(|p| p.error_code == "E0499")
-        .collect();
+    let e0499: Vec<_> = patterns.iter().filter(|p| p.error_code == "E0499").collect();
     let decisions: HashSet<&str> = e0499.iter().map(|p| p.decision).collect();
     assert!(decisions.contains("sequential_mutable_borrow"));
     assert!(decisions.contains("use_stdlib_method"));
@@ -695,10 +665,7 @@ fn iterate_all_patterns_collect_all_fields() {
 #[test]
 fn no_duplicate_decision_description_pairs() {
     let patterns = get_bootstrap_patterns();
-    let pairs: HashSet<_> = patterns
-        .iter()
-        .map(|p| (p.decision, p.description))
-        .collect();
+    let pairs: HashSet<_> = patterns.iter().map(|p| (p.decision, p.description)).collect();
     assert_eq!(
         pairs.len(),
         patterns.len(),
@@ -710,9 +677,5 @@ fn no_duplicate_decision_description_pairs() {
 fn no_duplicate_fix_diffs() {
     let patterns = get_bootstrap_patterns();
     let diffs: HashSet<_> = patterns.iter().map(|p| p.fix_diff).collect();
-    assert_eq!(
-        diffs.len(),
-        patterns.len(),
-        "Each pattern should have a unique fix_diff"
-    );
+    assert_eq!(diffs.len(), patterns.len(), "Each pattern should have a unique fix_diff");
 }

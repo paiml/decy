@@ -37,11 +37,7 @@ fn test_transform_array_parameter_to_slice() {
     );
 
     // Should NOT use unsafe
-    assert!(
-        !result.contains("unsafe"),
-        "Should generate safe code\nGenerated:\n{}",
-        result
-    );
+    assert!(!result.contains("unsafe"), "Should generate safe code\nGenerated:\n{}", result);
 }
 
 /// Test mutable array parameter: (int* arr, int len) with mutations → &mut [i32]
@@ -69,11 +65,7 @@ fn test_transform_mutable_array_parameter() {
     );
 
     // Should NOT use unsafe
-    assert!(
-        !result.contains("unsafe"),
-        "Should generate safe code\nGenerated:\n{}",
-        result
-    );
+    assert!(!result.contains("unsafe"), "Should generate safe code\nGenerated:\n{}", result);
 }
 
 /// Test array parameter with length usage in body: len → arr.len()
@@ -98,11 +90,7 @@ fn test_transform_length_usage_in_body() {
     println!("Generated Rust code:\n{}", result);
 
     // Should transform to slice parameter
-    assert!(
-        result.contains("arr: &[i32]"),
-        "Should use slice parameter\nGenerated:\n{}",
-        result
-    );
+    assert!(result.contains("arr: &[i32]"), "Should use slice parameter\nGenerated:\n{}", result);
 
     // Length usage should be transformed to arr.len()
     assert!(
@@ -112,11 +100,7 @@ fn test_transform_length_usage_in_body() {
     );
 
     // Should NOT use unsafe
-    assert!(
-        !result.contains("unsafe"),
-        "Should generate safe code\nGenerated:\n{}",
-        result
-    );
+    assert!(!result.contains("unsafe"), "Should generate safe code\nGenerated:\n{}", result);
 }
 
 /// Test char array parameter: (char* buf, int size) → &[u8]
@@ -144,11 +128,7 @@ fn test_transform_char_array_parameter() {
     );
 
     // Should NOT use unsafe
-    assert!(
-        !result.contains("unsafe"),
-        "Should generate safe code\nGenerated:\n{}",
-        result
-    );
+    assert!(!result.contains("unsafe"), "Should generate safe code\nGenerated:\n{}", result);
 }
 
 /// Test multiple array parameters
@@ -188,11 +168,7 @@ fn test_transform_multiple_array_parameters() {
     );
 
     // Should NOT use unsafe
-    assert!(
-        !result.contains("unsafe"),
-        "Should generate safe code\nGenerated:\n{}",
-        result
-    );
+    assert!(!result.contains("unsafe"), "Should generate safe code\nGenerated:\n{}", result);
 }
 
 /// Test array parameter with return value
@@ -213,11 +189,7 @@ fn test_transform_array_parameter_with_return() {
     println!("Generated Rust code:\n{}", result);
 
     // Should transform to slice parameter
-    assert!(
-        result.contains("arr: &[i32]"),
-        "Should use slice parameter\nGenerated:\n{}",
-        result
-    );
+    assert!(result.contains("arr: &[i32]"), "Should use slice parameter\nGenerated:\n{}", result);
 
     // Should use safe array indexing (with or without usize cast)
     // DECY-150: Accept parenthesized indexing pattern arr[(0) as usize]
@@ -230,11 +202,7 @@ fn test_transform_array_parameter_with_return() {
     );
 
     // Should NOT use unsafe
-    assert!(
-        !result.contains("unsafe"),
-        "Should generate safe code\nGenerated:\n{}",
-        result
-    );
+    assert!(!result.contains("unsafe"), "Should generate safe code\nGenerated:\n{}", result);
 }
 
 /// Test that non-array pointers are transformed to references (DECY-111)
@@ -269,11 +237,7 @@ fn test_non_array_pointer_becomes_reference() {
         || result.contains("&mut i32")
         || result.contains("&'a i32")
         || result.contains("&'a mut i32");
-    assert!(
-        has_reference,
-        "Should transform to reference\nGenerated:\n{}",
-        result
-    );
+    assert!(has_reference, "Should transform to reference\nGenerated:\n{}", result);
 }
 
 /// Test unsafe block count metric

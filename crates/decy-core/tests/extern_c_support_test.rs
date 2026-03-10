@@ -39,10 +39,7 @@ extern "C" {
     let rust_code = transpile(c_code).expect("Transpilation should succeed");
 
     // Function declarations should transpile
-    assert!(
-        rust_code.contains("multiply"),
-        "Should contain function name"
-    );
+    assert!(rust_code.contains("multiply"), "Should contain function name");
 }
 
 #[test]

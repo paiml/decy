@@ -27,25 +27,17 @@ pub struct LockDataMapping {
 impl LockDataMapping {
     /// Create a new empty mapping.
     pub fn new() -> Self {
-        Self {
-            lock_to_data: HashMap::new(),
-        }
+        Self { lock_to_data: HashMap::new() }
     }
 
     /// Check if a variable is protected by a specific lock.
     pub fn is_protected_by(&self, data: &str, lock: &str) -> bool {
-        self.lock_to_data
-            .get(lock)
-            .map(|vars| vars.contains(data))
-            .unwrap_or(false)
+        self.lock_to_data.get(lock).map(|vars| vars.contains(data)).unwrap_or(false)
     }
 
     /// Get all data variables protected by a lock.
     pub fn get_protected_data(&self, lock: &str) -> Vec<String> {
-        self.lock_to_data
-            .get(lock)
-            .map(|vars| vars.iter().cloned().collect())
-            .unwrap_or_default()
+        self.lock_to_data.get(lock).map(|vars| vars.iter().cloned().collect()).unwrap_or_default()
     }
 
     /// Get all locks tracked in this mapping.
@@ -107,10 +99,7 @@ impl LockAnalyzer {
 
     /// Extract lock name from pthread_mutex_lock call.
     fn extract_lock_call(stmt: &HirStatement) -> Option<String> {
-        if let HirStatement::Expression(HirExpression::FunctionCall {
-            function,
-            arguments,
-        }) = stmt
+        if let HirStatement::Expression(HirExpression::FunctionCall { function, arguments }) = stmt
         {
             if function == "pthread_mutex_lock" {
                 // Extract lock name from &lock argument
@@ -126,10 +115,7 @@ impl LockAnalyzer {
 
     /// Extract lock name from pthread_mutex_unlock call.
     fn extract_unlock_call(stmt: &HirStatement) -> Option<String> {
-        if let HirStatement::Expression(HirExpression::FunctionCall {
-            function,
-            arguments,
-        }) = stmt
+        if let HirStatement::Expression(HirExpression::FunctionCall { function, arguments }) = stmt
         {
             if function == "pthread_mutex_unlock" {
                 // Extract lock name from &lock argument
@@ -188,18 +174,13 @@ impl LockAnalyzer {
                 accessed.insert(target.clone());
                 self.collect_variables_from_expr(value, accessed);
             }
-            HirStatement::VariableDeclaration {
-                initializer: Some(init),
-                ..
-            } => {
+            HirStatement::VariableDeclaration { initializer: Some(init), .. } => {
                 // Local variable declarations don't count as protected data
                 // But if the initializer reads from other variables, those count
                 self.collect_variables_from_expr(init, accessed);
                 // Don't add the variable name itself - it's local to this scope
             }
-            HirStatement::VariableDeclaration {
-                initializer: None, ..
-            } => {
+            HirStatement::VariableDeclaration { initializer: None, .. } => {
                 // No initializer, nothing to track
             }
             HirStatement::Return(Some(e)) => {
@@ -208,11 +189,7 @@ impl LockAnalyzer {
             HirStatement::Return(None) => {
                 // No return value, nothing to track
             }
-            HirStatement::If {
-                condition,
-                then_block,
-                else_block,
-            } => {
+            HirStatement::If { condition, then_block, else_block } => {
                 self.collect_variables_from_expr(condition, accessed);
                 for s in then_block {
                     self.collect_accessed_variables(s, accessed);
@@ -236,20 +213,12 @@ impl LockAnalyzer {
                 self.collect_variables_from_expr(target, accessed);
                 self.collect_variables_from_expr(value, accessed);
             }
-            HirStatement::ArrayIndexAssignment {
-                array,
-                index,
-                value,
-            } => {
+            HirStatement::ArrayIndexAssignment { array, index, value } => {
                 self.collect_variables_from_expr(array, accessed);
                 self.collect_variables_from_expr(index, accessed);
                 self.collect_variables_from_expr(value, accessed);
             }
-            HirStatement::FieldAssignment {
-                object,
-                field: _,
-                value,
-            } => {
+            HirStatement::FieldAssignment { object, field: _, value } => {
                 self.collect_variables_from_expr(object, accessed);
                 self.collect_variables_from_expr(value, accessed);
             }

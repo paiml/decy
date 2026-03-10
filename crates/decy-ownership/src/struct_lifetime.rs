@@ -68,9 +68,8 @@ impl StructLifetimeAnnotator {
         fields: &[(&str, HirType)],
     ) -> Vec<LifetimeParam> {
         // Check if any fields need lifetimes
-        let has_references = fields
-            .iter()
-            .any(|(_, field_type)| self.type_needs_lifetime(field_type));
+        let has_references =
+            fields.iter().any(|(_, field_type)| self.type_needs_lifetime(field_type));
 
         if has_references {
             // Use a single lifetime for all references
@@ -100,10 +99,7 @@ impl StructLifetimeAnnotator {
             .iter()
             .map(|(name, field_type)| {
                 let annotated_type = self.annotate_field_type(field_type, lifetimes);
-                AnnotatedField {
-                    name: name.to_string(),
-                    field_type: annotated_type,
-                }
+                AnnotatedField { name: name.to_string(), field_type: annotated_type }
             })
             .collect()
     }
@@ -118,11 +114,8 @@ impl StructLifetimeAnnotator {
         match hir_type {
             HirType::Reference { inner, mutable } => {
                 // Add lifetime annotation to reference types
-                let lifetime = if !lifetimes.is_empty() {
-                    Some(lifetimes[0].clone())
-                } else {
-                    None
-                };
+                let lifetime =
+                    if !lifetimes.is_empty() { Some(lifetimes[0].clone()) } else { None };
                 AnnotatedType::Reference {
                     inner: Box::new(self.annotate_field_type(inner, lifetimes)),
                     mutable: *mutable,
@@ -131,11 +124,8 @@ impl StructLifetimeAnnotator {
             }
             HirType::Pointer(inner) => {
                 // Pointers become references with lifetimes
-                let lifetime = if !lifetimes.is_empty() {
-                    Some(lifetimes[0].clone())
-                } else {
-                    None
-                };
+                let lifetime =
+                    if !lifetimes.is_empty() { Some(lifetimes[0].clone()) } else { None };
                 AnnotatedType::Reference {
                     inner: Box::new(self.annotate_field_type(inner, lifetimes)),
                     mutable: false, // Default to immutable
@@ -155,11 +145,7 @@ impl StructLifetimeAnnotator {
         let lifetimes = self.infer_struct_lifetimes(struct_name, fields);
         let annotated_fields = self.annotate_fields(fields, &lifetimes);
 
-        AnnotatedStruct {
-            name: struct_name.to_string(),
-            lifetimes,
-            fields: annotated_fields,
-        }
+        AnnotatedStruct { name: struct_name.to_string(), lifetimes, fields: annotated_fields }
     }
 }
 

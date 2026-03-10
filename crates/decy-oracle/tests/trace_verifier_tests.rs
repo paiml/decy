@@ -367,18 +367,8 @@ fn test_verify_batch_all_valid() {
     let verifier = TraceVerifier::new();
 
     let traces = vec![
-        GoldenTrace::new(
-            "int a;".to_string(),
-            "let a: i32;".to_string(),
-            TraceTier::P0,
-            "a.c",
-        ),
-        GoldenTrace::new(
-            "int b;".to_string(),
-            "let b: i32;".to_string(),
-            TraceTier::P0,
-            "b.c",
-        ),
+        GoldenTrace::new("int a;".to_string(), "let a: i32;".to_string(), TraceTier::P0, "a.c"),
+        GoldenTrace::new("int b;".to_string(), "let b: i32;".to_string(), TraceTier::P0, "b.c"),
     ];
 
     let results = verifier.verify_batch(&traces);
@@ -391,24 +381,14 @@ fn test_verify_batch_filters_invalid() {
     let verifier = TraceVerifier::new();
 
     let traces = vec![
-        GoldenTrace::new(
-            "int a;".to_string(),
-            "let a: i32;".to_string(),
-            TraceTier::P0,
-            "a.c",
-        ),
+        GoldenTrace::new("int a;".to_string(), "let a: i32;".to_string(), TraceTier::P0, "a.c"),
         GoldenTrace::new(
             "int b;".to_string(),
             "let b: i32 = \"bad\";".to_string(),
             TraceTier::P0,
             "b.c",
         ),
-        GoldenTrace::new(
-            "int c;".to_string(),
-            "let c: i32;".to_string(),
-            TraceTier::P0,
-            "c.c",
-        ),
+        GoldenTrace::new("int c;".to_string(), "let c: i32;".to_string(), TraceTier::P0, "c.c"),
     ];
 
     let valid_traces = verifier.filter_valid(&traces);
@@ -625,11 +605,7 @@ fn main() {
     let result = verifier.verify_compilation(rust_code);
     assert!(result.is_err());
     let err = result.unwrap_err();
-    assert!(
-        err.contains("error") || err.contains("borrow"),
-        "Got: {}",
-        err
-    );
+    assert!(err.contains("error") || err.contains("borrow"), "Got: {}", err);
 }
 
 // ============================================================================

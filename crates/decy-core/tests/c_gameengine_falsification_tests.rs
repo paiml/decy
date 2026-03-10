@@ -161,14 +161,8 @@ void quadtree_subdivide(rect_t *parent, rect_t *children) {
 "#;
     let rust_code = decy_core::transpile(c_code)?;
     assert!(!rust_code.is_empty(), "C652: Should produce output");
-    assert!(
-        rust_code.contains("fn rect_contains"),
-        "C652: Should contain rect_contains"
-    );
-    assert!(
-        rust_code.contains("fn quadtree_subdivide"),
-        "C652: Should contain quadtree_subdivide"
-    );
+    assert!(rust_code.contains("fn rect_contains"), "C652: Should contain rect_contains");
+    assert!(rust_code.contains("fn quadtree_subdivide"), "C652: Should contain quadtree_subdivide");
     Ok(())
 }
 
@@ -230,14 +224,8 @@ void circle_resolve(circle_t *a, circle_t *b, collision_result_t *col) {
 "#;
     let rust_code = decy_core::transpile(c_code)?;
     assert!(!rust_code.is_empty(), "C653: Should produce output");
-    assert!(
-        rust_code.contains("fn circle_vs_circle"),
-        "C653: Should contain circle_vs_circle"
-    );
-    assert!(
-        rust_code.contains("fn circle_resolve"),
-        "C653: Should contain circle_resolve"
-    );
+    assert!(rust_code.contains("fn circle_vs_circle"), "C653: Should contain circle_vs_circle");
+    assert!(rust_code.contains("fn circle_resolve"), "C653: Should contain circle_resolve");
     Ok(())
 }
 
@@ -299,14 +287,8 @@ void verlet_constrain_distance(verlet_body_t *a, verlet_body_t *b, float rest_le
 "#;
     let rust_code = decy_core::transpile(c_code)?;
     assert!(!rust_code.is_empty(), "C654: Should produce output");
-    assert!(
-        rust_code.contains("fn verlet_init"),
-        "C654: Should contain verlet_init"
-    );
-    assert!(
-        rust_code.contains("fn verlet_integrate"),
-        "C654: Should contain verlet_integrate"
-    );
+    assert!(rust_code.contains("fn verlet_init"), "C654: Should contain verlet_init");
+    assert!(rust_code.contains("fn verlet_integrate"), "C654: Should contain verlet_integrate");
     assert!(
         rust_code.contains("fn verlet_constrain_distance"),
         "C654: Should contain verlet_constrain_distance"
@@ -382,14 +364,8 @@ int particle_count_active(particle_t *particles, int count) {
 "#;
     let rust_code = decy_core::transpile(c_code)?;
     assert!(!rust_code.is_empty(), "C655: Should produce output");
-    assert!(
-        rust_code.contains("fn particle_emit"),
-        "C655: Should contain particle_emit"
-    );
-    assert!(
-        rust_code.contains("fn particle_update"),
-        "C655: Should contain particle_update"
-    );
+    assert!(rust_code.contains("fn particle_emit"), "C655: Should contain particle_emit");
+    assert!(rust_code.contains("fn particle_update"), "C655: Should contain particle_update");
     Ok(())
 }
 
@@ -440,10 +416,7 @@ int tilemap_is_solid(int *tiles, int map_w, int tx, int ty) {
 "#;
     let rust_code = decy_core::transpile(c_code)?;
     assert!(!rust_code.is_empty(), "C656: Should produce output");
-    assert!(
-        rust_code.contains("fn tilemap_get_tile"),
-        "C656: Should contain tilemap_get_tile"
-    );
+    assert!(rust_code.contains("fn tilemap_get_tile"), "C656: Should contain tilemap_get_tile");
     assert!(
         rust_code.contains("fn tilemap_world_to_tile_x"),
         "C656: Should contain tilemap_world_to_tile_x"
@@ -509,14 +482,8 @@ int animator_is_finished(sprite_animator_t *sa) {
 "#;
     let rust_code = decy_core::transpile(c_code)?;
     assert!(!rust_code.is_empty(), "C657: Should produce output");
-    assert!(
-        rust_code.contains("fn animator_play"),
-        "C657: Should contain animator_play"
-    );
-    assert!(
-        rust_code.contains("fn animator_update"),
-        "C657: Should contain animator_update"
-    );
+    assert!(rust_code.contains("fn animator_play"), "C657: Should contain animator_play");
+    assert!(rust_code.contains("fn animator_update"), "C657: Should contain animator_update");
     Ok(())
 }
 
@@ -573,14 +540,8 @@ int input_mouse_clicked(input_state_t *inp) {
 "#;
     let rust_code = decy_core::transpile(c_code)?;
     assert!(!rust_code.is_empty(), "C658: Should produce output");
-    assert!(
-        rust_code.contains("fn input_init"),
-        "C658: Should contain input_init"
-    );
-    assert!(
-        rust_code.contains("fn input_key_pressed"),
-        "C658: Should contain input_key_pressed"
-    );
+    assert!(rust_code.contains("fn input_init"), "C658: Should contain input_init");
+    assert!(rust_code.contains("fn input_key_pressed"), "C658: Should contain input_key_pressed");
     Ok(())
 }
 
@@ -639,14 +600,8 @@ float camera_screen_to_world_y(camera_t *cam, float sy, float screen_h) {
 "#;
     let rust_code = decy_core::transpile(c_code)?;
     assert!(!rust_code.is_empty(), "C659: Should produce output");
-    assert!(
-        rust_code.contains("fn camera_init"),
-        "C659: Should contain camera_init"
-    );
-    assert!(
-        rust_code.contains("fn camera_update"),
-        "C659: Should contain camera_update"
-    );
+    assert!(rust_code.contains("fn camera_init"), "C659: Should contain camera_init");
+    assert!(rust_code.contains("fn camera_update"), "C659: Should contain camera_update");
     Ok(())
 }
 
@@ -721,14 +676,8 @@ void astar_consider_neighbor(astar_node_t *grid, int w, int cur, int nx, int ny,
 "#;
     let rust_code = decy_core::transpile(c_code)?;
     assert!(!rust_code.is_empty(), "C660: Should produce output");
-    assert!(
-        rust_code.contains("fn astar_heuristic"),
-        "C660: Should contain astar_heuristic"
-    );
-    assert!(
-        rust_code.contains("fn astar_init_grid"),
-        "C660: Should contain astar_init_grid"
-    );
+    assert!(rust_code.contains("fn astar_heuristic"), "C660: Should contain astar_heuristic");
+    assert!(rust_code.contains("fn astar_init_grid"), "C660: Should contain astar_init_grid");
     assert!(
         rust_code.contains("fn astar_find_lowest_f"),
         "C660: Should contain astar_find_lowest_f"
@@ -801,14 +750,8 @@ void bt_reset(bt_node_t *nodes, int count) {
 "#;
     let rust_code = decy_core::transpile(c_code)?;
     assert!(!rust_code.is_empty(), "C661: Should produce output");
-    assert!(
-        rust_code.contains("fn bt_eval_sequence"),
-        "C661: Should contain bt_eval_sequence"
-    );
-    assert!(
-        rust_code.contains("fn bt_eval_selector"),
-        "C661: Should contain bt_eval_selector"
-    );
+    assert!(rust_code.contains("fn bt_eval_sequence"), "C661: Should contain bt_eval_sequence");
+    assert!(rust_code.contains("fn bt_eval_selector"), "C661: Should contain bt_eval_selector");
     Ok(())
 }
 
@@ -867,14 +810,8 @@ int fsm_get_state(fsm_t *fsm) {
 "#;
     let rust_code = decy_core::transpile(c_code)?;
     assert!(!rust_code.is_empty(), "C662: Should produce output");
-    assert!(
-        rust_code.contains("fn fsm_init"),
-        "C662: Should contain fsm_init"
-    );
-    assert!(
-        rust_code.contains("fn fsm_fire_event"),
-        "C662: Should contain fsm_fire_event"
-    );
+    assert!(rust_code.contains("fn fsm_init"), "C662: Should contain fsm_init");
+    assert!(rust_code.contains("fn fsm_fire_event"), "C662: Should contain fsm_fire_event");
     Ok(())
 }
 
@@ -937,18 +874,9 @@ void evq_clear(event_queue_t *q) {
 "#;
     let rust_code = decy_core::transpile(c_code)?;
     assert!(!rust_code.is_empty(), "C663: Should produce output");
-    assert!(
-        rust_code.contains("fn evq_init"),
-        "C663: Should contain evq_init"
-    );
-    assert!(
-        rust_code.contains("fn evq_push"),
-        "C663: Should contain evq_push"
-    );
-    assert!(
-        rust_code.contains("fn evq_pop"),
-        "C663: Should contain evq_pop"
-    );
+    assert!(rust_code.contains("fn evq_init"), "C663: Should contain evq_init");
+    assert!(rust_code.contains("fn evq_push"), "C663: Should contain evq_push");
+    assert!(rust_code.contains("fn evq_pop"), "C663: Should contain evq_pop");
     Ok(())
 }
 
@@ -1023,18 +951,9 @@ int resmgr_is_valid(resource_mgr_t *mgr, int handle) {
 "#;
     let rust_code = decy_core::transpile(c_code)?;
     assert!(!rust_code.is_empty(), "C664: Should produce output");
-    assert!(
-        rust_code.contains("fn resmgr_init"),
-        "C664: Should contain resmgr_init"
-    );
-    assert!(
-        rust_code.contains("fn resmgr_alloc"),
-        "C664: Should contain resmgr_alloc"
-    );
-    assert!(
-        rust_code.contains("fn resmgr_release"),
-        "C664: Should contain resmgr_release"
-    );
+    assert!(rust_code.contains("fn resmgr_init"), "C664: Should contain resmgr_init");
+    assert!(rust_code.contains("fn resmgr_alloc"), "C664: Should contain resmgr_alloc");
+    assert!(rust_code.contains("fn resmgr_release"), "C664: Should contain resmgr_release");
     Ok(())
 }
 
@@ -1107,14 +1026,8 @@ int scene_create_node(scene_node_t *nodes, int max_nodes) {
 "#;
     let rust_code = decy_core::transpile(c_code)?;
     assert!(!rust_code.is_empty(), "C665: Should produce output");
-    assert!(
-        rust_code.contains("fn scene_init"),
-        "C665: Should contain scene_init"
-    );
-    assert!(
-        rust_code.contains("fn scene_update_world"),
-        "C665: Should contain scene_update_world"
-    );
+    assert!(rust_code.contains("fn scene_init"), "C665: Should contain scene_init");
+    assert!(rust_code.contains("fn scene_update_world"), "C665: Should contain scene_update_world");
     Ok(())
 }
 
@@ -1174,10 +1087,7 @@ float octree_distance_sq(float ax, float ay, float az, float bx, float by, float
 "#;
     let rust_code = decy_core::transpile(c_code)?;
     assert!(!rust_code.is_empty(), "C666: Should produce output");
-    assert!(
-        rust_code.contains("fn octree_contains"),
-        "C666: Should contain octree_contains"
-    );
+    assert!(rust_code.contains("fn octree_contains"), "C666: Should contain octree_contains");
     assert!(
         rust_code.contains("fn octree_get_child_index"),
         "C666: Should contain octree_get_child_index"
@@ -1241,10 +1151,7 @@ int frustum_test_aabb(frustum_t *f, float minx, float miny, float minz,
         rust_code.contains("fn frustum_test_sphere"),
         "C667: Should contain frustum_test_sphere"
     );
-    assert!(
-        rust_code.contains("fn frustum_test_aabb"),
-        "C667: Should contain frustum_test_aabb"
-    );
+    assert!(rust_code.contains("fn frustum_test_aabb"), "C667: Should contain frustum_test_aabb");
     Ok(())
 }
 
@@ -1306,18 +1213,9 @@ float lod_blend_factor(lod_selector_t *lod, float distance) {
 "#;
     let rust_code = decy_core::transpile(c_code)?;
     assert!(!rust_code.is_empty(), "C668: Should produce output");
-    assert!(
-        rust_code.contains("fn lod_init"),
-        "C668: Should contain lod_init"
-    );
-    assert!(
-        rust_code.contains("fn lod_select"),
-        "C668: Should contain lod_select"
-    );
-    assert!(
-        rust_code.contains("fn lod_blend_factor"),
-        "C668: Should contain lod_blend_factor"
-    );
+    assert!(rust_code.contains("fn lod_init"), "C668: Should contain lod_init");
+    assert!(rust_code.contains("fn lod_select"), "C668: Should contain lod_select");
+    assert!(rust_code.contains("fn lod_blend_factor"), "C668: Should contain lod_blend_factor");
     Ok(())
 }
 
@@ -1382,18 +1280,9 @@ void bone_lerp_pose(bone_pose_t *out, bone_pose_t *a, bone_pose_t *b, int count,
 "#;
     let rust_code = decy_core::transpile(c_code)?;
     assert!(!rust_code.is_empty(), "C669: Should produce output");
-    assert!(
-        rust_code.contains("fn bone_init"),
-        "C669: Should contain bone_init"
-    );
-    assert!(
-        rust_code.contains("fn bone_compute_world"),
-        "C669: Should contain bone_compute_world"
-    );
-    assert!(
-        rust_code.contains("fn bone_lerp_pose"),
-        "C669: Should contain bone_lerp_pose"
-    );
+    assert!(rust_code.contains("fn bone_init"), "C669: Should contain bone_init");
+    assert!(rust_code.contains("fn bone_compute_world"), "C669: Should contain bone_compute_world");
+    assert!(rust_code.contains("fn bone_lerp_pose"), "C669: Should contain bone_lerp_pose");
     Ok(())
 }
 
@@ -1455,10 +1344,7 @@ int nav_find_triangle(nav_point_t *verts, nav_tri_t *tris, int tri_count,
         rust_code.contains("fn nav_point_in_triangle"),
         "C670: Should contain nav_point_in_triangle"
     );
-    assert!(
-        rust_code.contains("fn nav_find_triangle"),
-        "C670: Should contain nav_find_triangle"
-    );
+    assert!(rust_code.contains("fn nav_find_triangle"), "C670: Should contain nav_find_triangle");
     Ok(())
 }
 
@@ -1528,10 +1414,7 @@ void rb_resolve_collision(rigid_body_t *a, rigid_body_t *b,
 "#;
     let rust_code = decy_core::transpile(c_code)?;
     assert!(!rust_code.is_empty(), "C671: Should produce output");
-    assert!(
-        rust_code.contains("fn rb_init"),
-        "C671: Should contain rb_init"
-    );
+    assert!(rust_code.contains("fn rb_init"), "C671: Should contain rb_init");
     assert!(
         rust_code.contains("fn rb_resolve_collision"),
         "C671: Should contain rb_resolve_collision"
@@ -1594,18 +1477,9 @@ int grid_query(spatial_grid_t *g, float x, float y) {
 "#;
     let rust_code = decy_core::transpile(c_code)?;
     assert!(!rust_code.is_empty(), "C672: Should produce output");
-    assert!(
-        rust_code.contains("fn grid_init"),
-        "C672: Should contain grid_init"
-    );
-    assert!(
-        rust_code.contains("fn grid_hash"),
-        "C672: Should contain grid_hash"
-    );
-    assert!(
-        rust_code.contains("fn grid_insert"),
-        "C672: Should contain grid_insert"
-    );
+    assert!(rust_code.contains("fn grid_init"), "C672: Should contain grid_init");
+    assert!(rust_code.contains("fn grid_hash"), "C672: Should contain grid_hash");
+    assert!(rust_code.contains("fn grid_insert"), "C672: Should contain grid_insert");
     Ok(())
 }
 
@@ -1685,18 +1559,9 @@ float mixer_get_right(audio_mixer_t *m, int ch) {
 "#;
     let rust_code = decy_core::transpile(c_code)?;
     assert!(!rust_code.is_empty(), "C673: Should produce output");
-    assert!(
-        rust_code.contains("fn mixer_init"),
-        "C673: Should contain mixer_init"
-    );
-    assert!(
-        rust_code.contains("fn mixer_play"),
-        "C673: Should contain mixer_play"
-    );
-    assert!(
-        rust_code.contains("fn mixer_update"),
-        "C673: Should contain mixer_update"
-    );
+    assert!(rust_code.contains("fn mixer_init"), "C673: Should contain mixer_init");
+    assert!(rust_code.contains("fn mixer_play"), "C673: Should contain mixer_play");
+    assert!(rust_code.contains("fn mixer_update"), "C673: Should contain mixer_update");
     Ok(())
 }
 
@@ -1752,18 +1617,9 @@ uint32_t pcg_next(pcg_rng_t *rng) {
 "#;
     let rust_code = decy_core::transpile(c_code)?;
     assert!(!rust_code.is_empty(), "C674: Should produce output");
-    assert!(
-        rust_code.contains("fn lcg_seed"),
-        "C674: Should contain lcg_seed"
-    );
-    assert!(
-        rust_code.contains("fn lcg_next"),
-        "C674: Should contain lcg_next"
-    );
-    assert!(
-        rust_code.contains("fn pcg_next"),
-        "C674: Should contain pcg_next"
-    );
+    assert!(rust_code.contains("fn lcg_seed"), "C674: Should contain lcg_seed");
+    assert!(rust_code.contains("fn lcg_next"), "C674: Should contain lcg_next");
+    assert!(rust_code.contains("fn pcg_next"), "C674: Should contain pcg_next");
     Ok(())
 }
 
@@ -1829,21 +1685,9 @@ int cmd_get_redo_count(command_stack_t *stack) {
 "#;
     let rust_code = decy_core::transpile(c_code)?;
     assert!(!rust_code.is_empty(), "C675: Should produce output");
-    assert!(
-        rust_code.contains("fn cmd_init"),
-        "C675: Should contain cmd_init"
-    );
-    assert!(
-        rust_code.contains("fn cmd_execute"),
-        "C675: Should contain cmd_execute"
-    );
-    assert!(
-        rust_code.contains("fn cmd_undo"),
-        "C675: Should contain cmd_undo"
-    );
-    assert!(
-        rust_code.contains("fn cmd_redo"),
-        "C675: Should contain cmd_redo"
-    );
+    assert!(rust_code.contains("fn cmd_init"), "C675: Should contain cmd_init");
+    assert!(rust_code.contains("fn cmd_execute"), "C675: Should contain cmd_execute");
+    assert!(rust_code.contains("fn cmd_undo"), "C675: Should contain cmd_undo");
+    assert!(rust_code.contains("fn cmd_redo"), "C675: Should contain cmd_redo");
     Ok(())
 }

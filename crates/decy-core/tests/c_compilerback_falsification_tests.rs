@@ -501,7 +501,11 @@ int cb_addr_is_simple(cb_addr_mode_t *am) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(result.is_ok(), "C1459: Addressing mode selection should transpile: {:?}", result.err());
+    assert!(
+        result.is_ok(),
+        "C1459: Addressing mode selection should transpile: {:?}",
+        result.err()
+    );
 }
 
 /// C1460: Immediate folding and constant propagation in isel

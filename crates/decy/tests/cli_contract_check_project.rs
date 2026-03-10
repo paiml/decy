@@ -24,11 +24,7 @@ fn cli_check_project_exits_zero() {
     let temp = TempDir::new().unwrap();
     create_c_file(&temp, "main.c", "int main() { return 0; }");
 
-    decy_cmd()
-        .arg("check-project")
-        .arg(temp.path())
-        .assert()
-        .success();
+    decy_cmd().arg("check-project").arg(temp.path()).assert().success();
 }
 
 #[test]
@@ -52,11 +48,7 @@ fn cli_check_project_detects_circular_dependencies() {
     create_c_file(&temp, "a.c", "int a() { return 1; }");
     create_c_file(&temp, "b.c", "int b() { return 2; }");
 
-    decy_cmd()
-        .arg("check-project")
-        .arg(temp.path())
-        .assert()
-        .success(); // Should succeed even with circular deps in check mode
+    decy_cmd().arg("check-project").arg(temp.path()).assert().success(); // Should succeed even with circular deps in check mode
 }
 
 #[test]

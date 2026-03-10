@@ -406,10 +406,7 @@ int main() {
     let rust_code = result.unwrap();
 
     // This is a documentation test
-    assert!(
-        rust_code.contains("fn main") || rust_code.contains("main"),
-        "Expected main function"
-    );
+    assert!(rust_code.contains("fn main") || rust_code.contains("main"), "Expected main function");
 
     println!("\n=== Multiple Declarations Transformation Rules ===");
     println!("1. Simple: int a, b, c → separate let statements");
@@ -510,12 +507,6 @@ fn test_multiple_declarations_documentation_summary() {
     println!("Key advantage: Clearer than C's confusing syntax");
     println!("===================================================\n");
 
-    assert_eq!(
-        unsafe_blocks, 0,
-        "All multiple declaration transformations must be safe"
-    );
-    assert!(
-        total_tests >= 10,
-        "Need at least 10 tests for comprehensive coverage"
-    );
+    assert_eq!(unsafe_blocks, 0, "All multiple declaration transformations must be safe");
+    assert!(total_tests >= 10, "Need at least 10 tests for comprehensive coverage");
 }

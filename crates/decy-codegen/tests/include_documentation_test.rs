@@ -40,10 +40,7 @@ fn test_stdio_h_no_import_needed() {
 
     // Check that rust_equivalent doesn't contain actual import statements
     let has_use_statement = rust_equivalent.contains("use ") || rust_equivalent.starts_with("use");
-    assert!(
-        !has_use_statement,
-        "Rust code needs no use statement for stdio.h → println!"
-    );
+    assert!(!has_use_statement, "Rust code needs no use statement for stdio.h → println!");
 }
 
 /// Document transformation of #include <stdlib.h>
@@ -172,14 +169,8 @@ fn test_local_header_to_mod_declaration() {
     let c_code_concept = "#include \"myheader.h\"";
     let rust_equivalent = "mod mymodule;";
 
-    assert!(
-        c_code_concept.contains("#include"),
-        "C code uses #include for local headers"
-    );
-    assert!(
-        rust_equivalent.contains("mod"),
-        "Rust code uses mod declaration for local modules"
-    );
+    assert!(c_code_concept.contains("#include"), "C code uses #include for local headers");
+    assert!(rust_equivalent.contains("mod"), "Rust code uses mod declaration for local modules");
 }
 
 /// Document transformation of multiple #include directives
@@ -253,10 +244,7 @@ fn test_header_guards_not_needed() {
     let rust_equivalent = "// No header guard needed - Rust prevents multiple inclusion";
 
     assert!(c_header_guard.contains("#ifndef"), "C uses header guards");
-    assert!(
-        !rust_equivalent.contains("#"),
-        "Rust has no header guards - module system handles it"
-    );
+    assert!(!rust_equivalent.contains("#"), "Rust has no header guards - module system handles it");
 }
 
 /// Document transformation of conditional includes (#ifdef)
@@ -281,10 +269,7 @@ fn test_conditional_includes() {
     let c_conditional = "#ifdef DEBUG";
     let rust_equivalent = "#[cfg(debug_assertions)]";
 
-    assert!(
-        c_conditional.contains("#ifdef"),
-        "C uses #ifdef for conditional compilation"
-    );
+    assert!(c_conditional.contains("#ifdef"), "C uses #ifdef for conditional compilation");
     assert!(
         rust_equivalent.contains("#[cfg"),
         "Rust uses cfg attributes for conditional compilation"
@@ -401,17 +386,11 @@ fn test_transformation_rules_summary() {
 
     // Rule 1: System headers → no import (built-ins)
     let system_headers_map_to_builtins = true;
-    assert!(
-        system_headers_map_to_builtins,
-        "System headers map to Rust built-ins"
-    );
+    assert!(system_headers_map_to_builtins, "System headers map to Rust built-ins");
 
     // Rule 2: Local headers → mod declarations
     let local_headers_become_modules = true;
-    assert!(
-        local_headers_become_modules,
-        "Local headers become Rust modules"
-    );
+    assert!(local_headers_become_modules, "Local headers become Rust modules");
 
     // Rule 3: Header guards → removed
     let header_guards_not_needed = true;

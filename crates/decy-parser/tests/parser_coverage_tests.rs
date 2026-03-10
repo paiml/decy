@@ -1136,7 +1136,8 @@ fn test_cov_deref_assignment() {
     // *ptr = value;
     let ast = parse_c_code("void f(int *ptr) { *ptr = 42; }");
     let func = &ast.functions()[0];
-    let has_deref = func.body.iter().any(|s| matches!(s, decy_parser::Statement::DerefAssignment { .. }));
+    let has_deref =
+        func.body.iter().any(|s| matches!(s, decy_parser::Statement::DerefAssignment { .. }));
     assert!(has_deref, "Should have a deref assignment");
 }
 
@@ -1145,7 +1146,8 @@ fn test_cov_array_index_assignment() {
     // arr[i] = value;
     let ast = parse_c_code("void f(int *arr, int i) { arr[i] = 42; }");
     let func = &ast.functions()[0];
-    let has_arr_assign = func.body.iter().any(|s| matches!(s, decy_parser::Statement::ArrayIndexAssignment { .. }));
+    let has_arr_assign =
+        func.body.iter().any(|s| matches!(s, decy_parser::Statement::ArrayIndexAssignment { .. }));
     assert!(has_arr_assign, "Should have an array index assignment");
 }
 
@@ -1155,7 +1157,8 @@ fn test_cov_field_assignment_arrow() {
     let ast = parse_c_code("struct S { int x; }; void f(struct S *s) { s->x = 42; }");
     let funcs = ast.functions();
     let f = funcs.iter().find(|f| f.name == "f").expect("Should find f");
-    let has_field = f.body.iter().any(|s| matches!(s, decy_parser::Statement::FieldAssignment { .. }));
+    let has_field =
+        f.body.iter().any(|s| matches!(s, decy_parser::Statement::FieldAssignment { .. }));
     assert!(has_field, "Should have a field assignment");
 }
 
@@ -1165,7 +1168,8 @@ fn test_cov_field_assignment_dot() {
     let ast = parse_c_code("struct S { int x; }; void f() { struct S s; s.x = 42; }");
     let funcs = ast.functions();
     let f = funcs.iter().find(|f| f.name == "f").expect("Should find f");
-    let has_field = f.body.iter().any(|s| matches!(s, decy_parser::Statement::FieldAssignment { .. }));
+    let has_field =
+        f.body.iter().any(|s| matches!(s, decy_parser::Statement::FieldAssignment { .. }));
     assert!(has_field, "Should have a field assignment");
 }
 
@@ -1178,7 +1182,10 @@ fn test_cov_compound_assign_to_deref() {
     // *ptr += value;
     let ast = parse_c_code("void f(int *ptr) { *ptr += 1; }");
     let func = &ast.functions()[0];
-    let has_deref_compound = func.body.iter().any(|s| matches!(s, decy_parser::Statement::DerefCompoundAssignment { .. }));
+    let has_deref_compound = func
+        .body
+        .iter()
+        .any(|s| matches!(s, decy_parser::Statement::DerefCompoundAssignment { .. }));
     assert!(has_deref_compound, "Should have a deref compound assignment");
 }
 
@@ -1188,7 +1195,8 @@ fn test_cov_compound_assign_to_pointer_field() {
     let ast = parse_c_code("struct S { int cap; }; void f(struct S *s) { s->cap *= 2; }");
     let funcs = ast.functions();
     let f = funcs.iter().find(|f| f.name == "f").expect("Should find f");
-    let has_deref_compound = f.body.iter().any(|s| matches!(s, decy_parser::Statement::DerefCompoundAssignment { .. }));
+    let has_deref_compound =
+        f.body.iter().any(|s| matches!(s, decy_parser::Statement::DerefCompoundAssignment { .. }));
     assert!(has_deref_compound, "Should have deref compound assignment for pointer field");
 }
 
@@ -1198,7 +1206,8 @@ fn test_cov_compound_assign_to_dot_field() {
     let ast = parse_c_code("struct S { int x; }; void f() { struct S s; s.x -= 1; }");
     let funcs = ast.functions();
     let f = funcs.iter().find(|f| f.name == "f").expect("Should find f");
-    let has_deref_compound = f.body.iter().any(|s| matches!(s, decy_parser::Statement::DerefCompoundAssignment { .. }));
+    let has_deref_compound =
+        f.body.iter().any(|s| matches!(s, decy_parser::Statement::DerefCompoundAssignment { .. }));
     assert!(has_deref_compound, "Should have deref compound assignment for dot field");
 }
 
@@ -1207,7 +1216,10 @@ fn test_cov_compound_assign_to_array_index() {
     // arr[i] += 1;
     let ast = parse_c_code("void f(int arr[], int i) { arr[i] += 1; }");
     let func = &ast.functions()[0];
-    let has_deref_compound = func.body.iter().any(|s| matches!(s, decy_parser::Statement::DerefCompoundAssignment { .. }));
+    let has_deref_compound = func
+        .body
+        .iter()
+        .any(|s| matches!(s, decy_parser::Statement::DerefCompoundAssignment { .. }));
     assert!(has_deref_compound, "Should have deref compound assignment for array index");
 }
 
@@ -1215,7 +1227,8 @@ fn test_cov_compound_assign_to_array_index() {
 fn test_cov_compound_assign_add() {
     let ast = parse_c_code("void f() { int x = 0; x += 5; }");
     let func = &ast.functions()[0];
-    let has_compound = func.body.iter().any(|s| matches!(s, decy_parser::Statement::CompoundAssignment { .. }));
+    let has_compound =
+        func.body.iter().any(|s| matches!(s, decy_parser::Statement::CompoundAssignment { .. }));
     assert!(has_compound, "Should have compound assignment +=");
 }
 
@@ -1223,7 +1236,8 @@ fn test_cov_compound_assign_add() {
 fn test_cov_compound_assign_subtract() {
     let ast = parse_c_code("void f() { int x = 10; x -= 3; }");
     let func = &ast.functions()[0];
-    let has_compound = func.body.iter().any(|s| matches!(s, decy_parser::Statement::CompoundAssignment { .. }));
+    let has_compound =
+        func.body.iter().any(|s| matches!(s, decy_parser::Statement::CompoundAssignment { .. }));
     assert!(has_compound, "Should have compound assignment -=");
 }
 
@@ -1231,7 +1245,8 @@ fn test_cov_compound_assign_subtract() {
 fn test_cov_compound_assign_multiply() {
     let ast = parse_c_code("void f() { int x = 2; x *= 3; }");
     let func = &ast.functions()[0];
-    let has_compound = func.body.iter().any(|s| matches!(s, decy_parser::Statement::CompoundAssignment { .. }));
+    let has_compound =
+        func.body.iter().any(|s| matches!(s, decy_parser::Statement::CompoundAssignment { .. }));
     assert!(has_compound, "Should have compound assignment *=");
 }
 
@@ -1239,7 +1254,8 @@ fn test_cov_compound_assign_multiply() {
 fn test_cov_compound_assign_divide() {
     let ast = parse_c_code("void f() { int x = 10; x /= 2; }");
     let func = &ast.functions()[0];
-    let has_compound = func.body.iter().any(|s| matches!(s, decy_parser::Statement::CompoundAssignment { .. }));
+    let has_compound =
+        func.body.iter().any(|s| matches!(s, decy_parser::Statement::CompoundAssignment { .. }));
     assert!(has_compound, "Should have compound assignment /=");
 }
 
@@ -1247,7 +1263,8 @@ fn test_cov_compound_assign_divide() {
 fn test_cov_compound_assign_modulo() {
     let ast = parse_c_code("void f() { int x = 10; x %= 3; }");
     let func = &ast.functions()[0];
-    let has_compound = func.body.iter().any(|s| matches!(s, decy_parser::Statement::CompoundAssignment { .. }));
+    let has_compound =
+        func.body.iter().any(|s| matches!(s, decy_parser::Statement::CompoundAssignment { .. }));
     assert!(has_compound, "Should have compound assignment %=");
 }
 
@@ -1259,7 +1276,8 @@ fn test_cov_compound_assign_modulo() {
 fn test_cov_pre_increment_statement() {
     let ast = parse_c_code("void f() { int x = 0; ++x; }");
     let func = &ast.functions()[0];
-    let has_pre_inc = func.body.iter().any(|s| matches!(s, decy_parser::Statement::PreIncrement { .. }));
+    let has_pre_inc =
+        func.body.iter().any(|s| matches!(s, decy_parser::Statement::PreIncrement { .. }));
     assert!(has_pre_inc, "Should have pre-increment statement");
 }
 
@@ -1267,7 +1285,8 @@ fn test_cov_pre_increment_statement() {
 fn test_cov_post_increment_statement() {
     let ast = parse_c_code("void f() { int x = 0; x++; }");
     let func = &ast.functions()[0];
-    let has_post_inc = func.body.iter().any(|s| matches!(s, decy_parser::Statement::PostIncrement { .. }));
+    let has_post_inc =
+        func.body.iter().any(|s| matches!(s, decy_parser::Statement::PostIncrement { .. }));
     assert!(has_post_inc, "Should have post-increment statement");
 }
 
@@ -1275,7 +1294,8 @@ fn test_cov_post_increment_statement() {
 fn test_cov_pre_decrement_statement() {
     let ast = parse_c_code("void f() { int x = 10; --x; }");
     let func = &ast.functions()[0];
-    let has_pre_dec = func.body.iter().any(|s| matches!(s, decy_parser::Statement::PreDecrement { .. }));
+    let has_pre_dec =
+        func.body.iter().any(|s| matches!(s, decy_parser::Statement::PreDecrement { .. }));
     assert!(has_pre_dec, "Should have pre-decrement statement");
 }
 
@@ -1283,7 +1303,8 @@ fn test_cov_pre_decrement_statement() {
 fn test_cov_post_decrement_statement() {
     let ast = parse_c_code("void f() { int x = 10; x--; }");
     let func = &ast.functions()[0];
-    let has_post_dec = func.body.iter().any(|s| matches!(s, decy_parser::Statement::PostDecrement { .. }));
+    let has_post_dec =
+        func.body.iter().any(|s| matches!(s, decy_parser::Statement::PostDecrement { .. }));
     assert!(has_post_dec, "Should have post-decrement statement");
 }
 
@@ -1293,7 +1314,8 @@ fn test_cov_pointer_field_increment() {
     let ast = parse_c_code("struct S { int length; }; void f(struct S *s) { s->length++; }");
     let funcs = ast.functions();
     let f = funcs.iter().find(|f| f.name == "f").expect("Should find f");
-    let has_field_assign = f.body.iter().any(|s| matches!(s, decy_parser::Statement::FieldAssignment { .. }));
+    let has_field_assign =
+        f.body.iter().any(|s| matches!(s, decy_parser::Statement::FieldAssignment { .. }));
     assert!(has_field_assign, "Pointer field increment should become FieldAssignment");
 }
 
@@ -1303,7 +1325,8 @@ fn test_cov_pointer_field_decrement() {
     let ast = parse_c_code("struct S { int count; }; void f(struct S *s) { s->count--; }");
     let funcs = ast.functions();
     let f = funcs.iter().find(|f| f.name == "f").expect("Should find f");
-    let has_field_assign = f.body.iter().any(|s| matches!(s, decy_parser::Statement::FieldAssignment { .. }));
+    let has_field_assign =
+        f.body.iter().any(|s| matches!(s, decy_parser::Statement::FieldAssignment { .. }));
     assert!(has_field_assign, "Pointer field decrement should become FieldAssignment");
 }
 
@@ -1313,7 +1336,8 @@ fn test_cov_dot_field_increment() {
     let ast = parse_c_code("struct S { int count; }; void f() { struct S s; s.count++; }");
     let funcs = ast.functions();
     let f = funcs.iter().find(|f| f.name == "f").expect("Should find f");
-    let has_field_assign = f.body.iter().any(|s| matches!(s, decy_parser::Statement::FieldAssignment { .. }));
+    let has_field_assign =
+        f.body.iter().any(|s| matches!(s, decy_parser::Statement::FieldAssignment { .. }));
     assert!(has_field_assign, "Dot field increment should become FieldAssignment");
 }
 
@@ -1322,7 +1346,8 @@ fn test_cov_array_subscript_increment() {
     // arr[i]++ should become ArrayIndexAssignment
     let ast = parse_c_code("void f(int arr[], int i) { arr[i]++; }");
     let func = &ast.functions()[0];
-    let has_arr_assign = func.body.iter().any(|s| matches!(s, decy_parser::Statement::ArrayIndexAssignment { .. }));
+    let has_arr_assign =
+        func.body.iter().any(|s| matches!(s, decy_parser::Statement::ArrayIndexAssignment { .. }));
     assert!(has_arr_assign, "Array subscript increment should become ArrayIndexAssignment");
 }
 
@@ -1331,7 +1356,8 @@ fn test_cov_array_subscript_decrement() {
     // arr[i]-- should become ArrayIndexAssignment
     let ast = parse_c_code("void f(int arr[], int i) { arr[i]--; }");
     let func = &ast.functions()[0];
-    let has_arr_assign = func.body.iter().any(|s| matches!(s, decy_parser::Statement::ArrayIndexAssignment { .. }));
+    let has_arr_assign =
+        func.body.iter().any(|s| matches!(s, decy_parser::Statement::ArrayIndexAssignment { .. }));
     assert!(has_arr_assign, "Array subscript decrement should become ArrayIndexAssignment");
 }
 
@@ -1352,8 +1378,13 @@ fn test_cov_ternary_in_return() {
 fn test_cov_cast_expression_in_assignment() {
     let ast = parse_c_code("void f() { int x = (int)3.14; }");
     let func = &ast.functions()[0];
-    if let decy_parser::Statement::VariableDeclaration { initializer: Some(expr), .. } = &func.body[0] {
-        assert!(matches!(expr, decy_parser::Expression::Cast { .. }), "Should be a cast expression");
+    if let decy_parser::Statement::VariableDeclaration { initializer: Some(expr), .. } =
+        &func.body[0]
+    {
+        assert!(
+            matches!(expr, decy_parser::Expression::Cast { .. }),
+            "Should be a cast expression"
+        );
     }
 }
 
@@ -1362,13 +1393,17 @@ fn test_cov_sizeof_in_function_body() {
     let ast = parse_c_code("int f() { return sizeof(int); }");
     let func = &ast.functions()[0];
     if let decy_parser::Statement::Return(Some(expr)) = &func.body[0] {
-        assert!(matches!(expr, decy_parser::Expression::Sizeof { .. }), "Should be sizeof expression");
+        assert!(
+            matches!(expr, decy_parser::Expression::Sizeof { .. }),
+            "Should be sizeof expression"
+        );
     }
 }
 
 #[test]
 fn test_cov_sizeof_struct() {
-    let ast = parse_c_code("struct Data { int x; int y; }; int f() { return sizeof(struct Data); }");
+    let ast =
+        parse_c_code("struct Data { int x; int y; }; int f() { return sizeof(struct Data); }");
     let funcs = ast.functions();
     let f = funcs.iter().find(|f| f.name == "f").expect("Should find f");
     let has_return = f.body.iter().any(|s| matches!(s, decy_parser::Statement::Return(Some(_))));
@@ -1506,7 +1541,10 @@ fn test_cov_function_call_with_expression_arg() {
     let funcs = ast.functions();
     let f = funcs.iter().find(|f| f.name == "f").expect("Should find f");
     if let decy_parser::Statement::FunctionCall { arguments, .. } = &f.body[0] {
-        assert!(matches!(&arguments[0], decy_parser::Expression::BinaryOp { .. }), "Arg should be binary op");
+        assert!(
+            matches!(&arguments[0], decy_parser::Expression::BinaryOp { .. }),
+            "Arg should be binary op"
+        );
     }
 }
 
@@ -1515,7 +1553,8 @@ fn test_cov_nested_function_call() {
     let ast = parse_c_code("int add(int a, int b); void f() { int x = add(add(1, 2), 3); }");
     let funcs = ast.functions();
     let f = funcs.iter().find(|f| f.name == "f").expect("Should find f");
-    let has_var = f.body.iter().any(|s| matches!(s, decy_parser::Statement::VariableDeclaration { .. }));
+    let has_var =
+        f.body.iter().any(|s| matches!(s, decy_parser::Statement::VariableDeclaration { .. }));
     assert!(has_var, "Should have variable declaration with nested function call");
 }
 
@@ -1552,7 +1591,10 @@ fn test_cov_function_call_with_char_arg() {
     let funcs = ast.functions();
     let f = funcs.iter().find(|f| f.name == "f").expect("Should find f");
     if let decy_parser::Statement::FunctionCall { arguments, .. } = &f.body[0] {
-        assert!(matches!(&arguments[0], decy_parser::Expression::CharLiteral(_)), "Arg should be char literal");
+        assert!(
+            matches!(&arguments[0], decy_parser::Expression::CharLiteral(_)),
+            "Arg should be char literal"
+        );
     }
 }
 
@@ -1571,7 +1613,10 @@ fn test_cov_function_call_with_unary_arg() {
     let funcs = ast.functions();
     let f = funcs.iter().find(|f| f.name == "f").expect("Should find f");
     if let decy_parser::Statement::FunctionCall { arguments, .. } = &f.body[0] {
-        assert!(matches!(&arguments[0], decy_parser::Expression::UnaryOp { .. }), "Arg should be unary op");
+        assert!(
+            matches!(&arguments[0], decy_parser::Expression::UnaryOp { .. }),
+            "Arg should be unary op"
+        );
     }
 }
 
@@ -1581,7 +1626,10 @@ fn test_cov_function_call_with_array_index_arg() {
     let funcs = ast.functions();
     let f = funcs.iter().find(|f| f.name == "f").expect("Should find f");
     if let decy_parser::Statement::FunctionCall { arguments, .. } = &f.body[0] {
-        assert!(matches!(&arguments[0], decy_parser::Expression::ArrayIndex { .. }), "Arg should be array index");
+        assert!(
+            matches!(&arguments[0], decy_parser::Expression::ArrayIndex { .. }),
+            "Arg should be array index"
+        );
     }
 }
 
@@ -1924,7 +1972,11 @@ fn test_cov_parse_syntax_error_diagnostic() {
     let result = parser.parse("int broken(");
     assert!(result.is_err(), "Should fail for syntax error");
     let err_msg = result.unwrap_err().to_string();
-    assert!(err_msg.contains("syntax error") || err_msg.contains("error"), "Error should mention syntax: {}", err_msg);
+    assert!(
+        err_msg.contains("syntax error") || err_msg.contains("error"),
+        "Error should mention syntax: {}",
+        err_msg
+    );
 }
 
 #[test]
@@ -2118,7 +2170,8 @@ fn test_cov_comparison_operators_in_assignment_check() {
     // Test that comparison operators like <=, >= are NOT treated as assignment
     let ast = parse_c_code("int f(int a, int b) { int x = a <= b; return x; }");
     let func = &ast.functions()[0];
-    let has_var = func.body.iter().any(|s| matches!(s, decy_parser::Statement::VariableDeclaration { .. }));
+    let has_var =
+        func.body.iter().any(|s| matches!(s, decy_parser::Statement::VariableDeclaration { .. }));
     assert!(has_var, "Should have variable declaration, not assignment");
 }
 
@@ -2132,7 +2185,8 @@ fn test_cov_variable_is_string_buffer_malloc() {
     let ast = parse_c_code("void *malloc(int size); void f() { char *buf = (char *)malloc(100); }");
     let funcs = ast.functions();
     let f = funcs.iter().find(|f| f.name == "f").expect("Should find f");
-    let has_var = f.body.iter().any(|s| matches!(s, decy_parser::Statement::VariableDeclaration { .. }));
+    let has_var =
+        f.body.iter().any(|s| matches!(s, decy_parser::Statement::VariableDeclaration { .. }));
     assert!(has_var, "Should have variable declaration with malloc");
 }
 
@@ -2310,10 +2364,8 @@ fn test_cov_expression_string_function_name() {
     assert!(expr.is_string_function_call());
     assert_eq!(expr.string_function_name(), Some("strlen"));
 
-    let non_str = decy_parser::Expression::FunctionCall {
-        function: "printf".to_string(),
-        arguments: vec![],
-    };
+    let non_str =
+        decy_parser::Expression::FunctionCall { function: "printf".to_string(), arguments: vec![] };
     assert!(!non_str.is_string_function_call());
     assert_eq!(non_str.string_function_name(), None);
 
@@ -2329,7 +2381,9 @@ fn test_cov_expression_string_function_name() {
 
 #[test]
 fn test_cov_multiple_functions() {
-    let ast = parse_c_code("int add(int a, int b) { return a + b; } int sub(int a, int b) { return a - b; }");
+    let ast = parse_c_code(
+        "int add(int a, int b) { return a + b; } int sub(int a, int b) { return a - b; }",
+    );
     assert_eq!(ast.functions().len(), 2, "Should have 2 functions");
     assert_eq!(ast.functions()[0].name, "add");
     assert_eq!(ast.functions()[1].name, "sub");
@@ -2346,7 +2400,8 @@ fn test_cov_extern_var_in_function_skipped() {
     let ast = parse_c_code("void f() { extern int max; }");
     let func = &ast.functions()[0];
     // The extern without initializer should be skipped
-    let has_var_decl = func.body.iter().any(|s| matches!(s, decy_parser::Statement::VariableDeclaration { .. }));
+    let has_var_decl =
+        func.body.iter().any(|s| matches!(s, decy_parser::Statement::VariableDeclaration { .. }));
     assert!(!has_var_decl, "extern without init should be skipped in function body");
 }
 

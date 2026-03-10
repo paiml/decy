@@ -138,7 +138,11 @@ int rp_acquire_peak(rp_acquire_pool_t *p) {
 }
 "##;
     let result = transpile(c_code);
-    assert!(result.is_ok(), "C1927: Object pool acquire pattern should transpile: {:?}", result.err());
+    assert!(
+        result.is_ok(),
+        "C1927: Object pool acquire pattern should transpile: {:?}",
+        result.err()
+    );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1927: Output should not be empty");
     assert!(code.contains("fn rp_"), "C1927: Should contain rp_ functions");
@@ -208,7 +212,11 @@ int rp_batch_pool_count(rp_batch_pool_t *p) {
 }
 "##;
     let result = transpile(c_code);
-    assert!(result.is_ok(), "C1928: Object pool release batch should transpile: {:?}", result.err());
+    assert!(
+        result.is_ok(),
+        "C1928: Object pool release batch should transpile: {:?}",
+        result.err()
+    );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1928: Output should not be empty");
     assert!(code.contains("fn rp_"), "C1928: Should contain rp_ functions");
@@ -688,7 +696,11 @@ int rp_health_pool_healthy_count(rp_health_pool_t *p) {
 }
 "##;
     let result = transpile(c_code);
-    assert!(result.is_ok(), "C1934: Connection pool health check should transpile: {:?}", result.err());
+    assert!(
+        result.is_ok(),
+        "C1934: Connection pool health check should transpile: {:?}",
+        result.err()
+    );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1934: Output should not be empty");
     assert!(code.contains("fn rp_"), "C1934: Should contain rp_ functions");
@@ -1503,7 +1515,11 @@ int rp_gen_table_stale_count(rp_gen_table_t *t) {
 }
 "##;
     let result = transpile(c_code);
-    assert!(result.is_ok(), "C1944: Handle generation counter should transpile: {:?}", result.err());
+    assert!(
+        result.is_ok(),
+        "C1944: Handle generation counter should transpile: {:?}",
+        result.err()
+    );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1944: Output should not be empty");
     assert!(code.contains("fn rp_"), "C1944: Should contain rp_ functions");

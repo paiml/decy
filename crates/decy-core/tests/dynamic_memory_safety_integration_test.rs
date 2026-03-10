@@ -48,11 +48,7 @@ fn test_malloc_free_basic_pattern() {
 
     // Should minimize unsafe blocks
     let unsafe_count = result.matches("unsafe").count();
-    assert!(
-        unsafe_count <= 3,
-        "malloc/free should minimize unsafe (found {})",
-        unsafe_count
-    );
+    assert!(unsafe_count <= 3, "malloc/free should minimize unsafe (found {})", unsafe_count);
 }
 
 #[test]
@@ -111,11 +107,7 @@ fn test_malloc_array_allocation() {
 
     // Array allocation should be safe
     let unsafe_count = result.matches("unsafe").count();
-    assert!(
-        unsafe_count <= 4,
-        "Array malloc should minimize unsafe (found {})",
-        unsafe_count
-    );
+    assert!(unsafe_count <= 4, "Array malloc should minimize unsafe (found {})", unsafe_count);
 }
 
 // ============================================================================
@@ -150,11 +142,7 @@ fn test_calloc_zero_initialization() {
 
     // calloc should be safe
     let unsafe_count = result.matches("unsafe").count();
-    assert!(
-        unsafe_count <= 5,
-        "calloc should minimize unsafe (found {})",
-        unsafe_count
-    );
+    assert!(unsafe_count <= 5, "calloc should minimize unsafe (found {})", unsafe_count);
 }
 
 // ============================================================================
@@ -195,11 +183,7 @@ fn test_realloc_resize_pattern() {
 
     // realloc should be handled
     let unsafe_count = result.matches("unsafe").count();
-    assert!(
-        unsafe_count <= 6,
-        "realloc should minimize unsafe (found {})",
-        unsafe_count
-    );
+    assert!(unsafe_count <= 6, "realloc should minimize unsafe (found {})", unsafe_count);
 }
 
 // ============================================================================
@@ -236,11 +220,7 @@ fn test_malloc_struct_allocation() {
 
     // Struct allocation should be safe
     let unsafe_count = result.matches("unsafe").count();
-    assert!(
-        unsafe_count <= 4,
-        "Struct malloc should minimize unsafe (found {})",
-        unsafe_count
-    );
+    assert!(unsafe_count <= 4, "Struct malloc should minimize unsafe (found {})", unsafe_count);
 }
 
 // ============================================================================
@@ -315,11 +295,7 @@ fn test_malloc_string_buffer() {
 
     // String buffer allocation
     let unsafe_count = result.matches("unsafe").count();
-    assert!(
-        unsafe_count <= 4,
-        "String malloc should minimize unsafe (found {})",
-        unsafe_count
-    );
+    assert!(unsafe_count <= 4, "String malloc should minimize unsafe (found {})", unsafe_count);
 }
 
 // ============================================================================
@@ -352,18 +328,11 @@ fn test_function_with_heap_allocation() {
     let result = transpile(c_code).expect("Should transpile");
 
     assert!(result.contains("fn main"), "Should have main function");
-    assert!(
-        result.contains("fn create_array"),
-        "Should have create_array function"
-    );
+    assert!(result.contains("fn create_array"), "Should have create_array function");
 
     // Function returning allocated memory
     let unsafe_count = result.matches("unsafe").count();
-    assert!(
-        unsafe_count <= 5,
-        "Function malloc should minimize unsafe (found {})",
-        unsafe_count
-    );
+    assert!(unsafe_count <= 5, "Function malloc should minimize unsafe (found {})", unsafe_count);
 }
 
 // ============================================================================
@@ -437,11 +406,7 @@ fn test_malloc_with_sizeof() {
 
     // sizeof calculations
     let unsafe_count = result.matches("unsafe").count();
-    assert!(
-        unsafe_count <= 6,
-        "sizeof malloc should minimize unsafe (found {})",
-        unsafe_count
-    );
+    assert!(unsafe_count <= 6, "sizeof malloc should minimize unsafe (found {})", unsafe_count);
 }
 
 // ============================================================================
@@ -486,11 +451,8 @@ fn test_unsafe_block_count_target() {
     let unsafe_count = result.matches("unsafe").count();
     let lines_of_code = result.lines().count();
 
-    let unsafe_per_1000 = if lines_of_code > 0 {
-        (unsafe_count as f64 / lines_of_code as f64) * 1000.0
-    } else {
-        0.0
-    };
+    let unsafe_per_1000 =
+        if lines_of_code > 0 { (unsafe_count as f64 / lines_of_code as f64) * 1000.0 } else { 0.0 };
 
     // Target: <60 unsafe per 1000 LOC (malloc/free is more complex than simple arrays)
     assert!(
@@ -543,10 +505,7 @@ fn test_transpiled_malloc_compiles() {
     );
 
     // Should not have excessive semicolons
-    assert!(
-        !result.contains(";;;;"),
-        "Should not have excessive semicolons"
-    );
+    assert!(!result.contains(";;;;"), "Should not have excessive semicolons");
 }
 
 #[test]
@@ -575,9 +534,5 @@ fn test_memory_safety_documentation() {
 
     // If unsafe blocks exist, they should be minimal
     let unsafe_count = result.matches("unsafe").count();
-    assert!(
-        unsafe_count < 10,
-        "Should have minimal unsafe blocks (found {})",
-        unsafe_count
-    );
+    assert!(unsafe_count < 10, "Should have minimal unsafe blocks (found {})", unsafe_count);
 }

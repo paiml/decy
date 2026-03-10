@@ -121,11 +121,7 @@ pub struct NullModel;
 
 impl OwnershipModel for NullModel {
     fn predict(&self, _features: &OwnershipFeatures) -> OwnershipPrediction {
-        OwnershipPrediction {
-            kind: InferredOwnership::RawPointer,
-            confidence: 0.0,
-            fallback: None,
-        }
+        OwnershipPrediction { kind: InferredOwnership::RawPointer, confidence: 0.0, fallback: None }
     }
 
     fn name(&self) -> &str {
@@ -151,18 +147,12 @@ impl Default for HybridClassifier {
 impl HybridClassifier {
     /// Create a new hybrid classifier with default settings.
     pub fn new() -> Self {
-        Self {
-            confidence_threshold: DEFAULT_CONFIDENCE_THRESHOLD,
-            ml_enabled: false,
-        }
+        Self { confidence_threshold: DEFAULT_CONFIDENCE_THRESHOLD, ml_enabled: false }
     }
 
     /// Create with custom confidence threshold.
     pub fn with_threshold(threshold: f64) -> Self {
-        Self {
-            confidence_threshold: threshold.clamp(0.0, 1.0),
-            ml_enabled: false,
-        }
+        Self { confidence_threshold: threshold.clamp(0.0, 1.0), ml_enabled: false }
     }
 
     /// Enable ML predictions.
@@ -506,10 +496,7 @@ mod tests {
 
     impl MockModel {
         fn with_confidence(ownership: InferredOwnership, confidence: f64) -> Self {
-            Self {
-                ownership,
-                confidence,
-            }
+            Self { ownership, confidence }
         }
     }
 
@@ -829,10 +816,7 @@ mod tests {
 
     #[test]
     fn convert_ownership_kinds() {
-        assert_eq!(
-            ownership_kind_to_inferred(&OwnershipKind::Owning),
-            InferredOwnership::Owned
-        );
+        assert_eq!(ownership_kind_to_inferred(&OwnershipKind::Owning), InferredOwnership::Owned);
         assert_eq!(
             ownership_kind_to_inferred(&OwnershipKind::ImmutableBorrow),
             InferredOwnership::Borrowed
@@ -854,10 +838,7 @@ mod tests {
             element_type: decy_hir::HirType::Int,
             base_index: Some(0),
         };
-        assert_eq!(
-            ownership_kind_to_inferred(&array_kind),
-            InferredOwnership::Slice
-        );
+        assert_eq!(ownership_kind_to_inferred(&array_kind), InferredOwnership::Slice);
     }
 
     // ========================================================================
@@ -1019,8 +1000,7 @@ mod tests {
             reason: "read-only access".to_string(),
         };
         let model_agree_borrow = MockModel::with_confidence(InferredOwnership::Borrowed, 0.9);
-        let result =
-            classifier.classify_ensemble(&inference_immut, &features, &model_agree_borrow);
+        let result = classifier.classify_ensemble(&inference_immut, &features, &model_agree_borrow);
         assert_eq!(result.method, ClassificationMethod::Hybrid);
         assert_eq!(result.ownership, InferredOwnership::Borrowed);
 
@@ -1036,8 +1016,7 @@ mod tests {
             reason: "array parameter".to_string(),
         };
         let model_agree_slice = MockModel::with_confidence(InferredOwnership::Slice, 0.8);
-        let result =
-            classifier.classify_ensemble(&inference_arr, &features, &model_agree_slice);
+        let result = classifier.classify_ensemble(&inference_arr, &features, &model_agree_slice);
         assert_eq!(result.method, ClassificationMethod::Hybrid);
         assert_eq!(result.ownership, InferredOwnership::Slice);
     }
@@ -1192,7 +1171,11 @@ mod tests {
         // Record one of each method
         for (method, rule_own, ml_own) in [
             (ClassificationMethod::RuleBased, InferredOwnership::Owned, InferredOwnership::Owned),
-            (ClassificationMethod::MachineLearning, InferredOwnership::Borrowed, InferredOwnership::Borrowed),
+            (
+                ClassificationMethod::MachineLearning,
+                InferredOwnership::Borrowed,
+                InferredOwnership::Borrowed,
+            ),
             (ClassificationMethod::Fallback, InferredOwnership::Owned, InferredOwnership::Borrowed),
             (ClassificationMethod::Hybrid, InferredOwnership::Vec, InferredOwnership::Vec),
         ] {
@@ -1269,11 +1252,7 @@ mod tests {
 
     impl OwnershipModel for AnonymousModel {
         fn predict(&self, _features: &OwnershipFeatures) -> OwnershipPrediction {
-            OwnershipPrediction {
-                kind: InferredOwnership::Owned,
-                confidence: 0.5,
-                fallback: None,
-            }
+            OwnershipPrediction { kind: InferredOwnership::Owned, confidence: 0.5, fallback: None }
         }
         // Note: does NOT override name() — uses default "unknown"
     }

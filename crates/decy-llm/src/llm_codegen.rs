@@ -50,11 +50,7 @@ pub struct CodegenPrompt {
 impl CodegenPrompt {
     /// Create a new codegen prompt.
     pub fn new(c_source: &str, context: AnalysisContext) -> Self {
-        Self {
-            c_source: c_source.to_string(),
-            context,
-            instructions: String::new(),
-        }
+        Self { c_source: c_source.to_string(), context, instructions: String::new() }
     }
 
     /// Set additional instructions.
@@ -123,9 +119,7 @@ pub struct LlmCodegen {
 impl LlmCodegen {
     /// Create a new LLM code generator.
     pub fn new(model: &str) -> Self {
-        Self {
-            model: model.to_string(),
-        }
+        Self { model: model.to_string() }
     }
 
     /// Generate Rust code from C source with analysis context.
@@ -134,10 +128,7 @@ impl LlmCodegen {
     /// would require API credentials and network access.
     pub fn generate(&self, _prompt: &CodegenPrompt) -> Result<GeneratedCode, LlmError> {
         // In a real implementation, this would call the LLM API
-        Err(LlmError::ApiError(format!(
-            "LLM API not configured for model: {}",
-            self.model
-        )))
+        Err(LlmError::ApiError(format!("LLM API not configured for model: {}", self.model)))
     }
 
     /// Parse raw LLM response into generated code.
@@ -164,9 +155,7 @@ impl LlmCodegen {
             });
         }
 
-        Err(LlmError::ParseError(
-            "No valid Rust code found in response".to_string(),
-        ))
+        Err(LlmError::ParseError("No valid Rust code found in response".to_string()))
     }
 
     /// Extract Rust code from markdown code block.
@@ -277,9 +266,7 @@ mod tests {
 
     #[test]
     fn prompt_new_default_instructions_empty() {
-        let ctx = AnalysisContext {
-            functions: vec![],
-        };
+        let ctx = AnalysisContext { functions: vec![] };
         let prompt = CodegenPrompt::new("int x = 5;", ctx);
         assert_eq!(prompt.c_source, "int x = 5;");
         assert!(prompt.instructions.is_empty());
@@ -287,18 +274,14 @@ mod tests {
 
     #[test]
     fn prompt_with_instructions() {
-        let ctx = AnalysisContext {
-            functions: vec![],
-        };
+        let ctx = AnalysisContext { functions: vec![] };
         let prompt = CodegenPrompt::new("int x;", ctx).with_instructions("Use safe Rust only");
         assert_eq!(prompt.instructions, "Use safe Rust only");
     }
 
     #[test]
     fn prompt_render_contains_c_source() {
-        let ctx = AnalysisContext {
-            functions: vec![],
-        };
+        let ctx = AnalysisContext { functions: vec![] };
         let prompt = CodegenPrompt::new("int main() { return 0; }", ctx);
         let rendered = prompt.render();
         assert!(rendered.contains("int main() { return 0; }"));
@@ -308,9 +291,7 @@ mod tests {
 
     #[test]
     fn prompt_render_contains_instructions_when_set() {
-        let ctx = AnalysisContext {
-            functions: vec![],
-        };
+        let ctx = AnalysisContext { functions: vec![] };
         let prompt =
             CodegenPrompt::new("void f();", ctx).with_instructions("Prefer Box over raw ptrs");
         let rendered = prompt.render();
@@ -320,9 +301,7 @@ mod tests {
 
     #[test]
     fn prompt_render_no_instructions_section_when_empty() {
-        let ctx = AnalysisContext {
-            functions: vec![],
-        };
+        let ctx = AnalysisContext { functions: vec![] };
         let prompt = CodegenPrompt::new("void f();", ctx);
         let rendered = prompt.render();
         assert!(!rendered.contains("## Additional Instructions"));
@@ -330,8 +309,8 @@ mod tests {
 
     #[test]
     fn prompt_render_includes_ownership_info() {
-        use std::collections::HashMap;
         use crate::context_builder::{FunctionContext, OwnershipInfo};
+        use std::collections::HashMap;
 
         let mut ownership = HashMap::new();
         ownership.insert(
@@ -361,8 +340,8 @@ mod tests {
 
     #[test]
     fn prompt_render_skips_functions_with_no_ownership() {
-        use std::collections::HashMap;
         use crate::context_builder::FunctionContext;
+        use std::collections::HashMap;
 
         let ctx = AnalysisContext {
             functions: vec![FunctionContext {
@@ -380,9 +359,7 @@ mod tests {
 
     #[test]
     fn prompt_render_contains_task_section() {
-        let ctx = AnalysisContext {
-            functions: vec![],
-        };
+        let ctx = AnalysisContext { functions: vec![] };
         let prompt = CodegenPrompt::new("int x;", ctx);
         let rendered = prompt.render();
         assert!(rendered.contains("## Task"));
@@ -410,9 +387,7 @@ mod tests {
     #[test]
     fn llm_codegen_generate_returns_api_error() {
         let codegen = LlmCodegen::new("gpt-4");
-        let ctx = AnalysisContext {
-            functions: vec![],
-        };
+        let ctx = AnalysisContext { functions: vec![] };
         let prompt = CodegenPrompt::new("int x;", ctx);
         let result = codegen.generate(&prompt);
         assert!(result.is_err());

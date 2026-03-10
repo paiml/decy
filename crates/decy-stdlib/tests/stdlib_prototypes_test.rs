@@ -165,10 +165,7 @@ fn test_inject_prototypes_includes_malloc() {
 
     let injected = stdlib.inject_all_prototypes();
 
-    assert!(
-        injected.contains("void* malloc(size_t"),
-        "Should contain malloc prototype"
-    );
+    assert!(injected.contains("void* malloc(size_t"), "Should contain malloc prototype");
 }
 
 #[test]
@@ -180,10 +177,7 @@ fn test_prototype_injection_is_deterministic() {
     let inject1 = stdlib1.inject_all_prototypes();
     let inject2 = stdlib2.inject_all_prototypes();
 
-    assert_eq!(
-        inject1, inject2,
-        "Prototype injection should be deterministic"
-    );
+    assert_eq!(inject1, inject2, "Prototype injection should be deterministic");
 }
 
 // ============================================================================
@@ -234,10 +228,7 @@ fn test_std_header_errno() {
 
 #[test]
 fn test_std_header_limits() {
-    assert_eq!(
-        StdHeader::from_filename("limits.h"),
-        Some(StdHeader::Limits)
-    );
+    assert_eq!(StdHeader::from_filename("limits.h"), Some(StdHeader::Limits));
 }
 
 #[test]
@@ -247,66 +238,42 @@ fn test_std_header_float() {
 
 #[test]
 fn test_std_header_locale() {
-    assert_eq!(
-        StdHeader::from_filename("locale.h"),
-        Some(StdHeader::Locale)
-    );
+    assert_eq!(StdHeader::from_filename("locale.h"), Some(StdHeader::Locale));
 }
 
 #[test]
 fn test_std_header_setjmp() {
-    assert_eq!(
-        StdHeader::from_filename("setjmp.h"),
-        Some(StdHeader::Setjmp)
-    );
+    assert_eq!(StdHeader::from_filename("setjmp.h"), Some(StdHeader::Setjmp));
 }
 
 #[test]
 fn test_std_header_signal() {
-    assert_eq!(
-        StdHeader::from_filename("signal.h"),
-        Some(StdHeader::Signal)
-    );
+    assert_eq!(StdHeader::from_filename("signal.h"), Some(StdHeader::Signal));
 }
 
 #[test]
 fn test_std_header_stdarg() {
-    assert_eq!(
-        StdHeader::from_filename("stdarg.h"),
-        Some(StdHeader::Stdarg)
-    );
+    assert_eq!(StdHeader::from_filename("stdarg.h"), Some(StdHeader::Stdarg));
 }
 
 #[test]
 fn test_std_header_stdbool() {
-    assert_eq!(
-        StdHeader::from_filename("stdbool.h"),
-        Some(StdHeader::Stdbool)
-    );
+    assert_eq!(StdHeader::from_filename("stdbool.h"), Some(StdHeader::Stdbool));
 }
 
 #[test]
 fn test_std_header_stddef() {
-    assert_eq!(
-        StdHeader::from_filename("stddef.h"),
-        Some(StdHeader::Stddef)
-    );
+    assert_eq!(StdHeader::from_filename("stddef.h"), Some(StdHeader::Stddef));
 }
 
 #[test]
 fn test_std_header_stdint() {
-    assert_eq!(
-        StdHeader::from_filename("stdint.h"),
-        Some(StdHeader::Stdint)
-    );
+    assert_eq!(StdHeader::from_filename("stdint.h"), Some(StdHeader::Stdint));
 }
 
 #[test]
 fn test_std_header_unistd() {
-    assert_eq!(
-        StdHeader::from_filename("unistd.h"),
-        Some(StdHeader::Unistd)
-    );
+    assert_eq!(StdHeader::from_filename("unistd.h"), Some(StdHeader::Unistd));
 }
 
 #[test]
@@ -316,34 +283,22 @@ fn test_std_header_fcntl() {
 
 #[test]
 fn test_std_header_dirent() {
-    assert_eq!(
-        StdHeader::from_filename("dirent.h"),
-        Some(StdHeader::Dirent)
-    );
+    assert_eq!(StdHeader::from_filename("dirent.h"), Some(StdHeader::Dirent));
 }
 
 #[test]
 fn test_std_header_sys_types() {
-    assert_eq!(
-        StdHeader::from_filename("sys/types.h"),
-        Some(StdHeader::SysTypes)
-    );
+    assert_eq!(StdHeader::from_filename("sys/types.h"), Some(StdHeader::SysTypes));
 }
 
 #[test]
 fn test_std_header_sys_stat() {
-    assert_eq!(
-        StdHeader::from_filename("sys/stat.h"),
-        Some(StdHeader::SysStat)
-    );
+    assert_eq!(StdHeader::from_filename("sys/stat.h"), Some(StdHeader::SysStat));
 }
 
 #[test]
 fn test_std_header_sys_mman() {
-    assert_eq!(
-        StdHeader::from_filename("sys/mman.h"),
-        Some(StdHeader::SysMman)
-    );
+    assert_eq!(StdHeader::from_filename("sys/mman.h"), Some(StdHeader::SysMman));
 }
 
 #[test]
@@ -353,10 +308,7 @@ fn test_std_header_wchar() {
 
 #[test]
 fn test_std_header_assert() {
-    assert_eq!(
-        StdHeader::from_filename("assert.h"),
-        Some(StdHeader::Assert)
-    );
+    assert_eq!(StdHeader::from_filename("assert.h"), Some(StdHeader::Assert));
 }
 
 #[test]

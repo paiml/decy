@@ -79,11 +79,7 @@ fn test_generate_string_parameter() {
     // Rust: fn print_message(msg: &str);
     let param = HirParameter::new("msg".to_string(), HirType::Pointer(Box::new(HirType::Char)));
 
-    let param_code = format!(
-        "{}: {}",
-        param.name(),
-        CodeGenerator::map_type(param.param_type())
-    );
+    let param_code = format!("{}: {}", param.name(), CodeGenerator::map_type(param.param_type()));
 
     // Currently: msg: *mut u8
     // Want: msg: &str

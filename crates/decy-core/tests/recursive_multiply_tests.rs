@@ -45,17 +45,9 @@ fn test_recursive_multiply_correct() {
     let code = generator.generate_function(&func);
 
     // Must contain multiplication operator
-    assert!(
-        code.contains("n * factorial"),
-        "Should have n * factorial(...):\n{}",
-        code
-    );
+    assert!(code.contains("n * factorial"), "Should have n * factorial(...):\n{}", code);
     // Must NOT have subtraction instead of multiplication
-    assert!(
-        !code.contains("n - factorial"),
-        "Should NOT have n - factorial (bug):\n{}",
-        code
-    );
+    assert!(!code.contains("n - factorial"), "Should NOT have n - factorial (bug):\n{}", code);
 }
 
 // ============================================================================
@@ -145,9 +137,5 @@ fn test_multiply_func_result() {
     let generator = CodeGenerator::new();
     let code = generator.generate_function(&func);
 
-    assert!(
-        code.contains("x * get_value"),
-        "Should have x * get_value():\n{}",
-        code
-    );
+    assert!(code.contains("x * get_value"), "Should have x * get_value():\n{}", code);
 }

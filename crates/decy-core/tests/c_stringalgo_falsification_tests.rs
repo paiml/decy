@@ -84,17 +84,10 @@ int str_kmp_count_occurrences(const char *text, int text_len, const char *patter
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C951: KMP pattern matching should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C951: KMP pattern matching should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C951: Output should not be empty");
-    assert!(
-        code.contains("fn str_kmp_search"),
-        "C951: Should contain str_kmp_search function"
-    );
+    assert!(code.contains("fn str_kmp_search"), "C951: Should contain str_kmp_search function");
 }
 
 #[test]
@@ -156,11 +149,7 @@ int str_rabin_karp_search(const char *text, int text_len, const char *pattern, i
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C952: Rabin-Karp string search should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C952: Rabin-Karp string search should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C952: Output should not be empty");
     assert!(
@@ -232,11 +221,7 @@ int str_bm_count(const char *text, int text_len, const char *pattern, int pat_le
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C953: Boyer-Moore bad char rule should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C953: Boyer-Moore bad char rule should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C953: Output should not be empty");
     assert!(
@@ -292,17 +277,10 @@ int str_z_search(const char *text, int text_len, const char *pattern, int pat_le
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C954: Z-algorithm should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C954: Z-algorithm should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C954: Output should not be empty");
-    assert!(
-        code.contains("fn str_z_array"),
-        "C954: Should contain str_z_array function"
-    );
+    assert!(code.contains("fn str_z_array"), "C954: Should contain str_z_array function");
 }
 
 #[test]
@@ -369,11 +347,7 @@ int str_suffix_array_search(const char *text, int text_len, int *sa, const char 
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C955: Suffix array construction should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C955: Suffix array construction should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C955: Output should not be empty");
     assert!(
@@ -417,11 +391,7 @@ int str_lcs_substring(const char *a, int a_len, const char *b, int b_len, char *
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C956: Longest common substring should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C956: Longest common substring should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C956: Output should not be empty");
     assert!(
@@ -465,17 +435,10 @@ int str_levenshtein_threshold(const char *s, int s_len, const char *t, int t_len
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C957: Levenshtein edit distance should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C957: Levenshtein edit distance should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C957: Output should not be empty");
-    assert!(
-        code.contains("fn str_levenshtein"),
-        "C957: Should contain str_levenshtein function"
-    );
+    assert!(code.contains("fn str_levenshtein"), "C957: Should contain str_levenshtein function");
 }
 
 #[test]
@@ -625,21 +588,11 @@ int str_trie_starts_with(const str_trie *t, const char *prefix) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C959: Trie insert/search should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C959: Trie insert/search should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C959: Output should not be empty");
-    assert!(
-        code.contains("fn str_trie_insert"),
-        "C959: Should contain str_trie_insert function"
-    );
-    assert!(
-        code.contains("fn str_trie_search"),
-        "C959: Should contain str_trie_search function"
-    );
+    assert!(code.contains("fn str_trie_insert"), "C959: Should contain str_trie_insert function");
+    assert!(code.contains("fn str_trie_search"), "C959: Should contain str_trie_search function");
 }
 
 #[test]
@@ -762,10 +715,7 @@ int str_ac_search(const str_ac_automaton *ac, const char *text, int *matches, in
     );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C960: Output should not be empty");
-    assert!(
-        code.contains("fn str_ac_search"),
-        "C960: Should contain str_ac_search function"
-    );
+    assert!(code.contains("fn str_ac_search"), "C960: Should contain str_ac_search function");
 }
 
 // ============================================================================
@@ -834,10 +784,7 @@ int str_lcs_recover(const char *a, int a_len, const char *b, int b_len, char *ou
     );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C961: Output should not be empty");
-    assert!(
-        code.contains("fn str_lcs_length"),
-        "C961: Should contain str_lcs_length function"
-    );
+    assert!(code.contains("fn str_lcs_length"), "C961: Should contain str_lcs_length function");
 }
 
 #[test]
@@ -914,17 +861,10 @@ int str_hash_match(const char *text, int text_len, const char *pattern, int pat_
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C962: Polynomial rolling hash should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C962: Polynomial rolling hash should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C962: Output should not be empty");
-    assert!(
-        code.contains("fn str_rhash_init"),
-        "C962: Should contain str_rhash_init function"
-    );
+    assert!(code.contains("fn str_rhash_init"), "C962: Should contain str_rhash_init function");
 }
 
 #[test]
@@ -984,17 +924,10 @@ int str_rle_decode(const char *input, int in_len, char *output, int out_max) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C963: Run-length encoding should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C963: Run-length encoding should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C963: Output should not be empty");
-    assert!(
-        code.contains("fn str_rle_encode"),
-        "C963: Should contain str_rle_encode function"
-    );
+    assert!(code.contains("fn str_rle_encode"), "C963: Should contain str_rle_encode function");
 }
 
 #[test]
@@ -1093,17 +1026,10 @@ void str_huff_gen_codes(str_huffman_tree *ht, int node, int code, int depth) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C964: Huffman coding should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C964: Huffman coding should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C964: Output should not be empty");
-    assert!(
-        code.contains("fn str_huff_build"),
-        "C964: Should contain str_huff_build function"
-    );
+    assert!(code.contains("fn str_huff_build"), "C964: Should contain str_huff_build function");
 }
 
 #[test]
@@ -1161,11 +1087,7 @@ int str_base64_decode(const char *input, int in_len, uint8_t *output, int out_ma
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C965: Base64 encode/decode should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C965: Base64 encode/decode should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C965: Output should not be empty");
     assert!(
@@ -1250,11 +1172,7 @@ void str_bwt_inverse(const char *bwt, int len, int primary, char *output) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C966: Burrows-Wheeler transform should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C966: Burrows-Wheeler transform should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C966: Output should not be empty");
     assert!(
@@ -1347,17 +1265,10 @@ long str_sam_count_distinct(const str_suffix_automaton *sam) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C967: Suffix automaton should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C967: Suffix automaton should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C967: Output should not be empty");
-    assert!(
-        code.contains("fn str_sam_extend"),
-        "C967: Should contain str_sam_extend function"
-    );
+    assert!(code.contains("fn str_sam_extend"), "C967: Should contain str_sam_extend function");
 }
 
 #[test]
@@ -1409,11 +1320,7 @@ int str_min_palindrome_cuts(const char *s, int n) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C968: Palindrome partitioning should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C968: Palindrome partitioning should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C968: Output should not be empty");
     assert!(
@@ -1474,11 +1381,7 @@ int str_wildcard_match_dp(const char *text, int t_len, const char *pattern, int 
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C969: Wildcard pattern matching should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C969: Wildcard pattern matching should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C969: Output should not be empty");
     assert!(
@@ -1539,17 +1442,10 @@ int str_regex_match_dp(const char *text, int t_len, const char *pattern, int p_l
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C970: Regex matching should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C970: Regex matching should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C970: Output should not be empty");
-    assert!(
-        code.contains("fn str_regex_match"),
-        "C970: Should contain str_regex_match function"
-    );
+    assert!(code.contains("fn str_regex_match"), "C970: Should contain str_regex_match function");
 }
 
 // ============================================================================
@@ -1610,17 +1506,10 @@ int str_min_rotation(const char *s, int len) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C971: String rotation check should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C971: String rotation check should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C971: Output should not be empty");
-    assert!(
-        code.contains("fn str_is_rotation"),
-        "C971: Should contain str_is_rotation function"
-    );
+    assert!(code.contains("fn str_is_rotation"), "C971: Should contain str_is_rotation function");
 }
 
 #[test]
@@ -1711,17 +1600,10 @@ void str_group_anagrams(const char **words, int n, int *groups) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C972: Anagram detection should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C972: Anagram detection should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C972: Output should not be empty");
-    assert!(
-        code.contains("fn str_is_anagram"),
-        "C972: Should contain str_is_anagram function"
-    );
+    assert!(code.contains("fn str_is_anagram"), "C972: Should contain str_is_anagram function");
 }
 
 #[test]
@@ -1847,17 +1729,10 @@ int str_word_break_count(const char *s, int s_len, const char **dict, int dict_s
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C974: Word break problem should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C974: Word break problem should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C974: Output should not be empty");
-    assert!(
-        code.contains("fn str_word_break"),
-        "C974: Should contain str_word_break function"
-    );
+    assert!(code.contains("fn str_word_break"), "C974: Should contain str_word_break function");
 }
 
 #[test]
@@ -1923,15 +1798,8 @@ int str_min_window_contains(const char *s, int s_len, const char *t, int t_len) 
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C975: Minimum window substring should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C975: Minimum window substring should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C975: Output should not be empty");
-    assert!(
-        code.contains("fn str_min_window"),
-        "C975: Should contain str_min_window function"
-    );
+    assert!(code.contains("fn str_min_window"), "C975: Should contain str_min_window function");
 }

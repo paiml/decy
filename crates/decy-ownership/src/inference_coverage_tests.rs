@@ -28,15 +28,13 @@ fn test_classify_dereference_creates_immutable_borrow() {
         "test".to_string(),
         HirType::Void,
         vec![],
-        vec![
-            HirStatement::VariableDeclaration {
-                name: "ptr".to_string(),
-                var_type: HirType::Pointer(Box::new(HirType::Int)),
-                initializer: Some(HirExpression::Dereference(Box::new(
-                    HirExpression::Variable("other".to_string()),
-                ))),
-            },
-        ],
+        vec![HirStatement::VariableDeclaration {
+            name: "ptr".to_string(),
+            var_type: HirType::Pointer(Box::new(HirType::Int)),
+            initializer: Some(HirExpression::Dereference(Box::new(HirExpression::Variable(
+                "other".to_string(),
+            )))),
+        }],
     );
     let analyzer = DataflowAnalyzer::new();
     let graph = analyzer.analyze(&func);
@@ -74,9 +72,7 @@ fn test_classify_free_node_returns_owning() {
                     arguments: vec![HirExpression::IntLiteral(4)],
                 }),
             },
-            HirStatement::Free {
-                pointer: HirExpression::Variable("ptr".to_string()),
-            },
+            HirStatement::Free { pointer: HirExpression::Variable("ptr".to_string()) },
         ],
     );
     let analyzer = DataflowAnalyzer::new();
@@ -101,10 +97,7 @@ fn test_classify_array_allocation_stack() {
         vec![],
         vec![HirStatement::VariableDeclaration {
             name: "arr".to_string(),
-            var_type: HirType::Array {
-                element_type: Box::new(HirType::Char),
-                size: Some(256),
-            },
+            var_type: HirType::Array { element_type: Box::new(HirType::Char), size: Some(256) },
             initializer: None,
         }],
     );
@@ -114,11 +107,7 @@ fn test_classify_array_allocation_stack() {
     let inferences = inferencer.infer(&graph);
     if let Some(inf) = inferences.get("arr") {
         match &inf.kind {
-            OwnershipKind::ArrayPointer {
-                base_array,
-                element_type,
-                base_index,
-            } => {
+            OwnershipKind::ArrayPointer { base_array, element_type, base_index } => {
                 assert_eq!(base_array, "arr");
                 assert_eq!(*element_type, HirType::Char);
                 assert_eq!(*base_index, Some(0));
@@ -137,10 +126,7 @@ fn test_classify_array_allocation_runtime_size() {
         vec![],
         vec![HirStatement::VariableDeclaration {
             name: "arr".to_string(),
-            var_type: HirType::Array {
-                element_type: Box::new(HirType::Double),
-                size: None,
-            },
+            var_type: HirType::Array { element_type: Box::new(HirType::Double), size: None },
             initializer: None,
         }],
     );
@@ -175,9 +161,7 @@ fn test_classify_heap_array_char_type() {
                 arguments: vec![HirExpression::BinaryOp {
                     op: BinaryOperator::Multiply,
                     left: Box::new(HirExpression::IntLiteral(100)),
-                    right: Box::new(HirExpression::Sizeof {
-                        type_name: "char".to_string(),
-                    }),
+                    right: Box::new(HirExpression::Sizeof { type_name: "char".to_string() }),
                 }],
             }),
         }],
@@ -210,9 +194,7 @@ fn test_classify_heap_array_float_type() {
                 arguments: vec![HirExpression::BinaryOp {
                     op: BinaryOperator::Multiply,
                     left: Box::new(HirExpression::IntLiteral(50)),
-                    right: Box::new(HirExpression::Sizeof {
-                        type_name: "float".to_string(),
-                    }),
+                    right: Box::new(HirExpression::Sizeof { type_name: "float".to_string() }),
                 }],
             }),
         }],
@@ -240,9 +222,7 @@ fn test_classify_heap_array_double_type() {
                 arguments: vec![HirExpression::BinaryOp {
                     op: BinaryOperator::Multiply,
                     left: Box::new(HirExpression::IntLiteral(20)),
-                    right: Box::new(HirExpression::Sizeof {
-                        type_name: "double".to_string(),
-                    }),
+                    right: Box::new(HirExpression::Sizeof { type_name: "double".to_string() }),
                 }],
             }),
         }],
@@ -270,10 +250,7 @@ fn test_classify_assignment_from_stack_array() {
         vec![
             HirStatement::VariableDeclaration {
                 name: "arr".to_string(),
-                var_type: HirType::Array {
-                    element_type: Box::new(HirType::Int),
-                    size: Some(10),
-                },
+                var_type: HirType::Array { element_type: Box::new(HirType::Int), size: Some(10) },
                 initializer: None,
             },
             HirStatement::VariableDeclaration {
@@ -289,11 +266,7 @@ fn test_classify_assignment_from_stack_array() {
     let inferences = inferencer.infer(&graph);
     if let Some(inf) = inferences.get("ptr") {
         match &inf.kind {
-            OwnershipKind::ArrayPointer {
-                base_array,
-                element_type,
-                ..
-            } => {
+            OwnershipKind::ArrayPointer { base_array, element_type, .. } => {
                 assert_eq!(base_array, "arr");
                 assert_eq!(*element_type, HirType::Int);
             }
@@ -341,10 +314,7 @@ fn test_classify_assignment_not_from_array() {
     let inferences = inferencer.infer(&graph);
     if let Some(inf) = inferences.get("alias") {
         assert!(
-            matches!(
-                inf.kind,
-                OwnershipKind::ImmutableBorrow | OwnershipKind::MutableBorrow
-            ),
+            matches!(inf.kind, OwnershipKind::ImmutableBorrow | OwnershipKind::MutableBorrow),
             "Non-array assignment should be borrow, got {:?}",
             inf.kind
         );
@@ -401,16 +371,11 @@ fn test_classify_parameter_mutated_is_mutable_borrow() {
     let func = HirFunction::new_with_body(
         "modify".to_string(),
         HirType::Void,
-        vec![HirParameter::new(
-            "out".to_string(),
-            HirType::Pointer(Box::new(HirType::Int)),
-        )],
-        vec![
-            HirStatement::DerefAssignment {
-                target: HirExpression::Variable("out".to_string()),
-                value: HirExpression::IntLiteral(42),
-            },
-        ],
+        vec![HirParameter::new("out".to_string(), HirType::Pointer(Box::new(HirType::Int)))],
+        vec![HirStatement::DerefAssignment {
+            target: HirExpression::Variable("out".to_string()),
+            value: HirExpression::IntLiteral(42),
+        }],
     );
     let analyzer = DataflowAnalyzer::new();
     let graph = analyzer.analyze(&func);
@@ -437,10 +402,7 @@ fn test_reasoning_array_allocation_array_pointer() {
         vec![],
         vec![HirStatement::VariableDeclaration {
             name: "arr".to_string(),
-            var_type: HirType::Array {
-                element_type: Box::new(HirType::Int),
-                size: Some(10),
-            },
+            var_type: HirType::Array { element_type: Box::new(HirType::Int), size: Some(10) },
             initializer: None,
         }],
     );
@@ -472,10 +434,7 @@ fn test_reasoning_assignment_array_pointer() {
         vec![
             HirStatement::VariableDeclaration {
                 name: "arr".to_string(),
-                var_type: HirType::Array {
-                    element_type: Box::new(HirType::Int),
-                    size: Some(10),
-                },
+                var_type: HirType::Array { element_type: Box::new(HirType::Int), size: Some(10) },
                 initializer: None,
             },
             HirStatement::VariableDeclaration {
@@ -505,10 +464,7 @@ fn test_confidence_borrow_escapes_lower_than_base() {
     let func = HirFunction::new_with_body(
         "get_ref".to_string(),
         HirType::Pointer(Box::new(HirType::Int)),
-        vec![HirParameter::new(
-            "src".to_string(),
-            HirType::Pointer(Box::new(HirType::Int)),
-        )],
+        vec![HirParameter::new("src".to_string(), HirType::Pointer(Box::new(HirType::Int)))],
         vec![
             HirStatement::VariableDeclaration {
                 name: "ref_ptr".to_string(),
@@ -550,10 +506,7 @@ fn test_mixed_ownership_in_one_function() {
     let func = HirFunction::new_with_body(
         "mixed".to_string(),
         HirType::Void,
-        vec![HirParameter::new(
-            "param".to_string(),
-            HirType::Pointer(Box::new(HirType::Int)),
-        )],
+        vec![HirParameter::new("param".to_string(), HirType::Pointer(Box::new(HirType::Int)))],
         vec![
             HirStatement::VariableDeclaration {
                 name: "owned".to_string(),
@@ -565,10 +518,7 @@ fn test_mixed_ownership_in_one_function() {
             },
             HirStatement::VariableDeclaration {
                 name: "arr".to_string(),
-                var_type: HirType::Array {
-                    element_type: Box::new(HirType::Int),
-                    size: Some(5),
-                },
+                var_type: HirType::Array { element_type: Box::new(HirType::Int), size: Some(5) },
                 initializer: None,
             },
             HirStatement::Return(None),
@@ -589,10 +539,7 @@ fn test_mixed_ownership_in_one_function() {
     }
     // param should be a borrow
     if let Some(inf) = inferences.get("param") {
-        assert!(matches!(
-            inf.kind,
-            OwnershipKind::ImmutableBorrow | OwnershipKind::MutableBorrow
-        ));
+        assert!(matches!(inf.kind, OwnershipKind::ImmutableBorrow | OwnershipKind::MutableBorrow));
     }
 }
 
@@ -614,9 +561,7 @@ fn test_classify_heap_array_signed_char() {
                 arguments: vec![HirExpression::BinaryOp {
                     op: BinaryOperator::Multiply,
                     left: Box::new(HirExpression::IntLiteral(64)),
-                    right: Box::new(HirExpression::Sizeof {
-                        type_name: "signed char".to_string(),
-                    }),
+                    right: Box::new(HirExpression::Sizeof { type_name: "signed char".to_string() }),
                 }],
             }),
         }],
@@ -682,10 +627,7 @@ fn test_assignment_from_array_with_non_array_source_fallback() {
         vec![
             HirStatement::VariableDeclaration {
                 name: "arr".to_string(),
-                var_type: HirType::Array {
-                    element_type: Box::new(HirType::Int),
-                    size: Some(10),
-                },
+                var_type: HirType::Array { element_type: Box::new(HirType::Int), size: Some(10) },
                 initializer: None,
             },
             HirStatement::VariableDeclaration {

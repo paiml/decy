@@ -307,6 +307,7 @@ Transpile this C code to safe Rust:
     }
 
     /// Export to Alpaca format
+    #[allow(clippy::disallowed_methods)] // json! macro uses unwrap internally
     pub fn to_alpaca(&self) -> serde_json::Value {
         serde_json::json!({
             "instruction": "Transpile this C code to safe, idiomatic Rust code.",
@@ -339,11 +340,7 @@ impl GoldenTraceDataset {
         // Count by tier
         self.stats.traces_by_tier.clear();
         for trace in &self.traces {
-            *self
-                .stats
-                .traces_by_tier
-                .entry(trace.metadata.tier.to_string())
-                .or_insert(0) += 1;
+            *self.stats.traces_by_tier.entry(trace.metadata.tier.to_string()).or_insert(0) += 1;
         }
 
         // Count by transformation
@@ -465,12 +462,7 @@ mod tests {
     use super::*;
 
     fn sample_trace(tier: TraceTier) -> GoldenTrace {
-        GoldenTrace::new(
-            "int x = 42;".to_string(),
-            "let x: i32 = 42;".to_string(),
-            tier,
-            "test.c",
-        )
+        GoldenTrace::new("int x = 42;".to_string(), "let x: i32 = 42;".to_string(), tier, "test.c")
     }
 
     // ========================================================================
@@ -492,10 +484,7 @@ mod tests {
     fn test_golden_trace_with_safety_explanation() {
         let trace = sample_trace(TraceTier::P0)
             .with_safety_explanation("Direct integer mapping, no unsafe required");
-        assert_eq!(
-            trace.safety_explanation,
-            "Direct integer mapping, no unsafe required"
-        );
+        assert_eq!(trace.safety_explanation, "Direct integer mapping, no unsafe required");
     }
 
     #[test]
@@ -554,8 +543,7 @@ mod tests {
 
     #[test]
     fn test_to_jsonl() {
-        let trace = sample_trace(TraceTier::P0)
-            .with_safety_explanation("Safe mapping");
+        let trace = sample_trace(TraceTier::P0).with_safety_explanation("Safe mapping");
         let jsonl = trace.to_jsonl().unwrap();
         assert!(jsonl.contains("int x = 42;"));
         assert!(jsonl.contains("let x: i32 = 42;"));
@@ -565,8 +553,7 @@ mod tests {
 
     #[test]
     fn test_to_chatml() {
-        let trace = sample_trace(TraceTier::P0)
-            .with_safety_explanation("Direct mapping");
+        let trace = sample_trace(TraceTier::P0).with_safety_explanation("Direct mapping");
         let chatml = trace.to_chatml();
         assert!(chatml.contains("<|im_start|>system"));
         assert!(chatml.contains("<|im_start|>user"));
@@ -578,13 +565,9 @@ mod tests {
 
     #[test]
     fn test_to_alpaca() {
-        let trace = sample_trace(TraceTier::P1)
-            .with_safety_explanation("Transformed pattern");
+        let trace = sample_trace(TraceTier::P1).with_safety_explanation("Transformed pattern");
         let alpaca = trace.to_alpaca();
-        assert_eq!(
-            alpaca["instruction"],
-            "Transpile this C code to safe, idiomatic Rust code."
-        );
+        assert_eq!(alpaca["instruction"], "Transpile this C code to safe, idiomatic Rust code.");
         assert!(alpaca["input"].as_str().unwrap().contains("int x = 42;"));
         assert!(alpaca["output"].as_str().unwrap().contains("let x: i32 = 42;"));
         assert_eq!(alpaca["metadata"]["tier"], "P1");
@@ -695,12 +678,8 @@ mod tests {
         let path = dir.path().join("traces.jsonl");
 
         let mut ds = GoldenTraceDataset::new();
-        ds.add_trace(
-            sample_trace(TraceTier::P0).with_safety_explanation("safe"),
-        );
-        ds.add_trace(
-            sample_trace(TraceTier::P1).with_safety_explanation("safe"),
-        );
+        ds.add_trace(sample_trace(TraceTier::P0).with_safety_explanation("safe"));
+        ds.add_trace(sample_trace(TraceTier::P1).with_safety_explanation("safe"));
 
         ds.export_jsonl(&path).unwrap();
 
@@ -719,9 +698,7 @@ mod tests {
         let path = dir.path().join("traces.chatml");
 
         let mut ds = GoldenTraceDataset::new();
-        ds.add_trace(
-            sample_trace(TraceTier::P0).with_safety_explanation("safe"),
-        );
+        ds.add_trace(sample_trace(TraceTier::P0).with_safety_explanation("safe"));
 
         ds.export_chatml(&path).unwrap();
 
@@ -735,9 +712,7 @@ mod tests {
         let path = dir.path().join("traces.json");
 
         let mut ds = GoldenTraceDataset::new();
-        ds.add_trace(
-            sample_trace(TraceTier::P0).with_safety_explanation("safe"),
-        );
+        ds.add_trace(sample_trace(TraceTier::P0).with_safety_explanation("safe"));
 
         ds.export_alpaca(&path).unwrap();
 
@@ -806,8 +781,7 @@ mod tests {
 
     #[test]
     fn test_golden_trace_serialize_roundtrip() {
-        let trace = sample_trace(TraceTier::P0)
-            .with_safety_explanation("test");
+        let trace = sample_trace(TraceTier::P0).with_safety_explanation("test");
         let json = serde_json::to_string(&trace).unwrap();
         let deserialized: GoldenTrace = serde_json::from_str(&json).unwrap();
         assert_eq!(deserialized.c_snippet, trace.c_snippet);

@@ -69,14 +69,8 @@ fixed_t fixed_lerp(fixed_t a, fixed_t b, fixed_t t) {
     );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C676: empty output");
-    assert!(
-        code.contains("fn fixed_mul"),
-        "C676: Should contain fixed_mul function"
-    );
-    assert!(
-        code.contains("fn fixed_div"),
-        "C676: Should contain fixed_div function"
-    );
+    assert!(code.contains("fn fixed_mul"), "C676: Should contain fixed_mul function");
+    assert!(code.contains("fn fixed_div"), "C676: Should contain fixed_div function");
     Ok(())
 }
 
@@ -139,17 +133,10 @@ int bigint_compare(const bigint_t *a, const bigint_t *b) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C677: Big integer addition should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C677: Big integer addition should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C677: empty output");
-    assert!(
-        code.contains("fn bigint_add"),
-        "C677: Should contain bigint_add function"
-    );
+    assert!(code.contains("fn bigint_add"), "C677: Should contain bigint_add function");
     Ok(())
 }
 
@@ -204,10 +191,7 @@ void bigint_from_uint(bigint_t *a, uint32_t val) {
     );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C678: empty output");
-    assert!(
-        code.contains("fn bigint_mul"),
-        "C678: Should contain bigint_mul function"
-    );
+    assert!(code.contains("fn bigint_mul"), "C678: Should contain bigint_mul function");
     Ok(())
 }
 
@@ -269,17 +253,10 @@ int is_probable_prime(uint64_t n, int rounds) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C679: Modular exponentiation should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C679: Modular exponentiation should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C679: empty output");
-    assert!(
-        code.contains("fn mod_pow"),
-        "C679: Should contain mod_pow function"
-    );
+    assert!(code.contains("fn mod_pow"), "C679: Should contain mod_pow function");
     Ok(())
 }
 
@@ -332,11 +309,7 @@ int nth_prime(const uint8_t *is_prime, int n, int k) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C680: Prime sieve should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C680: Prime sieve should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C680: empty output");
     assert!(
@@ -452,10 +425,7 @@ void poly_derivative(const double *coeffs, int degree,
     );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C682: empty output");
-    assert!(
-        code.contains("fn horner_eval"),
-        "C682: Should contain horner_eval function"
-    );
+    assert!(code.contains("fn horner_eval"), "C682: Should contain horner_eval function");
     Ok(())
 }
 
@@ -518,10 +488,7 @@ double newton_inv_sqrt(double val, double tol, int max_iter) {
     );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C683: empty output");
-    assert!(
-        code.contains("fn newton_sqrt"),
-        "C683: Should contain newton_sqrt function"
-    );
+    assert!(code.contains("fn newton_sqrt"), "C683: Should contain newton_sqrt function");
     Ok(())
 }
 
@@ -572,17 +539,10 @@ bisect_result_t bisect(double a, double b, double tol, int max_iter) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C684: Bisection method should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C684: Bisection method should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C684: empty output");
-    assert!(
-        code.contains("fn bisect"),
-        "C684: Should contain bisect function"
-    );
+    assert!(code.contains("fn bisect"), "C684: Should contain bisect function");
     Ok(())
 }
 
@@ -643,10 +603,7 @@ double midpoint_rule(double a, double b, int n) {
     );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C685: empty output");
-    assert!(
-        code.contains("fn simpson_rule"),
-        "C685: Should contain simpson_rule function"
-    );
+    assert!(code.contains("fn simpson_rule"), "C685: Should contain simpson_rule function");
     Ok(())
 }
 
@@ -683,17 +640,10 @@ double richardson_extrap(double x, double h) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C686: Numerical differentiation should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C686: Numerical differentiation should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C686: empty output");
-    assert!(
-        code.contains("fn central_diff"),
-        "C686: Should contain central_diff function"
-    );
+    assert!(code.contains("fn central_diff"), "C686: Should contain central_diff function");
     Ok(())
 }
 
@@ -749,11 +699,7 @@ regression_t linear_regression(const double *x, const double *y, int n) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C687: Linear regression should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C687: Linear regression should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C687: empty output");
     assert!(
@@ -814,10 +760,7 @@ double simple_moving_avg(const double *data, int n, int window) {
     );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C688: empty output");
-    assert!(
-        code.contains("fn ema_update"),
-        "C688: Should contain ema_update function"
-    );
+    assert!(code.contains("fn ema_update"), "C688: Should contain ema_update function");
     Ok(())
 }
 
@@ -877,17 +820,10 @@ double perlin2d(double x, double y) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C689: Perlin noise 2D should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C689: Perlin noise 2D should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C689: empty output");
-    assert!(
-        code.contains("fn perlin2d"),
-        "C689: Should contain perlin2d function"
-    );
+    assert!(code.contains("fn perlin2d"), "C689: Should contain perlin2d function");
     Ok(())
 }
 
@@ -959,17 +895,10 @@ double simplex_noise2d(double xin, double yin) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C690: Simplex noise should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C690: Simplex noise should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C690: empty output");
-    assert!(
-        code.contains("fn simplex_noise2d"),
-        "C690: Should contain simplex_noise2d function"
-    );
+    assert!(code.contains("fn simplex_noise2d"), "C690: Should contain simplex_noise2d function");
     Ok(())
 }
 
@@ -1028,17 +957,10 @@ double bezier_arc_length(point_t p0, point_t p1, point_t p2, point_t p3, int seg
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C691: Bezier curve evaluation should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C691: Bezier curve evaluation should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C691: empty output");
-    assert!(
-        code.contains("fn bezier_cubic"),
-        "C691: Should contain bezier_cubic function"
-    );
+    assert!(code.contains("fn bezier_cubic"), "C691: Should contain bezier_cubic function");
     Ok(())
 }
 
@@ -1083,17 +1005,10 @@ vec2_t bspline_eval(const vec2_t *points, int n, const double *knots, int order,
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C692: B-spline evaluation should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C692: B-spline evaluation should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C692: empty output");
-    assert!(
-        code.contains("fn bspline_eval"),
-        "C692: Should contain bspline_eval function"
-    );
+    assert!(code.contains("fn bspline_eval"), "C692: Should contain bspline_eval function");
     Ok(())
 }
 
@@ -1139,17 +1054,10 @@ point2d_t catmull_rom_tangent(point2d_t p0, point2d_t p1, point2d_t p2, point2d_
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C693: Catmull-Rom spline should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C693: Catmull-Rom spline should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C693: empty output");
-    assert!(
-        code.contains("fn catmull_rom"),
-        "C693: Should contain catmull_rom function"
-    );
+    assert!(code.contains("fn catmull_rom"), "C693: Should contain catmull_rom function");
     Ok(())
 }
 
@@ -1231,17 +1139,10 @@ quat_t quat_slerp(quat_t a, quat_t b, double t) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C694: Quaternion operations should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C694: Quaternion operations should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C694: empty output");
-    assert!(
-        code.contains("fn quat_mul"),
-        "C694: Should contain quat_mul function"
-    );
+    assert!(code.contains("fn quat_mul"), "C694: Should contain quat_mul function");
     Ok(())
 }
 
@@ -1317,10 +1218,7 @@ double auto_diff(double x) {
     );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C695: empty output");
-    assert!(
-        code.contains("fn dual_mul"),
-        "C695: Should contain dual_mul function"
-    );
+    assert!(code.contains("fn dual_mul"), "C695: Should contain dual_mul function");
     Ok(())
 }
 
@@ -1388,17 +1286,10 @@ complex_t complex_pow_int(complex_t z, int n) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C696: Complex number arithmetic should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C696: Complex number arithmetic should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C696: empty output");
-    assert!(
-        code.contains("fn complex_mul"),
-        "C696: Should contain complex_mul function"
-    );
+    assert!(code.contains("fn complex_mul"), "C696: Should contain complex_mul function");
     Ok(())
 }
 
@@ -1465,17 +1356,10 @@ int interval_overlaps(interval_t a, interval_t b) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C697: Interval arithmetic should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C697: Interval arithmetic should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C697: empty output");
-    assert!(
-        code.contains("fn interval_mul"),
-        "C697: Should contain interval_mul function"
-    );
+    assert!(code.contains("fn interval_mul"), "C697: Should contain interval_mul function");
     Ok(())
 }
 
@@ -1614,17 +1498,10 @@ uint64_t mont_pow(const mont_ctx_t *ctx, uint64_t base, uint64_t exp) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C699: Montgomery multiplication should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C699: Montgomery multiplication should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C699: empty output");
-    assert!(
-        code.contains("fn mont_mul"),
-        "C699: Should contain mont_mul function"
-    );
+    assert!(code.contains("fn mont_mul"), "C699: Should contain mont_mul function");
     Ok(())
 }
 
@@ -1696,9 +1573,6 @@ void ntt_inverse(uint64_t *a, int n, uint64_t mod, uint64_t g) {
     );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C700: empty output");
-    assert!(
-        code.contains("fn ntt_forward"),
-        "C700: Should contain ntt_forward function"
-    );
+    assert!(code.contains("fn ntt_forward"), "C700: Should contain ntt_forward function");
     Ok(())
 }

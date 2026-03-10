@@ -490,10 +490,7 @@ int main() {
     let rust_code = result.unwrap();
 
     // This is a documentation test
-    assert!(
-        rust_code.contains("fn main") || rust_code.contains("main"),
-        "Expected main function"
-    );
+    assert!(rust_code.contains("fn main") || rust_code.contains("main"), "Expected main function");
 
     println!("\n=== Binary Arithmetic Transformation Rules ===");
     println!("1. Addition (+): Same syntax and semantics");
@@ -618,12 +615,6 @@ fn test_binary_arithmetic_documentation_summary() {
     println!("Key advantage: Rust panics on /0 and %0 (vs C undefined)");
     println!("===============================================\n");
 
-    assert_eq!(
-        unsafe_blocks, 0,
-        "All binary arithmetic transformations must be safe"
-    );
-    assert!(
-        total_tests >= 10,
-        "Need at least 10 tests for comprehensive coverage"
-    );
+    assert_eq!(unsafe_blocks, 0, "All binary arithmetic transformations must be safe");
+    assert!(total_tests >= 10, "Need at least 10 tests for comprehensive coverage");
 }

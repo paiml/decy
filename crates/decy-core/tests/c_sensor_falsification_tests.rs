@@ -42,10 +42,7 @@ int sens_avg_add(sens_avg_t *a, int val) {
     assert!(result.is_ok(), "C1426 failed: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1426: Output should not be empty");
-    assert!(
-        code.contains("sens_avg_init"),
-        "C1426: Should contain sens_avg_init"
-    );
+    assert!(code.contains("sens_avg_init"), "C1426: Should contain sens_avg_init");
 }
 
 #[test]
@@ -68,10 +65,7 @@ int sens_ema_update(sens_ema_t *e, int sample) {
     assert!(result.is_ok(), "C1427 failed: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1427: Output should not be empty");
-    assert!(
-        code.contains("sens_ema_update"),
-        "C1427: Should contain sens_ema_update"
-    );
+    assert!(code.contains("sens_ema_update"), "C1427: Should contain sens_ema_update");
 }
 
 #[test]
@@ -102,10 +96,7 @@ int sens_median_add(sens_median_t *m, int val) {
     assert!(result.is_ok(), "C1428 failed: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1428: Output should not be empty");
-    assert!(
-        code.contains("sens_median_add"),
-        "C1428: Should contain sens_median_add"
-    );
+    assert!(code.contains("sens_median_add"), "C1428: Should contain sens_median_add");
 }
 
 #[test]
@@ -129,10 +120,7 @@ void sens_iir_reset(sens_iir_t *f) { f->y_prev = 0; }
     assert!(result.is_ok(), "C1429 failed: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1429: Output should not be empty");
-    assert!(
-        code.contains("sens_iir_apply"),
-        "C1429: Should contain sens_iir_apply"
-    );
+    assert!(code.contains("sens_iir_apply"), "C1429: Should contain sens_iir_apply");
 }
 
 #[test]
@@ -159,10 +147,7 @@ int sens_kalman_update(sens_kalman_t *kf, int measurement) {
     assert!(result.is_ok(), "C1430 failed: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1430: Output should not be empty");
-    assert!(
-        code.contains("sens_kalman_update"),
-        "C1430: Should contain sens_kalman_update"
-    );
+    assert!(code.contains("sens_kalman_update"), "C1430: Should contain sens_kalman_update");
 }
 
 // ============================================================================
@@ -188,10 +173,7 @@ int sens_comp_update(sens_comp_t *cf, int gyro_rate, int accel_angle, int dt_ms)
     assert!(result.is_ok(), "C1431 failed: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1431: Output should not be empty");
-    assert!(
-        code.contains("sens_comp_update"),
-        "C1431: Should contain sens_comp_update"
-    );
+    assert!(code.contains("sens_comp_update"), "C1431: Should contain sens_comp_update");
 }
 
 #[test]
@@ -214,10 +196,7 @@ void sens_imu_fuse(sens_imu_t *imu, int ax, int ay, int az, int gx, int gy) {
     assert!(result.is_ok(), "C1432 failed: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1432: Output should not be empty");
-    assert!(
-        code.contains("sens_imu_fuse"),
-        "C1432: Should contain sens_imu_fuse"
-    );
+    assert!(code.contains("sens_imu_fuse"), "C1432: Should contain sens_imu_fuse");
 }
 
 #[test]
@@ -245,10 +224,7 @@ int sens_mag_apply(sens_mag_cal_t *cal, int raw_x) {
     assert!(result.is_ok(), "C1433 failed: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1433: Output should not be empty");
-    assert!(
-        code.contains("sens_mag_calibrate"),
-        "C1433: Should contain sens_mag_calibrate"
-    );
+    assert!(code.contains("sens_mag_calibrate"), "C1433: Should contain sens_mag_calibrate");
 }
 
 #[test]
@@ -273,10 +249,7 @@ int sens_quat_norm_sq(const sens_quat_t *q) {
     assert!(result.is_ok(), "C1434 failed: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1434: Output should not be empty");
-    assert!(
-        code.contains("sens_quat_multiply"),
-        "C1434: Should contain sens_quat_multiply"
-    );
+    assert!(code.contains("sens_quat_multiply"), "C1434: Should contain sens_quat_multiply");
 }
 
 #[test]
@@ -309,10 +282,7 @@ int sens_best_source(const sens_source_t *sources, int n) {
     assert!(result.is_ok(), "C1435 failed: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1435: Output should not be empty");
-    assert!(
-        code.contains("sens_weighted_avg"),
-        "C1435: Should contain sens_weighted_avg"
-    );
+    assert!(code.contains("sens_weighted_avg"), "C1435: Should contain sens_weighted_avg");
 }
 
 // ============================================================================
@@ -346,10 +316,7 @@ int sens_adc_to_temp_c(const sens_adc_t *adc) {
     assert!(result.is_ok(), "C1436 failed: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1436: Output should not be empty");
-    assert!(
-        code.contains("sens_adc_to_mv"),
-        "C1436: Should contain sens_adc_to_mv"
-    );
+    assert!(code.contains("sens_adc_to_mv"), "C1436: Should contain sens_adc_to_mv");
 }
 
 #[test]
@@ -379,10 +346,7 @@ int sens_ring_pop(sens_ring_t *r, int *val) {
     assert!(result.is_ok(), "C1437 failed: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1437: Output should not be empty");
-    assert!(
-        code.contains("sens_ring_push"),
-        "C1437: Should contain sens_ring_push"
-    );
+    assert!(code.contains("sens_ring_push"), "C1437: Should contain sens_ring_push");
 }
 
 #[test]
@@ -410,10 +374,7 @@ int sens_thresh_check(sens_thresh_t *t, int value) {
     assert!(result.is_ok(), "C1438 failed: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1438: Output should not be empty");
-    assert!(
-        code.contains("sens_thresh_check"),
-        "C1438: Should contain sens_thresh_check"
-    );
+    assert!(code.contains("sens_thresh_check"), "C1438: Should contain sens_thresh_check");
 }
 
 #[test]
@@ -442,10 +403,7 @@ int sens_peak_feed(sens_peak_t *p, int val) {
     assert!(result.is_ok(), "C1439 failed: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1439: Output should not be empty");
-    assert!(
-        code.contains("sens_peak_feed"),
-        "C1439: Should contain sens_peak_feed"
-    );
+    assert!(code.contains("sens_peak_feed"), "C1439: Should contain sens_peak_feed");
 }
 
 #[test]
@@ -472,10 +430,7 @@ int sens_zcd_frequency(const sens_zcd_t *z, int sample_period_us) {
     assert!(result.is_ok(), "C1440 failed: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1440: Output should not be empty");
-    assert!(
-        code.contains("sens_zcd_feed"),
-        "C1440: Should contain sens_zcd_feed"
-    );
+    assert!(code.contains("sens_zcd_feed"), "C1440: Should contain sens_zcd_feed");
 }
 
 // ============================================================================
@@ -512,10 +467,7 @@ uint8_t sens_i2c_checksum(const sens_i2c_msg_t *msg) {
     assert!(result.is_ok(), "C1441 failed: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1441: Output should not be empty");
-    assert!(
-        code.contains("sens_i2c_write_msg"),
-        "C1441: Should contain sens_i2c_write_msg"
-    );
+    assert!(code.contains("sens_i2c_write_msg"), "C1441: Should contain sens_i2c_write_msg");
 }
 
 #[test]
@@ -549,10 +501,7 @@ int sens_spi_frame_size(const sens_spi_frame_t *f) {
     assert!(result.is_ok(), "C1442 failed: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1442: Output should not be empty");
-    assert!(
-        code.contains("sens_spi_build"),
-        "C1442: Should contain sens_spi_build"
-    );
+    assert!(code.contains("sens_spi_build"), "C1442: Should contain sens_spi_build");
 }
 
 #[test]
@@ -589,10 +538,7 @@ int sens_modbus_valid_func(uint8_t func) {
     assert!(result.is_ok(), "C1443 failed: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1443: Output should not be empty");
-    assert!(
-        code.contains("sens_modbus_crc16"),
-        "C1443: Should contain sens_modbus_crc16"
-    );
+    assert!(code.contains("sens_modbus_crc16"), "C1443: Should contain sens_modbus_crc16");
 }
 
 #[test]
@@ -624,10 +570,7 @@ int sens_can_match_filter(const sens_can_msg_t *msg, uint32_t mask, uint32_t fil
     assert!(result.is_ok(), "C1444 failed: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1444: Output should not be empty");
-    assert!(
-        code.contains("sens_can_build"),
-        "C1444: Should contain sens_can_build"
-    );
+    assert!(code.contains("sens_can_build"), "C1444: Should contain sens_can_build");
 }
 
 #[test]
@@ -666,10 +609,7 @@ uint8_t sens_ow_crc8(const uint8_t *data, int len) {
     assert!(result.is_ok(), "C1445 failed: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1445: Output should not be empty");
-    assert!(
-        code.contains("sens_ow_crc8"),
-        "C1445: Should contain sens_ow_crc8"
-    );
+    assert!(code.contains("sens_ow_crc8"), "C1445: Should contain sens_ow_crc8");
 }
 
 // ============================================================================
@@ -708,10 +648,7 @@ int sens_telem_serialize(const sens_telem_t *t, uint8_t *buf, int buflen) {
     assert!(result.is_ok(), "C1446 failed: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1446: Output should not be empty");
-    assert!(
-        code.contains("sens_telem_build"),
-        "C1446: Should contain sens_telem_build"
-    );
+    assert!(code.contains("sens_telem_build"), "C1446: Should contain sens_telem_build");
 }
 
 #[test]
@@ -746,10 +683,7 @@ int sens_reg_find(const sens_registry_t *r, uint32_t id) {
     assert!(result.is_ok(), "C1447 failed: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1447: Output should not be empty");
-    assert!(
-        code.contains("sens_reg_add"),
-        "C1447: Should contain sens_reg_add"
-    );
+    assert!(code.contains("sens_reg_add"), "C1447: Should contain sens_reg_add");
 }
 
 #[test]
@@ -783,10 +717,7 @@ uint32_t sens_wdt_remaining(const sens_wdt_t *w) {
     assert!(result.is_ok(), "C1448 failed: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1448: Output should not be empty");
-    assert!(
-        code.contains("sens_wdt_kick"),
-        "C1448: Should contain sens_wdt_kick"
-    );
+    assert!(code.contains("sens_wdt_kick"), "C1448: Should contain sens_wdt_kick");
 }
 
 #[test]
@@ -815,10 +746,7 @@ int sens_pwr_is_low_power(const sens_pwr_t *p) {
     assert!(result.is_ok(), "C1449 failed: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1449: Output should not be empty");
-    assert!(
-        code.contains("sens_pwr_transition"),
-        "C1449: Should contain sens_pwr_transition"
-    );
+    assert!(code.contains("sens_pwr_transition"), "C1449: Should contain sens_pwr_transition");
 }
 
 #[test]
@@ -853,8 +781,5 @@ int sens_ota_progress(const sens_ota_t *o) {
     assert!(result.is_ok(), "C1450 failed: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1450: Output should not be empty");
-    assert!(
-        code.contains("sens_ota_feed"),
-        "C1450: Should contain sens_ota_feed"
-    );
+    assert!(code.contains("sens_ota_feed"), "C1450: Should contain sens_ota_feed");
 }

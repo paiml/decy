@@ -370,7 +370,10 @@ int ll_cyc_find_cycle_start(const ll_cyc_list_t *list) {
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1255: empty output");
     assert!(code.contains("fn ll_cyc_has_cycle"), "C1255: Should contain ll_cyc_has_cycle");
-    assert!(code.contains("fn ll_cyc_find_cycle_start"), "C1255: Should contain ll_cyc_find_cycle_start");
+    assert!(
+        code.contains("fn ll_cyc_find_cycle_start"),
+        "C1255: Should contain ll_cyc_find_cycle_start"
+    );
 }
 
 // ============================================================================
@@ -1414,7 +1417,10 @@ int ll_dup_remove_duplicates(ll_dup_list_t *list) {
     assert!(result.is_ok(), "C1268: Remove duplicates sorted - failed: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1268: empty output");
-    assert!(code.contains("fn ll_dup_remove_duplicates"), "C1268: Should contain ll_dup_remove_duplicates");
+    assert!(
+        code.contains("fn ll_dup_remove_duplicates"),
+        "C1268: Should contain ll_dup_remove_duplicates"
+    );
     assert!(code.contains("fn ll_dup_insert_sorted"), "C1268: Should contain ll_dup_insert_sorted");
 }
 
@@ -1584,7 +1590,10 @@ void ll_zip_split_alternate(ll_zip_list_t *src, ll_zip_list_t *even,
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1270: empty output");
     assert!(code.contains("fn ll_zip_interleave"), "C1270: Should contain ll_zip_interleave");
-    assert!(code.contains("fn ll_zip_split_alternate"), "C1270: Should contain ll_zip_split_alternate");
+    assert!(
+        code.contains("fn ll_zip_split_alternate"),
+        "C1270: Should contain ll_zip_split_alternate"
+    );
 }
 
 // ============================================================================
@@ -1783,7 +1792,10 @@ int ll_xor_traverse_forward(const ll_xor_list_t *list, int *out, int max_len) {
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1272: empty output");
     assert!(code.contains("fn ll_xor_push_front"), "C1272: Should contain ll_xor_push_front");
-    assert!(code.contains("fn ll_xor_traverse_forward"), "C1272: Should contain ll_xor_traverse_forward");
+    assert!(
+        code.contains("fn ll_xor_traverse_forward"),
+        "C1272: Should contain ll_xor_traverse_forward"
+    );
 }
 
 #[test]
@@ -1969,7 +1981,10 @@ int ll_sorg_search_transpose(ll_sorg_list_t *list, int key) {
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1274: empty output");
     assert!(code.contains("fn ll_sorg_search_mtf"), "C1274: Should contain ll_sorg_search_mtf");
-    assert!(code.contains("fn ll_sorg_search_transpose"), "C1274: Should contain ll_sorg_search_transpose");
+    assert!(
+        code.contains("fn ll_sorg_search_transpose"),
+        "C1274: Should contain ll_sorg_search_transpose"
+    );
 }
 
 #[test]

@@ -39,10 +39,7 @@ fn c001_integer_addition() {
     let output = result.unwrap();
     assert!(!output.rust_code.is_empty(), "C001: Output should not be empty");
     assert!(output.rust_code.contains("fn add"), "C001: Should contain function");
-    assert!(
-        !output.rust_code.contains("unsafe"),
-        "C001: Should not need unsafe"
-    );
+    assert!(!output.rust_code.contains("unsafe"), "C001: Should not need unsafe");
 }
 
 #[test]
@@ -56,11 +53,7 @@ int overflow() {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C002: Integer overflow should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C002: Integer overflow should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C002: Output should not be empty");
 }
@@ -75,11 +68,7 @@ unsigned int underflow() {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C003: Unsigned underflow should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C003: Unsigned underflow should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C003: Output should not be empty");
 }
@@ -92,11 +81,7 @@ char next_char(char c) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C004: Char arithmetic should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C004: Char arithmetic should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C004: Output should not be empty");
 }
@@ -133,11 +118,7 @@ int bitwise_signed(int a, int b) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C006: Bitwise on signed should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C006: Bitwise on signed should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C006: Output should not be empty");
 }
@@ -150,11 +131,7 @@ int promote(short a, short b) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C007: Integer promotion should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C007: Integer promotion should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C007: Output should not be empty");
 }
@@ -167,11 +144,7 @@ int divide(int a, int b) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C008: Division by variable should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C008: Division by variable should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C008: Output should not be empty");
 }
@@ -184,11 +157,7 @@ int mod_neg(int a, int b) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C009: Modulo with negative should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C009: Modulo with negative should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C009: Output should not be empty");
 }
@@ -203,11 +172,7 @@ int shift_var(int x, int n) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C010: Shift by variable should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C010: Shift by variable should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C010: Output should not be empty");
 }
@@ -221,11 +186,7 @@ int size_calc() {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C011: Sizeof on expression should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C011: Sizeof on expression should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C011: Output should not be empty");
 }
@@ -239,11 +200,7 @@ int comma_op() {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C012: Comma operator should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C012: Comma operator should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C012: Output should not be empty");
 }
@@ -257,11 +214,7 @@ int ternary_calc(int x) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C013: Ternary in arithmetic should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C013: Ternary in arithmetic should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C013: Output should not be empty");
 }
@@ -297,11 +250,7 @@ int literals() {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C015: Hex/octal literals should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C015: Hex/octal literals should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C015: Output should not be empty");
 }
@@ -333,11 +282,7 @@ int classify(int x) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C016: Nested if-else chain should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C016: Nested if-else chain should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C016: Output should not be empty");
 }
@@ -358,11 +303,7 @@ int fallthrough(int x) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C017: Switch fallthrough should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C017: Switch fallthrough should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C017: Output should not be empty");
 }
@@ -381,11 +322,7 @@ int color_value(enum Color c) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C018: Switch on enum should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C018: Switch on enum should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C018: Output should not be empty");
 }
@@ -402,11 +339,7 @@ error:
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C019: Forward goto should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C019: Forward goto should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C019: Output should not be empty");
 }
@@ -428,11 +361,7 @@ done:
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C020: Backward goto should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C020: Backward goto should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C020: Output should not be empty");
 }
@@ -457,11 +386,7 @@ void duffs_copy(char *to, char *from, int count) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C021: Duff's device should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C021: Duff's device should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C021: Output should not be empty");
 }
@@ -479,11 +404,7 @@ int comma_for() {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C022: For with comma init should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C022: For with comma init should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C022: Output should not be empty");
 }
@@ -504,11 +425,7 @@ int count_positive(int *arr, int n) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C023: While with assignment should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C023: While with assignment should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C023: Output should not be empty");
 }
@@ -526,11 +443,7 @@ int find_first_neg(int *arr, int n) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C024: Do-while with break should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C024: Do-while with break should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C024: Output should not be empty");
 }
@@ -583,11 +496,7 @@ int process(int *commands, int n) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C026: Switch inside loop should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C026: Switch inside loop should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C026: Output should not be empty");
 }
@@ -605,11 +514,7 @@ int infinite_loop_break(int *arr, int max) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C027: Infinite for loop should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C027: Infinite for loop should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C027: Output should not be empty");
 }
@@ -624,11 +529,7 @@ int skip_whitespace(char *s) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C028: Empty loop body should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C028: Empty loop body should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C028: Output should not be empty");
 }
@@ -646,11 +547,7 @@ int categorize(int x) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C029: Multiple return paths should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C029: Multiple return paths should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C029: Output should not be empty");
 }
@@ -694,11 +591,7 @@ int deref(int *p) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C031: Basic pointer dereference should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C031: Basic pointer dereference should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C031: Output should not be empty");
 }
@@ -712,11 +605,7 @@ int get_nth(int *arr, int n) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C032: Pointer arithmetic should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C032: Pointer arithmetic should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C032: Output should not be empty");
 }
@@ -729,11 +618,7 @@ int deref_pp(int **pp) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C033: Pointer-to-pointer should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C033: Pointer-to-pointer should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C033: Output should not be empty");
 }
@@ -747,11 +632,7 @@ int deref_ppp(int ***ppp) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C034: Triple pointer should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C034: Triple pointer should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C034: Output should not be empty");
 }
@@ -764,11 +645,7 @@ void* identity(void *ptr) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C035: void* generic should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C035: void* generic should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C035: Output should not be empty");
 }
@@ -782,11 +659,7 @@ int get_int(void *ptr) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C036: void* cast should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C036: void* cast should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C036: Output should not be empty");
 }
@@ -799,11 +672,7 @@ int first_element(int arr[]) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C037: Array decay should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C037: Array decay should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C037: Output should not be empty");
 }
@@ -822,11 +691,7 @@ int count_elements(int *start, int *end) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C038: Pointer comparison should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C038: Pointer comparison should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C038: Output should not be empty");
 }
@@ -840,11 +705,7 @@ int safe_deref(int *p) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C039: NULL pointer check should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C039: NULL pointer check should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C039: Output should not be empty");
 }
@@ -857,11 +718,7 @@ int distance(int *start, int *end) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C040: Pointer subtraction should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C040: Pointer subtraction should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C040: Output should not be empty");
 }
@@ -875,11 +732,7 @@ int deref_first(int *arr[], int n) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C041: Array of pointers should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C041: Array of pointers should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C041: Output should not be empty");
 }
@@ -893,11 +746,7 @@ int get_elem(int (*p)[10], int i) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C042: Pointer to array should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C042: Pointer to array should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C042: Output should not be empty");
 }
@@ -910,11 +759,7 @@ int apply(int (*f)(int), int x) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C043: Function pointer should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C043: Function pointer should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C043: Output should not be empty");
 }
@@ -928,11 +773,7 @@ int dispatch(op_func *table, int idx, int a, int b) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C044: Function pointer array should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C044: Function pointer array should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C044: Output should not be empty");
 }
@@ -947,11 +788,7 @@ void swap_via_alias(int *a, int *b) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C045: Pointer aliasing should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C045: Pointer aliasing should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C045: Output should not be empty");
 }
@@ -968,11 +805,7 @@ void copy_restrict(int * restrict dst, const int * restrict src, int n) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C046: Restrict pointer should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C046: Restrict pointer should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C046: Output should not be empty");
 }
@@ -986,11 +819,7 @@ int get_x(struct Point *p) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C047: Pointer to struct member should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C047: Pointer to struct member should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C047: Output should not be empty");
 }
@@ -1010,11 +839,7 @@ int count_nodes(struct Node *head) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C048: Linked list traversal should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C048: Linked list traversal should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C048: Output should not be empty");
 }
@@ -1030,11 +855,7 @@ int *grow_array(int *arr, int old_size, int new_size) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C049: Realloc pattern should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C049: Realloc pattern should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C049: Output should not be empty");
 }
@@ -1055,11 +876,7 @@ int *alloc_malloc(int n) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C050: Calloc/malloc+memset should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C050: Calloc/malloc+memset should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C050: Output should not be empty");
 }
@@ -1077,11 +894,7 @@ void *int_to_ptr(uintptr_t val) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C051: Pointer-integer cast should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C051: Pointer-integer cast should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C051: Output should not be empty");
 }
@@ -1098,11 +911,7 @@ int fixed_pointer(int * const p) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C052: Const pointer variants should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C052: Const pointer variants should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C052: Output should not be empty");
 }
@@ -1119,11 +928,7 @@ void double_free() {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C053: Double free should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C053: Double free should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C053: Output should not be empty");
 }
@@ -1141,11 +946,7 @@ int use_after_free() {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C054: Use after free should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C054: Use after free should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C054: Output should not be empty");
 }
@@ -1163,11 +964,7 @@ void overflow() {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C055: Buffer overflow should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C055: Buffer overflow should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C055: Output should not be empty");
 }
@@ -1186,11 +983,7 @@ struct Point {
 int main() { struct Point p; p.x = 1; p.y = 2; return p.x + p.y; }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C056: Basic struct should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C056: Basic struct should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C056: Output should not be empty");
 }
@@ -1203,11 +996,7 @@ struct Outer { struct Inner inner; int b; };
 int get_inner_a(struct Outer *o) { return o->inner.a; }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C057: Nested struct should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C057: Nested struct should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C057: Output should not be empty");
 }
@@ -1222,11 +1011,7 @@ struct ListNode {
 int get_data(struct ListNode *n) { return n->data; }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C058: Self-referential struct should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C058: Self-referential struct should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C058: Output should not be empty");
 }
@@ -1242,11 +1027,7 @@ union Value {
 int get_int(union Value *v) { return v->i; }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C059: Union type should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C059: Union type should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C059: Output should not be empty");
 }
@@ -1268,11 +1049,7 @@ int get_value(struct TaggedValue *tv) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C060: Tagged union should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C060: Tagged union should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C060: Output should not be empty");
 }
@@ -1289,11 +1066,7 @@ struct Flags {
 int is_readable(struct Flags *f) { return f->read; }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C061: Bit fields should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C061: Bit fields should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C061: Output should not be empty");
 }
@@ -1309,11 +1082,7 @@ struct Buffer {
 int get_size(struct Buffer *b) { return b->size; }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C062: Flexible array member should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C062: Flexible array member should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C062: Output should not be empty");
 }
@@ -1331,11 +1100,7 @@ struct Container {
 int get_id(struct Container *c) { return c->id; }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C063: Anonymous struct should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C063: Anonymous struct should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C063: Output should not be empty");
 }
@@ -1376,11 +1141,7 @@ struct Config make_config() {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C065: Struct initialization should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C065: Struct initialization should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C065: Output should not be empty");
 }
@@ -1398,11 +1159,7 @@ struct Pair copy_pair(struct Pair p) {
 int sum_pair(struct Pair *p) { return p->a + p->b; }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C066: Struct copy vs pointer should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C066: Struct copy vs pointer should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C066: Output should not be empty");
 }
@@ -1419,11 +1176,7 @@ struct Padded {
 int get_size() { return sizeof(struct Padded); }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C067: Struct padding should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C067: Struct padding should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C067: Output should not be empty");
 }
@@ -1440,11 +1193,7 @@ enum Priority {
 int get_priority_val(enum Priority p) { return p; }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C068: Enum with explicit values should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C068: Enum with explicit values should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C068: Output should not be empty");
 }
@@ -1458,11 +1207,7 @@ int opposite(enum Direction d) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C069: Enum arithmetic should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C069: Enum arithmetic should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C069: Output should not be empty");
 }
@@ -1482,11 +1227,7 @@ Vec2 add_vec(Vec2 a, Vec2 b) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C070: Typedef struct should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C070: Typedef struct should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C070: Output should not be empty");
 }
@@ -1513,11 +1254,7 @@ int sum_args(int count, ...) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C071: Variadic function should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C071: Variadic function should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C071: Output should not be empty");
 }
@@ -1529,11 +1266,7 @@ static int helper() { return 42; }
 int public_func() { return helper(); }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C072: Static function should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C072: Static function should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C072: Output should not be empty");
 }
@@ -1545,11 +1278,7 @@ static inline int square(int x) { return x * x; }
 int calc() { return square(5); }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C073: Inline function should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C073: Inline function should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C073: Output should not be empty");
 }
@@ -1563,11 +1292,7 @@ int factorial(int n) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C074: Recursive function should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C074: Recursive function should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C074: Output should not be empty");
 }
@@ -1587,11 +1312,7 @@ int is_odd(int n) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C075: Mutual recursion should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C075: Mutual recursion should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C075: Output should not be empty");
 }
@@ -1605,11 +1326,7 @@ int with_callback(callback_t cb, int x) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C076: Callback pattern should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C076: Callback pattern should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C076: Output should not be empty");
 }
@@ -1624,11 +1341,7 @@ int compare_int(const void *a, const void *b) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C077: Qsort comparator should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C077: Qsort comparator should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C077: Output should not be empty");
 }
@@ -1645,11 +1358,7 @@ struct Result make_ok(int val) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C078: Function returning struct should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C078: Function returning struct should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C078: Output should not be empty");
 }
@@ -1664,11 +1373,7 @@ int *bad_return() {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C079: Return pointer to local should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C079: Return pointer to local should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C079: Output should not be empty");
 }
@@ -1685,11 +1390,7 @@ int add(a, b)
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C080: K&R style function should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C080: K&R style function should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C080: Output should not be empty");
 }
@@ -1701,11 +1402,7 @@ void do_nothing() {}
 void set_value(int *p, int val) { *p = val; }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C081: Void function should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C081: Void function should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C081: Output should not be empty");
 }
@@ -1718,11 +1415,7 @@ int many_params(int a, int b, int c, int d, int e, int f, int g, int h, int i) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C082: Many parameters should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C082: Many parameters should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C082: Output should not be empty");
 }
@@ -1735,11 +1428,7 @@ int add_one(int x) { return x + 1; }
 int composed(int x) { return double_val(add_one(double_val(x))); }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C083: Nested function calls should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C083: Nested function calls should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C083: Output should not be empty");
 }
@@ -1755,11 +1444,7 @@ int with_side_effects() {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C084: Side effects in args should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C084: Side effects in args should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C084: Output should not be empty");
 }
@@ -1774,11 +1459,7 @@ int counter() {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C085: Static local variable should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C085: Static local variable should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C085: Output should not be empty");
 }
@@ -1796,11 +1477,7 @@ int fast_sum(int *arr, int n) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C086: Register variable should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C086: Register variable should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C086: Output should not be empty");
 }
@@ -1812,11 +1489,7 @@ extern int global_count;
 int get_count() { return global_count; }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C087: Extern variable should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C087: Extern variable should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C087: Output should not be empty");
 }
@@ -1828,11 +1501,7 @@ int global_val = 100;
 int get_global() { return global_val; }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C088: Global variable init should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C088: Global variable init should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C088: Output should not be empty");
 }
@@ -1844,11 +1513,7 @@ const int primes[5] = {2, 3, 5, 7, 11};
 int get_prime(int i) { return primes[i]; }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C089: Const global array should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C089: Const global array should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C089: Output should not be empty");
 }
@@ -1860,11 +1525,7 @@ const char *greeting = "hello";
 const char *get_greeting() { return greeting; }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C090: String literal global should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C090: String literal global should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C090: Output should not be empty");
 }
@@ -1887,11 +1548,7 @@ void free_int(int *p) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C091: malloc/free basic should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C091: malloc/free basic should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C091: Output should not be empty");
 }
@@ -1906,11 +1563,7 @@ int *alloc_array(int n) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C092: malloc array should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C092: malloc array should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C092: Output should not be empty");
 }
@@ -1925,11 +1578,7 @@ void copy_str(char *dst, const char *src) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C093: strcpy should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C093: strcpy should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C093: Output should not be empty");
 }
@@ -1944,11 +1593,7 @@ int are_equal(const char *a, const char *b) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C094: strcmp should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C094: strcmp should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C094: Output should not be empty");
 }
@@ -1963,11 +1608,7 @@ void append(char *dst, const char *src) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C095: strcat should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C095: strcat should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C095: Output should not be empty");
 }
@@ -1988,11 +1629,7 @@ int count_tokens(char *str, const char *delim) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C096: strtok should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C096: strtok should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C096: Output should not be empty");
 }
@@ -2007,11 +1644,7 @@ void copy_mem(void *dst, const void *src, int n) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C097: memcpy should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C097: memcpy should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C097: Output should not be empty");
 }
@@ -2026,11 +1659,7 @@ void zero_mem(void *ptr, int n) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C098: memset should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C098: memset should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C098: Output should not be empty");
 }
@@ -2049,11 +1678,7 @@ int read_first_byte(const char *filename) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C099: File I/O should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C099: File I/O should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C099: Output should not be empty");
 }
@@ -2068,11 +1693,7 @@ void print_info(const char *name, int age) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C100: printf format should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C100: printf format should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C100: Output should not be empty");
 }
@@ -2089,11 +1710,7 @@ int read_int() {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C101: scanf should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C101: scanf should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C101: Output should not be empty");
 }
@@ -2108,11 +1725,7 @@ int safe_div(int a, int b) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C102: assert macro should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C102: assert macro should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C102: Output should not be empty");
 }
@@ -2131,11 +1744,7 @@ long safe_strtol(const char *str) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C103: errno checking should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C103: errno checking should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C103: Output should not be empty");
 }
@@ -2154,11 +1763,7 @@ void setup_handler() {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C104: Signal handling should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C104: Signal handling should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C104: Output should not be empty");
 }
@@ -2181,11 +1786,7 @@ void fail_operation() {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C105: setjmp/longjmp should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C105: setjmp/longjmp should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C105: Output should not be empty");
 }
@@ -2202,11 +1803,7 @@ int setup() {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C106: atexit should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C106: atexit should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C106: Output should not be empty");
 }
@@ -2224,11 +1821,7 @@ void sort_array(int *arr, int n) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C107: qsort usage should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C107: qsort usage should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C107: Output should not be empty");
 }
@@ -2246,11 +1839,7 @@ int *find_in_sorted(int *arr, int n, int key) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C108: bsearch should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C108: bsearch should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C108: Output should not be empty");
 }
@@ -2268,11 +1857,7 @@ long parse_long(const char *str) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C109: atoi/strtol should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C109: atoi/strtol should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C109: Output should not be empty");
 }
@@ -2290,11 +1875,7 @@ double power(double base, double exp) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C110: Math functions should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C110: Math functions should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C110: Output should not be empty");
 }
@@ -2310,11 +1891,7 @@ fn c111_define_constant() {
 int get_max() { return MAX_SIZE; }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C111: #define constant should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C111: #define constant should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C111: Output should not be empty");
 }
@@ -2326,11 +1903,7 @@ fn c112_define_function_macro() {
 int max_val(int x, int y) { return MAX(x, y); }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C112: Function-like macro should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C112: Function-like macro should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C112: Output should not be empty");
 }
@@ -2348,11 +1921,7 @@ int get_mode() {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C113: Conditional compilation should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C113: Conditional compilation should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C113: Output should not be empty");
 }
@@ -2365,11 +1934,7 @@ fn c114_stringification() {
 const char *get_name() { return STR(hello); }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C114: Stringification should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C114: Stringification should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C114: Output should not be empty");
 }
@@ -2382,11 +1947,7 @@ fn c115_token_pasting() {
 int CONCAT(my, func)() { return 42; }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C115: Token pasting should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C115: Token pasting should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C115: Output should not be empty");
 }
@@ -2400,11 +1961,7 @@ fn c116_variadic_macro() {
 void log_info(int code) { LOG("code: %d\n", code); }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C116: Variadic macro should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C116: Variadic macro should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C116: Output should not be empty");
 }
@@ -2418,11 +1975,7 @@ int guarded_func() { return 1; }
 #endif
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C117: Include guard should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C117: Include guard should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C117: Output should not be empty");
 }
@@ -2434,11 +1987,7 @@ volatile int flag = 0;
 int check_flag() { return flag; }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C118: Volatile variable should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C118: Volatile variable should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C118: Output should not be empty");
 }
@@ -2454,11 +2003,7 @@ void add_arrays(int * restrict a, const int * restrict b, int n) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C119: Restrict keyword should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C119: Restrict keyword should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C119: Output should not be empty");
 }
@@ -2471,11 +2016,7 @@ _Static_assert(sizeof(int) >= 4, "int must be at least 4 bytes");
 int test() { return 0; }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C120: _Static_assert should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C120: _Static_assert should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C120: Output should not be empty");
 }
@@ -2490,11 +2031,7 @@ struct Point *make_point() {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C121: Compound literal should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C121: Compound literal should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C121: Output should not be empty");
 }
@@ -2510,11 +2047,7 @@ struct Config make() {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C122: Designated initializer should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C122: Designated initializer should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C122: Output should not be empty");
 }
@@ -2533,11 +2066,7 @@ int sum_vla(int n) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C123: VLA should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C123: VLA should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C123: Output should not be empty");
 }
@@ -2554,11 +2083,7 @@ fn c124_generic_keyword() {
 int test() { return 0; }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C124: _Generic should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C124: _Generic should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C124: Output should not be empty");
 }
@@ -2573,11 +2098,7 @@ int get_alignment() {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C125: _Alignof should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C125: _Alignof should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C125: Output should not be empty");
 }
@@ -2593,11 +2114,7 @@ void increment() {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C126: _Atomic should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C126: _Atomic should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C126: Output should not be empty");
 }
@@ -2612,11 +2129,7 @@ double complex make_complex(double r, double i) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C127: Complex number should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C127: Complex number should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C127: Output should not be empty");
 }
@@ -2630,11 +2143,7 @@ bool is_positive(int x) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C128: _Bool type should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C128: _Bool type should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C128: Output should not be empty");
 }
@@ -2650,11 +2159,7 @@ int read_timestamp() {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C129: Inline assembly should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C129: Inline assembly should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C129: Output should not be empty");
 }
@@ -2670,11 +2175,7 @@ struct Packed { char a; int b; };
 int test() { return sizeof(struct Packed); }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C130: Pragma directives should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C130: Pragma directives should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C130: Output should not be empty");
 }
@@ -2707,11 +2208,7 @@ int list_length(struct Node *head) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C131: Linked list operations should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C131: Linked list operations should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C131: Output should not be empty");
 }
@@ -2733,11 +2230,7 @@ int tree_height(struct TreeNode *root) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C132: Binary tree operations should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C132: Binary tree operations should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C132: Output should not be empty");
 }
@@ -2760,11 +2253,7 @@ int ht_get(struct HashTable *ht, int key) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C133: Hash table should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C133: Hash table should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C133: Output should not be empty");
 }
@@ -2795,11 +2284,7 @@ int cb_pop(struct CircBuf *cb) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C134: Circular buffer should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C134: Circular buffer should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C134: Output should not be empty");
 }
@@ -2829,11 +2314,7 @@ void *pool_alloc(struct Pool *p, int size) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C135: Memory pool should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C135: Memory pool should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C135: Output should not be empty");
 }
@@ -2854,11 +2335,7 @@ int release(struct RefCounted *obj) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C136: Reference counting should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C136: Reference counting should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C136: Output should not be empty");
 }
@@ -2879,11 +2356,7 @@ void notify(struct Subject *s, int event) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C137: Observer pattern should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C137: Observer pattern should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C137: Output should not be empty");
 }
@@ -2902,11 +2375,7 @@ int run_machine(int initial_state, int input) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C138: State machine should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C138: State machine should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C138: Output should not be empty");
 }
@@ -2926,11 +2395,7 @@ void coroutine() {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C139: Coroutine via setjmp should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C139: Coroutine via setjmp should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C139: Output should not be empty");
 }
@@ -2944,11 +2409,7 @@ int use_handle(Handle h);
 int test() { return 0; }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C140: Opaque pointer should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C140: Opaque pointer should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C140: Output should not be empty");
 }
@@ -2968,11 +2429,7 @@ int get_area(struct Shape *s) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C141: VTable polymorphism should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C141: VTable polymorphism should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C141: Output should not be empty");
 }
@@ -3000,11 +2457,7 @@ fail:
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C142: Goto cleanup should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C142: Goto cleanup should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C142: Output should not be empty");
 }
@@ -3018,11 +2471,7 @@ int get_tls_counter() { return tls_counter; }
 void inc_tls_counter() { tls_counter++; }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C143: Thread-local storage should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C143: Thread-local storage should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C143: Output should not be empty");
 }
@@ -3041,11 +2490,7 @@ int atomic_get() {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C144: Atomic operations should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C144: Atomic operations should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C144: Output should not be empty");
 }
@@ -3064,11 +2509,7 @@ void clear_pin(int pin) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C145: Memory-mapped I/O should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C145: Memory-mapped I/O should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C145: Output should not be empty");
 }
@@ -3085,11 +2526,7 @@ struct __attribute__((packed)) PackedData {
 int get_value(struct PackedData *p) { return p->value; }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C146: Packed struct should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C146: Packed struct should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C146: Output should not be empty");
 }
@@ -3108,11 +2545,7 @@ float int_bits_to_float(int bits) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C147: Type punning via union should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C147: Type punning via union should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C147: Output should not be empty");
 }
@@ -3131,11 +2564,7 @@ op_mul: return a * b;
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C148: Computed goto should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C148: Computed goto should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C148: Output should not be empty");
 }
@@ -3152,11 +2581,7 @@ int outer(int x) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C149: Nested functions should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C149: Nested functions should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C149: Output should not be empty");
 }

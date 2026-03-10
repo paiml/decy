@@ -41,11 +41,7 @@ fn test_null_pointer_check() {
     assert!(result.contains("fn main"), "Should have main function");
 
     let unsafe_count = result.matches("unsafe").count();
-    assert!(
-        unsafe_count <= 4,
-        "NULL check should minimize unsafe (found {})",
-        unsafe_count
-    );
+    assert!(unsafe_count <= 4, "NULL check should minimize unsafe (found {})", unsafe_count);
 }
 
 #[test]
@@ -69,11 +65,7 @@ fn test_null_pointer_comparison() {
     assert!(result.contains("fn main"), "Should have main function");
 
     let unsafe_count = result.matches("unsafe").count();
-    assert!(
-        unsafe_count <= 3,
-        "NULL comparison should minimize unsafe (found {})",
-        unsafe_count
-    );
+    assert!(unsafe_count <= 3, "NULL comparison should minimize unsafe (found {})", unsafe_count);
 }
 
 #[test]
@@ -139,10 +131,7 @@ fn test_function_return_null() {
     let result = transpile(c_code).expect("Should transpile");
 
     assert!(result.contains("fn main"), "Should have main function");
-    assert!(
-        result.contains("fn create_value"),
-        "Should have create_value function"
-    );
+    assert!(result.contains("fn create_value"), "Should have create_value function");
 
     let unsafe_count = result.matches("unsafe").count();
     assert!(
@@ -183,11 +172,7 @@ fn test_null_pointer_in_struct() {
     assert!(result.contains("fn main"), "Should have main function");
 
     let unsafe_count = result.matches("unsafe").count();
-    assert!(
-        unsafe_count <= 3,
-        "NULL in struct should minimize unsafe (found {})",
-        unsafe_count
-    );
+    assert!(unsafe_count <= 3, "NULL in struct should minimize unsafe (found {})", unsafe_count);
 }
 
 // ============================================================================
@@ -216,11 +201,7 @@ fn test_null_in_pointer_array() {
     assert!(result.contains("fn main"), "Should have main function");
 
     let unsafe_count = result.matches("unsafe").count();
-    assert!(
-        unsafe_count <= 6,
-        "NULL in array should minimize unsafe (found {})",
-        unsafe_count
-    );
+    assert!(unsafe_count <= 6, "NULL in array should minimize unsafe (found {})", unsafe_count);
 }
 
 // ============================================================================
@@ -249,10 +230,7 @@ fn test_defensive_null_check() {
     let result = transpile(c_code).expect("Should transpile");
 
     assert!(result.contains("fn main"), "Should have main function");
-    assert!(
-        result.contains("fn safe_deref"),
-        "Should have safe_deref function"
-    );
+    assert!(result.contains("fn safe_deref"), "Should have safe_deref function");
 
     let unsafe_count = result.matches("unsafe").count();
     assert!(
@@ -283,11 +261,7 @@ fn test_null_coalescing() {
     assert!(result.contains("fn main"), "Should have main function");
 
     let unsafe_count = result.matches("unsafe").count();
-    assert!(
-        unsafe_count <= 3,
-        "NULL coalescing should minimize unsafe (found {})",
-        unsafe_count
-    );
+    assert!(unsafe_count <= 3, "NULL coalescing should minimize unsafe (found {})", unsafe_count);
 }
 
 // ============================================================================
@@ -320,11 +294,7 @@ fn test_string_null_check() {
     assert!(result.contains("fn main"), "Should have main function");
 
     let unsafe_count = result.matches("unsafe").count();
-    assert!(
-        unsafe_count <= 4,
-        "String NULL check should minimize unsafe (found {})",
-        unsafe_count
-    );
+    assert!(unsafe_count <= 4, "String NULL check should minimize unsafe (found {})", unsafe_count);
 }
 
 // ============================================================================
@@ -402,11 +372,7 @@ fn test_null_pointer_assignment() {
     assert!(result.contains("fn main"), "Should have main function");
 
     let unsafe_count = result.matches("unsafe").count();
-    assert!(
-        unsafe_count <= 5,
-        "NULL assignment should minimize unsafe (found {})",
-        unsafe_count
-    );
+    assert!(unsafe_count <= 5, "NULL assignment should minimize unsafe (found {})", unsafe_count);
 }
 
 // ============================================================================
@@ -488,11 +454,8 @@ fn test_unsafe_block_count_target() {
     let unsafe_count = result.matches("unsafe").count();
     let lines_of_code = result.lines().count();
 
-    let unsafe_per_1000 = if lines_of_code > 0 {
-        (unsafe_count as f64 / lines_of_code as f64) * 1000.0
-    } else {
-        0.0
-    };
+    let unsafe_per_1000 =
+        if lines_of_code > 0 { (unsafe_count as f64 / lines_of_code as f64) * 1000.0 } else { 0.0 };
 
     // Target: <=100 unsafe per 1000 LOC for NULL checks
     assert!(
@@ -565,9 +528,5 @@ fn test_null_safety_documentation() {
 
     // If unsafe blocks exist, they should be minimal
     let unsafe_count = result.matches("unsafe").count();
-    assert!(
-        unsafe_count < 10,
-        "Should have minimal unsafe blocks (found {})",
-        unsafe_count
-    );
+    assert!(unsafe_count < 10, "Should have minimal unsafe blocks (found {})", unsafe_count);
 }

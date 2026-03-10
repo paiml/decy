@@ -20,9 +20,7 @@
 //!   FieldAssignment, Free, Expression, InlineAsm
 
 use super::*;
-use decy_hir::{
-    BinaryOperator, HirExpression, HirFunction, HirStatement, HirType, UnaryOperator,
-};
+use decy_hir::{BinaryOperator, HirExpression, HirFunction, HirStatement, HirType, UnaryOperator};
 
 // ============================================================================
 // Helpers
@@ -73,11 +71,7 @@ fn calloc_with_vec_char_target() {
         arguments: vec![ilit(100), ilit(1)],
     };
     let result = expr_tt(&expr, &c, Some(&HirType::Vec(Box::new(HirType::Char))));
-    assert!(
-        result.contains("vec![0u8;"),
-        "calloc Vec<Char> should use 0u8, got: {}",
-        result
-    );
+    assert!(result.contains("vec![0u8;"), "calloc Vec<Char> should use 0u8, got: {}", result);
 }
 
 // ============================================================================
@@ -125,10 +119,7 @@ fn calloc_default_no_target() {
 #[test]
 fn calloc_wrong_args_returns_vec_new() {
     let c = ctx();
-    let expr = HirExpression::FunctionCall {
-        function: "calloc".to_string(),
-        arguments: vec![],
-    };
+    let expr = HirExpression::FunctionCall { function: "calloc".to_string(), arguments: vec![] };
     let result = expr_tt(&expr, &c, None);
     assert_eq!(result, "Vec::new()");
 }
@@ -144,11 +135,7 @@ fn realloc_func_call_with_pointer_target() {
         function: "realloc".to_string(),
         arguments: vec![var("p"), ilit(200)],
     };
-    let result = expr_tt(
-        &expr,
-        &c,
-        Some(&HirType::Pointer(Box::new(HirType::Int))),
-    );
+    let result = expr_tt(&expr, &c, Some(&HirType::Pointer(Box::new(HirType::Int))));
     assert!(
         result.contains("realloc(") && result.contains("as *mut i32"),
         "realloc with ptr target should cast return, got: {}",
@@ -182,10 +169,7 @@ fn realloc_func_call_no_target() {
 #[test]
 fn realloc_func_call_wrong_args() {
     let c = ctx();
-    let expr = HirExpression::FunctionCall {
-        function: "realloc".to_string(),
-        arguments: vec![],
-    };
+    let expr = HirExpression::FunctionCall { function: "realloc".to_string(), arguments: vec![] };
     let result = expr_tt(&expr, &c, None);
     assert_eq!(result, "std::ptr::null_mut()");
 }
@@ -197,16 +181,10 @@ fn realloc_func_call_wrong_args() {
 #[test]
 fn free_func_call_generates_drop() {
     let c = ctx();
-    let expr = HirExpression::FunctionCall {
-        function: "free".to_string(),
-        arguments: vec![var("ptr")],
-    };
+    let expr =
+        HirExpression::FunctionCall { function: "free".to_string(), arguments: vec![var("ptr")] };
     let result = expr_tt(&expr, &c, None);
-    assert!(
-        result.contains("drop(ptr)"),
-        "free should generate drop, got: {}",
-        result
-    );
+    assert!(result.contains("drop(ptr)"), "free should generate drop, got: {}", result);
 }
 
 // ============================================================================
@@ -216,16 +194,9 @@ fn free_func_call_generates_drop() {
 #[test]
 fn free_no_args_generates_comment() {
     let c = ctx();
-    let expr = HirExpression::FunctionCall {
-        function: "free".to_string(),
-        arguments: vec![],
-    };
+    let expr = HirExpression::FunctionCall { function: "free".to_string(), arguments: vec![] };
     let result = expr_tt(&expr, &c, None);
-    assert!(
-        result.contains("free()"),
-        "free no args should generate comment, got: {}",
-        result
-    );
+    assert!(result.contains("free()"), "free no args should generate comment, got: {}", result);
 }
 
 // ============================================================================
@@ -235,10 +206,7 @@ fn free_no_args_generates_comment() {
 #[test]
 fn printf_no_args_generates_empty_print() {
     let c = ctx();
-    let expr = HirExpression::FunctionCall {
-        function: "printf".to_string(),
-        arguments: vec![],
-    };
+    let expr = HirExpression::FunctionCall { function: "printf".to_string(), arguments: vec![] };
     let result = expr_tt(&expr, &c, None);
     assert_eq!(result, "print!(\"\")");
 }
@@ -255,11 +223,7 @@ fn printf_format_only() {
         arguments: vec![HirExpression::StringLiteral("hello\\n".to_string())],
     };
     let result = expr_tt(&expr, &c, None);
-    assert!(
-        result.contains("print!("),
-        "printf should generate print!, got: {}",
-        result
-    );
+    assert!(result.contains("print!("), "printf should generate print!, got: {}", result);
 }
 
 // ============================================================================
@@ -269,91 +233,51 @@ fn printf_format_only() {
 #[test]
 fn func_call_write_renamed_to_c_write() {
     let c = ctx();
-    let expr = HirExpression::FunctionCall {
-        function: "write".to_string(),
-        arguments: vec![ilit(1)],
-    };
+    let expr =
+        HirExpression::FunctionCall { function: "write".to_string(), arguments: vec![ilit(1)] };
     let result = expr_tt(&expr, &c, None);
-    assert!(
-        result.contains("c_write("),
-        "write should be renamed to c_write, got: {}",
-        result
-    );
+    assert!(result.contains("c_write("), "write should be renamed to c_write, got: {}", result);
 }
 
 #[test]
 fn func_call_read_renamed_to_c_read() {
     let c = ctx();
-    let expr = HirExpression::FunctionCall {
-        function: "read".to_string(),
-        arguments: vec![ilit(0)],
-    };
+    let expr =
+        HirExpression::FunctionCall { function: "read".to_string(), arguments: vec![ilit(0)] };
     let result = expr_tt(&expr, &c, None);
-    assert!(
-        result.contains("c_read("),
-        "read should be renamed to c_read, got: {}",
-        result
-    );
+    assert!(result.contains("c_read("), "read should be renamed to c_read, got: {}", result);
 }
 
 #[test]
 fn func_call_type_renamed_to_c_type() {
     let c = ctx();
-    let expr = HirExpression::FunctionCall {
-        function: "type".to_string(),
-        arguments: vec![],
-    };
+    let expr = HirExpression::FunctionCall { function: "type".to_string(), arguments: vec![] };
     let result = expr_tt(&expr, &c, None);
-    assert!(
-        result.contains("c_type("),
-        "type should be renamed to c_type, got: {}",
-        result
-    );
+    assert!(result.contains("c_type("), "type should be renamed to c_type, got: {}", result);
 }
 
 #[test]
 fn func_call_match_renamed_to_c_match() {
     let c = ctx();
-    let expr = HirExpression::FunctionCall {
-        function: "match".to_string(),
-        arguments: vec![],
-    };
+    let expr = HirExpression::FunctionCall { function: "match".to_string(), arguments: vec![] };
     let result = expr_tt(&expr, &c, None);
-    assert!(
-        result.contains("c_match("),
-        "match should be renamed to c_match, got: {}",
-        result
-    );
+    assert!(result.contains("c_match("), "match should be renamed to c_match, got: {}", result);
 }
 
 #[test]
 fn func_call_self_renamed_to_c_self() {
     let c = ctx();
-    let expr = HirExpression::FunctionCall {
-        function: "self".to_string(),
-        arguments: vec![],
-    };
+    let expr = HirExpression::FunctionCall { function: "self".to_string(), arguments: vec![] };
     let result = expr_tt(&expr, &c, None);
-    assert!(
-        result.contains("c_self("),
-        "self should be renamed to c_self, got: {}",
-        result
-    );
+    assert!(result.contains("c_self("), "self should be renamed to c_self, got: {}", result);
 }
 
 #[test]
 fn func_call_in_renamed_to_c_in() {
     let c = ctx();
-    let expr = HirExpression::FunctionCall {
-        function: "in".to_string(),
-        arguments: vec![],
-    };
+    let expr = HirExpression::FunctionCall { function: "in".to_string(), arguments: vec![] };
     let result = expr_tt(&expr, &c, None);
-    assert!(
-        result.contains("c_in("),
-        "in should be renamed to c_in, got: {}",
-        result
-    );
+    assert!(result.contains("c_in("), "in should be renamed to c_in, got: {}", result);
 }
 
 // ============================================================================
@@ -368,11 +292,7 @@ fn func_call_address_of_arg_generates_mut_ref() {
         arguments: vec![HirExpression::AddressOf(Box::new(var("x")))],
     };
     let result = expr_tt(&expr, &c, None);
-    assert!(
-        result.contains("&mut x"),
-        "AddressOf arg should generate &mut, got: {}",
-        result
-    );
+    assert!(result.contains("&mut x"), "AddressOf arg should generate &mut, got: {}", result);
 }
 
 #[test]
@@ -400,10 +320,8 @@ fn func_call_unary_address_of_arg_generates_mut_ref() {
 #[test]
 fn field_access_generates_dot_notation() {
     let c = ctx();
-    let expr = HirExpression::FieldAccess {
-        object: Box::new(var("obj")),
-        field: "name".to_string(),
-    };
+    let expr =
+        HirExpression::FieldAccess { object: Box::new(var("obj")), field: "name".to_string() };
     let result = expr_tt(&expr, &c, None);
     assert_eq!(result, "obj.name");
 }
@@ -420,10 +338,8 @@ fn pointer_field_access_chained() {
         pointer: Box::new(var("node")),
         field: "next".to_string(),
     };
-    let expr = HirExpression::PointerFieldAccess {
-        pointer: Box::new(inner),
-        field: "data".to_string(),
-    };
+    let expr =
+        HirExpression::PointerFieldAccess { pointer: Box::new(inner), field: "data".to_string() };
     let result = expr_tt(&expr, &c, None);
     // Chained field access should not double-deref
     assert!(
@@ -437,21 +353,15 @@ fn pointer_field_access_chained() {
 fn pointer_field_access_raw_pointer_wraps_unsafe() {
     let mut c = ctx();
     c.add_variable("p".to_string(), HirType::Pointer(Box::new(HirType::Int)));
-    let expr = HirExpression::PointerFieldAccess {
-        pointer: Box::new(var("p")),
-        field: "val".to_string(),
-    };
+    let expr =
+        HirExpression::PointerFieldAccess { pointer: Box::new(var("p")), field: "val".to_string() };
     let result = expr_tt(&expr, &c, None);
     assert!(
         result.contains("unsafe"),
         "Raw pointer field access should be unsafe, got: {}",
         result
     );
-    assert!(
-        result.contains("(*p).val"),
-        "Should deref pointer for field access, got: {}",
-        result
-    );
+    assert!(result.contains("(*p).val"), "Should deref pointer for field access, got: {}", result);
 }
 
 // ============================================================================
@@ -462,10 +372,7 @@ fn pointer_field_access_raw_pointer_wraps_unsafe() {
 fn array_index_raw_pointer_uses_unsafe_add() {
     let mut c = ctx();
     c.add_variable("arr".to_string(), HirType::Pointer(Box::new(HirType::Int)));
-    let expr = HirExpression::ArrayIndex {
-        array: Box::new(var("arr")),
-        index: Box::new(ilit(3)),
-    };
+    let expr = HirExpression::ArrayIndex { array: Box::new(var("arr")), index: Box::new(ilit(3)) };
     let result = expr_tt(&expr, &c, None);
     assert!(
         result.contains("unsafe") && result.contains(".add("),
@@ -483,22 +390,13 @@ fn array_index_global_wraps_unsafe() {
     let mut c = ctx();
     c.add_variable(
         "g_arr".to_string(),
-        HirType::Array {
-            element_type: Box::new(HirType::Int),
-            size: Some(10),
-        },
+        HirType::Array { element_type: Box::new(HirType::Int), size: Some(10) },
     );
     c.add_global("g_arr".to_string());
-    let expr = HirExpression::ArrayIndex {
-        array: Box::new(var("g_arr")),
-        index: Box::new(ilit(5)),
-    };
+    let expr =
+        HirExpression::ArrayIndex { array: Box::new(var("g_arr")), index: Box::new(ilit(5)) };
     let result = expr_tt(&expr, &c, None);
-    assert!(
-        result.contains("unsafe"),
-        "Global array index should wrap in unsafe, got: {}",
-        result
-    );
+    assert!(result.contains("unsafe"), "Global array index should wrap in unsafe, got: {}", result);
 }
 
 // ============================================================================
@@ -529,15 +427,9 @@ fn slice_index_generates_safe_indexing() {
 fn sizeof_variable_uses_size_of_val() {
     let mut c = ctx();
     c.add_variable("x".to_string(), HirType::Int);
-    let expr = HirExpression::Sizeof {
-        type_name: "x".to_string(),
-    };
+    let expr = HirExpression::Sizeof { type_name: "x".to_string() };
     let result = expr_tt(&expr, &c, None);
-    assert!(
-        result.contains("size_of_val"),
-        "sizeof(var) should use size_of_val, got: {}",
-        result
-    );
+    assert!(result.contains("size_of_val"), "sizeof(var) should use size_of_val, got: {}", result);
 }
 
 // ============================================================================
@@ -547,15 +439,9 @@ fn sizeof_variable_uses_size_of_val() {
 #[test]
 fn sizeof_type_uses_size_of() {
     let c = ctx();
-    let expr = HirExpression::Sizeof {
-        type_name: "int".to_string(),
-    };
+    let expr = HirExpression::Sizeof { type_name: "int".to_string() };
     let result = expr_tt(&expr, &c, None);
-    assert!(
-        result.contains("size_of::<"),
-        "sizeof(type) should use size_of, got: {}",
-        result
-    );
+    assert!(result.contains("size_of::<"), "sizeof(type) should use size_of, got: {}", result);
 }
 
 // ============================================================================
@@ -592,16 +478,10 @@ fn is_not_null_generates_if_let() {
 #[test]
 fn calloc_expr_int_type() {
     let c = ctx();
-    let expr = HirExpression::Calloc {
-        count: Box::new(ilit(10)),
-        element_type: Box::new(HirType::Int),
-    };
+    let expr =
+        HirExpression::Calloc { count: Box::new(ilit(10)), element_type: Box::new(HirType::Int) };
     let result = expr_tt(&expr, &c, None);
-    assert!(
-        result.contains("vec![0i32; 10]"),
-        "Calloc expr should generate vec!, got: {}",
-        result
-    );
+    assert!(result.contains("vec![0i32; 10]"), "Calloc expr should generate vec!, got: {}", result);
 }
 
 #[test]
@@ -622,46 +502,28 @@ fn calloc_expr_unsigned_int_type() {
 #[test]
 fn calloc_expr_float_type() {
     let c = ctx();
-    let expr = HirExpression::Calloc {
-        count: Box::new(ilit(3)),
-        element_type: Box::new(HirType::Float),
-    };
+    let expr =
+        HirExpression::Calloc { count: Box::new(ilit(3)), element_type: Box::new(HirType::Float) };
     let result = expr_tt(&expr, &c, None);
-    assert!(
-        result.contains("vec![0.0f32; 3]"),
-        "Calloc Float should use 0.0f32, got: {}",
-        result
-    );
+    assert!(result.contains("vec![0.0f32; 3]"), "Calloc Float should use 0.0f32, got: {}", result);
 }
 
 #[test]
 fn calloc_expr_double_type() {
     let c = ctx();
-    let expr = HirExpression::Calloc {
-        count: Box::new(ilit(4)),
-        element_type: Box::new(HirType::Double),
-    };
+    let expr =
+        HirExpression::Calloc { count: Box::new(ilit(4)), element_type: Box::new(HirType::Double) };
     let result = expr_tt(&expr, &c, None);
-    assert!(
-        result.contains("vec![0.0f64; 4]"),
-        "Calloc Double should use 0.0f64, got: {}",
-        result
-    );
+    assert!(result.contains("vec![0.0f64; 4]"), "Calloc Double should use 0.0f64, got: {}", result);
 }
 
 #[test]
 fn calloc_expr_char_type() {
     let c = ctx();
-    let expr = HirExpression::Calloc {
-        count: Box::new(ilit(256)),
-        element_type: Box::new(HirType::Char),
-    };
+    let expr =
+        HirExpression::Calloc { count: Box::new(ilit(256)), element_type: Box::new(HirType::Char) };
     let result = expr_tt(&expr, &c, None);
-    assert!(
-        result.contains("vec![0u8; 256]"),
-        "Calloc Char should use 0u8, got: {}",
-        result
-    );
+    assert!(result.contains("vec![0u8; 256]"), "Calloc Char should use 0u8, got: {}", result);
 }
 
 #[test]
@@ -672,11 +534,7 @@ fn calloc_expr_signed_char_type() {
         element_type: Box::new(HirType::SignedChar),
     };
     let result = expr_tt(&expr, &c, None);
-    assert!(
-        result.contains("vec![0i8; 8]"),
-        "Calloc SignedChar should use 0i8, got: {}",
-        result
-    );
+    assert!(result.contains("vec![0i8; 8]"), "Calloc SignedChar should use 0i8, got: {}", result);
 }
 
 // ============================================================================
@@ -708,9 +566,7 @@ fn malloc_expr_multiply_generates_vec_capacity() {
 #[test]
 fn malloc_expr_single_generates_box_new() {
     let c = ctx();
-    let expr = HirExpression::Malloc {
-        size: Box::new(ilit(4)),
-    };
+    let expr = HirExpression::Malloc { size: Box::new(ilit(4)) };
     let result = expr_tt(&expr, &c, None);
     assert_eq!(result, "Box::new(0i32)");
 }
@@ -760,10 +616,8 @@ fn realloc_expr_null_no_multiply_generates_vec_new() {
 #[test]
 fn realloc_expr_non_null_returns_pointer() {
     let c = ctx();
-    let expr = HirExpression::Realloc {
-        pointer: Box::new(var("buf")),
-        new_size: Box::new(ilit(200)),
-    };
+    let expr =
+        HirExpression::Realloc { pointer: Box::new(var("buf")), new_size: Box::new(ilit(200)) };
     let result = expr_tt(&expr, &c, None);
     assert_eq!(result, "buf");
 }
@@ -817,11 +671,7 @@ fn string_method_call_clone_into_adds_mut_ref() {
         arguments: vec![var("dest")],
     };
     let result = expr_tt(&expr, &c, None);
-    assert!(
-        result.contains("&mut dest"),
-        "clone_into should add &mut to arg, got: {}",
-        result
-    );
+    assert!(result.contains("&mut dest"), "clone_into should add &mut to arg, got: {}", result);
 }
 
 // ============================================================================
@@ -906,11 +756,7 @@ fn cast_binary_op_wraps_in_parens() {
         }),
     };
     let result = expr_tt(&expr, &c, None);
-    assert!(
-        result.contains("(1 + 2) as f32"),
-        "Cast should wrap binop in parens, got: {}",
-        result
-    );
+    assert!(result.contains("(1 + 2) as f32"), "Cast should wrap binop in parens, got: {}", result);
 }
 
 // ============================================================================
@@ -963,18 +809,11 @@ fn compound_literal_struct_empty() {
 fn compound_literal_array_single_init_repeats() {
     let c = ctx();
     let expr = HirExpression::CompoundLiteral {
-        literal_type: HirType::Array {
-            element_type: Box::new(HirType::Int),
-            size: Some(5),
-        },
+        literal_type: HirType::Array { element_type: Box::new(HirType::Int), size: Some(5) },
         initializers: vec![ilit(0)],
     };
     let result = expr_tt(&expr, &c, None);
-    assert!(
-        result.contains("[0; 5]"),
-        "Single init array should repeat, got: {}",
-        result
-    );
+    assert!(result.contains("[0; 5]"), "Single init array should repeat, got: {}", result);
 }
 
 // ============================================================================
@@ -985,10 +824,7 @@ fn compound_literal_array_single_init_repeats() {
 fn compound_literal_array_partial_init_pads() {
     let c = ctx();
     let expr = HirExpression::CompoundLiteral {
-        literal_type: HirType::Array {
-            element_type: Box::new(HirType::Int),
-            size: Some(4),
-        },
+        literal_type: HirType::Array { element_type: Box::new(HirType::Int), size: Some(4) },
         initializers: vec![ilit(1), ilit(2)],
     };
     let result = expr_tt(&expr, &c, None);
@@ -1007,10 +843,7 @@ fn compound_literal_array_partial_init_pads() {
 fn compound_literal_array_empty_with_size() {
     let c = ctx();
     let expr = HirExpression::CompoundLiteral {
-        literal_type: HirType::Array {
-            element_type: Box::new(HirType::Double),
-            size: Some(3),
-        },
+        literal_type: HirType::Array { element_type: Box::new(HirType::Double), size: Some(3) },
         initializers: vec![],
     };
     let result = expr_tt(&expr, &c, None);
@@ -1029,10 +862,7 @@ fn compound_literal_array_empty_with_size() {
 fn compound_literal_array_unsized_empty() {
     let c = ctx();
     let expr = HirExpression::CompoundLiteral {
-        literal_type: HirType::Array {
-            element_type: Box::new(HirType::Int),
-            size: None,
-        },
+        literal_type: HirType::Array { element_type: Box::new(HirType::Int), size: None },
         initializers: vec![],
     };
     let result = expr_tt(&expr, &c, None);
@@ -1046,10 +876,8 @@ fn compound_literal_array_unsized_empty() {
 #[test]
 fn compound_literal_other_type_generates_comment() {
     let c = ctx();
-    let expr = HirExpression::CompoundLiteral {
-        literal_type: HirType::Int,
-        initializers: vec![ilit(42)],
-    };
+    let expr =
+        HirExpression::CompoundLiteral { literal_type: HirType::Int, initializers: vec![ilit(42)] };
     let result = expr_tt(&expr, &c, None);
     assert!(
         result.contains("Compound literal"),
@@ -1066,9 +894,7 @@ fn compound_literal_other_type_generates_comment() {
 fn post_increment_string_ref_generates_byte_access() {
     let mut c = ctx();
     c.add_variable("key".to_string(), HirType::StringReference);
-    let expr = HirExpression::PostIncrement {
-        operand: Box::new(var("key")),
-    };
+    let expr = HirExpression::PostIncrement { operand: Box::new(var("key")) };
     let result = expr_tt(&expr, &c, None);
     assert!(
         result.contains("as_bytes()[0]") && result.contains("&key[1..]"),
@@ -1166,11 +992,7 @@ fn ternary_non_boolean_cond_adds_neq_zero() {
         else_expr: Box::new(ilit(0)),
     };
     let result = expr_tt(&expr, &c, None);
-    assert!(
-        result.contains("!= 0"),
-        "Ternary non-bool cond should add != 0, got: {}",
-        result
-    );
+    assert!(result.contains("!= 0"), "Ternary non-bool cond should add != 0, got: {}", result);
     assert!(
         result.contains("if") && result.contains("else"),
         "Ternary should generate if/else, got: {}",
@@ -1196,11 +1018,7 @@ fn ternary_boolean_cond_no_neq_zero() {
         else_expr: Box::new(ilit(0)),
     };
     let result = expr_tt(&expr, &c, None);
-    assert!(
-        !result.contains("!= 0"),
-        "Ternary bool cond should not add != 0, got: {}",
-        result
-    );
+    assert!(!result.contains("!= 0"), "Ternary bool cond should not add != 0, got: {}", result);
 }
 
 // ============================================================================
@@ -1219,11 +1037,7 @@ fn ternary_propagates_target_type_to_branches() {
         then_expr: Box::new(HirExpression::StringLiteral("yes".to_string())),
         else_expr: Box::new(HirExpression::StringLiteral("no".to_string())),
     };
-    let result = expr_tt(
-        &expr,
-        &c,
-        Some(&HirType::Pointer(Box::new(HirType::Char))),
-    );
+    let result = expr_tt(&expr, &c, Some(&HirType::Pointer(Box::new(HirType::Char))));
     // Both branches should have byte string conversion
     assert!(
         result.contains("b\"yes\\0\"") && result.contains("b\"no\\0\""),
@@ -1256,11 +1070,7 @@ fn stmt_realloc_null_pointer_generates_resize() {
         Some("test_func"),
         None,
     );
-    assert!(
-        result.contains(".resize("),
-        "Realloc NULL should generate resize, got: {}",
-        result
-    );
+    assert!(result.contains(".resize("), "Realloc NULL should generate resize, got: {}", result);
 }
 
 // ============================================================================
@@ -1297,10 +1107,7 @@ fn stmt_array_index_assign_global_unsafe() {
     let mut c = ctx();
     c.add_variable(
         "g_arr".to_string(),
-        HirType::Array {
-            element_type: Box::new(HirType::Int),
-            size: Some(10),
-        },
+        HirType::Array { element_type: Box::new(HirType::Int), size: Some(10) },
     );
     c.add_global("g_arr".to_string());
     let result = stmt_ctx(
@@ -1329,10 +1136,7 @@ fn stmt_array_index_assign_int_to_char_coercion() {
     let mut c = ctx();
     c.add_variable(
         "buf".to_string(),
-        HirType::Array {
-            element_type: Box::new(HirType::Char),
-            size: Some(100),
-        },
+        HirType::Array { element_type: Box::new(HirType::Char), size: Some(100) },
     );
     c.add_variable("n".to_string(), HirType::Int);
     let result = stmt_ctx(
@@ -1392,10 +1196,7 @@ fn stmt_field_assign_raw_pointer_unsafe() {
 #[test]
 fn stmt_field_assign_global_struct_unsafe() {
     let mut c = ctx();
-    c.add_variable(
-        "config".to_string(),
-        HirType::Struct("Config".to_string()),
-    );
+    c.add_variable("config".to_string(), HirType::Struct("Config".to_string()));
     c.add_global("config".to_string());
     let result = stmt_ctx(
         &HirStatement::FieldAssignment {
@@ -1421,10 +1222,7 @@ fn stmt_field_assign_global_struct_unsafe() {
 #[test]
 fn stmt_field_assign_regular() {
     let mut c = ctx();
-    c.add_variable(
-        "obj".to_string(),
-        HirType::Struct("Obj".to_string()),
-    );
+    c.add_variable("obj".to_string(), HirType::Struct("Obj".to_string()));
     let result = stmt_ctx(
         &HirStatement::FieldAssignment {
             object: var("obj"),
@@ -1445,14 +1243,8 @@ fn stmt_field_assign_regular() {
 #[test]
 fn stmt_free_generates_raii_comment() {
     let mut c = ctx();
-    let result = stmt_ctx(
-        &HirStatement::Free {
-            pointer: var("ptr"),
-        },
-        &mut c,
-        Some("test_func"),
-        None,
-    );
+    let result =
+        stmt_ctx(&HirStatement::Free { pointer: var("ptr") }, &mut c, Some("test_func"), None);
     assert!(
         result.contains("RAII") && result.contains("ptr"),
         "Free should generate RAII comment, got: {}",
@@ -1516,10 +1308,7 @@ fn stmt_expression_generates_semicolon() {
 fn stmt_inline_asm_non_translatable() {
     let mut c = ctx();
     let result = stmt_ctx(
-        &HirStatement::InlineAsm {
-            text: "nop".to_string(),
-            translatable: false,
-        },
+        &HirStatement::InlineAsm { text: "nop".to_string(), translatable: false },
         &mut c,
         Some("test_func"),
         None,
@@ -1529,11 +1318,7 @@ fn stmt_inline_asm_non_translatable() {
         "InlineAsm should note manual review, got: {}",
         result
     );
-    assert!(
-        result.contains("nop"),
-        "InlineAsm should include asm text, got: {}",
-        result
-    );
+    assert!(result.contains("nop"), "InlineAsm should include asm text, got: {}", result);
     assert!(
         !result.contains("translatable"),
         "Non-translatable should not mention translatable, got: {}",
@@ -1549,10 +1334,7 @@ fn stmt_inline_asm_non_translatable() {
 fn stmt_inline_asm_translatable() {
     let mut c = ctx();
     let result = stmt_ctx(
-        &HirStatement::InlineAsm {
-            text: "bswap eax".to_string(),
-            translatable: true,
-        },
+        &HirStatement::InlineAsm { text: "bswap eax".to_string(), translatable: true },
         &mut c,
         Some("test_func"),
         None,
@@ -1633,11 +1415,7 @@ fn stmt_deref_assign_field_access_no_extra_deref() {
 #[test]
 fn int_literal_zero_option_target_becomes_none() {
     let c = ctx();
-    let result = expr_tt(
-        &ilit(0),
-        &c,
-        Some(&HirType::Option(Box::new(HirType::Int))),
-    );
+    let result = expr_tt(&ilit(0), &c, Some(&HirType::Option(Box::new(HirType::Int))));
     assert_eq!(result, "None");
 }
 
@@ -1648,11 +1426,7 @@ fn int_literal_zero_option_target_becomes_none() {
 #[test]
 fn int_literal_zero_pointer_target_becomes_null_mut() {
     let c = ctx();
-    let result = expr_tt(
-        &ilit(0),
-        &c,
-        Some(&HirType::Pointer(Box::new(HirType::Int))),
-    );
+    let result = expr_tt(&ilit(0), &c, Some(&HirType::Pointer(Box::new(HirType::Int))));
     assert_eq!(result, "std::ptr::null_mut()");
 }
 
@@ -1696,11 +1470,7 @@ fn float_literal_no_target_integer_form() {
 fn address_of_with_pointer_target_casts_to_raw() {
     let c = ctx();
     let expr = HirExpression::AddressOf(Box::new(var("x")));
-    let result = expr_tt(
-        &expr,
-        &c,
-        Some(&HirType::Pointer(Box::new(HirType::Int))),
-    );
+    let result = expr_tt(&expr, &c, Some(&HirType::Pointer(Box::new(HirType::Int))));
     assert!(
         result.contains("&mut x as *mut i32"),
         "AddressOf with pointer target should cast, got: {}",
@@ -1753,22 +1523,10 @@ fn eacces_maps_to_constant() {
 fn return_char_in_main_casts_to_i32() {
     let mut c = ctx();
     c.add_variable("ch".to_string(), HirType::Char);
-    let result = stmt_ctx(
-        &HirStatement::Return(Some(var("ch"))),
-        &mut c,
-        Some("main"),
-        Some(&HirType::Int),
-    );
-    assert!(
-        result.contains("as i32"),
-        "Return char in main should cast to i32, got: {}",
-        result
-    );
-    assert!(
-        result.contains("exit"),
-        "Return in main should use exit, got: {}",
-        result
-    );
+    let result =
+        stmt_ctx(&HirStatement::Return(Some(var("ch"))), &mut c, Some("main"), Some(&HirType::Int));
+    assert!(result.contains("as i32"), "Return char in main should cast to i32, got: {}", result);
+    assert!(result.contains("exit"), "Return in main should use exit, got: {}", result);
 }
 
 // ============================================================================
@@ -1781,11 +1539,7 @@ fn dereference_raw_pointer_wraps_unsafe() {
     c.add_variable("p".to_string(), HirType::Pointer(Box::new(HirType::Int)));
     let expr = HirExpression::Dereference(Box::new(var("p")));
     let result = expr_tt(&expr, &c, None);
-    assert!(
-        result.contains("unsafe"),
-        "Deref raw pointer should be unsafe, got: {}",
-        result
-    );
+    assert!(result.contains("unsafe"), "Deref raw pointer should be unsafe, got: {}", result);
 }
 
 // ============================================================================
@@ -1802,11 +1556,7 @@ fn dereference_pointer_arithmetic_wraps_unsafe() {
         right: Box::new(ilit(1)),
     }));
     let result = expr_tt(&expr, &c, None);
-    assert!(
-        result.contains("unsafe"),
-        "Deref ptr arithmetic should be unsafe, got: {}",
-        result
-    );
+    assert!(result.contains("unsafe"), "Deref ptr arithmetic should be unsafe, got: {}", result);
 }
 
 // ============================================================================
@@ -1816,10 +1566,7 @@ fn dereference_pointer_arithmetic_wraps_unsafe() {
 #[test]
 fn unary_minus_generates_prefix() {
     let c = ctx();
-    let expr = HirExpression::UnaryOp {
-        op: UnaryOperator::Minus,
-        operand: Box::new(var("x")),
-    };
+    let expr = HirExpression::UnaryOp { op: UnaryOperator::Minus, operand: Box::new(var("x")) };
     let result = expr_tt(&expr, &c, None);
     assert_eq!(result, "-x");
 }
@@ -1831,10 +1578,8 @@ fn unary_minus_generates_prefix() {
 #[test]
 fn unary_bitwise_not_generates_prefix_bang() {
     let c = ctx();
-    let expr = HirExpression::UnaryOp {
-        op: UnaryOperator::BitwiseNot,
-        operand: Box::new(var("x")),
-    };
+    let expr =
+        HirExpression::UnaryOp { op: UnaryOperator::BitwiseNot, operand: Box::new(var("x")) };
     let result = expr_tt(&expr, &c, None);
     assert_eq!(result, "!x");
 }
@@ -1851,16 +1596,9 @@ fn unary_logical_not_boolean_in_context() {
         left: Box::new(ilit(1)),
         right: Box::new(ilit(1)),
     };
-    let expr = HirExpression::UnaryOp {
-        op: UnaryOperator::LogicalNot,
-        operand: Box::new(inner),
-    };
+    let expr = HirExpression::UnaryOp { op: UnaryOperator::LogicalNot, operand: Box::new(inner) };
     let result = cg().generate_expression_with_context(&expr, &c);
-    assert!(
-        result.starts_with("!"),
-        "LogicalNot on bool in context should be !, got: {}",
-        result
-    );
+    assert!(result.starts_with("!"), "LogicalNot on bool in context should be !, got: {}", result);
 }
 
 // ============================================================================
@@ -1870,10 +1608,8 @@ fn unary_logical_not_boolean_in_context() {
 #[test]
 fn unary_logical_not_integer_in_context() {
     let c = ctx();
-    let expr = HirExpression::UnaryOp {
-        op: UnaryOperator::LogicalNot,
-        operand: Box::new(var("n")),
-    };
+    let expr =
+        HirExpression::UnaryOp { op: UnaryOperator::LogicalNot, operand: Box::new(var("n")) };
     let result = cg().generate_expression_with_context(&expr, &c);
     // generate_expression_with_context calls with None target, so the specific
     // LogicalNot arm at line 1070 applies: no Int target → (x == 0) without i32 cast
@@ -1892,9 +1628,7 @@ fn unary_logical_not_integer_in_context() {
 fn post_increment_pointer_uses_wrapping_add() {
     let mut c = ctx();
     c.add_variable("p".to_string(), HirType::Pointer(Box::new(HirType::Int)));
-    let expr = HirExpression::PostIncrement {
-        operand: Box::new(var("p")),
-    };
+    let expr = HirExpression::PostIncrement { operand: Box::new(var("p")) };
     let result = expr_tt(&expr, &c, None);
     assert!(
         result.contains("wrapping_add(1)"),
@@ -1911,9 +1645,7 @@ fn post_increment_pointer_uses_wrapping_add() {
 fn pre_decrement_pointer_uses_wrapping_sub() {
     let mut c = ctx();
     c.add_variable("p".to_string(), HirType::Pointer(Box::new(HirType::Int)));
-    let expr = HirExpression::PreDecrement {
-        operand: Box::new(var("p")),
-    };
+    let expr = HirExpression::PreDecrement { operand: Box::new(var("p")) };
     let result = expr_tt(&expr, &c, None);
     assert!(
         result.contains("wrapping_sub(1)"),
@@ -1936,9 +1668,7 @@ fn sizeof_struct_field_looks_up_type() {
             ("age".to_string(), HirType::Int),
         ],
     );
-    let expr = HirExpression::Sizeof {
-        type_name: "struct Record age".to_string(),
-    };
+    let expr = HirExpression::Sizeof { type_name: "struct Record age".to_string() };
     let result = expr_tt(&expr, &c, None);
     assert!(
         result.contains("size_of::<i32>()"),
@@ -1954,14 +1684,10 @@ fn sizeof_struct_field_looks_up_type() {
 #[test]
 fn pointer_field_access_from_field_access() {
     let c = ctx();
-    let inner = HirExpression::FieldAccess {
-        object: Box::new(var("obj")),
-        field: "ptr".to_string(),
-    };
-    let expr = HirExpression::PointerFieldAccess {
-        pointer: Box::new(inner),
-        field: "val".to_string(),
-    };
+    let inner =
+        HirExpression::FieldAccess { object: Box::new(var("obj")), field: "ptr".to_string() };
+    let expr =
+        HirExpression::PointerFieldAccess { pointer: Box::new(inner), field: "val".to_string() };
     let result = expr_tt(&expr, &c, None);
     assert!(
         result.contains("obj.ptr.val"),
@@ -1977,15 +1703,9 @@ fn pointer_field_access_from_field_access() {
 #[test]
 fn malloc_func_call_char_pointer_target() {
     let c = ctx();
-    let expr = HirExpression::FunctionCall {
-        function: "malloc".to_string(),
-        arguments: vec![ilit(256)],
-    };
-    let result = expr_tt(
-        &expr,
-        &c,
-        Some(&HirType::Pointer(Box::new(HirType::Char))),
-    );
+    let expr =
+        HirExpression::FunctionCall { function: "malloc".to_string(), arguments: vec![ilit(256)] };
+    let result = expr_tt(&expr, &c, Some(&HirType::Pointer(Box::new(HirType::Char))));
     assert!(
         result.contains("vec![0u8;") && result.contains("as_mut_ptr"),
         "malloc char pointer should allocate byte buffer, got: {}",
@@ -2000,10 +1720,7 @@ fn malloc_func_call_char_pointer_target() {
 #[test]
 fn malloc_func_call_no_args() {
     let c = ctx();
-    let expr = HirExpression::FunctionCall {
-        function: "malloc".to_string(),
-        arguments: vec![],
-    };
+    let expr = HirExpression::FunctionCall { function: "malloc".to_string(), arguments: vec![] };
     let result = expr_tt(&expr, &c, None);
     assert_eq!(result, "Vec::new()");
 }
@@ -2020,11 +1737,7 @@ fn wait_func_call_generates_child_wait() {
         arguments: vec![var("status")],
     };
     let result = expr_tt(&expr, &c, None);
-    assert!(
-        result.contains("child.wait()"),
-        "wait should generate child.wait(), got: {}",
-        result
-    );
+    assert!(result.contains("child.wait()"), "wait should generate child.wait(), got: {}", result);
 }
 
 // ============================================================================
@@ -2034,10 +1747,7 @@ fn wait_func_call_generates_child_wait() {
 #[test]
 fn exec_no_args_generates_comment() {
     let c = ctx();
-    let expr = HirExpression::FunctionCall {
-        function: "execl".to_string(),
-        arguments: vec![],
-    };
+    let expr = HirExpression::FunctionCall { function: "execl".to_string(), arguments: vec![] };
     let result = expr_tt(&expr, &c, None);
     assert!(
         result.contains("exec requires args"),
@@ -2053,10 +1763,7 @@ fn exec_no_args_generates_comment() {
 #[test]
 fn fprintf_wrong_args_generates_fallback() {
     let c = ctx();
-    let expr = HirExpression::FunctionCall {
-        function: "fprintf".to_string(),
-        arguments: vec![],
-    };
+    let expr = HirExpression::FunctionCall { function: "fprintf".to_string(), arguments: vec![] };
     let result = expr_tt(&expr, &c, None);
     assert!(
         result.contains("fprintf requires"),
@@ -2074,11 +1781,7 @@ fn variable_reserved_keyword_escaped() {
     let c = ctx();
     // "type" is a reserved Rust keyword
     let result = expr_tt(&var("type"), &c, None);
-    assert!(
-        result.contains("r#type"),
-        "Reserved keyword should be escaped, got: {}",
-        result
-    );
+    assert!(result.contains("r#type"), "Reserved keyword should be escaped, got: {}", result);
 }
 
 // ============================================================================
@@ -2089,18 +1792,11 @@ fn variable_reserved_keyword_escaped() {
 fn vla_float_type_uses_f32_default() {
     let func = make_func(vec![HirStatement::VariableDeclaration {
         name: "arr".to_string(),
-        var_type: HirType::Array {
-            element_type: Box::new(HirType::Float),
-            size: None,
-        },
+        var_type: HirType::Array { element_type: Box::new(HirType::Float), size: None },
         initializer: Some(var("n")),
     }]);
     let code = cg().generate_function(&func);
-    assert!(
-        code.contains("vec![0.0f32;"),
-        "VLA Float should use 0.0f32, got: {}",
-        code
-    );
+    assert!(code.contains("vec![0.0f32;"), "VLA Float should use 0.0f32, got: {}", code);
 }
 
 // ============================================================================

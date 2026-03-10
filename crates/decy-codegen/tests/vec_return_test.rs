@@ -21,9 +21,7 @@ use tempfile::NamedTempFile;
 /// Helper to transpile C code and return the generated Rust
 fn transpile_c(c_code: &str) -> String {
     let mut temp_file = NamedTempFile::new().expect("Failed to create temp file");
-    temp_file
-        .write_all(c_code.as_bytes())
-        .expect("Failed to write C code");
+    temp_file.write_all(c_code.as_bytes()).expect("Failed to write C code");
 
     let output = Command::new("cargo")
         .args(["run", "-p", "decy", "--quiet", "--", "transpile"])
@@ -170,9 +168,7 @@ int* make_array(int n) {
 
     // Write to temp file and compile
     let mut temp_file = NamedTempFile::with_suffix(".rs").expect("Failed to create temp file");
-    temp_file
-        .write_all(rust_code.as_bytes())
-        .expect("Failed to write Rust code");
+    temp_file.write_all(rust_code.as_bytes()).expect("Failed to write Rust code");
 
     let output = Command::new("rustc")
         .args([

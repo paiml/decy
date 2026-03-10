@@ -179,10 +179,7 @@ fn test_left_shift_operator() {
     let rust_equivalent = "let result = a << 2;";
 
     assert!(c_code.contains("<<"), "C uses << for left shift");
-    assert!(
-        rust_equivalent.contains("<<"),
-        "Rust uses << for left shift"
-    );
+    assert!(rust_equivalent.contains("<<"), "Rust uses << for left shift");
 
     // Demonstrate left shift behavior
     let a: u32 = 0b0001;
@@ -216,10 +213,7 @@ fn test_right_shift_operator() {
     let rust_equivalent = "let result = a >> 2;";
 
     assert!(c_code.contains(">>"), "C uses >> for right shift");
-    assert!(
-        rust_equivalent.contains(">>"),
-        "Rust uses >> for right shift"
-    );
+    assert!(rust_equivalent.contains(">>"), "Rust uses >> for right shift");
 
     // Demonstrate right shift behavior (unsigned)
     let a: u32 = 0b1000;
@@ -263,10 +257,7 @@ fn test_signed_unsigned_right_shift() {
     // Positive signed value
     let positive: i32 = 0b00001000;
     let shifted_positive = positive >> 1;
-    assert_eq!(
-        shifted_positive, 0b00000100,
-        "Positive signed shifts normally"
-    );
+    assert_eq!(shifted_positive, 0b00000100, "Positive signed shifts normally");
 }
 
 /// Document compound assignment operators
@@ -517,10 +508,7 @@ fn test_bitwise_transformation_unsafe_count() {
 
     // Count unsafe blocks (should be 0)
     let unsafe_count = combined.matches("unsafe").count();
-    assert_eq!(
-        unsafe_count, 0,
-        "Bitwise operators should not introduce unsafe blocks"
-    );
+    assert_eq!(unsafe_count, 0, "Bitwise operators should not introduce unsafe blocks");
 }
 
 /// Summary of bitwise operator transformations
@@ -560,10 +548,7 @@ fn test_bitwise_transformation_rules_summary() {
 
     // Rule 2: NOT uses different symbol
     let not_symbol_different = true;
-    assert!(
-        not_symbol_different,
-        "C uses ~, Rust uses ! for bitwise NOT"
-    );
+    assert!(not_symbol_different, "C uses ~, Rust uses ! for bitwise NOT");
 
     // Rule 3: Shifts are identical
     let shifts_identical = true;
@@ -575,10 +560,7 @@ fn test_bitwise_transformation_rules_summary() {
 
     // Rule 5: No unsafe needed
     let unsafe_blocks = 0;
-    assert_eq!(
-        unsafe_blocks, 0,
-        "Bitwise operations introduce 0 unsafe blocks"
-    );
+    assert_eq!(unsafe_blocks, 0, "Bitwise operations introduce 0 unsafe blocks");
 
     // Rule 6: Same patterns work
     let patterns_work = true;

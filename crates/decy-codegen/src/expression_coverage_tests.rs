@@ -6,8 +6,7 @@
 
 use super::*;
 use decy_hir::{
-    BinaryOperator, HirExpression, HirFunction, HirParameter, HirStatement, HirType,
-    UnaryOperator,
+    BinaryOperator, HirExpression, HirFunction, HirParameter, HirStatement, HirType, UnaryOperator,
 };
 
 // ============================================================================
@@ -21,9 +20,7 @@ fn test_float_literal_with_float_target() {
         "test".to_string(),
         HirType::Float,
         vec![],
-        vec![HirStatement::Return(Some(HirExpression::FloatLiteral(
-            "3.14".to_string(),
-        )))],
+        vec![HirStatement::Return(Some(HirExpression::FloatLiteral("3.14".to_string())))],
     );
     let code = codegen.generate_function(&func);
     assert!(code.contains("3.14") || code.contains("f32"));
@@ -36,9 +33,7 @@ fn test_float_literal_with_double_target() {
         "test".to_string(),
         HirType::Double,
         vec![],
-        vec![HirStatement::Return(Some(HirExpression::FloatLiteral(
-            "2.718".to_string(),
-        )))],
+        vec![HirStatement::Return(Some(HirExpression::FloatLiteral("2.718".to_string())))],
     );
     let code = codegen.generate_function(&func);
     assert!(code.contains("2.718") || code.contains("f64"));
@@ -51,9 +46,7 @@ fn test_float_literal_with_c_suffix() {
         "test".to_string(),
         HirType::Float,
         vec![],
-        vec![HirStatement::Return(Some(HirExpression::FloatLiteral(
-            "1.0f".to_string(),
-        )))],
+        vec![HirStatement::Return(Some(HirExpression::FloatLiteral("1.0f".to_string())))],
     );
     let code = codegen.generate_function(&func);
     // Should strip the 'f' suffix
@@ -187,9 +180,7 @@ fn test_sizeof_expression() {
         "test".to_string(),
         HirType::Int,
         vec![],
-        vec![HirStatement::Return(Some(HirExpression::Sizeof {
-            type_name: "int".to_string(),
-        }))],
+        vec![HirStatement::Return(Some(HirExpression::Sizeof { type_name: "int".to_string() }))],
     );
     let code = codegen.generate_function(&func);
     assert!(code.contains("size_of") || code.contains("mem::size_of"));
@@ -235,9 +226,9 @@ fn test_address_of_expression() {
             HirStatement::VariableDeclaration {
                 name: "p".to_string(),
                 var_type: HirType::Pointer(Box::new(HirType::Int)),
-                initializer: Some(HirExpression::AddressOf(Box::new(
-                    HirExpression::Variable("x".to_string()),
-                ))),
+                initializer: Some(HirExpression::AddressOf(Box::new(HirExpression::Variable(
+                    "x".to_string(),
+                )))),
             },
         ],
     );
@@ -251,13 +242,10 @@ fn test_dereference_expression() {
     let func = HirFunction::new_with_body(
         "test".to_string(),
         HirType::Int,
-        vec![HirParameter::new(
-            "p".to_string(),
-            HirType::Pointer(Box::new(HirType::Int)),
-        )],
-        vec![HirStatement::Return(Some(HirExpression::Dereference(
-            Box::new(HirExpression::Variable("p".to_string())),
-        )))],
+        vec![HirParameter::new("p".to_string(), HirType::Pointer(Box::new(HirType::Int)))],
+        vec![HirStatement::Return(Some(HirExpression::Dereference(Box::new(
+            HirExpression::Variable("p".to_string()),
+        ))))],
     );
     let code = codegen.generate_function(&func);
     assert!(code.contains("*") || code.contains("p"));
@@ -306,12 +294,10 @@ fn test_pointer_field_access_expression() {
         "test".to_string(),
         HirType::Int,
         vec![],
-        vec![HirStatement::Return(Some(
-            HirExpression::PointerFieldAccess {
-                pointer: Box::new(HirExpression::Variable("node".to_string())),
-                field: "value".to_string(),
-            },
-        ))],
+        vec![HirStatement::Return(Some(HirExpression::PointerFieldAccess {
+            pointer: Box::new(HirExpression::Variable("node".to_string())),
+            field: "value".to_string(),
+        }))],
     );
     let code = codegen.generate_function(&func);
     assert!(code.contains("node") || code.contains("value"));
@@ -573,10 +559,7 @@ fn test_map_type_signed_char() {
 
 #[test]
 fn test_map_type_option() {
-    assert_eq!(
-        CodeGenerator::map_type(&HirType::Option(Box::new(HirType::Int))),
-        "Option<i32>"
-    );
+    assert_eq!(CodeGenerator::map_type(&HirType::Option(Box::new(HirType::Int))), "Option<i32>");
 }
 
 #[test]
@@ -662,9 +645,7 @@ fn test_sizeof_simple_type() {
         "test".to_string(),
         HirType::Int,
         vec![],
-        vec![HirStatement::Return(Some(HirExpression::Sizeof {
-            type_name: "double".to_string(),
-        }))],
+        vec![HirStatement::Return(Some(HirExpression::Sizeof { type_name: "double".to_string() }))],
     );
     let code = codegen.generate_function(&func);
     assert!(code.contains("size_of"));
@@ -708,9 +689,7 @@ fn test_sizeof_variable_known_in_context() {
         "test".to_string(),
         HirType::Int,
         vec![HirParameter::new("x".to_string(), HirType::Int)],
-        vec![HirStatement::Return(Some(HirExpression::Sizeof {
-            type_name: "x".to_string(),
-        }))],
+        vec![HirStatement::Return(Some(HirExpression::Sizeof { type_name: "x".to_string() }))],
     );
     let code = codegen.generate_function(&func);
     assert!(code.contains("size_of_val") || code.contains("size_of"));
@@ -723,9 +702,7 @@ fn test_sizeof_char() {
         "test".to_string(),
         HirType::Int,
         vec![],
-        vec![HirStatement::Return(Some(HirExpression::Sizeof {
-            type_name: "char".to_string(),
-        }))],
+        vec![HirStatement::Return(Some(HirExpression::Sizeof { type_name: "char".to_string() }))],
     );
     let code = codegen.generate_function(&func);
     assert!(code.contains("size_of"));
@@ -773,9 +750,7 @@ fn test_realloc_null_pointer_with_multiply() {
                 new_size: Box::new(HirExpression::BinaryOp {
                     op: BinaryOperator::Multiply,
                     left: Box::new(HirExpression::IntLiteral(10)),
-                    right: Box::new(HirExpression::Sizeof {
-                        type_name: "int".to_string(),
-                    }),
+                    right: Box::new(HirExpression::Sizeof { type_name: "int".to_string() }),
                 }),
             }),
         }],
@@ -791,10 +766,7 @@ fn test_realloc_non_null_pointer() {
     let func = HirFunction::new_with_body(
         "test".to_string(),
         HirType::Void,
-        vec![HirParameter::new(
-            "ptr".to_string(),
-            HirType::Pointer(Box::new(HirType::Int)),
-        )],
+        vec![HirParameter::new("ptr".to_string(), HirType::Pointer(Box::new(HirType::Int)))],
         vec![HirStatement::VariableDeclaration {
             name: "new_ptr".to_string(),
             var_type: HirType::Pointer(Box::new(HirType::Int)),
@@ -823,9 +795,7 @@ fn test_malloc_with_multiply_generates_vec() {
                 size: Box::new(HirExpression::BinaryOp {
                     op: BinaryOperator::Multiply,
                     left: Box::new(HirExpression::IntLiteral(10)),
-                    right: Box::new(HirExpression::Sizeof {
-                        type_name: "int".to_string(),
-                    }),
+                    right: Box::new(HirExpression::Sizeof { type_name: "int".to_string() }),
                 }),
             }),
         }],
@@ -868,10 +838,7 @@ fn test_post_increment_pointer_uses_wrapping_add() {
     let func = HirFunction::new_with_body(
         "test".to_string(),
         HirType::Pointer(Box::new(HirType::Int)),
-        vec![HirParameter::new(
-            "p".to_string(),
-            HirType::Pointer(Box::new(HirType::Int)),
-        )],
+        vec![HirParameter::new("p".to_string(), HirType::Pointer(Box::new(HirType::Int)))],
         vec![HirStatement::Return(Some(HirExpression::PostIncrement {
             operand: Box::new(HirExpression::Variable("p".to_string())),
         }))],
@@ -888,10 +855,7 @@ fn test_post_increment_string_ref() {
     let func = HirFunction::new_with_body(
         "test".to_string(),
         HirType::UnsignedInt,
-        vec![HirParameter::new(
-            "key".to_string(),
-            HirType::StringReference,
-        )],
+        vec![HirParameter::new("key".to_string(), HirType::StringReference)],
         vec![HirStatement::Return(Some(HirExpression::PostIncrement {
             operand: Box::new(HirExpression::Variable("key".to_string())),
         }))],
@@ -907,14 +871,11 @@ fn test_post_increment_dereferenced_pointer() {
     let func = HirFunction::new_with_body(
         "test".to_string(),
         HirType::Int,
-        vec![HirParameter::new(
-            "p".to_string(),
-            HirType::Pointer(Box::new(HirType::Int)),
-        )],
+        vec![HirParameter::new("p".to_string(), HirType::Pointer(Box::new(HirType::Int)))],
         vec![HirStatement::Return(Some(HirExpression::PostIncrement {
-            operand: Box::new(HirExpression::Dereference(Box::new(
-                HirExpression::Variable("p".to_string()),
-            ))),
+            operand: Box::new(HirExpression::Dereference(Box::new(HirExpression::Variable(
+                "p".to_string(),
+            )))),
         }))],
     );
     let code = codegen.generate_function(&func);
@@ -951,10 +912,7 @@ fn test_pre_increment_pointer_uses_wrapping_add() {
     let func = HirFunction::new_with_body(
         "test".to_string(),
         HirType::Pointer(Box::new(HirType::Int)),
-        vec![HirParameter::new(
-            "p".to_string(),
-            HirType::Pointer(Box::new(HirType::Int)),
-        )],
+        vec![HirParameter::new("p".to_string(), HirType::Pointer(Box::new(HirType::Int)))],
         vec![HirStatement::Return(Some(HirExpression::PreIncrement {
             operand: Box::new(HirExpression::Variable("p".to_string())),
         }))],
@@ -970,14 +928,11 @@ fn test_pre_increment_dereferenced_pointer() {
     let func = HirFunction::new_with_body(
         "test".to_string(),
         HirType::Int,
-        vec![HirParameter::new(
-            "p".to_string(),
-            HirType::Pointer(Box::new(HirType::Int)),
-        )],
+        vec![HirParameter::new("p".to_string(), HirType::Pointer(Box::new(HirType::Int)))],
         vec![HirStatement::Return(Some(HirExpression::PreIncrement {
-            operand: Box::new(HirExpression::Dereference(Box::new(
-                HirExpression::Variable("p".to_string()),
-            ))),
+            operand: Box::new(HirExpression::Dereference(Box::new(HirExpression::Variable(
+                "p".to_string(),
+            )))),
         }))],
     );
     let code = codegen.generate_function(&func);
@@ -1018,10 +973,7 @@ fn test_post_decrement_pointer_uses_wrapping_sub() {
     let func = HirFunction::new_with_body(
         "test".to_string(),
         HirType::Pointer(Box::new(HirType::Int)),
-        vec![HirParameter::new(
-            "p".to_string(),
-            HirType::Pointer(Box::new(HirType::Int)),
-        )],
+        vec![HirParameter::new("p".to_string(), HirType::Pointer(Box::new(HirType::Int)))],
         vec![HirStatement::Return(Some(HirExpression::PostDecrement {
             operand: Box::new(HirExpression::Variable("p".to_string())),
         }))],
@@ -1037,14 +989,11 @@ fn test_post_decrement_dereferenced_pointer() {
     let func = HirFunction::new_with_body(
         "test".to_string(),
         HirType::Int,
-        vec![HirParameter::new(
-            "p".to_string(),
-            HirType::Pointer(Box::new(HirType::Int)),
-        )],
+        vec![HirParameter::new("p".to_string(), HirType::Pointer(Box::new(HirType::Int)))],
         vec![HirStatement::Return(Some(HirExpression::PostDecrement {
-            operand: Box::new(HirExpression::Dereference(Box::new(
-                HirExpression::Variable("p".to_string()),
-            ))),
+            operand: Box::new(HirExpression::Dereference(Box::new(HirExpression::Variable(
+                "p".to_string(),
+            )))),
         }))],
     );
     let code = codegen.generate_function(&func);
@@ -1081,10 +1030,7 @@ fn test_pre_decrement_pointer_uses_wrapping_sub() {
     let func = HirFunction::new_with_body(
         "test".to_string(),
         HirType::Pointer(Box::new(HirType::Int)),
-        vec![HirParameter::new(
-            "p".to_string(),
-            HirType::Pointer(Box::new(HirType::Int)),
-        )],
+        vec![HirParameter::new("p".to_string(), HirType::Pointer(Box::new(HirType::Int)))],
         vec![HirStatement::Return(Some(HirExpression::PreDecrement {
             operand: Box::new(HirExpression::Variable("p".to_string())),
         }))],
@@ -1100,14 +1046,11 @@ fn test_pre_decrement_dereferenced_pointer() {
     let func = HirFunction::new_with_body(
         "test".to_string(),
         HirType::Int,
-        vec![HirParameter::new(
-            "p".to_string(),
-            HirType::Pointer(Box::new(HirType::Int)),
-        )],
+        vec![HirParameter::new("p".to_string(), HirType::Pointer(Box::new(HirType::Int)))],
         vec![HirStatement::Return(Some(HirExpression::PreDecrement {
-            operand: Box::new(HirExpression::Dereference(Box::new(
-                HirExpression::Variable("p".to_string()),
-            ))),
+            operand: Box::new(HirExpression::Dereference(Box::new(HirExpression::Variable(
+                "p".to_string(),
+            )))),
         }))],
     );
     let code = codegen.generate_function(&func);
@@ -1203,13 +1146,10 @@ fn test_is_not_null_expression() {
     let func = HirFunction::new_with_body(
         "test".to_string(),
         HirType::Int,
-        vec![HirParameter::new(
-            "p".to_string(),
-            HirType::Pointer(Box::new(HirType::Int)),
-        )],
-        vec![HirStatement::Return(Some(HirExpression::IsNotNull(
-            Box::new(HirExpression::Variable("p".to_string())),
-        )))],
+        vec![HirParameter::new("p".to_string(), HirType::Pointer(Box::new(HirType::Int)))],
+        vec![HirStatement::Return(Some(HirExpression::IsNotNull(Box::new(
+            HirExpression::Variable("p".to_string()),
+        ))))],
     );
     let code = codegen.generate_function(&func);
     assert!(code.contains("Some") || code.contains("is_some") || code.contains("if let"));
@@ -1277,10 +1217,7 @@ fn test_compound_literal_struct() {
             var_type: HirType::Struct("Point".to_string()),
             initializer: Some(HirExpression::CompoundLiteral {
                 literal_type: HirType::Struct("Point".to_string()),
-                initializers: vec![
-                    HirExpression::IntLiteral(10),
-                    HirExpression::IntLiteral(20),
-                ],
+                initializers: vec![HirExpression::IntLiteral(10), HirExpression::IntLiteral(20)],
             }),
         }],
     );

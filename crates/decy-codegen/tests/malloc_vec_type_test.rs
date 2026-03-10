@@ -64,11 +64,7 @@ fn test_malloc_simple_size_generates_vec_expression() {
         code.contains("Vec<u8>") && code.contains("Vec::") && !code.contains("as_mut_ptr");
     let has_ptr_with_ptr = code.contains("*mut u8") && code.contains("as_mut_ptr");
 
-    assert!(
-        has_vec_with_vec || has_ptr_with_ptr,
-        "Type and expression must match. Got: {}",
-        code
-    );
+    assert!(has_vec_with_vec || has_ptr_with_ptr, "Type and expression must match. Got: {}", code);
 }
 
 #[test]
@@ -94,9 +90,7 @@ fn test_malloc_array_pattern_generates_vec() {
                     arguments: vec![HirExpression::BinaryOp {
                         op: BinaryOperator::Multiply,
                         left: Box::new(HirExpression::Variable("count".to_string())),
-                        right: Box::new(HirExpression::Sizeof {
-                            type_name: "int".to_string(),
-                        }),
+                        right: Box::new(HirExpression::Sizeof { type_name: "int".to_string() }),
                     }],
                 }),
             },
@@ -109,18 +103,10 @@ fn test_malloc_array_pattern_generates_vec() {
     println!("Generated: {}", code);
 
     // Should generate Vec allocation with matching types
-    assert!(
-        !code.contains("Vec<i32> = Box::leak"),
-        "Should not have type mismatch: {}",
-        code
-    );
+    assert!(!code.contains("Vec<i32> = Box::leak"), "Should not have type mismatch: {}", code);
 
     // Should have vec! macro for array pattern
     if code.contains("Vec<i32>") {
-        assert!(
-            code.contains("vec!["),
-            "Vec type should have vec! expression: {}",
-            code
-        );
+        assert!(code.contains("vec!["), "Vec type should have vec! expression: {}", code);
     }
 }

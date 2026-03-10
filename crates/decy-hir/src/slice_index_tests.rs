@@ -20,12 +20,7 @@ fn test_slice_index_creation() {
     };
 
     // Should be able to create and match
-    if let HirExpression::SliceIndex {
-        slice,
-        index,
-        element_type,
-    } = slice_index
-    {
+    if let HirExpression::SliceIndex { slice, index, element_type } = slice_index {
         assert!(matches!(*slice, HirExpression::Variable(_)));
         assert!(matches!(*index, HirExpression::IntLiteral(5)));
         assert_eq!(element_type, HirType::Int);
@@ -46,10 +41,7 @@ fn test_slice_index_debug_format() {
     let debug_str = format!("{:?}", slice_index);
 
     // Debug output should contain key information
-    assert!(
-        debug_str.contains("SliceIndex"),
-        "Debug output should mention SliceIndex"
-    );
+    assert!(debug_str.contains("SliceIndex"), "Debug output should mention SliceIndex");
     assert!(
         debug_str.contains("arr") || debug_str.contains("Variable"),
         "Debug output should show slice variable"
@@ -96,10 +88,7 @@ fn test_slice_index_with_expression_index() {
 
     // Should match and extract components
     if let HirExpression::SliceIndex { index, .. } = slice_index {
-        assert!(
-            matches!(*index, HirExpression::BinaryOp { .. }),
-            "Index should be BinaryOp"
-        );
+        assert!(matches!(*index, HirExpression::BinaryOp { .. }), "Index should be BinaryOp");
     } else {
         panic!("Expected SliceIndex");
     }

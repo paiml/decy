@@ -141,11 +141,7 @@ mod tests {
             "test".to_string(),
             HirType::Void,
             vec![],
-            vec![
-                lock_stmt("mutex"),
-                assign_stmt("counter", 1),
-                unlock_stmt("mutex"),
-            ],
+            vec![lock_stmt("mutex"), assign_stmt("counter", 1), unlock_stmt("mutex")],
         );
 
         let violations = checker.check_unprotected_access(&func);
@@ -288,11 +284,7 @@ mod tests {
             "test".to_string(),
             HirType::Void,
             vec![],
-            vec![
-                lock_stmt("mutex"),
-                assign_stmt("data", 1),
-                unlock_stmt("mutex"),
-            ],
+            vec![lock_stmt("mutex"), assign_stmt("data", 1), unlock_stmt("mutex")],
         );
 
         let report = checker.check_all(&func);
@@ -763,10 +755,7 @@ mod tests {
                 lock_stmt("mutex"),
                 assign_stmt("data", 1),
                 unlock_stmt("mutex"),
-                HirStatement::While {
-                    condition: HirExpression::IntLiteral(0),
-                    body: vec![],
-                },
+                HirStatement::While { condition: HirExpression::IntLiteral(0), body: vec![] },
             ],
         );
 
@@ -913,9 +902,7 @@ mod tests {
                 lock_stmt("mutex"),
                 assign_stmt("data", 1),
                 unlock_stmt("mutex"),
-                HirStatement::Free {
-                    pointer: HirExpression::Variable("ptr".to_string()),
-                },
+                HirStatement::Free { pointer: HirExpression::Variable("ptr".to_string()) },
             ],
         );
 
@@ -936,10 +923,7 @@ mod tests {
                 lock_stmt("mutex"),
                 assign_stmt("data", 1),
                 unlock_stmt("mutex"),
-                HirStatement::InlineAsm {
-                    text: "nop".to_string(),
-                    translatable: false,
-                },
+                HirStatement::InlineAsm { text: "nop".to_string(), translatable: false },
             ],
         );
 
@@ -1070,9 +1054,7 @@ mod tests {
                 lock_stmt("mutex"),
                 assign_stmt("data", 1),
                 unlock_stmt("mutex"),
-                HirStatement::Expression(HirExpression::Sizeof {
-                    type_name: "int".to_string(),
-                }),
+                HirStatement::Expression(HirExpression::Sizeof { type_name: "int".to_string() }),
             ],
         );
 
@@ -1423,12 +1405,10 @@ mod tests {
             vec![],
             vec![HirStatement::Expression(HirExpression::FunctionCall {
                 function: "pthread_mutex_lock".to_string(),
-                arguments: vec![HirExpression::AddressOf(Box::new(
-                    HirExpression::FieldAccess {
-                        object: Box::new(HirExpression::Variable("s".to_string())),
-                        field: "mutex".to_string(),
-                    },
-                ))],
+                arguments: vec![HirExpression::AddressOf(Box::new(HirExpression::FieldAccess {
+                    object: Box::new(HirExpression::Variable("s".to_string())),
+                    field: "mutex".to_string(),
+                }))],
             })],
         );
 
@@ -1467,10 +1447,7 @@ mod tests {
             "test".to_string(),
             HirType::Void,
             vec![],
-            vec![
-                assign_stmt("x", 1),
-                assign_stmt("y", 2),
-            ],
+            vec![assign_stmt("x", 1), assign_stmt("y", 2)],
         );
 
         let warnings = checker.check_deadlock_risk(&[func]);
@@ -1564,22 +1541,14 @@ mod tests {
             "test1".to_string(),
             HirType::Void,
             vec![],
-            vec![
-                lock_stmt("mutex_a"),
-                lock_stmt("mutex_b"),
-                lock_stmt("mutex_c"),
-            ],
+            vec![lock_stmt("mutex_a"), lock_stmt("mutex_b"), lock_stmt("mutex_c")],
         );
 
         let func2 = HirFunction::new_with_body(
             "test2".to_string(),
             HirType::Void,
             vec![],
-            vec![
-                lock_stmt("mutex_c"),
-                lock_stmt("mutex_b"),
-                lock_stmt("mutex_a"),
-            ],
+            vec![lock_stmt("mutex_c"), lock_stmt("mutex_b"), lock_stmt("mutex_a")],
         );
 
         let warnings = checker.check_deadlock_risk(&[func1, func2]);
@@ -1702,10 +1671,7 @@ mod tests {
             "test".to_string(),
             HirType::Void,
             vec![],
-            vec![
-                unlock_stmt("mutex"),
-                assign_stmt("data", 1),
-            ],
+            vec![unlock_stmt("mutex"), assign_stmt("data", 1)],
         );
 
         let report = checker.check_all(&func);
@@ -1723,10 +1689,7 @@ mod tests {
             "test".to_string(),
             HirType::Void,
             vec![],
-            vec![
-                lock_stmt("mutex_a"),
-                lock_stmt("mutex_b"),
-            ],
+            vec![lock_stmt("mutex_a"), lock_stmt("mutex_b")],
         );
 
         let report = checker.check_all(&func);
@@ -1913,12 +1876,12 @@ mod tests {
             HirType::Void,
             vec![],
             vec![
-                lock_stmt("mutex"),         // idx 0
-                assign_stmt("data", 1),     // idx 1 (inside first region)
-                unlock_stmt("mutex"),       // idx 2
-                lock_stmt("mutex"),         // idx 3
-                assign_stmt("data", 2),     // idx 4 (inside second region)
-                unlock_stmt("mutex"),       // idx 5
+                lock_stmt("mutex"),     // idx 0
+                assign_stmt("data", 1), // idx 1 (inside first region)
+                unlock_stmt("mutex"),   // idx 2
+                lock_stmt("mutex"),     // idx 3
+                assign_stmt("data", 2), // idx 4 (inside second region)
+                unlock_stmt("mutex"),   // idx 5
             ],
         );
 
@@ -1936,21 +1899,26 @@ mod tests {
             HirType::Void,
             vec![],
             vec![
-                lock_stmt("mutex"),         // idx 0
-                assign_stmt("data", 1),     // idx 1 (inside)
-                unlock_stmt("mutex"),       // idx 2
-                assign_stmt("data", 99),    // idx 3 (OUTSIDE - between regions)
-                lock_stmt("mutex"),         // idx 4
-                assign_stmt("data", 2),     // idx 5 (inside)
-                unlock_stmt("mutex"),       // idx 6
+                lock_stmt("mutex"),      // idx 0
+                assign_stmt("data", 1),  // idx 1 (inside)
+                unlock_stmt("mutex"),    // idx 2
+                assign_stmt("data", 99), // idx 3 (OUTSIDE - between regions)
+                lock_stmt("mutex"),      // idx 4
+                assign_stmt("data", 2),  // idx 5 (inside)
+                unlock_stmt("mutex"),    // idx 6
             ],
         );
 
         let violations = checker.check_unprotected_access(&func);
         assert!(!violations.is_empty());
         // The violation should be about "data" at statement 3
-        let has_data_violation = violations.iter().any(|v| v.contains("data") && v.contains("statement 3"));
-        assert!(has_data_violation, "Expected violation for 'data' at statement 3, got: {:?}", violations);
+        let has_data_violation =
+            violations.iter().any(|v| v.contains("data") && v.contains("statement 3"));
+        assert!(
+            has_data_violation,
+            "Expected violation for 'data' at statement 3, got: {:?}",
+            violations
+        );
     }
 
     // ========================================================================
@@ -1965,12 +1933,12 @@ mod tests {
         // Cast(AddressOf(Dereference(ArrayIndex(Variable, Variable))))
         let deep_expr = HirExpression::Cast {
             target_type: HirType::Int,
-            expr: Box::new(HirExpression::AddressOf(Box::new(
-                HirExpression::Dereference(Box::new(HirExpression::ArrayIndex {
+            expr: Box::new(HirExpression::AddressOf(Box::new(HirExpression::Dereference(
+                Box::new(HirExpression::ArrayIndex {
                     array: Box::new(HirExpression::Variable("arr".to_string())),
                     index: Box::new(HirExpression::Variable("idx".to_string())),
-                })),
-            ))),
+                }),
+            )))),
         };
 
         let func = HirFunction::new_with_body(
@@ -1979,10 +1947,7 @@ mod tests {
             vec![],
             vec![
                 lock_stmt("mutex"),
-                HirStatement::Assignment {
-                    target: "result".to_string(),
-                    value: deep_expr,
-                },
+                HirStatement::Assignment { target: "result".to_string(), value: deep_expr },
                 unlock_stmt("mutex"),
                 // Access arr outside lock
                 HirStatement::Return(Some(HirExpression::Variable("arr".to_string()))),

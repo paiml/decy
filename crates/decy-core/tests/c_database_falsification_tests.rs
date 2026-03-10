@@ -98,17 +98,10 @@ int btree_search(const btree_node_t *node, uint32_t key, uint32_t *value) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C351: B-tree node split should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C351: B-tree node split should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C351: Output should not be empty");
-    assert!(
-        code.contains("fn btree_split_node"),
-        "C351: Should contain btree_split_node function"
-    );
+    assert!(code.contains("fn btree_split_node"), "C351: Should contain btree_split_node function");
     assert!(
         code.contains("fn btree_find_insert_pos"),
         "C351: Should contain btree_find_insert_pos function"
@@ -204,21 +197,11 @@ int memtable_is_full(const memtable_t *mt) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C352: LSM-tree memtable should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C352: LSM-tree memtable should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C352: Output should not be empty");
-    assert!(
-        code.contains("fn memtable_put"),
-        "C352: Should contain memtable_put function"
-    );
-    assert!(
-        code.contains("fn memtable_get"),
-        "C352: Should contain memtable_get function"
-    );
+    assert!(code.contains("fn memtable_put"), "C352: Should contain memtable_put function");
+    assert!(code.contains("fn memtable_get"), "C352: Should contain memtable_get function");
 }
 
 #[test]
@@ -303,21 +286,11 @@ int wal_record_is_data(const wal_record_t *rec) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C353: WAL record format should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C353: WAL record format should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C353: Output should not be empty");
-    assert!(
-        code.contains("fn wal_record_init"),
-        "C353: Should contain wal_record_init function"
-    );
-    assert!(
-        code.contains("fn wal_crc32"),
-        "C353: Should contain wal_crc32 function"
-    );
+    assert!(code.contains("fn wal_record_init"), "C353: Should contain wal_record_init function");
+    assert!(code.contains("fn wal_crc32"), "C353: Should contain wal_crc32 function");
 }
 
 #[test]
@@ -424,21 +397,14 @@ int pool_is_dirty(const buffer_pool_t *pool, int frame_idx) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C354: Buffer pool LRU eviction should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C354: Buffer pool LRU eviction should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C354: Output should not be empty");
     assert!(
         code.contains("fn pool_find_victim_lru"),
         "C354: Should contain pool_find_victim_lru function"
     );
-    assert!(
-        code.contains("fn pool_pin_page"),
-        "C354: Should contain pool_pin_page function"
-    );
+    assert!(code.contains("fn pool_pin_page"), "C354: Should contain pool_pin_page function");
 }
 
 #[test]
@@ -532,21 +498,11 @@ int tuple_is_null(const tuple_t *tuple, int col_idx) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C355: Row-oriented tuple layout should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C355: Row-oriented tuple layout should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C355: Output should not be empty");
-    assert!(
-        code.contains("fn tuple_get_col"),
-        "C355: Should contain tuple_get_col function"
-    );
-    assert!(
-        code.contains("fn tuple_set_col"),
-        "C355: Should contain tuple_set_col function"
-    );
+    assert!(code.contains("fn tuple_get_col"), "C355: Should contain tuple_get_col function");
+    assert!(code.contains("fn tuple_set_col"), "C355: Should contain tuple_set_col function");
 }
 
 // ============================================================================
@@ -625,21 +581,14 @@ uint32_t rle_column_count_value(const rle_column_t *col, uint32_t value) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C356: Column RLE compression should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C356: Column RLE compression should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C356: Output should not be empty");
     assert!(
         code.contains("fn rle_column_append"),
         "C356: Should contain rle_column_append function"
     );
-    assert!(
-        code.contains("fn rle_column_get"),
-        "C356: Should contain rle_column_get function"
-    );
+    assert!(code.contains("fn rle_column_get"), "C356: Should contain rle_column_get function");
 }
 
 #[test]
@@ -729,21 +678,11 @@ int hash_index_delete(hash_index_t *ht, uint32_t key) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C357: Hash index linear probing should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C357: Hash index linear probing should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C357: Output should not be empty");
-    assert!(
-        code.contains("fn hash_index_put"),
-        "C357: Should contain hash_index_put function"
-    );
-    assert!(
-        code.contains("fn hash_func"),
-        "C357: Should contain hash_func function"
-    );
+    assert!(code.contains("fn hash_index_put"), "C357: Should contain hash_index_put function");
+    assert!(code.contains("fn hash_func"), "C357: Should contain hash_func function");
 }
 
 #[test]
@@ -829,17 +768,10 @@ int bloom_count_set_bits(const bloom_filter_t *bf) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C358: Bloom filter should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C358: Bloom filter should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C358: Output should not be empty");
-    assert!(
-        code.contains("fn bloom_add"),
-        "C358: Should contain bloom_add function"
-    );
+    assert!(code.contains("fn bloom_add"), "C358: Should contain bloom_add function");
     assert!(
         code.contains("fn bloom_may_contain"),
         "C358: Should contain bloom_may_contain function"
@@ -946,21 +878,11 @@ int mvcc_write(mvcc_store_t *store, uint32_t row_id,
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C359: MVCC version chain should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C359: MVCC version chain should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C359: Output should not be empty");
-    assert!(
-        code.contains("fn mvcc_read"),
-        "C359: Should contain mvcc_read function"
-    );
-    assert!(
-        code.contains("fn mvcc_write"),
-        "C359: Should contain mvcc_write function"
-    );
+    assert!(code.contains("fn mvcc_read"), "C359: Should contain mvcc_read function");
+    assert!(code.contains("fn mvcc_write"), "C359: Should contain mvcc_write function");
 }
 
 #[test]
@@ -1164,17 +1086,10 @@ int choose_scan_method(uint32_t num_pages, uint32_t num_rows,
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C361: Query plan cost estimator should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C361: Query plan cost estimator should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C361: Output should not be empty");
-    assert!(
-        code.contains("fn cost_seq_scan"),
-        "C361: Should contain cost_seq_scan function"
-    );
+    assert!(code.contains("fn cost_seq_scan"), "C361: Should contain cost_seq_scan function");
     assert!(
         code.contains("fn choose_join_method"),
         "C361: Should contain choose_join_method function"
@@ -1274,21 +1189,11 @@ int count_matching_keys(const join_row_t *left, int left_n,
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C362: Sort-merge join should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C362: Sort-merge join should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C362: Output should not be empty");
-    assert!(
-        code.contains("fn sort_merge_join"),
-        "C362: Should contain sort_merge_join function"
-    );
-    assert!(
-        code.contains("fn sort_rows"),
-        "C362: Should contain sort_rows function"
-    );
+    assert!(code.contains("fn sort_merge_join"), "C362: Should contain sort_merge_join function");
+    assert!(code.contains("fn sort_rows"), "C362: Should contain sort_rows function");
 }
 
 #[test]
@@ -1388,21 +1293,11 @@ void iter_reset(index_scan_iter_t *iter) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C363: Index scan iterator should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C363: Index scan iterator should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C363: Output should not be empty");
-    assert!(
-        code.contains("fn iter_init"),
-        "C363: Should contain iter_init function"
-    );
-    assert!(
-        code.contains("fn iter_next"),
-        "C363: Should contain iter_next function"
-    );
+    assert!(code.contains("fn iter_init"), "C363: Should contain iter_init function");
+    assert!(code.contains("fn iter_next"), "C363: Should contain iter_next function");
 }
 
 #[test]
@@ -1495,17 +1390,10 @@ int ckpt_end(checkpoint_mgr_t *mgr) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C364: Checkpoint manager should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C364: Checkpoint manager should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C364: Output should not be empty");
-    assert!(
-        code.contains("fn ckpt_begin"),
-        "C364: Should contain ckpt_begin function"
-    );
+    assert!(code.contains("fn ckpt_begin"), "C364: Should contain ckpt_begin function");
     assert!(
         code.contains("fn ckpt_get_min_recovery_lsn"),
         "C364: Should contain ckpt_get_min_recovery_lsn function"
@@ -1606,21 +1494,11 @@ int redo_log_count_for_page(const redo_log_t *log, uint32_t page_id) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C365: Redo log replay should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C365: Redo log replay should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C365: Output should not be empty");
-    assert!(
-        code.contains("fn redo_log_replay"),
-        "C365: Should contain redo_log_replay function"
-    );
-    assert!(
-        code.contains("fn redo_apply_op"),
-        "C365: Should contain redo_apply_op function"
-    );
+    assert!(code.contains("fn redo_log_replay"), "C365: Should contain redo_log_replay function");
+    assert!(code.contains("fn redo_apply_op"), "C365: Should contain redo_apply_op function");
 }
 
 // ============================================================================
@@ -1711,21 +1589,11 @@ void bitmap_not(bitmap_index_t *result, const bitmap_index_t *bm) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C366: Bitmap index operations should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C366: Bitmap index operations should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C366: Output should not be empty");
-    assert!(
-        code.contains("fn bitmap_and"),
-        "C366: Should contain bitmap_and function"
-    );
-    assert!(
-        code.contains("fn bitmap_popcount"),
-        "C366: Should contain bitmap_popcount function"
-    );
+    assert!(code.contains("fn bitmap_and"), "C366: Should contain bitmap_and function");
+    assert!(code.contains("fn bitmap_popcount"), "C366: Should contain bitmap_popcount function");
 }
 
 #[test]
@@ -1829,21 +1697,11 @@ int extent_free(extent_allocator_t *ea, uint32_t start_page) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C367: Extent allocator should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C367: Extent allocator should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C367: Output should not be empty");
-    assert!(
-        code.contains("fn extent_allocate"),
-        "C367: Should contain extent_allocate function"
-    );
-    assert!(
-        code.contains("fn extent_coalesce"),
-        "C367: Should contain extent_coalesce function"
-    );
+    assert!(code.contains("fn extent_allocate"), "C367: Should contain extent_allocate function");
+    assert!(code.contains("fn extent_coalesce"), "C367: Should contain extent_coalesce function");
 }
 
 #[test]
@@ -1929,17 +1787,10 @@ int count_fields(const uint8_t *buf, int buf_size) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C368: Record serialization should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C368: Record serialization should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C368: Output should not be empty");
-    assert!(
-        code.contains("fn serialize_int32"),
-        "C368: Should contain serialize_int32 function"
-    );
+    assert!(code.contains("fn serialize_int32"), "C368: Should contain serialize_int32 function");
     assert!(
         code.contains("fn deserialize_int32"),
         "C368: Should contain deserialize_int32 function"
@@ -2036,21 +1887,11 @@ int leaf_is_underflow(const leaf_page_t *page) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C369: B+ tree leaf page should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C369: B+ tree leaf page should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C369: Output should not be empty");
-    assert!(
-        code.contains("fn leaf_insert"),
-        "C369: Should contain leaf_insert function"
-    );
-    assert!(
-        code.contains("fn leaf_split"),
-        "C369: Should contain leaf_split function"
-    );
+    assert!(code.contains("fn leaf_insert"), "C369: Should contain leaf_insert function");
+    assert!(code.contains("fn leaf_split"), "C369: Should contain leaf_split function");
 }
 
 #[test]
@@ -2166,21 +2007,11 @@ int sstable_lookup(const sstable_t *sst, uint32_t key, uint32_t *value) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C370: LSM compaction should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C370: LSM compaction should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C370: Output should not be empty");
-    assert!(
-        code.contains("fn compact_merge"),
-        "C370: Should contain compact_merge function"
-    );
-    assert!(
-        code.contains("fn sstable_lookup"),
-        "C370: Should contain sstable_lookup function"
-    );
+    assert!(code.contains("fn compact_merge"), "C370: Should contain compact_merge function");
+    assert!(code.contains("fn sstable_lookup"), "C370: Should contain sstable_lookup function");
 }
 
 // ============================================================================
@@ -2276,21 +2107,11 @@ int cursor_seek(cursor_t *cur, uint32_t key) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C371: Cursor-based iteration should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C371: Cursor-based iteration should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C371: Output should not be empty");
-    assert!(
-        code.contains("fn cursor_advance"),
-        "C371: Should contain cursor_advance function"
-    );
-    assert!(
-        code.contains("fn cursor_seek"),
-        "C371: Should contain cursor_seek function"
-    );
+    assert!(code.contains("fn cursor_advance"), "C371: Should contain cursor_advance function");
+    assert!(code.contains("fn cursor_seek"), "C371: Should contain cursor_seek function");
 }
 
 #[test]
@@ -2408,11 +2229,7 @@ int catalog_find_column(const catalog_t *cat, int table_idx,
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C372: Schema catalog lookup should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C372: Schema catalog lookup should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C372: Output should not be empty");
     assert!(
@@ -2519,21 +2336,14 @@ int hist_find_bucket(const histogram_t *h, uint32_t value) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C373: Statistics histogram should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C373: Statistics histogram should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C373: Output should not be empty");
     assert!(
         code.contains("fn hist_estimate_selectivity"),
         "C373: Should contain hist_estimate_selectivity function"
     );
-    assert!(
-        code.contains("fn hist_find_bucket"),
-        "C373: Should contain hist_find_bucket function"
-    );
+    assert!(code.contains("fn hist_find_bucket"), "C373: Should contain hist_find_bucket function");
 }
 
 #[test]
@@ -2645,17 +2455,10 @@ int frame_flush(frame_pool_t *pool, int idx) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C374: Buffer frame pinning should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C374: Buffer frame pinning should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C374: Output should not be empty");
-    assert!(
-        code.contains("fn frame_pin"),
-        "C374: Should contain frame_pin function"
-    );
+    assert!(code.contains("fn frame_pin"), "C374: Should contain frame_pin function");
     assert!(
         code.contains("fn frame_pool_clock_evict"),
         "C374: Should contain frame_pool_clock_evict function"
@@ -2773,19 +2576,9 @@ void undo_truncate(undo_log_t *log, uint64_t txn_id) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C375: Undo log for rollback should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C375: Undo log for rollback should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C375: Output should not be empty");
-    assert!(
-        code.contains("fn undo_rollback"),
-        "C375: Should contain undo_rollback function"
-    );
-    assert!(
-        code.contains("fn undo_truncate"),
-        "C375: Should contain undo_truncate function"
-    );
+    assert!(code.contains("fn undo_rollback"), "C375: Should contain undo_rollback function");
+    assert!(code.contains("fn undo_truncate"), "C375: Should contain undo_truncate function");
 }

@@ -24,16 +24,10 @@ fn test_function_with_single_reference_parameter() {
 
     let func = HirFunction::new(
         "identity".to_string(),
-        HirType::Reference {
-            inner: Box::new(HirType::Int),
-            mutable: false,
-        },
+        HirType::Reference { inner: Box::new(HirType::Int), mutable: false },
         vec![HirParameter::new(
             "ptr".to_string(),
-            HirType::Reference {
-                inner: Box::new(HirType::Int),
-                mutable: false,
-            },
+            HirType::Reference { inner: Box::new(HirType::Int), mutable: false },
         )],
     );
 
@@ -69,16 +63,10 @@ fn test_function_with_mutable_reference_lifetime() {
 
     let func = HirFunction::new(
         "modify".to_string(),
-        HirType::Reference {
-            inner: Box::new(HirType::Int),
-            mutable: true,
-        },
+        HirType::Reference { inner: Box::new(HirType::Int), mutable: true },
         vec![HirParameter::new(
             "ptr".to_string(),
-            HirType::Reference {
-                inner: Box::new(HirType::Int),
-                mutable: true,
-            },
+            HirType::Reference { inner: Box::new(HirType::Int), mutable: true },
         )],
     );
 
@@ -118,24 +106,15 @@ fn test_function_with_multiple_reference_parameters() {
 
     let func = HirFunction::new(
         "choose".to_string(),
-        HirType::Reference {
-            inner: Box::new(HirType::Int),
-            mutable: false,
-        },
+        HirType::Reference { inner: Box::new(HirType::Int), mutable: false },
         vec![
             HirParameter::new(
                 "a".to_string(),
-                HirType::Reference {
-                    inner: Box::new(HirType::Int),
-                    mutable: false,
-                },
+                HirType::Reference { inner: Box::new(HirType::Int), mutable: false },
             ),
             HirParameter::new(
                 "b".to_string(),
-                HirType::Reference {
-                    inner: Box::new(HirType::Int),
-                    mutable: false,
-                },
+                HirType::Reference { inner: Box::new(HirType::Int), mutable: false },
             ),
             HirParameter::new("flag".to_string(), HirType::Int),
         ],
@@ -146,11 +125,7 @@ fn test_function_with_multiple_reference_parameters() {
 
     // Should have at least one lifetime parameter
     // (May have 'a and 'b, or may unify them - implementation choice)
-    assert!(
-        rust_code.contains("'a"),
-        "Expected lifetime parameters, got: {}",
-        rust_code
-    );
+    assert!(rust_code.contains("'a"), "Expected lifetime parameters, got: {}", rust_code);
 
     // Should have lifetimes on parameters
     assert!(
@@ -196,11 +171,7 @@ fn test_function_with_no_references_no_lifetimes() {
     );
 
     // Should NOT have lifetime annotations
-    assert!(
-        !rust_code.contains("&'"),
-        "Should not have lifetime annotations, got: {}",
-        rust_code
-    );
+    assert!(!rust_code.contains("&'"), "Should not have lifetime annotations, got: {}", rust_code);
 }
 
 #[test]
@@ -214,10 +185,7 @@ fn test_function_with_reference_input_only_no_explicit_lifetime() {
         HirType::Int,
         vec![HirParameter::new(
             "ptr".to_string(),
-            HirType::Reference {
-                inner: Box::new(HirType::Int),
-                mutable: false,
-            },
+            HirType::Reference { inner: Box::new(HirType::Int), mutable: false },
         )],
     );
 
@@ -233,11 +201,7 @@ fn test_function_with_reference_input_only_no_explicit_lifetime() {
     );
 
     // Return type should be i32 (not a reference)
-    assert!(
-        rust_code.contains("-> i32"),
-        "Expected i32 return type, got: {}",
-        rust_code
-    );
+    assert!(rust_code.contains("-> i32"), "Expected i32 return type, got: {}", rust_code);
 }
 
 // ============================================================================
@@ -252,10 +216,7 @@ fn test_function_with_nested_reference_types() {
     let func = HirFunction::new(
         "get_ptr_to_ptr".to_string(),
         HirType::Reference {
-            inner: Box::new(HirType::Reference {
-                inner: Box::new(HirType::Int),
-                mutable: false,
-            }),
+            inner: Box::new(HirType::Reference { inner: Box::new(HirType::Int), mutable: false }),
             mutable: false,
         },
         vec![HirParameter::new(
@@ -285,26 +246,15 @@ fn test_function_with_nested_reference_types() {
     let has_nested_ref = rust_code.contains("&&")
         || rust_code.contains("& &")
         || (rust_code.contains("&'") && rust_code.matches("&'").count() >= 2);
-    assert!(
-        has_nested_ref,
-        "Expected nested reference in parameter, got: {}",
-        rust_code
-    );
+    assert!(has_nested_ref, "Expected nested reference in parameter, got: {}", rust_code);
 
     // Should have nested reference in return type
     // With lifetimes, this will be -> &'a &'a i32 or similar
     let has_nested_return = rust_code.contains("-> &&")
         || rust_code.contains("-> & &")
         || (rust_code.contains("-> &'")
-            && rust_code[rust_code.find("-> &'").unwrap()..]
-                .matches("&'")
-                .count()
-                >= 2);
-    assert!(
-        has_nested_return,
-        "Expected nested reference in return type, got: {}",
-        rust_code
-    );
+            && rust_code[rust_code.find("-> &'").unwrap()..].matches("&'").count() >= 2);
+    assert!(has_nested_return, "Expected nested reference in return type, got: {}", rust_code);
 }
 
 // ============================================================================
@@ -318,16 +268,10 @@ fn test_function_with_float_reference() {
 
     let func = HirFunction::new(
         "process_float".to_string(),
-        HirType::Reference {
-            inner: Box::new(HirType::Float),
-            mutable: false,
-        },
+        HirType::Reference { inner: Box::new(HirType::Float), mutable: false },
         vec![HirParameter::new(
             "value".to_string(),
-            HirType::Reference {
-                inner: Box::new(HirType::Float),
-                mutable: false,
-            },
+            HirType::Reference { inner: Box::new(HirType::Float), mutable: false },
         )],
     );
 
@@ -335,11 +279,7 @@ fn test_function_with_float_reference() {
     let rust_code = codegen.generate_function(&func);
 
     // Should have lifetime parameter
-    assert!(
-        rust_code.contains("'a"),
-        "Expected lifetime parameter, got: {}",
-        rust_code
-    );
+    assert!(rust_code.contains("'a"), "Expected lifetime parameter, got: {}", rust_code);
 
     // Should have lifetime on float reference
     assert!(
@@ -360,16 +300,10 @@ fn test_generated_code_with_lifetimes_is_valid_rust() {
 
     let func = HirFunction::new(
         "test_func".to_string(),
-        HirType::Reference {
-            inner: Box::new(HirType::Int),
-            mutable: false,
-        },
+        HirType::Reference { inner: Box::new(HirType::Int), mutable: false },
         vec![HirParameter::new(
             "x".to_string(),
-            HirType::Reference {
-                inner: Box::new(HirType::Int),
-                mutable: false,
-            },
+            HirType::Reference { inner: Box::new(HirType::Int), mutable: false },
         )],
     );
 
@@ -377,10 +311,7 @@ fn test_generated_code_with_lifetimes_is_valid_rust() {
     let rust_code = codegen.generate_function(&func);
 
     // Basic syntax checks
-    assert!(
-        rust_code.contains("fn test_func"),
-        "Should have function name"
-    );
+    assert!(rust_code.contains("fn test_func"), "Should have function name");
     assert!(rust_code.contains("("), "Should have parameter list open");
     assert!(rust_code.contains(")"), "Should have parameter list close");
     assert!(rust_code.contains("->"), "Should have return type arrow");
@@ -388,11 +319,7 @@ fn test_generated_code_with_lifetimes_is_valid_rust() {
     // Should have balanced braces
     let open_braces = rust_code.matches('{').count();
     let close_braces = rust_code.matches('}').count();
-    assert_eq!(
-        open_braces, close_braces,
-        "Should have balanced braces, got: {}",
-        rust_code
-    );
+    assert_eq!(open_braces, close_braces, "Should have balanced braces, got: {}", rust_code);
 
     // Lifetime syntax should be correct if present
     if rust_code.contains("'a") {

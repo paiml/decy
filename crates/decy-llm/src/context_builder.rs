@@ -61,16 +61,12 @@ pub struct ContextBuilder {
 impl ContextBuilder {
     /// Create a new context builder.
     pub fn new() -> Self {
-        Self {
-            functions: Vec::new(),
-        }
+        Self { functions: Vec::new() }
     }
 
     /// Build context from ownership and lifetime analysis results.
     pub fn build(&self) -> AnalysisContext {
-        AnalysisContext {
-            functions: self.functions.clone(),
-        }
+        AnalysisContext { functions: self.functions.clone() }
     }
 
     /// Add a function with its analysis results.
@@ -97,11 +93,7 @@ impl ContextBuilder {
         if let Some(func) = self.functions.iter_mut().find(|f| f.name == function) {
             func.ownership.insert(
                 variable.to_string(),
-                OwnershipInfo {
-                    kind: kind.to_string(),
-                    confidence,
-                    reason: reason.to_string(),
-                },
+                OwnershipInfo { kind: kind.to_string(), confidence, reason: reason.to_string() },
             );
         }
         self
@@ -171,10 +163,7 @@ mod tests {
         let ctx = builder.build();
         assert_eq!(ctx.functions.len(), 1);
         assert_eq!(ctx.functions[0].name, "process");
-        assert_eq!(
-            ctx.functions[0].c_signature,
-            "void process(int* data, int len)"
-        );
+        assert_eq!(ctx.functions[0].c_signature, "void process(int* data, int len)");
     }
 
     #[test]

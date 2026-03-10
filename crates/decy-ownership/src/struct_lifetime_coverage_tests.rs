@@ -20,21 +20,14 @@ use decy_hir::HirType;
 #[test]
 fn test_annotate_mutable_reference_field() {
     let annotator = StructLifetimeAnnotator::new();
-    let fields = vec![(
-        "data",
-        HirType::Reference {
-            inner: Box::new(HirType::Int),
-            mutable: true,
-        },
-    )];
+    let fields =
+        vec![("data", HirType::Reference { inner: Box::new(HirType::Int), mutable: true })];
     let lifetimes = vec![LifetimeParam::standard(0)];
     let annotated = annotator.annotate_fields(&fields, &lifetimes);
 
     assert_eq!(annotated.len(), 1);
     match &annotated[0].field_type {
-        AnnotatedType::Reference {
-            mutable, lifetime, ..
-        } => {
+        AnnotatedType::Reference { mutable, lifetime, .. } => {
             assert!(*mutable, "Should preserve mutable flag");
             assert!(lifetime.is_some());
             assert_eq!(lifetime.as_ref().unwrap().name, "'a");
@@ -50,22 +43,14 @@ fn test_annotate_mutable_reference_field() {
 #[test]
 fn test_annotate_reference_no_lifetimes_gives_none() {
     let annotator = StructLifetimeAnnotator::new();
-    let fields = vec![(
-        "data",
-        HirType::Reference {
-            inner: Box::new(HirType::Int),
-            mutable: false,
-        },
-    )];
+    let fields =
+        vec![("data", HirType::Reference { inner: Box::new(HirType::Int), mutable: false })];
     let empty_lifetimes: Vec<LifetimeParam> = vec![];
     let annotated = annotator.annotate_fields(&fields, &empty_lifetimes);
 
     match &annotated[0].field_type {
         AnnotatedType::Reference { lifetime, .. } => {
-            assert!(
-                lifetime.is_none(),
-                "Reference with no lifetimes should have None lifetime"
-            );
+            assert!(lifetime.is_none(), "Reference with no lifetimes should have None lifetime");
         }
         other => panic!("Expected Reference, got {:?}", other),
     }
@@ -96,10 +81,7 @@ fn test_annotate_simple_type_char() {
     let lifetimes = vec![];
     let annotated = annotator.annotate_fields(&fields, &lifetimes);
 
-    assert!(matches!(
-        &annotated[0].field_type,
-        AnnotatedType::Simple(HirType::Char)
-    ));
+    assert!(matches!(&annotated[0].field_type, AnnotatedType::Simple(HirType::Char)));
 }
 
 #[test]
@@ -109,10 +91,7 @@ fn test_annotate_simple_type_double() {
     let lifetimes = vec![];
     let annotated = annotator.annotate_fields(&fields, &lifetimes);
 
-    assert!(matches!(
-        &annotated[0].field_type,
-        AnnotatedType::Simple(HirType::Double)
-    ));
+    assert!(matches!(&annotated[0].field_type, AnnotatedType::Simple(HirType::Double)));
 }
 
 // ============================================================================
@@ -157,11 +136,7 @@ fn test_generate_syntax_empty_lifetimes() {
 #[test]
 fn test_annotate_struct_no_references() {
     let annotator = StructLifetimeAnnotator::new();
-    let fields = vec![
-        ("x", HirType::Int),
-        ("y", HirType::Float),
-        ("z", HirType::Double),
-    ];
+    let fields = vec![("x", HirType::Int), ("y", HirType::Float), ("z", HirType::Double)];
     let annotated = annotator.annotate_struct("Vec3", &fields);
     assert_eq!(annotated.name, "Vec3");
     assert!(annotated.lifetimes.is_empty(), "No lifetimes for plain types");
@@ -195,18 +170,9 @@ fn test_detect_reference_fields_mixed() {
     let annotator = StructLifetimeAnnotator::new();
     let fields = vec![
         ("a", HirType::Int),
-        (
-            "b",
-            HirType::Pointer(Box::new(HirType::Char)),
-        ),
+        ("b", HirType::Pointer(Box::new(HirType::Char))),
         ("c", HirType::Float),
-        (
-            "d",
-            HirType::Reference {
-                inner: Box::new(HirType::Double),
-                mutable: true,
-            },
-        ),
+        ("d", HirType::Reference { inner: Box::new(HirType::Double), mutable: true }),
     ];
     let refs = annotator.detect_reference_fields(&fields);
     assert_eq!(refs.len(), 2);
@@ -223,10 +189,8 @@ fn test_detect_reference_fields_mixed() {
 #[test]
 fn test_annotate_nested_pointer() {
     let annotator = StructLifetimeAnnotator::new();
-    let fields = vec![(
-        "nested",
-        HirType::Pointer(Box::new(HirType::Pointer(Box::new(HirType::Int)))),
-    )];
+    let fields =
+        vec![("nested", HirType::Pointer(Box::new(HirType::Pointer(Box::new(HirType::Int)))))];
     let lifetimes = vec![LifetimeParam::standard(0)];
     let annotated = annotator.annotate_fields(&fields, &lifetimes);
 
@@ -281,13 +245,7 @@ fn test_annotate_struct_mixed_ptr_and_ref() {
     let annotator = StructLifetimeAnnotator::new();
     let fields = vec![
         ("ptr_field", HirType::Pointer(Box::new(HirType::Int))),
-        (
-            "ref_field",
-            HirType::Reference {
-                inner: Box::new(HirType::Char),
-                mutable: false,
-            },
-        ),
+        ("ref_field", HirType::Reference { inner: Box::new(HirType::Char), mutable: false }),
         ("int_field", HirType::Int),
     ];
     let annotated = annotator.annotate_struct("Mixed", &fields);

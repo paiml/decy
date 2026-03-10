@@ -74,10 +74,7 @@ fn rollback_returns_success_true() {
 #[test]
 fn rollback_from_version_matches_previously_active() {
     let mut mgr = seeded_manager(3);
-    assert_eq!(
-        mgr.active_version().unwrap().version,
-        ModelVersion::new(1, 2, 0)
-    );
+    assert_eq!(mgr.active_version().unwrap().version, ModelVersion::new(1, 2, 0));
     let rb = mgr.rollback("test".to_string()).unwrap();
     assert_eq!(rb.from_version, ModelVersion::new(1, 2, 0));
 }
@@ -110,13 +107,9 @@ fn rollback_sets_rolled_back_flag_on_current() {
 #[test]
 fn rollback_stores_reason_on_current_version() {
     let mut mgr = seeded_manager(2);
-    mgr.rollback("accuracy dropped below 80%".to_string())
-        .unwrap();
+    mgr.rollback("accuracy dropped below 80%".to_string()).unwrap();
     let versions: Vec<_> = mgr.versions().collect();
-    assert_eq!(
-        versions[1].rollback_reason.as_deref(),
-        Some("accuracy dropped below 80%")
-    );
+    assert_eq!(versions[1].rollback_reason.as_deref(), Some("accuracy dropped below 80%"));
 }
 
 #[test]
@@ -133,10 +126,7 @@ fn rollback_updates_active_index() {
     let mut mgr = seeded_manager(3);
     mgr.rollback("test".to_string()).unwrap();
     // After rollback, active should be v1.1.0 (index 1)
-    assert_eq!(
-        mgr.active_version().unwrap().version,
-        ModelVersion::new(1, 1, 0)
-    );
+    assert_eq!(mgr.active_version().unwrap().version, ModelVersion::new(1, 1, 0));
 }
 
 #[test]
@@ -190,10 +180,7 @@ fn rollback_skips_rolled_back_versions_finds_non_rolled_back() {
     let mut mgr = seeded_manager(4);
     // Active is v1.3.0 (index 3). Rollback once: v1.3.0 -> v1.2.0
     mgr.rollback("first".to_string()).unwrap();
-    assert_eq!(
-        mgr.active_version().unwrap().version,
-        ModelVersion::new(1, 2, 0)
-    );
+    assert_eq!(mgr.active_version().unwrap().version, ModelVersion::new(1, 2, 0));
     // The rollback() algo uses rev().skip(1) from the END of the deque,
     // not from the active index. After first rollback, v1.3.0 is rolled_back.
     // rev() = [v1.3.0(rolled_back), v1.2.0(active), v1.1.0, v1.0.0]
@@ -207,11 +194,9 @@ fn rollback_skips_rolled_back_versions_finds_non_rolled_back() {
 fn rollback_all_previous_rolled_back_returns_error() {
     let mut mgr = seeded_manager(3);
     // v1.2.0 active. Use rollback_to for precise control.
-    mgr.rollback_to(&ModelVersion::new(1, 1, 0), "first".to_string())
-        .unwrap();
+    mgr.rollback_to(&ModelVersion::new(1, 1, 0), "first".to_string()).unwrap();
     // v1.1.0 active. Rollback to v1.0.0
-    mgr.rollback_to(&ModelVersion::new(1, 0, 0), "second".to_string())
-        .unwrap();
+    mgr.rollback_to(&ModelVersion::new(1, 0, 0), "second".to_string()).unwrap();
     // v1.0.0 active. v1.1.0 and v1.2.0 are rolled back.
     // rollback() uses rev().skip(1): skips v1.2.0, finds v1.1.0 (rolled_back) -> skip,
     // finds v1.0.0 (not rolled_back but it's the current). The behavior depends on
@@ -265,35 +250,28 @@ fn rollback_with_str_reason() {
 #[test]
 fn rollback_to_returns_success_true() {
     let mut mgr = seeded_manager(3);
-    let rb = mgr
-        .rollback_to(&ModelVersion::new(1, 0, 0), "test".to_string())
-        .unwrap();
+    let rb = mgr.rollback_to(&ModelVersion::new(1, 0, 0), "test".to_string()).unwrap();
     assert!(rb.success);
 }
 
 #[test]
 fn rollback_to_from_version_matches_current() {
     let mut mgr = seeded_manager(3);
-    let rb = mgr
-        .rollback_to(&ModelVersion::new(1, 0, 0), "test".to_string())
-        .unwrap();
+    let rb = mgr.rollback_to(&ModelVersion::new(1, 0, 0), "test".to_string()).unwrap();
     assert_eq!(rb.from_version, ModelVersion::new(1, 2, 0));
 }
 
 #[test]
 fn rollback_to_to_version_matches_target() {
     let mut mgr = seeded_manager(3);
-    let rb = mgr
-        .rollback_to(&ModelVersion::new(1, 1, 0), "test".to_string())
-        .unwrap();
+    let rb = mgr.rollback_to(&ModelVersion::new(1, 1, 0), "test".to_string()).unwrap();
     assert_eq!(rb.to_version, ModelVersion::new(1, 1, 0));
 }
 
 #[test]
 fn rollback_to_deactivates_current() {
     let mut mgr = seeded_manager(2);
-    mgr.rollback_to(&ModelVersion::new(1, 0, 0), "test".to_string())
-        .unwrap();
+    mgr.rollback_to(&ModelVersion::new(1, 0, 0), "test".to_string()).unwrap();
     let versions: Vec<_> = mgr.versions().collect();
     assert!(!versions[1].is_active);
     assert!(versions[1].rolled_back);
@@ -302,20 +280,15 @@ fn rollback_to_deactivates_current() {
 #[test]
 fn rollback_to_marks_current_with_reason() {
     let mut mgr = seeded_manager(2);
-    mgr.rollback_to(&ModelVersion::new(1, 0, 0), "specific reason".to_string())
-        .unwrap();
+    mgr.rollback_to(&ModelVersion::new(1, 0, 0), "specific reason".to_string()).unwrap();
     let versions: Vec<_> = mgr.versions().collect();
-    assert_eq!(
-        versions[1].rollback_reason.as_deref(),
-        Some("specific reason")
-    );
+    assert_eq!(versions[1].rollback_reason.as_deref(), Some("specific reason"));
 }
 
 #[test]
 fn rollback_to_activates_target() {
     let mut mgr = seeded_manager(3);
-    mgr.rollback_to(&ModelVersion::new(1, 0, 0), "test".to_string())
-        .unwrap();
+    mgr.rollback_to(&ModelVersion::new(1, 0, 0), "test".to_string()).unwrap();
     let active = mgr.active_version().unwrap();
     assert!(active.is_active);
     assert_eq!(active.version, ModelVersion::new(1, 0, 0));
@@ -327,17 +300,12 @@ fn rollback_to_clears_rolled_back_flag_on_target() {
     // First rollback: v1.2.0 -> v1.1.0
     mgr.rollback("first".to_string()).unwrap();
     // Second rollback: v1.1.0 -> v1.0.0
-    mgr.rollback_to(&ModelVersion::new(1, 0, 0), "second".to_string())
-        .unwrap();
+    mgr.rollback_to(&ModelVersion::new(1, 0, 0), "second".to_string()).unwrap();
     // Now restore v1.1.0 (which was previously rolled back from earlier rollback)
-    mgr.rollback_to(&ModelVersion::new(1, 1, 0), "restore".to_string())
-        .unwrap();
+    mgr.rollback_to(&ModelVersion::new(1, 1, 0), "restore".to_string()).unwrap();
 
     let versions: Vec<_> = mgr.versions().collect();
-    let v11 = versions
-        .iter()
-        .find(|v| v.version == ModelVersion::new(1, 1, 0))
-        .unwrap();
+    let v11 = versions.iter().find(|v| v.version == ModelVersion::new(1, 1, 0)).unwrap();
     assert!(!v11.rolled_back, "rolled_back flag should be cleared");
     assert!(v11.is_active);
 }
@@ -345,9 +313,7 @@ fn rollback_to_clears_rolled_back_flag_on_target() {
 #[test]
 fn rollback_to_nonexistent_version_returns_not_found() {
     let mut mgr = seeded_manager(2);
-    let err = mgr
-        .rollback_to(&ModelVersion::new(99, 0, 0), "test".to_string())
-        .unwrap_err();
+    let err = mgr.rollback_to(&ModelVersion::new(99, 0, 0), "test".to_string()).unwrap_err();
     assert!(err.contains("not found"));
     assert!(err.contains("v99.0.0"));
 }
@@ -356,9 +322,8 @@ fn rollback_to_nonexistent_version_returns_not_found() {
 fn rollback_to_same_as_active_returns_error() {
     let mut mgr = seeded_manager(2);
     // Active is v1.1.0
-    let err = mgr
-        .rollback_to(&ModelVersion::new(1, 1, 0), "already active".to_string())
-        .unwrap_err();
+    let err =
+        mgr.rollback_to(&ModelVersion::new(1, 1, 0), "already active".to_string()).unwrap_err();
     assert_eq!(err, "Target is already the active version");
 }
 
@@ -367,38 +332,31 @@ fn rollback_to_no_active_version_returns_error() {
     let mut mgr = ModelVersionManager::new();
     mgr.register_version(bad_entry(1, 0, 0)).unwrap();
     mgr.register_version(bad_entry(1, 1, 0)).unwrap();
-    let err = mgr
-        .rollback_to(&ModelVersion::new(1, 0, 0), "test".to_string())
-        .unwrap_err();
+    let err = mgr.rollback_to(&ModelVersion::new(1, 0, 0), "test".to_string()).unwrap_err();
     assert_eq!(err, "No active version");
 }
 
 #[test]
 fn rollback_to_timestamp_is_nonzero() {
     let mut mgr = seeded_manager(2);
-    let rb = mgr
-        .rollback_to(&ModelVersion::new(1, 0, 0), "test".to_string())
-        .unwrap();
+    let rb = mgr.rollback_to(&ModelVersion::new(1, 0, 0), "test".to_string()).unwrap();
     assert!(rb.timestamp > 0);
 }
 
 #[test]
 fn rollback_to_appends_to_history() {
     let mut mgr = seeded_manager(3);
-    mgr.rollback_to(&ModelVersion::new(1, 0, 0), "first".to_string())
-        .unwrap();
+    mgr.rollback_to(&ModelVersion::new(1, 0, 0), "first".to_string()).unwrap();
     assert_eq!(mgr.rollback_history().len(), 1);
     // Rollback back to v1.1.0
-    mgr.rollback_to(&ModelVersion::new(1, 1, 0), "second".to_string())
-        .unwrap();
+    mgr.rollback_to(&ModelVersion::new(1, 1, 0), "second".to_string()).unwrap();
     assert_eq!(mgr.rollback_history().len(), 2);
 }
 
 #[test]
 fn rollback_to_reason_in_history() {
     let mut mgr = seeded_manager(2);
-    mgr.rollback_to(&ModelVersion::new(1, 0, 0), "critical bug".to_string())
-        .unwrap();
+    mgr.rollback_to(&ModelVersion::new(1, 0, 0), "critical bug".to_string()).unwrap();
     assert_eq!(mgr.rollback_history()[0].reason, "critical bug");
 }
 
@@ -406,23 +364,17 @@ fn rollback_to_reason_in_history() {
 fn rollback_to_middle_version_in_long_history() {
     let mut mgr = seeded_manager(5);
     // Active is v1.4.0, rollback to v1.2.0
-    let rb = mgr
-        .rollback_to(&ModelVersion::new(1, 2, 0), "mid-range rollback".to_string())
-        .unwrap();
+    let rb =
+        mgr.rollback_to(&ModelVersion::new(1, 2, 0), "mid-range rollback".to_string()).unwrap();
     assert_eq!(rb.from_version, ModelVersion::new(1, 4, 0));
     assert_eq!(rb.to_version, ModelVersion::new(1, 2, 0));
-    assert_eq!(
-        mgr.active_version().unwrap().version,
-        ModelVersion::new(1, 2, 0)
-    );
+    assert_eq!(mgr.active_version().unwrap().version, ModelVersion::new(1, 2, 0));
 }
 
 #[test]
 fn rollback_to_with_str_reason() {
     let mut mgr = seeded_manager(2);
-    let rb = mgr
-        .rollback_to(&ModelVersion::new(1, 0, 0), "str slice reason")
-        .unwrap();
+    let rb = mgr.rollback_to(&ModelVersion::new(1, 0, 0), "str slice reason").unwrap();
     assert_eq!(rb.reason, "str slice reason");
 }
 
@@ -433,12 +385,8 @@ fn rollback_to_after_rollback_chain() {
     mgr.rollback("r1".to_string()).unwrap();
     mgr.rollback("r2".to_string()).unwrap();
     // Now directly jump to v1.0.0
-    mgr.rollback_to(&ModelVersion::new(1, 0, 0), "skip to baseline".to_string())
-        .unwrap();
-    assert_eq!(
-        mgr.active_version().unwrap().version,
-        ModelVersion::new(1, 0, 0)
-    );
+    mgr.rollback_to(&ModelVersion::new(1, 0, 0), "skip to baseline".to_string()).unwrap();
+    assert_eq!(mgr.active_version().unwrap().version, ModelVersion::new(1, 0, 0));
     assert_eq!(mgr.rollback_history().len(), 3);
 }
 
@@ -686,10 +634,7 @@ fn to_markdown_version_table_row_contains_pipe_separators() {
     let md = mgr.to_markdown();
     // Find the table data row containing v1.0.0
     let lines: Vec<&str> = md.lines().collect();
-    let data_row = lines
-        .iter()
-        .find(|l| l.contains("v1.0.0"))
-        .expect("should have v1.0.0 row");
+    let data_row = lines.iter().find(|l| l.contains("v1.0.0")).expect("should have v1.0.0 row");
     // Row should contain version, accuracy percentage, F1 score, and status
     assert!(data_row.contains("v1.0.0"));
     assert!(data_row.contains("90.0%"));
@@ -700,8 +645,7 @@ fn to_markdown_version_table_row_contains_pipe_separators() {
 #[test]
 fn to_markdown_after_rollback_to_shows_correct_active() {
     let mut mgr = seeded_manager(4);
-    mgr.rollback_to(&ModelVersion::new(1, 1, 0), "skip to v1.1".to_string())
-        .unwrap();
+    mgr.rollback_to(&ModelVersion::new(1, 1, 0), "skip to v1.1".to_string()).unwrap();
     let md = mgr.to_markdown();
     assert!(md.contains("**Active Version**: v1.1.0"));
 }
@@ -750,8 +694,7 @@ fn rollback_then_markdown_shows_updated_state() {
 #[test]
 fn rollback_to_then_markdown_shows_rollback_details() {
     let mut mgr = seeded_manager(3);
-    mgr.rollback_to(&ModelVersion::new(1, 0, 0), "regression fix".to_string())
-        .unwrap();
+    mgr.rollback_to(&ModelVersion::new(1, 0, 0), "regression fix".to_string()).unwrap();
     let md = mgr.to_markdown();
     assert!(md.contains("**Active Version**: v1.0.0"));
     assert!(md.contains("regression fix"));
@@ -774,11 +717,9 @@ fn multiple_rollbacks_markdown_has_all_entries() {
 fn rollback_to_forward_then_markdown() {
     let mut mgr = seeded_manager(3);
     // Rollback from v1.2.0 -> v1.0.0
-    mgr.rollback_to(&ModelVersion::new(1, 0, 0), "back".to_string())
-        .unwrap();
+    mgr.rollback_to(&ModelVersion::new(1, 0, 0), "back".to_string()).unwrap();
     // Then forward to v1.1.0
-    mgr.rollback_to(&ModelVersion::new(1, 1, 0), "forward".to_string())
-        .unwrap();
+    mgr.rollback_to(&ModelVersion::new(1, 1, 0), "forward".to_string()).unwrap();
     let md = mgr.to_markdown();
     assert!(md.contains("**Active Version**: v1.1.0"));
     assert!(md.contains("back"));

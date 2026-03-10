@@ -55,11 +55,7 @@ void opt_rosenbrock_grad(double x, double y, double *gx, double *gy) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1176: Gradient descent should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1176: Gradient descent should transpile: {:?}", result.err());
 }
 
 #[test]
@@ -178,11 +174,7 @@ double opt_golden_section_general(double a, double b, double tol) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1178: Golden section search should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1178: Golden section search should transpile: {:?}", result.err());
 }
 
 #[test]
@@ -237,11 +229,7 @@ int opt_count_roots(double start, double end, double step) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1179: Bisection root finding should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1179: Bisection root finding should transpile: {:?}", result.err());
 }
 
 #[test]
@@ -297,11 +285,7 @@ double opt_regula_falsi(double a, double b, double tol, int max_iters) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1180: Secant method should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1180: Secant method should transpile: {:?}", result.err());
 }
 
 // ============================================================================
@@ -367,11 +351,7 @@ int opt_simplex_solve(double *tableau, int m, int n) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1181: Simplex method should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1181: Simplex method should transpile: {:?}", result.err());
 }
 
 #[test]
@@ -440,11 +420,7 @@ int opt_dual_simplex(double *tableau, int m, int n) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1182: Dual simplex should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1182: Dual simplex should transpile: {:?}", result.err());
 }
 
 #[test]
@@ -505,11 +481,7 @@ int opt_hungarian_count_zeros(double *cost, int n, int *assignment) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1183: Hungarian algorithm should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1183: Hungarian algorithm should transpile: {:?}", result.err());
 }
 
 #[test]
@@ -575,11 +547,7 @@ int opt_assignment_is_valid(int *assignment, int n) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1184: Assignment problem should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1184: Assignment problem should transpile: {:?}", result.err());
 }
 
 #[test]
@@ -642,11 +610,7 @@ int opt_transport_is_feasible(double *alloc, double *supply, double *demand, int
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1185: Transportation problem should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1185: Transportation problem should transpile: {:?}", result.err());
 }
 
 // ============================================================================
@@ -768,11 +732,7 @@ double opt_aco_tour_length(int *tour, double *distance, int n) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1187: Ant colony optimization should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1187: Ant colony optimization should transpile: {:?}", result.err());
 }
 
 #[test]
@@ -835,11 +795,7 @@ void opt_de_iterate(double *population, double *fitness, int pop_size, int dim,
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1188: Differential evolution should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1188: Differential evolution should transpile: {:?}", result.err());
 }
 
 #[test]
@@ -903,11 +859,7 @@ double opt_hs_best(double *fitness, int hms) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1189: Harmony search should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1189: Harmony search should transpile: {:?}", result.err());
 }
 
 #[test]
@@ -959,11 +911,7 @@ void opt_firefly_iterate(double *population, double *fitness, int n, int dim,
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1190: Firefly algorithm should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1190: Firefly algorithm should transpile: {:?}", result.err());
 }
 
 // ============================================================================
@@ -1012,11 +960,7 @@ void opt_lagrange_kkt_check(double x, double y, double lambda,
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1191: Lagrange multiplier should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1191: Lagrange multiplier should transpile: {:?}", result.err());
 }
 
 #[test]
@@ -1070,11 +1014,7 @@ void opt_penalty_minimize(double *x, int n, double rho_init, double rho_mult,
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1192: Penalty method should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1192: Penalty method should transpile: {:?}", result.err());
 }
 
 #[test]
@@ -1130,11 +1070,7 @@ void opt_barrier_minimize(double *x, int n, double t_init, double mu,
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1193: Barrier method should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1193: Barrier method should transpile: {:?}", result.err());
 }
 
 #[test]
@@ -1189,11 +1125,7 @@ void opt_auglag_solve(double *x, int n, double *lambda, double *rho,
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1194: Augmented Lagrangian should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1194: Augmented Lagrangian should transpile: {:?}", result.err());
 }
 
 #[test]
@@ -1267,11 +1199,7 @@ void opt_sqp_step(double *x, int n, double *lambda, double lr, int max_iters) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1195: SQP step should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1195: SQP step should transpile: {:?}", result.err());
 }
 
 // ============================================================================
@@ -1361,11 +1289,7 @@ double opt_bb_knapsack(double *values, double *weights, int n, double capacity,
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1196: Branch and bound should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1196: Branch and bound should transpile: {:?}", result.err());
 }
 
 #[test]
@@ -1418,11 +1342,7 @@ double opt_local_search(int *solution, double *cost_matrix, int n, int max_iters
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1197: Local search should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1197: Local search should transpile: {:?}", result.err());
 }
 
 #[test]
@@ -1485,11 +1405,7 @@ double opt_tsp_two_opt(int *tour, double *coords, int n, int max_iters) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1198: 2-opt TSP should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1198: 2-opt TSP should transpile: {:?}", result.err());
 }
 
 #[test]
@@ -1559,11 +1475,7 @@ double opt_bin_utilization(opt_bin_t *bins, int num_bins, double capacity) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1199: Bin packing first fit should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1199: Bin packing first fit should transpile: {:?}", result.err());
 }
 
 #[test]
@@ -1652,9 +1564,5 @@ double opt_schedule_makespan(opt_job_t *jobs, int n, int num_machines) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1200: Job scheduling should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1200: Job scheduling should transpile: {:?}", result.err());
 }

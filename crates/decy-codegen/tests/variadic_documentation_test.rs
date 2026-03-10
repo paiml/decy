@@ -54,10 +54,7 @@ fn test_variadic_sum_to_slice() {
     let rust_equivalent = "fn sum(values: &[i32]) -> i32";
 
     assert!(c_code.contains("..."), "C uses ... for variadic");
-    assert!(
-        rust_equivalent.contains("&[i32]"),
-        "Rust uses slice for homogeneous variadic"
-    );
+    assert!(rust_equivalent.contains("&[i32]"), "Rust uses slice for homogeneous variadic");
 
     // Key difference: Rust is type-safe at compile time
 }
@@ -89,10 +86,7 @@ fn test_variadic_printf_to_macro() {
     let rust_equivalent = "println!(\"{} {}\", x, str)";
 
     assert!(c_code.contains("printf"), "C uses printf");
-    assert!(
-        rust_equivalent.contains("println!"),
-        "Rust uses println! macro"
-    );
+    assert!(rust_equivalent.contains("println!"), "Rust uses println! macro");
 }
 
 /// Document transformation of max variadic function
@@ -126,14 +120,8 @@ fn test_variadic_max_to_slice() {
     let rust_equivalent = "fn max(values: &[i32]) -> Option<i32>";
 
     assert!(c_code.contains("..."), "C uses variadic");
-    assert!(
-        rust_equivalent.contains("&[i32]"),
-        "Rust uses slice parameter"
-    );
-    assert!(
-        rust_equivalent.contains("Option"),
-        "Rust returns Option for safety"
-    );
+    assert!(rust_equivalent.contains("&[i32]"), "Rust uses slice parameter");
+    assert!(rust_equivalent.contains("Option"), "Rust returns Option for safety");
 }
 
 /// Document transformation of logging variadic function
@@ -165,10 +153,7 @@ fn test_variadic_logging_to_macro() {
     let rust_equivalent = "macro_rules! log_message { ... }";
 
     assert!(c_code.contains("..."), "C uses variadic");
-    assert!(
-        rust_equivalent.contains("macro_rules!"),
-        "Rust uses declarative macro"
-    );
+    assert!(rust_equivalent.contains("macro_rules!"), "Rust uses declarative macro");
 }
 
 /// Document transformation of variadic constructor
@@ -235,14 +220,8 @@ fn test_variadic_mixed_types_to_macro() {
     let c_concern = "C variadic functions lose type information";
     let rust_solution = "Rust macros preserve type information at compile time";
 
-    assert!(
-        c_concern.contains("lose type"),
-        "C variadic is not type-safe"
-    );
-    assert!(
-        rust_solution.contains("compile time"),
-        "Rust provides compile-time type safety"
-    );
+    assert!(c_concern.contains("lose type"), "C variadic is not type-safe");
+    assert!(rust_solution.contains("compile time"), "Rust provides compile-time type safety");
 }
 
 /// Document transformation of variadic callback
@@ -267,10 +246,7 @@ fn test_variadic_callback_to_trait() {
     let rust_equivalent = "type Callback = fn(&[i32])";
 
     assert!(c_code.contains("..."), "C uses variadic callback");
-    assert!(
-        rust_equivalent.contains("&[i32]"),
-        "Rust uses slice for callback"
-    );
+    assert!(rust_equivalent.contains("&[i32]"), "Rust uses slice for callback");
 }
 
 /// Document transformation of va_list operations
@@ -299,10 +275,7 @@ fn test_va_list_forward_to_macro() {
     let rust_equivalent = "macro_rules! forward { ($($arg:tt)*) => { ... } }";
 
     assert!(c_code.contains("va_list"), "C uses va_list");
-    assert!(
-        rust_equivalent.contains("$($arg:tt)*"),
-        "Rust uses token tree repetition"
-    );
+    assert!(rust_equivalent.contains("$($arg:tt)*"), "Rust uses token tree repetition");
 }
 
 /// Document transformation of variadic min function
@@ -332,10 +305,7 @@ fn test_variadic_min_to_iterator() {
     let rust_equivalent = "values.iter().min()";
 
     assert!(c_code.contains("..."), "C uses variadic");
-    assert!(
-        rust_equivalent.contains("iter()"),
-        "Rust uses iterator methods"
-    );
+    assert!(rust_equivalent.contains("iter()"), "Rust uses iterator methods");
 }
 
 /// Document that variadic functions don't require unsafe in Rust
@@ -357,10 +327,7 @@ fn test_variadic_transformation_unsafe_count() {
 
     // Count unsafe blocks (should be 0)
     let unsafe_count = combined.matches("unsafe").count();
-    assert_eq!(
-        unsafe_count, 0,
-        "Variadic transformation should not introduce unsafe blocks"
-    );
+    assert_eq!(unsafe_count, 0, "Variadic transformation should not introduce unsafe blocks");
 }
 
 /// Summary of transformation rules
@@ -394,24 +361,15 @@ fn test_variadic_transformation_rules_summary() {
 
     // Rule 2: Format strings → macro
     let use_macro_for_format = true;
-    assert!(
-        use_macro_for_format,
-        "Use println!/format! for format strings"
-    );
+    assert!(use_macro_for_format, "Use println!/format! for format strings");
 
     // Rule 3: Mixed types → macro or tuple
     let use_macro_or_tuple = true;
-    assert!(
-        use_macro_or_tuple,
-        "Use macro_rules! or tuple for mixed types"
-    );
+    assert!(use_macro_or_tuple, "Use macro_rules! or tuple for mixed types");
 
     // Rule 4: No unsafe needed
     let unsafe_blocks = 0;
-    assert_eq!(
-        unsafe_blocks, 0,
-        "Variadic transformation introduces 0 unsafe blocks"
-    );
+    assert_eq!(unsafe_blocks, 0, "Variadic transformation introduces 0 unsafe blocks");
 
     // Rule 5: Type safety
     let type_safe = true;

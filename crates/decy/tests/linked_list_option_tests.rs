@@ -41,11 +41,7 @@ fn test_linked_list_struct_compiles() {
         result
     );
 
-    assert!(
-        result.contains("pub next:"),
-        "Should have next field\nGenerated:\n{}",
-        result
-    );
+    assert!(result.contains("pub next:"), "Should have next field\nGenerated:\n{}", result);
 }
 
 /// Test that NULL assignment to pointer field generates null_mut.

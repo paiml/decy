@@ -95,8 +95,14 @@ int enc_b64_validate(const char *input, int len) {
     assert!(result.is_ok(), "C1902: Base64 decode table should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1902: Output should not be empty");
-    assert!(code.contains("fn enc_b64_decode_char"), "C1902: Should contain enc_b64_decode_char function");
-    assert!(code.contains("fn enc_b64_validate"), "C1902: Should contain enc_b64_validate function");
+    assert!(
+        code.contains("fn enc_b64_decode_char"),
+        "C1902: Should contain enc_b64_decode_char function"
+    );
+    assert!(
+        code.contains("fn enc_b64_validate"),
+        "C1902: Should contain enc_b64_validate function"
+    );
 }
 
 /// C1903: Base64 encode -- encodes arbitrary bytes into base64 string
@@ -216,8 +222,14 @@ int enc_b64_is_padded(const char *encoded, size_t len) {
     assert!(result.is_ok(), "C1905: Base64 padding should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1905: Output should not be empty");
-    assert!(code.contains("fn enc_b64_padding_needed"), "C1905: Should contain enc_b64_padding_needed function");
-    assert!(code.contains("fn enc_b64_apply_padding"), "C1905: Should contain enc_b64_apply_padding function");
+    assert!(
+        code.contains("fn enc_b64_padding_needed"),
+        "C1905: Should contain enc_b64_padding_needed function"
+    );
+    assert!(
+        code.contains("fn enc_b64_apply_padding"),
+        "C1905: Should contain enc_b64_apply_padding function"
+    );
 }
 
 // ============================================================================
@@ -262,7 +274,10 @@ size_t enc_url_percent_encode(const char *src, size_t src_len, char *dst, size_t
     assert!(result.is_ok(), "C1906: URL percent encode should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1906: Output should not be empty");
-    assert!(code.contains("fn enc_url_percent_encode"), "C1906: Should contain enc_url_percent_encode function");
+    assert!(
+        code.contains("fn enc_url_percent_encode"),
+        "C1906: Should contain enc_url_percent_encode function"
+    );
 }
 
 /// C1907: URL percent decode -- converts %XX hex pairs back to bytes
@@ -306,7 +321,10 @@ size_t enc_url_percent_decode(const char *src, size_t src_len, char *dst, size_t
     assert!(result.is_ok(), "C1907: URL percent decode should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1907: Output should not be empty");
-    assert!(code.contains("fn enc_url_percent_decode"), "C1907: Should contain enc_url_percent_decode function");
+    assert!(
+        code.contains("fn enc_url_percent_decode"),
+        "C1907: Should contain enc_url_percent_decode function"
+    );
 }
 
 /// C1908: URL reserved character detection -- identifies RFC 3986 reserved chars
@@ -349,8 +367,14 @@ int enc_url_count_encoded_chars(const char *str, int len) {
     assert!(result.is_ok(), "C1908: URL reserved chars should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1908: Output should not be empty");
-    assert!(code.contains("fn enc_url_is_reserved"), "C1908: Should contain enc_url_is_reserved function");
-    assert!(code.contains("fn enc_url_needs_encoding"), "C1908: Should contain enc_url_needs_encoding function");
+    assert!(
+        code.contains("fn enc_url_is_reserved"),
+        "C1908: Should contain enc_url_is_reserved function"
+    );
+    assert!(
+        code.contains("fn enc_url_needs_encoding"),
+        "C1908: Should contain enc_url_needs_encoding function"
+    );
 }
 
 /// C1909: URL query string encoder -- encodes key=value pairs with & separators
@@ -504,7 +528,10 @@ size_t enc_rle_compressed_size(const uint8_t *src, size_t src_len) {
     assert!(result.is_ok(), "C1911: RLE compress should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1911: Output should not be empty");
-    assert!(code.contains("fn enc_rle_compress"), "C1911: Should contain enc_rle_compress function");
+    assert!(
+        code.contains("fn enc_rle_compress"),
+        "C1911: Should contain enc_rle_compress function"
+    );
 }
 
 /// C1912: RLE decompress -- expands (count, byte) pairs back to original data
@@ -551,7 +578,10 @@ int enc_rle_validate(const uint8_t *compressed, size_t len) {
     assert!(result.is_ok(), "C1912: RLE decompress should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1912: Output should not be empty");
-    assert!(code.contains("fn enc_rle_decompress"), "C1912: Should contain enc_rle_decompress function");
+    assert!(
+        code.contains("fn enc_rle_decompress"),
+        "C1912: Should contain enc_rle_decompress function"
+    );
 }
 
 /// C1913: RLE count runs -- analyzes byte stream for run statistics
@@ -600,7 +630,10 @@ float enc_rle_compression_ratio(const enc_rle_stats_t *stats) {
     assert!(result.is_ok(), "C1913: RLE count runs should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1913: Output should not be empty");
-    assert!(code.contains("fn enc_rle_count_runs"), "C1913: Should contain enc_rle_count_runs function");
+    assert!(
+        code.contains("fn enc_rle_count_runs"),
+        "C1913: Should contain enc_rle_count_runs function"
+    );
 }
 
 /// C1914: RLE mixed data -- handles alternating literal and run segments
@@ -652,7 +685,10 @@ size_t enc_rle_mixed_encode(const uint8_t *src, size_t src_len, uint8_t *dst, si
     assert!(result.is_ok(), "C1914: RLE mixed data should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1914: Output should not be empty");
-    assert!(code.contains("fn enc_rle_mixed_encode"), "C1914: Should contain enc_rle_mixed_encode function");
+    assert!(
+        code.contains("fn enc_rle_mixed_encode"),
+        "C1914: Should contain enc_rle_mixed_encode function"
+    );
 }
 
 /// C1915: RLE worst case -- handles the pathological case of no repeated bytes
@@ -692,8 +728,14 @@ float enc_rle_efficiency(size_t original_len, size_t compressed_len) {
     assert!(result.is_ok(), "C1915: RLE worst case should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1915: Output should not be empty");
-    assert!(code.contains("fn enc_rle_is_worst_case"), "C1915: Should contain enc_rle_is_worst_case function");
-    assert!(code.contains("fn enc_rle_escape_encode"), "C1915: Should contain enc_rle_escape_encode function");
+    assert!(
+        code.contains("fn enc_rle_is_worst_case"),
+        "C1915: Should contain enc_rle_is_worst_case function"
+    );
+    assert!(
+        code.contains("fn enc_rle_escape_encode"),
+        "C1915: Should contain enc_rle_escape_encode function"
+    );
 }
 
 // ============================================================================
@@ -737,7 +779,10 @@ int enc_varint_max_bytes(void) {
     assert!(result.is_ok(), "C1916: Varint encode should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1916: Output should not be empty");
-    assert!(code.contains("fn enc_varint_encode"), "C1916: Should contain enc_varint_encode function");
+    assert!(
+        code.contains("fn enc_varint_encode"),
+        "C1916: Should contain enc_varint_encode function"
+    );
 }
 
 /// C1917: Varint decode -- decodes variable-length integer back to uint32
@@ -782,7 +827,10 @@ int enc_varint_is_single_byte(uint32_t value) {
     assert!(result.is_ok(), "C1917: Varint decode should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1917: Output should not be empty");
-    assert!(code.contains("fn enc_varint_decode"), "C1917: Should contain enc_varint_decode function");
+    assert!(
+        code.contains("fn enc_varint_decode"),
+        "C1917: Should contain enc_varint_decode function"
+    );
 }
 
 /// C1918: Zigzag encode -- maps signed integers to unsigned using zigzag encoding
@@ -824,7 +872,10 @@ int enc_zigzag_compare(uint32_t a, uint32_t b) {
     assert!(result.is_ok(), "C1918: Zigzag encode should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1918: Output should not be empty");
-    assert!(code.contains("fn enc_zigzag_encode"), "C1918: Should contain enc_zigzag_encode function");
+    assert!(
+        code.contains("fn enc_zigzag_encode"),
+        "C1918: Should contain enc_zigzag_encode function"
+    );
 }
 
 /// C1919: Zigzag decode -- recovers signed integers from zigzag encoding
@@ -866,7 +917,10 @@ int enc_zigzag_min_bytes(int value) {
     assert!(result.is_ok(), "C1919: Zigzag decode should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1919: Output should not be empty");
-    assert!(code.contains("fn enc_zigzag_decode"), "C1919: Should contain enc_zigzag_decode function");
+    assert!(
+        code.contains("fn enc_zigzag_decode"),
+        "C1919: Should contain enc_zigzag_decode function"
+    );
 }
 
 /// C1920: Multi-byte varint -- handles 64-bit values with variable-length encoding
@@ -920,7 +974,10 @@ int enc_varint64_encoded_size(uint64_t value) {
     assert!(result.is_ok(), "C1920: Varint multi-byte should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1920: Output should not be empty");
-    assert!(code.contains("fn enc_varint64_encode"), "C1920: Should contain enc_varint64_encode function");
+    assert!(
+        code.contains("fn enc_varint64_encode"),
+        "C1920: Should contain enc_varint64_encode function"
+    );
 }
 
 // ============================================================================
@@ -1068,8 +1125,14 @@ int enc_bitfield_popcount(const enc_bitfield_t *bf) {
     assert!(result.is_ok(), "C1923: Bitfield extraction should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1923: Output should not be empty");
-    assert!(code.contains("fn enc_bitfield_get"), "C1923: Should contain enc_bitfield_get function");
-    assert!(code.contains("fn enc_bitfield_set"), "C1923: Should contain enc_bitfield_set function");
+    assert!(
+        code.contains("fn enc_bitfield_get"),
+        "C1923: Should contain enc_bitfield_get function"
+    );
+    assert!(
+        code.contains("fn enc_bitfield_set"),
+        "C1923: Should contain enc_bitfield_set function"
+    );
 }
 
 /// C1924: Bit field insertion -- inserts values into specific bit positions
@@ -1121,8 +1184,14 @@ uint32_t enc_bitstream_read(const enc_bitstream_t *bs, int offset, int width) {
     assert!(result.is_ok(), "C1924: Bitfield insertion should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1924: Output should not be empty");
-    assert!(code.contains("fn enc_bitstream_insert"), "C1924: Should contain enc_bitstream_insert function");
-    assert!(code.contains("fn enc_bitstream_read"), "C1924: Should contain enc_bitstream_read function");
+    assert!(
+        code.contains("fn enc_bitstream_insert"),
+        "C1924: Should contain enc_bitstream_insert function"
+    );
+    assert!(
+        code.contains("fn enc_bitstream_read"),
+        "C1924: Should contain enc_bitstream_read function"
+    );
 }
 
 /// C1925: Bit alignment -- aligns bit positions to byte/word boundaries
@@ -1171,6 +1240,12 @@ uint32_t enc_align_mask(int alignment) {
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1925: Output should not be empty");
     assert!(code.contains("fn enc_align_up"), "C1925: Should contain enc_align_up function");
-    assert!(code.contains("fn enc_align_to_byte"), "C1925: Should contain enc_align_to_byte function");
-    assert!(code.contains("fn enc_packed_byte_size"), "C1925: Should contain enc_packed_byte_size function");
+    assert!(
+        code.contains("fn enc_align_to_byte"),
+        "C1925: Should contain enc_align_to_byte function"
+    );
+    assert!(
+        code.contains("fn enc_packed_byte_size"),
+        "C1925: Should contain enc_packed_byte_size function"
+    );
 }

@@ -73,11 +73,7 @@ fn test_string_variable_declaration() {
     };
 
     match var_decl {
-        HirStatement::VariableDeclaration {
-            name,
-            var_type,
-            initializer,
-        } => {
+        HirStatement::VariableDeclaration { name, var_type, initializer } => {
             assert_eq!(name, "message");
             assert!(matches!(var_type, HirType::Pointer(_)));
             assert!(initializer.is_some());
@@ -133,11 +129,8 @@ fn test_string_function_parameter() {
 fn test_string_return_type() {
     // C: const char* get_name();
     // Rust: fn get_name() -> &str;
-    let func = HirFunction::new(
-        "get_name".to_string(),
-        HirType::Pointer(Box::new(HirType::Char)),
-        vec![],
-    );
+    let func =
+        HirFunction::new("get_name".to_string(), HirType::Pointer(Box::new(HirType::Char)), vec![]);
 
     assert_eq!(func.name(), "get_name");
     assert!(matches!(func.return_type(), HirType::Pointer(_)));

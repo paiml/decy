@@ -37,10 +37,7 @@ fn test_simple_expression_macro_to_function() {
     let rust_equivalent = "fn sqr(x: i32) -> i32 { x * x }";
 
     assert!(c_macro.contains("#define"), "C uses #define for macros");
-    assert!(
-        rust_equivalent.contains("fn"),
-        "Rust uses functions for simple expression macros"
-    );
+    assert!(rust_equivalent.contains("fn"), "Rust uses functions for simple expression macros");
 
     // Key difference: Rust function avoids double evaluation
     // C: SQR(i++)  evaluates i++ TWICE (bug!)
@@ -70,10 +67,7 @@ fn test_comparison_macro_to_function() {
     let rust_equivalent = "std::cmp::max(a, b)";
 
     assert!(c_macro.contains("#define"), "C uses #define");
-    assert!(
-        rust_equivalent.contains("std::cmp::max"),
-        "Rust has std::cmp::max built-in"
-    );
+    assert!(rust_equivalent.contains("std::cmp::max"), "Rust has std::cmp::max built-in");
 
     // No need to implement MAX - Rust standard library has it
 }
@@ -98,10 +92,7 @@ fn test_min_macro_to_function() {
     let rust_equivalent = "std::cmp::min(a, b)";
 
     assert!(c_macro.contains("#define"), "C uses #define");
-    assert!(
-        rust_equivalent.contains("std::cmp::min"),
-        "Rust has std::cmp::min built-in"
-    );
+    assert!(rust_equivalent.contains("std::cmp::min"), "Rust has std::cmp::min built-in");
 }
 
 /// Document transformation of ABS macro
@@ -124,10 +115,7 @@ fn test_abs_macro_to_method() {
     let rust_equivalent = "x.abs()";
 
     assert!(c_macro.contains("#define"), "C uses #define");
-    assert!(
-        rust_equivalent.contains(".abs()"),
-        "Rust has .abs() as built-in method"
-    );
+    assert!(rust_equivalent.contains(".abs()"), "Rust has .abs() as built-in method");
 }
 
 /// Document transformation of type cast macro
@@ -181,10 +169,7 @@ fn test_statement_macro_to_std_swap() {
     let rust_equivalent = "std::mem::swap(&mut a, &mut b)";
 
     assert!(c_macro.contains("#define"), "C uses #define");
-    assert!(
-        rust_equivalent.contains("std::mem::swap"),
-        "Rust has std::mem::swap built-in"
-    );
+    assert!(rust_equivalent.contains("std::mem::swap"), "Rust has std::mem::swap built-in");
 
     // No need to implement SWAP macro - Rust standard library has it
 }
@@ -213,10 +198,7 @@ fn test_debug_macro_to_dbg() {
     let rust_equivalent = "dbg!(x)";
 
     assert!(c_macro.contains("#define"), "C uses #define");
-    assert!(
-        rust_equivalent.contains("dbg!"),
-        "Rust has dbg! macro built-in"
-    );
+    assert!(rust_equivalent.contains("dbg!"), "Rust has dbg! macro built-in");
 }
 
 /// Document transformation of multi-argument macro
@@ -240,10 +222,7 @@ fn test_multi_argument_macro_to_function() {
     let rust_equivalent = "fn add3(a: i32, b: i32, c: i32) -> i32 { a + b + c }";
 
     assert!(c_macro.contains("#define"), "C uses #define");
-    assert!(
-        rust_equivalent.contains("fn add3"),
-        "Rust uses function with explicit types"
-    );
+    assert!(rust_equivalent.contains("fn add3"), "Rust uses function with explicit types");
 }
 
 /// Document transformation of macro with side effects
@@ -268,10 +247,7 @@ fn test_side_effect_macro_to_mut_function() {
     let rust_equivalent = "fn inc(x: &mut i32) { *x += 1; }";
 
     assert!(c_macro.contains("#define"), "C uses #define");
-    assert!(
-        rust_equivalent.contains("&mut"),
-        "Rust uses mutable references for side effects"
-    );
+    assert!(rust_equivalent.contains("&mut"), "Rust uses mutable references for side effects");
 }
 
 /// Document transformation of conditional compilation macro
@@ -332,10 +308,7 @@ fn test_variadic_macro_to_eprintln() {
     let rust_equivalent = "eprintln!(fmt, args...)";
 
     assert!(c_macro.contains("__VA_ARGS__"), "C uses __VA_ARGS__");
-    assert!(
-        rust_equivalent.contains("eprintln!"),
-        "Rust uses eprintln! for stderr"
-    );
+    assert!(rust_equivalent.contains("eprintln!"), "Rust uses eprintln! for stderr");
 }
 
 /// Document transformation of stringification macro
@@ -360,10 +333,7 @@ fn test_stringification_macro_to_stringify() {
     let rust_equivalent = "stringify!(x)";
 
     assert!(c_macro.contains("#"), "C uses # for stringification");
-    assert!(
-        rust_equivalent.contains("stringify!"),
-        "Rust has stringify! built-in"
-    );
+    assert!(rust_equivalent.contains("stringify!"), "Rust has stringify! built-in");
 }
 
 /// Document transformation of token pasting macro
@@ -419,10 +389,7 @@ fn test_assert_macro_to_assert() {
     let rust_equivalent = "assert!(cond)";
 
     assert!(c_macro.contains("#define"), "C uses #define");
-    assert!(
-        rust_equivalent.contains("assert!"),
-        "Rust has assert! built-in"
-    );
+    assert!(rust_equivalent.contains("assert!"), "Rust has assert! built-in");
 }
 
 /// Verify unsafe block count remains 0
@@ -438,10 +405,7 @@ fn test_macro_transformation_unsafe_count() {
     // Macro transformations
     let declarative_macro = "macro_rules! swap { ($a:expr, $b:expr) => { ... } }";
 
-    let combined = format!(
-        "{}\n{}\n{}\n{}",
-        simple_fn, generic_fn, mut_fn, declarative_macro
-    );
+    let combined = format!("{}\n{}\n{}\n{}", simple_fn, generic_fn, mut_fn, declarative_macro);
 
     // Count unsafe blocks (should be 0)
     let unsafe_count = combined.matches("unsafe").count();
@@ -477,10 +441,7 @@ fn test_macro_transformation_unsafe_count() {
 fn test_macro_transformation_rules_summary() {
     // Rule 1: Expression macros → functions
     let expression_macros_to_functions = true;
-    assert!(
-        expression_macros_to_functions,
-        "Expression macros should become Rust functions"
-    );
+    assert!(expression_macros_to_functions, "Expression macros should become Rust functions");
 
     // Rule 2: Statement macros → macro_rules! or std library
     let statement_macros_to_declarative = true;
@@ -498,8 +459,5 @@ fn test_macro_transformation_rules_summary() {
 
     // Rule 4: No unsafe blocks needed
     let unsafe_blocks = 0;
-    assert_eq!(
-        unsafe_blocks, 0,
-        "Macro transformation introduces 0 unsafe blocks"
-    );
+    assert_eq!(unsafe_blocks, 0, "Macro transformation introduces 0 unsafe blocks");
 }

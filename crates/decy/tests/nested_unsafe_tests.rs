@@ -31,11 +31,7 @@ fn test_deref_assign_deref_no_nested_unsafe() {
     let _nested_count = result.matches("unsafe { *").count();
     let inside_unsafe = result.contains("= unsafe {");
 
-    assert!(
-        !inside_unsafe,
-        "Should NOT have nested unsafe blocks\nGenerated:\n{}",
-        result
-    );
+    assert!(!inside_unsafe, "Should NOT have nested unsafe blocks\nGenerated:\n{}", result);
 }
 
 /// Test that while condition with char* iteration uses safe slice.

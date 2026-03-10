@@ -13,9 +13,7 @@ use tempfile::NamedTempFile;
 /// Helper to transpile C code and return the generated Rust
 fn transpile_c(c_code: &str) -> String {
     let mut temp_file = NamedTempFile::new().expect("Failed to create temp file");
-    temp_file
-        .write_all(c_code.as_bytes())
-        .expect("Failed to write C code");
+    temp_file.write_all(c_code.as_bytes()).expect("Failed to write C code");
 
     let output = Command::new("cargo")
         .args(["run", "-p", "decy", "--quiet", "--", "transpile"])
@@ -46,11 +44,7 @@ char test(const char* s) {
     // or keep the parameter as *const u8 instead of &str
 
     // For now, verify we at least have the function
-    assert!(
-        rust_code.contains("fn test"),
-        "Should generate test function, got: {}",
-        rust_code
-    );
+    assert!(rust_code.contains("fn test"), "Should generate test function, got: {}", rust_code);
 
     // Check that we don't have invalid *s on &str
     // If s is &str, we can't just dereference it
@@ -117,11 +111,7 @@ unsigned int hash(const char* key) {
 
     let rust_code = transpile_c(c_code);
 
-    assert!(
-        rust_code.contains("fn hash"),
-        "Should generate hash function, got: {}",
-        rust_code
-    );
+    assert!(rust_code.contains("fn hash"), "Should generate hash function, got: {}", rust_code);
 
     // If key is &str, the code should handle iteration properly
     if rust_code.contains("key: &str") {
@@ -165,16 +155,10 @@ unsigned int hash(const char* key) {
 
     // Write to temp file and try to compile
     let mut temp_file = NamedTempFile::with_suffix(".rs").expect("Failed to create temp file");
-    temp_file
-        .write_all(rust_code.as_bytes())
-        .expect("Failed to write Rust code");
+    temp_file.write_all(rust_code.as_bytes()).expect("Failed to write Rust code");
 
     let output = Command::new("rustc")
-        .args([
-            "--crate-type=lib",
-            "--edition=2021",
-            "--crate-name=test_hash",
-        ])
+        .args(["--crate-type=lib", "--edition=2021", "--crate-name=test_hash"])
         .arg(temp_file.path())
         .arg("-o")
         .arg("/tmp/test_hash_compile")

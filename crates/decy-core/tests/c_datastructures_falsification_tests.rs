@@ -1961,4 +1961,3 @@ int pstack_to_array(const pstack_t *ps, int version, int *out, int max_len) {
     assert!(code.contains("fn pstack_push"), "C525: Should contain pstack_push");
     assert!(code.contains("fn pstack_top"), "C525: Should contain pstack_top");
 }
-

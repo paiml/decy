@@ -74,11 +74,7 @@ fn test_null_assignment_becomes_none() {
     );
 
     // Should NOT use null_mut
-    assert!(
-        !result.contains("null_mut()"),
-        "Should NOT use null_mut()\nGenerated:\n{}",
-        result
-    );
+    assert!(!result.contains("null_mut()"), "Should NOT use null_mut()\nGenerated:\n{}", result);
 }
 
 /// Test that NULL check becomes Option pattern matching.

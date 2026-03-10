@@ -72,17 +72,10 @@ void la_mat_multiply_accumulate(const la_matrix_t *A, const la_matrix_t *B,
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1076: Matrix multiplication should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1076: Matrix multiplication should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1076: empty output");
-    assert!(
-        code.contains("fn la_mat_multiply"),
-        "C1076: Should contain la_mat_multiply function"
-    );
+    assert!(code.contains("fn la_mat_multiply"), "C1076: Should contain la_mat_multiply function");
 }
 
 /// C1077: LU decomposition using Doolittle algorithm
@@ -161,17 +154,10 @@ void la_lu_solve(const la_lu_t *lu, const double *b, double *x) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1077: LU decomposition should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1077: LU decomposition should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1077: empty output");
-    assert!(
-        code.contains("fn la_lu_decompose"),
-        "C1077: Should contain la_lu_decompose function"
-    );
+    assert!(code.contains("fn la_lu_decompose"), "C1077: Should contain la_lu_decompose function");
 }
 
 /// C1078: Cholesky decomposition for symmetric positive-definite matrices
@@ -235,11 +221,7 @@ int la_cholesky_decompose(la_cholesky_t *ch, const double *A) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1078: Cholesky decomposition should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1078: Cholesky decomposition should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1078: empty output");
     assert!(
@@ -309,17 +291,10 @@ void la_qr_decompose(la_qr_t *qr, const double *A, int m, int n) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1079: QR decomposition should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1079: QR decomposition should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1079: empty output");
-    assert!(
-        code.contains("fn la_qr_decompose"),
-        "C1079: Should contain la_qr_decompose function"
-    );
+    assert!(code.contains("fn la_qr_decompose"), "C1079: Should contain la_qr_decompose function");
 }
 
 /// C1080: Gaussian elimination to row echelon form
@@ -387,11 +362,7 @@ int la_gauss_eliminate(la_gauss_sys_t *s) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1080: Gaussian elimination should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1080: Gaussian elimination should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1080: empty output");
     assert!(
@@ -467,17 +438,10 @@ int la_gj_invert(double *A, double *inv, int n) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1081: Gauss-Jordan inverse should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1081: Gauss-Jordan inverse should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1081: empty output");
-    assert!(
-        code.contains("fn la_gj_invert"),
-        "C1081: Should contain la_gj_invert function"
-    );
+    assert!(code.contains("fn la_gj_invert"), "C1081: Should contain la_gj_invert function");
 }
 
 /// C1082: Determinant computation via cofactor expansion
@@ -530,17 +494,10 @@ int la_det_is_singular(const double *A, int n, double tol) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1082: Determinant cofactor should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1082: Determinant cofactor should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1082: empty output");
-    assert!(
-        code.contains("fn la_det_compute"),
-        "C1082: Should contain la_det_compute function"
-    );
+    assert!(code.contains("fn la_det_compute"), "C1082: Should contain la_det_compute function");
 }
 
 /// C1083: Eigenvalue computation via power iteration
@@ -686,17 +643,10 @@ void la_svd2_compute(la_svd2_t *svd, double a, double b, double c, double d) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1084: SVD 2x2 should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1084: SVD 2x2 should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1084: empty output");
-    assert!(
-        code.contains("fn la_svd2_compute"),
-        "C1084: Should contain la_svd2_compute function"
-    );
+    assert!(code.contains("fn la_svd2_compute"), "C1084: Should contain la_svd2_compute function");
 }
 
 /// C1085: Jacobi iterative method for solving Ax=b
@@ -752,17 +702,10 @@ int la_jac_solve(const double *A, const double *b, double *x, int n,
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1085: Jacobi method should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1085: Jacobi method should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1085: empty output");
-    assert!(
-        code.contains("fn la_jac_solve"),
-        "C1085: Should contain la_jac_solve function"
-    );
+    assert!(code.contains("fn la_jac_solve"), "C1085: Should contain la_jac_solve function");
 }
 
 // ============================================================================
@@ -825,17 +768,10 @@ int la_gs_is_diag_dominant(const double *A, int n) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1086: Gauss-Seidel should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1086: Gauss-Seidel should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1086: empty output");
-    assert!(
-        code.contains("fn la_gs_solve"),
-        "C1086: Should contain la_gs_solve function"
-    );
+    assert!(code.contains("fn la_gs_solve"), "C1086: Should contain la_gs_solve function");
 }
 
 /// C1087: Conjugate gradient method for symmetric positive-definite systems
@@ -894,17 +830,10 @@ int la_cg_solve(const double *A, const double *b, double *x, int n,
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1087: Conjugate gradient should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1087: Conjugate gradient should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1087: empty output");
-    assert!(
-        code.contains("fn la_cg_solve"),
-        "C1087: Should contain la_cg_solve function"
-    );
+    assert!(code.contains("fn la_cg_solve"), "C1087: Should contain la_cg_solve function");
 }
 
 /// C1088: Sparse matrix-vector multiply in CSR (Compressed Sparse Row) format
@@ -957,17 +886,10 @@ int la_csr_row_nnz(const la_csr_t *A, int row) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1088: Sparse CSR multiply should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1088: Sparse CSR multiply should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1088: empty output");
-    assert!(
-        code.contains("fn la_csr_spmv"),
-        "C1088: Should contain la_csr_spmv function"
-    );
+    assert!(code.contains("fn la_csr_spmv"), "C1088: Should contain la_csr_spmv function");
 }
 
 /// C1089: Matrix transpose (in-place for square, out-of-place for general)
@@ -1009,11 +931,7 @@ int la_transpose_is_symmetric(const double *A, int n, double tol) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1089: Matrix transpose should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1089: Matrix transpose should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1089: empty output");
     assert!(
@@ -1075,17 +993,10 @@ void la_str_multiply_add(const double *A, const double *B, double *C,
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1090: Strassen multiply should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1090: Strassen multiply should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1090: empty output");
-    assert!(
-        code.contains("fn la_str_multiply"),
-        "C1090: Should contain la_str_multiply function"
-    );
+    assert!(code.contains("fn la_str_multiply"), "C1090: Should contain la_str_multiply function");
 }
 
 // ============================================================================
@@ -1138,17 +1049,10 @@ double la_dot_weighted(const double *a, const double *b, const double *w, int n)
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1091: Vector dot product should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1091: Vector dot product should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1091: empty output");
-    assert!(
-        code.contains("fn la_dot_basic"),
-        "C1091: Should contain la_dot_basic function"
-    );
+    assert!(code.contains("fn la_dot_basic"), "C1091: Should contain la_dot_basic function");
 }
 
 /// C1092: 3D cross product and related vector operations
@@ -1199,17 +1103,10 @@ la_vec3_t la_vec3_add(la_vec3_t a, la_vec3_t b) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1092: Cross product 3D should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1092: Cross product 3D should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1092: empty output");
-    assert!(
-        code.contains("fn la_cross"),
-        "C1092: Should contain la_cross function"
-    );
+    assert!(code.contains("fn la_cross"), "C1092: Should contain la_cross function");
 }
 
 /// C1093: Matrix trace computation
@@ -1257,17 +1154,10 @@ void la_trace_subtract_identity(double *A, int n, double lambda) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1093: Matrix trace should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1093: Matrix trace should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1093: empty output");
-    assert!(
-        code.contains("fn la_trace"),
-        "C1093: Should contain la_trace function"
-    );
+    assert!(code.contains("fn la_trace"), "C1093: Should contain la_trace function");
 }
 
 /// C1094: Frobenius norm computation
@@ -1326,17 +1216,10 @@ double la_frob_infinity_norm(const double *A, int rows, int cols) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1094: Frobenius norm should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1094: Frobenius norm should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1094: empty output");
-    assert!(
-        code.contains("fn la_frob_norm"),
-        "C1094: Should contain la_frob_norm function"
-    );
+    assert!(code.contains("fn la_frob_norm"), "C1094: Should contain la_frob_norm function");
 }
 
 /// C1095: Hadamard (element-wise) product
@@ -1390,17 +1273,10 @@ void la_hadamard_div(const double *A, const double *B, double *C,
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1095: Hadamard product should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1095: Hadamard product should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1095: empty output");
-    assert!(
-        code.contains("fn la_hadamard"),
-        "C1095: Should contain la_hadamard function"
-    );
+    assert!(code.contains("fn la_hadamard"), "C1095: Should contain la_hadamard function");
 }
 
 // ============================================================================
@@ -1454,17 +1330,10 @@ void la_kronecker_identity(const double *A, int ar, int ac, int id_size,
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1096: Kronecker product should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1096: Kronecker product should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1096: empty output");
-    assert!(
-        code.contains("fn la_kronecker"),
-        "C1096: Should contain la_kronecker function"
-    );
+    assert!(code.contains("fn la_kronecker"), "C1096: Should contain la_kronecker function");
 }
 
 /// C1097: Least squares regression via normal equations
@@ -1543,11 +1412,7 @@ int la_ls_solve_normal(const double *A, const double *b, double *x, int m, int n
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1097: Least squares regression should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1097: Least squares regression should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1097: empty output");
     assert!(
@@ -1615,17 +1480,10 @@ void la_exp_scale(double *A, double scalar, int n) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1098: Matrix exponentiation should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1098: Matrix exponentiation should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1098: empty output");
-    assert!(
-        code.contains("fn la_exp_power"),
-        "C1098: Should contain la_exp_power function"
-    );
+    assert!(code.contains("fn la_exp_power"), "C1098: Should contain la_exp_power function");
 }
 
 /// C1099: Gram matrix computation (A^T * A)
@@ -1690,17 +1548,10 @@ void la_gram_kernel_poly(const double *X, double *K, int m, int n,
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1099: Gram matrix should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1099: Gram matrix should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1099: empty output");
-    assert!(
-        code.contains("fn la_gram_compute"),
-        "C1099: Should contain la_gram_compute function"
-    );
+    assert!(code.contains("fn la_gram_compute"), "C1099: Should contain la_gram_compute function");
 }
 
 /// C1100: Householder reflection for QR factorization
@@ -1779,15 +1630,8 @@ void la_hh_qr(double *A, double *R, int m, int n) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1100: Householder reflection should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1100: Householder reflection should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1100: empty output");
-    assert!(
-        code.contains("fn la_hh_qr"),
-        "C1100: Should contain la_hh_qr function"
-    );
+    assert!(code.contains("fn la_hh_qr"), "C1100: Should contain la_hh_qr function");
 }

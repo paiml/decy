@@ -48,10 +48,7 @@ fn test_codegen_string_literal_expression() {
     let codegen = CodeGenerator::new();
     let rust_code = codegen.generate_expression(&expr);
 
-    assert_eq!(
-        rust_code, r#""Hello, world!""#,
-        "Should generate quoted string literal"
-    );
+    assert_eq!(rust_code, r#""Hello, world!""#, "Should generate quoted string literal");
 }
 
 #[test]
@@ -68,10 +65,7 @@ fn test_codegen_strlen_to_len() {
 
     // C strlen() returns size_t but is often used with int comparisons
     // So we cast to i32 to maintain C semantics
-    assert_eq!(
-        rust_code, "s.len() as i32",
-        "strlen should become .len() as i32"
-    );
+    assert_eq!(rust_code, "s.len() as i32", "strlen should become .len() as i32");
 }
 
 #[test]
@@ -86,10 +80,7 @@ fn test_codegen_strcmp_to_equality() {
     let codegen = CodeGenerator::new();
     let rust_code = codegen.generate_expression(&strcmp_expr);
 
-    assert_eq!(
-        rust_code, "s1 == s2",
-        "strcmp should become equality operator"
-    );
+    assert_eq!(rust_code, "s1 == s2", "strcmp should become equality operator");
 }
 
 #[test]
@@ -104,10 +95,7 @@ fn test_codegen_strcpy_to_clone_into() {
     let codegen = CodeGenerator::new();
     let rust_code = codegen.generate_expression(&strcpy_expr);
 
-    assert_eq!(
-        rust_code, "src.clone_into(&mut dst)",
-        "strcpy should become clone_into"
-    );
+    assert_eq!(rust_code, "src.clone_into(&mut dst)", "strcpy should become clone_into");
 }
 
 #[test]
@@ -122,10 +110,7 @@ fn test_codegen_strdup_to_to_string() {
     let codegen = CodeGenerator::new();
     let rust_code = codegen.generate_expression(&strdup_expr);
 
-    assert_eq!(
-        rust_code, "s.to_string()",
-        "strdup should become to_string()"
-    );
+    assert_eq!(rust_code, "s.to_string()", "strdup should become to_string()");
 }
 
 #[test]
@@ -140,10 +125,7 @@ fn test_codegen_const_char_pointer_parameter() {
     let codegen = CodeGenerator::new();
     let rust_code = codegen.generate_function(&func);
 
-    assert!(
-        rust_code.contains("msg: &str"),
-        "const char* parameter should become &str"
-    );
+    assert!(rust_code.contains("msg: &str"), "const char* parameter should become &str");
 }
 
 #[test]
@@ -158,8 +140,5 @@ fn test_codegen_owned_char_pointer_parameter() {
     let codegen = CodeGenerator::new();
     let rust_code = codegen.generate_function(&func);
 
-    assert!(
-        rust_code.contains("buffer: String"),
-        "owned char* parameter should become String"
-    );
+    assert!(rust_code.contains("buffer: String"), "owned char* parameter should become String");
 }

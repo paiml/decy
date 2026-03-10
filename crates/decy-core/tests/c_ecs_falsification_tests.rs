@@ -80,18 +80,9 @@ int ecs_pool_is_alive(ecs_entity_pool_t *pool, ecs_entity_t entity) {
 "#;
     let rust_code = decy_core::transpile(c_code)?;
     assert!(!rust_code.is_empty(), "C1226: Should produce output");
-    assert!(
-        rust_code.contains("fn ecs_pool_init"),
-        "C1226: Should contain ecs_pool_init"
-    );
-    assert!(
-        rust_code.contains("fn ecs_pool_create"),
-        "C1226: Should contain ecs_pool_create"
-    );
-    assert!(
-        rust_code.contains("fn ecs_pool_destroy"),
-        "C1226: Should contain ecs_pool_destroy"
-    );
+    assert!(rust_code.contains("fn ecs_pool_init"), "C1226: Should contain ecs_pool_init");
+    assert!(rust_code.contains("fn ecs_pool_create"), "C1226: Should contain ecs_pool_create");
+    assert!(rust_code.contains("fn ecs_pool_destroy"), "C1226: Should contain ecs_pool_destroy");
     Ok(())
 }
 
@@ -153,18 +144,9 @@ ecs_position_t *ecs_store_get(ecs_comp_store_t *store, int entity) {
 "#;
     let rust_code = decy_core::transpile(c_code)?;
     assert!(!rust_code.is_empty(), "C1227: Should produce output");
-    assert!(
-        rust_code.contains("fn ecs_store_init"),
-        "C1227: Should contain ecs_store_init"
-    );
-    assert!(
-        rust_code.contains("fn ecs_store_add"),
-        "C1227: Should contain ecs_store_add"
-    );
-    assert!(
-        rust_code.contains("fn ecs_store_remove"),
-        "C1227: Should contain ecs_store_remove"
-    );
+    assert!(rust_code.contains("fn ecs_store_init"), "C1227: Should contain ecs_store_init");
+    assert!(rust_code.contains("fn ecs_store_add"), "C1227: Should contain ecs_store_add");
+    assert!(rust_code.contains("fn ecs_store_remove"), "C1227: Should contain ecs_store_remove");
     Ok(())
 }
 
@@ -219,14 +201,8 @@ int ecs_arch_has_component(ecs_archetype_t *arch, uint32_t comp_bit) {
 "#;
     let rust_code = decy_core::transpile(c_code)?;
     assert!(!rust_code.is_empty(), "C1228: Should produce output");
-    assert!(
-        rust_code.contains("fn ecs_arch_init"),
-        "C1228: Should contain ecs_arch_init"
-    );
-    assert!(
-        rust_code.contains("fn ecs_arch_add_row"),
-        "C1228: Should contain ecs_arch_add_row"
-    );
+    assert!(rust_code.contains("fn ecs_arch_init"), "C1228: Should contain ecs_arch_init");
+    assert!(rust_code.contains("fn ecs_arch_add_row"), "C1228: Should contain ecs_arch_add_row");
     assert!(
         rust_code.contains("fn ecs_arch_remove_row"),
         "C1228: Should contain ecs_arch_remove_row"
@@ -283,18 +259,9 @@ int ecs_sparse_count(ecs_sparse_set_t *ss) {
 "#;
     let rust_code = decy_core::transpile(c_code)?;
     assert!(!rust_code.is_empty(), "C1229: Should produce output");
-    assert!(
-        rust_code.contains("fn ecs_sparse_init"),
-        "C1229: Should contain ecs_sparse_init"
-    );
-    assert!(
-        rust_code.contains("fn ecs_sparse_insert"),
-        "C1229: Should contain ecs_sparse_insert"
-    );
-    assert!(
-        rust_code.contains("fn ecs_sparse_remove"),
-        "C1229: Should contain ecs_sparse_remove"
-    );
+    assert!(rust_code.contains("fn ecs_sparse_init"), "C1229: Should contain ecs_sparse_init");
+    assert!(rust_code.contains("fn ecs_sparse_insert"), "C1229: Should contain ecs_sparse_insert");
+    assert!(rust_code.contains("fn ecs_sparse_remove"), "C1229: Should contain ecs_sparse_remove");
     Ok(())
 }
 
@@ -348,14 +315,8 @@ int ecs_query_count(ecs_query_t *q) {
 "#;
     let rust_code = decy_core::transpile(c_code)?;
     assert!(!rust_code.is_empty(), "C1230: Should produce output");
-    assert!(
-        rust_code.contains("fn ecs_world_init"),
-        "C1230: Should contain ecs_world_init"
-    );
-    assert!(
-        rust_code.contains("fn ecs_query_execute"),
-        "C1230: Should contain ecs_query_execute"
-    );
+    assert!(rust_code.contains("fn ecs_world_init"), "C1230: Should contain ecs_world_init");
+    assert!(rust_code.contains("fn ecs_query_execute"), "C1230: Should contain ecs_query_execute");
     Ok(())
 }
 
@@ -405,14 +366,8 @@ float ecs_aabb_area(ecs_aabb_t *a) {
 "#;
     let rust_code = decy_core::transpile(c_code)?;
     assert!(!rust_code.is_empty(), "C1231: Should produce output");
-    assert!(
-        rust_code.contains("fn ecs_aabb_overlap"),
-        "C1231: Should contain ecs_aabb_overlap"
-    );
-    assert!(
-        rust_code.contains("fn ecs_aabb_merge"),
-        "C1231: Should contain ecs_aabb_merge"
-    );
+    assert!(rust_code.contains("fn ecs_aabb_overlap"), "C1231: Should contain ecs_aabb_overlap");
+    assert!(rust_code.contains("fn ecs_aabb_merge"), "C1231: Should contain ecs_aabb_merge");
     Ok(())
 }
 
@@ -455,14 +410,8 @@ void ecs_sat_edge_normal(ecs_vec2_t *a, ecs_vec2_t *b, ecs_vec2_t *out) {
 "#;
     let rust_code = decy_core::transpile(c_code)?;
     assert!(!rust_code.is_empty(), "C1232: Should produce output");
-    assert!(
-        rust_code.contains("fn ecs_sat_dot"),
-        "C1232: Should contain ecs_sat_dot"
-    );
-    assert!(
-        rust_code.contains("fn ecs_sat_project"),
-        "C1232: Should contain ecs_sat_project"
-    );
+    assert!(rust_code.contains("fn ecs_sat_dot"), "C1232: Should contain ecs_sat_dot");
+    assert!(rust_code.contains("fn ecs_sat_project"), "C1232: Should contain ecs_sat_project");
     assert!(
         rust_code.contains("fn ecs_sat_edge_normal"),
         "C1232: Should contain ecs_sat_edge_normal"
@@ -519,14 +468,8 @@ void ecs_hash_clear(ecs_spatial_hash_t *h) {
 "#;
     let rust_code = decy_core::transpile(c_code)?;
     assert!(!rust_code.is_empty(), "C1233: Should produce output");
-    assert!(
-        rust_code.contains("fn ecs_hash_init"),
-        "C1233: Should contain ecs_hash_init"
-    );
-    assert!(
-        rust_code.contains("fn ecs_hash_insert"),
-        "C1233: Should contain ecs_hash_insert"
-    );
+    assert!(rust_code.contains("fn ecs_hash_init"), "C1233: Should contain ecs_hash_init");
+    assert!(rust_code.contains("fn ecs_hash_insert"), "C1233: Should contain ecs_hash_insert");
     Ok(())
 }
 
@@ -580,10 +523,7 @@ void ecs_sweep_update_entry(ecs_sweep_entry_t *e, float pos, float half_w) {
 "#;
     let rust_code = decy_core::transpile(c_code)?;
     assert!(!rust_code.is_empty(), "C1234: Should produce output");
-    assert!(
-        rust_code.contains("fn ecs_sweep_sort"),
-        "C1234: Should contain ecs_sweep_sort"
-    );
+    assert!(rust_code.contains("fn ecs_sweep_sort"), "C1234: Should contain ecs_sweep_sort");
     assert!(
         rust_code.contains("fn ecs_sweep_find_pairs"),
         "C1234: Should contain ecs_sweep_find_pairs"
@@ -705,14 +645,8 @@ int ecs_batch_vertex_count(ecs_sprite_batch_t *batch) {
 "#;
     let rust_code = decy_core::transpile(c_code)?;
     assert!(!rust_code.is_empty(), "C1236: Should produce output");
-    assert!(
-        rust_code.contains("fn ecs_batch_init"),
-        "C1236: Should contain ecs_batch_init"
-    );
-    assert!(
-        rust_code.contains("fn ecs_batch_add"),
-        "C1236: Should contain ecs_batch_add"
-    );
+    assert!(rust_code.contains("fn ecs_batch_init"), "C1236: Should contain ecs_batch_init");
+    assert!(rust_code.contains("fn ecs_batch_add"), "C1236: Should contain ecs_batch_add");
     Ok(())
 }
 
@@ -763,18 +697,9 @@ int ecs_tile_world_to_y(ecs_tile_layer_t *layer, float wy) {
 "#;
     let rust_code = decy_core::transpile(c_code)?;
     assert!(!rust_code.is_empty(), "C1237: Should produce output");
-    assert!(
-        rust_code.contains("fn ecs_tile_init"),
-        "C1237: Should contain ecs_tile_init"
-    );
-    assert!(
-        rust_code.contains("fn ecs_tile_get"),
-        "C1237: Should contain ecs_tile_get"
-    );
-    assert!(
-        rust_code.contains("fn ecs_tile_set"),
-        "C1237: Should contain ecs_tile_set"
-    );
+    assert!(rust_code.contains("fn ecs_tile_init"), "C1237: Should contain ecs_tile_init");
+    assert!(rust_code.contains("fn ecs_tile_get"), "C1237: Should contain ecs_tile_get");
+    assert!(rust_code.contains("fn ecs_tile_set"), "C1237: Should contain ecs_tile_set");
     Ok(())
 }
 
@@ -823,14 +748,8 @@ void ecs_cam_follow(ecs_camera_t *cam, float tx, float ty, float lerp) {
 "#;
     let rust_code = decy_core::transpile(c_code)?;
     assert!(!rust_code.is_empty(), "C1238: Should produce output");
-    assert!(
-        rust_code.contains("fn ecs_cam_init"),
-        "C1238: Should contain ecs_cam_init"
-    );
-    assert!(
-        rust_code.contains("fn ecs_cam_follow"),
-        "C1238: Should contain ecs_cam_follow"
-    );
+    assert!(rust_code.contains("fn ecs_cam_init"), "C1238: Should contain ecs_cam_init");
+    assert!(rust_code.contains("fn ecs_cam_follow"), "C1238: Should contain ecs_cam_follow");
     Ok(())
 }
 
@@ -940,14 +859,8 @@ void ecs_rq_clear(ecs_render_queue_t *rq) {
 "#;
     let rust_code = decy_core::transpile(c_code)?;
     assert!(!rust_code.is_empty(), "C1240: Should produce output");
-    assert!(
-        rust_code.contains("fn ecs_rq_init"),
-        "C1240: Should contain ecs_rq_init"
-    );
-    assert!(
-        rust_code.contains("fn ecs_rq_sort"),
-        "C1240: Should contain ecs_rq_sort"
-    );
+    assert!(rust_code.contains("fn ecs_rq_init"), "C1240: Should contain ecs_rq_init");
+    assert!(rust_code.contains("fn ecs_rq_sort"), "C1240: Should contain ecs_rq_sort");
     Ok(())
 }
 
@@ -1007,10 +920,7 @@ int ecs_bt_eval_selector(ecs_bt_node_t *nodes, int idx) {
 "#;
     let rust_code = decy_core::transpile(c_code)?;
     assert!(!rust_code.is_empty(), "C1241: Should produce output");
-    assert!(
-        rust_code.contains("fn ecs_bt_init"),
-        "C1241: Should contain ecs_bt_init"
-    );
+    assert!(rust_code.contains("fn ecs_bt_init"), "C1241: Should contain ecs_bt_init");
     assert!(
         rust_code.contains("fn ecs_bt_eval_sequence"),
         "C1241: Should contain ecs_bt_eval_sequence"
@@ -1220,18 +1130,9 @@ void ecs_steer_arrive(ecs_agent_t *agent, float tx, float ty,
 "#;
     let rust_code = decy_core::transpile(c_code)?;
     assert!(!rust_code.is_empty(), "C1244: Should produce output");
-    assert!(
-        rust_code.contains("fn ecs_steer_seek"),
-        "C1244: Should contain ecs_steer_seek"
-    );
-    assert!(
-        rust_code.contains("fn ecs_steer_flee"),
-        "C1244: Should contain ecs_steer_flee"
-    );
-    assert!(
-        rust_code.contains("fn ecs_steer_arrive"),
-        "C1244: Should contain ecs_steer_arrive"
-    );
+    assert!(rust_code.contains("fn ecs_steer_seek"), "C1244: Should contain ecs_steer_seek");
+    assert!(rust_code.contains("fn ecs_steer_flee"), "C1244: Should contain ecs_steer_flee");
+    assert!(rust_code.contains("fn ecs_steer_arrive"), "C1244: Should contain ecs_steer_arrive");
     Ok(())
 }
 
@@ -1386,18 +1287,9 @@ int ecs_evq_peek_type(ecs_event_queue_t *q) {
 "#;
     let rust_code = decy_core::transpile(c_code)?;
     assert!(!rust_code.is_empty(), "C1246: Should produce output");
-    assert!(
-        rust_code.contains("fn ecs_evq_init"),
-        "C1246: Should contain ecs_evq_init"
-    );
-    assert!(
-        rust_code.contains("fn ecs_evq_push"),
-        "C1246: Should contain ecs_evq_push"
-    );
-    assert!(
-        rust_code.contains("fn ecs_evq_pop"),
-        "C1246: Should contain ecs_evq_pop"
-    );
+    assert!(rust_code.contains("fn ecs_evq_init"), "C1246: Should contain ecs_evq_init");
+    assert!(rust_code.contains("fn ecs_evq_push"), "C1246: Should contain ecs_evq_push");
+    assert!(rust_code.contains("fn ecs_evq_pop"), "C1246: Should contain ecs_evq_pop");
     Ok(())
 }
 
@@ -1463,14 +1355,8 @@ void ecs_resmgr_release(ecs_res_mgr_t *mgr, int handle) {
 "#;
     let rust_code = decy_core::transpile(c_code)?;
     assert!(!rust_code.is_empty(), "C1247: Should produce output");
-    assert!(
-        rust_code.contains("fn ecs_resmgr_init"),
-        "C1247: Should contain ecs_resmgr_init"
-    );
-    assert!(
-        rust_code.contains("fn ecs_resmgr_load"),
-        "C1247: Should contain ecs_resmgr_load"
-    );
+    assert!(rust_code.contains("fn ecs_resmgr_init"), "C1247: Should contain ecs_resmgr_init");
+    assert!(rust_code.contains("fn ecs_resmgr_load"), "C1247: Should contain ecs_resmgr_load");
     assert!(
         rust_code.contains("fn ecs_resmgr_release"),
         "C1247: Should contain ecs_resmgr_release"
@@ -1542,18 +1428,9 @@ int ecs_sg_create(ecs_scene_node_t *nodes, int max_nodes, int parent) {
 "#;
     let rust_code = decy_core::transpile(c_code)?;
     assert!(!rust_code.is_empty(), "C1248: Should produce output");
-    assert!(
-        rust_code.contains("fn ecs_sg_init"),
-        "C1248: Should contain ecs_sg_init"
-    );
-    assert!(
-        rust_code.contains("fn ecs_sg_propagate"),
-        "C1248: Should contain ecs_sg_propagate"
-    );
-    assert!(
-        rust_code.contains("fn ecs_sg_create"),
-        "C1248: Should contain ecs_sg_create"
-    );
+    assert!(rust_code.contains("fn ecs_sg_init"), "C1248: Should contain ecs_sg_init");
+    assert!(rust_code.contains("fn ecs_sg_propagate"), "C1248: Should contain ecs_sg_propagate");
+    assert!(rust_code.contains("fn ecs_sg_create"), "C1248: Should contain ecs_sg_create");
     Ok(())
 }
 
@@ -1610,18 +1487,9 @@ int ecs_objpool_active(ecs_obj_pool_t *pool) {
 "#;
     let rust_code = decy_core::transpile(c_code)?;
     assert!(!rust_code.is_empty(), "C1249: Should produce output");
-    assert!(
-        rust_code.contains("fn ecs_objpool_init"),
-        "C1249: Should contain ecs_objpool_init"
-    );
-    assert!(
-        rust_code.contains("fn ecs_objpool_alloc"),
-        "C1249: Should contain ecs_objpool_alloc"
-    );
-    assert!(
-        rust_code.contains("fn ecs_objpool_free"),
-        "C1249: Should contain ecs_objpool_free"
-    );
+    assert!(rust_code.contains("fn ecs_objpool_init"), "C1249: Should contain ecs_objpool_init");
+    assert!(rust_code.contains("fn ecs_objpool_alloc"), "C1249: Should contain ecs_objpool_alloc");
+    assert!(rust_code.contains("fn ecs_objpool_free"), "C1249: Should contain ecs_objpool_free");
     Ok(())
 }
 
@@ -1675,17 +1543,8 @@ int ecs_cmdbuf_get_type(ecs_cmd_buffer_t *buf, int idx) {
 "#;
     let rust_code = decy_core::transpile(c_code)?;
     assert!(!rust_code.is_empty(), "C1250: Should produce output");
-    assert!(
-        rust_code.contains("fn ecs_cmdbuf_init"),
-        "C1250: Should contain ecs_cmdbuf_init"
-    );
-    assert!(
-        rust_code.contains("fn ecs_cmdbuf_add"),
-        "C1250: Should contain ecs_cmdbuf_add"
-    );
-    assert!(
-        rust_code.contains("fn ecs_cmdbuf_clear"),
-        "C1250: Should contain ecs_cmdbuf_clear"
-    );
+    assert!(rust_code.contains("fn ecs_cmdbuf_init"), "C1250: Should contain ecs_cmdbuf_init");
+    assert!(rust_code.contains("fn ecs_cmdbuf_add"), "C1250: Should contain ecs_cmdbuf_add");
+    assert!(rust_code.contains("fn ecs_cmdbuf_clear"), "C1250: Should contain ecs_cmdbuf_clear");
     Ok(())
 }

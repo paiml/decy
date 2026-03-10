@@ -519,10 +519,7 @@ int main() {
     let rust_code = result.unwrap();
 
     // This is a documentation test
-    assert!(
-        rust_code.contains("fn main") || rust_code.contains("main"),
-        "Expected main function"
-    );
+    assert!(rust_code.contains("fn main") || rust_code.contains("main"), "Expected main function");
 
     println!("\n=== Increment/Decrement Transformation Rules ===");
     println!("1. Post-increment (x++): {{ let tmp = x; x += 1; tmp }}");
@@ -626,12 +623,6 @@ fn test_increment_decrement_documentation_summary() {
     println!("Key difference: Rust has NO native ++/-- operators");
     println!("=================================================\n");
 
-    assert_eq!(
-        unsafe_blocks, 0,
-        "All increment/decrement transformations must be safe"
-    );
-    assert!(
-        total_tests >= 10,
-        "Need at least 10 tests for comprehensive coverage"
-    );
+    assert_eq!(unsafe_blocks, 0, "All increment/decrement transformations must be safe");
+    assert!(total_tests >= 10, "Need at least 10 tests for comprehensive coverage");
 }

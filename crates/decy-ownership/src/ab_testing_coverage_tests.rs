@@ -776,10 +776,7 @@ fn test_variant_hash() {
     map.insert(TestVariant::Treatment, "treatment_data");
 
     assert_eq!(*map.get(&TestVariant::Control).unwrap(), "control_data");
-    assert_eq!(
-        *map.get(&TestVariant::Treatment).unwrap(),
-        "treatment_data"
-    );
+    assert_eq!(*map.get(&TestVariant::Treatment).unwrap(), "treatment_data");
 }
 
 #[test]
@@ -888,10 +885,7 @@ fn test_assignment_strategy_debug() {
 fn test_assignment_strategy_eq() {
     assert_eq!(AssignmentStrategy::RoundRobin, AssignmentStrategy::RoundRobin);
     assert_ne!(AssignmentStrategy::Random, AssignmentStrategy::AllControl);
-    assert_ne!(
-        AssignmentStrategy::AllControl,
-        AssignmentStrategy::AllTreatment
-    );
+    assert_ne!(AssignmentStrategy::AllControl, AssignmentStrategy::AllTreatment);
 }
 
 #[test]

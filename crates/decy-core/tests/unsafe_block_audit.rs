@@ -120,11 +120,7 @@ fn main() {
     let loc = count_loc(rust_code);
     // Should count: fn main() {, let x = 42;, println!("{}", x);, }
     // Should NOT count: blank lines, comment lines
-    assert!(
-        loc >= 4,
-        "LOC counting should exclude comments and blank lines, got {}",
-        loc
-    );
+    assert!(loc >= 4, "LOC counting should exclude comments and blank lines, got {}", loc);
 }
 
 #[test]
@@ -135,11 +131,7 @@ fn test_unsafe_per_1000_loc_calculation() {
     let ratio = unsafe_per_1000_loc(&rust_code);
 
     // Should be approximately 10 unsafe per 1000 LOC
-    assert!(
-        ratio > 5.0 && ratio < 15.0,
-        "Expected ~10 unsafe per 1000 LOC, got {}",
-        ratio
-    );
+    assert!(ratio > 5.0 && ratio < 15.0, "Expected ~10 unsafe per 1000 LOC, got {}", ratio);
 }
 
 #[test]
@@ -244,11 +236,7 @@ fn audit_decy_parser_unsafe() {
         }
     }
 
-    let ratio = if total_loc > 0 {
-        (total_unsafe as f64 / total_loc as f64) * 1000.0
-    } else {
-        0.0
-    };
+    let ratio = if total_loc > 0 { (total_unsafe as f64 / total_loc as f64) * 1000.0 } else { 0.0 };
 
     println!("=== Unsafe Audit: decy-parser ===");
     println!("Total unsafe blocks: {}", total_unsafe);
@@ -261,11 +249,7 @@ fn audit_decy_parser_unsafe() {
 
     // Parser is special case - allowed more unsafe for FFI
     // But still should be reasonable (target: <50 per 1000 LOC)
-    assert!(
-        ratio < 100.0,
-        "decy-parser unsafe ratio too high: {:.2} per 1000 LOC",
-        ratio
-    );
+    assert!(ratio < 100.0, "decy-parser unsafe ratio too high: {:.2} per 1000 LOC", ratio);
 }
 
 /// Audit decy-codegen output (CRITICAL - must be <5 per 1000 LOC)

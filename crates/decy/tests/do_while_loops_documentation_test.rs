@@ -426,18 +426,10 @@ int main() {
 
     // Both should transpile successfully
     let do_while_result = transpile(do_while_code);
-    assert!(
-        do_while_result.is_ok(),
-        "do-while transpilation failed: {:?}",
-        do_while_result.err()
-    );
+    assert!(do_while_result.is_ok(), "do-while transpilation failed: {:?}", do_while_result.err());
 
     let while_result = transpile(while_code);
-    assert!(
-        while_result.is_ok(),
-        "while transpilation failed: {:?}",
-        while_result.err()
-    );
+    assert!(while_result.is_ok(), "while transpilation failed: {:?}", while_result.err());
 
     // The key semantic difference should be preserved in generated Rust:
     // do-while → loop { body; if !condition { break; } }
@@ -483,15 +475,9 @@ fn test_do_while_documentation_summary() {
     let unsafe_blocks = 0;
     let coverage_percent = 100;
 
-    assert_eq!(
-        unsafe_blocks, 0,
-        "do-while transformation should have 0 unsafe blocks"
-    );
+    assert_eq!(unsafe_blocks, 0, "do-while transformation should have 0 unsafe blocks");
 
-    assert_eq!(
-        coverage_percent, 100,
-        "All do-while patterns should be documented"
-    );
+    assert_eq!(coverage_percent, 100, "All do-while patterns should be documented");
 
     println!("\n=== Do-While Loop Documentation ===");
     println!("Tests: {}", tests_implemented);

@@ -31,11 +31,7 @@ fn test_slice_index_i32_to_usize() {
     println!("Generated Rust code:\n{}", result);
 
     // Should have `as usize` cast for the slice index
-    assert!(
-        result.contains("as usize]"),
-        "Should cast index to usize\nGenerated:\n{}",
-        result
-    );
+    assert!(result.contains("as usize]"), "Should cast index to usize\nGenerated:\n{}", result);
 
     // Should NOT have bare i32 index
     assert!(

@@ -82,18 +82,12 @@ float ring_buffer_peek(const ring_buffer_t *rb, uint32_t offset) {
     );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C401: Output should not be empty");
-    assert!(
-        code.contains("fn ring_buffer_init"),
-        "C401: Should contain ring_buffer_init function"
-    );
+    assert!(code.contains("fn ring_buffer_init"), "C401: Should contain ring_buffer_init function");
     assert!(
         code.contains("fn ring_buffer_write"),
         "C401: Should contain ring_buffer_write function"
     );
-    assert!(
-        code.contains("fn ring_buffer_read"),
-        "C401: Should contain ring_buffer_read function"
-    );
+    assert!(code.contains("fn ring_buffer_read"), "C401: Should contain ring_buffer_read function");
 }
 
 #[test]
@@ -146,17 +140,10 @@ void fir_reset(fir_filter_t *f) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C402: FIR filter should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C402: FIR filter should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C402: Output should not be empty");
-    assert!(
-        code.contains("fn fir_init"),
-        "C402: Should contain fir_init function"
-    );
+    assert!(code.contains("fn fir_init"), "C402: Should contain fir_init function");
     assert!(
         code.contains("fn fir_process_sample"),
         "C402: Should contain fir_process_sample function"
@@ -227,21 +214,11 @@ void biquad_reset(biquad_t *bq) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C403: IIR biquad filter should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C403: IIR biquad filter should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C403: Output should not be empty");
-    assert!(
-        code.contains("fn biquad_init"),
-        "C403: Should contain biquad_init function"
-    );
-    assert!(
-        code.contains("fn biquad_process"),
-        "C403: Should contain biquad_process function"
-    );
+    assert!(code.contains("fn biquad_init"), "C403: Should contain biquad_init function");
+    assert!(code.contains("fn biquad_process"), "C403: Should contain biquad_process function");
     assert!(
         code.contains("fn biquad_set_lowpass"),
         "C403: Should contain biquad_set_lowpass function"
@@ -303,21 +280,11 @@ float complex_phase(complex_t c) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C404: FFT butterfly operation should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C404: FFT butterfly operation should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C404: Output should not be empty");
-    assert!(
-        code.contains("fn fft_butterfly"),
-        "C404: Should contain fft_butterfly function"
-    );
-    assert!(
-        code.contains("fn complex_mul"),
-        "C404: Should contain complex_mul function"
-    );
+    assert!(code.contains("fn fft_butterfly"), "C404: Should contain fft_butterfly function");
+    assert!(code.contains("fn complex_mul"), "C404: Should contain complex_mul function");
 }
 
 #[test]
@@ -373,17 +340,10 @@ float src_compute_ratio(float src_rate, float dst_rate) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C405: Sample rate converter should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C405: Sample rate converter should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C405: Output should not be empty");
-    assert!(
-        code.contains("fn src_linear_init"),
-        "C405: Should contain src_linear_init function"
-    );
+    assert!(code.contains("fn src_linear_init"), "C405: Should contain src_linear_init function");
     assert!(
         code.contains("fn src_linear_process"),
         "C405: Should contain src_linear_process function"
@@ -469,21 +429,11 @@ int adsr_is_active(const adsr_t *env) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C406: ADSR envelope generator should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C406: ADSR envelope generator should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C406: Output should not be empty");
-    assert!(
-        code.contains("fn adsr_init"),
-        "C406: Should contain adsr_init function"
-    );
-    assert!(
-        code.contains("fn adsr_process"),
-        "C406: Should contain adsr_process function"
-    );
+    assert!(code.contains("fn adsr_init"), "C406: Should contain adsr_init function");
+    assert!(code.contains("fn adsr_process"), "C406: Should contain adsr_process function");
 }
 
 #[test]
@@ -544,11 +494,7 @@ void wavetable_reset_phase(wavetable_osc_t *osc) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C407: Wavetable oscillator should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C407: Wavetable oscillator should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C407: Output should not be empty");
     assert!(
@@ -633,17 +579,10 @@ float mixer_get_peak(const float *buffer, int len) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C408: Audio mixer should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C408: Audio mixer should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C408: Output should not be empty");
-    assert!(
-        code.contains("fn mixer_init"),
-        "C408: Should contain mixer_init function"
-    );
+    assert!(code.contains("fn mixer_init"), "C408: Should contain mixer_init function");
     assert!(
         code.contains("fn mixer_process_stereo"),
         "C408: Should contain mixer_process_stereo function"
@@ -722,25 +661,15 @@ float level_to_db(float level) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C409: Peak/RMS level meter should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C409: Peak/RMS level meter should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C409: Output should not be empty");
-    assert!(
-        code.contains("fn level_meter_init"),
-        "C409: Should contain level_meter_init function"
-    );
+    assert!(code.contains("fn level_meter_init"), "C409: Should contain level_meter_init function");
     assert!(
         code.contains("fn level_meter_process"),
         "C409: Should contain level_meter_process function"
     );
-    assert!(
-        code.contains("fn level_to_db"),
-        "C409: Should contain level_to_db function"
-    );
+    assert!(code.contains("fn level_to_db"), "C409: Should contain level_to_db function");
 }
 
 #[test]
@@ -804,17 +733,10 @@ void compressor_set_makeup(compressor_t *c, float gain) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C410: Compressor/limiter should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C410: Compressor/limiter should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C410: Output should not be empty");
-    assert!(
-        code.contains("fn compressor_init"),
-        "C410: Should contain compressor_init function"
-    );
+    assert!(code.contains("fn compressor_init"), "C410: Should contain compressor_init function");
     assert!(
         code.contains("fn compressor_process"),
         "C410: Should contain compressor_process function"
@@ -888,21 +810,11 @@ void delay_clear(delay_line_t *dl) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C411: Delay line should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C411: Delay line should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C411: Output should not be empty");
-    assert!(
-        code.contains("fn delay_init"),
-        "C411: Should contain delay_init function"
-    );
-    assert!(
-        code.contains("fn delay_process"),
-        "C411: Should contain delay_process function"
-    );
+    assert!(code.contains("fn delay_init"), "C411: Should contain delay_init function");
+    assert!(code.contains("fn delay_process"), "C411: Should contain delay_process function");
 }
 
 #[test]
@@ -988,14 +900,8 @@ void gate_process_block(noise_gate_t *g, float *data, int len) {
     );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C412: Output should not be empty");
-    assert!(
-        code.contains("fn gate_init"),
-        "C412: Should contain gate_init function"
-    );
-    assert!(
-        code.contains("fn gate_process"),
-        "C412: Should contain gate_process function"
-    );
+    assert!(code.contains("fn gate_init"), "C412: Should contain gate_init function");
+    assert!(code.contains("fn gate_process"), "C412: Should contain gate_process function");
 }
 
 #[test]
@@ -1055,21 +961,11 @@ void eq_band_reset(eq_band_t *eq) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C413: Parametric EQ single band should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C413: Parametric EQ single band should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C413: Output should not be empty");
-    assert!(
-        code.contains("fn eq_band_init"),
-        "C413: Should contain eq_band_init function"
-    );
-    assert!(
-        code.contains("fn eq_band_process"),
-        "C413: Should contain eq_band_process function"
-    );
+    assert!(code.contains("fn eq_band_init"), "C413: Should contain eq_band_init function");
+    assert!(code.contains("fn eq_band_process"), "C413: Should contain eq_band_process function");
     assert!(
         code.contains("fn eq_band_set_peaking"),
         "C413: Should contain eq_band_set_peaking function"
@@ -1141,25 +1037,15 @@ float buffer_sum_squares(const float *data, int len) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C414: Crossfade/interpolation should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C414: Crossfade/interpolation should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C414: Output should not be empty");
-    assert!(
-        code.contains("fn crossfade_linear"),
-        "C414: Should contain crossfade_linear function"
-    );
+    assert!(code.contains("fn crossfade_linear"), "C414: Should contain crossfade_linear function");
     assert!(
         code.contains("fn crossfade_equal_power"),
         "C414: Should contain crossfade_equal_power function"
     );
-    assert!(
-        code.contains("fn buffer_copy"),
-        "C414: Should contain buffer_copy function"
-    );
+    assert!(code.contains("fn buffer_copy"), "C414: Should contain buffer_copy function");
 }
 
 #[test]
@@ -1309,25 +1195,12 @@ void window_rectangular(float *window, int len) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C416: Window function generator should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C416: Window function generator should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C416: Output should not be empty");
-    assert!(
-        code.contains("fn window_hamming"),
-        "C416: Should contain window_hamming function"
-    );
-    assert!(
-        code.contains("fn window_hann"),
-        "C416: Should contain window_hann function"
-    );
-    assert!(
-        code.contains("fn window_apply"),
-        "C416: Should contain window_apply function"
-    );
+    assert!(code.contains("fn window_hamming"), "C416: Should contain window_hamming function");
+    assert!(code.contains("fn window_hann"), "C416: Should contain window_hann function");
+    assert!(code.contains("fn window_apply"), "C416: Should contain window_apply function");
 }
 
 #[test]
@@ -1464,25 +1337,12 @@ void dither_and_quantize(dither_t *d, float *data, int len, int bits) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C418: Audio dithering TPDF should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C418: Audio dithering TPDF should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C418: Output should not be empty");
-    assert!(
-        code.contains("fn dither_init"),
-        "C418: Should contain dither_init function"
-    );
-    assert!(
-        code.contains("fn dither_tpdf"),
-        "C418: Should contain dither_tpdf function"
-    );
-    assert!(
-        code.contains("fn dither_process"),
-        "C418: Should contain dither_process function"
-    );
+    assert!(code.contains("fn dither_init"), "C418: Should contain dither_init function");
+    assert!(code.contains("fn dither_tpdf"), "C418: Should contain dither_tpdf function");
+    assert!(code.contains("fn dither_process"), "C418: Should contain dither_process function");
 }
 
 #[test]
@@ -1559,17 +1419,10 @@ float compute_rt60_samples(const float *impulse, int len) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C419: Convolution reverb should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C419: Convolution reverb should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C419: Output should not be empty");
-    assert!(
-        code.contains("fn convolve_direct"),
-        "C419: Should contain convolve_direct function"
-    );
+    assert!(code.contains("fn convolve_direct"), "C419: Should contain convolve_direct function");
     assert!(
         code.contains("fn normalize_impulse"),
         "C419: Should contain normalize_impulse function"
@@ -1653,11 +1506,7 @@ spectral_bin_t spectral_bin_from_polar(float magnitude, float phase) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C420: Spectral analysis should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C420: Spectral analysis should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C420: Output should not be empty");
     assert!(
@@ -1784,10 +1633,7 @@ int allocator_active_count(const voice_allocator_t *va) {
     );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C421: Output should not be empty");
-    assert!(
-        code.contains("fn allocator_init"),
-        "C421: Should contain allocator_init function"
-    );
+    assert!(code.contains("fn allocator_init"), "C421: Should contain allocator_init function");
     assert!(
         code.contains("fn allocator_note_on"),
         "C421: Should contain allocator_note_on function"
@@ -1857,11 +1703,7 @@ float env_follower_smooth(env_follower_t *ef, float input, float coeff) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C422: Envelope follower should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C422: Envelope follower should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C422: Output should not be empty");
     assert!(
@@ -1943,21 +1785,11 @@ float sample_peak_db(const float *data, int len) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C423: Audio format converter should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C423: Audio format converter should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C423: Output should not be empty");
-    assert!(
-        code.contains("fn int16_to_float"),
-        "C423: Should contain int16_to_float function"
-    );
-    assert!(
-        code.contains("fn float_to_int16"),
-        "C423: Should contain float_to_int16 function"
-    );
+    assert!(code.contains("fn int16_to_float"), "C423: Should contain int16_to_float function");
+    assert!(code.contains("fn float_to_int16"), "C423: Should contain float_to_int16 function");
     assert!(
         code.contains("fn interleave_stereo"),
         "C423: Should contain interleave_stereo function"
@@ -2047,11 +1879,7 @@ void click_repair_linear(float *data, int pos, int width) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C424: Click/pop detection should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C424: Click/pop detection should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C424: Output should not be empty");
     assert!(
@@ -2159,11 +1987,7 @@ void beat_detector_reset(beat_detector_t *bd) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C425: Beat detection should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C425: Beat detection should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C425: Output should not be empty");
     assert!(

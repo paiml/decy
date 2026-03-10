@@ -18,12 +18,7 @@ fn create_temp_c_file(dir: &TempDir, name: &str, content: &str) -> PathBuf {
 /// Helper: Transpile C code string and assert success
 fn assert_transpiles(c_code: &str) -> String {
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "Failed to transpile:\n{}\nError: {:?}",
-        c_code,
-        result.err()
-    );
+    assert!(result.is_ok(), "Failed to transpile:\n{}\nError: {:?}", c_code, result.err());
     result.unwrap()
 }
 
@@ -48,9 +43,7 @@ fn assert_transpile_file(dir: &TempDir, name: &str, content: &str) -> String {
 
 #[test]
 fn test_parser_post_increment() {
-    let code = assert_transpiles(
-        "void foo() { int x = 0; x++; }",
-    );
+    let code = assert_transpiles("void foo() { int x = 0; x++; }");
     assert!(
         code.contains("x") || code.contains("foo"),
         "Output should reference variable or function"
@@ -59,50 +52,42 @@ fn test_parser_post_increment() {
 
 #[test]
 fn test_parser_pre_increment() {
-    let code = assert_transpiles(
-        "void foo() { int x = 0; ++x; }",
-    );
+    let code = assert_transpiles("void foo() { int x = 0; ++x; }");
     assert!(code.contains("x") || code.contains("foo"));
 }
 
 #[test]
 fn test_parser_post_decrement() {
-    let code = assert_transpiles(
-        "void foo() { int x = 5; x--; }",
-    );
+    let code = assert_transpiles("void foo() { int x = 5; x--; }");
     assert!(code.contains("x") || code.contains("foo"));
 }
 
 #[test]
 fn test_parser_pre_decrement() {
-    let code = assert_transpiles(
-        "void foo() { int x = 5; --x; }",
-    );
+    let code = assert_transpiles("void foo() { int x = 5; --x; }");
     assert!(code.contains("x") || code.contains("foo"));
 }
 
 #[test]
 fn test_parser_inc_array_element() {
-    let code = assert_transpiles(
-        "void foo() { int arr[10]; int i = 0; arr[i]++; }",
-    );
+    let code = assert_transpiles("void foo() { int arr[10]; int i = 0; arr[i]++; }");
     assert!(code.contains("arr") || code.contains("foo"));
 }
 
 #[test]
 fn test_parser_inc_struct_field() {
-    let code = assert_transpiles(r#"
+    let code = assert_transpiles(
+        r#"
         struct Counter { int count; };
         void inc(struct Counter* s) { s->count++; }
-    "#);
+    "#,
+    );
     assert!(code.contains("count") || code.contains("inc"));
 }
 
 #[test]
 fn test_parser_inc_pointer_deref() {
-    let code = assert_transpiles(
-        "void foo(int* p) { (*p)++; }",
-    );
+    let code = assert_transpiles("void foo(int* p) { (*p)++; }");
     assert!(code.contains("foo"));
 }
 
@@ -116,7 +101,8 @@ fn test_parser_inc_in_for_loop_update() {
 
 #[test]
 fn test_parser_multiple_increments() {
-    let code = assert_transpiles(r#"
+    let code = assert_transpiles(
+        r#"
         void foo() {
             int a = 0, b = 0, c = 0;
             a++;
@@ -126,7 +112,8 @@ fn test_parser_multiple_increments() {
             --b;
             c--;
         }
-    "#);
+    "#,
+    );
     assert!(code.contains("foo"));
 }
 
@@ -152,17 +139,13 @@ fn test_parser_dec_array_element() {
 
 #[test]
 fn test_parser_pre_inc_in_expression() {
-    let code = assert_transpiles(
-        "int foo() { int x = 5; int y = ++x; return y; }",
-    );
+    let code = assert_transpiles("int foo() { int x = 5; int y = ++x; return y; }");
     assert!(code.contains("foo"));
 }
 
 #[test]
 fn test_parser_post_inc_in_expression() {
-    let code = assert_transpiles(
-        "int foo() { int x = 5; int y = x++; return y; }",
-    );
+    let code = assert_transpiles("int foo() { int x = 5; int y = x++; return y; }");
     assert!(code.contains("foo"));
 }
 
@@ -180,7 +163,8 @@ fn test_parser_basic_for_loop() {
 
 #[test]
 fn test_parser_for_no_init() {
-    let code = assert_transpiles(r#"
+    let code = assert_transpiles(
+        r#"
         int foo(int start) {
             int i = start;
             int s = 0;
@@ -189,13 +173,15 @@ fn test_parser_for_no_init() {
             }
             return s;
         }
-    "#);
+    "#,
+    );
     assert!(code.contains("foo"));
 }
 
 #[test]
 fn test_parser_for_multiple_init_vars() {
-    let code = assert_transpiles(r#"
+    let code = assert_transpiles(
+        r#"
         int foo() {
             int s = 0;
             for (int i = 0, j = 10; i < j; i++) {
@@ -203,13 +189,15 @@ fn test_parser_for_multiple_init_vars() {
             }
             return s;
         }
-    "#);
+    "#,
+    );
     assert!(code.contains("foo"));
 }
 
 #[test]
 fn test_parser_for_comma_update() {
-    let code = assert_transpiles(r#"
+    let code = assert_transpiles(
+        r#"
         int foo() {
             int s = 0;
             for (int i = 0, j = 10; i < j; i++, j--) {
@@ -217,13 +205,15 @@ fn test_parser_for_comma_update() {
             }
             return s;
         }
-    "#);
+    "#,
+    );
     assert!(code.contains("foo"));
 }
 
 #[test]
 fn test_parser_for_complex_condition() {
-    let code = assert_transpiles(r#"
+    let code = assert_transpiles(
+        r#"
         int foo(int n) {
             int s = 0;
             for (int i = 0; i < n && i < 100; i++) {
@@ -231,13 +221,15 @@ fn test_parser_for_complex_condition() {
             }
             return s;
         }
-    "#);
+    "#,
+    );
     assert!(code.contains("foo"));
 }
 
 #[test]
 fn test_parser_nested_for_loops_3_deep() {
-    let code = assert_transpiles(r#"
+    let code = assert_transpiles(
+        r#"
         int foo() {
             int total = 0;
             for (int i = 0; i < 3; i++) {
@@ -249,13 +241,15 @@ fn test_parser_nested_for_loops_3_deep() {
             }
             return total;
         }
-    "#);
+    "#,
+    );
     assert!(code.contains("foo") || code.contains("total"));
 }
 
 #[test]
 fn test_parser_for_array_iteration() {
-    let code = assert_transpiles(r#"
+    let code = assert_transpiles(
+        r#"
         int sum_arr(int arr[], int n) {
             int s = 0;
             for (int i = 0; i < n; i++) {
@@ -263,13 +257,15 @@ fn test_parser_for_array_iteration() {
             }
             return s;
         }
-    "#);
+    "#,
+    );
     assert!(code.contains("sum_arr") || code.contains("fn"));
 }
 
 #[test]
 fn test_parser_for_with_continue() {
-    let code = assert_transpiles(r#"
+    let code = assert_transpiles(
+        r#"
         int foo(int n) {
             int s = 0;
             for (int i = 0; i < n; i++) {
@@ -278,13 +274,15 @@ fn test_parser_for_with_continue() {
             }
             return s;
         }
-    "#);
+    "#,
+    );
     assert!(code.contains("foo"));
 }
 
 #[test]
 fn test_parser_for_with_break() {
-    let code = assert_transpiles(r#"
+    let code = assert_transpiles(
+        r#"
         int foo(int n) {
             int s = 0;
             for (int i = 0; i < n; i++) {
@@ -293,13 +291,15 @@ fn test_parser_for_with_break() {
             }
             return s;
         }
-    "#);
+    "#,
+    );
     assert!(code.contains("foo"));
 }
 
 #[test]
 fn test_parser_for_func_call_in_condition() {
-    let code = assert_transpiles(r#"
+    let code = assert_transpiles(
+        r#"
         int get_limit() { return 10; }
         int foo() {
             int s = 0;
@@ -308,37 +308,43 @@ fn test_parser_for_func_call_in_condition() {
             }
             return s;
         }
-    "#);
+    "#,
+    );
     assert!(code.contains("foo"));
 }
 
 #[test]
 fn test_parser_for_single_stmt_body() {
-    let code = assert_transpiles(r#"
+    let code = assert_transpiles(
+        r#"
         int foo(int n) {
             int s = 0;
             for (int i = 0; i < n; i++)
                 s += i;
             return s;
         }
-    "#);
+    "#,
+    );
     assert!(code.contains("foo"));
 }
 
 #[test]
 fn test_parser_for_empty_body() {
     // for loop with empty compound body
-    let code = assert_transpiles(r#"
+    let code = assert_transpiles(
+        r#"
         void busy_wait(int n) {
             for (int i = 0; i < n; i++) {}
         }
-    "#);
+    "#,
+    );
     assert!(code.contains("busy_wait") || code.contains("fn"));
 }
 
 #[test]
 fn test_parser_for_decrement_update() {
-    let code = assert_transpiles(r#"
+    let code = assert_transpiles(
+        r#"
         int countdown(int n) {
             int s = 0;
             for (int i = n; i > 0; i--) {
@@ -346,14 +352,16 @@ fn test_parser_for_decrement_update() {
             }
             return s;
         }
-    "#);
+    "#,
+    );
     assert!(code.contains("countdown"));
 }
 
 #[test]
 fn test_parser_for_assignment_init() {
     // for loop where init is assignment (not declaration)
-    let code = assert_transpiles(r#"
+    let code = assert_transpiles(
+        r#"
         int foo() {
             int i;
             int s = 0;
@@ -362,7 +370,8 @@ fn test_parser_for_assignment_init() {
             }
             return s;
         }
-    "#);
+    "#,
+    );
     assert!(code.contains("foo"));
 }
 
@@ -438,17 +447,15 @@ fn test_parser_binop_not_equal() {
 
 #[test]
 fn test_parser_binop_logical_and() {
-    let code = assert_transpiles(
-        "int both(int a, int b) { if (a > 0 && b > 0) return 1; return 0; }",
-    );
+    let code =
+        assert_transpiles("int both(int a, int b) { if (a > 0 && b > 0) return 1; return 0; }");
     assert!(code.contains("&&") || code.contains("both"));
 }
 
 #[test]
 fn test_parser_binop_logical_or() {
-    let code = assert_transpiles(
-        "int either(int a, int b) { if (a > 0 || b > 0) return 1; return 0; }",
-    );
+    let code =
+        assert_transpiles("int either(int a, int b) { if (a > 0 || b > 0) return 1; return 0; }");
     assert!(code.contains("||") || code.contains("either"));
 }
 
@@ -540,38 +547,42 @@ fn test_parser_compound_assign_bitxor() {
 
 #[test]
 fn test_parser_binop_precedence_chain() {
-    let code = assert_transpiles(
-        "int prec(int a, int b, int c, int d) { return a + b * c / d; }",
-    );
+    let code = assert_transpiles("int prec(int a, int b, int c, int d) { return a + b * c / d; }");
     assert!(code.contains("prec") || code.contains("fn"));
 }
 
 #[test]
 fn test_parser_binop_chained_comparisons() {
-    let code = assert_transpiles(r#"
+    let code = assert_transpiles(
+        r#"
         int range(int x) {
             if (x > 0 && x < 100 && x != 50) return 1;
             return 0;
         }
-    "#);
+    "#,
+    );
     assert!(code.contains("range"));
 }
 
 #[test]
 fn test_parser_binop_mixed_types() {
-    let code = assert_transpiles(r#"
+    let code = assert_transpiles(
+        r#"
         double mixed(int a, double b) { return a + b; }
-    "#);
+    "#,
+    );
     assert!(code.contains("mixed") || code.contains("fn"));
 }
 
 #[test]
 fn test_parser_ternary_complex() {
-    let code = assert_transpiles(r#"
+    let code = assert_transpiles(
+        r#"
         int clamp(int x, int lo, int hi) {
             return x < lo ? lo : (x > hi ? hi : x);
         }
-    "#);
+    "#,
+    );
     assert!(code.contains("clamp"));
 }
 
@@ -581,13 +592,15 @@ fn test_parser_ternary_complex() {
 
 #[test]
 fn test_parser_multiple_function_definitions() {
-    let code = assert_transpiles(r#"
+    let code = assert_transpiles(
+        r#"
         int add(int a, int b) { return a + b; }
         int sub(int a, int b) { return a - b; }
         int mul(int a, int b) { return a * b; }
         int divide(int a, int b) { return a / b; }
         int negate(int a) { return -a; }
-    "#);
+    "#,
+    );
     assert!(code.contains("add"));
     assert!(code.contains("sub"));
     assert!(code.contains("mul"));
@@ -595,90 +608,106 @@ fn test_parser_multiple_function_definitions() {
 
 #[test]
 fn test_parser_func_all_param_types() {
-    let code = assert_transpiles(r#"
+    let code = assert_transpiles(
+        r#"
         double func(int a, float b, double c, char d, long e, short f) {
             return a + b + c + d + e + f;
         }
-    "#);
+    "#,
+    );
     assert!(code.contains("func") || code.contains("fn"));
 }
 
 #[test]
 fn test_parser_func_with_array_param() {
-    let code = assert_transpiles(r#"
+    let code = assert_transpiles(
+        r#"
         int sum(int arr[], int n) {
             int s = 0;
             for (int i = 0; i < n; i++) { s += arr[i]; }
             return s;
         }
-    "#);
+    "#,
+    );
     assert!(code.contains("sum"));
 }
 
 #[test]
 fn test_parser_func_with_struct_param() {
-    let code = assert_transpiles(r#"
+    let code = assert_transpiles(
+        r#"
         struct Point { int x; int y; };
         int distance_sq(struct Point a, struct Point b) {
             int dx = a.x - b.x;
             int dy = a.y - b.y;
             return dx * dx + dy * dy;
         }
-    "#);
+    "#,
+    );
     assert!(code.contains("Point") || code.contains("distance"));
 }
 
 #[test]
 fn test_parser_func_with_pointer_param() {
-    let code = assert_transpiles(r#"
+    let code = assert_transpiles(
+        r#"
         void swap(int* a, int* b) {
             int tmp = *a;
             *a = *b;
             *b = tmp;
         }
-    "#);
+    "#,
+    );
     assert!(code.contains("swap"));
 }
 
 #[test]
 fn test_parser_global_variable_declarations() {
-    let code = assert_transpiles(r#"
+    let code = assert_transpiles(
+        r#"
         int global_count = 0;
         float global_rate = 1.5;
         char global_flag = 0;
         void update() { global_count++; }
-    "#);
+    "#,
+    );
     assert!(code.contains("global_count") || code.contains("update"));
 }
 
 #[test]
 fn test_parser_global_array_declarations() {
-    let code = assert_transpiles(r#"
+    let code = assert_transpiles(
+        r#"
         int buffer[256];
         double weights[100];
         void init() { buffer[0] = 0; weights[0] = 1.0; }
-    "#);
+    "#,
+    );
     assert!(code.contains("buffer") || code.contains("init"));
 }
 
 #[test]
 fn test_parser_struct_definition() {
-    let code = assert_transpiles(r#"
+    let code = assert_transpiles(
+        r#"
         struct Node {
             int value;
             struct Node* next;
         };
         int get_val(struct Node* n) { return n->value; }
-    "#);
+    "#,
+    );
     assert!(code.contains("Node") || code.contains("value"));
 }
 
 #[test]
 fn test_parser_enum_definition() {
-    let code = assert_transpiles(r#"
+    let code = assert_transpiles(
+        r#"
         enum Color { RED = 0, GREEN = 1, BLUE = 2 };
         int is_red(enum Color c) { return c == RED; }
-    "#);
+    "#,
+    );
     assert!(code.contains("Color") || code.contains("is_red"));
 }
 
@@ -718,27 +747,32 @@ MyInt test(MyInt x) {{ return helper(x) + 1; }}
 
 #[test]
 fn test_parser_deeply_nested_expressions() {
-    let code = assert_transpiles(r#"
+    let code = assert_transpiles(
+        r#"
         int deep(int a, int b, int c, int d, int e) {
             return a + (b * (c - (d / (e + 1))));
         }
-    "#);
+    "#,
+    );
     assert!(code.contains("deep"));
 }
 
 #[test]
 fn test_parser_char_array_operations() {
-    let code = assert_transpiles(r#"
+    let code = assert_transpiles(
+        r#"
         void set_char(char buf[], int idx, char val) {
             buf[idx] = val;
         }
-    "#);
+    "#,
+    );
     assert!(code.contains("set_char") || code.contains("fn"));
 }
 
 #[test]
 fn test_parser_switch_many_cases() {
-    let code = assert_transpiles(r#"
+    let code = assert_transpiles(
+        r#"
         int classify(int x) {
             switch (x) {
                 case 0: return 0;
@@ -754,13 +788,15 @@ fn test_parser_switch_many_cases() {
                 default: return -1;
             }
         }
-    "#);
+    "#,
+    );
     assert!(code.contains("classify") || code.contains("match"));
 }
 
 #[test]
 fn test_parser_struct_initialization() {
-    let code = assert_transpiles(r#"
+    let code = assert_transpiles(
+        r#"
         struct Rect { int x; int y; int w; int h; };
         struct Rect make_rect(int x, int y, int w, int h) {
             struct Rect r;
@@ -770,36 +806,42 @@ fn test_parser_struct_initialization() {
             r.h = h;
             return r;
         }
-    "#);
+    "#,
+    );
     assert!(code.contains("Rect") || code.contains("make_rect"));
 }
 
 #[test]
 fn test_parser_typedef_usage() {
-    let code = assert_transpiles(r#"
+    let code = assert_transpiles(
+        r#"
         typedef int i32_t;
         typedef unsigned int u32_t;
         i32_t convert(u32_t val) {
             return (i32_t)val;
         }
-    "#);
+    "#,
+    );
     assert!(code.contains("convert") || code.contains("fn"));
 }
 
 #[test]
 fn test_parser_function_pointer_declaration() {
-    let code = assert_transpiles(r#"
+    let code = assert_transpiles(
+        r#"
         typedef int (*compare_fn)(int, int);
         int sort_helper(compare_fn cmp, int a, int b) {
             return cmp(a, b);
         }
-    "#);
+    "#,
+    );
     assert!(code.contains("sort_helper") || code.contains("fn"));
 }
 
 #[test]
 fn test_parser_multiple_return_paths() {
-    let code = assert_transpiles(r#"
+    let code = assert_transpiles(
+        r#"
         int categorize(int x) {
             if (x < 0) return -1;
             if (x == 0) return 0;
@@ -808,25 +850,29 @@ fn test_parser_multiple_return_paths() {
             if (x < 1000) return 3;
             return 4;
         }
-    "#);
+    "#,
+    );
     assert!(code.contains("categorize"));
 }
 
 #[test]
 fn test_parser_static_variables() {
-    let code = assert_transpiles(r#"
+    let code = assert_transpiles(
+        r#"
         int counter() {
             static int count = 0;
             count++;
             return count;
         }
-    "#);
+    "#,
+    );
     assert!(code.contains("counter") || code.contains("count"));
 }
 
 #[test]
 fn test_parser_const_parameters() {
-    let code = assert_transpiles(r#"
+    let code = assert_transpiles(
+        r#"
         int sum_array(const int* arr, int n) {
             int s = 0;
             for (int i = 0; i < n; i++) {
@@ -834,18 +880,21 @@ fn test_parser_const_parameters() {
             }
             return s;
         }
-    "#);
+    "#,
+    );
     assert!(code.contains("sum_array") || code.contains("fn"));
 }
 
 #[test]
 fn test_parser_volatile_variable() {
-    let code = assert_transpiles(r#"
+    let code = assert_transpiles(
+        r#"
         int read_volatile() {
             volatile int sensor = 42;
             return sensor;
         }
-    "#);
+    "#,
+    );
     assert!(code.contains("read_volatile") || code.contains("fn"));
 }
 
@@ -856,27 +905,32 @@ fn test_parser_volatile_variable() {
 #[test]
 fn test_parser_inc_dec_field_decrement() {
     // Exercises the delta == -1 branch in extract_inc_dec_stmt for FieldAssignment
-    let code = assert_transpiles(r#"
+    let code = assert_transpiles(
+        r#"
         struct Timer { int ticks; };
         void tick_down(struct Timer* t) { t->ticks--; }
-    "#);
+    "#,
+    );
     assert!(code.contains("tick_down") || code.contains("ticks"));
 }
 
 #[test]
 fn test_parser_inc_dec_direct_field() {
     // Exercises FieldAccess variant (obj.field rather than obj->field)
-    let code = assert_transpiles(r#"
+    let code = assert_transpiles(
+        r#"
         struct Counter { int val; };
         void bump(struct Counter* c) { c->val++; }
-    "#);
+    "#,
+    );
     assert!(code.contains("bump") || code.contains("val"));
 }
 
 #[test]
 fn test_parser_for_with_only_condition() {
     // for loop with only condition (no init, no update) -- exercises 1-child pre_body
-    let code = assert_transpiles(r#"
+    let code = assert_transpiles(
+        r#"
         int foo(int n) {
             int i = 0;
             int s = 0;
@@ -886,14 +940,16 @@ fn test_parser_for_with_only_condition() {
             }
             return s;
         }
-    "#);
+    "#,
+    );
     assert!(code.contains("foo"));
 }
 
 #[test]
 fn test_parser_for_infinite_loop() {
     // for(;;) exercises the 0-children pre_body branch
-    let code = assert_transpiles(r#"
+    let code = assert_transpiles(
+        r#"
         int foo() {
             int x = 0;
             for (;;) {
@@ -902,14 +958,16 @@ fn test_parser_for_infinite_loop() {
             }
             return x;
         }
-    "#);
+    "#,
+    );
     assert!(code.contains("foo"));
 }
 
 #[test]
 fn test_parser_for_two_parts_init_and_condition() {
     // for loop with init and condition but no update -- exercises 2-child first_is_init branch
-    let code = assert_transpiles(r#"
+    let code = assert_transpiles(
+        r#"
         int foo(int n) {
             int s = 0;
             for (int i = 0; i < n;) {
@@ -918,14 +976,16 @@ fn test_parser_for_two_parts_init_and_condition() {
             }
             return s;
         }
-    "#);
+    "#,
+    );
     assert!(code.contains("foo"));
 }
 
 #[test]
 fn test_parser_for_two_parts_condition_and_update() {
     // for loop with condition and update but no init -- exercises 2-child !first_is_init
-    let code = assert_transpiles(r#"
+    let code = assert_transpiles(
+        r#"
         int foo(int n) {
             int i = 0;
             int s = 0;
@@ -934,14 +994,16 @@ fn test_parser_for_two_parts_condition_and_update() {
             }
             return s;
         }
-    "#);
+    "#,
+    );
     assert!(code.contains("foo"));
 }
 
 #[test]
 fn test_parser_binop_comma_operator() {
     // Exercises the Comma variant in extract_binary_operator
-    let code = assert_transpiles(r#"
+    let code = assert_transpiles(
+        r#"
         int foo() {
             int a = 0, b = 0;
             for (int i = 0; i < 5; i++, a++) {
@@ -949,27 +1011,31 @@ fn test_parser_binop_comma_operator() {
             }
             return a + b;
         }
-    "#);
+    "#,
+    );
     assert!(code.contains("foo"));
 }
 
 #[test]
 fn test_parser_binop_assign_in_condition() {
     // Exercises the Assign variant in extract_binary_operator (embedded assignment)
-    let code = assert_transpiles(r#"
+    let code = assert_transpiles(
+        r#"
         int foo(int x) {
             int y;
             y = x + 1;
             return y;
         }
-    "#);
+    "#,
+    );
     assert!(code.contains("foo"));
 }
 
 #[test]
 fn test_parser_binop_all_precedence_levels() {
     // Complex expression hitting multiple precedence levels
-    let code = assert_transpiles(r#"
+    let code = assert_transpiles(
+        r#"
         int prec(int a, int b, int c) {
             int r1 = a + b * c;
             int r2 = a | b & c;
@@ -978,14 +1044,16 @@ fn test_parser_binop_all_precedence_levels() {
             int r5 = (a == 0) || (b != 0);
             return r1 + r2 + r3 + r4 + r5;
         }
-    "#);
+    "#,
+    );
     assert!(code.contains("prec"));
 }
 
 #[test]
 fn test_parser_for_step_by_two() {
     // for loop with i += 2 update
-    let code = assert_transpiles(r#"
+    let code = assert_transpiles(
+        r#"
         int sum_even(int n) {
             int s = 0;
             for (int i = 0; i < n; i += 2) {
@@ -993,14 +1061,16 @@ fn test_parser_for_step_by_two() {
             }
             return s;
         }
-    "#);
+    "#,
+    );
     assert!(code.contains("sum_even"));
 }
 
 #[test]
 fn test_parser_combined_inc_dec_and_binop() {
     // Mix of increment/decrement with binary operators in a single function
-    let code = assert_transpiles(r#"
+    let code = assert_transpiles(
+        r#"
         int complex_fn(int n) {
             int a = 0, b = n;
             for (int i = 0; i < n; i++) {
@@ -1012,13 +1082,15 @@ fn test_parser_combined_inc_dec_and_binop() {
             }
             return a + b;
         }
-    "#);
+    "#,
+    );
     assert!(code.contains("complex_fn") || code.contains("fn"));
 }
 
 #[test]
 fn test_parser_nested_for_with_inc_dec() {
-    let code = assert_transpiles(r#"
+    let code = assert_transpiles(
+        r#"
         int matrix_sum(int n) {
             int total = 0;
             for (int i = 0; i < n; i++) {
@@ -1028,47 +1100,55 @@ fn test_parser_nested_for_with_inc_dec() {
             }
             return total;
         }
-    "#);
+    "#,
+    );
     assert!(code.contains("matrix_sum") || code.contains("total"));
 }
 
 #[test]
 fn test_parser_for_with_compound_condition() {
-    let code = assert_transpiles(r#"
+    let code = assert_transpiles(
+        r#"
         int search(int* arr, int n, int target) {
             for (int i = 0; i < n && arr[i] != target; i++) {
             }
             return -1;
         }
-    "#);
+    "#,
+    );
     assert!(code.contains("search"));
 }
 
 #[test]
 fn test_parser_multiple_arrays_and_loops() {
-    let code = assert_transpiles(r#"
+    let code = assert_transpiles(
+        r#"
         void copy_array(int* dst, const int* src, int n) {
             for (int i = 0; i < n; i++) {
                 dst[i] = src[i];
             }
         }
-    "#);
+    "#,
+    );
     assert!(code.contains("copy_array") || code.contains("fn"));
 }
 
 #[test]
 fn test_parser_bitwise_operations_complex() {
-    let code = assert_transpiles(r#"
+    let code = assert_transpiles(
+        r#"
         int pack_bits(int a, int b, int c) {
             return (a & 0xFF) | ((b & 0xFF) << 8) | ((c & 0xFF) << 16);
         }
-    "#);
+    "#,
+    );
     assert!(code.contains("pack_bits") || code.contains("fn"));
 }
 
 #[test]
 fn test_parser_switch_with_fallthrough() {
-    let code = assert_transpiles(r#"
+    let code = assert_transpiles(
+        r#"
         int grade(int score) {
             switch (score / 10) {
                 case 10:
@@ -1079,26 +1159,30 @@ fn test_parser_switch_with_fallthrough() {
                 default: return 0;
             }
         }
-    "#);
+    "#,
+    );
     assert!(code.contains("grade") || code.contains("match"));
 }
 
 #[test]
 fn test_parser_nested_struct() {
-    let code = assert_transpiles(r#"
+    let code = assert_transpiles(
+        r#"
         struct Inner { int x; };
         struct Outer {
             struct Inner inner;
             int y;
         };
         int get_inner_x(struct Outer* o) { return o->inner.x; }
-    "#);
+    "#,
+    );
     assert!(code.contains("Outer") || code.contains("Inner") || code.contains("get_inner"));
 }
 
 #[test]
 fn test_parser_do_while_with_inc() {
-    let code = assert_transpiles(r#"
+    let code = assert_transpiles(
+        r#"
         int count_digits(int n) {
             int count = 0;
             do {
@@ -1107,26 +1191,30 @@ fn test_parser_do_while_with_inc() {
             } while (n > 0);
             return count;
         }
-    "#);
+    "#,
+    );
     assert!(code.contains("count_digits") || code.contains("count"));
 }
 
 #[test]
 fn test_parser_array_subscript_inc_dec_complex() {
     // Array subscript with expression index being incremented
-    let code = assert_transpiles(r#"
+    let code = assert_transpiles(
+        r#"
         void histogram(int* counts, int* data, int n) {
             for (int i = 0; i < n; i++) {
                 counts[data[i]]++;
             }
         }
-    "#);
+    "#,
+    );
     assert!(code.contains("histogram") || code.contains("fn"));
 }
 
 #[test]
 fn test_parser_multiple_assignment_operators() {
-    let code = assert_transpiles(r#"
+    let code = assert_transpiles(
+        r#"
         void all_compound(int* x) {
             *x += 1;
             *x -= 1;
@@ -1139,18 +1227,15 @@ fn test_parser_multiple_assignment_operators() {
             *x <<= 1;
             *x >>= 1;
         }
-    "#);
+    "#,
+    );
     assert!(code.contains("all_compound") || code.contains("fn"));
 }
 
 #[test]
 fn test_parser_transpile_file_basic() {
     let temp = TempDir::new().unwrap();
-    let code = assert_transpile_file(
-        &temp,
-        "basic.c",
-        "int main() { return 0; }",
-    );
+    let code = assert_transpile_file(&temp, "basic.c", "int main() { return 0; }");
     assert!(code.contains("main") || code.contains("fn"));
 }
 
@@ -1175,29 +1260,34 @@ fn test_parser_transpile_file_with_for_and_inc() {
 
 #[test]
 fn test_parser_cast_expression() {
-    let code = assert_transpiles(r#"
+    let code = assert_transpiles(
+        r#"
         int truncate(double x) {
             return (int)x;
         }
-    "#);
+    "#,
+    );
     assert!(code.contains("truncate") || code.contains("fn"));
 }
 
 #[test]
 fn test_parser_sizeof_in_expression() {
-    let code = assert_transpiles(r#"
+    let code = assert_transpiles(
+        r#"
         int sizes() {
             int a = sizeof(int);
             int b = sizeof(double);
             return a + b;
         }
-    "#);
+    "#,
+    );
     assert!(code.contains("sizes") || code.contains("fn"));
 }
 
 #[test]
 fn test_parser_multiline_for_with_complex_body() {
-    let code = assert_transpiles(r#"
+    let code = assert_transpiles(
+        r#"
         int compute(int* data, int n) {
             int result = 0;
             for (int i = 0; i < n; i++) {
@@ -1212,23 +1302,27 @@ fn test_parser_multiline_for_with_complex_body() {
             }
             return result;
         }
-    "#);
+    "#,
+    );
     assert!(code.contains("compute"));
 }
 
 #[test]
 fn test_parser_chained_logical_ops() {
-    let code = assert_transpiles(r#"
+    let code = assert_transpiles(
+        r#"
         int valid(int x, int y, int z) {
             return (x > 0) && (y > 0) && (z > 0) && (x < 100) && (y < 100) && (z < 100);
         }
-    "#);
+    "#,
+    );
     assert!(code.contains("valid"));
 }
 
 #[test]
 fn test_parser_mixed_bitwise_and_arithmetic() {
-    let code = assert_transpiles(r#"
+    let code = assert_transpiles(
+        r#"
         int mix(int a, int b) {
             int sum = a + b;
             int masked = sum & 0xFF;
@@ -1236,6 +1330,7 @@ fn test_parser_mixed_bitwise_and_arithmetic() {
             int ored = shifted | 0x01;
             return ored ^ 0xAA;
         }
-    "#);
+    "#,
+    );
     assert!(code.contains("mix") || code.contains("fn"));
 }

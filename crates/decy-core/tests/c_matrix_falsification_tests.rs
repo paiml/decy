@@ -60,17 +60,10 @@ void mat_add_inplace(mat_add_matrix_t *A, const mat_add_matrix_t *B) {
 }
 "##;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1776: Matrix add should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1776: Matrix add should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1776: Output should not be empty");
-    assert!(
-        code.contains("fn mat_add"),
-        "C1776: Should contain mat_add function"
-    );
+    assert!(code.contains("fn mat_add"), "C1776: Should contain mat_add function");
 }
 
 /// C1777: NxN matrix multiplication with triple nested loops
@@ -109,17 +102,10 @@ void mat_mul(const mat_mul_matrix_t *A, const mat_mul_matrix_t *B, mat_mul_matri
 }
 "##;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1777: Matrix multiply should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1777: Matrix multiply should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1777: Output should not be empty");
-    assert!(
-        code.contains("fn mat_mul"),
-        "C1777: Should contain mat_mul function"
-    );
+    assert!(code.contains("fn mat_mul"), "C1777: Should contain mat_mul function");
 }
 
 /// C1778: Matrix transpose for rectangular matrices
@@ -158,17 +144,10 @@ int mat_transpose_is_symmetric(const mat_trans_matrix_t *m) {
 }
 "##;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1778: Matrix transpose should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1778: Matrix transpose should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1778: Output should not be empty");
-    assert!(
-        code.contains("fn mat_transpose"),
-        "C1778: Should contain mat_transpose function"
-    );
+    assert!(code.contains("fn mat_transpose"), "C1778: Should contain mat_transpose function");
 }
 
 /// C1779: Identity matrix generation
@@ -205,11 +184,7 @@ int mat_identity_check(const mat_identity_t *m) {
 }
 "##;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1779: Identity matrix should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1779: Identity matrix should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1779: Output should not be empty");
     assert!(
@@ -258,17 +233,10 @@ double mat_scalar_trace(const mat_scal_matrix_t *m) {
 }
 "##;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1780: Scalar multiply should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1780: Scalar multiply should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1780: Output should not be empty");
-    assert!(
-        code.contains("fn mat_scalar_mul"),
-        "C1780: Should contain mat_scalar_mul function"
-    );
+    assert!(code.contains("fn mat_scalar_mul"), "C1780: Should contain mat_scalar_mul function");
 }
 
 // ============================================================================
@@ -327,11 +295,7 @@ void mat_lu_decompose(mat_lu_t *lu, const double *A) {
 }
 "##;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1781: LU decomposition should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1781: LU decomposition should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1781: Output should not be empty");
     assert!(
@@ -369,17 +333,10 @@ void mat_forward_sub_unit(const double *L, const double *b, double *y, int n) {
 }
 "##;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1782: Forward substitution should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1782: Forward substitution should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1782: Output should not be empty");
-    assert!(
-        code.contains("fn mat_forward_sub"),
-        "C1782: Should contain mat_forward_sub function"
-    );
+    assert!(code.contains("fn mat_forward_sub"), "C1782: Should contain mat_forward_sub function");
 }
 
 /// C1783: Back substitution (Ux = y)
@@ -412,17 +369,10 @@ int mat_back_sub_check(const double *U, int n) {
 }
 "##;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1783: Back substitution should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1783: Back substitution should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1783: Output should not be empty");
-    assert!(
-        code.contains("fn mat_back_sub"),
-        "C1783: Should contain mat_back_sub function"
-    );
+    assert!(code.contains("fn mat_back_sub"), "C1783: Should contain mat_back_sub function");
 }
 
 /// C1784: Matrix determinant via cofactor expansion (small matrices)
@@ -456,17 +406,10 @@ void mat_det_minor(const double *src, double *dst, int n, int row, int col) {
 }
 "##;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1784: Determinant should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1784: Determinant should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1784: Output should not be empty");
-    assert!(
-        code.contains("fn mat_det_2x2"),
-        "C1784: Should contain mat_det_2x2 function"
-    );
+    assert!(code.contains("fn mat_det_2x2"), "C1784: Should contain mat_det_2x2 function");
 }
 
 /// C1785: Small matrix inverse (3x3) using adjugate method
@@ -506,17 +449,10 @@ double mat_inverse_det_3x3(const double *m) {
 }
 "##;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1785: Matrix inverse 3x3 should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1785: Matrix inverse 3x3 should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1785: Output should not be empty");
-    assert!(
-        code.contains("fn mat_inverse_3x3"),
-        "C1785: Should contain mat_inverse_3x3 function"
-    );
+    assert!(code.contains("fn mat_inverse_3x3"), "C1785: Should contain mat_inverse_3x3 function");
 }
 
 // ============================================================================
@@ -564,17 +500,10 @@ double mat_coo_get(const mat_coo_t *s, int r, int c) {
 }
 "##;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1786: Sparse COO should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1786: Sparse COO should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1786: Output should not be empty");
-    assert!(
-        code.contains("fn mat_coo_init"),
-        "C1786: Should contain mat_coo_init function"
-    );
+    assert!(code.contains("fn mat_coo_init"), "C1786: Should contain mat_coo_init function");
 }
 
 /// C1787: CSR (Compressed Sparse Row) format
@@ -624,17 +553,10 @@ void mat_csr_row_sum(const mat_csr_t *s, double *sums) {
 }
 "##;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1787: Sparse CSR should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1787: Sparse CSR should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1787: Output should not be empty");
-    assert!(
-        code.contains("fn mat_csr_init"),
-        "C1787: Should contain mat_csr_init function"
-    );
+    assert!(code.contains("fn mat_csr_init"), "C1787: Should contain mat_csr_init function");
 }
 
 /// C1788: Sparse matrix-dense vector multiplication (CSR format)
@@ -673,11 +595,7 @@ double mat_spmv_dot(const double *a, const double *b, int n) {
 }
 "##;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1788: Sparse-dense multiply should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1788: Sparse-dense multiply should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1788: Output should not be empty");
     assert!(
@@ -724,17 +642,10 @@ void mat_spadd(const mat_spadd_coo_t *A, const mat_spadd_coo_t *B, mat_spadd_coo
 }
 "##;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1789: Sparse add should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1789: Sparse add should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1789: Output should not be empty");
-    assert!(
-        code.contains("fn mat_spadd"),
-        "C1789: Should contain mat_spadd function"
-    );
+    assert!(code.contains("fn mat_spadd"), "C1789: Should contain mat_spadd function");
 }
 
 /// C1790: Sparse matrix transpose in COO format
@@ -780,11 +691,7 @@ int mat_spt_count_row(const mat_spt_coo_t *s, int r) {
 }
 "##;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1790: Sparse transpose should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1790: Sparse transpose should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1790: Output should not be empty");
     assert!(
@@ -829,17 +736,10 @@ double mat_dot_self(const double *a, int n) {
 }
 "##;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1791: Dot product should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1791: Dot product should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1791: Output should not be empty");
-    assert!(
-        code.contains("fn mat_dot_product"),
-        "C1791: Should contain mat_dot_product function"
-    );
+    assert!(code.contains("fn mat_dot_product"), "C1791: Should contain mat_dot_product function");
 }
 
 /// C1792: 3D cross product
@@ -867,11 +767,7 @@ double mat_cross_magnitude(mat_vec3_t a, mat_vec3_t b) {
 }
 "##;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1792: Cross product should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1792: Cross product should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1792: Output should not be empty");
     assert!(
@@ -915,11 +811,7 @@ void mat_vec_normalize(double *v, int n) {
 }
 "##;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1793: Vector normalize should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1793: Vector normalize should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1793: Output should not be empty");
     assert!(
@@ -995,11 +887,7 @@ void mat_gs_orthogonalize(double *vecs, int nvecs, int dim) {
 }
 "##;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1794: Gram-Schmidt should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1794: Gram-Schmidt should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1794: Output should not be empty");
     assert!(
@@ -1047,17 +935,10 @@ void mat_proj_reject(const double *v, const double *onto, double *result, int n)
 }
 "##;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1795: Vector projection should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1795: Vector projection should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1795: Output should not be empty");
-    assert!(
-        code.contains("fn mat_proj_vector"),
-        "C1795: Should contain mat_proj_vector function"
-    );
+    assert!(code.contains("fn mat_proj_vector"), "C1795: Should contain mat_proj_vector function");
 }
 
 // ============================================================================
@@ -1106,11 +987,7 @@ void mat_tensor3d_fill(mat_tensor3d_t *t, double val) {
 }
 "##;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1796: Tensor 3D indexing should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1796: Tensor 3D indexing should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1796: Output should not be empty");
     assert!(
@@ -1168,17 +1045,10 @@ int mat_reshape_flat_idx(const mat_reshape_tensor_t *t, const int *indices) {
 }
 "##;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1797: Tensor reshape should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1797: Tensor reshape should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1797: Output should not be empty");
-    assert!(
-        code.contains("fn mat_reshape"),
-        "C1797: Should contain mat_reshape function"
-    );
+    assert!(code.contains("fn mat_reshape"), "C1797: Should contain mat_reshape function");
 }
 
 /// C1798: Tensor slice (extract sub-tensor along a dimension)
@@ -1223,11 +1093,7 @@ void mat_slice_along_d2(const mat_slice_tensor_t *t, int idx, mat_slice_matrix_t
 }
 "##;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1798: Tensor slice should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1798: Tensor slice should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1798: Output should not be empty");
     assert!(
@@ -1289,11 +1155,7 @@ void mat_batch_multiply(const mat_batch_t *A, const mat_batch_t *B, mat_batch_t 
 }
 "##;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1799: Batch matrix multiply should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1799: Batch matrix multiply should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1799: Output should not be empty");
     assert!(
@@ -1367,15 +1229,8 @@ double mat_ew_max(const mat_ew_tensor_t *t) {
 }
 "##;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C1800: Element-wise tensor ops should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C1800: Element-wise tensor ops should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1800: Output should not be empty");
-    assert!(
-        code.contains("fn mat_ew_add"),
-        "C1800: Should contain mat_ew_add function"
-    );
+    assert!(code.contains("fn mat_ew_add"), "C1800: Should contain mat_ew_add function");
 }

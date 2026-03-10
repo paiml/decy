@@ -58,16 +58,10 @@ fn demo_initialized_local() -> Result<(), Box<dyn std::error::Error>> {
     // Count unsafe blocks
     let unsafe_count = rust_code.matches("unsafe").count();
     let lines = rust_code.lines().count();
-    let unsafe_per_1000 = if lines > 0 {
-        (unsafe_count as f64 / lines as f64) * 1000.0
-    } else {
-        0.0
-    };
+    let unsafe_per_1000 =
+        if lines > 0 { (unsafe_count as f64 / lines as f64) * 1000.0 } else { 0.0 };
 
-    println!(
-        "\n✓ Unsafe blocks: {} ({:.1} per 1000 LOC)",
-        unsafe_count, unsafe_per_1000
-    );
+    println!("\n✓ Unsafe blocks: {} ({:.1} per 1000 LOC)", unsafe_count, unsafe_per_1000);
     println!("✓ Variable properly initialized");
     println!("✓ No undefined reads\n");
 
@@ -94,16 +88,10 @@ fn demo_array_initialization() -> Result<(), Box<dyn std::error::Error>> {
 
     let unsafe_count = rust_code.matches("unsafe").count();
     let lines = rust_code.lines().count();
-    let unsafe_per_1000 = if lines > 0 {
-        (unsafe_count as f64 / lines as f64) * 1000.0
-    } else {
-        0.0
-    };
+    let unsafe_per_1000 =
+        if lines > 0 { (unsafe_count as f64 / lines as f64) * 1000.0 } else { 0.0 };
 
-    println!(
-        "\n✓ Unsafe blocks: {} ({:.1} per 1000 LOC)",
-        unsafe_count, unsafe_per_1000
-    );
+    println!("\n✓ Unsafe blocks: {} ({:.1} per 1000 LOC)", unsafe_count, unsafe_per_1000);
     println!("✓ Array fully initialized");
     println!("✓ All elements have defined values\n");
 
@@ -135,16 +123,10 @@ fn demo_struct_initialization() -> Result<(), Box<dyn std::error::Error>> {
 
     let unsafe_count = rust_code.matches("unsafe").count();
     let lines = rust_code.lines().count();
-    let unsafe_per_1000 = if lines > 0 {
-        (unsafe_count as f64 / lines as f64) * 1000.0
-    } else {
-        0.0
-    };
+    let unsafe_per_1000 =
+        if lines > 0 { (unsafe_count as f64 / lines as f64) * 1000.0 } else { 0.0 };
 
-    println!(
-        "\n✓ Unsafe blocks: {} ({:.1} per 1000 LOC)",
-        unsafe_count, unsafe_per_1000
-    );
+    println!("\n✓ Unsafe blocks: {} ({:.1} per 1000 LOC)", unsafe_count, unsafe_per_1000);
     println!("✓ Struct fully initialized");
     println!("✓ All fields have defined values\n");
 
@@ -171,16 +153,10 @@ fn demo_zero_initialization() -> Result<(), Box<dyn std::error::Error>> {
 
     let unsafe_count = rust_code.matches("unsafe").count();
     let lines = rust_code.lines().count();
-    let unsafe_per_1000 = if lines > 0 {
-        (unsafe_count as f64 / lines as f64) * 1000.0
-    } else {
-        0.0
-    };
+    let unsafe_per_1000 =
+        if lines > 0 { (unsafe_count as f64 / lines as f64) * 1000.0 } else { 0.0 };
 
-    println!(
-        "\n✓ Unsafe blocks: {} ({:.1} per 1000 LOC)",
-        unsafe_count, unsafe_per_1000
-    );
+    println!("\n✓ Unsafe blocks: {} ({:.1} per 1000 LOC)", unsafe_count, unsafe_per_1000);
     println!("✓ Array zero-initialized");
     println!("✓ Remaining elements set to 0\n");
 
@@ -215,16 +191,10 @@ fn demo_conditional_initialization() -> Result<(), Box<dyn std::error::Error>> {
 
     let unsafe_count = rust_code.matches("unsafe").count();
     let lines = rust_code.lines().count();
-    let unsafe_per_1000 = if lines > 0 {
-        (unsafe_count as f64 / lines as f64) * 1000.0
-    } else {
-        0.0
-    };
+    let unsafe_per_1000 =
+        if lines > 0 { (unsafe_count as f64 / lines as f64) * 1000.0 } else { 0.0 };
 
-    println!(
-        "\n✓ Unsafe blocks: {} ({:.1} per 1000 LOC)",
-        unsafe_count, unsafe_per_1000
-    );
+    println!("\n✓ Unsafe blocks: {} ({:.1} per 1000 LOC)", unsafe_count, unsafe_per_1000);
     println!("✓ Initialized in all branches");
     println!("✓ No path leaves variable uninitialized\n");
 
@@ -252,16 +222,10 @@ fn demo_static_initialization() -> Result<(), Box<dyn std::error::Error>> {
 
     let unsafe_count = rust_code.matches("unsafe").count();
     let lines = rust_code.lines().count();
-    let unsafe_per_1000 = if lines > 0 {
-        (unsafe_count as f64 / lines as f64) * 1000.0
-    } else {
-        0.0
-    };
+    let unsafe_per_1000 =
+        if lines > 0 { (unsafe_count as f64 / lines as f64) * 1000.0 } else { 0.0 };
 
-    println!(
-        "\n✓ Unsafe blocks: {} ({:.1} per 1000 LOC)",
-        unsafe_count, unsafe_per_1000
-    );
+    println!("\n✓ Unsafe blocks: {} ({:.1} per 1000 LOC)", unsafe_count, unsafe_per_1000);
     println!("✓ Static variable initialized");
     println!("✓ Guaranteed initialized before use\n");
 

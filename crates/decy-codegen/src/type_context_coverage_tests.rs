@@ -150,10 +150,7 @@ fn get_field_type_through_reference_to_struct() {
     ctx.add_struct(&struct_def);
     ctx.add_variable(
         "ref_var".to_string(),
-        HirType::Reference {
-            inner: Box::new(HirType::Struct("Ref".to_string())),
-            mutable: false,
-        },
+        HirType::Reference { inner: Box::new(HirType::Struct("Ref".to_string())), mutable: false },
     );
 
     let obj = HirExpression::Variable("ref_var".to_string());
@@ -163,10 +160,7 @@ fn get_field_type_through_reference_to_struct() {
 #[test]
 fn get_field_type_pointer_to_non_struct_returns_none() {
     let mut ctx = TypeContext::new();
-    ctx.add_variable(
-        "int_ptr".to_string(),
-        HirType::Pointer(Box::new(HirType::Int)),
-    );
+    ctx.add_variable("int_ptr".to_string(), HirType::Pointer(Box::new(HirType::Int)));
 
     let obj = HirExpression::Variable("int_ptr".to_string());
     assert_eq!(ctx.get_field_type(&obj, "field"), None);
@@ -175,10 +169,7 @@ fn get_field_type_pointer_to_non_struct_returns_none() {
 #[test]
 fn get_field_type_box_non_struct_returns_none() {
     let mut ctx = TypeContext::new();
-    ctx.add_variable(
-        "boxed_int".to_string(),
-        HirType::Box(Box::new(HirType::Int)),
-    );
+    ctx.add_variable("boxed_int".to_string(), HirType::Box(Box::new(HirType::Int)));
 
     let obj = HirExpression::Variable("boxed_int".to_string());
     assert_eq!(ctx.get_field_type(&obj, "field"), None);
@@ -189,10 +180,7 @@ fn get_field_type_reference_non_struct_returns_none() {
     let mut ctx = TypeContext::new();
     ctx.add_variable(
         "ref_int".to_string(),
-        HirType::Reference {
-            inner: Box::new(HirType::Int),
-            mutable: false,
-        },
+        HirType::Reference { inner: Box::new(HirType::Int), mutable: false },
     );
 
     let obj = HirExpression::Variable("ref_int".to_string());
@@ -254,11 +242,7 @@ fn is_boolean_expression_all_comparison_ops() {
             left: Box::new(HirExpression::IntLiteral(1)),
             right: Box::new(HirExpression::IntLiteral(2)),
         };
-        assert!(
-            CodeGenerator::is_boolean_expression(&expr),
-            "Expected {:?} to be boolean",
-            op
-        );
+        assert!(CodeGenerator::is_boolean_expression(&expr), "Expected {:?} to be boolean", op);
     }
 }
 
@@ -291,9 +275,7 @@ fn is_boolean_expression_arithmetic_not_boolean() {
 
 #[test]
 fn is_malloc_expression_malloc_variant() {
-    let expr = HirExpression::Malloc {
-        size: Box::new(HirExpression::IntLiteral(100)),
-    };
+    let expr = HirExpression::Malloc { size: Box::new(HirExpression::IntLiteral(100)) };
     assert!(CodeGenerator::is_malloc_expression(&expr));
 }
 
@@ -343,12 +325,8 @@ fn get_string_deref_var_direct_deref_string_ref() {
     let mut ctx = TypeContext::new();
     ctx.add_variable("str".to_string(), HirType::StringReference);
 
-    let expr =
-        HirExpression::Dereference(Box::new(HirExpression::Variable("str".to_string())));
-    assert_eq!(
-        CodeGenerator::get_string_deref_var(&expr, &ctx),
-        Some("str".to_string())
-    );
+    let expr = HirExpression::Dereference(Box::new(HirExpression::Variable("str".to_string())));
+    assert_eq!(CodeGenerator::get_string_deref_var(&expr, &ctx), Some("str".to_string()));
 }
 
 #[test]
@@ -357,10 +335,7 @@ fn get_string_deref_var_direct_deref_string_literal() {
     ctx.add_variable("s".to_string(), HirType::StringLiteral);
 
     let expr = HirExpression::Dereference(Box::new(HirExpression::Variable("s".to_string())));
-    assert_eq!(
-        CodeGenerator::get_string_deref_var(&expr, &ctx),
-        Some("s".to_string())
-    );
+    assert_eq!(CodeGenerator::get_string_deref_var(&expr, &ctx), Some("s".to_string()));
 }
 
 #[test]
@@ -380,15 +355,12 @@ fn get_string_deref_var_comparison_with_zero() {
 
     let expr = HirExpression::BinaryOp {
         op: BinaryOperator::NotEqual,
-        left: Box::new(HirExpression::Dereference(Box::new(
-            HirExpression::Variable("str".to_string()),
-        ))),
+        left: Box::new(HirExpression::Dereference(Box::new(HirExpression::Variable(
+            "str".to_string(),
+        )))),
         right: Box::new(HirExpression::IntLiteral(0)),
     };
-    assert_eq!(
-        CodeGenerator::get_string_deref_var(&expr, &ctx),
-        Some("str".to_string())
-    );
+    assert_eq!(CodeGenerator::get_string_deref_var(&expr, &ctx), Some("str".to_string()));
 }
 
 #[test]
@@ -400,14 +372,11 @@ fn get_string_deref_var_zero_on_left_side() {
     let expr = HirExpression::BinaryOp {
         op: BinaryOperator::Equal,
         left: Box::new(HirExpression::IntLiteral(0)),
-        right: Box::new(HirExpression::Dereference(Box::new(
-            HirExpression::Variable("str".to_string()),
-        ))),
+        right: Box::new(HirExpression::Dereference(Box::new(HirExpression::Variable(
+            "str".to_string(),
+        )))),
     };
-    assert_eq!(
-        CodeGenerator::get_string_deref_var(&expr, &ctx),
-        Some("str".to_string())
-    );
+    assert_eq!(CodeGenerator::get_string_deref_var(&expr, &ctx), Some("str".to_string()));
 }
 
 #[test]
@@ -418,9 +387,9 @@ fn get_string_deref_var_non_zero_comparison_returns_none() {
 
     let expr = HirExpression::BinaryOp {
         op: BinaryOperator::NotEqual,
-        left: Box::new(HirExpression::Dereference(Box::new(
-            HirExpression::Variable("str".to_string()),
-        ))),
+        left: Box::new(HirExpression::Dereference(Box::new(HirExpression::Variable(
+            "str".to_string(),
+        )))),
         right: Box::new(HirExpression::IntLiteral(1)),
     };
     assert_eq!(CodeGenerator::get_string_deref_var(&expr, &ctx), None);
@@ -433,9 +402,9 @@ fn get_string_deref_var_non_comparison_op_returns_none() {
 
     let expr = HirExpression::BinaryOp {
         op: BinaryOperator::Add,
-        left: Box::new(HirExpression::Dereference(Box::new(
-            HirExpression::Variable("str".to_string()),
-        ))),
+        left: Box::new(HirExpression::Dereference(Box::new(HirExpression::Variable(
+            "str".to_string(),
+        )))),
         right: Box::new(HirExpression::IntLiteral(0)),
     };
     assert_eq!(CodeGenerator::get_string_deref_var(&expr, &ctx), None);
@@ -452,8 +421,7 @@ fn get_string_deref_var_non_deref_expression_returns_none() {
 fn get_string_deref_var_deref_non_variable_returns_none() {
     let ctx = TypeContext::new();
     // *42 — dereference of a non-variable
-    let expr =
-        HirExpression::Dereference(Box::new(HirExpression::IntLiteral(42)));
+    let expr = HirExpression::Dereference(Box::new(HirExpression::IntLiteral(42)));
     assert_eq!(CodeGenerator::get_string_deref_var(&expr, &ctx), None);
 }
 
@@ -461,9 +429,7 @@ fn get_string_deref_var_deref_non_variable_returns_none() {
 fn get_string_deref_var_deref_unknown_variable_returns_none() {
     let ctx = TypeContext::new();
     // *unknown — variable not in context
-    let expr = HirExpression::Dereference(Box::new(HirExpression::Variable(
-        "unknown".to_string(),
-    )));
+    let expr = HirExpression::Dereference(Box::new(HirExpression::Variable("unknown".to_string())));
     assert_eq!(CodeGenerator::get_string_deref_var(&expr, &ctx), None);
 }
 
@@ -505,10 +471,7 @@ fn type_context_string_iter_params() {
     assert!(ctx.get_string_iter_index("dest").is_none());
 
     ctx.add_string_iter_param("dest".to_string(), "dest_idx".to_string());
-    assert_eq!(
-        ctx.get_string_iter_index("dest"),
-        Some(&"dest_idx".to_string())
-    );
+    assert_eq!(ctx.get_string_iter_index("dest"), Some(&"dest_idx".to_string()));
     assert!(ctx.is_string_iter_param("dest"));
     assert!(!ctx.is_string_iter_param("src"));
 }
@@ -538,20 +501,14 @@ fn type_context_function_param_types() {
     let mut ctx = TypeContext::new();
     ctx.add_function(
         "sum_array".to_string(),
-        vec![
-            HirType::Pointer(Box::new(HirType::Int)),
-            HirType::Int,
-        ],
+        vec![HirType::Pointer(Box::new(HirType::Int)), HirType::Int],
     );
 
     assert_eq!(
         ctx.get_function_param_type("sum_array", 0),
         Some(&HirType::Pointer(Box::new(HirType::Int)))
     );
-    assert_eq!(
-        ctx.get_function_param_type("sum_array", 1),
-        Some(&HirType::Int)
-    );
+    assert_eq!(ctx.get_function_param_type("sum_array", 1), Some(&HirType::Int));
     assert_eq!(ctx.get_function_param_type("sum_array", 2), None);
     assert_eq!(ctx.get_function_param_type("other", 0), None);
 }
@@ -586,10 +543,7 @@ fn type_context_is_pointer() {
 #[test]
 fn type_context_is_option() {
     let mut ctx = TypeContext::new();
-    ctx.add_variable(
-        "opt".to_string(),
-        HirType::Option(Box::new(HirType::Int)),
-    );
+    ctx.add_variable("opt".to_string(), HirType::Option(Box::new(HirType::Int)));
     ctx.add_variable("val".to_string(), HirType::Int);
 
     assert!(ctx.is_option("opt"));
@@ -649,10 +603,7 @@ fn infer_deref_reference_type() {
     let mut ctx = TypeContext::new();
     ctx.add_variable(
         "r".to_string(),
-        HirType::Reference {
-            inner: Box::new(HirType::Float),
-            mutable: false,
-        },
+        HirType::Reference { inner: Box::new(HirType::Float), mutable: false },
     );
 
     let expr = HirExpression::Dereference(Box::new(HirExpression::Variable("r".to_string())));
@@ -848,10 +799,7 @@ fn infer_pointer_field_access_through_reference() {
     ctx.add_struct(&struct_def);
     ctx.add_variable(
         "d".to_string(),
-        HirType::Reference {
-            inner: Box::new(HirType::Struct("Data".to_string())),
-            mutable: true,
-        },
+        HirType::Reference { inner: Box::new(HirType::Struct("Data".to_string())), mutable: true },
     );
 
     let expr = HirExpression::PointerFieldAccess {
@@ -916,8 +864,5 @@ fn get_field_type_from_type_non_struct_returns_none() {
 #[test]
 fn get_field_type_from_type_struct_not_registered_returns_none() {
     let ctx = TypeContext::new();
-    assert_eq!(
-        ctx.get_field_type_from_type(&HirType::Struct("Foo".to_string()), "bar"),
-        None
-    );
+    assert_eq!(ctx.get_field_type_from_type(&HirType::Struct("Foo".to_string()), "bar"), None);
 }

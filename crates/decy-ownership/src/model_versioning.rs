@@ -46,11 +46,7 @@ pub struct ModelVersion {
 impl ModelVersion {
     /// Create a new version.
     pub fn new(major: u32, minor: u32, patch: u32) -> Self {
-        Self {
-            major,
-            minor,
-            patch,
-        }
+        Self { major, minor, patch }
     }
 
     /// Increment major version (resets minor and patch).
@@ -176,12 +172,7 @@ pub struct QualityThresholds {
 
 impl Default for QualityThresholds {
     fn default() -> Self {
-        Self {
-            min_accuracy: 0.85,
-            min_precision: 0.80,
-            min_recall: 0.80,
-            min_f1: 0.80,
-        }
+        Self { min_accuracy: 0.85, min_precision: 0.80, min_recall: 0.80, min_f1: 0.80 }
     }
 }
 
@@ -282,10 +273,7 @@ impl ModelVersionManager {
 
     /// Create with custom thresholds.
     pub fn with_thresholds(thresholds: QualityThresholds) -> Self {
-        Self {
-            thresholds,
-            ..Self::new()
-        }
+        Self { thresholds, ..Self::new() }
     }
 
     /// Set maximum history size.
@@ -633,14 +621,8 @@ mod tests {
 
     #[test]
     fn model_version_parse() {
-        assert_eq!(
-            ModelVersion::parse("1.2.3"),
-            Some(ModelVersion::new(1, 2, 3))
-        );
-        assert_eq!(
-            ModelVersion::parse("v1.2.3"),
-            Some(ModelVersion::new(1, 2, 3))
-        );
+        assert_eq!(ModelVersion::parse("1.2.3"), Some(ModelVersion::new(1, 2, 3)));
+        assert_eq!(ModelVersion::parse("v1.2.3"), Some(ModelVersion::new(1, 2, 3)));
         assert_eq!(ModelVersion::parse("invalid"), None);
         assert_eq!(ModelVersion::parse("1.2"), None);
     }

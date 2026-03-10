@@ -41,10 +41,7 @@ fn test_to_c_declaration_multi_params() {
         header: StdHeader::String,
         c99_section: "test".to_string(),
     };
-    assert_eq!(
-        proto.to_c_declaration(),
-        "void* memcpy(void* dest, const void* src, size_t n);"
-    );
+    assert_eq!(proto.to_c_declaration(), "void* memcpy(void* dest, const void* src, size_t n);");
 }
 
 #[test]
@@ -911,9 +908,9 @@ fn test_strdup_prototype_details() {
 fn test_all_ctype_function_details() {
     let stdlib = StdlibPrototypes::new();
 
-    for name in &[
-        "isspace", "isdigit", "isalpha", "isalnum", "isupper", "islower", "tolower", "toupper",
-    ] {
+    for name in
+        &["isspace", "isdigit", "isalpha", "isalnum", "isupper", "islower", "tolower", "toupper"]
+    {
         let proto = stdlib.get_prototype(name).unwrap();
         assert_eq!(proto.return_type, "int", "return type for {name}");
         assert_eq!(proto.parameters.len(), 1, "param count for {name}");
@@ -955,10 +952,7 @@ fn test_all_single_param_math_functions() {
         let proto = stdlib.get_prototype(name).unwrap();
         assert_eq!(proto.return_type, "double", "return type for {name}");
         assert_eq!(proto.parameters.len(), 1, "param count for {name}");
-        assert_eq!(
-            proto.parameters[0].type_str, "double",
-            "param type for {name}"
-        );
+        assert_eq!(proto.parameters[0].type_str, "double", "param type for {name}");
         assert_eq!(proto.header, StdHeader::Math, "header for {name}");
     }
 }

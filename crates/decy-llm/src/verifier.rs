@@ -100,8 +100,7 @@ impl IterationContext {
 
         // Add to feedback
         for error in &errors {
-            self.feedback
-                .push(format!("Iteration {}: {}", self.iteration, error));
+            self.feedback.push(format!("Iteration {}: {}", self.iteration, error));
         }
 
         self.iteration += 1;
@@ -152,9 +151,7 @@ impl CodeVerifier {
     pub fn verify(&self, code: &GeneratedCode) -> Result<VerificationResult, LlmError> {
         // Basic validation - check if code looks valid
         if code.code.trim().is_empty() {
-            return Ok(VerificationResult::compile_failure(vec![
-                "Empty code".to_string()
-            ]));
+            return Ok(VerificationResult::compile_failure(vec!["Empty code".to_string()]));
         }
 
         // Check for balanced braces (basic syntax check)
@@ -233,9 +230,7 @@ impl CodeVerifier {
     ///
     /// Stub implementation.
     fn _create_temp_project(&self, _code: &str) -> Result<std::path::PathBuf, LlmError> {
-        Err(LlmError::ApiError(
-            "Temporary project creation not implemented".to_string(),
-        ))
+        Err(LlmError::ApiError("Temporary project creation not implemented".to_string()))
     }
 }
 
@@ -291,10 +286,7 @@ impl VerificationLoop {
         }
 
         if result.clippy_warnings > 0 {
-            feedback.push_str(&format!(
-                "\n## Clippy Warnings: {}\n",
-                result.clippy_warnings
-            ));
+            feedback.push_str(&format!("\n## Clippy Warnings: {}\n", result.clippy_warnings));
         }
 
         feedback

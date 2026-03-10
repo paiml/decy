@@ -173,14 +173,12 @@ fn test_complete_subprocess_pattern() {
                         HirExpression::NullLiteral,
                     ],
                 })],
-                else_block: Some(vec![HirStatement::Expression(
-                    HirExpression::FunctionCall {
-                        function: "wait".to_string(),
-                        arguments: vec![HirExpression::AddressOf(Box::new(
-                            HirExpression::Variable("status".to_string()),
-                        ))],
-                    },
-                )]),
+                else_block: Some(vec![HirStatement::Expression(HirExpression::FunctionCall {
+                    function: "wait".to_string(),
+                    arguments: vec![HirExpression::AddressOf(Box::new(HirExpression::Variable(
+                        "status".to_string(),
+                    )))],
+                })]),
             },
         ],
     );
@@ -364,11 +362,7 @@ fn test_break_continue_return_ignored() {
     let detector = SubprocessDetector::new();
     let func = create_test_function(
         "control_flow",
-        vec![
-            HirStatement::Break,
-            HirStatement::Continue,
-            HirStatement::Return(None),
-        ],
+        vec![HirStatement::Break, HirStatement::Continue, HirStatement::Return(None)],
     );
     assert!(detector.detect(&func).is_empty());
 }

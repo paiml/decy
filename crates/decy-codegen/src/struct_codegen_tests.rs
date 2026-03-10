@@ -125,10 +125,7 @@ fn test_struct_with_reference_field() {
 
     let fields = vec![HirStructField::new(
         "data".to_string(),
-        HirType::Reference {
-            inner: Box::new(HirType::Int),
-            mutable: false,
-        },
+        HirType::Reference { inner: Box::new(HirType::Int), mutable: false },
     )];
 
     let ref_struct = HirStruct::new("RefStruct".to_string(), fields);

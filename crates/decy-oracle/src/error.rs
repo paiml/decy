@@ -44,10 +44,7 @@ pub enum OracleError {
 
 impl From<std::io::Error> for OracleError {
     fn from(e: std::io::Error) -> Self {
-        Self::LoadError {
-            path: "<unknown>".into(),
-            source: e,
-        }
+        Self::LoadError { path: "<unknown>".into(), source: e }
     }
 }
 
@@ -68,20 +65,14 @@ mod tests {
     #[test]
     fn test_load_error_construction() {
         let io_err = std::io::Error::new(std::io::ErrorKind::NotFound, "file not found");
-        let err = OracleError::LoadError {
-            path: "/tmp/test.apr".into(),
-            source: io_err,
-        };
+        let err = OracleError::LoadError { path: "/tmp/test.apr".into(), source: io_err };
         assert!(matches!(err, OracleError::LoadError { .. }));
     }
 
     #[test]
     fn test_save_error_construction() {
         let io_err = std::io::Error::new(std::io::ErrorKind::PermissionDenied, "access denied");
-        let err = OracleError::SaveError {
-            path: "/etc/test.apr".into(),
-            source: io_err,
-        };
+        let err = OracleError::SaveError { path: "/etc/test.apr".into(), source: io_err };
         assert!(matches!(err, OracleError::SaveError { .. }));
     }
 
@@ -122,10 +113,7 @@ mod tests {
     #[test]
     fn test_load_error_display() {
         let io_err = std::io::Error::new(std::io::ErrorKind::NotFound, "file not found");
-        let err = OracleError::LoadError {
-            path: "/tmp/patterns.apr".into(),
-            source: io_err,
-        };
+        let err = OracleError::LoadError { path: "/tmp/patterns.apr".into(), source: io_err };
         let msg = format!("{}", err);
         assert!(msg.contains("/tmp/patterns.apr"));
         assert!(msg.contains("file not found"));
@@ -134,10 +122,7 @@ mod tests {
     #[test]
     fn test_save_error_display() {
         let io_err = std::io::Error::new(std::io::ErrorKind::PermissionDenied, "access denied");
-        let err = OracleError::SaveError {
-            path: "/etc/patterns.apr".into(),
-            source: io_err,
-        };
+        let err = OracleError::SaveError { path: "/etc/patterns.apr".into(), source: io_err };
         let msg = format!("{}", err);
         assert!(msg.contains("/etc/patterns.apr"));
         assert!(msg.contains("access denied"));
@@ -247,10 +232,7 @@ mod tests {
         use std::error::Error;
 
         let io_err = std::io::Error::new(std::io::ErrorKind::NotFound, "underlying error");
-        let err = OracleError::LoadError {
-            path: "/test".into(),
-            source: io_err,
-        };
+        let err = OracleError::LoadError { path: "/test".into(), source: io_err };
 
         // thiserror should provide source() method
         assert!(err.source().is_some());
@@ -261,10 +243,7 @@ mod tests {
         use std::error::Error;
 
         let io_err = std::io::Error::new(std::io::ErrorKind::Other, "disk full");
-        let err = OracleError::SaveError {
-            path: "/test".into(),
-            source: io_err,
-        };
+        let err = OracleError::SaveError { path: "/test".into(), source: io_err };
 
         assert!(err.source().is_some());
     }

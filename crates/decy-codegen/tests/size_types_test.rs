@@ -32,16 +32,8 @@ fn test_size_t_maps_to_usize() {
     println!("Generated: {}", code);
 
     // Should use usize, not u32
-    assert!(
-        code.contains("usize"),
-        "size_t should map to usize, got: {}",
-        code
-    );
-    assert!(
-        !code.contains("u32"),
-        "size_t should NOT map to u32, got: {}",
-        code
-    );
+    assert!(code.contains("usize"), "size_t should map to usize, got: {}", code);
+    assert!(!code.contains("u32"), "size_t should NOT map to u32, got: {}", code);
 }
 
 #[test]
@@ -59,16 +51,8 @@ fn test_ssize_t_maps_to_isize() {
     println!("Generated: {}", code);
 
     // Should use isize, not i32
-    assert!(
-        code.contains("isize"),
-        "ssize_t should map to isize, got: {}",
-        code
-    );
-    assert!(
-        !code.contains("i32"),
-        "ssize_t should NOT map to i32, got: {}",
-        code
-    );
+    assert!(code.contains("isize"), "ssize_t should map to isize, got: {}", code);
+    assert!(!code.contains("i32"), "ssize_t should NOT map to i32, got: {}", code);
 }
 
 #[test]
@@ -86,16 +70,8 @@ fn test_ptrdiff_t_maps_to_isize() {
     println!("Generated: {}", code);
 
     // Should use isize, not i32
-    assert!(
-        code.contains("isize"),
-        "ptrdiff_t should map to isize, got: {}",
-        code
-    );
-    assert!(
-        !code.contains("i32"),
-        "ptrdiff_t should NOT map to i32, got: {}",
-        code
-    );
+    assert!(code.contains("isize"), "ptrdiff_t should map to isize, got: {}", code);
+    assert!(!code.contains("i32"), "ptrdiff_t should NOT map to i32, got: {}", code);
 }
 
 #[test]
@@ -111,9 +87,5 @@ fn test_regular_typedef_unchanged() {
 
     println!("Generated: {}", code);
 
-    assert!(
-        code.contains("pub type MyInt = i32"),
-        "Regular typedef should work, got: {}",
-        code
-    );
+    assert!(code.contains("pub type MyInt = i32"), "Regular typedef should work, got: {}", code);
 }

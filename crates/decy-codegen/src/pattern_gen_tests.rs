@@ -77,11 +77,7 @@ mod tests {
             right: Box::new(HirExpression::Variable("INT".to_string())),
         };
 
-        let stmt = HirStatement::If {
-            condition,
-            then_block: vec![],
-            else_block: None,
-        };
+        let stmt = HirStatement::If { condition, then_block: vec![], else_block: None };
 
         let result = gen.transform_tag_check(&stmt);
         assert!(result.is_empty());
@@ -101,11 +97,7 @@ mod tests {
             right: Box::new(HirExpression::Variable("INT".to_string())),
         };
 
-        let stmt = HirStatement::If {
-            condition,
-            then_block: vec![],
-            else_block: None,
-        };
+        let stmt = HirStatement::If { condition, then_block: vec![], else_block: None };
 
         let result = gen.transform_tag_check(&stmt);
         assert!(result.contains("match v"));
@@ -162,9 +154,7 @@ mod tests {
         let stmt = HirStatement::If {
             condition,
             then_block: vec![],
-            else_block: Some(vec![HirStatement::Return(Some(HirExpression::IntLiteral(
-                -1,
-            )))]),
+            else_block: Some(vec![HirStatement::Return(Some(HirExpression::IntLiteral(-1)))]),
         };
 
         let result = gen.transform_tag_check(&stmt);
@@ -188,9 +178,7 @@ mod tests {
         let inner_if = HirStatement::If {
             condition: inner_condition,
             then_block: vec![],
-            else_block: Some(vec![HirStatement::Return(Some(HirExpression::IntLiteral(
-                -1,
-            )))]),
+            else_block: Some(vec![HirStatement::Return(Some(HirExpression::IntLiteral(-1)))]),
         };
 
         // Outer if: v.tag == INT
@@ -231,11 +219,7 @@ mod tests {
             right: Box::new(HirExpression::Variable("int".to_string())),
         };
 
-        let stmt = HirStatement::If {
-            condition,
-            then_block: vec![],
-            else_block: None,
-        };
+        let stmt = HirStatement::If { condition, then_block: vec![], else_block: None };
 
         let result = gen.transform_tag_check(&stmt);
         // "int" should become "Int"
@@ -255,11 +239,7 @@ mod tests {
             right: Box::new(HirExpression::Variable("SOME_VALUE".to_string())),
         };
 
-        let stmt = HirStatement::If {
-            condition,
-            then_block: vec![],
-            else_block: None,
-        };
+        let stmt = HirStatement::If { condition, then_block: vec![], else_block: None };
 
         let result = gen.transform_tag_check(&stmt);
         // "SOME_VALUE" should become "SomeValue"
@@ -279,11 +259,7 @@ mod tests {
             right: Box::new(HirExpression::Variable("FLOAT".to_string())),
         };
 
-        let stmt = HirStatement::If {
-            condition,
-            then_block: vec![],
-            else_block: None,
-        };
+        let stmt = HirStatement::If { condition, then_block: vec![], else_block: None };
 
         let result = gen.transform_tag_check(&stmt);
         // "FLOAT" should become "Float"
@@ -305,11 +281,7 @@ mod tests {
             right: Box::new(HirExpression::Variable("INT".to_string())),
         };
 
-        let stmt = HirStatement::If {
-            condition,
-            then_block: vec![],
-            else_block: None,
-        };
+        let stmt = HirStatement::If { condition, then_block: vec![], else_block: None };
 
         let result = gen.transform_tag_check(&stmt);
         assert!(result.is_empty());
@@ -329,11 +301,7 @@ mod tests {
             right: Box::new(HirExpression::Variable("INT".to_string())),
         };
 
-        let stmt = HirStatement::If {
-            condition,
-            then_block: vec![],
-            else_block: None,
-        };
+        let stmt = HirStatement::If { condition, then_block: vec![], else_block: None };
 
         let result = gen.transform_tag_check(&stmt);
         assert!(result.is_empty());
@@ -353,11 +321,7 @@ mod tests {
             right: Box::new(HirExpression::IntLiteral(0)),
         };
 
-        let stmt = HirStatement::If {
-            condition,
-            then_block: vec![],
-            else_block: None,
-        };
+        let stmt = HirStatement::If { condition, then_block: vec![], else_block: None };
 
         let result = gen.transform_tag_check(&stmt);
         assert!(result.is_empty());
@@ -408,11 +372,7 @@ mod tests {
             right: Box::new(HirExpression::Variable("INT".to_string())),
         };
 
-        let stmt = HirStatement::If {
-            condition,
-            then_block: vec![],
-            else_block: None,
-        };
+        let stmt = HirStatement::If { condition, then_block: vec![], else_block: None };
 
         let result = gen.transform_tag_check(&stmt);
         assert!(result.contains("{}"));
@@ -454,11 +414,7 @@ mod tests {
             right: Box::new(HirExpression::Variable("INT".to_string())),
         };
 
-        let stmt = HirStatement::If {
-            condition,
-            then_block: vec![],
-            else_block: Some(vec![]),
-        };
+        let stmt = HirStatement::If { condition, then_block: vec![], else_block: Some(vec![]) };
 
         let result = gen.transform_tag_check(&stmt);
         assert!(result.contains("_ => {}"));
@@ -537,9 +493,7 @@ mod tests {
         // Return simple variable (not union field access)
         let stmt = HirStatement::If {
             condition,
-            then_block: vec![HirStatement::Return(Some(HirExpression::Variable(
-                "x".to_string(),
-            )))],
+            then_block: vec![HirStatement::Return(Some(HirExpression::Variable("x".to_string())))],
             else_block: None,
         };
 
@@ -561,11 +515,7 @@ mod tests {
             right: Box::new(HirExpression::Variable("".to_string())),
         };
 
-        let stmt = HirStatement::If {
-            condition,
-            then_block: vec![],
-            else_block: None,
-        };
+        let stmt = HirStatement::If { condition, then_block: vec![], else_block: None };
 
         let result = gen.transform_tag_check(&stmt);
         // Empty tag should be preserved
@@ -585,11 +535,7 @@ mod tests {
             right: Box::new(HirExpression::Variable("MY__TAG".to_string())),
         };
 
-        let stmt = HirStatement::If {
-            condition,
-            then_block: vec![],
-            else_block: None,
-        };
+        let stmt = HirStatement::If { condition, then_block: vec![], else_block: None };
 
         let result = gen.transform_tag_check(&stmt);
         // Double underscore should be handled - empty parts filtered
@@ -610,11 +556,8 @@ mod tests {
         };
 
         // Test with non-return, non-expression statement
-        let stmt = HirStatement::If {
-            condition,
-            then_block: vec![HirStatement::Break],
-            else_block: None,
-        };
+        let stmt =
+            HirStatement::If { condition, then_block: vec![HirStatement::Break], else_block: None };
 
         let result = gen.transform_tag_check(&stmt);
         // Should still generate match but without field binding

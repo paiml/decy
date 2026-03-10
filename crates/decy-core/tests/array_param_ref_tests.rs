@@ -46,11 +46,7 @@ fn test_array_param_has_reference() {
     );
     // Must NOT have bare [i32] without &
     let has_bare_array = code.contains(": [i32]") && !code.contains("&[i32]");
-    assert!(
-        !has_bare_array,
-        "Should NOT have bare [i32] without &:\n{}",
-        code
-    );
+    assert!(!has_bare_array, "Should NOT have bare [i32] without &:\n{}", code);
 }
 
 // ============================================================================
@@ -64,10 +60,7 @@ fn test_fixed_array_param_has_reference() {
         "process_fixed",
         vec![HirParameter::new(
             "arr".to_string(),
-            HirType::Array {
-                element_type: Box::new(HirType::Int),
-                size: Some(10),
-            },
+            HirType::Array { element_type: Box::new(HirType::Int), size: Some(10) },
         )],
         HirType::Void,
         vec![],
@@ -95,10 +88,7 @@ fn test_char_array_param_has_reference() {
         "process_str",
         vec![HirParameter::new(
             "str".to_string(),
-            HirType::Array {
-                element_type: Box::new(HirType::Char),
-                size: None,
-            },
+            HirType::Array { element_type: Box::new(HirType::Char), size: None },
         )],
         HirType::Void,
         vec![],

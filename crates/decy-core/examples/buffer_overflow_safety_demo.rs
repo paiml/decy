@@ -47,16 +47,10 @@ fn demo_fixed_array_access() -> Result<(), Box<dyn std::error::Error>> {
 
     let unsafe_count = rust_code.matches("unsafe").count();
     let lines = rust_code.lines().count();
-    let unsafe_per_1000 = if lines > 0 {
-        (unsafe_count as f64 / lines as f64) * 1000.0
-    } else {
-        0.0
-    };
+    let unsafe_per_1000 =
+        if lines > 0 { (unsafe_count as f64 / lines as f64) * 1000.0 } else { 0.0 };
 
-    println!(
-        "\n✓ Unsafe blocks: {} ({:.1} per 1000 LOC)",
-        unsafe_count, unsafe_per_1000
-    );
+    println!("\n✓ Unsafe blocks: {} ({:.1} per 1000 LOC)", unsafe_count, unsafe_per_1000);
     println!("✓ Array access with loop bounds checking");
     println!("✓ Prevents buffer overflow at compile/runtime\n");
 
@@ -90,16 +84,10 @@ fn demo_array_bounds_checking() -> Result<(), Box<dyn std::error::Error>> {
 
     let unsafe_count = rust_code.matches("unsafe").count();
     let lines = rust_code.lines().count();
-    let unsafe_per_1000 = if lines > 0 {
-        (unsafe_count as f64 / lines as f64) * 1000.0
-    } else {
-        0.0
-    };
+    let unsafe_per_1000 =
+        if lines > 0 { (unsafe_count as f64 / lines as f64) * 1000.0 } else { 0.0 };
 
-    println!(
-        "\n✓ Unsafe blocks: {} ({:.1} per 1000 LOC)",
-        unsafe_count, unsafe_per_1000
-    );
+    println!("\n✓ Unsafe blocks: {} ({:.1} per 1000 LOC)", unsafe_count, unsafe_per_1000);
     println!("✓ Explicit bounds checking before access");
     println!("✓ Runtime panic instead of undefined behavior\n");
 
@@ -137,16 +125,10 @@ fn demo_buffer_copy_operations() -> Result<(), Box<dyn std::error::Error>> {
 
     let unsafe_count = rust_code.matches("unsafe").count();
     let lines = rust_code.lines().count();
-    let unsafe_per_1000 = if lines > 0 {
-        (unsafe_count as f64 / lines as f64) * 1000.0
-    } else {
-        0.0
-    };
+    let unsafe_per_1000 =
+        if lines > 0 { (unsafe_count as f64 / lines as f64) * 1000.0 } else { 0.0 };
 
-    println!(
-        "\n✓ Unsafe blocks: {} ({:.1} per 1000 LOC)",
-        unsafe_count, unsafe_per_1000
-    );
+    println!("\n✓ Unsafe blocks: {} ({:.1} per 1000 LOC)", unsafe_count, unsafe_per_1000);
     println!("✓ Bounded loop prevents overflow");
     println!("✓ Slice operations or checked access\n");
 

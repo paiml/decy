@@ -237,10 +237,7 @@ int main() {
     let rust_code = result.unwrap();
 
     // Verify sequential evaluation (lenient)
-    assert!(
-        rust_code.contains("x = x + 1") || rust_code.contains("x + 1"),
-        "Expected increments"
-    );
+    assert!(rust_code.contains("x = x + 1") || rust_code.contains("x + 1"), "Expected increments");
 }
 
 #[test]
@@ -295,10 +292,7 @@ int main() {
     let rust_code = result.unwrap();
 
     // Verify array access (lenient)
-    assert!(
-        rust_code.contains("arr") || rust_code.contains("["),
-        "Expected array operations"
-    );
+    assert!(rust_code.contains("arr") || rust_code.contains("["), "Expected array operations");
 }
 
 #[test]
@@ -400,10 +394,7 @@ int main() {
     let rust_code = result.unwrap();
 
     // This is a documentation test - verify basic structure
-    assert!(
-        rust_code.contains("fn main") || rust_code.contains("main"),
-        "Expected main function"
-    );
+    assert!(rust_code.contains("fn main") || rust_code.contains("main"), "Expected main function");
 
     // Verify key transformations documented in comments above
     println!("\n=== Comma Operator Transformation Rules ===");
@@ -415,11 +406,7 @@ int main() {
 
     // All comma operator transformations are SAFE
     let unsafe_count = rust_code.matches("unsafe").count();
-    assert_eq!(
-        unsafe_count, 0,
-        "Expected 0 unsafe blocks, found {}",
-        unsafe_count
-    );
+    assert_eq!(unsafe_count, 0, "Expected 0 unsafe blocks, found {}", unsafe_count);
 }
 
 /// Test Statistics and Coverage Summary
@@ -501,8 +488,5 @@ fn test_comma_operator_documentation_summary() {
     println!("==========================================\n");
 
     assert_eq!(unsafe_blocks, 0, "All comma transformations must be safe");
-    assert!(
-        total_tests >= 10,
-        "Need at least 10 tests for comprehensive coverage"
-    );
+    assert!(total_tests >= 10, "Need at least 10 tests for comprehensive coverage");
 }

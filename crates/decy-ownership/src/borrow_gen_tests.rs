@@ -26,10 +26,7 @@ fn test_generate_immutable_borrow() {
 
     assert_eq!(
         transformed,
-        HirType::Reference {
-            inner: Box::new(HirType::Int),
-            mutable: false,
-        },
+        HirType::Reference { inner: Box::new(HirType::Int), mutable: false },
         "DECY-180: ImmutableBorrow generates &T reference"
     );
 }
@@ -55,10 +52,7 @@ fn test_generate_mutable_borrow() {
 
     assert_eq!(
         transformed,
-        HirType::Reference {
-            inner: Box::new(HirType::Int),
-            mutable: true,
-        },
+        HirType::Reference { inner: Box::new(HirType::Int), mutable: true },
         "DECY-180: MutableBorrow generates &mut T reference"
     );
 }
@@ -68,10 +62,8 @@ fn test_generate_borrowed_parameter() {
     // DECY-180: Parameters transformed to references based on inference
     let generator = BorrowGenerator::new();
 
-    let params = vec![HirParameter::new(
-        "data".to_string(),
-        HirType::Pointer(Box::new(HirType::Int)),
-    )];
+    let params =
+        vec![HirParameter::new("data".to_string(), HirType::Pointer(Box::new(HirType::Int)))];
 
     let mut inferences = HashMap::new();
     inferences.insert(
@@ -89,10 +81,7 @@ fn test_generate_borrowed_parameter() {
     assert_eq!(transformed_params.len(), 1);
     assert_eq!(
         transformed_params[0].param_type(),
-        &HirType::Reference {
-            inner: Box::new(HirType::Int),
-            mutable: false,
-        },
+        &HirType::Reference { inner: Box::new(HirType::Int), mutable: false },
         "DECY-180: ImmutableBorrow parameter generates &T"
     );
 }
@@ -129,14 +118,8 @@ fn test_borrow_checker_validation() {
     let transformed2 = generator.transform_type(&ptr_type, "data2", &inferences);
 
     // DECY-180: Both should be immutable references
-    assert!(matches!(
-        transformed1,
-        HirType::Reference { mutable: false, .. }
-    ));
-    assert!(matches!(
-        transformed2,
-        HirType::Reference { mutable: false, .. }
-    ));
+    assert!(matches!(transformed1, HirType::Reference { mutable: false, .. }));
+    assert!(matches!(transformed2, HirType::Reference { mutable: false, .. }));
 }
 
 #[test]
@@ -145,13 +128,10 @@ fn test_end_to_end_borrow_generation() {
     let func = HirFunction::new_with_body(
         "read_only".to_string(),
         HirType::Int,
-        vec![HirParameter::new(
-            "data".to_string(),
-            HirType::Pointer(Box::new(HirType::Int)),
-        )],
-        vec![HirStatement::Return(Some(HirExpression::Dereference(
-            Box::new(HirExpression::Variable("data".to_string())),
-        )))],
+        vec![HirParameter::new("data".to_string(), HirType::Pointer(Box::new(HirType::Int)))],
+        vec![HirStatement::Return(Some(HirExpression::Dereference(Box::new(
+            HirExpression::Variable("data".to_string()),
+        ))))],
     );
 
     // Analyze dataflow
@@ -235,11 +215,7 @@ fn test_non_pointer_type_unchanged() {
 
     let transformed = generator.transform_type(&int_type, "x", &inferences);
 
-    assert_eq!(
-        transformed,
-        HirType::Int,
-        "Non-pointer types should remain unchanged"
-    );
+    assert_eq!(transformed, HirType::Int, "Non-pointer types should remain unchanged");
 }
 
 // DECY-180: Enhanced borrow generation tests
@@ -251,10 +227,7 @@ fn test_multiple_immutable_borrows_allowed() {
 
     let params = vec![
         HirParameter::new("data".to_string(), HirType::Pointer(Box::new(HirType::Int))),
-        HirParameter::new(
-            "data2".to_string(),
-            HirType::Pointer(Box::new(HirType::Int)),
-        ),
+        HirParameter::new("data2".to_string(), HirType::Pointer(Box::new(HirType::Int))),
     ];
 
     let mut inferences = HashMap::new();
@@ -281,14 +254,8 @@ fn test_multiple_immutable_borrows_allowed() {
 
     // DECY-180: Both should be immutable references
     assert_eq!(transformed.len(), 2);
-    assert!(matches!(
-        transformed[0].param_type(),
-        HirType::Reference { mutable: false, .. }
-    ));
-    assert!(matches!(
-        transformed[1].param_type(),
-        HirType::Reference { mutable: false, .. }
-    ));
+    assert!(matches!(transformed[0].param_type(), HirType::Reference { mutable: false, .. }));
+    assert!(matches!(transformed[1].param_type(), HirType::Reference { mutable: false, .. }));
 }
 
 #[test]
@@ -301,10 +268,7 @@ fn test_mutable_borrow_prevents_other_borrows() {
         HirType::Void,
         vec![
             HirParameter::new("data".to_string(), HirType::Pointer(Box::new(HirType::Int))),
-            HirParameter::new(
-                "data2".to_string(),
-                HirType::Pointer(Box::new(HirType::Int)),
-            ),
+            HirParameter::new("data2".to_string(), HirType::Pointer(Box::new(HirType::Int))),
         ],
         vec![],
     );
@@ -363,10 +327,7 @@ fn test_nested_pointer_types() {
     let transformed = generator.transform_type(&nested_ptr_type, "data", &inferences);
 
     // DECY-180: Outer pointer becomes reference to inner pointer
-    assert!(matches!(
-        transformed,
-        HirType::Reference { mutable: false, .. }
-    ));
+    assert!(matches!(transformed, HirType::Reference { mutable: false, .. }));
 }
 
 #[test]
@@ -375,13 +336,8 @@ fn test_lifetime_aware_borrow_generation() {
     let func = HirFunction::new_with_body(
         "get_value".to_string(),
         HirType::Pointer(Box::new(HirType::Int)),
-        vec![HirParameter::new(
-            "container".to_string(),
-            HirType::Pointer(Box::new(HirType::Int)),
-        )],
-        vec![HirStatement::Return(Some(HirExpression::Variable(
-            "container".to_string(),
-        )))],
+        vec![HirParameter::new("container".to_string(), HirType::Pointer(Box::new(HirType::Int)))],
+        vec![HirStatement::Return(Some(HirExpression::Variable("container".to_string())))],
     );
 
     let analyzer = DataflowAnalyzer::new();
@@ -420,10 +376,7 @@ fn test_high_confidence_borrows_prioritized() {
     // DECY-180: High confidence generates reference
     assert_eq!(
         transformed,
-        HirType::Reference {
-            inner: Box::new(HirType::Int),
-            mutable: false,
-        },
+        HirType::Reference { inner: Box::new(HirType::Int), mutable: false },
         "DECY-180: High confidence ImmutableBorrow generates &T"
     );
 }
@@ -480,10 +433,7 @@ fn test_decy180_immutable_borrow_generates_reference() {
     // Should generate &T reference, not raw pointer
     assert_eq!(
         transformed,
-        HirType::Reference {
-            inner: Box::new(HirType::Int),
-            mutable: false,
-        },
+        HirType::Reference { inner: Box::new(HirType::Int), mutable: false },
         "DECY-180: ImmutableBorrow should generate &T reference"
     );
 }
@@ -510,10 +460,7 @@ fn test_decy180_mutable_borrow_generates_mut_reference() {
     // Should generate &mut T reference, not raw pointer
     assert_eq!(
         transformed,
-        HirType::Reference {
-            inner: Box::new(HirType::Int),
-            mutable: true,
-        },
+        HirType::Reference { inner: Box::new(HirType::Int), mutable: true },
         "DECY-180: MutableBorrow should generate &mut T reference"
     );
 }
@@ -596,14 +543,8 @@ fn test_decy180_parameter_transformation() {
     let generator = BorrowGenerator::new();
 
     let params = vec![
-        HirParameter::new(
-            "immut".to_string(),
-            HirType::Pointer(Box::new(HirType::Int)),
-        ),
-        HirParameter::new(
-            "mut_p".to_string(),
-            HirType::Pointer(Box::new(HirType::Int)),
-        ),
+        HirParameter::new("immut".to_string(), HirType::Pointer(Box::new(HirType::Int))),
+        HirParameter::new("mut_p".to_string(), HirType::Pointer(Box::new(HirType::Int))),
     ];
 
     let mut inferences = HashMap::new();
@@ -631,18 +572,12 @@ fn test_decy180_parameter_transformation() {
     assert_eq!(transformed.len(), 2);
     assert_eq!(
         transformed[0].param_type(),
-        &HirType::Reference {
-            inner: Box::new(HirType::Int),
-            mutable: false,
-        },
+        &HirType::Reference { inner: Box::new(HirType::Int), mutable: false },
         "DECY-180: ImmutableBorrow param should be &T"
     );
     assert_eq!(
         transformed[1].param_type(),
-        &HirType::Reference {
-            inner: Box::new(HirType::Int),
-            mutable: true,
-        },
+        &HirType::Reference { inner: Box::new(HirType::Int), mutable: true },
         "DECY-180: MutableBorrow param should be &mut T"
     );
 }
@@ -876,10 +811,7 @@ fn test_decy184_char_ptr_with_pointer_arithmetic_not_transformed() {
         "string_copy".to_string(),
         HirType::Void,
         vec![
-            HirParameter::new(
-                "dest".to_string(),
-                HirType::Pointer(Box::new(HirType::Char)),
-            ),
+            HirParameter::new("dest".to_string(), HirType::Pointer(Box::new(HirType::Char))),
             HirParameter::new("src".to_string(), HirType::Pointer(Box::new(HirType::Char))),
         ],
         vec![
@@ -937,16 +869,8 @@ fn test_decy184_char_ptr_with_pointer_arithmetic_not_transformed() {
 
     // DECY-184: char* params with pointer arithmetic should NOT become References
     // They should stay as Pointer(Char) for codegen to handle
-    let dest_param = transformed
-        .parameters()
-        .iter()
-        .find(|p| p.name() == "dest")
-        .unwrap();
-    let src_param = transformed
-        .parameters()
-        .iter()
-        .find(|p| p.name() == "src")
-        .unwrap();
+    let dest_param = transformed.parameters().iter().find(|p| p.name() == "dest").unwrap();
+    let src_param = transformed.parameters().iter().find(|p| p.name() == "src").unwrap();
 
     // dest should stay as Pointer(Char), NOT Reference
     assert!(
@@ -977,10 +901,7 @@ fn test_decy184_char_ptr_without_pointer_arithmetic_is_transformed() {
     let func = HirFunction::new_with_body(
         "set_char".to_string(),
         HirType::Void,
-        vec![HirParameter::new(
-            "ptr".to_string(),
-            HirType::Pointer(Box::new(HirType::Char)),
-        )],
+        vec![HirParameter::new("ptr".to_string(), HirType::Pointer(Box::new(HirType::Char)))],
         vec![
             // *ptr = 'x' (deref assignment - no pointer arithmetic)
             HirStatement::DerefAssignment {
@@ -1006,18 +927,11 @@ fn test_decy184_char_ptr_without_pointer_arithmetic_is_transformed() {
     let transformed = generator.transform_function(&func, &inferences);
 
     // char* without pointer arithmetic SHOULD become &mut u8
-    let ptr_param = transformed
-        .parameters()
-        .iter()
-        .find(|p| p.name() == "ptr")
-        .unwrap();
+    let ptr_param = transformed.parameters().iter().find(|p| p.name() == "ptr").unwrap();
 
     assert_eq!(
         ptr_param.param_type(),
-        &HirType::Reference {
-            inner: Box::new(HirType::Char),
-            mutable: true,
-        },
+        &HirType::Reference { inner: Box::new(HirType::Char), mutable: true },
         "DECY-184: char* without pointer arithmetic should transform to &mut u8"
     );
 }
@@ -1034,10 +948,7 @@ fn test_decy184_int_ptr_with_pointer_arithmetic_stays_as_pointer() {
     let func = HirFunction::new_with_body(
         "traverse_array".to_string(),
         HirType::Void,
-        vec![HirParameter::new(
-            "arr".to_string(),
-            HirType::Pointer(Box::new(HirType::Int)),
-        )],
+        vec![HirParameter::new("arr".to_string(), HirType::Pointer(Box::new(HirType::Int)))],
         vec![
             // arr = arr + 1 (pointer arithmetic)
             HirStatement::Assignment {
@@ -1063,11 +974,7 @@ fn test_decy184_int_ptr_with_pointer_arithmetic_stays_as_pointer() {
     );
 
     let transformed = generator.transform_function(&func, &inferences);
-    let arr_param = transformed
-        .parameters()
-        .iter()
-        .find(|p| p.name() == "arr")
-        .unwrap();
+    let arr_param = transformed.parameters().iter().find(|p| p.name() == "arr").unwrap();
 
     // int* with pointer arithmetic should stay as Pointer
     assert!(
@@ -1169,10 +1076,7 @@ fn test_transform_parameters_mixed() {
 
     assert_eq!(transformed.len(), 3);
     // ptr should be &i32
-    assert!(matches!(
-        transformed[0].param_type(),
-        HirType::Reference { mutable: false, .. }
-    ));
+    assert!(matches!(transformed[0].param_type(), HirType::Reference { mutable: false, .. }));
     // val and flt should be unchanged
     assert_eq!(transformed[1].param_type(), &HirType::Int);
     assert_eq!(transformed[2].param_type(), &HirType::Float);
@@ -1198,10 +1102,7 @@ fn test_transform_nested_pointer() {
     let transformed = generator.transform_type(&ptr_ptr_type, "pp", &inferences);
 
     // Should be &*const char (reference to pointer)
-    assert!(matches!(
-        transformed,
-        HirType::Reference { mutable: false, .. }
-    ));
+    assert!(matches!(transformed, HirType::Reference { mutable: false, .. }));
 }
 
 #[test]
@@ -1249,10 +1150,7 @@ fn test_statement_mutates_variable_in_switch_case() {
     let func = HirFunction::new_with_body(
         "switch_test".to_string(),
         HirType::Void,
-        vec![HirParameter::new(
-            "arr".to_string(),
-            HirType::Pointer(Box::new(HirType::Int)),
-        )],
+        vec![HirParameter::new("arr".to_string(), HirType::Pointer(Box::new(HirType::Int)))],
         vec![HirStatement::Switch {
             condition: HirExpression::Variable("x".to_string()),
             cases: vec![decy_hir::SwitchCase {
@@ -1289,10 +1187,7 @@ fn test_statement_mutates_variable_in_while_body() {
     let func = HirFunction::new_with_body(
         "while_test".to_string(),
         HirType::Void,
-        vec![HirParameter::new(
-            "arr".to_string(),
-            HirType::Pointer(Box::new(HirType::Int)),
-        )],
+        vec![HirParameter::new("arr".to_string(), HirType::Pointer(Box::new(HirType::Int)))],
         vec![HirStatement::While {
             condition: HirExpression::IntLiteral(1),
             body: vec![HirStatement::ArrayIndexAssignment {
@@ -1315,10 +1210,7 @@ fn test_statement_mutates_variable_in_for_body() {
     let func = HirFunction::new_with_body(
         "for_test".to_string(),
         HirType::Void,
-        vec![HirParameter::new(
-            "arr".to_string(),
-            HirType::Pointer(Box::new(HirType::Int)),
-        )],
+        vec![HirParameter::new("arr".to_string(), HirType::Pointer(Box::new(HirType::Int)))],
         vec![HirStatement::For {
             init: vec![],
             condition: Some(HirExpression::IntLiteral(1)),
@@ -1343,10 +1235,7 @@ fn test_statement_mutates_variable_in_if_then_and_else() {
     let func = HirFunction::new_with_body(
         "if_else_test".to_string(),
         HirType::Void,
-        vec![HirParameter::new(
-            "arr".to_string(),
-            HirType::Pointer(Box::new(HirType::Int)),
-        )],
+        vec![HirParameter::new("arr".to_string(), HirType::Pointer(Box::new(HirType::Int)))],
         vec![HirStatement::If {
             condition: HirExpression::IntLiteral(1),
             then_block: vec![HirStatement::ArrayIndexAssignment {
@@ -1374,10 +1263,7 @@ fn test_deref_assignment_mutates_variable() {
     let func = HirFunction::new_with_body(
         "deref_test".to_string(),
         HirType::Void,
-        vec![HirParameter::new(
-            "ptr".to_string(),
-            HirType::Pointer(Box::new(HirType::Int)),
-        )],
+        vec![HirParameter::new("ptr".to_string(), HirType::Pointer(Box::new(HirType::Int)))],
         vec![HirStatement::DerefAssignment {
             target: HirExpression::Variable("ptr".to_string()),
             value: HirExpression::IntLiteral(42),
@@ -1404,9 +1290,7 @@ fn test_transform_return_statement_with_length() {
             HirParameter::new("arr".to_string(), HirType::Pointer(Box::new(HirType::Int))),
             HirParameter::new("len".to_string(), HirType::Int),
         ],
-        vec![HirStatement::Return(Some(HirExpression::Variable(
-            "len".to_string(),
-        )))],
+        vec![HirStatement::Return(Some(HirExpression::Variable("len".to_string())))],
     );
 
     let inferences = HashMap::new();
@@ -1509,13 +1393,8 @@ fn test_transform_free_statement() {
     let func = HirFunction::new_with_body(
         "free_ptr".to_string(),
         HirType::Void,
-        vec![HirParameter::new(
-            "ptr".to_string(),
-            HirType::Pointer(Box::new(HirType::Int)),
-        )],
-        vec![HirStatement::Free {
-            pointer: HirExpression::Variable("ptr".to_string()),
-        }],
+        vec![HirParameter::new("ptr".to_string(), HirType::Pointer(Box::new(HirType::Int)))],
+        vec![HirStatement::Free { pointer: HirExpression::Variable("ptr".to_string()) }],
     );
 
     let inferences = HashMap::new();
@@ -1553,10 +1432,7 @@ fn test_transform_array_index_assignment_statement() {
     let func = HirFunction::new_with_body(
         "array_assign".to_string(),
         HirType::Void,
-        vec![HirParameter::new(
-            "arr".to_string(),
-            HirType::Pointer(Box::new(HirType::Int)),
-        )],
+        vec![HirParameter::new("arr".to_string(), HirType::Pointer(Box::new(HirType::Int)))],
         vec![HirStatement::ArrayIndexAssignment {
             array: Box::new(HirExpression::Variable("arr".to_string())),
             index: Box::new(HirExpression::IntLiteral(0)),
@@ -1620,9 +1496,9 @@ fn test_transform_address_of_expression() {
         "addr_of".to_string(),
         HirType::Pointer(Box::new(HirType::Int)),
         vec![],
-        vec![HirStatement::Return(Some(HirExpression::AddressOf(
-            Box::new(HirExpression::Variable("x".to_string())),
-        )))],
+        vec![HirStatement::Return(Some(HirExpression::AddressOf(Box::new(
+            HirExpression::Variable("x".to_string()),
+        ))))],
     );
 
     let inferences = HashMap::new();
@@ -1656,10 +1532,7 @@ fn test_transform_field_access_expression() {
     let func = HirFunction::new_with_body(
         "field_access".to_string(),
         HirType::Int,
-        vec![HirParameter::new(
-            "obj".to_string(),
-            HirType::Struct("Point".to_string()),
-        )],
+        vec![HirParameter::new("obj".to_string(), HirType::Struct("Point".to_string()))],
         vec![HirStatement::Return(Some(HirExpression::FieldAccess {
             object: Box::new(HirExpression::Variable("obj".to_string())),
             field: "x".to_string(),
@@ -1682,12 +1555,10 @@ fn test_transform_pointer_field_access_expression() {
             "obj".to_string(),
             HirType::Pointer(Box::new(HirType::Struct("Point".to_string()))),
         )],
-        vec![HirStatement::Return(Some(
-            HirExpression::PointerFieldAccess {
-                pointer: Box::new(HirExpression::Variable("obj".to_string())),
-                field: "x".to_string(),
-            },
-        ))],
+        vec![HirStatement::Return(Some(HirExpression::PointerFieldAccess {
+            pointer: Box::new(HirExpression::Variable("obj".to_string())),
+            field: "x".to_string(),
+        }))],
     );
 
     let inferences = HashMap::new();
@@ -1702,10 +1573,7 @@ fn test_transform_array_index_expression() {
     let func = HirFunction::new_with_body(
         "array_index".to_string(),
         HirType::Int,
-        vec![HirParameter::new(
-            "arr".to_string(),
-            HirType::Pointer(Box::new(HirType::Int)),
-        )],
+        vec![HirParameter::new("arr".to_string(), HirType::Pointer(Box::new(HirType::Int)))],
         vec![HirStatement::Return(Some(HirExpression::ArrayIndex {
             array: Box::new(HirExpression::Variable("arr".to_string())),
             index: Box::new(HirExpression::IntLiteral(0)),
@@ -1762,18 +1630,13 @@ fn test_transform_is_not_null_expression() {
     let func = HirFunction::new_with_body(
         "is_not_null".to_string(),
         HirType::Int,
-        vec![HirParameter::new(
-            "ptr".to_string(),
-            HirType::Pointer(Box::new(HirType::Int)),
-        )],
+        vec![HirParameter::new("ptr".to_string(), HirType::Pointer(Box::new(HirType::Int)))],
         vec![HirStatement::If {
             condition: HirExpression::IsNotNull(Box::new(HirExpression::Variable(
                 "ptr".to_string(),
             ))),
             then_block: vec![HirStatement::Return(Some(HirExpression::IntLiteral(1)))],
-            else_block: Some(vec![HirStatement::Return(Some(HirExpression::IntLiteral(
-                0,
-            )))]),
+            else_block: Some(vec![HirStatement::Return(Some(HirExpression::IntLiteral(0)))]),
         }],
     );
 
@@ -1792,10 +1655,7 @@ fn test_transform_function_call_expression() {
         vec![HirParameter::new("n".to_string(), HirType::Int)],
         vec![HirStatement::Return(Some(HirExpression::FunctionCall {
             function: "add".to_string(),
-            arguments: vec![
-                HirExpression::Variable("n".to_string()),
-                HirExpression::IntLiteral(1),
-            ],
+            arguments: vec![HirExpression::Variable("n".to_string()), HirExpression::IntLiteral(1)],
         }))],
     );
 
@@ -1818,10 +1678,7 @@ fn test_pointer_arithmetic_with_subtract() {
     let func = HirFunction::new_with_body(
         "ptr_subtract".to_string(),
         HirType::Void,
-        vec![HirParameter::new(
-            "ptr".to_string(),
-            HirType::Pointer(Box::new(HirType::Int)),
-        )],
+        vec![HirParameter::new("ptr".to_string(), HirType::Pointer(Box::new(HirType::Int)))],
         vec![HirStatement::Assignment {
             target: "ptr".to_string(),
             value: HirExpression::BinaryOp {
@@ -1845,10 +1702,7 @@ fn test_pointer_arithmetic_with_subtract() {
 
     let transformed = generator.transform_function(&func, &inferences);
     // With pointer arithmetic, should stay as Pointer not Reference
-    assert!(matches!(
-        transformed.parameters()[0].param_type(),
-        HirType::Pointer(_)
-    ));
+    assert!(matches!(transformed.parameters()[0].param_type(), HirType::Pointer(_)));
 }
 
 #[test]
@@ -1861,17 +1715,14 @@ fn test_slice_index_transformation_with_array_pointer() {
     let func = HirFunction::new_with_body(
         "slice_index".to_string(),
         HirType::Int,
-        vec![HirParameter::new(
-            "arr".to_string(),
-            HirType::Pointer(Box::new(HirType::Int)),
-        )],
-        vec![HirStatement::Return(Some(HirExpression::Dereference(
-            Box::new(HirExpression::BinaryOp {
+        vec![HirParameter::new("arr".to_string(), HirType::Pointer(Box::new(HirType::Int)))],
+        vec![HirStatement::Return(Some(HirExpression::Dereference(Box::new(
+            HirExpression::BinaryOp {
                 op: BinaryOperator::Add,
                 left: Box::new(HirExpression::Variable("arr".to_string())),
                 right: Box::new(HirExpression::Variable("i".to_string())),
-            }),
-        )))],
+            },
+        ))))],
     );
 
     let mut inferences = HashMap::new();
@@ -1906,9 +1757,7 @@ fn test_length_param_detection_with_n_name() {
             HirParameter::new("arr".to_string(), HirType::Pointer(Box::new(HirType::Int))),
             HirParameter::new("n".to_string(), HirType::Int),
         ],
-        vec![HirStatement::Expression(HirExpression::Variable(
-            "n".to_string(),
-        ))],
+        vec![HirStatement::Expression(HirExpression::Variable("n".to_string()))],
     );
 
     let inferences = HashMap::new();
@@ -1929,9 +1778,7 @@ fn test_length_param_detection_with_num_name() {
             HirParameter::new("arr".to_string(), HirType::Pointer(Box::new(HirType::Int))),
             HirParameter::new("num".to_string(), HirType::Int),
         ],
-        vec![HirStatement::Expression(HirExpression::Variable(
-            "num".to_string(),
-        ))],
+        vec![HirStatement::Expression(HirExpression::Variable("num".to_string()))],
     );
 
     let inferences = HashMap::new();
@@ -2010,17 +1857,12 @@ fn test_transform_string_method_call_expression() {
     let func = HirFunction::new_with_body(
         "string_method".to_string(),
         HirType::Int,
-        vec![HirParameter::new(
-            "s".to_string(),
-            HirType::Pointer(Box::new(HirType::Char)),
-        )],
-        vec![HirStatement::Return(Some(
-            HirExpression::StringMethodCall {
-                receiver: Box::new(HirExpression::Variable("s".to_string())),
-                method: "len".to_string(),
-                arguments: vec![],
-            },
-        ))],
+        vec![HirParameter::new("s".to_string(), HirType::Pointer(Box::new(HirType::Char)))],
+        vec![HirStatement::Return(Some(HirExpression::StringMethodCall {
+            receiver: Box::new(HirExpression::Variable("s".to_string())),
+            method: "len".to_string(),
+            arguments: vec![],
+        }))],
     );
 
     let inferences = HashMap::new();
@@ -2035,10 +1877,7 @@ fn test_transform_slice_index_expression() {
     let func = HirFunction::new_with_body(
         "slice_index".to_string(),
         HirType::Int,
-        vec![HirParameter::new(
-            "arr".to_string(),
-            HirType::Pointer(Box::new(HirType::Int)),
-        )],
+        vec![HirParameter::new("arr".to_string(), HirType::Pointer(Box::new(HirType::Int)))],
         vec![HirStatement::Return(Some(HirExpression::SliceIndex {
             slice: Box::new(HirExpression::Variable("arr".to_string())),
             index: Box::new(HirExpression::Variable("i".to_string())),
@@ -2154,13 +1993,10 @@ fn test_transform_dereference_expression() {
     let func = HirFunction::new_with_body(
         "deref".to_string(),
         HirType::Int,
-        vec![HirParameter::new(
-            "ptr".to_string(),
-            HirType::Pointer(Box::new(HirType::Int)),
-        )],
-        vec![HirStatement::Return(Some(HirExpression::Dereference(
-            Box::new(HirExpression::Variable("ptr".to_string())),
-        )))],
+        vec![HirParameter::new("ptr".to_string(), HirType::Pointer(Box::new(HirType::Int)))],
+        vec![HirStatement::Return(Some(HirExpression::Dereference(Box::new(
+            HirExpression::Variable("ptr".to_string()),
+        ))))],
     );
 
     let inferences = HashMap::new();
@@ -2181,10 +2017,7 @@ fn test_pointer_arithmetic_in_if_block() {
     let func = HirFunction::new_with_body(
         "ptr_arith_if".to_string(),
         HirType::Void,
-        vec![HirParameter::new(
-            "ptr".to_string(),
-            HirType::Pointer(Box::new(HirType::Int)),
-        )],
+        vec![HirParameter::new("ptr".to_string(), HirType::Pointer(Box::new(HirType::Int)))],
         vec![HirStatement::If {
             condition: HirExpression::IntLiteral(1),
             then_block: vec![HirStatement::Assignment {
@@ -2212,10 +2045,7 @@ fn test_pointer_arithmetic_in_if_block() {
 
     let transformed = generator.transform_function(&func, &inferences);
     // With pointer arithmetic in if block, should stay as Pointer
-    assert!(matches!(
-        transformed.parameters()[0].param_type(),
-        HirType::Pointer(_)
-    ));
+    assert!(matches!(transformed.parameters()[0].param_type(), HirType::Pointer(_)));
 }
 
 #[test]
@@ -2227,10 +2057,7 @@ fn test_pointer_arithmetic_in_else_block() {
     let func = HirFunction::new_with_body(
         "ptr_arith_else".to_string(),
         HirType::Void,
-        vec![HirParameter::new(
-            "ptr".to_string(),
-            HirType::Pointer(Box::new(HirType::Int)),
-        )],
+        vec![HirParameter::new("ptr".to_string(), HirType::Pointer(Box::new(HirType::Int)))],
         vec![HirStatement::If {
             condition: HirExpression::IntLiteral(1),
             then_block: vec![],
@@ -2258,10 +2085,7 @@ fn test_pointer_arithmetic_in_else_block() {
 
     let transformed = generator.transform_function(&func, &inferences);
     // With pointer arithmetic in else block, should stay as Pointer
-    assert!(matches!(
-        transformed.parameters()[0].param_type(),
-        HirType::Pointer(_)
-    ));
+    assert!(matches!(transformed.parameters()[0].param_type(), HirType::Pointer(_)));
 }
 
 #[test]
@@ -2273,10 +2097,7 @@ fn test_pointer_arithmetic_in_while_block() {
     let func = HirFunction::new_with_body(
         "ptr_arith_while".to_string(),
         HirType::Void,
-        vec![HirParameter::new(
-            "ptr".to_string(),
-            HirType::Pointer(Box::new(HirType::Int)),
-        )],
+        vec![HirParameter::new("ptr".to_string(), HirType::Pointer(Box::new(HirType::Int)))],
         vec![HirStatement::While {
             condition: HirExpression::IntLiteral(1),
             body: vec![HirStatement::Assignment {
@@ -2303,10 +2124,7 @@ fn test_pointer_arithmetic_in_while_block() {
 
     let transformed = generator.transform_function(&func, &inferences);
     // With pointer arithmetic in while block, should stay as Pointer
-    assert!(matches!(
-        transformed.parameters()[0].param_type(),
-        HirType::Pointer(_)
-    ));
+    assert!(matches!(transformed.parameters()[0].param_type(), HirType::Pointer(_)));
 }
 
 #[test]
@@ -2318,10 +2136,7 @@ fn test_pointer_arithmetic_in_for_block() {
     let func = HirFunction::new_with_body(
         "ptr_arith_for".to_string(),
         HirType::Void,
-        vec![HirParameter::new(
-            "ptr".to_string(),
-            HirType::Pointer(Box::new(HirType::Int)),
-        )],
+        vec![HirParameter::new("ptr".to_string(), HirType::Pointer(Box::new(HirType::Int)))],
         vec![HirStatement::For {
             init: vec![],
             condition: Some(HirExpression::IntLiteral(1)),
@@ -2350,10 +2165,7 @@ fn test_pointer_arithmetic_in_for_block() {
 
     let transformed = generator.transform_function(&func, &inferences);
     // With pointer arithmetic in for block, should stay as Pointer
-    assert!(matches!(
-        transformed.parameters()[0].param_type(),
-        HirType::Pointer(_)
-    ));
+    assert!(matches!(transformed.parameters()[0].param_type(), HirType::Pointer(_)));
 }
 
 #[test]
@@ -2364,10 +2176,7 @@ fn test_post_increment_pointer_arithmetic() {
     let func = HirFunction::new_with_body(
         "post_inc_ptr".to_string(),
         HirType::Void,
-        vec![HirParameter::new(
-            "str".to_string(),
-            HirType::Pointer(Box::new(HirType::Char)),
-        )],
+        vec![HirParameter::new("str".to_string(), HirType::Pointer(Box::new(HirType::Char)))],
         vec![HirStatement::Expression(HirExpression::PostIncrement {
             operand: Box::new(HirExpression::Variable("str".to_string())),
         })],
@@ -2386,10 +2195,7 @@ fn test_post_increment_pointer_arithmetic() {
 
     let transformed = generator.transform_function(&func, &inferences);
     // str++ should be detected, param stays as Pointer
-    assert!(matches!(
-        transformed.parameters()[0].param_type(),
-        HirType::Pointer(_)
-    ));
+    assert!(matches!(transformed.parameters()[0].param_type(), HirType::Pointer(_)));
 }
 
 #[test]
@@ -2400,10 +2206,7 @@ fn test_pre_increment_pointer_arithmetic() {
     let func = HirFunction::new_with_body(
         "pre_inc_ptr".to_string(),
         HirType::Void,
-        vec![HirParameter::new(
-            "str".to_string(),
-            HirType::Pointer(Box::new(HirType::Char)),
-        )],
+        vec![HirParameter::new("str".to_string(), HirType::Pointer(Box::new(HirType::Char)))],
         vec![HirStatement::Expression(HirExpression::PreIncrement {
             operand: Box::new(HirExpression::Variable("str".to_string())),
         })],
@@ -2422,10 +2225,7 @@ fn test_pre_increment_pointer_arithmetic() {
 
     let transformed = generator.transform_function(&func, &inferences);
     // ++str should be detected, param stays as Pointer
-    assert!(matches!(
-        transformed.parameters()[0].param_type(),
-        HirType::Pointer(_)
-    ));
+    assert!(matches!(transformed.parameters()[0].param_type(), HirType::Pointer(_)));
 }
 
 #[test]
@@ -2436,10 +2236,7 @@ fn test_post_decrement_pointer_arithmetic() {
     let func = HirFunction::new_with_body(
         "post_dec_ptr".to_string(),
         HirType::Void,
-        vec![HirParameter::new(
-            "str".to_string(),
-            HirType::Pointer(Box::new(HirType::Char)),
-        )],
+        vec![HirParameter::new("str".to_string(), HirType::Pointer(Box::new(HirType::Char)))],
         vec![HirStatement::Expression(HirExpression::PostDecrement {
             operand: Box::new(HirExpression::Variable("str".to_string())),
         })],
@@ -2458,10 +2255,7 @@ fn test_post_decrement_pointer_arithmetic() {
 
     let transformed = generator.transform_function(&func, &inferences);
     // str-- should be detected, param stays as Pointer
-    assert!(matches!(
-        transformed.parameters()[0].param_type(),
-        HirType::Pointer(_)
-    ));
+    assert!(matches!(transformed.parameters()[0].param_type(), HirType::Pointer(_)));
 }
 
 #[test]
@@ -2472,10 +2266,7 @@ fn test_pre_decrement_pointer_arithmetic() {
     let func = HirFunction::new_with_body(
         "pre_dec_ptr".to_string(),
         HirType::Void,
-        vec![HirParameter::new(
-            "str".to_string(),
-            HirType::Pointer(Box::new(HirType::Char)),
-        )],
+        vec![HirParameter::new("str".to_string(), HirType::Pointer(Box::new(HirType::Char)))],
         vec![HirStatement::Expression(HirExpression::PreDecrement {
             operand: Box::new(HirExpression::Variable("str".to_string())),
         })],
@@ -2494,10 +2285,7 @@ fn test_pre_decrement_pointer_arithmetic() {
 
     let transformed = generator.transform_function(&func, &inferences);
     // --str should be detected, param stays as Pointer
-    assert!(matches!(
-        transformed.parameters()[0].param_type(),
-        HirType::Pointer(_)
-    ));
+    assert!(matches!(transformed.parameters()[0].param_type(), HirType::Pointer(_)));
 }
 
 #[test]
@@ -2531,9 +2319,7 @@ fn test_sizeof_expression_not_transformed() {
         "sizeof_test".to_string(),
         HirType::Int,
         vec![],
-        vec![HirStatement::Return(Some(HirExpression::Sizeof {
-            type_name: "int".to_string(),
-        }))],
+        vec![HirStatement::Return(Some(HirExpression::Sizeof { type_name: "int".to_string() }))],
     );
 
     let inferences = HashMap::new();
@@ -2586,9 +2372,7 @@ fn test_variable_expression_not_transformed() {
         "var_test".to_string(),
         HirType::Int,
         vec![HirParameter::new("x".to_string(), HirType::Int)],
-        vec![HirStatement::Return(Some(HirExpression::Variable(
-            "x".to_string(),
-        )))],
+        vec![HirStatement::Return(Some(HirExpression::Variable("x".to_string())))],
     );
 
     let inferences = HashMap::new();
@@ -2661,16 +2445,9 @@ fn test_transform_slice_to_slice_type_non_pointer() {
 fn test_transform_inline_asm_passes_through() {
     // InlineAsm statement should pass through unchanged (line 560)
     let generator = BorrowGenerator::new();
-    let asm_stmt = HirStatement::InlineAsm {
-        text: "nop".to_string(),
-        translatable: false,
-    };
-    let func = HirFunction::new_with_body(
-        "asm_func".to_string(),
-        HirType::Void,
-        vec![],
-        vec![asm_stmt],
-    );
+    let asm_stmt = HirStatement::InlineAsm { text: "nop".to_string(), translatable: false };
+    let func =
+        HirFunction::new_with_body("asm_func".to_string(), HirType::Void, vec![], vec![asm_stmt]);
 
     let inferences = HashMap::new();
     let transformed = generator.transform_function(&func, &inferences);

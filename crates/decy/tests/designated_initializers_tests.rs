@@ -105,9 +105,5 @@ fn test_nested_designated_initializer() {
     println!("Generated Rust code:\n{}", result);
 
     // Should contain the value 42
-    assert!(
-        result.contains("42"),
-        "Should contain initialized value 42\nGenerated:\n{}",
-        result
-    );
+    assert!(result.contains("42"), "Should contain initialized value 42\nGenerated:\n{}", result);
 }

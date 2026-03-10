@@ -175,14 +175,8 @@ impl DataflowGraph {
                 }
                 false
             }
-            HirStatement::If {
-                then_block,
-                else_block,
-                ..
-            } => {
-                then_block
-                    .iter()
-                    .any(|s| self.statement_modifies_var(s, var))
+            HirStatement::If { then_block, else_block, .. } => {
+                then_block.iter().any(|s| self.statement_modifies_var(s, var))
                     || else_block
                         .as_ref()
                         .is_some_and(|blk| blk.iter().any(|s| self.statement_modifies_var(s, var)))
@@ -295,22 +289,15 @@ impl DataflowGraph {
                 }
                 false
             }
-            HirStatement::If {
-                then_block,
-                else_block,
-                ..
-            } => {
-                then_block
-                    .iter()
-                    .any(|s| self.statement_has_array_indexing(s, var))
+            HirStatement::If { then_block, else_block, .. } => {
+                then_block.iter().any(|s| self.statement_has_array_indexing(s, var))
                     || else_block.as_ref().is_some_and(|blk| {
-                        blk.iter()
-                            .any(|s| self.statement_has_array_indexing(s, var))
+                        blk.iter().any(|s| self.statement_has_array_indexing(s, var))
                     })
             }
-            HirStatement::While { body, .. } | HirStatement::For { body, .. } => body
-                .iter()
-                .any(|s| self.statement_has_array_indexing(s, var)),
+            HirStatement::While { body, .. } | HirStatement::For { body, .. } => {
+                body.iter().any(|s| self.statement_has_array_indexing(s, var))
+            }
             _ => false,
         }
     }
@@ -338,22 +325,15 @@ impl DataflowGraph {
             HirStatement::Assignment { value, .. } => {
                 self.expression_has_pointer_arithmetic(value, var)
             }
-            HirStatement::If {
-                then_block,
-                else_block,
-                ..
-            } => {
-                then_block
-                    .iter()
-                    .any(|s| self.statement_has_pointer_arithmetic(s, var))
+            HirStatement::If { then_block, else_block, .. } => {
+                then_block.iter().any(|s| self.statement_has_pointer_arithmetic(s, var))
                     || else_block.as_ref().is_some_and(|blk| {
-                        blk.iter()
-                            .any(|s| self.statement_has_pointer_arithmetic(s, var))
+                        blk.iter().any(|s| self.statement_has_pointer_arithmetic(s, var))
                     })
             }
-            HirStatement::While { body, .. } | HirStatement::For { body, .. } => body
-                .iter()
-                .any(|s| self.statement_has_pointer_arithmetic(s, var)),
+            HirStatement::While { body, .. } | HirStatement::For { body, .. } => {
+                body.iter().any(|s| self.statement_has_pointer_arithmetic(s, var))
+            }
             _ => false,
         }
     }
@@ -363,10 +343,8 @@ impl DataflowGraph {
         match expr {
             HirExpression::BinaryOp { op, left, right: _ } => {
                 // Check if this is pointer arithmetic (ptr + offset or ptr - offset)
-                if matches!(
-                    op,
-                    decy_hir::BinaryOperator::Add | decy_hir::BinaryOperator::Subtract
-                ) {
+                if matches!(op, decy_hir::BinaryOperator::Add | decy_hir::BinaryOperator::Subtract)
+                {
                     if let HirExpression::Variable(name) = &**left {
                         return name == var;
                     }
@@ -412,11 +390,7 @@ impl DataflowAnalyzer {
                     def_index: 0,
                     kind: NodeKind::Parameter,
                 };
-                graph
-                    .nodes
-                    .entry(param.name().to_string())
-                    .or_default()
-                    .push(node);
+                graph.nodes.entry(param.name().to_string()).or_default().push(node);
             }
         }
 
@@ -434,11 +408,7 @@ impl DataflowAnalyzer {
     /// Track pointer operations in a statement.
     fn track_statement(&self, stmt: &HirStatement, graph: &mut DataflowGraph, index: usize) {
         match stmt {
-            HirStatement::VariableDeclaration {
-                name,
-                var_type,
-                initializer,
-            } => {
+            HirStatement::VariableDeclaration { name, var_type, initializer } => {
                 // DECY-067 GREEN: Detect array allocations (stack arrays)
                 if let HirType::Array { element_type, size } = var_type {
                     // Stack array allocation: int arr[10];
@@ -479,11 +449,7 @@ impl DataflowAnalyzer {
                             }
                         }
 
-                        let node = PointerNode {
-                            name: name.clone(),
-                            def_index: index,
-                            kind,
-                        };
+                        let node = PointerNode { name: name.clone(), def_index: index, kind };
                         graph.nodes.entry(name.clone()).or_default().push(node);
                     }
                 }
@@ -497,30 +463,18 @@ impl DataflowAnalyzer {
                 self.track_expression_uses(target, graph, index);
                 self.track_expression_uses(value, graph, index);
             }
-            HirStatement::ArrayIndexAssignment {
-                array,
-                index: idx,
-                value,
-            } => {
+            HirStatement::ArrayIndexAssignment { array, index: idx, value } => {
                 // Track uses of pointers in array, index, and value expressions
                 self.track_expression_uses(array, graph, index);
                 self.track_expression_uses(idx, graph, index);
                 self.track_expression_uses(value, graph, index);
             }
-            HirStatement::FieldAssignment {
-                object,
-                field: _,
-                value,
-            } => {
+            HirStatement::FieldAssignment { object, field: _, value } => {
                 // Track uses of pointers in object and value expressions
                 self.track_expression_uses(object, graph, index);
                 self.track_expression_uses(value, graph, index);
             }
-            HirStatement::If {
-                condition,
-                then_block,
-                else_block,
-            } => {
+            HirStatement::If { condition, then_block, else_block } => {
                 self.track_expression_uses(condition, graph, index);
                 for s in then_block {
                     self.track_statement(s, graph, index);
@@ -537,12 +491,7 @@ impl DataflowAnalyzer {
                     self.track_statement(s, graph, index);
                 }
             }
-            HirStatement::For {
-                init,
-                condition,
-                increment,
-                body,
-            } => {
+            HirStatement::For { init, condition, increment, body } => {
                 // DECY-224: Track all init statements
                 for init_stmt in init {
                     self.track_statement(init_stmt, graph, index);
@@ -568,11 +517,7 @@ impl DataflowAnalyzer {
             HirStatement::Break | HirStatement::Continue => {
                 // No pointer tracking needed
             }
-            HirStatement::Switch {
-                condition,
-                cases,
-                default_case,
-            } => {
+            HirStatement::Switch { condition, cases, default_case } => {
                 self.track_expression_uses(condition, graph, index);
                 for case in cases {
                     for stmt in &case.body {
@@ -603,10 +548,7 @@ impl DataflowAnalyzer {
     /// Classify the initialization expression to determine node kind.
     fn classify_initialization(&self, expr: &HirExpression) -> NodeKind {
         match expr {
-            HirExpression::FunctionCall {
-                function,
-                arguments,
-            } if function == "malloc" => {
+            HirExpression::FunctionCall { function, arguments } if function == "malloc" => {
                 // DECY-067 GREEN: Detect heap array pattern: malloc(n * sizeof(T))
                 // Clippy: Collapse nested if-let into single pattern
                 if let Some(HirExpression::BinaryOp {
@@ -641,13 +583,9 @@ impl DataflowAnalyzer {
                 NodeKind::Allocation
             }
             HirExpression::Malloc { .. } => NodeKind::Allocation,
-            HirExpression::Variable(var_name) => NodeKind::Assignment {
-                source: var_name.clone(),
-            },
+            HirExpression::Variable(var_name) => NodeKind::Assignment { source: var_name.clone() },
             HirExpression::Dereference(_) => NodeKind::Dereference,
-            _ => NodeKind::Assignment {
-                source: "unknown".to_string(),
-            },
+            _ => NodeKind::Assignment { source: "unknown".to_string() },
         }
     }
 
@@ -725,11 +663,7 @@ impl DataflowAnalyzer {
                 Self::track_expr_recursive(pointer, _graph, _index);
                 Self::track_expr_recursive(new_size, _graph, _index);
             }
-            HirExpression::StringMethodCall {
-                receiver,
-                arguments,
-                ..
-            } => {
+            HirExpression::StringMethodCall { receiver, arguments, .. } => {
                 // Track receiver and arguments
                 Self::track_expr_recursive(receiver, _graph, _index);
                 for arg in arguments {
@@ -749,11 +683,7 @@ impl DataflowAnalyzer {
                 Self::track_expr_recursive(operand, _graph, _index);
             }
             // DECY-192: Track ternary expressions
-            HirExpression::Ternary {
-                condition,
-                then_expr,
-                else_expr,
-            } => {
+            HirExpression::Ternary { condition, then_expr, else_expr } => {
                 Self::track_expr_recursive(condition, _graph, _index);
                 Self::track_expr_recursive(then_expr, _graph, _index);
                 Self::track_expr_recursive(else_expr, _graph, _index);

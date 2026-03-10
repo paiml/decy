@@ -48,17 +48,10 @@ pub struct ScopeTree {
 impl ScopeTree {
     /// Create a new scope tree with a root function scope.
     pub fn new() -> Self {
-        let root = Scope {
-            id: 0,
-            parent: None,
-            variables: Vec::new(),
-            statement_range: (0, usize::MAX),
-        };
+        let root =
+            Scope { id: 0, parent: None, variables: Vec::new(), statement_range: (0, usize::MAX) };
 
-        Self {
-            scopes: vec![root],
-            next_id: 1,
-        }
+        Self { scopes: vec![root], next_id: 1 }
     }
 
     /// Add a new scope as a child of the given parent.
@@ -66,12 +59,8 @@ impl ScopeTree {
         let scope_id = self.next_id;
         self.next_id += 1;
 
-        let scope = Scope {
-            id: scope_id,
-            parent: Some(parent_id),
-            variables: Vec::new(),
-            statement_range,
-        };
+        let scope =
+            Scope { id: scope_id, parent: Some(parent_id), variables: Vec::new(), statement_range };
 
         self.scopes.push(scope);
         scope_id
@@ -171,11 +160,7 @@ impl LifetimeAnalyzer {
                     tree.add_variable(current_scope, name.clone());
                     index += 1;
                 }
-                HirStatement::If {
-                    then_block,
-                    else_block,
-                    ..
-                } => {
+                HirStatement::If { then_block, else_block, .. } => {
                     // Create scope for then block
                     let then_start = index + 1;
                     let then_scope =
@@ -262,9 +247,9 @@ impl LifetimeAnalyzer {
             HirExpression::UnaryOp { operand, .. } => {
                 self.expression_uses_variable(operand, var_name)
             }
-            HirExpression::FunctionCall { arguments, .. } => arguments
-                .iter()
-                .any(|arg| self.expression_uses_variable(arg, var_name)),
+            HirExpression::FunctionCall { arguments, .. } => {
+                arguments.iter().any(|arg| self.expression_uses_variable(arg, var_name))
+            }
             HirExpression::FieldAccess { object, .. } => {
                 self.expression_uses_variable(object, var_name)
             }
@@ -281,9 +266,7 @@ impl LifetimeAnalyzer {
             }
             HirExpression::CompoundLiteral { initializers, .. } => {
                 // Check if any initializer uses the variable
-                initializers
-                    .iter()
-                    .any(|init| self.expression_uses_variable(init, var_name))
+                initializers.iter().any(|init| self.expression_uses_variable(init, var_name))
             }
             HirExpression::IntLiteral(_)
             | HirExpression::FloatLiteral(_)
@@ -305,16 +288,10 @@ impl LifetimeAnalyzer {
                 self.expression_uses_variable(pointer, var_name)
                     || self.expression_uses_variable(new_size, var_name)
             }
-            HirExpression::StringMethodCall {
-                receiver,
-                arguments,
-                ..
-            } => {
+            HirExpression::StringMethodCall { receiver, arguments, .. } => {
                 // Check if receiver or any arguments use the variable
                 self.expression_uses_variable(receiver, var_name)
-                    || arguments
-                        .iter()
-                        .any(|arg| self.expression_uses_variable(arg, var_name))
+                    || arguments.iter().any(|arg| self.expression_uses_variable(arg, var_name))
             }
             HirExpression::SliceIndex { slice, index, .. } => {
                 // DECY-069: Check if safe slice indexing uses the variable
@@ -329,11 +306,7 @@ impl LifetimeAnalyzer {
                 self.expression_uses_variable(operand, var_name)
             }
             // DECY-192: Check if ternary expressions use the variable
-            HirExpression::Ternary {
-                condition,
-                then_expr,
-                else_expr,
-            } => {
+            HirExpression::Ternary { condition, then_expr, else_expr } => {
                 self.expression_uses_variable(condition, var_name)
                     || self.expression_uses_variable(then_expr, var_name)
                     || self.expression_uses_variable(else_expr, var_name)

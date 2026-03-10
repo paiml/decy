@@ -12,10 +12,7 @@ fn test_create_function_pointer_type() {
     };
 
     match func_ptr_type {
-        HirType::FunctionPointer {
-            param_types,
-            return_type,
-        } => {
+        HirType::FunctionPointer { param_types, return_type } => {
             assert_eq!(param_types.len(), 2);
             assert_eq!(param_types[0], HirType::Int);
             assert_eq!(param_types[1], HirType::Int);
@@ -29,16 +26,11 @@ fn test_create_function_pointer_type() {
 fn test_function_pointer_void_return() {
     // C: void (*callback)(void);
     // Rust: fn()
-    let func_ptr_type = HirType::FunctionPointer {
-        param_types: vec![],
-        return_type: Box::new(HirType::Void),
-    };
+    let func_ptr_type =
+        HirType::FunctionPointer { param_types: vec![], return_type: Box::new(HirType::Void) };
 
     match func_ptr_type {
-        HirType::FunctionPointer {
-            param_types,
-            return_type,
-        } => {
+        HirType::FunctionPointer { param_types, return_type } => {
             assert_eq!(param_types.len(), 0);
             assert_eq!(*return_type, HirType::Void);
         }
@@ -56,10 +48,7 @@ fn test_function_pointer_single_param() {
     };
 
     match func_ptr_type {
-        HirType::FunctionPointer {
-            param_types,
-            return_type,
-        } => {
+        HirType::FunctionPointer { param_types, return_type } => {
             assert_eq!(param_types.len(), 1);
             assert_eq!(param_types[0], HirType::Int);
             assert_eq!(*return_type, HirType::Void);
@@ -78,10 +67,7 @@ fn test_function_pointer_with_pointer_param() {
     };
 
     match func_ptr_type {
-        HirType::FunctionPointer {
-            param_types,
-            return_type,
-        } => {
+        HirType::FunctionPointer { param_types, return_type } => {
             assert_eq!(param_types.len(), 1);
             match &param_types[0] {
                 HirType::Pointer(inner) => {
@@ -109,10 +95,7 @@ fn test_function_pointer_typedef() {
 
     assert_eq!(typedef.name(), "BinaryOp");
     match typedef.underlying_type() {
-        HirType::FunctionPointer {
-            param_types,
-            return_type,
-        } => {
+        HirType::FunctionPointer { param_types, return_type } => {
             assert_eq!(param_types.len(), 2);
             assert_eq!(**return_type, HirType::Int);
         }
@@ -134,11 +117,7 @@ fn test_function_pointer_variable_declaration() {
     };
 
     match var_decl {
-        HirStatement::VariableDeclaration {
-            name,
-            var_type,
-            initializer,
-        } => {
+        HirStatement::VariableDeclaration { name, var_type, initializer } => {
             assert_eq!(name, "add_func");
             match var_type {
                 HirType::FunctionPointer { .. } => {

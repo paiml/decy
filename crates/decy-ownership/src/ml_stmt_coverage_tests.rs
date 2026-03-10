@@ -6,8 +6,7 @@
 
 use crate::ml_features::*;
 use decy_hir::{
-    BinaryOperator, HirExpression, HirFunction, HirParameter, HirStatement, HirType,
-    UnaryOperator,
+    BinaryOperator, HirExpression, HirFunction, HirParameter, HirStatement, HirType, UnaryOperator,
 };
 
 // ============================================================================
@@ -23,10 +22,7 @@ fn make_func_with_body(param_name: &str, body: Vec<HirStatement>) -> HirFunction
     HirFunction::new_with_body(
         "test_fn".to_string(),
         HirType::Void,
-        vec![HirParameter::new(
-            param_name.to_string(),
-            HirType::Pointer(Box::new(HirType::Int)),
-        )],
+        vec![HirParameter::new(param_name.to_string(), HirType::Pointer(Box::new(HirType::Int)))],
         body,
     )
 }
@@ -39,10 +35,8 @@ fn make_func_with_body(param_name: &str, body: Vec<HirStatement>) -> HirFunction
 fn count_stmt_accesses_assignment_write_to_target_var() {
     // Assignment where target == var_name: should register a write
     let ext = extractor();
-    let stmt = HirStatement::Assignment {
-        target: "x".to_string(),
-        value: HirExpression::IntLiteral(42),
-    };
+    let stmt =
+        HirStatement::Assignment { target: "x".to_string(), value: HirExpression::IntLiteral(42) };
     let func = make_func_with_body("x", vec![stmt]);
     let features = ext.extract_for_parameter(&func, "x").unwrap();
     assert_eq!(features.write_count, 1);
@@ -87,10 +81,8 @@ fn count_stmt_accesses_assignment_write_and_read_same_var() {
 fn count_stmt_accesses_assignment_no_var_involvement() {
     // Assignment where neither target nor value reference our var
     let ext = extractor();
-    let stmt = HirStatement::Assignment {
-        target: "y".to_string(),
-        value: HirExpression::IntLiteral(10),
-    };
+    let stmt =
+        HirStatement::Assignment { target: "y".to_string(), value: HirExpression::IntLiteral(10) };
     let func = make_func_with_body("x", vec![stmt]);
     let features = ext.extract_for_parameter(&func, "x").unwrap();
     assert_eq!(features.read_count, 0);
@@ -395,9 +387,7 @@ fn count_stmt_accesses_expression_stmt_falls_through() {
 #[test]
 fn count_stmt_accesses_free_stmt_falls_through() {
     let ext = extractor();
-    let stmt = HirStatement::Free {
-        pointer: HirExpression::Variable("x".to_string()),
-    };
+    let stmt = HirStatement::Free { pointer: HirExpression::Variable("x".to_string()) };
     let func = make_func_with_body("x", vec![stmt]);
     let features = ext.extract_for_parameter(&func, "x").unwrap();
     // Free is in wildcard for count_stmt_accesses -> (0,0), but counted via count_deallocations
@@ -422,18 +412,9 @@ fn count_accesses_empty_body() {
 fn count_accesses_multiple_statements_accumulate() {
     let ext = extractor();
     let body = vec![
-        HirStatement::Assignment {
-            target: "x".to_string(),
-            value: HirExpression::IntLiteral(1),
-        },
-        HirStatement::Assignment {
-            target: "x".to_string(),
-            value: HirExpression::IntLiteral(2),
-        },
-        HirStatement::Assignment {
-            target: "x".to_string(),
-            value: HirExpression::IntLiteral(3),
-        },
+        HirStatement::Assignment { target: "x".to_string(), value: HirExpression::IntLiteral(1) },
+        HirStatement::Assignment { target: "x".to_string(), value: HirExpression::IntLiteral(2) },
+        HirStatement::Assignment { target: "x".to_string(), value: HirExpression::IntLiteral(3) },
     ];
     let func = make_func_with_body("x", body);
     let features = ext.extract_for_parameter(&func, "x").unwrap();
@@ -445,10 +426,7 @@ fn count_accesses_mixed_reads_and_writes() {
     let ext = extractor();
     let body = vec![
         // Write to x
-        HirStatement::Assignment {
-            target: "x".to_string(),
-            value: HirExpression::IntLiteral(0),
-        },
+        HirStatement::Assignment { target: "x".to_string(), value: HirExpression::IntLiteral(0) },
         // Read from x (y = x): read=2 due to the double-counting
         HirStatement::Assignment {
             target: "y".to_string(),
@@ -648,10 +626,8 @@ fn expr_uses_var_is_not_null() {
 fn expr_uses_var_int_literal_no_match() {
     // y = 42: no var usage
     let ext = extractor();
-    let stmt = HirStatement::Assignment {
-        target: "y".to_string(),
-        value: HirExpression::IntLiteral(42),
-    };
+    let stmt =
+        HirStatement::Assignment { target: "y".to_string(), value: HirExpression::IntLiteral(42) };
     let func = make_func_with_body("x", vec![stmt]);
     let features = ext.extract_for_parameter(&func, "x").unwrap();
     assert_eq!(features.read_count, 0);
@@ -736,9 +712,7 @@ fn null_check_nested_in_then_block() {
     let body = vec![HirStatement::If {
         condition: HirExpression::IntLiteral(1),
         then_block: vec![HirStatement::If {
-            condition: HirExpression::IsNotNull(Box::new(HirExpression::Variable(
-                "x".to_string(),
-            ))),
+            condition: HirExpression::IsNotNull(Box::new(HirExpression::Variable("x".to_string()))),
             then_block: vec![],
             else_block: None,
         }],
@@ -811,9 +785,7 @@ fn null_check_multiple_checks() {
     let ext = extractor();
     let body = vec![
         HirStatement::If {
-            condition: HirExpression::IsNotNull(Box::new(HirExpression::Variable(
-                "x".to_string(),
-            ))),
+            condition: HirExpression::IsNotNull(Box::new(HirExpression::Variable("x".to_string()))),
             then_block: vec![],
             else_block: None,
         },
@@ -854,15 +826,10 @@ fn combined_reads_writes_and_null_checks() {
     let ext = extractor();
     let body = vec![
         // Write to x
-        HirStatement::Assignment {
-            target: "x".to_string(),
-            value: HirExpression::IntLiteral(0),
-        },
+        HirStatement::Assignment { target: "x".to_string(), value: HirExpression::IntLiteral(0) },
         // Null check on x
         HirStatement::If {
-            condition: HirExpression::IsNotNull(Box::new(HirExpression::Variable(
-                "x".to_string(),
-            ))),
+            condition: HirExpression::IsNotNull(Box::new(HirExpression::Variable("x".to_string()))),
             then_block: vec![
                 // Deref write through x
                 HirStatement::DerefAssignment {

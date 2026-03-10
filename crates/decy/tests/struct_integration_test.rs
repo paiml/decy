@@ -114,11 +114,7 @@ fn test_simple_struct_definition() {
     let result = decy_core::transpile(c_code);
 
     // Then: Transpilation should succeed
-    assert!(
-        result.is_ok(),
-        "Should transpile simple struct, got error: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "Should transpile simple struct, got error: {:?}", result.err());
 
     let rust_code = result.unwrap();
 
@@ -131,16 +127,10 @@ fn test_simple_struct_definition() {
     );
 
     // And: Should contain field definitions
-    assert!(
-        rust_code.contains("x") && rust_code.contains("y"),
-        "Should contain x and y fields"
-    );
+    assert!(rust_code.contains("x") && rust_code.contains("y"), "Should contain x and y fields");
 
     // And: Should contain function using struct
-    assert!(
-        rust_code.contains("fn get_x"),
-        "Should contain get_x function"
-    );
+    assert!(rust_code.contains("fn get_x"), "Should contain get_x function");
 
     // And: Generated code should compile
     match compile_rust_code(&rust_code, "test_simple_struct") {
@@ -170,11 +160,7 @@ fn test_struct_pointer_member_access() {
     let result = decy_core::transpile(c_code);
 
     // Then: Should succeed
-    assert!(
-        result.is_ok(),
-        "Should transpile struct with pointers, got error: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "Should transpile struct with pointers, got error: {:?}", result.err());
 
     let rust_code = result.unwrap();
 
@@ -188,10 +174,7 @@ fn test_struct_pointer_member_access() {
 
     // And: Should handle pointer member access
     // In Rust, ptr->field becomes (*ptr).field or ptr.field
-    assert!(
-        rust_code.contains("data"),
-        "Should contain data field access"
-    );
+    assert!(rust_code.contains("data"), "Should contain data field access");
 
     // And: Generated code should compile
     match compile_rust_code(&rust_code, "test_struct_pointer_access") {
@@ -232,25 +215,15 @@ fn test_linked_list_real_world() {
     let result = decy_core::transpile(c_code);
 
     // Then: Should succeed
-    assert!(
-        result.is_ok(),
-        "Should transpile linked list, got error: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "Should transpile linked list, got error: {:?}", result.err());
 
     let rust_code = result.unwrap();
 
     println!("Generated Rust code:\n{}", rust_code);
 
     // And: Should contain both functions
-    assert!(
-        rust_code.contains("fn list_length"),
-        "Should contain list_length function"
-    );
-    assert!(
-        rust_code.contains("fn list_sum"),
-        "Should contain list_sum function"
-    );
+    assert!(rust_code.contains("fn list_length"), "Should contain list_length function");
+    assert!(rust_code.contains("fn list_sum"), "Should contain list_sum function");
 
     // And: Generated code should compile
     match compile_rust_code(&rust_code, "test_linked_list") {
@@ -282,11 +255,7 @@ fn test_nested_structs() {
     let result = decy_core::transpile(c_code);
 
     // Then: Should succeed
-    assert!(
-        result.is_ok(),
-        "Should transpile nested structs, got error: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "Should transpile nested structs, got error: {:?}", result.err());
 
     let rust_code = result.unwrap();
 
@@ -323,11 +292,7 @@ fn test_struct_with_sizeof() {
     let result = decy_core::transpile(c_code);
 
     // Then: Should succeed
-    assert!(
-        result.is_ok(),
-        "Should transpile sizeof, got error: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "Should transpile sizeof, got error: {:?}", result.err());
 
     let rust_code = result.unwrap();
 

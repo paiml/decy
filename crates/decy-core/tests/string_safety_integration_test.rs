@@ -53,16 +53,10 @@ fn test_strlen_transpilation() {
     let result = transpile(c_code).expect("Transpilation should succeed");
 
     // Should NOT contain unsafe blocks for strlen
-    assert!(
-        !result.contains("unsafe"),
-        "String length should be safe (use .len())"
-    );
+    assert!(!result.contains("unsafe"), "String length should be safe (use .len())");
 
     // Should use Rust str::len() or String::len()
-    assert!(
-        result.contains(".len()"),
-        "Should use safe Rust .len() method"
-    );
+    assert!(result.contains(".len()"), "Should use safe Rust .len() method");
 
     // Should compile as valid Rust
     assert!(result.contains("fn get_length"), "Should generate function");
@@ -91,17 +85,10 @@ fn test_strcpy_transpilation_to_string_copy() {
     // Should avoid raw strcpy - use String or clone
     // Unsafe count should be minimal (ideally 0)
     let unsafe_count = result.matches("unsafe").count();
-    assert!(
-        unsafe_count <= 2,
-        "strcpy should minimize unsafe (found {})",
-        unsafe_count
-    );
+    assert!(unsafe_count <= 2, "strcpy should minimize unsafe (found {})", unsafe_count);
 
     // Should generate valid Rust function
-    assert!(
-        result.contains("fn copy_string"),
-        "Should generate function"
-    );
+    assert!(result.contains("fn copy_string"), "Should generate function");
 }
 
 #[test]
@@ -127,16 +114,9 @@ fn test_strcat_transpilation_to_string_concatenation() {
     // strcat should ideally use String::push_str or format!
     // Check for minimal unsafe
     let unsafe_count = result.matches("unsafe").count();
-    assert!(
-        unsafe_count <= 3,
-        "strcat should minimize unsafe (found {})",
-        unsafe_count
-    );
+    assert!(unsafe_count <= 3, "strcat should minimize unsafe (found {})", unsafe_count);
 
-    assert!(
-        result.contains("fn append_string"),
-        "Should generate function"
-    );
+    assert!(result.contains("fn append_string"), "Should generate function");
 }
 
 #[test]
@@ -159,14 +139,8 @@ fn test_string_literal_transpilation() {
     );
 
     // Should contain the string values
-    assert!(
-        result.contains("Hello, World!"),
-        "Should preserve string literal"
-    );
-    assert!(
-        result.contains("Goodbye!"),
-        "Should preserve string literal"
-    );
+    assert!(result.contains("Hello, World!"), "Should preserve string literal");
+    assert!(result.contains("Goodbye!"), "Should preserve string literal");
 }
 
 #[test]
@@ -194,11 +168,7 @@ fn test_strcmp_transpilation_to_eq() {
 
     // Should minimize unsafe
     let unsafe_count = result.matches("unsafe").count();
-    assert!(
-        unsafe_count <= 2,
-        "String comparison should minimize unsafe (found {})",
-        unsafe_count
-    );
+    assert!(unsafe_count <= 2, "String comparison should minimize unsafe (found {})", unsafe_count);
 }
 
 // ============================================================================
@@ -279,11 +249,8 @@ fn test_unsafe_block_count_target() {
     let lines_of_code = result.lines().count();
 
     // Target: <5 unsafe per 1000 LOC
-    let unsafe_per_1000 = if lines_of_code > 0 {
-        (unsafe_count as f64 / lines_of_code as f64) * 1000.0
-    } else {
-        0.0
-    };
+    let unsafe_per_1000 =
+        if lines_of_code > 0 { (unsafe_count as f64 / lines_of_code as f64) * 1000.0 } else { 0.0 };
 
     assert!(
         unsafe_per_1000 < 5.0,
@@ -316,14 +283,8 @@ fn test_transpiled_rust_compiles() {
     assert!(result.contains("fn main"), "Should have main function");
 
     // Should not have obvious syntax errors
-    assert!(
-        !result.contains("}}}}"),
-        "Should not have excessive closing braces"
-    );
-    assert!(
-        !result.contains(";;;;"),
-        "Should not have excessive semicolons"
-    );
+    assert!(!result.contains("}}}}"), "Should not have excessive closing braces");
+    assert!(!result.contains(";;;;"), "Should not have excessive semicolons");
 }
 
 #[test]

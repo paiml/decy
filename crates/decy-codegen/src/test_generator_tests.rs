@@ -88,10 +88,7 @@ fn test_generate_determinism_property() {
     let tests = generator.generate_tests(&func);
 
     // Should have a determinism property test
-    let has_determinism = tests
-        .property_tests
-        .iter()
-        .any(|t| t.contains("deterministic"));
+    let has_determinism = tests.property_tests.iter().any(|t| t.contains("deterministic"));
 
     assert!(has_determinism, "Should generate determinism property test");
 }
@@ -112,10 +109,7 @@ fn test_generate_no_panic_property() {
     let tests = generator.generate_tests(&func);
 
     // Should have a no-panic property test
-    let has_no_panic = tests
-        .property_tests
-        .iter()
-        .any(|t| t.contains("never_panics"));
+    let has_no_panic = tests.property_tests.iter().any(|t| t.contains("never_panics"));
 
     assert!(has_no_panic, "Should generate no-panic property test");
 }
@@ -133,10 +127,7 @@ fn test_generate_doc_test() {
     let tests = generator.generate_tests(&func);
 
     // Should generate doc test
-    assert!(
-        !tests.doc_tests.is_empty(),
-        "Should generate at least one doc test"
-    );
+    assert!(!tests.doc_tests.is_empty(), "Should generate at least one doc test");
 
     // Doc test should include example usage
     let doc_test = &tests.doc_tests[0];
@@ -146,10 +137,7 @@ fn test_generate_doc_test() {
 
 #[test]
 fn test_generate_mutation_config() {
-    let config = TestGenConfig {
-        generate_mutation_config: true,
-        ..Default::default()
-    };
+    let config = TestGenConfig { generate_mutation_config: true, ..Default::default() };
 
     let generator = TestGenerator::new(config);
 
@@ -158,10 +146,7 @@ fn test_generate_mutation_config() {
     let tests = generator.generate_tests(&func);
 
     // Should generate mutation test config
-    assert!(
-        tests.mutation_config.is_some(),
-        "Should generate mutation config when enabled"
-    );
+    assert!(tests.mutation_config.is_some(), "Should generate mutation config when enabled");
 
     let mutation_config = tests.mutation_config.unwrap();
     assert!(mutation_config.contains("[[mutant]]"));
@@ -197,24 +182,15 @@ fn test_analyze_test_scenarios_for_pointer_parameter() {
     let func = HirFunction::new(
         "process".to_string(),
         HirType::Void,
-        vec![HirParameter::new(
-            "data".to_string(),
-            HirType::Pointer(Box::new(HirType::Int)),
-        )],
+        vec![HirParameter::new("data".to_string(), HirType::Pointer(Box::new(HirType::Int)))],
     );
 
     let tests = generator.generate_tests(&func);
 
     // Should generate tests for null pointer cases
-    let has_null_test = tests
-        .unit_tests
-        .iter()
-        .any(|t| t.contains("null") || t.contains("None"));
+    let has_null_test = tests.unit_tests.iter().any(|t| t.contains("null") || t.contains("None"));
 
-    assert!(
-        has_null_test,
-        "Should generate null/None test for pointer parameter"
-    );
+    assert!(has_null_test, "Should generate null/None test for pointer parameter");
 }
 
 #[test]
@@ -222,11 +198,8 @@ fn test_generate_tests_for_function_with_box_type() {
     let generator = TestGenerator::new(TestGenConfig::default());
 
     // Function returning Box<T>
-    let func = HirFunction::new(
-        "create_value".to_string(),
-        HirType::Box(Box::new(HirType::Int)),
-        vec![],
-    );
+    let func =
+        HirFunction::new("create_value".to_string(), HirType::Box(Box::new(HirType::Int)), vec![]);
 
     let tests = generator.generate_tests(&func);
 
@@ -237,10 +210,7 @@ fn test_generate_tests_for_function_with_box_type() {
 
 #[test]
 fn test_disable_doc_test_generation() {
-    let config = TestGenConfig {
-        generate_doc_tests: false,
-        ..Default::default()
-    };
+    let config = TestGenConfig { generate_doc_tests: false, ..Default::default() };
 
     let generator = TestGenerator::new(config);
 
@@ -248,10 +218,7 @@ fn test_disable_doc_test_generation() {
 
     let tests = generator.generate_tests(&func);
 
-    assert!(
-        tests.doc_tests.is_empty(),
-        "Should not generate doc tests when disabled"
-    );
+    assert!(tests.doc_tests.is_empty(), "Should not generate doc tests when disabled");
 }
 
 // ============================================================================
@@ -270,26 +237,17 @@ fn test_default_test_value_int() {
 
 #[test]
 fn test_default_test_value_unsigned_int() {
-    assert_eq!(
-        TestGenerator::default_test_value(&HirType::UnsignedInt),
-        "42u32"
-    );
+    assert_eq!(TestGenerator::default_test_value(&HirType::UnsignedInt), "42u32");
 }
 
 #[test]
 fn test_default_test_value_float() {
-    assert_eq!(
-        TestGenerator::default_test_value(&HirType::Float),
-        "3.14"
-    );
+    assert_eq!(TestGenerator::default_test_value(&HirType::Float), "3.14");
 }
 
 #[test]
 fn test_default_test_value_double() {
-    assert_eq!(
-        TestGenerator::default_test_value(&HirType::Double),
-        "2.718"
-    );
+    assert_eq!(TestGenerator::default_test_value(&HirType::Double), "2.718");
 }
 
 #[test]
@@ -299,10 +257,7 @@ fn test_default_test_value_char() {
 
 #[test]
 fn test_default_test_value_signed_char() {
-    assert_eq!(
-        TestGenerator::default_test_value(&HirType::SignedChar),
-        "65i8"
-    );
+    assert_eq!(TestGenerator::default_test_value(&HirType::SignedChar), "65i8");
 }
 
 #[test]
@@ -397,10 +352,7 @@ fn test_default_test_value_function_pointer() {
 
 #[test]
 fn test_default_test_value_string_literal() {
-    assert_eq!(
-        TestGenerator::default_test_value(&HirType::StringLiteral),
-        r#""test string""#
-    );
+    assert_eq!(TestGenerator::default_test_value(&HirType::StringLiteral), r#""test string""#);
 }
 
 #[test]
@@ -413,26 +365,21 @@ fn test_default_test_value_owned_string() {
 
 #[test]
 fn test_default_test_value_string_reference() {
-    assert_eq!(
-        TestGenerator::default_test_value(&HirType::StringReference),
-        r#""test string""#
-    );
+    assert_eq!(TestGenerator::default_test_value(&HirType::StringReference), r#""test string""#);
 }
 
 #[test]
 fn test_default_test_value_union() {
-    let result = TestGenerator::default_test_value(&HirType::Union(vec![
-        ("field1".to_string(), HirType::Int),
-    ]));
+    let result = TestGenerator::default_test_value(&HirType::Union(vec![(
+        "field1".to_string(),
+        HirType::Int,
+    )]));
     assert!(result.contains("todo!"));
 }
 
 #[test]
 fn test_default_test_value_type_alias() {
-    assert_eq!(
-        TestGenerator::default_test_value(&HirType::TypeAlias("size_t".to_string())),
-        "0"
-    );
+    assert_eq!(TestGenerator::default_test_value(&HirType::TypeAlias("size_t".to_string())), "0");
 }
 
 // ============================================================================
@@ -441,10 +388,7 @@ fn test_default_test_value_type_alias() {
 
 #[test]
 fn test_mutation_config_disabled() {
-    let config = TestGenConfig {
-        generate_mutation_config: false,
-        ..Default::default()
-    };
+    let config = TestGenConfig { generate_mutation_config: false, ..Default::default() };
 
     let generator = TestGenerator::new(config);
     let func = HirFunction::new("test".to_string(), HirType::Void, vec![]);
@@ -464,18 +408,12 @@ fn test_null_test_for_box_parameter() {
     let func = HirFunction::new(
         "process_box".to_string(),
         HirType::Void,
-        vec![HirParameter::new(
-            "data".to_string(),
-            HirType::Box(Box::new(HirType::Int)),
-        )],
+        vec![HirParameter::new("data".to_string(), HirType::Box(Box::new(HirType::Int)))],
     );
 
     let tests = generator.generate_tests(&func);
 
-    let has_null_test = tests
-        .unit_tests
-        .iter()
-        .any(|t| t.contains("null") || t.contains("None"));
+    let has_null_test = tests.unit_tests.iter().any(|t| t.contains("null") || t.contains("None"));
 
     assert!(has_null_test, "Should generate null test for Box parameter");
 }

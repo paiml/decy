@@ -265,10 +265,7 @@ fn cli_oracle_generate_traces_output_contains_c_snippet() {
         .success();
 
     let content = std::fs::read_to_string(&output).expect("Failed to read output");
-    assert!(
-        content.contains("c_snippet"),
-        "Output should contain c_snippet field"
-    );
+    assert!(content.contains("c_snippet"), "Output should contain c_snippet field");
 }
 
 #[test]
@@ -288,10 +285,7 @@ fn cli_oracle_generate_traces_output_contains_rust_snippet() {
         .success();
 
     let content = std::fs::read_to_string(&output).expect("Failed to read output");
-    assert!(
-        content.contains("rust_snippet"),
-        "Output should contain rust_snippet field"
-    );
+    assert!(content.contains("rust_snippet"), "Output should contain rust_snippet field");
 }
 
 #[test]
@@ -511,10 +505,7 @@ fn cli_oracle_generate_traces_dry_run_no_output_file() {
         .stdout(predicate::str::contains("DRY RUN").or(predicate::str::contains("dry")));
 
     // Output file should NOT be created in dry-run mode
-    assert!(
-        !output.exists(),
-        "Output file should not be created in dry-run mode"
-    );
+    assert!(!output.exists(), "Output file should not be created in dry-run mode");
 }
 
 #[test]

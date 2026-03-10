@@ -32,10 +32,7 @@ fn main() {
 fn demo_basic_classification() {
     let classifier = HybridClassifier::default();
 
-    println!(
-        "Default confidence threshold: {}",
-        DEFAULT_CONFIDENCE_THRESHOLD
-    );
+    println!("Default confidence threshold: {}", DEFAULT_CONFIDENCE_THRESHOLD);
     println!("ML enabled: {}\n", classifier.ml_enabled());
 
     // Create an OwnershipInference (simulating what the rule engine would produce)
@@ -161,10 +158,7 @@ fn demo_metrics() {
     println!("  - ML used: {}", metrics.ml_used);
     println!("  - Fallbacks: {}", metrics.fallback);
     println!("  - Fallback rate: {:.1}%", metrics.fallback_rate() * 100.0);
-    println!(
-        "  - Agreement rate: {:.1}%",
-        metrics.agreement_rate() * 100.0
-    );
+    println!("  - Agreement rate: {:.1}%", metrics.agreement_rate() * 100.0);
 }
 
 fn demo_ml_toggle() {
@@ -188,19 +182,13 @@ fn demo_ml_toggle() {
     // ML disabled (default)
     println!("With ML disabled (default):");
     let result1 = classifier.classify_hybrid(&inference, &features, &model);
-    println!(
-        "  - Method: {:?}, Confidence: {:.2}",
-        result1.method, result1.confidence
-    );
+    println!("  - Method: {:?}, Confidence: {:.2}", result1.method, result1.confidence);
 
     // ML enabled
     println!("\nWith ML enabled:");
     classifier.enable_ml();
     let result2 = classifier.classify_hybrid(&inference, &features, &model);
-    println!(
-        "  - Method: {:?}, Confidence: {:.2}",
-        result2.method, result2.confidence
-    );
+    println!("  - Method: {:?}, Confidence: {:.2}", result2.method, result2.confidence);
 
     // Both should produce same ownership for clear-cut cases
     println!("\nSame result: {}", result1.ownership == result2.ownership);

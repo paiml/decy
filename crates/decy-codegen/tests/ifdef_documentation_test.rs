@@ -133,10 +133,7 @@ fn test_ifdef_feature_to_cfg_feature() {
     let rust_equivalent = "#[cfg(feature = \"feature_x\")] { ... }";
 
     assert!(c_code.contains("#ifdef"), "C uses #ifdef for features");
-    assert!(
-        rust_equivalent.contains("cfg(feature"),
-        "Rust uses cfg(feature) for feature flags"
-    );
+    assert!(rust_equivalent.contains("cfg(feature"), "Rust uses cfg(feature) for feature flags");
 }
 
 /// Document transformation of #ifndef (not defined)
@@ -200,10 +197,7 @@ fn test_ifdef_arch_to_cfg_target_arch() {
     let rust_equivalent = "#[cfg(target_arch = \"x86_64\")] { ... }";
 
     assert!(c_code.contains("__x86_64__"), "C uses architecture macros");
-    assert!(
-        rust_equivalent.contains("target_arch"),
-        "Rust uses cfg(target_arch)"
-    );
+    assert!(rust_equivalent.contains("target_arch"), "Rust uses cfg(target_arch)");
 }
 
 /// Document transformation of complex conditionals
@@ -263,10 +257,7 @@ fn test_ifdef_testing_to_cfg_test() {
     let rust_equivalent = "#[cfg(test)] mod tests { ... }";
 
     assert!(c_code.contains("#ifdef"), "C uses #ifdef for test code");
-    assert!(
-        rust_equivalent.contains("cfg(test)"),
-        "Rust uses cfg(test) for test code"
-    );
+    assert!(rust_equivalent.contains("cfg(test)"), "Rust uses cfg(test) for test code");
 }
 
 /// Document transformation of compiler-specific code
@@ -328,10 +319,7 @@ fn test_if_version_to_edition() {
     let rust_note = "Use edition in Cargo.toml instead of conditional compilation";
 
     assert!(c_code.contains("__STDC_VERSION__"), "C checks version");
-    assert!(
-        rust_note.contains("edition"),
-        "Rust uses editions in Cargo.toml"
-    );
+    assert!(rust_note.contains("edition"), "Rust uses editions in Cargo.toml");
 }
 
 /// Document transformation of cfg! macro (runtime check)
@@ -364,10 +352,7 @@ fn test_ifdef_const_to_cfg_macro() {
     let rust_equivalent = "let debug_enabled = cfg!(debug_assertions);";
 
     assert!(c_code.contains("#ifdef"), "C uses #ifdef");
-    assert!(
-        rust_equivalent.contains("cfg!"),
-        "Rust uses cfg! macro for compile-time bool"
-    );
+    assert!(rust_equivalent.contains("cfg!"), "Rust uses cfg! macro for compile-time bool");
 }
 
 /// Document that cfg transformations require no unsafe blocks
@@ -390,10 +375,7 @@ fn test_ifdef_transformation_unsafe_count() {
 
     // Count unsafe blocks (should be 0)
     let unsafe_count = combined.matches("unsafe").count();
-    assert_eq!(
-        unsafe_count, 0,
-        "#ifdef → cfg transformation should not introduce unsafe blocks"
-    );
+    assert_eq!(unsafe_count, 0, "#ifdef → cfg transformation should not introduce unsafe blocks");
 }
 
 /// Summary of transformation rules
@@ -432,10 +414,7 @@ fn test_ifdef_transformation_unsafe_count() {
 fn test_ifdef_transformation_rules_summary() {
     // Rule 1: Debug mode
     let use_debug_assertions = true;
-    assert!(
-        use_debug_assertions,
-        "Use cfg(debug_assertions) for debug mode"
-    );
+    assert!(use_debug_assertions, "Use cfg(debug_assertions) for debug mode");
 
     // Rule 2: Platform detection
     let use_target_os = true;
@@ -443,10 +422,7 @@ fn test_ifdef_transformation_rules_summary() {
 
     // Rule 3: Architecture detection
     let use_target_arch = true;
-    assert!(
-        use_target_arch,
-        "Use cfg(target_arch) for architecture detection"
-    );
+    assert!(use_target_arch, "Use cfg(target_arch) for architecture detection");
 
     // Rule 4: Features from Cargo.toml
     let use_features = true;
@@ -454,10 +430,7 @@ fn test_ifdef_transformation_rules_summary() {
 
     // Rule 5: Complex conditions
     let use_combinators = true;
-    assert!(
-        use_combinators,
-        "Use all(), any(), not() for complex conditions"
-    );
+    assert!(use_combinators, "Use all(), any(), not() for complex conditions");
 
     // Rule 6: Test code
     let use_cfg_test = true;
@@ -465,17 +438,11 @@ fn test_ifdef_transformation_rules_summary() {
 
     // Rule 7: No unsafe needed
     let unsafe_blocks = 0;
-    assert_eq!(
-        unsafe_blocks, 0,
-        "#ifdef transformation introduces 0 unsafe blocks"
-    );
+    assert_eq!(unsafe_blocks, 0, "#ifdef transformation introduces 0 unsafe blocks");
 
     // Rule 8: Type-checked
     let type_checked = true;
-    assert!(
-        type_checked,
-        "Rust cfg is type-checked, unlike C preprocessor"
-    );
+    assert!(type_checked, "Rust cfg is type-checked, unlike C preprocessor");
 }
 
 /// Document that Rust cfg is type-aware unlike C preprocessor
@@ -490,14 +457,8 @@ fn test_cfg_is_type_aware() {
     // Rust cfg is evaluated during compilation with type information
     let rust_approach = "Type-aware conditional compilation during compilation";
 
-    assert!(
-        c_approach.contains("Text-based"),
-        "C preprocessor is text-based"
-    );
-    assert!(
-        rust_approach.contains("Type-aware"),
-        "Rust cfg is type-aware"
-    );
+    assert!(c_approach.contains("Text-based"), "C preprocessor is text-based");
+    assert!(rust_approach.contains("Type-aware"), "Rust cfg is type-aware");
 
     // This means Rust can catch errors that C preprocessor would miss
 }

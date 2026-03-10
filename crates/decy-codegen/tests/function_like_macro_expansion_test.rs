@@ -21,9 +21,7 @@ fn test_single_parameter_expression_macro() {
     );
 
     let generator = CodeGenerator::new();
-    let rust_code = generator
-        .generate_macro(&macro_def)
-        .expect("Failed to generate");
+    let rust_code = generator.generate_macro(&macro_def).expect("Failed to generate");
 
     // Should generate an inline function
     assert!(rust_code.contains("fn sqr"));
@@ -43,9 +41,7 @@ fn test_two_parameter_expression_macro() {
     );
 
     let generator = CodeGenerator::new();
-    let rust_code = generator
-        .generate_macro(&macro_def)
-        .expect("Failed to generate");
+    let rust_code = generator.generate_macro(&macro_def).expect("Failed to generate");
 
     // Should generate an inline function with ternary → if-else
     assert!(rust_code.contains("fn max"));
@@ -66,9 +62,7 @@ fn test_three_parameter_expression_macro() {
     );
 
     let generator = CodeGenerator::new();
-    let rust_code = generator
-        .generate_macro(&macro_def)
-        .expect("Failed to generate");
+    let rust_code = generator.generate_macro(&macro_def).expect("Failed to generate");
 
     assert!(rust_code.contains("fn add3"));
     assert!(rust_code.contains("a: i32"));
@@ -88,9 +82,7 @@ fn test_macro_name_converted_to_snake_case() {
     );
 
     let generator = CodeGenerator::new();
-    let rust_code = generator
-        .generate_macro(&macro_def)
-        .expect("Failed to generate");
+    let rust_code = generator.generate_macro(&macro_def).expect("Failed to generate");
 
     // Macro name should be converted to snake_case for Rust function
     assert!(rust_code.contains("fn is_positive"));
@@ -108,9 +100,7 @@ fn test_arithmetic_expression_macro() {
     );
 
     let generator = CodeGenerator::new();
-    let rust_code = generator
-        .generate_macro(&macro_def)
-        .expect("Failed to generate");
+    let rust_code = generator.generate_macro(&macro_def).expect("Failed to generate");
 
     assert!(rust_code.contains("fn double"));
     assert!(rust_code.contains("x * 2"));
@@ -127,9 +117,7 @@ fn test_comparison_expression_macro() {
     );
 
     let generator = CodeGenerator::new();
-    let rust_code = generator
-        .generate_macro(&macro_def)
-        .expect("Failed to generate");
+    let rust_code = generator.generate_macro(&macro_def).expect("Failed to generate");
 
     assert!(rust_code.contains("fn is_zero"));
     assert!(rust_code.contains("-> bool"));
@@ -147,9 +135,7 @@ fn test_parentheses_preserved_in_expression() {
     );
 
     let generator = CodeGenerator::new();
-    let rust_code = generator
-        .generate_macro(&macro_def)
-        .expect("Failed to generate");
+    let rust_code = generator.generate_macro(&macro_def).expect("Failed to generate");
 
     assert!(rust_code.contains("fn abs"));
     assert!(rust_code.contains("if") && rust_code.contains("else"));
@@ -167,9 +153,7 @@ fn test_inline_attribute_added() {
     );
 
     let generator = CodeGenerator::new();
-    let rust_code = generator
-        .generate_macro(&macro_def)
-        .expect("Failed to generate");
+    let rust_code = generator.generate_macro(&macro_def).expect("Failed to generate");
 
     assert!(rust_code.contains("#[inline]"));
 }
@@ -186,9 +170,7 @@ fn test_multiple_use_of_same_parameter() {
     );
 
     let generator = CodeGenerator::new();
-    let rust_code = generator
-        .generate_macro(&macro_def)
-        .expect("Failed to generate");
+    let rust_code = generator.generate_macro(&macro_def).expect("Failed to generate");
 
     assert!(rust_code.contains("fn sum_twice"));
     assert!(rust_code.contains("x + x"));
@@ -205,9 +187,7 @@ fn test_logical_expression_macro() {
     );
 
     let generator = CodeGenerator::new();
-    let rust_code = generator
-        .generate_macro(&macro_def)
-        .expect("Failed to generate");
+    let rust_code = generator.generate_macro(&macro_def).expect("Failed to generate");
 
     assert!(rust_code.contains("fn and"));
     assert!(rust_code.contains("bool"));

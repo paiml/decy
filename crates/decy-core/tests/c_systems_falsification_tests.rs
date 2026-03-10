@@ -74,14 +74,8 @@ int header_length_bytes(const struct ip_header *hdr) {
     );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C251: Output should not be empty");
-    assert!(
-        code.contains("fn compute_checksum"),
-        "C251: Should contain compute_checksum function"
-    );
-    assert!(
-        code.contains("fn is_fragment"),
-        "C251: Should contain is_fragment function"
-    );
+    assert!(code.contains("fn compute_checksum"), "C251: Should contain compute_checksum function");
+    assert!(code.contains("fn is_fragment"), "C251: Should contain is_fragment function");
 }
 
 #[test]
@@ -144,25 +138,12 @@ int ring_peek(const ring_buffer_t *rb, unsigned char *dst, int len) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C252: Socket circular buffer should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C252: Socket circular buffer should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C252: Output should not be empty");
-    assert!(
-        code.contains("fn ring_init"),
-        "C252: Should contain ring_init function"
-    );
-    assert!(
-        code.contains("fn ring_write"),
-        "C252: Should contain ring_write function"
-    );
-    assert!(
-        code.contains("fn ring_read"),
-        "C252: Should contain ring_read function"
-    );
+    assert!(code.contains("fn ring_init"), "C252: Should contain ring_init function");
+    assert!(code.contains("fn ring_write"), "C252: Should contain ring_write function");
+    assert!(code.contains("fn ring_read"), "C252: Should contain ring_read function");
 }
 
 #[test]
@@ -219,18 +200,9 @@ int pte_page_index(uint64_t vaddr, int level) {
     );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C253: Output should not be empty");
-    assert!(
-        code.contains("fn pte_make"),
-        "C253: Should contain pte_make function"
-    );
-    assert!(
-        code.contains("fn pte_get_addr"),
-        "C253: Should contain pte_get_addr function"
-    );
-    assert!(
-        code.contains("fn pte_is_present"),
-        "C253: Should contain pte_is_present function"
-    );
+    assert!(code.contains("fn pte_make"), "C253: Should contain pte_make function");
+    assert!(code.contains("fn pte_get_addr"), "C253: Should contain pte_get_addr function");
+    assert!(code.contains("fn pte_is_present"), "C253: Should contain pte_is_present function");
 }
 
 #[test]
@@ -288,25 +260,12 @@ unsigned int irq_get_count(int irq) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C254: Interrupt handler table should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C254: Interrupt handler table should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C254: Output should not be empty");
-    assert!(
-        code.contains("fn irq_init"),
-        "C254: Should contain irq_init function"
-    );
-    assert!(
-        code.contains("fn irq_register"),
-        "C254: Should contain irq_register function"
-    );
-    assert!(
-        code.contains("fn irq_dispatch"),
-        "C254: Should contain irq_dispatch function"
-    );
+    assert!(code.contains("fn irq_init"), "C254: Should contain irq_init function");
+    assert!(code.contains("fn irq_register"), "C254: Should contain irq_register function");
+    assert!(code.contains("fn irq_dispatch"), "C254: Should contain irq_dispatch function");
 }
 
 #[test]
@@ -363,18 +322,9 @@ void uart_write_string(uart_regs_t *regs, const char *str) {
     );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C255: Output should not be empty");
-    assert!(
-        code.contains("fn uart_init"),
-        "C255: Should contain uart_init function"
-    );
-    assert!(
-        code.contains("fn uart_write_byte"),
-        "C255: Should contain uart_write_byte function"
-    );
-    assert!(
-        code.contains("fn uart_read_byte"),
-        "C255: Should contain uart_read_byte function"
-    );
+    assert!(code.contains("fn uart_init"), "C255: Should contain uart_init function");
+    assert!(code.contains("fn uart_write_byte"), "C255: Should contain uart_write_byte function");
+    assert!(code.contains("fn uart_read_byte"), "C255: Should contain uart_read_byte function");
 }
 
 // ============================================================================
@@ -446,25 +396,12 @@ int dma_pending(const dma_ring_t *ring) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C256: DMA descriptor ring should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C256: DMA descriptor ring should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C256: Output should not be empty");
-    assert!(
-        code.contains("fn dma_ring_init"),
-        "C256: Should contain dma_ring_init function"
-    );
-    assert!(
-        code.contains("fn dma_submit"),
-        "C256: Should contain dma_submit function"
-    );
-    assert!(
-        code.contains("fn dma_complete"),
-        "C256: Should contain dma_complete function"
-    );
+    assert!(code.contains("fn dma_ring_init"), "C256: Should contain dma_ring_init function");
+    assert!(code.contains("fn dma_submit"), "C256: Should contain dma_submit function");
+    assert!(code.contains("fn dma_complete"), "C256: Should contain dma_complete function");
 }
 
 #[test]
@@ -533,10 +470,7 @@ int inode_can_read(const inode_t *inode, uint32_t uid) {
     );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C257: Output should not be empty");
-    assert!(
-        code.contains("fn inode_max_size"),
-        "C257: Should contain inode_max_size function"
-    );
+    assert!(code.contains("fn inode_max_size"), "C257: Should contain inode_max_size function");
     assert!(
         code.contains("fn inode_block_index"),
         "C257: Should contain inode_block_index function"
@@ -646,18 +580,9 @@ int tcp_is_connected(const tcp_conn_t *conn) {
     );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C258: Output should not be empty");
-    assert!(
-        code.contains("fn tcp_init"),
-        "C258: Should contain tcp_init function"
-    );
-    assert!(
-        code.contains("fn tcp_transition"),
-        "C258: Should contain tcp_transition function"
-    );
-    assert!(
-        code.contains("fn tcp_is_connected"),
-        "C258: Should contain tcp_is_connected function"
-    );
+    assert!(code.contains("fn tcp_init"), "C258: Should contain tcp_init function");
+    assert!(code.contains("fn tcp_transition"), "C258: Should contain tcp_transition function");
+    assert!(code.contains("fn tcp_is_connected"), "C258: Should contain tcp_is_connected function");
 }
 
 #[test]
@@ -710,25 +635,12 @@ int spsc_is_full(const spsc_queue_t *q) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C259: Lock-free SPSC queue should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C259: Lock-free SPSC queue should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C259: Output should not be empty");
-    assert!(
-        code.contains("fn spsc_init"),
-        "C259: Should contain spsc_init function"
-    );
-    assert!(
-        code.contains("fn spsc_push"),
-        "C259: Should contain spsc_push function"
-    );
-    assert!(
-        code.contains("fn spsc_pop"),
-        "C259: Should contain spsc_pop function"
-    );
+    assert!(code.contains("fn spsc_init"), "C259: Should contain spsc_init function");
+    assert!(code.contains("fn spsc_push"), "C259: Should contain spsc_push function");
+    assert!(code.contains("fn spsc_pop"), "C259: Should contain spsc_pop function");
 }
 
 #[test]
@@ -808,18 +720,9 @@ int tw_tick(timer_wheel_t *tw) {
     );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C260: Output should not be empty");
-    assert!(
-        code.contains("fn tw_init"),
-        "C260: Should contain tw_init function"
-    );
-    assert!(
-        code.contains("fn tw_add_timer"),
-        "C260: Should contain tw_add_timer function"
-    );
-    assert!(
-        code.contains("fn tw_tick"),
-        "C260: Should contain tw_tick function"
-    );
+    assert!(code.contains("fn tw_init"), "C260: Should contain tw_init function");
+    assert!(code.contains("fn tw_add_timer"), "C260: Should contain tw_add_timer function");
+    assert!(code.contains("fn tw_tick"), "C260: Should contain tw_tick function");
 }
 
 // ============================================================================
@@ -878,25 +781,12 @@ int slab_utilization_percent(const slab_t *s) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C261: Slab allocator should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C261: Slab allocator should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C261: Output should not be empty");
-    assert!(
-        code.contains("fn slab_init"),
-        "C261: Should contain slab_init function"
-    );
-    assert!(
-        code.contains("fn slab_alloc"),
-        "C261: Should contain slab_alloc function"
-    );
-    assert!(
-        code.contains("fn slab_free"),
-        "C261: Should contain slab_free function"
-    );
+    assert!(code.contains("fn slab_init"), "C261: Should contain slab_init function");
+    assert!(code.contains("fn slab_alloc"), "C261: Should contain slab_alloc function");
+    assert!(code.contains("fn slab_free"), "C261: Should contain slab_free function");
 }
 
 #[test]
@@ -966,25 +856,12 @@ int bloom_check(const bloom_filter_t *bf, unsigned int key) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C262: Bloom filter should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C262: Bloom filter should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C262: Output should not be empty");
-    assert!(
-        code.contains("fn bloom_init"),
-        "C262: Should contain bloom_init function"
-    );
-    assert!(
-        code.contains("fn bloom_add"),
-        "C262: Should contain bloom_add function"
-    );
-    assert!(
-        code.contains("fn bloom_check"),
-        "C262: Should contain bloom_check function"
-    );
+    assert!(code.contains("fn bloom_init"), "C262: Should contain bloom_init function");
+    assert!(code.contains("fn bloom_add"), "C262: Should contain bloom_add function");
+    assert!(code.contains("fn bloom_check"), "C262: Should contain bloom_check function");
 }
 
 #[test]
@@ -1057,25 +934,12 @@ int trie_lookup(const trie_t *t, unsigned int addr, int addr_bits) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C263: Trie routing table should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C263: Trie routing table should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C263: Output should not be empty");
-    assert!(
-        code.contains("fn trie_init"),
-        "C263: Should contain trie_init function"
-    );
-    assert!(
-        code.contains("fn trie_insert"),
-        "C263: Should contain trie_insert function"
-    );
-    assert!(
-        code.contains("fn trie_lookup"),
-        "C263: Should contain trie_lookup function"
-    );
+    assert!(code.contains("fn trie_init"), "C263: Should contain trie_init function");
+    assert!(code.contains("fn trie_insert"), "C263: Should contain trie_insert function");
+    assert!(code.contains("fn trie_lookup"), "C263: Should contain trie_lookup function");
 }
 
 #[test]
@@ -1140,25 +1004,12 @@ int sl_count(const skiplist_t *sl) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C264: Skip list node structure should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C264: Skip list node structure should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C264: Output should not be empty");
-    assert!(
-        code.contains("fn sl_init"),
-        "C264: Should contain sl_init function"
-    );
-    assert!(
-        code.contains("fn sl_search"),
-        "C264: Should contain sl_search function"
-    );
-    assert!(
-        code.contains("fn sl_count"),
-        "C264: Should contain sl_count function"
-    );
+    assert!(code.contains("fn sl_init"), "C264: Should contain sl_init function");
+    assert!(code.contains("fn sl_search"), "C264: Should contain sl_search function");
+    assert!(code.contains("fn sl_count"), "C264: Should contain sl_count function");
 }
 
 #[test]
@@ -1220,25 +1071,12 @@ int cow_get_refcount(const cow_buffer_t *buf) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C265: Copy-on-write refcounting should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C265: Copy-on-write refcounting should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C265: Output should not be empty");
-    assert!(
-        code.contains("fn cow_buf_init"),
-        "C265: Should contain cow_buf_init function"
-    );
-    assert!(
-        code.contains("fn cow_share"),
-        "C265: Should contain cow_share function"
-    );
-    assert!(
-        code.contains("fn cow_release"),
-        "C265: Should contain cow_release function"
-    );
+    assert!(code.contains("fn cow_buf_init"), "C265: Should contain cow_buf_init function");
+    assert!(code.contains("fn cow_share"), "C265: Should contain cow_share function");
+    assert!(code.contains("fn cow_release"), "C265: Should contain cow_release function");
 }
 
 // ============================================================================
@@ -1323,18 +1161,9 @@ int sig_pending_count(const signal_table_t *st) {
     );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C266: Output should not be empty");
-    assert!(
-        code.contains("fn sig_table_init"),
-        "C266: Should contain sig_table_init function"
-    );
-    assert!(
-        code.contains("fn sig_register"),
-        "C266: Should contain sig_register function"
-    );
-    assert!(
-        code.contains("fn sig_raise"),
-        "C266: Should contain sig_raise function"
-    );
+    assert!(code.contains("fn sig_table_init"), "C266: Should contain sig_table_init function");
+    assert!(code.contains("fn sig_register"), "C266: Should contain sig_register function");
+    assert!(code.contains("fn sig_raise"), "C266: Should contain sig_raise function");
 }
 
 #[test]
@@ -1395,22 +1224,10 @@ uint16_t read_le16(const unsigned char *buf) {
     );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C267: Output should not be empty");
-    assert!(
-        code.contains("fn swap16"),
-        "C267: Should contain swap16 function"
-    );
-    assert!(
-        code.contains("fn swap32"),
-        "C267: Should contain swap32 function"
-    );
-    assert!(
-        code.contains("fn swap64"),
-        "C267: Should contain swap64 function"
-    );
-    assert!(
-        code.contains("fn read_be32"),
-        "C267: Should contain read_be32 function"
-    );
+    assert!(code.contains("fn swap16"), "C267: Should contain swap16 function");
+    assert!(code.contains("fn swap32"), "C267: Should contain swap32 function");
+    assert!(code.contains("fn swap64"), "C267: Should contain swap64 function");
+    assert!(code.contains("fn read_be32"), "C267: Should contain read_be32 function");
 }
 
 #[test]
@@ -1465,25 +1282,15 @@ int crc32_verify(const unsigned char *data, int len, uint32_t expected) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C268: CRC32 lookup table should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C268: CRC32 lookup table should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C268: Output should not be empty");
     assert!(
         code.contains("fn crc32_generate_table"),
         "C268: Should contain crc32_generate_table function"
     );
-    assert!(
-        code.contains("fn crc32_compute"),
-        "C268: Should contain crc32_compute function"
-    );
-    assert!(
-        code.contains("fn crc32_verify"),
-        "C268: Should contain crc32_verify function"
-    );
+    assert!(code.contains("fn crc32_compute"), "C268: Should contain crc32_compute function");
+    assert!(code.contains("fn crc32_verify"), "C268: Should contain crc32_verify function");
 }
 
 #[test]
@@ -1556,18 +1363,9 @@ int seqlock_read_valid(const seqlock_t *sl, int start_version) {
     );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C269: Output should not be empty");
-    assert!(
-        code.contains("fn ss_init"),
-        "C269: Should contain ss_init function"
-    );
-    assert!(
-        code.contains("fn ss_publish"),
-        "C269: Should contain ss_publish function"
-    );
-    assert!(
-        code.contains("fn seqlock_init"),
-        "C269: Should contain seqlock_init function"
-    );
+    assert!(code.contains("fn ss_init"), "C269: Should contain ss_init function");
+    assert!(code.contains("fn ss_publish"), "C269: Should contain ss_publish function");
+    assert!(code.contains("fn seqlock_init"), "C269: Should contain seqlock_init function");
 }
 
 #[test]
@@ -1635,25 +1433,12 @@ int sg_find_offset(const sg_list_t *sg, int global_offset, int *iov_idx, int *lo
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C270: Scatter-gather I/O vector should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C270: Scatter-gather I/O vector should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C270: Output should not be empty");
-    assert!(
-        code.contains("fn sg_init"),
-        "C270: Should contain sg_init function"
-    );
-    assert!(
-        code.contains("fn sg_total_len"),
-        "C270: Should contain sg_total_len function"
-    );
-    assert!(
-        code.contains("fn sg_copy_to_flat"),
-        "C270: Should contain sg_copy_to_flat function"
-    );
+    assert!(code.contains("fn sg_init"), "C270: Should contain sg_init function");
+    assert!(code.contains("fn sg_total_len"), "C270: Should contain sg_total_len function");
+    assert!(code.contains("fn sg_copy_to_flat"), "C270: Should contain sg_copy_to_flat function");
 }
 
 // ============================================================================
@@ -1754,14 +1539,8 @@ int pool_healthy_count(const conn_pool_t *pool) {
     );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C271: Output should not be empty");
-    assert!(
-        code.contains("fn pool_init"),
-        "C271: Should contain pool_init function"
-    );
-    assert!(
-        code.contains("fn pool_acquire"),
-        "C271: Should contain pool_acquire function"
-    );
+    assert!(code.contains("fn pool_init"), "C271: Should contain pool_init function");
+    assert!(code.contains("fn pool_acquire"), "C271: Should contain pool_acquire function");
     assert!(
         code.contains("fn pool_evict_expired"),
         "C271: Should contain pool_evict_expired function"
@@ -1819,25 +1598,12 @@ double tb_wait_time_ms(const token_bucket_t *tb, double cost) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C272: Rate limiter token bucket should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C272: Rate limiter token bucket should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C272: Output should not be empty");
-    assert!(
-        code.contains("fn tb_init"),
-        "C272: Should contain tb_init function"
-    );
-    assert!(
-        code.contains("fn tb_try_consume"),
-        "C272: Should contain tb_try_consume function"
-    );
-    assert!(
-        code.contains("fn tb_wait_time_ms"),
-        "C272: Should contain tb_wait_time_ms function"
-    );
+    assert!(code.contains("fn tb_init"), "C272: Should contain tb_init function");
+    assert!(code.contains("fn tb_try_consume"), "C272: Should contain tb_try_consume function");
+    assert!(code.contains("fn tb_wait_time_ms"), "C272: Should contain tb_wait_time_ms function");
 }
 
 #[test]
@@ -1912,25 +1678,12 @@ int ring_node_count(const hash_ring_t *ring) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C273: Consistent hashing ring should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C273: Consistent hashing ring should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C273: Output should not be empty");
-    assert!(
-        code.contains("fn ring_init"),
-        "C273: Should contain ring_init function"
-    );
-    assert!(
-        code.contains("fn ring_add_node"),
-        "C273: Should contain ring_add_node function"
-    );
-    assert!(
-        code.contains("fn ring_lookup"),
-        "C273: Should contain ring_lookup function"
-    );
+    assert!(code.contains("fn ring_init"), "C273: Should contain ring_init function");
+    assert!(code.contains("fn ring_add_node"), "C273: Should contain ring_add_node function");
+    assert!(code.contains("fn ring_lookup"), "C273: Should contain ring_lookup function");
 }
 
 #[test]
@@ -2018,25 +1771,12 @@ int wal_truncate_after(wal_log_t *log, uint64_t lsn) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C274: Write-ahead log entry should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C274: Write-ahead log entry should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C274: Output should not be empty");
-    assert!(
-        code.contains("fn wal_init"),
-        "C274: Should contain wal_init function"
-    );
-    assert!(
-        code.contains("fn wal_append"),
-        "C274: Should contain wal_append function"
-    );
-    assert!(
-        code.contains("fn wal_verify"),
-        "C274: Should contain wal_verify function"
-    );
+    assert!(code.contains("fn wal_init"), "C274: Should contain wal_init function");
+    assert!(code.contains("fn wal_append"), "C274: Should contain wal_append function");
+    assert!(code.contains("fn wal_verify"), "C274: Should contain wal_verify function");
 }
 
 #[test]
@@ -2143,25 +1883,12 @@ int mbuf_write(mbuf_pool_t *pool, int idx, const unsigned char *data, int len) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C275: Zero-copy buffer chain should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C275: Zero-copy buffer chain should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C275: Output should not be empty");
-    assert!(
-        code.contains("fn mbuf_pool_init"),
-        "C275: Should contain mbuf_pool_init function"
-    );
-    assert!(
-        code.contains("fn mbuf_alloc"),
-        "C275: Should contain mbuf_alloc function"
-    );
-    assert!(
-        code.contains("fn mbuf_chain_free"),
-        "C275: Should contain mbuf_chain_free function"
-    );
+    assert!(code.contains("fn mbuf_pool_init"), "C275: Should contain mbuf_pool_init function");
+    assert!(code.contains("fn mbuf_alloc"), "C275: Should contain mbuf_alloc function");
+    assert!(code.contains("fn mbuf_chain_free"), "C275: Should contain mbuf_chain_free function");
     assert!(
         code.contains("fn mbuf_chain_total_len"),
         "C275: Should contain mbuf_chain_total_len function"

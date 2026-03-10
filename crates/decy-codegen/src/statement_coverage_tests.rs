@@ -373,12 +373,11 @@ fn test_inline_asm_multiline() {
 #[test]
 fn test_expression_statement_function_call() {
     let codegen = CodeGenerator::new();
-    let func = make_func_with_statements(vec![HirStatement::Expression(
-        HirExpression::FunctionCall {
+    let func =
+        make_func_with_statements(vec![HirStatement::Expression(HirExpression::FunctionCall {
             function: "log_message".to_string(),
             arguments: vec![HirExpression::StringLiteral("Hello, World!".to_string())],
-        },
-    )]);
+        })]);
     let code = codegen.generate_function(&func);
     assert!(code.contains("log_message("));
     assert!(code.contains("Hello, World!"));
@@ -389,9 +388,9 @@ fn test_expression_statement_function_call() {
 #[test]
 fn test_expression_statement_variable() {
     let codegen = CodeGenerator::new();
-    let func = make_func_with_statements(vec![HirStatement::Expression(
-        HirExpression::Variable("x".to_string()),
-    )]);
+    let func = make_func_with_statements(vec![HirStatement::Expression(HirExpression::Variable(
+        "x".to_string(),
+    ))]);
     let code = codegen.generate_function(&func);
     assert!(code.contains("x;"));
 }
@@ -608,10 +607,7 @@ fn test_var_decl_vla_int() {
         vec![HirParameter::new("n".to_string(), HirType::Int)],
         vec![HirStatement::VariableDeclaration {
             name: "arr".to_string(),
-            var_type: HirType::Array {
-                element_type: Box::new(HirType::Int),
-                size: None,
-            },
+            var_type: HirType::Array { element_type: Box::new(HirType::Int), size: None },
             initializer: Some(HirExpression::Variable("n".to_string())),
         }],
     );
@@ -628,10 +624,7 @@ fn test_var_decl_vla_double() {
         vec![HirParameter::new("n".to_string(), HirType::Int)],
         vec![HirStatement::VariableDeclaration {
             name: "arr".to_string(),
-            var_type: HirType::Array {
-                element_type: Box::new(HirType::Double),
-                size: None,
-            },
+            var_type: HirType::Array { element_type: Box::new(HirType::Double), size: None },
             initializer: Some(HirExpression::Variable("n".to_string())),
         }],
     );
@@ -648,10 +641,7 @@ fn test_var_decl_vla_float() {
         vec![HirParameter::new("n".to_string(), HirType::Int)],
         vec![HirStatement::VariableDeclaration {
             name: "arr".to_string(),
-            var_type: HirType::Array {
-                element_type: Box::new(HirType::Float),
-                size: None,
-            },
+            var_type: HirType::Array { element_type: Box::new(HirType::Float), size: None },
             initializer: Some(HirExpression::Variable("n".to_string())),
         }],
     );
@@ -668,10 +658,7 @@ fn test_var_decl_vla_unsigned_int() {
         vec![HirParameter::new("n".to_string(), HirType::Int)],
         vec![HirStatement::VariableDeclaration {
             name: "arr".to_string(),
-            var_type: HirType::Array {
-                element_type: Box::new(HirType::UnsignedInt),
-                size: None,
-            },
+            var_type: HirType::Array { element_type: Box::new(HirType::UnsignedInt), size: None },
             initializer: Some(HirExpression::Variable("n".to_string())),
         }],
     );
@@ -688,10 +675,7 @@ fn test_var_decl_vla_char() {
         vec![HirParameter::new("n".to_string(), HirType::Int)],
         vec![HirStatement::VariableDeclaration {
             name: "arr".to_string(),
-            var_type: HirType::Array {
-                element_type: Box::new(HirType::Char),
-                size: None,
-            },
+            var_type: HirType::Array { element_type: Box::new(HirType::Char), size: None },
             initializer: Some(HirExpression::Variable("n".to_string())),
         }],
     );
@@ -708,10 +692,7 @@ fn test_var_decl_vla_signed_char() {
         vec![HirParameter::new("n".to_string(), HirType::Int)],
         vec![HirStatement::VariableDeclaration {
             name: "arr".to_string(),
-            var_type: HirType::Array {
-                element_type: Box::new(HirType::SignedChar),
-                size: None,
-            },
+            var_type: HirType::Array { element_type: Box::new(HirType::SignedChar), size: None },
             initializer: Some(HirExpression::Variable("n".to_string())),
         }],
     );
@@ -739,10 +720,7 @@ fn test_var_decl_char_array_string_init() {
     // char str[6] = "hello" → let mut str: [u8; 6] = *b"hello\0"
     let func = make_func_with_statements(vec![HirStatement::VariableDeclaration {
         name: "buf".to_string(),
-        var_type: HirType::Array {
-            element_type: Box::new(HirType::Char),
-            size: Some(6),
-        },
+        var_type: HirType::Array { element_type: Box::new(HirType::Char), size: Some(6) },
         initializer: Some(HirExpression::StringLiteral("hello".to_string())),
     }]);
     let code = codegen.generate_function(&func);
@@ -788,9 +766,8 @@ fn test_return_void() {
 fn test_return_in_main_with_value() {
     let codegen = CodeGenerator::new();
     // return 0; in main → std::process::exit(0);
-    let func = make_main_with_statements(vec![HirStatement::Return(Some(
-        HirExpression::IntLiteral(0),
-    ))]);
+    let func =
+        make_main_with_statements(vec![HirStatement::Return(Some(HirExpression::IntLiteral(0)))]);
     let code = codegen.generate_function(&func);
     assert!(code.contains("std::process::exit(0)"));
 }
@@ -828,13 +805,12 @@ fn test_return_in_main_with_char_cast() {
 #[test]
 fn test_return_expression() {
     let codegen = CodeGenerator::new();
-    let func = make_int_func_with_statements(vec![HirStatement::Return(Some(
-        HirExpression::BinaryOp {
+    let func =
+        make_int_func_with_statements(vec![HirStatement::Return(Some(HirExpression::BinaryOp {
             op: BinaryOperator::Add,
             left: Box::new(HirExpression::IntLiteral(1)),
             right: Box::new(HirExpression::IntLiteral(2)),
-        },
-    ))]);
+        }))]);
     let code = codegen.generate_function(&func);
     assert!(code.contains("return 1 + 2"));
 }
@@ -1033,10 +1009,7 @@ fn test_simple_assignment() {
             var_type: HirType::Int,
             initializer: Some(HirExpression::IntLiteral(0)),
         },
-        HirStatement::Assignment {
-            target: "x".to_string(),
-            value: HirExpression::IntLiteral(42),
-        },
+        HirStatement::Assignment { target: "x".to_string(), value: HirExpression::IntLiteral(42) },
     ]);
     let code = codegen.generate_function(&func);
     assert!(code.contains("x = 42"));
@@ -1199,10 +1172,7 @@ fn test_array_index_assignment() {
     let func = make_func_with_statements(vec![
         HirStatement::VariableDeclaration {
             name: "arr".to_string(),
-            var_type: HirType::Array {
-                element_type: Box::new(HirType::Int),
-                size: Some(10),
-            },
+            var_type: HirType::Array { element_type: Box::new(HirType::Int), size: Some(10) },
             initializer: None,
         },
         HirStatement::ArrayIndexAssignment {
@@ -1243,12 +1213,10 @@ fn test_nested_if_in_while() {
                     function: "even".to_string(),
                     arguments: vec![HirExpression::Variable("i".to_string())],
                 })],
-                else_block: Some(vec![HirStatement::Expression(
-                    HirExpression::FunctionCall {
-                        function: "odd".to_string(),
-                        arguments: vec![HirExpression::Variable("i".to_string())],
-                    },
-                )]),
+                else_block: Some(vec![HirStatement::Expression(HirExpression::FunctionCall {
+                    function: "odd".to_string(),
+                    arguments: vec![HirExpression::Variable("i".to_string())],
+                })]),
             },
             HirStatement::Assignment {
                 target: "i".to_string(),
@@ -1386,10 +1354,7 @@ fn test_var_decl_array_fixed_size() {
     let codegen = CodeGenerator::new();
     let func = make_func_with_statements(vec![HirStatement::VariableDeclaration {
         name: "arr".to_string(),
-        var_type: HirType::Array {
-            element_type: Box::new(HirType::Int),
-            size: Some(5),
-        },
+        var_type: HirType::Array { element_type: Box::new(HirType::Int), size: Some(5) },
         initializer: None,
     }]);
     let code = codegen.generate_function(&func);
@@ -1446,13 +1411,11 @@ fn test_var_decl_bool_initializer_with_binary_op() {
 #[test]
 fn test_expression_statement_binary_op() {
     let codegen = CodeGenerator::new();
-    let func = make_func_with_statements(vec![HirStatement::Expression(
-        HirExpression::BinaryOp {
-            op: BinaryOperator::Add,
-            left: Box::new(HirExpression::Variable("a".to_string())),
-            right: Box::new(HirExpression::Variable("b".to_string())),
-        },
-    )]);
+    let func = make_func_with_statements(vec![HirStatement::Expression(HirExpression::BinaryOp {
+        op: BinaryOperator::Add,
+        left: Box::new(HirExpression::Variable("a".to_string())),
+        right: Box::new(HirExpression::Variable("b".to_string())),
+    })]);
     let code = codegen.generate_function(&func);
     assert!(code.contains("a + b;"));
 }
@@ -1460,12 +1423,11 @@ fn test_expression_statement_binary_op() {
 #[test]
 fn test_expression_statement_function_call_no_args() {
     let codegen = CodeGenerator::new();
-    let func = make_func_with_statements(vec![HirStatement::Expression(
-        HirExpression::FunctionCall {
+    let func =
+        make_func_with_statements(vec![HirStatement::Expression(HirExpression::FunctionCall {
             function: "initialize".to_string(),
             arguments: vec![],
-        },
-    )]);
+        })]);
     let code = codegen.generate_function(&func);
     assert!(code.contains("initialize();"));
 }
@@ -1473,16 +1435,15 @@ fn test_expression_statement_function_call_no_args() {
 #[test]
 fn test_expression_statement_function_call_multiple_args() {
     let codegen = CodeGenerator::new();
-    let func = make_func_with_statements(vec![HirStatement::Expression(
-        HirExpression::FunctionCall {
+    let func =
+        make_func_with_statements(vec![HirStatement::Expression(HirExpression::FunctionCall {
             function: "add".to_string(),
             arguments: vec![
                 HirExpression::IntLiteral(1),
                 HirExpression::IntLiteral(2),
                 HirExpression::IntLiteral(3),
             ],
-        },
-    )]);
+        })]);
     let code = codegen.generate_function(&func);
     assert!(code.contains("add(1, 2, 3);"));
 }
@@ -1505,10 +1466,7 @@ fn test_multiple_sequential_statements() {
             var_type: HirType::Int,
             initializer: Some(HirExpression::IntLiteral(0)),
         },
-        HirStatement::Assignment {
-            target: "x".to_string(),
-            value: HirExpression::IntLiteral(10),
-        },
+        HirStatement::Assignment { target: "x".to_string(), value: HirExpression::IntLiteral(10) },
         HirStatement::Assignment {
             target: "y".to_string(),
             value: HirExpression::BinaryOp {
@@ -1614,9 +1572,7 @@ fn test_switch_with_return_in_case() {
                 }))],
             },
         ],
-        default_case: Some(vec![HirStatement::Return(Some(HirExpression::IntLiteral(
-            0,
-        )))]),
+        default_case: Some(vec![HirStatement::Return(Some(HirExpression::IntLiteral(0)))]),
     }]);
     let code = codegen.generate_function(&func);
     assert!(code.contains("match op"));

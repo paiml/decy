@@ -24,9 +24,7 @@ use tempfile::NamedTempFile;
 /// Helper to transpile C code and return the generated Rust
 fn transpile_c(c_code: &str) -> String {
     let mut temp_file = NamedTempFile::new().expect("Failed to create temp file");
-    temp_file
-        .write_all(c_code.as_bytes())
-        .expect("Failed to write C code");
+    temp_file.write_all(c_code.as_bytes()).expect("Failed to write C code");
 
     let output = Command::new("cargo")
         .args(["run", "-p", "decy", "--quiet", "--", "transpile"])
@@ -40,16 +38,10 @@ fn transpile_c(c_code: &str) -> String {
 /// Helper to compile Rust code and return success/failure
 fn compile_rust(rust_code: &str) -> (bool, String) {
     let mut temp_file = NamedTempFile::with_suffix(".rs").expect("Failed to create temp file");
-    temp_file
-        .write_all(rust_code.as_bytes())
-        .expect("Failed to write Rust code");
+    temp_file.write_all(rust_code.as_bytes()).expect("Failed to write Rust code");
 
     let output = Command::new("rustc")
-        .args([
-            "--crate-type=lib",
-            "--edition=2021",
-            "--crate-name=test_malloc_ptr",
-        ])
+        .args(["--crate-type=lib", "--edition=2021", "--crate-name=test_malloc_ptr"])
         .arg(temp_file.path())
         .arg("-o")
         .arg("/tmp/test_malloc_ptr_compile")
@@ -118,11 +110,7 @@ void copy_name(Node* node, const char* src) {
 
     // If src becomes &str, strlen(src) becomes src.len()
     // The malloc should generate code that can be assigned to *mut u8
-    assert!(
-        rust_code.contains("node"),
-        "Should generate node assignment, got: {}",
-        rust_code
-    );
+    assert!(rust_code.contains("node"), "Should generate node assignment, got: {}", rust_code);
 
     // Check that the assignment compiles
     // The generated code should not have type mismatch between Vec and *mut u8
@@ -183,11 +171,7 @@ void insert(Entry* entry, const char* key) {
 
     let rust_code = transpile_c(c_code);
 
-    assert!(
-        rust_code.contains("fn insert"),
-        "Should generate insert function, got: {}",
-        rust_code
-    );
+    assert!(rust_code.contains("fn insert"), "Should generate insert function, got: {}", rust_code);
 
     // Try to compile
     let (success, stderr) = compile_rust(&rust_code);
@@ -220,27 +204,18 @@ fn test_full_hash_table_compiles() {
             "examples/data_structures/hash_table.c",
         ])
         .current_dir(
-            std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-                .parent()
-                .unwrap()
-                .parent()
-                .unwrap(),
+            std::path::Path::new(env!("CARGO_MANIFEST_DIR")).parent().unwrap().parent().unwrap(),
         )
         .output()
         .expect("Failed to run decy transpile");
 
     let rust_code = String::from_utf8_lossy(&output.stdout).to_string();
 
-    assert!(
-        !rust_code.is_empty(),
-        "Should generate Rust code from hash_table.c"
-    );
+    assert!(!rust_code.is_empty(), "Should generate Rust code from hash_table.c");
 
     // Write to temp file and compile
     let mut temp_file = NamedTempFile::with_suffix(".rs").expect("Failed to create temp file");
-    temp_file
-        .write_all(rust_code.as_bytes())
-        .expect("Failed to write Rust code");
+    temp_file.write_all(rust_code.as_bytes()).expect("Failed to write Rust code");
 
     let output = Command::new("rustc")
         .args([

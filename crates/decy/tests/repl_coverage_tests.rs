@@ -150,11 +150,7 @@ fn cli_repl_transpile_error() {
 
 #[test]
 fn cli_repl_unknown_command() {
-    decy_cmd()
-        .arg("repl")
-        .write_stdin(":unknown\n:quit\n")
-        .assert()
-        .success();
+    decy_cmd().arg("repl").write_stdin(":unknown\n:quit\n").assert().success();
     // Unknown commands starting with : should be treated as code
 }
 
@@ -181,11 +177,7 @@ fn cli_repl_multiple_transpilations() {
 #[test]
 fn cli_repl_eof_exit() {
     // Sending empty stdin simulates EOF (Ctrl+D)
-    decy_cmd()
-        .arg("repl")
-        .write_stdin("")
-        .assert()
-        .success();
+    decy_cmd().arg("repl").write_stdin("").assert().success();
 }
 
 #[test]
@@ -272,11 +264,7 @@ fn cli_repl_rapid_quit() {
 
 #[test]
 fn cli_repl_multiple_helps() {
-    decy_cmd()
-        .arg("repl")
-        .write_stdin(":help\n:h\n:?\n:quit\n")
-        .assert()
-        .success();
+    decy_cmd().arg("repl").write_stdin(":help\n:h\n:?\n:quit\n").assert().success();
 }
 
 #[test]

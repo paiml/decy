@@ -91,11 +91,7 @@ fn test_ast_function_with_parameters_with_colors() {
 #[test]
 fn test_ast_function_three_params_no_colors() {
     let mut temp = NamedTempFile::new().unwrap();
-    writeln!(
-        temp,
-        "int sum3(int a, int b, int c) {{ return a + b + c; }}"
-    )
-    .unwrap();
+    writeln!(temp, "int sum3(int a, int b, int c) {{ return a + b + c; }}").unwrap();
 
     let result = visualize_c_ast(temp.path(), false);
     assert!(result.is_ok());
@@ -108,11 +104,7 @@ fn test_ast_function_three_params_no_colors() {
 #[test]
 fn test_ast_function_three_params_with_colors() {
     let mut temp = NamedTempFile::new().unwrap();
-    writeln!(
-        temp,
-        "int sum3(int a, int b, int c) {{ return a + b + c; }}"
-    )
-    .unwrap();
+    writeln!(temp, "int sum3(int a, int b, int c) {{ return a + b + c; }}").unwrap();
 
     let result = visualize_c_ast(temp.path(), true);
     assert!(result.is_ok());
@@ -239,11 +231,8 @@ fn test_ast_if_no_else_with_colors() {
 #[test]
 fn test_ast_if_with_else_no_colors() {
     let mut temp = NamedTempFile::new().unwrap();
-    writeln!(
-        temp,
-        "int main() {{ int x = 5; if (x) {{ return 1; }} else {{ return 0; }} }}"
-    )
-    .unwrap();
+    writeln!(temp, "int main() {{ int x = 5; if (x) {{ return 1; }} else {{ return 0; }} }}")
+        .unwrap();
 
     let result = visualize_c_ast(temp.path(), false);
     assert!(result.is_ok());
@@ -255,11 +244,8 @@ fn test_ast_if_with_else_no_colors() {
 #[test]
 fn test_ast_if_with_else_with_colors() {
     let mut temp = NamedTempFile::new().unwrap();
-    writeln!(
-        temp,
-        "int main() {{ int x = 5; if (x) {{ return 1; }} else {{ return 0; }} }}"
-    )
-    .unwrap();
+    writeln!(temp, "int main() {{ int x = 5; if (x) {{ return 1; }} else {{ return 0; }} }}")
+        .unwrap();
 
     let result = visualize_c_ast(temp.path(), true);
     assert!(result.is_ok());
@@ -268,11 +254,7 @@ fn test_ast_if_with_else_with_colors() {
 #[test]
 fn test_ast_while_loop_no_colors() {
     let mut temp = NamedTempFile::new().unwrap();
-    writeln!(
-        temp,
-        "int main() {{ int x = 10; while (x) {{ x = x - 1; }} return 0; }}"
-    )
-    .unwrap();
+    writeln!(temp, "int main() {{ int x = 10; while (x) {{ x = x - 1; }} return 0; }}").unwrap();
 
     let result = visualize_c_ast(temp.path(), false);
     assert!(result.is_ok());
@@ -283,11 +265,7 @@ fn test_ast_while_loop_no_colors() {
 #[test]
 fn test_ast_while_loop_with_colors() {
     let mut temp = NamedTempFile::new().unwrap();
-    writeln!(
-        temp,
-        "int main() {{ int x = 10; while (x) {{ x = x - 1; }} return 0; }}"
-    )
-    .unwrap();
+    writeln!(temp, "int main() {{ int x = 10; while (x) {{ x = x - 1; }} return 0; }}").unwrap();
 
     let result = visualize_c_ast(temp.path(), true);
     assert!(result.is_ok());
@@ -296,11 +274,8 @@ fn test_ast_while_loop_with_colors() {
 #[test]
 fn test_ast_for_loop_no_colors() {
     let mut temp = NamedTempFile::new().unwrap();
-    writeln!(
-        temp,
-        "int main() {{ int i; for (i = 0; i < 10; i = i + 1) {{ }} return 0; }}"
-    )
-    .unwrap();
+    writeln!(temp, "int main() {{ int i; for (i = 0; i < 10; i = i + 1) {{ }} return 0; }}")
+        .unwrap();
 
     let result = visualize_c_ast(temp.path(), false);
     assert!(result.is_ok());
@@ -311,11 +286,8 @@ fn test_ast_for_loop_no_colors() {
 #[test]
 fn test_ast_for_loop_with_colors() {
     let mut temp = NamedTempFile::new().unwrap();
-    writeln!(
-        temp,
-        "int main() {{ int i; for (i = 0; i < 10; i = i + 1) {{ }} return 0; }}"
-    )
-    .unwrap();
+    writeln!(temp, "int main() {{ int i; for (i = 0; i < 10; i = i + 1) {{ }} return 0; }}")
+        .unwrap();
 
     let result = visualize_c_ast(temp.path(), true);
     assert!(result.is_ok());
@@ -349,11 +321,8 @@ fn test_ast_binary_expression_with_colors() {
 #[test]
 fn test_ast_function_call_expression_no_colors() {
     let mut temp = NamedTempFile::new().unwrap();
-    writeln!(
-        temp,
-        "int helper(int x) {{ return x; }}\nint main() {{ return helper(42); }}"
-    )
-    .unwrap();
+    writeln!(temp, "int helper(int x) {{ return x; }}\nint main() {{ return helper(42); }}")
+        .unwrap();
 
     let result = visualize_c_ast(temp.path(), false);
     assert!(result.is_ok());
@@ -365,11 +334,8 @@ fn test_ast_function_call_expression_no_colors() {
 #[test]
 fn test_ast_function_call_expression_with_colors() {
     let mut temp = NamedTempFile::new().unwrap();
-    writeln!(
-        temp,
-        "int helper(int x) {{ return x; }}\nint main() {{ return helper(42); }}"
-    )
-    .unwrap();
+    writeln!(temp, "int helper(int x) {{ return x; }}\nint main() {{ return helper(42); }}")
+        .unwrap();
 
     let result = visualize_c_ast(temp.path(), true);
     assert!(result.is_ok());

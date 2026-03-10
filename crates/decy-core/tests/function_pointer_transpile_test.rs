@@ -18,14 +18,8 @@ fn test_transpile_simple_function_pointer_declaration() {
 
     // Should generate: let callback: fn(i32, i32) -> i32;
     // Or: static mut callback: Option<fn(i32, i32) -> i32> = None;
-    assert!(
-        rust_code.contains("callback"),
-        "Should include callback variable"
-    );
-    assert!(
-        rust_code.contains("fn(i32, i32) -> i32"),
-        "Should generate Rust fn type"
-    );
+    assert!(rust_code.contains("callback"), "Should include callback variable");
+    assert!(rust_code.contains("fn(i32, i32) -> i32"), "Should generate Rust fn type");
 }
 
 #[test]
@@ -35,14 +29,8 @@ fn test_transpile_function_pointer_void_return() {
     let rust_code = transpile(c_code).expect("Transpilation should succeed");
 
     // Should generate: fn(i32) (no return type for void)
-    assert!(
-        rust_code.contains("handler"),
-        "Should include handler variable"
-    );
-    assert!(
-        rust_code.contains("fn(i32)"),
-        "Should generate fn type with no return"
-    );
+    assert!(rust_code.contains("handler"), "Should include handler variable");
+    assert!(rust_code.contains("fn(i32)"), "Should generate fn type with no return");
 }
 
 #[test]
@@ -52,10 +40,7 @@ fn test_transpile_function_pointer_no_params() {
     let rust_code = transpile(c_code).expect("Transpilation should succeed");
 
     assert!(rust_code.contains("get_value"));
-    assert!(
-        rust_code.contains("fn() -> i32"),
-        "Should generate fn() -> i32"
-    );
+    assert!(rust_code.contains("fn() -> i32"), "Should generate fn() -> i32");
 }
 
 #[test]

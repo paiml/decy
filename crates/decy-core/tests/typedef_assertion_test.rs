@@ -27,10 +27,7 @@ int main() {
         rust_code.contains("const _") || rust_code.contains("assert!"),
         "Should generate const assertion"
     );
-    assert!(
-        rust_code.contains("size_of") || rust_code.contains("i32"),
-        "Should check type size"
-    );
+    assert!(rust_code.contains("size_of") || rust_code.contains("i32"), "Should check type size");
 }
 
 #[test]
@@ -98,10 +95,7 @@ int main() {
     // Should generate multiple assertions
     let assertion_count =
         rust_code.matches("const _").count() + rust_code.matches("assert!").count();
-    assert!(
-        assertion_count >= 3,
-        "Should have 3 compile-time assertions"
-    );
+    assert!(assertion_count >= 3, "Should have 3 compile-time assertions");
 }
 
 #[test]
@@ -171,10 +165,7 @@ int main() {
     let rust_code = transpile(c_code).expect("Transpilation should succeed");
 
     // Should have regular typedef
-    assert!(
-        rust_code.contains("byte") || rust_code.contains("u8"),
-        "Should contain byte typedef"
-    );
+    assert!(rust_code.contains("byte") || rust_code.contains("u8"), "Should contain byte typedef");
 }
 
 #[test]

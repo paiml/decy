@@ -43,10 +43,8 @@ fn rule_based_with_low_weights() {
     };
     let classifier = RuleBasedClassifier::with_weights(weights);
 
-    let features = OwnershipFeaturesBuilder::default()
-        .const_qualified(true)
-        .pointer_depth(1)
-        .build();
+    let features =
+        OwnershipFeaturesBuilder::default().const_qualified(true).pointer_depth(1).build();
 
     let pred = classifier.classify(&features);
     assert!(matches!(pred.prediction, InferredOwnership::Borrowed));
@@ -204,9 +202,7 @@ fn rule_based_array_decay_size_const_fallthrough_is_slice() {
 fn rule_based_no_matching_rule_returns_raw_pointer() {
     let classifier = RuleBasedClassifier::new();
     // No allocation, not const, no writes, no array_decay, no size_param
-    let features = OwnershipFeaturesBuilder::default()
-        .pointer_depth(2)
-        .build();
+    let features = OwnershipFeaturesBuilder::default().pointer_depth(2).build();
 
     let pred = classifier.classify(&features);
     assert!(matches!(pred.prediction, InferredOwnership::RawPointer));
@@ -290,17 +286,15 @@ fn metrics_recall_only_fn_returns_zero() {
 
 #[test]
 fn evaluator_evaluate_with_mismatch() {
-    let samples = vec![
-        TrainingSample::new(
-            OwnershipFeaturesBuilder::default()
-                .allocation_site(AllocationKind::Malloc)
-                .deallocation_count(1)
-                .build(),
-            InferredOwnership::Borrowed, // Mismatch: features say Owned, label says Borrowed
-            "test.c",
-            1,
-        ),
-    ];
+    let samples = vec![TrainingSample::new(
+        OwnershipFeaturesBuilder::default()
+            .allocation_site(AllocationKind::Malloc)
+            .deallocation_count(1)
+            .build(),
+        InferredOwnership::Borrowed, // Mismatch: features say Owned, label says Borrowed
+        "test.c",
+        1,
+    )];
 
     let evaluator = ClassifierEvaluator::new(samples);
     let classifier = RuleBasedClassifier::new();
@@ -460,10 +454,8 @@ fn ensemble_classify_borrowed_features() {
     let mut ensemble = EnsembleClassifier::new("borrowed_ensemble");
     ensemble.add_classifier(RuleBasedClassifier::new(), 1.0);
 
-    let features = OwnershipFeaturesBuilder::default()
-        .const_qualified(true)
-        .pointer_depth(1)
-        .build();
+    let features =
+        OwnershipFeaturesBuilder::default().const_qualified(true).pointer_depth(1).build();
 
     let pred = ensemble.classify(&features);
     assert!(matches!(pred.prediction, InferredOwnership::Borrowed));
@@ -538,9 +530,7 @@ fn ensemble_classify_raw_pointer_features() {
     let mut ensemble = EnsembleClassifier::new("raw_ptr_ensemble");
     ensemble.add_classifier(RuleBasedClassifier::new(), 1.0);
 
-    let features = OwnershipFeaturesBuilder::default()
-        .pointer_depth(2)
-        .build();
+    let features = OwnershipFeaturesBuilder::default().pointer_depth(2).build();
 
     let pred = ensemble.classify(&features);
     assert!(matches!(pred.prediction, InferredOwnership::RawPointer));
@@ -584,10 +574,7 @@ fn prediction_with_multiple_alternatives() {
     assert_eq!(pred.alternatives.len(), 2);
     assert!(matches!(pred.alternatives[0].0, InferredOwnership::Borrowed));
     assert!((pred.alternatives[0].1 - 0.2).abs() < 0.001);
-    assert!(matches!(
-        pred.alternatives[1].0,
-        InferredOwnership::RawPointer
-    ));
+    assert!(matches!(pred.alternatives[1].0, InferredOwnership::RawPointer));
 }
 
 #[test]
@@ -652,35 +639,17 @@ fn batch_classify_various_patterns() {
             .allocation_site(AllocationKind::Malloc)
             .deallocation_count(1)
             .build(),
-        OwnershipFeaturesBuilder::default()
-            .const_qualified(true)
-            .build(),
-        OwnershipFeaturesBuilder::default()
-            .write_count(3)
-            .build(),
-        OwnershipFeaturesBuilder::default()
-            .pointer_depth(2)
-            .build(),
+        OwnershipFeaturesBuilder::default().const_qualified(true).build(),
+        OwnershipFeaturesBuilder::default().write_count(3).build(),
+        OwnershipFeaturesBuilder::default().pointer_depth(2).build(),
     ];
 
     let predictions = classifier.classify_batch(&features);
     assert_eq!(predictions.len(), 4);
-    assert!(matches!(
-        predictions[0].prediction,
-        InferredOwnership::Owned
-    ));
-    assert!(matches!(
-        predictions[1].prediction,
-        InferredOwnership::Borrowed
-    ));
-    assert!(matches!(
-        predictions[2].prediction,
-        InferredOwnership::BorrowedMut
-    ));
-    assert!(matches!(
-        predictions[3].prediction,
-        InferredOwnership::RawPointer
-    ));
+    assert!(matches!(predictions[0].prediction, InferredOwnership::Owned));
+    assert!(matches!(predictions[1].prediction, InferredOwnership::Borrowed));
+    assert!(matches!(predictions[2].prediction, InferredOwnership::BorrowedMut));
+    assert!(matches!(predictions[3].prediction, InferredOwnership::RawPointer));
 }
 
 // ============================================================================
@@ -777,17 +746,13 @@ fn evaluator_mixed_results_accuracy() {
             1,
         ),
         TrainingSample::new(
-            OwnershipFeaturesBuilder::default()
-                .const_qualified(true)
-                .build(),
+            OwnershipFeaturesBuilder::default().const_qualified(true).build(),
             InferredOwnership::Owned, // Mismatch: classifier says Borrowed
             "test.c",
             2,
         ),
         TrainingSample::new(
-            OwnershipFeaturesBuilder::default()
-                .write_count(5)
-                .build(),
+            OwnershipFeaturesBuilder::default().write_count(5).build(),
             InferredOwnership::BorrowedMut, // Correct
             "test.c",
             3,

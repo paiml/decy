@@ -103,19 +103,14 @@ impl DatasetExporter {
     /// Create a new exporter with bootstrap patterns
     pub fn new() -> Self {
         let bootstrap_patterns = get_bootstrap_patterns();
-        let examples = bootstrap_patterns
-            .iter()
-            .map(TrainingExample::from_bootstrap)
-            .collect();
+        let examples = bootstrap_patterns.iter().map(TrainingExample::from_bootstrap).collect();
 
         Self { examples }
     }
 
     /// Create an empty exporter
     pub fn empty() -> Self {
-        Self {
-            examples: Vec::new(),
-        }
+        Self { examples: Vec::new() }
     }
 
     /// Add a training example
@@ -152,11 +147,7 @@ impl DatasetExporter {
         }
 
         std::fs::write(path, &output).map_err(|e| {
-            OracleError::ExportError(format!(
-                "Failed to write JSONL to {}: {}",
-                path.display(),
-                e
-            ))
+            OracleError::ExportError(format!("Failed to write JSONL to {}: {}", path.display(), e))
         })?;
 
         Ok(self.examples.len())
@@ -196,11 +187,7 @@ impl DatasetExporter {
         }
 
         std::fs::write(path, &output).map_err(|e| {
-            OracleError::ExportError(format!(
-                "Failed to write ChatML to {}: {}",
-                path.display(),
-                e
-            ))
+            OracleError::ExportError(format!("Failed to write ChatML to {}: {}", path.display(), e))
         })?;
 
         Ok(self.examples.len())
@@ -241,11 +228,7 @@ impl DatasetExporter {
         }
 
         std::fs::write(path, &output).map_err(|e| {
-            OracleError::ExportError(format!(
-                "Failed to write Alpaca to {}: {}",
-                path.display(),
-                e
-            ))
+            OracleError::ExportError(format!("Failed to write Alpaca to {}: {}", path.display(), e))
         })?;
 
         Ok(self.examples.len())
@@ -263,42 +246,20 @@ impl DatasetExporter {
         let path = path.as_ref();
 
         // Build Arrow arrays from examples
-        let error_codes: StringArray = self
-            .examples
-            .iter()
-            .map(|e| Some(e.error_code.as_str()))
-            .collect();
-        let decisions: StringArray = self
-            .examples
-            .iter()
-            .map(|e| Some(e.decision.as_str()))
-            .collect();
-        let fix_diffs: StringArray = self
-            .examples
-            .iter()
-            .map(|e| Some(e.fix_diff.as_str()))
-            .collect();
-        let descriptions: StringArray = self
-            .examples
-            .iter()
-            .map(|e| Some(e.description.as_str()))
-            .collect();
-        let sources: StringArray = self
-            .examples
-            .iter()
-            .map(|e| Some(e.source.as_str()))
-            .collect();
+        let error_codes: StringArray =
+            self.examples.iter().map(|e| Some(e.error_code.as_str())).collect();
+        let decisions: StringArray =
+            self.examples.iter().map(|e| Some(e.decision.as_str())).collect();
+        let fix_diffs: StringArray =
+            self.examples.iter().map(|e| Some(e.fix_diff.as_str())).collect();
+        let descriptions: StringArray =
+            self.examples.iter().map(|e| Some(e.description.as_str())).collect();
+        let sources: StringArray = self.examples.iter().map(|e| Some(e.source.as_str())).collect();
         let verified: BooleanArray = self.examples.iter().map(|e| Some(e.verified)).collect();
-        let success_counts: UInt32Array = self
-            .examples
-            .iter()
-            .map(|e| Some(e.success_count))
-            .collect();
-        let failure_counts: UInt32Array = self
-            .examples
-            .iter()
-            .map(|e| Some(e.failure_count))
-            .collect();
+        let success_counts: UInt32Array =
+            self.examples.iter().map(|e| Some(e.success_count)).collect();
+        let failure_counts: UInt32Array =
+            self.examples.iter().map(|e| Some(e.failure_count)).collect();
 
         // Create schema
         let schema = Arc::new(Schema::new(vec![
@@ -404,11 +365,7 @@ impl DatasetStats {
         s.push_str(&format!("- **Verified**: {}\n", self.verified));
         s.push_str(&format!(
             "- **Verification rate**: {:.1}%\n\n",
-            if self.total > 0 {
-                (self.verified as f64 / self.total as f64) * 100.0
-            } else {
-                0.0
-            }
+            if self.total > 0 { (self.verified as f64 / self.total as f64) * 100.0 } else { 0.0 }
         ));
 
         s.push_str("### By Error Code\n\n");

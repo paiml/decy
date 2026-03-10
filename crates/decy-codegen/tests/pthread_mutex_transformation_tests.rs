@@ -252,10 +252,7 @@ fn test_lock_analyzer_identifies_multiple_protected_variables() {
     );
 
     // sum_lock protects sum
-    assert!(
-        mapping.is_protected_by("sum", "sum_lock"),
-        "Expected sum to be protected by sum_lock"
-    );
+    assert!(mapping.is_protected_by("sum", "sum_lock"), "Expected sum to be protected by sum_lock");
 
     // Cross-check: count NOT protected by sum_lock
     assert!(
@@ -320,10 +317,7 @@ fn test_lock_discipline_detects_unmatched_lock() {
     let analyzer = LockAnalyzer::new();
     let violations = analyzer.check_lock_discipline(&func);
 
-    assert!(
-        !violations.is_empty(),
-        "Expected lock discipline violation for unmatched lock"
-    );
+    assert!(!violations.is_empty(), "Expected lock discipline violation for unmatched lock");
     assert!(
         violations[0].contains("Unmatched lock"),
         "Expected 'Unmatched lock' message, got: {}",
@@ -350,10 +344,7 @@ fn test_lock_discipline_detects_unlock_without_lock() {
     let analyzer = LockAnalyzer::new();
     let violations = analyzer.check_lock_discipline(&func);
 
-    assert!(
-        !violations.is_empty(),
-        "Expected lock discipline violation for unlock without lock"
-    );
+    assert!(!violations.is_empty(), "Expected lock discipline violation for unlock without lock");
     assert!(
         violations[0].contains("Unlock without lock"),
         "Expected 'Unlock without lock' message, got: {}",
@@ -390,14 +381,8 @@ fn test_single_lock_protects_multiple_variables() {
     let mapping = analyzer.analyze_lock_data_mapping(&func);
 
     // Both x and y should be protected by point_lock
-    assert!(
-        mapping.is_protected_by("x", "point_lock"),
-        "Expected x to be protected by point_lock"
-    );
-    assert!(
-        mapping.is_protected_by("y", "point_lock"),
-        "Expected y to be protected by point_lock"
-    );
+    assert!(mapping.is_protected_by("x", "point_lock"), "Expected x to be protected by point_lock");
+    assert!(mapping.is_protected_by("y", "point_lock"), "Expected y to be protected by point_lock");
 
     // Verify we can get all protected data
     let protected = mapping.get_protected_data("point_lock");

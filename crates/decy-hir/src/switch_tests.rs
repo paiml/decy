@@ -19,11 +19,7 @@ fn test_create_switch_statement() {
     };
 
     match switch_stmt {
-        HirStatement::Switch {
-            condition,
-            cases,
-            default_case,
-        } => {
+        HirStatement::Switch { condition, cases, default_case } => {
             assert!(matches!(condition, HirExpression::Variable(_)));
             assert_eq!(cases.len(), 1);
             assert!(default_case.is_some());
@@ -47,9 +43,7 @@ fn test_switch_with_multiple_cases() {
                 body: vec![HirStatement::Return(Some(HirExpression::IntLiteral(2)))],
             },
         ],
-        default_case: Some(vec![HirStatement::Return(Some(HirExpression::IntLiteral(
-            0,
-        )))]),
+        default_case: Some(vec![HirStatement::Return(Some(HirExpression::IntLiteral(0)))]),
     };
 
     match switch_stmt {
@@ -114,10 +108,8 @@ fn test_switch_case_with_multiple_statements() {
 #[test]
 fn test_switch_case_structure() {
     // Test SwitchCase structure directly
-    let case = SwitchCase {
-        value: Some(HirExpression::IntLiteral(42)),
-        body: vec![HirStatement::Break],
-    };
+    let case =
+        SwitchCase { value: Some(HirExpression::IntLiteral(42)), body: vec![HirStatement::Break] };
 
     assert!(case.value.is_some());
     assert_eq!(case.body.len(), 1);
@@ -126,10 +118,7 @@ fn test_switch_case_structure() {
 #[test]
 fn test_switch_default_case_structure() {
     // Default case has no value
-    let default = SwitchCase {
-        value: None,
-        body: vec![HirStatement::Break],
-    };
+    let default = SwitchCase { value: None, body: vec![HirStatement::Break] };
 
     assert!(default.value.is_none());
 }

@@ -121,7 +121,11 @@ int ht_oa_test(void) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(result.is_ok(), "C1026: Open addressing linear probing should transpile: {:?}", result.err());
+    assert!(
+        result.is_ok(),
+        "C1026: Open addressing linear probing should transpile: {:?}",
+        result.err()
+    );
 }
 
 /// C1027: Separate chaining with array-based buckets

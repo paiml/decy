@@ -64,16 +64,10 @@ fn demo_for_loop_array() -> Result<(), Box<dyn std::error::Error>> {
     // Count unsafe blocks
     let unsafe_count = rust_code.matches("unsafe").count();
     let lines = rust_code.lines().count();
-    let unsafe_per_1000 = if lines > 0 {
-        (unsafe_count as f64 / lines as f64) * 1000.0
-    } else {
-        0.0
-    };
+    let unsafe_per_1000 =
+        if lines > 0 { (unsafe_count as f64 / lines as f64) * 1000.0 } else { 0.0 };
 
-    println!(
-        "\n✓ Unsafe blocks: {} ({:.1} per 1000 LOC)",
-        unsafe_count, unsafe_per_1000
-    );
+    println!("\n✓ Unsafe blocks: {} ({:.1} per 1000 LOC)", unsafe_count, unsafe_per_1000);
     println!("✓ Array bounds are respected");
     println!("✓ No buffer overflows possible\n");
 
@@ -108,16 +102,10 @@ fn demo_while_loop_array() -> Result<(), Box<dyn std::error::Error>> {
 
     let unsafe_count = rust_code.matches("unsafe").count();
     let lines = rust_code.lines().count();
-    let unsafe_per_1000 = if lines > 0 {
-        (unsafe_count as f64 / lines as f64) * 1000.0
-    } else {
-        0.0
-    };
+    let unsafe_per_1000 =
+        if lines > 0 { (unsafe_count as f64 / lines as f64) * 1000.0 } else { 0.0 };
 
-    println!(
-        "\n✓ Unsafe blocks: {} ({:.1} per 1000 LOC)",
-        unsafe_count, unsafe_per_1000
-    );
+    println!("\n✓ Unsafe blocks: {} ({:.1} per 1000 LOC)", unsafe_count, unsafe_per_1000);
     println!("✓ Loop counter managed safely");
     println!("✓ Bounds checking enforced\n");
 
@@ -156,16 +144,10 @@ fn demo_nested_loops_2d() -> Result<(), Box<dyn std::error::Error>> {
 
     let unsafe_count = rust_code.matches("unsafe").count();
     let lines = rust_code.lines().count();
-    let unsafe_per_1000 = if lines > 0 {
-        (unsafe_count as f64 / lines as f64) * 1000.0
-    } else {
-        0.0
-    };
+    let unsafe_per_1000 =
+        if lines > 0 { (unsafe_count as f64 / lines as f64) * 1000.0 } else { 0.0 };
 
-    println!(
-        "\n✓ Unsafe blocks: {} ({:.1} per 1000 LOC)",
-        unsafe_count, unsafe_per_1000
-    );
+    println!("\n✓ Unsafe blocks: {} ({:.1} per 1000 LOC)", unsafe_count, unsafe_per_1000);
     println!("✓ 2D array indexing safe");
     println!("✓ Nested loops handled correctly\n");
 
@@ -198,16 +180,10 @@ fn demo_array_copy() -> Result<(), Box<dyn std::error::Error>> {
 
     let unsafe_count = rust_code.matches("unsafe").count();
     let lines = rust_code.lines().count();
-    let unsafe_per_1000 = if lines > 0 {
-        (unsafe_count as f64 / lines as f64) * 1000.0
-    } else {
-        0.0
-    };
+    let unsafe_per_1000 =
+        if lines > 0 { (unsafe_count as f64 / lines as f64) * 1000.0 } else { 0.0 };
 
-    println!(
-        "\n✓ Unsafe blocks: {} ({:.1} per 1000 LOC)",
-        unsafe_count, unsafe_per_1000
-    );
+    println!("\n✓ Unsafe blocks: {} ({:.1} per 1000 LOC)", unsafe_count, unsafe_per_1000);
     println!("✓ Array copy is memory safe");
     println!("✓ No buffer overflow possible\n");
 
@@ -241,16 +217,10 @@ fn demo_array_reverse() -> Result<(), Box<dyn std::error::Error>> {
 
     let unsafe_count = rust_code.matches("unsafe").count();
     let lines = rust_code.lines().count();
-    let unsafe_per_1000 = if lines > 0 {
-        (unsafe_count as f64 / lines as f64) * 1000.0
-    } else {
-        0.0
-    };
+    let unsafe_per_1000 =
+        if lines > 0 { (unsafe_count as f64 / lines as f64) * 1000.0 } else { 0.0 };
 
-    println!(
-        "\n✓ Unsafe blocks: {} ({:.1} per 1000 LOC)",
-        unsafe_count, unsafe_per_1000
-    );
+    println!("\n✓ Unsafe blocks: {} ({:.1} per 1000 LOC)", unsafe_count, unsafe_per_1000);
     println!("✓ In-place swap is safe");
     println!("✓ Index calculations validated\n");
 
@@ -285,16 +255,10 @@ fn demo_array_max_find() -> Result<(), Box<dyn std::error::Error>> {
 
     let unsafe_count = rust_code.matches("unsafe").count();
     let lines = rust_code.lines().count();
-    let unsafe_per_1000 = if lines > 0 {
-        (unsafe_count as f64 / lines as f64) * 1000.0
-    } else {
-        0.0
-    };
+    let unsafe_per_1000 =
+        if lines > 0 { (unsafe_count as f64 / lines as f64) * 1000.0 } else { 0.0 };
 
-    println!(
-        "\n✓ Unsafe blocks: {} ({:.1} per 1000 LOC)",
-        unsafe_count, unsafe_per_1000
-    );
+    println!("\n✓ Unsafe blocks: {} ({:.1} per 1000 LOC)", unsafe_count, unsafe_per_1000);
     println!("✓ Loop iteration is safe");
     println!("✓ Comparison operations validated\n");
 

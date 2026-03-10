@@ -22,9 +22,7 @@ use tempfile::NamedTempFile;
 /// Helper to transpile C code and return the generated Rust
 fn transpile_c(c_code: &str) -> String {
     let mut temp_file = NamedTempFile::new().expect("Failed to create temp file");
-    temp_file
-        .write_all(c_code.as_bytes())
-        .expect("Failed to write C code");
+    temp_file.write_all(c_code.as_bytes()).expect("Failed to write C code");
 
     let output = Command::new("cargo")
         .args(["run", "-p", "decy", "--quiet", "--", "transpile"])
@@ -38,9 +36,7 @@ fn transpile_c(c_code: &str) -> String {
 /// Helper to check if generated Rust compiles
 fn compiles(rust_code: &str) -> Result<(), String> {
     let mut temp_file = NamedTempFile::with_suffix(".rs").expect("Failed to create temp file");
-    temp_file
-        .write_all(rust_code.as_bytes())
-        .expect("Failed to write Rust code");
+    temp_file.write_all(rust_code.as_bytes()).expect("Failed to write Rust code");
 
     let output = Command::new("rustc")
         .args([
@@ -140,9 +136,8 @@ fn test_buffer_ops_compiles() {
 
     match compiles(&rust_code) {
         Ok(()) => {}
-        Err(e) => panic!(
-            "DECY-150: buffer_ops.c should compile.\nCode:\n{}\nErrors:\n{}",
-            rust_code, e
-        ),
+        Err(e) => {
+            panic!("DECY-150: buffer_ops.c should compile.\nCode:\n{}\nErrors:\n{}", rust_code, e)
+        }
     }
 }

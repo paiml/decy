@@ -475,12 +475,8 @@ fn quality_metrics_default() {
 #[test]
 fn model_entry_creation() {
     let metrics = ModelQualityMetrics::new(0.90, 0.85, 0.85, 0.85, 0.80, 0.20, 1000);
-    let entry = ModelEntry::new(
-        ModelVersion::new(1, 0, 0),
-        metrics,
-        "Test version",
-        "/models/test.bin",
-    );
+    let entry =
+        ModelEntry::new(ModelVersion::new(1, 0, 0), metrics, "Test version", "/models/test.bin");
 
     assert_eq!(entry.version, ModelVersion::new(1, 0, 0));
     assert_eq!(entry.description, "Test version");

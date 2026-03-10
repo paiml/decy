@@ -97,11 +97,7 @@ fn test_fclose_to_drop_or_raii() {
     );
     // Should NOT have raw fclose() call in body
     let body_only = code.split('{').nth(1).unwrap_or("");
-    assert!(
-        !body_only.contains("fclose("),
-        "Should not have fclose() call in body:\n{}",
-        code
-    );
+    assert!(!body_only.contains("fclose("), "Should not have fclose() call in body:\n{}", code);
 }
 
 /// Test fgetc(f) → file read byte.
@@ -186,9 +182,5 @@ fn test_printf_to_print_macro() {
     let code = codegen.generate_function(&func);
 
     // Should use print! macro
-    assert!(
-        code.contains("print!"),
-        "Expected print! macro in:\n{}",
-        code
-    );
+    assert!(code.contains("print!"), "Expected print! macro in:\n{}", code);
 }

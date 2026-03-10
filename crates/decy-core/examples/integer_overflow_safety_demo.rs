@@ -44,16 +44,10 @@ fn demo_addition_overflow() -> Result<(), Box<dyn std::error::Error>> {
 
     let unsafe_count = rust_code.matches("unsafe").count();
     let lines = rust_code.lines().count();
-    let unsafe_per_1000 = if lines > 0 {
-        (unsafe_count as f64 / lines as f64) * 1000.0
-    } else {
-        0.0
-    };
+    let unsafe_per_1000 =
+        if lines > 0 { (unsafe_count as f64 / lines as f64) * 1000.0 } else { 0.0 };
 
-    println!(
-        "\n✓ Unsafe blocks: {} ({:.1} per 1000 LOC)",
-        unsafe_count, unsafe_per_1000
-    );
+    println!("\n✓ Unsafe blocks: {} ({:.1} per 1000 LOC)", unsafe_count, unsafe_per_1000);
     println!("✓ Rust defaults to panic on overflow in debug mode");
     println!("✓ Wrapping semantics explicit with wrapping_add()\n");
 
@@ -83,16 +77,10 @@ fn demo_multiplication_overflow() -> Result<(), Box<dyn std::error::Error>> {
 
     let unsafe_count = rust_code.matches("unsafe").count();
     let lines = rust_code.lines().count();
-    let unsafe_per_1000 = if lines > 0 {
-        (unsafe_count as f64 / lines as f64) * 1000.0
-    } else {
-        0.0
-    };
+    let unsafe_per_1000 =
+        if lines > 0 { (unsafe_count as f64 / lines as f64) * 1000.0 } else { 0.0 };
 
-    println!(
-        "\n✓ Unsafe blocks: {} ({:.1} per 1000 LOC)",
-        unsafe_count, unsafe_per_1000
-    );
+    println!("\n✓ Unsafe blocks: {} ({:.1} per 1000 LOC)", unsafe_count, unsafe_per_1000);
     println!("✓ Overflow detected in debug builds");
     println!("✓ checked_mul() available for explicit handling\n");
 
@@ -128,16 +116,10 @@ fn demo_division_by_zero() -> Result<(), Box<dyn std::error::Error>> {
 
     let unsafe_count = rust_code.matches("unsafe").count();
     let lines = rust_code.lines().count();
-    let unsafe_per_1000 = if lines > 0 {
-        (unsafe_count as f64 / lines as f64) * 1000.0
-    } else {
-        0.0
-    };
+    let unsafe_per_1000 =
+        if lines > 0 { (unsafe_count as f64 / lines as f64) * 1000.0 } else { 0.0 };
 
-    println!(
-        "\n✓ Unsafe blocks: {} ({:.1} per 1000 LOC)",
-        unsafe_count, unsafe_per_1000
-    );
+    println!("\n✓ Unsafe blocks: {} ({:.1} per 1000 LOC)", unsafe_count, unsafe_per_1000);
     println!("✓ Division by zero causes panic (not UB)");
     println!("✓ Explicit check prevents panic\n");
 

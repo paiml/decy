@@ -178,9 +178,7 @@ impl TraceCollector {
         let mut total_confidence = 0.0;
 
         for entry in &self.entries {
-            *decisions_by_stage
-                .entry(entry.stage.to_string())
-                .or_insert(0u64) += 1;
+            *decisions_by_stage.entry(entry.stage.to_string()).or_insert(0u64) += 1;
             total_confidence += entry.confidence;
         }
 
@@ -308,10 +306,7 @@ mod tests {
         let summary = collector.summary();
         assert_eq!(summary.total_decisions, 2);
         assert!((summary.avg_confidence - 0.9).abs() < 0.001);
-        assert_eq!(
-            summary.decisions_by_stage.get("ownership_inference"),
-            Some(&2)
-        );
+        assert_eq!(summary.decisions_by_stage.get("ownership_inference"), Some(&2));
     }
 
     // ============================================================================
@@ -322,39 +317,18 @@ mod tests {
     fn test_pipeline_stage_display_all_variants() {
         assert_eq!(format!("{}", PipelineStage::Parsing), "parsing");
         assert_eq!(format!("{}", PipelineStage::HirConversion), "hir_conversion");
-        assert_eq!(
-            format!("{}", PipelineStage::OwnershipInference),
-            "ownership_inference"
-        );
-        assert_eq!(
-            format!("{}", PipelineStage::LifetimeAnalysis),
-            "lifetime_analysis"
-        );
-        assert_eq!(
-            format!("{}", PipelineStage::CodeGeneration),
-            "code_generation"
-        );
+        assert_eq!(format!("{}", PipelineStage::OwnershipInference), "ownership_inference");
+        assert_eq!(format!("{}", PipelineStage::LifetimeAnalysis), "lifetime_analysis");
+        assert_eq!(format!("{}", PipelineStage::CodeGeneration), "code_generation");
     }
 
     #[test]
     fn test_decision_type_display_all_variants() {
-        assert_eq!(
-            format!("{}", DecisionType::PointerClassification),
-            "pointer_classification"
-        );
+        assert_eq!(format!("{}", DecisionType::PointerClassification), "pointer_classification");
         assert_eq!(format!("{}", DecisionType::TypeMapping), "type_mapping");
-        assert_eq!(
-            format!("{}", DecisionType::SafetyTransformation),
-            "safety_transformation"
-        );
-        assert_eq!(
-            format!("{}", DecisionType::LifetimeAnnotation),
-            "lifetime_annotation"
-        );
-        assert_eq!(
-            format!("{}", DecisionType::PatternDetection),
-            "pattern_detection"
-        );
+        assert_eq!(format!("{}", DecisionType::SafetyTransformation), "safety_transformation");
+        assert_eq!(format!("{}", DecisionType::LifetimeAnnotation), "lifetime_annotation");
+        assert_eq!(format!("{}", DecisionType::PatternDetection), "pattern_detection");
         assert_eq!(
             format!("{}", DecisionType::SignatureTransformation),
             "signature_transformation"
@@ -456,10 +430,7 @@ mod tests {
         assert_eq!(summary.decisions_by_stage.get("hir_conversion"), Some(&1));
         assert_eq!(summary.decisions_by_stage.get("lifetime_analysis"), Some(&1));
         assert_eq!(summary.decisions_by_stage.get("code_generation"), Some(&1));
-        assert_eq!(
-            summary.decisions_by_stage.get("ownership_inference"),
-            Some(&1)
-        );
+        assert_eq!(summary.decisions_by_stage.get("ownership_inference"), Some(&1));
 
         let json = collector.to_json();
         assert!(json.contains("parsing"));

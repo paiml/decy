@@ -101,14 +101,8 @@ uint16_t ipv4_payload_length(const ipv4_header_t *hdr) {
     );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C326: Output should not be empty");
-    assert!(
-        code.contains("fn ipv4_checksum"),
-        "C326: Should contain ipv4_checksum function"
-    );
-    assert!(
-        code.contains("fn ipv4_init_header"),
-        "C326: Should contain ipv4_init_header function"
-    );
+    assert!(code.contains("fn ipv4_checksum"), "C326: Should contain ipv4_checksum function");
+    assert!(code.contains("fn ipv4_init_header"), "C326: Should contain ipv4_init_header function");
     assert!(
         code.contains("fn ipv4_validate_header"),
         "C326: Should contain ipv4_validate_header function"
@@ -237,18 +231,12 @@ int tcp_is_established(const tcp_connection_t *conn) {
     );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C327: Output should not be empty");
-    assert!(
-        code.contains("fn tcp_init"),
-        "C327: Should contain tcp_init function"
-    );
+    assert!(code.contains("fn tcp_init"), "C327: Should contain tcp_init function");
     assert!(
         code.contains("fn tcp_handle_segment"),
         "C327: Should contain tcp_handle_segment function"
     );
-    assert!(
-        code.contains("fn tcp_close"),
-        "C327: Should contain tcp_close function"
-    );
+    assert!(code.contains("fn tcp_close"), "C327: Should contain tcp_close function");
 }
 
 #[test]
@@ -335,21 +323,14 @@ int http_is_http11(const http_request_line_t *req) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C328: HTTP request line parser should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C328: HTTP request line parser should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C328: Output should not be empty");
     assert!(
         code.contains("fn http_parse_request_line"),
         "C328: Should contain http_parse_request_line function"
     );
-    assert!(
-        code.contains("fn http_is_get"),
-        "C328: Should contain http_is_get function"
-    );
+    assert!(code.contains("fn http_is_get"), "C328: Should contain http_is_get function");
 }
 
 #[test]
@@ -443,18 +424,9 @@ int dns_get_length(const dns_query_t *q) {
     );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C329: Output should not be empty");
-    assert!(
-        code.contains("fn dns_query_init"),
-        "C329: Should contain dns_query_init function"
-    );
-    assert!(
-        code.contains("fn dns_encode_name"),
-        "C329: Should contain dns_encode_name function"
-    );
-    assert!(
-        code.contains("fn dns_add_question"),
-        "C329: Should contain dns_add_question function"
-    );
+    assert!(code.contains("fn dns_query_init"), "C329: Should contain dns_query_init function");
+    assert!(code.contains("fn dns_encode_name"), "C329: Should contain dns_encode_name function");
+    assert!(code.contains("fn dns_add_question"), "C329: Should contain dns_add_question function");
 }
 
 #[test]
@@ -574,22 +546,10 @@ uint32_t arp_hit_rate(const arp_table_t *t) {
     );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C330: Output should not be empty");
-    assert!(
-        code.contains("fn arp_init"),
-        "C330: Should contain arp_init function"
-    );
-    assert!(
-        code.contains("fn arp_lookup"),
-        "C330: Should contain arp_lookup function"
-    );
-    assert!(
-        code.contains("fn arp_insert"),
-        "C330: Should contain arp_insert function"
-    );
-    assert!(
-        code.contains("fn arp_expire"),
-        "C330: Should contain arp_expire function"
-    );
+    assert!(code.contains("fn arp_init"), "C330: Should contain arp_init function");
+    assert!(code.contains("fn arp_lookup"), "C330: Should contain arp_lookup function");
+    assert!(code.contains("fn arp_insert"), "C330: Should contain arp_insert function");
+    assert!(code.contains("fn arp_expire"), "C330: Should contain arp_expire function");
 }
 
 // ============================================================================
@@ -691,10 +651,7 @@ int dhcp_get_message_type(const dhcp_options_t *opts) {
         code.contains("fn dhcp_parse_options"),
         "C331: Should contain dhcp_parse_options function"
     );
-    assert!(
-        code.contains("fn dhcp_find_option"),
-        "C331: Should contain dhcp_find_option function"
-    );
+    assert!(code.contains("fn dhcp_find_option"), "C331: Should contain dhcp_find_option function");
     assert!(
         code.contains("fn dhcp_get_message_type"),
         "C331: Should contain dhcp_get_message_type function"
@@ -780,18 +737,9 @@ int url_needs_encoding(const char *input, int len) {
     );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C332: Output should not be empty");
-    assert!(
-        code.contains("fn url_encode"),
-        "C332: Should contain url_encode function"
-    );
-    assert!(
-        code.contains("fn url_decode"),
-        "C332: Should contain url_decode function"
-    );
-    assert!(
-        code.contains("fn hex_digit_value"),
-        "C332: Should contain hex_digit_value function"
-    );
+    assert!(code.contains("fn url_encode"), "C332: Should contain url_encode function");
+    assert!(code.contains("fn url_decode"), "C332: Should contain url_decode function");
+    assert!(code.contains("fn hex_digit_value"), "C332: Should contain hex_digit_value function");
 }
 
 #[test]
@@ -868,17 +816,10 @@ int ws_frame_total_len(const ws_frame_header_t *frame) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C333: WebSocket frame parser should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C333: WebSocket frame parser should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C333: Output should not be empty");
-    assert!(
-        code.contains("fn ws_parse_frame"),
-        "C333: Should contain ws_parse_frame function"
-    );
+    assert!(code.contains("fn ws_parse_frame"), "C333: Should contain ws_parse_frame function");
     assert!(
         code.contains("fn ws_unmask_payload"),
         "C333: Should contain ws_unmask_payload function"
@@ -976,10 +917,7 @@ uint32_t icmp_loss_percent(const icmp_ping_ctx_t *ctx) {
     );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C334: Output should not be empty");
-    assert!(
-        code.contains("fn icmp_ping_init"),
-        "C334: Should contain icmp_ping_init function"
-    );
+    assert!(code.contains("fn icmp_ping_init"), "C334: Should contain icmp_ping_init function");
     assert!(
         code.contains("fn icmp_build_echo_request"),
         "C334: Should contain icmp_build_echo_request function"
@@ -1097,18 +1035,9 @@ int rt_active_count(const routing_table_t *rt) {
     );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C335: Output should not be empty");
-    assert!(
-        code.contains("fn rt_init"),
-        "C335: Should contain rt_init function"
-    );
-    assert!(
-        code.contains("fn rt_lookup"),
-        "C335: Should contain rt_lookup function"
-    );
-    assert!(
-        code.contains("fn rt_add_route"),
-        "C335: Should contain rt_add_route function"
-    );
+    assert!(code.contains("fn rt_init"), "C335: Should contain rt_init function");
+    assert!(code.contains("fn rt_lookup"), "C335: Should contain rt_lookup function");
+    assert!(code.contains("fn rt_add_route"), "C335: Should contain rt_add_route function");
     assert!(
         code.contains("fn rt_prefix_to_mask"),
         "C335: Should contain rt_prefix_to_mask function"
@@ -1203,21 +1132,11 @@ int tls_get_records_parsed(const tls_parser_ctx_t *ctx) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C336: TLS record layer parser should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C336: TLS record layer parser should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C336: Output should not be empty");
-    assert!(
-        code.contains("fn tls_parser_init"),
-        "C336: Should contain tls_parser_init function"
-    );
-    assert!(
-        code.contains("fn tls_parse_record"),
-        "C336: Should contain tls_parse_record function"
-    );
+    assert!(code.contains("fn tls_parser_init"), "C336: Should contain tls_parser_init function");
+    assert!(code.contains("fn tls_parse_record"), "C336: Should contain tls_parse_record function");
     assert!(
         code.contains("fn tls_process_record"),
         "C336: Should contain tls_process_record function"
@@ -1296,10 +1215,7 @@ int mqtt_count_levels(const char *topic, int len) {
     );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C337: Output should not be empty");
-    assert!(
-        code.contains("fn mqtt_topic_match"),
-        "C337: Should contain mqtt_topic_match function"
-    );
+    assert!(code.contains("fn mqtt_topic_match"), "C337: Should contain mqtt_topic_match function");
     assert!(
         code.contains("fn mqtt_validate_filter"),
         "C337: Should contain mqtt_validate_filter function"
@@ -1388,18 +1304,9 @@ int grpc_encode_length_prefix(uint8_t *buf, int max_len,
     );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C338: Output should not be empty");
-    assert!(
-        code.contains("fn varint_encode"),
-        "C338: Should contain varint_encode function"
-    );
-    assert!(
-        code.contains("fn varint_decode"),
-        "C338: Should contain varint_decode function"
-    );
-    assert!(
-        code.contains("fn zigzag_encode"),
-        "C338: Should contain zigzag_encode function"
-    );
+    assert!(code.contains("fn varint_encode"), "C338: Should contain varint_encode function");
+    assert!(code.contains("fn varint_decode"), "C338: Should contain varint_decode function");
+    assert!(code.contains("fn zigzag_encode"), "C338: Should contain zigzag_encode function");
 }
 
 #[test]
@@ -1491,18 +1398,9 @@ int eth_header_len(const eth_frame_t *f) {
     );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C339: Output should not be empty");
-    assert!(
-        code.contains("fn eth_init"),
-        "C339: Should contain eth_init function"
-    );
-    assert!(
-        code.contains("fn eth_build_header"),
-        "C339: Should contain eth_build_header function"
-    );
-    assert!(
-        code.contains("fn eth_set_vlan"),
-        "C339: Should contain eth_set_vlan function"
-    );
+    assert!(code.contains("fn eth_init"), "C339: Should contain eth_init function");
+    assert!(code.contains("fn eth_build_header"), "C339: Should contain eth_build_header function");
+    assert!(code.contains("fn eth_set_vlan"), "C339: Should contain eth_set_vlan function");
 }
 
 #[test]
@@ -1613,17 +1511,10 @@ int nat_active_count(const nat_table_t *nat) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C340: NAT translation table should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C340: NAT translation table should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C340: Output should not be empty");
-    assert!(
-        code.contains("fn nat_init"),
-        "C340: Should contain nat_init function"
-    );
+    assert!(code.contains("fn nat_init"), "C340: Should contain nat_init function");
     assert!(
         code.contains("fn nat_find_outbound"),
         "C340: Should contain nat_find_outbound function"
@@ -1632,10 +1523,7 @@ int nat_active_count(const nat_table_t *nat) {
         code.contains("fn nat_create_mapping"),
         "C340: Should contain nat_create_mapping function"
     );
-    assert!(
-        code.contains("fn nat_expire"),
-        "C340: Should contain nat_expire function"
-    );
+    assert!(code.contains("fn nat_expire"), "C340: Should contain nat_expire function");
 }
 
 // ============================================================================
@@ -1716,10 +1604,7 @@ int quic_varint_size(uint64_t value) {
         code.contains("fn quic_varint_decode"),
         "C341: Should contain quic_varint_decode function"
     );
-    assert!(
-        code.contains("fn quic_varint_size"),
-        "C341: Should contain quic_varint_size function"
-    );
+    assert!(code.contains("fn quic_varint_size"), "C341: Should contain quic_varint_size function");
 }
 
 #[test]
@@ -1812,25 +1697,12 @@ int bgp_get_origin(const bgp_update_t *u) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C342: BGP path attribute parser should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C342: BGP path attribute parser should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C342: Output should not be empty");
-    assert!(
-        code.contains("fn bgp_parse_attrs"),
-        "C342: Should contain bgp_parse_attrs function"
-    );
-    assert!(
-        code.contains("fn bgp_find_attr"),
-        "C342: Should contain bgp_find_attr function"
-    );
-    assert!(
-        code.contains("fn bgp_get_next_hop"),
-        "C342: Should contain bgp_get_next_hop function"
-    );
+    assert!(code.contains("fn bgp_parse_attrs"), "C342: Should contain bgp_parse_attrs function");
+    assert!(code.contains("fn bgp_find_attr"), "C342: Should contain bgp_find_attr function");
+    assert!(code.contains("fn bgp_get_next_hop"), "C342: Should contain bgp_get_next_hop function");
 }
 
 #[test]
@@ -1924,25 +1796,12 @@ int oid_is_prefix(const snmp_oid_t *prefix, const snmp_oid_t *oid) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C343: SNMP OID encoding BER should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C343: SNMP OID encoding BER should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C343: Output should not be empty");
-    assert!(
-        code.contains("fn oid_encode_ber"),
-        "C343: Should contain oid_encode_ber function"
-    );
-    assert!(
-        code.contains("fn oid_decode_ber"),
-        "C343: Should contain oid_decode_ber function"
-    );
-    assert!(
-        code.contains("fn oid_compare"),
-        "C343: Should contain oid_compare function"
-    );
+    assert!(code.contains("fn oid_encode_ber"), "C343: Should contain oid_encode_ber function");
+    assert!(code.contains("fn oid_decode_ber"), "C343: Should contain oid_decode_ber function");
+    assert!(code.contains("fn oid_compare"), "C343: Should contain oid_compare function");
 }
 
 #[test]
@@ -2065,22 +1924,10 @@ int ct_active_count(const ct_table_t *ct) {
     );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C344: Output should not be empty");
-    assert!(
-        code.contains("fn ct_hash"),
-        "C344: Should contain ct_hash function"
-    );
-    assert!(
-        code.contains("fn ct_init"),
-        "C344: Should contain ct_init function"
-    );
-    assert!(
-        code.contains("fn ct_lookup"),
-        "C344: Should contain ct_lookup function"
-    );
-    assert!(
-        code.contains("fn ct_insert"),
-        "C344: Should contain ct_insert function"
-    );
+    assert!(code.contains("fn ct_hash"), "C344: Should contain ct_hash function");
+    assert!(code.contains("fn ct_init"), "C344: Should contain ct_init function");
+    assert!(code.contains("fn ct_lookup"), "C344: Should contain ct_lookup function");
+    assert!(code.contains("fn ct_insert"), "C344: Should contain ct_insert function");
 }
 
 #[test]
@@ -2203,18 +2050,9 @@ int chunked_get_chunk_count(const chunked_parser_t *p) {
     );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C345: Output should not be empty");
-    assert!(
-        code.contains("fn chunked_init"),
-        "C345: Should contain chunked_init function"
-    );
-    assert!(
-        code.contains("fn chunked_parse"),
-        "C345: Should contain chunked_parse function"
-    );
-    assert!(
-        code.contains("fn chunked_is_done"),
-        "C345: Should contain chunked_is_done function"
-    );
+    assert!(code.contains("fn chunked_init"), "C345: Should contain chunked_init function");
+    assert!(code.contains("fn chunked_parse"), "C345: Should contain chunked_parse function");
+    assert!(code.contains("fn chunked_is_done"), "C345: Should contain chunked_is_done function");
 }
 
 // ============================================================================
@@ -2338,18 +2176,12 @@ int radius_attr_count(const radius_packet_t *pkt) {
     );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C346: Output should not be empty");
-    assert!(
-        code.contains("fn radius_init"),
-        "C346: Should contain radius_init function"
-    );
+    assert!(code.contains("fn radius_init"), "C346: Should contain radius_init function");
     assert!(
         code.contains("fn radius_add_string_attr"),
         "C346: Should contain radius_add_string_attr function"
     );
-    assert!(
-        code.contains("fn radius_encode"),
-        "C346: Should contain radius_encode function"
-    );
+    assert!(code.contains("fn radius_encode"), "C346: Should contain radius_encode function");
 }
 
 #[test]
@@ -2449,25 +2281,15 @@ int sip_header_count(const sip_message_t *msg) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C347: SIP message parser should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C347: SIP message parser should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C347: Output should not be empty");
-    assert!(
-        code.contains("fn sip_init"),
-        "C347: Should contain sip_init function"
-    );
+    assert!(code.contains("fn sip_init"), "C347: Should contain sip_init function");
     assert!(
         code.contains("fn sip_parse_request_line"),
         "C347: Should contain sip_parse_request_line function"
     );
-    assert!(
-        code.contains("fn sip_find_header"),
-        "C347: Should contain sip_find_header function"
-    );
+    assert!(code.contains("fn sip_find_header"), "C347: Should contain sip_find_header function");
 }
 
 #[test]
@@ -2575,25 +2397,12 @@ int stun_is_response(const stun_message_t *msg) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C348: STUN message builder should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C348: STUN message builder should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C348: Output should not be empty");
-    assert!(
-        code.contains("fn stun_init"),
-        "C348: Should contain stun_init function"
-    );
-    assert!(
-        code.contains("fn stun_encode"),
-        "C348: Should contain stun_encode function"
-    );
-    assert!(
-        code.contains("fn stun_find_attr"),
-        "C348: Should contain stun_find_attr function"
-    );
+    assert!(code.contains("fn stun_init"), "C348: Should contain stun_init function");
+    assert!(code.contains("fn stun_encode"), "C348: Should contain stun_encode function");
+    assert!(code.contains("fn stun_find_attr"), "C348: Should contain stun_find_attr function");
 }
 
 #[test]
@@ -2713,10 +2522,7 @@ int mdns_record_count(const mdns_response_t *resp) {
     );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C349: Output should not be empty");
-    assert!(
-        code.contains("fn mdns_init"),
-        "C349: Should contain mdns_init function"
-    );
+    assert!(code.contains("fn mdns_init"), "C349: Should contain mdns_init function");
     assert!(
         code.contains("fn mdns_add_a_record"),
         "C349: Should contain mdns_add_a_record function"
@@ -2861,20 +2667,8 @@ int nf_top_talker(const nf_collector_t *c) {
     );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C350: Output should not be empty");
-    assert!(
-        code.contains("fn nf_init"),
-        "C350: Should contain nf_init function"
-    );
-    assert!(
-        code.contains("fn nf_add_record"),
-        "C350: Should contain nf_add_record function"
-    );
-    assert!(
-        code.contains("fn nf_find_flow"),
-        "C350: Should contain nf_find_flow function"
-    );
-    assert!(
-        code.contains("fn nf_top_talker"),
-        "C350: Should contain nf_top_talker function"
-    );
+    assert!(code.contains("fn nf_init"), "C350: Should contain nf_init function");
+    assert!(code.contains("fn nf_add_record"), "C350: Should contain nf_add_record function");
+    assert!(code.contains("fn nf_find_flow"), "C350: Should contain nf_find_flow function");
+    assert!(code.contains("fn nf_top_talker"), "C350: Should contain nf_top_talker function");
 }

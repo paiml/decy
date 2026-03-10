@@ -5,8 +5,7 @@
 
 use super::*;
 use decy_hir::{
-    BinaryOperator, HirExpression, HirFunction, HirParameter, HirStatement, HirType,
-    UnaryOperator,
+    BinaryOperator, HirExpression, HirFunction, HirParameter, HirStatement, HirType, UnaryOperator,
 };
 
 // ============================================================================
@@ -17,7 +16,11 @@ fn make_func_with_body(stmts: Vec<HirStatement>) -> HirFunction {
     HirFunction::new_with_body("test_func".to_string(), HirType::Void, vec![], stmts)
 }
 
-fn make_func_returning(ret: HirType, params: Vec<HirParameter>, stmts: Vec<HirStatement>) -> HirFunction {
+fn make_func_returning(
+    ret: HirType,
+    params: Vec<HirParameter>,
+    stmts: Vec<HirStatement>,
+) -> HirFunction {
     HirFunction::new_with_body("test_func".to_string(), ret, params, stmts)
 }
 
@@ -31,9 +34,7 @@ fn test_float_literal_target_float_adds_f32_suffix() {
     let func = make_func_returning(
         HirType::Float,
         vec![],
-        vec![HirStatement::Return(Some(HirExpression::FloatLiteral(
-            "1.5".to_string(),
-        )))],
+        vec![HirStatement::Return(Some(HirExpression::FloatLiteral("1.5".to_string())))],
     );
     let code = codegen.generate_function(&func);
     assert!(code.contains("1.5f32"), "Expected f32 suffix, got: {}", code);
@@ -45,9 +46,7 @@ fn test_float_literal_target_double_adds_f64_suffix() {
     let func = make_func_returning(
         HirType::Double,
         vec![],
-        vec![HirStatement::Return(Some(HirExpression::FloatLiteral(
-            "2.71828".to_string(),
-        )))],
+        vec![HirStatement::Return(Some(HirExpression::FloatLiteral("2.71828".to_string())))],
     );
     let code = codegen.generate_function(&func);
     assert!(code.contains("2.71828f64"), "Expected f64 suffix, got: {}", code);
@@ -59,9 +58,7 @@ fn test_float_literal_c_suffix_f_stripped() {
     let func = make_func_returning(
         HirType::Float,
         vec![],
-        vec![HirStatement::Return(Some(HirExpression::FloatLiteral(
-            "3.14f".to_string(),
-        )))],
+        vec![HirStatement::Return(Some(HirExpression::FloatLiteral("3.14f".to_string())))],
     );
     let code = codegen.generate_function(&func);
     assert!(code.contains("3.14f32"), "Expected stripped C suffix and f32, got: {}", code);
@@ -74,9 +71,7 @@ fn test_float_literal_c_suffix_l_stripped() {
     let func = make_func_returning(
         HirType::Double,
         vec![],
-        vec![HirStatement::Return(Some(HirExpression::FloatLiteral(
-            "1.0L".to_string(),
-        )))],
+        vec![HirStatement::Return(Some(HirExpression::FloatLiteral("1.0L".to_string())))],
     );
     let code = codegen.generate_function(&func);
     assert!(code.contains("1.0f64"), "Expected stripped L suffix, got: {}", code);
@@ -104,7 +99,11 @@ fn test_float_literal_no_target_integer_like() {
     }]);
     let code = codegen.generate_function(&func);
     // Integer-like float literal without dot or exponent should get .0f64
-    assert!(code.contains("100.0f64") || code.contains("100f64"), "Expected .0f64 suffix, got: {}", code);
+    assert!(
+        code.contains("100.0f64") || code.contains("100f64"),
+        "Expected .0f64 suffix, got: {}",
+        code
+    );
 }
 
 // ============================================================================
@@ -245,9 +244,9 @@ fn test_address_of_with_pointer_target() {
         HirStatement::VariableDeclaration {
             name: "p".to_string(),
             var_type: HirType::Pointer(Box::new(HirType::Int)),
-            initializer: Some(HirExpression::AddressOf(Box::new(
-                HirExpression::Variable("x".to_string()),
-            ))),
+            initializer: Some(HirExpression::AddressOf(Box::new(HirExpression::Variable(
+                "x".to_string(),
+            )))),
         },
     ]);
     let code = codegen.generate_function(&func);
@@ -273,7 +272,11 @@ fn test_unary_address_of_with_pointer_target() {
         },
     ]);
     let code = codegen.generate_function(&func);
-    assert!(code.contains("&mut x as *mut i32"), "Expected UnaryOp AddressOf with pointer target, got: {}", code);
+    assert!(
+        code.contains("&mut x as *mut i32"),
+        "Expected UnaryOp AddressOf with pointer target, got: {}",
+        code
+    );
 }
 
 #[test]
@@ -285,14 +288,18 @@ fn test_address_of_dereference_wraps_in_parens() {
         vec![HirStatement::VariableDeclaration {
             name: "q".to_string(),
             var_type: HirType::Int,
-            initializer: Some(HirExpression::AddressOf(Box::new(
-                HirExpression::Dereference(Box::new(HirExpression::Variable("p".to_string()))),
-            ))),
+            initializer: Some(HirExpression::AddressOf(Box::new(HirExpression::Dereference(
+                Box::new(HirExpression::Variable("p".to_string())),
+            )))),
         }],
     );
     let code = codegen.generate_function(&func);
     // AddressOf of Dereference should produce &(...)
-    assert!(code.contains("&(") || code.contains("&mut"), "Expected wrapped address-of, got: {}", code);
+    assert!(
+        code.contains("&(") || code.contains("&mut"),
+        "Expected wrapped address-of, got: {}",
+        code
+    );
 }
 
 // ============================================================================
@@ -335,26 +342,31 @@ fn test_logical_not_int_expr_with_int_target() {
     );
     let code = codegen.generate_function(&func);
     // LogicalNot of int variable with Int target: (x == 0) as i32
-    assert!(code.contains("== 0") && code.contains("as i32"),
-        "Expected (x == 0) as i32 pattern, got: {}", code);
+    assert!(
+        code.contains("== 0") && code.contains("as i32"),
+        "Expected (x == 0) as i32 pattern, got: {}",
+        code
+    );
 }
 
 #[test]
 fn test_logical_not_bool_expr_no_target() {
     let codegen = CodeGenerator::new();
-    let func = make_func_with_body(vec![HirStatement::VariableDeclaration {
-        name: "res".to_string(),
-        var_type: HirType::Int,
-        initializer: None,
-    },
-    HirStatement::Expression(HirExpression::UnaryOp {
-        op: UnaryOperator::LogicalNot,
-        operand: Box::new(HirExpression::BinaryOp {
-            op: BinaryOperator::Equal,
-            left: Box::new(HirExpression::IntLiteral(1)),
-            right: Box::new(HirExpression::IntLiteral(1)),
+    let func = make_func_with_body(vec![
+        HirStatement::VariableDeclaration {
+            name: "res".to_string(),
+            var_type: HirType::Int,
+            initializer: None,
+        },
+        HirStatement::Expression(HirExpression::UnaryOp {
+            op: UnaryOperator::LogicalNot,
+            operand: Box::new(HirExpression::BinaryOp {
+                op: BinaryOperator::Equal,
+                left: Box::new(HirExpression::IntLiteral(1)),
+                right: Box::new(HirExpression::IntLiteral(1)),
+            }),
         }),
-    })]);
+    ]);
     let code = codegen.generate_function(&func);
     // Without int target, should just be logical not, no i32 cast
     assert!(code.contains("!"), "Expected logical not, got: {}", code);
@@ -363,12 +375,10 @@ fn test_logical_not_bool_expr_no_target() {
 #[test]
 fn test_logical_not_int_expr_no_target() {
     let codegen = CodeGenerator::new();
-    let func = make_func_with_body(vec![
-        HirStatement::Expression(HirExpression::UnaryOp {
-            op: UnaryOperator::LogicalNot,
-            operand: Box::new(HirExpression::IntLiteral(42)),
-        }),
-    ]);
+    let func = make_func_with_body(vec![HirStatement::Expression(HirExpression::UnaryOp {
+        op: UnaryOperator::LogicalNot,
+        operand: Box::new(HirExpression::IntLiteral(42)),
+    })]);
     let code = codegen.generate_function(&func);
     // Without int target, !int_expr becomes (int == 0) without cast
     assert!(code.contains("== 0"), "Expected == 0 check, got: {}", code);
@@ -417,7 +427,11 @@ fn test_variable_mutable_ref_slice_to_pointer_uses_as_mut_ptr() {
         vec![HirStatement::Return(Some(HirExpression::Variable("s".to_string())))],
     );
     let code = codegen.generate_function(&func);
-    assert!(code.contains("as_mut_ptr"), "Expected as_mut_ptr for mutable slice to pointer, got: {}", code);
+    assert!(
+        code.contains("as_mut_ptr"),
+        "Expected as_mut_ptr for mutable slice to pointer, got: {}",
+        code
+    );
 }
 
 #[test]
@@ -435,7 +449,11 @@ fn test_variable_immutable_ref_slice_to_pointer_uses_as_ptr() {
         vec![HirStatement::Return(Some(HirExpression::Variable("s".to_string())))],
     );
     let code = codegen.generate_function(&func);
-    assert!(code.contains("as_ptr"), "Expected as_ptr for immutable slice to pointer, got: {}", code);
+    assert!(
+        code.contains("as_ptr"),
+        "Expected as_ptr for immutable slice to pointer, got: {}",
+        code
+    );
 }
 
 #[test]
@@ -445,10 +463,7 @@ fn test_variable_mutable_ref_to_pointer_cast() {
         HirType::Pointer(Box::new(HirType::Int)),
         vec![HirParameter::new(
             "r".to_string(),
-            HirType::Reference {
-                inner: Box::new(HirType::Int),
-                mutable: true,
-            },
+            HirType::Reference { inner: Box::new(HirType::Int), mutable: true },
         )],
         vec![HirStatement::Return(Some(HirExpression::Variable("r".to_string())))],
     );
@@ -463,15 +478,16 @@ fn test_variable_immutable_ref_to_pointer_double_cast() {
         HirType::Pointer(Box::new(HirType::Int)),
         vec![HirParameter::new(
             "r".to_string(),
-            HirType::Reference {
-                inner: Box::new(HirType::Int),
-                mutable: false,
-            },
+            HirType::Reference { inner: Box::new(HirType::Int), mutable: false },
         )],
         vec![HirStatement::Return(Some(HirExpression::Variable("r".to_string())))],
     );
     let code = codegen.generate_function(&func);
-    assert!(code.contains("as *const _ as *mut _"), "Expected double cast for immutable ref to ptr, got: {}", code);
+    assert!(
+        code.contains("as *const _ as *mut _"),
+        "Expected double cast for immutable ref to ptr, got: {}",
+        code
+    );
 }
 
 #[test]
@@ -493,10 +509,7 @@ fn test_variable_array_to_pointer_uses_as_mut_ptr() {
         HirType::Pointer(Box::new(HirType::Int)),
         vec![HirParameter::new(
             "a".to_string(),
-            HirType::Array {
-                element_type: Box::new(HirType::Int),
-                size: Some(10),
-            },
+            HirType::Array { element_type: Box::new(HirType::Int), size: Some(10) },
         )],
         vec![HirStatement::Return(Some(HirExpression::Variable("a".to_string())))],
     );
@@ -511,10 +524,7 @@ fn test_variable_array_to_void_pointer() {
         HirType::Pointer(Box::new(HirType::Void)),
         vec![HirParameter::new(
             "a".to_string(),
-            HirType::Array {
-                element_type: Box::new(HirType::Int),
-                size: Some(10),
-            },
+            HirType::Array { element_type: Box::new(HirType::Int), size: Some(10) },
         )],
         vec![HirStatement::Return(Some(HirExpression::Variable("a".to_string())))],
     );
@@ -527,10 +537,7 @@ fn test_variable_pointer_to_pointer_direct_return() {
     let codegen = CodeGenerator::new();
     let func = make_func_returning(
         HirType::Pointer(Box::new(HirType::Int)),
-        vec![HirParameter::new(
-            "p".to_string(),
-            HirType::Pointer(Box::new(HirType::Int)),
-        )],
+        vec![HirParameter::new("p".to_string(), HirType::Pointer(Box::new(HirType::Int)))],
         vec![HirStatement::Return(Some(HirExpression::Variable("p".to_string())))],
     );
     let code = codegen.generate_function(&func);
@@ -793,10 +800,7 @@ fn test_pointer_equal_zero_generates_comparison() {
     let codegen = CodeGenerator::new();
     let func = make_func_returning(
         HirType::Int,
-        vec![HirParameter::new(
-            "p".to_string(),
-            HirType::Pointer(Box::new(HirType::Int)),
-        )],
+        vec![HirParameter::new("p".to_string(), HirType::Pointer(Box::new(HirType::Int)))],
         vec![HirStatement::Return(Some(HirExpression::BinaryOp {
             op: BinaryOperator::Equal,
             left: Box::new(HirExpression::Variable("p".to_string())),
@@ -805,8 +809,11 @@ fn test_pointer_equal_zero_generates_comparison() {
     );
     let code = codegen.generate_function(&func);
     // After borrow generator transforms pointer to ref, the == 0 comparison still gets cast to i32
-    assert!(code.contains("== 0") || code.contains("null_mut"),
-        "Expected comparison with zero, got: {}", code);
+    assert!(
+        code.contains("== 0") || code.contains("null_mut"),
+        "Expected comparison with zero, got: {}",
+        code
+    );
 }
 
 #[test]
@@ -814,10 +821,7 @@ fn test_zero_not_equal_pointer_reversed() {
     let codegen = CodeGenerator::new();
     let func = make_func_returning(
         HirType::Int,
-        vec![HirParameter::new(
-            "p".to_string(),
-            HirType::Pointer(Box::new(HirType::Int)),
-        )],
+        vec![HirParameter::new("p".to_string(), HirType::Pointer(Box::new(HirType::Int)))],
         vec![HirStatement::Return(Some(HirExpression::BinaryOp {
             op: BinaryOperator::NotEqual,
             left: Box::new(HirExpression::IntLiteral(0)),
@@ -825,8 +829,11 @@ fn test_zero_not_equal_pointer_reversed() {
         }))],
     );
     let code = codegen.generate_function(&func);
-    assert!(code.contains("!= ") || code.contains("null_mut"),
-        "Expected not-equal comparison, got: {}", code);
+    assert!(
+        code.contains("!= ") || code.contains("null_mut"),
+        "Expected not-equal comparison, got: {}",
+        code
+    );
 }
 
 // ============================================================================
@@ -1008,7 +1015,11 @@ fn test_comparison_with_int_target_casts_to_i32() {
         }],
     );
     let code = codegen.generate_function(&func);
-    assert!(code.contains("as i32"), "Expected i32 cast for comparison assigned to int, got: {}", code);
+    assert!(
+        code.contains("as i32"),
+        "Expected i32 cast for comparison assigned to int, got: {}",
+        code
+    );
 }
 
 // ============================================================================
@@ -1262,16 +1273,17 @@ fn test_cast_address_of_to_int_uses_ptr_chain() {
             },
             HirStatement::Return(Some(HirExpression::Cast {
                 target_type: HirType::Int,
-                expr: Box::new(HirExpression::AddressOf(Box::new(
-                    HirExpression::Variable("x".to_string()),
-                ))),
+                expr: Box::new(HirExpression::AddressOf(Box::new(HirExpression::Variable(
+                    "x".to_string(),
+                )))),
             })),
         ],
     );
     let code = codegen.generate_function(&func);
     assert!(
         code.contains("as *const _ as isize as i32"),
-        "Expected pointer-to-int chain cast, got: {}", code
+        "Expected pointer-to-int chain cast, got: {}",
+        code
     );
 }
 
@@ -1292,8 +1304,11 @@ fn test_cast_binary_op_wraps_in_parens() {
     );
     let code = codegen.generate_function(&func);
     // Binary op inside cast should be wrapped in parens
-    assert!(code.contains("(1 + 2) as i32") || code.contains(") as i32"),
-        "Expected parens around binary op in cast, got: {}", code);
+    assert!(
+        code.contains("(1 + 2) as i32") || code.contains(") as i32"),
+        "Expected parens around binary op in cast, got: {}",
+        code
+    );
 }
 
 // ============================================================================
@@ -1313,7 +1328,11 @@ fn test_ternary_with_non_boolean_condition_adds_check() {
         }))],
     );
     let code = codegen.generate_function(&func);
-    assert!(code.contains("if") && code.contains("else"), "Expected if/else for ternary, got: {}", code);
+    assert!(
+        code.contains("if") && code.contains("else"),
+        "Expected if/else for ternary, got: {}",
+        code
+    );
 }
 
 // ============================================================================
@@ -1403,14 +1422,16 @@ fn test_malloc_with_vec_target_multiply_pattern() {
             arguments: vec![HirExpression::BinaryOp {
                 op: BinaryOperator::Multiply,
                 left: Box::new(HirExpression::IntLiteral(10)),
-                right: Box::new(HirExpression::Sizeof {
-                    type_name: "int".to_string(),
-                }),
+                right: Box::new(HirExpression::Sizeof { type_name: "int".to_string() }),
             }],
         }),
     }]);
     let code = codegen.generate_function(&func);
-    assert!(code.contains("vec!") || code.contains("Vec"), "Expected vec for malloc with Vec target, got: {}", code);
+    assert!(
+        code.contains("vec!") || code.contains("Vec"),
+        "Expected vec for malloc with Vec target, got: {}",
+        code
+    );
 }
 
 #[test]
@@ -1428,8 +1449,11 @@ fn test_malloc_with_pointer_char_target() {
     }]);
     let code = codegen.generate_function(&func);
     // After borrow gen, the malloc call results in Vec allocation
-    assert!(code.contains("Vec") || code.contains("vec!") || code.contains("with_capacity"),
-        "Expected Vec allocation for malloc, got: {}", code);
+    assert!(
+        code.contains("Vec") || code.contains("vec!") || code.contains("with_capacity"),
+        "Expected Vec allocation for malloc, got: {}",
+        code
+    );
 }
 
 // ============================================================================
@@ -1446,14 +1470,16 @@ fn test_calloc_with_vec_target() {
             function: "calloc".to_string(),
             arguments: vec![
                 HirExpression::IntLiteral(10),
-                HirExpression::Sizeof {
-                    type_name: "int".to_string(),
-                },
+                HirExpression::Sizeof { type_name: "int".to_string() },
             ],
         }),
     }]);
     let code = codegen.generate_function(&func);
-    assert!(code.contains("vec![0i32"), "Expected vec![0i32; ...] for calloc with Vec, got: {}", code);
+    assert!(
+        code.contains("vec![0i32"),
+        "Expected vec![0i32; ...] for calloc with Vec, got: {}",
+        code
+    );
 }
 
 #[test]
@@ -1467,15 +1493,16 @@ fn test_calloc_with_pointer_target() {
             function: "calloc".to_string(),
             arguments: vec![
                 HirExpression::IntLiteral(10),
-                HirExpression::Sizeof {
-                    type_name: "int".to_string(),
-                },
+                HirExpression::Sizeof { type_name: "int".to_string() },
             ],
         }),
     }]);
     let code = codegen.generate_function(&func);
-    assert!(code.contains("vec!") || code.contains("Vec"),
-        "Expected Vec allocation for calloc after borrow gen, got: {}", code);
+    assert!(
+        code.contains("vec!") || code.contains("Vec"),
+        "Expected Vec allocation for calloc after borrow gen, got: {}",
+        code
+    );
 }
 
 // ============================================================================
@@ -1504,8 +1531,11 @@ fn test_realloc_function_call_with_pointer_target() {
         },
     ]);
     let code = codegen.generate_function(&func);
-    assert!(code.contains("realloc") && code.contains("as *mut"),
-        "Expected realloc with pointer cast, got: {}", code);
+    assert!(
+        code.contains("realloc") && code.contains("as *mut"),
+        "Expected realloc with pointer cast, got: {}",
+        code
+    );
 }
 
 // ============================================================================
@@ -1532,15 +1562,9 @@ fn test_compound_literal_array_with_size() {
     let codegen = CodeGenerator::new();
     let func = make_func_with_body(vec![HirStatement::VariableDeclaration {
         name: "arr".to_string(),
-        var_type: HirType::Array {
-            element_type: Box::new(HirType::Int),
-            size: Some(3),
-        },
+        var_type: HirType::Array { element_type: Box::new(HirType::Int), size: Some(3) },
         initializer: Some(HirExpression::CompoundLiteral {
-            literal_type: HirType::Array {
-                element_type: Box::new(HirType::Int),
-                size: Some(3),
-            },
+            literal_type: HirType::Array { element_type: Box::new(HirType::Int), size: Some(3) },
             initializers: vec![
                 HirExpression::IntLiteral(1),
                 HirExpression::IntLiteral(2),
@@ -1557,15 +1581,9 @@ fn test_compound_literal_array_single_initializer_repeats() {
     let codegen = CodeGenerator::new();
     let func = make_func_with_body(vec![HirStatement::VariableDeclaration {
         name: "arr".to_string(),
-        var_type: HirType::Array {
-            element_type: Box::new(HirType::Int),
-            size: Some(10),
-        },
+        var_type: HirType::Array { element_type: Box::new(HirType::Int), size: Some(10) },
         initializer: Some(HirExpression::CompoundLiteral {
-            literal_type: HirType::Array {
-                element_type: Box::new(HirType::Int),
-                size: Some(10),
-            },
+            literal_type: HirType::Array { element_type: Box::new(HirType::Int), size: Some(10) },
             initializers: vec![HirExpression::IntLiteral(0)],
         }),
     }]);
@@ -1578,15 +1596,9 @@ fn test_compound_literal_empty_array_with_size_uses_default() {
     let codegen = CodeGenerator::new();
     let func = make_func_with_body(vec![HirStatement::VariableDeclaration {
         name: "arr".to_string(),
-        var_type: HirType::Array {
-            element_type: Box::new(HirType::Int),
-            size: Some(5),
-        },
+        var_type: HirType::Array { element_type: Box::new(HirType::Int), size: Some(5) },
         initializer: Some(HirExpression::CompoundLiteral {
-            literal_type: HirType::Array {
-                element_type: Box::new(HirType::Int),
-                size: Some(5),
-            },
+            literal_type: HirType::Array { element_type: Box::new(HirType::Int), size: Some(5) },
             initializers: vec![],
         }),
     }]);
@@ -1610,7 +1622,11 @@ fn test_variable_named_type_gets_escaped() {
         HirStatement::Expression(HirExpression::Variable("type".to_string())),
     ]);
     let code = codegen.generate_function(&func);
-    assert!(code.contains("r#type") || code.contains("type_"), "Expected escaped keyword, got: {}", code);
+    assert!(
+        code.contains("r#type") || code.contains("type_"),
+        "Expected escaped keyword, got: {}",
+        code
+    );
 }
 
 // ============================================================================
@@ -1625,10 +1641,7 @@ fn test_pointer_add_generates_addition() {
     let codegen = CodeGenerator::new();
     let func = make_func_returning(
         HirType::Pointer(Box::new(HirType::Int)),
-        vec![HirParameter::new(
-            "p".to_string(),
-            HirType::Pointer(Box::new(HirType::Int)),
-        )],
+        vec![HirParameter::new("p".to_string(), HirType::Pointer(Box::new(HirType::Int)))],
         vec![HirStatement::Return(Some(HirExpression::BinaryOp {
             op: BinaryOperator::Add,
             left: Box::new(HirExpression::Variable("p".to_string())),
@@ -1637,8 +1650,11 @@ fn test_pointer_add_generates_addition() {
     );
     let code = codegen.generate_function(&func);
     // After borrow gen, p is a reference, so the add path uses + operator
-    assert!(code.contains("p") && code.contains("1"),
-        "Expected pointer add expression, got: {}", code);
+    assert!(
+        code.contains("p") && code.contains("1"),
+        "Expected pointer add expression, got: {}",
+        code
+    );
 }
 
 #[test]
@@ -1646,10 +1662,7 @@ fn test_pointer_subtract_int_generates_subtraction() {
     let codegen = CodeGenerator::new();
     let func = make_func_returning(
         HirType::Pointer(Box::new(HirType::Int)),
-        vec![HirParameter::new(
-            "p".to_string(),
-            HirType::Pointer(Box::new(HirType::Int)),
-        )],
+        vec![HirParameter::new("p".to_string(), HirType::Pointer(Box::new(HirType::Int)))],
         vec![HirStatement::Return(Some(HirExpression::BinaryOp {
             op: BinaryOperator::Subtract,
             left: Box::new(HirExpression::Variable("p".to_string())),
@@ -1657,8 +1670,11 @@ fn test_pointer_subtract_int_generates_subtraction() {
         }))],
     );
     let code = codegen.generate_function(&func);
-    assert!(code.contains("p") && code.contains("1"),
-        "Expected pointer subtract expression, got: {}", code);
+    assert!(
+        code.contains("p") && code.contains("1"),
+        "Expected pointer subtract expression, got: {}",
+        code
+    );
 }
 
 #[test]
@@ -1677,8 +1693,11 @@ fn test_pointer_subtract_pointer_generates_subtraction() {
         }))],
     );
     let code = codegen.generate_function(&func);
-    assert!(code.contains("p") && code.contains("q"),
-        "Expected pointer difference expression, got: {}", code);
+    assert!(
+        code.contains("p") && code.contains("q"),
+        "Expected pointer difference expression, got: {}",
+        code
+    );
 }
 
 // ============================================================================
@@ -1730,7 +1749,11 @@ fn test_signed_unsigned_comparison_casts_to_i64() {
         }))],
     );
     let code = codegen.generate_function(&func);
-    assert!(code.contains("as i64"), "Expected i64 cast for signed/unsigned comparison, got: {}", code);
+    assert!(
+        code.contains("as i64"),
+        "Expected i64 cast for signed/unsigned comparison, got: {}",
+        code
+    );
 }
 
 // ============================================================================
@@ -1760,9 +1783,9 @@ fn test_comma_operator_generates_block() {
 #[test]
 fn test_variable_stderr_maps_to_io() {
     let codegen = CodeGenerator::new();
-    let func = make_func_with_body(vec![HirStatement::Expression(
-        HirExpression::Variable("stderr".to_string()),
-    )]);
+    let func = make_func_with_body(vec![HirStatement::Expression(HirExpression::Variable(
+        "stderr".to_string(),
+    ))]);
     let code = codegen.generate_function(&func);
     assert!(code.contains("std::io::stderr()"), "Expected std::io::stderr(), got: {}", code);
 }
@@ -1770,9 +1793,9 @@ fn test_variable_stderr_maps_to_io() {
 #[test]
 fn test_variable_stdin_maps_to_io() {
     let codegen = CodeGenerator::new();
-    let func = make_func_with_body(vec![HirStatement::Expression(
-        HirExpression::Variable("stdin".to_string()),
-    )]);
+    let func = make_func_with_body(vec![HirStatement::Expression(HirExpression::Variable(
+        "stdin".to_string(),
+    ))]);
     let code = codegen.generate_function(&func);
     assert!(code.contains("std::io::stdin()"), "Expected std::io::stdin(), got: {}", code);
 }
@@ -1780,9 +1803,9 @@ fn test_variable_stdin_maps_to_io() {
 #[test]
 fn test_variable_stdout_maps_to_io() {
     let codegen = CodeGenerator::new();
-    let func = make_func_with_body(vec![HirStatement::Expression(
-        HirExpression::Variable("stdout".to_string()),
-    )]);
+    let func = make_func_with_body(vec![HirStatement::Expression(HirExpression::Variable(
+        "stdout".to_string(),
+    ))]);
     let code = codegen.generate_function(&func);
     assert!(code.contains("std::io::stdout()"), "Expected std::io::stdout(), got: {}", code);
 }
@@ -1790,9 +1813,9 @@ fn test_variable_stdout_maps_to_io() {
 #[test]
 fn test_variable_errno_maps_to_unsafe() {
     let codegen = CodeGenerator::new();
-    let func = make_func_with_body(vec![HirStatement::Expression(
-        HirExpression::Variable("errno".to_string()),
-    )]);
+    let func = make_func_with_body(vec![HirStatement::Expression(HirExpression::Variable(
+        "errno".to_string(),
+    ))]);
     let code = codegen.generate_function(&func);
     assert!(code.contains("unsafe { ERRNO }"), "Expected unsafe ERRNO, got: {}", code);
 }
@@ -1804,12 +1827,10 @@ fn test_variable_errno_maps_to_unsafe() {
 #[test]
 fn test_fclose_generates_drop() {
     let codegen = CodeGenerator::new();
-    let func = make_func_with_body(vec![HirStatement::Expression(
-        HirExpression::FunctionCall {
-            function: "fclose".to_string(),
-            arguments: vec![HirExpression::Variable("f".to_string())],
-        },
-    )]);
+    let func = make_func_with_body(vec![HirStatement::Expression(HirExpression::FunctionCall {
+        function: "fclose".to_string(),
+        arguments: vec![HirExpression::Variable("f".to_string())],
+    })]);
     let code = codegen.generate_function(&func);
     assert!(code.contains("drop(f)"), "Expected drop for fclose, got: {}", code);
 }
@@ -1817,12 +1838,10 @@ fn test_fclose_generates_drop() {
 #[test]
 fn test_fork_generates_comment() {
     let codegen = CodeGenerator::new();
-    let func = make_func_with_body(vec![HirStatement::Expression(
-        HirExpression::FunctionCall {
-            function: "fork".to_string(),
-            arguments: vec![],
-        },
-    )]);
+    let func = make_func_with_body(vec![HirStatement::Expression(HirExpression::FunctionCall {
+        function: "fork".to_string(),
+        arguments: vec![],
+    })]);
     let code = codegen.generate_function(&func);
     assert!(code.contains("fork"), "Expected fork comment, got: {}", code);
 }
@@ -1830,12 +1849,10 @@ fn test_fork_generates_comment() {
 #[test]
 fn test_printf_single_arg() {
     let codegen = CodeGenerator::new();
-    let func = make_func_with_body(vec![HirStatement::Expression(
-        HirExpression::FunctionCall {
-            function: "printf".to_string(),
-            arguments: vec![HirExpression::StringLiteral("hello\\n".to_string())],
-        },
-    )]);
+    let func = make_func_with_body(vec![HirStatement::Expression(HirExpression::FunctionCall {
+        function: "printf".to_string(),
+        arguments: vec![HirExpression::StringLiteral("hello\\n".to_string())],
+    })]);
     let code = codegen.generate_function(&func);
     assert!(code.contains("print!"), "Expected print! macro, got: {}", code);
 }
@@ -1843,25 +1860,25 @@ fn test_printf_single_arg() {
 #[test]
 fn test_wexitstatus_generates_code() {
     let codegen = CodeGenerator::new();
-    let func = make_func_with_body(vec![HirStatement::Expression(
-        HirExpression::FunctionCall {
-            function: "WEXITSTATUS".to_string(),
-            arguments: vec![HirExpression::Variable("status".to_string())],
-        },
-    )]);
+    let func = make_func_with_body(vec![HirStatement::Expression(HirExpression::FunctionCall {
+        function: "WEXITSTATUS".to_string(),
+        arguments: vec![HirExpression::Variable("status".to_string())],
+    })]);
     let code = codegen.generate_function(&func);
-    assert!(code.contains("code().unwrap_or(-1)"), "Expected code() for WEXITSTATUS, got: {}", code);
+    assert!(
+        code.contains("code().unwrap_or(-1)"),
+        "Expected code() for WEXITSTATUS, got: {}",
+        code
+    );
 }
 
 #[test]
 fn test_wifexited_generates_success() {
     let codegen = CodeGenerator::new();
-    let func = make_func_with_body(vec![HirStatement::Expression(
-        HirExpression::FunctionCall {
-            function: "WIFEXITED".to_string(),
-            arguments: vec![HirExpression::Variable("status".to_string())],
-        },
-    )]);
+    let func = make_func_with_body(vec![HirStatement::Expression(HirExpression::FunctionCall {
+        function: "WIFEXITED".to_string(),
+        arguments: vec![HirExpression::Variable("status".to_string())],
+    })]);
     let code = codegen.generate_function(&func);
     assert!(code.contains("success()"), "Expected success() for WIFEXITED, got: {}", code);
 }
@@ -1883,16 +1900,18 @@ fn test_cast_over_malloc_with_vec_target_unwraps() {
                 arguments: vec![HirExpression::BinaryOp {
                     op: BinaryOperator::Multiply,
                     left: Box::new(HirExpression::IntLiteral(10)),
-                    right: Box::new(HirExpression::Sizeof {
-                        type_name: "int".to_string(),
-                    }),
+                    right: Box::new(HirExpression::Sizeof { type_name: "int".to_string() }),
                 }],
             }),
         }),
     }]);
     let code = codegen.generate_function(&func);
     // Cast around malloc with Vec target should unwrap the cast and generate vec
-    assert!(code.contains("vec!") || code.contains("Vec"), "Expected vec for cast+malloc with Vec target, got: {}", code);
+    assert!(
+        code.contains("vec!") || code.contains("Vec"),
+        "Expected vec for cast+malloc with Vec target, got: {}",
+        code
+    );
 }
 
 // ============================================================================
@@ -1911,7 +1930,11 @@ fn test_compound_literal_unknown_type_generates_comment() {
         }),
     }]);
     let code = codegen.generate_function(&func);
-    assert!(code.contains("Compound literal"), "Expected compound literal comment for non-struct/array, got: {}", code);
+    assert!(
+        code.contains("Compound literal"),
+        "Expected compound literal comment for non-struct/array, got: {}",
+        code
+    );
 }
 
 // ============================================================================
@@ -1923,25 +1946,19 @@ fn test_compound_literal_array_partial_pads_defaults() {
     let codegen = CodeGenerator::new();
     let func = make_func_with_body(vec![HirStatement::VariableDeclaration {
         name: "arr".to_string(),
-        var_type: HirType::Array {
-            element_type: Box::new(HirType::Int),
-            size: Some(4),
-        },
+        var_type: HirType::Array { element_type: Box::new(HirType::Int), size: Some(4) },
         initializer: Some(HirExpression::CompoundLiteral {
-            literal_type: HirType::Array {
-                element_type: Box::new(HirType::Int),
-                size: Some(4),
-            },
-            initializers: vec![
-                HirExpression::IntLiteral(1),
-                HirExpression::IntLiteral(2),
-            ],
+            literal_type: HirType::Array { element_type: Box::new(HirType::Int), size: Some(4) },
+            initializers: vec![HirExpression::IntLiteral(1), HirExpression::IntLiteral(2)],
         }),
     }]);
     let code = codegen.generate_function(&func);
     // Partial init with 2 values and size 4 should pad with defaults
-    assert!(code.contains("0i32") || code.contains("1, 2"),
-        "Expected padded array with defaults, got: {}", code);
+    assert!(
+        code.contains("0i32") || code.contains("1, 2"),
+        "Expected padded array with defaults, got: {}",
+        code
+    );
 }
 
 // ============================================================================
@@ -1985,9 +2002,9 @@ fn test_calloc_hir_expression_unsigned_int() {
 #[test]
 fn test_erange_constant() {
     let codegen = CodeGenerator::new();
-    let func = make_func_with_body(vec![HirStatement::Expression(
-        HirExpression::Variable("ERANGE".to_string()),
-    )]);
+    let func = make_func_with_body(vec![HirStatement::Expression(HirExpression::Variable(
+        "ERANGE".to_string(),
+    ))]);
     let code = codegen.generate_function(&func);
     assert!(code.contains("34i32"), "Expected 34i32 for ERANGE, got: {}", code);
 }
@@ -1995,9 +2012,9 @@ fn test_erange_constant() {
 #[test]
 fn test_einval_constant() {
     let codegen = CodeGenerator::new();
-    let func = make_func_with_body(vec![HirStatement::Expression(
-        HirExpression::Variable("EINVAL".to_string()),
-    )]);
+    let func = make_func_with_body(vec![HirStatement::Expression(HirExpression::Variable(
+        "EINVAL".to_string(),
+    ))]);
     let code = codegen.generate_function(&func);
     assert!(code.contains("22i32"), "Expected 22i32 for EINVAL, got: {}", code);
 }

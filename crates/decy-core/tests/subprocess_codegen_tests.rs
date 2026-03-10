@@ -34,16 +34,8 @@ fn test_exec_generates_command_new() {
     let generator = CodeGenerator::new();
     let code = generator.generate_function(&func);
 
-    assert!(
-        code.contains("Command::new"),
-        "Should generate Command::new, got:\n{}",
-        code
-    );
-    assert!(
-        code.contains("/bin/ls"),
-        "Should include command path:\n{}",
-        code
-    );
+    assert!(code.contains("Command::new"), "Should generate Command::new, got:\n{}", code);
+    assert!(code.contains("/bin/ls"), "Should include command path:\n{}", code);
 }
 
 // ============================================================================
@@ -70,16 +62,8 @@ fn test_exec_with_args_generates_arg_chain() {
     let generator = CodeGenerator::new();
     let code = generator.generate_function(&func);
 
-    assert!(
-        code.contains(".arg("),
-        "Should generate .arg() for arguments:\n{}",
-        code
-    );
-    assert!(
-        code.contains("-la"),
-        "Should include -la argument:\n{}",
-        code
-    );
+    assert!(code.contains(".arg("), "Should generate .arg() for arguments:\n{}", code);
+    assert!(code.contains("-la"), "Should include -la argument:\n{}", code);
 }
 
 // ============================================================================
@@ -126,16 +110,8 @@ fn test_fork_exec_generates_spawn() {
 
     // Should NOT contain raw fork() call (but comment is OK)
     // Check it's not calling fork() as a function assignment
-    assert!(
-        !code.contains("= fork();"),
-        "Should NOT generate raw fork() assignment:\n{}",
-        code
-    );
-    assert!(
-        code.contains("Command::new"),
-        "Should generate Command::new:\n{}",
-        code
-    );
+    assert!(!code.contains("= fork();"), "Should NOT generate raw fork() assignment:\n{}", code);
+    assert!(code.contains("Command::new"), "Should generate Command::new:\n{}", code);
 }
 
 // ============================================================================
@@ -171,18 +147,16 @@ fn test_fork_exec_wait_generates_wait() {
                         HirExpression::NullLiteral,
                     ],
                 })],
-                else_block: Some(vec![HirStatement::Expression(
-                    HirExpression::FunctionCall {
-                        function: "waitpid".to_string(),
-                        arguments: vec![
-                            HirExpression::Variable("pid".to_string()),
-                            HirExpression::AddressOf(Box::new(HirExpression::Variable(
-                                "status".to_string(),
-                            ))),
-                            HirExpression::IntLiteral(0),
-                        ],
-                    },
-                )]),
+                else_block: Some(vec![HirStatement::Expression(HirExpression::FunctionCall {
+                    function: "waitpid".to_string(),
+                    arguments: vec![
+                        HirExpression::Variable("pid".to_string()),
+                        HirExpression::AddressOf(Box::new(HirExpression::Variable(
+                            "status".to_string(),
+                        ))),
+                        HirExpression::IntLiteral(0),
+                    ],
+                })]),
             },
         ],
     );

@@ -508,8 +508,5 @@ fn test_long_long_summary() {
 
     // No unsafe blocks needed
     let unsafe_blocks = 0;
-    assert_eq!(
-        unsafe_blocks, 0,
-        "long long is a basic type - no unsafe needed"
-    );
+    assert_eq!(unsafe_blocks, 0, "long long is a basic type - no unsafe needed");
 }

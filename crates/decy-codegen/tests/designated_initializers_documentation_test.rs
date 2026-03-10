@@ -129,10 +129,7 @@ mod designated_initializers_documentation_tests {
         }
 
         // Rust requires explicit handling of uninitialized fields
-        let p = Point {
-            x: 10,
-            ..Default::default()
-        };
+        let p = Point { x: 10, ..Default::default() };
         assert_eq!(p.x, 10);
         assert_eq!(p.y, 0); // Default for i32 is 0
 
@@ -161,9 +158,7 @@ mod designated_initializers_documentation_tests {
             inner: Inner,
         }
 
-        let o = Outer {
-            inner: Inner { x: 1, y: 2 },
-        };
+        let o = Outer { inner: Inner { x: 1, y: 2 } };
         assert_eq!(o.inner.x, 1);
         assert_eq!(o.inner.y, 2);
 
@@ -220,11 +215,7 @@ mod designated_initializers_documentation_tests {
             b: u8,
         }
 
-        let color = RGB {
-            r: 255,
-            g: 128,
-            b: 0,
-        };
+        let color = RGB { r: 255, g: 128, b: 0 };
         assert_eq!(color.r, 255);
         assert_eq!(color.g, 128);
         assert_eq!(color.b, 0);
@@ -331,10 +322,7 @@ mod designated_initializers_documentation_tests {
             y: i32,
         }
 
-        let p = Point {
-            x: 1,
-            ..Default::default()
-        };
+        let p = Point { x: 1, ..Default::default() };
         assert_eq!(p.x, 1);
         assert_eq!(p.y, 0);
 
@@ -477,10 +465,7 @@ mod designated_initializers_documentation_tests {
             age: i32,
         }
 
-        let p = Person {
-            name: "Alice",
-            age: 30,
-        };
+        let p = Person { name: "Alice", age: 30 };
         assert_eq!(p.name, "Alice");
         assert_eq!(p.age, 30);
 
@@ -533,10 +518,7 @@ Rust Struct Literal Rules:
             x: i32,
             y: i32,
         }
-        let _p3 = Point2 {
-            x: 10,
-            ..Default::default()
-        };
+        let _p3 = Point2 { x: 10, ..Default::default() };
 
         assert!(c_summary.contains(".field = value"));
         assert!(rust_summary.contains("field: value"));

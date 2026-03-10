@@ -266,16 +266,10 @@ impl BootstrapStats {
     /// Calculate statistics from bootstrap patterns
     pub fn from_patterns() -> Self {
         let patterns = get_bootstrap_patterns();
-        let mut stats = Self {
-            total_patterns: patterns.len(),
-            ..Default::default()
-        };
+        let mut stats = Self { total_patterns: patterns.len(), ..Default::default() };
 
         for p in patterns {
-            *stats
-                .by_error_code
-                .entry(p.error_code.to_string())
-                .or_default() += 1;
+            *stats.by_error_code.entry(p.error_code.to_string()).or_default() += 1;
             *stats.by_decision.entry(p.decision.to_string()).or_default() += 1;
         }
 
@@ -311,20 +305,14 @@ mod tests {
     #[test]
     fn test_bootstrap_patterns_not_empty() {
         let patterns = get_bootstrap_patterns();
-        assert!(
-            !patterns.is_empty(),
-            "Bootstrap patterns should not be empty"
-        );
+        assert!(!patterns.is_empty(), "Bootstrap patterns should not be empty");
     }
 
     #[test]
     fn test_bootstrap_patterns_count() {
         let patterns = get_bootstrap_patterns();
         // Should have substantial coverage
-        assert!(
-            patterns.len() >= 20,
-            "Should have at least 20 bootstrap patterns"
-        );
+        assert!(patterns.len() >= 20, "Should have at least 20 bootstrap patterns");
     }
 
     #[test]
@@ -348,11 +336,7 @@ mod tests {
     fn test_all_patterns_have_fix_diffs() {
         let patterns = get_bootstrap_patterns();
         for p in patterns {
-            assert!(
-                !p.fix_diff.is_empty(),
-                "Fix diff should not be empty for {}",
-                p.error_code
-            );
+            assert!(!p.fix_diff.is_empty(), "Fix diff should not be empty for {}", p.error_code);
             assert!(
                 p.fix_diff.contains('-') || p.fix_diff.contains('+'),
                 "Fix diff should contain - or +: {}",
@@ -365,11 +349,7 @@ mod tests {
     fn test_all_patterns_have_decisions() {
         let patterns = get_bootstrap_patterns();
         for p in patterns {
-            assert!(
-                !p.decision.is_empty(),
-                "Decision should not be empty for {}",
-                p.error_code
-            );
+            assert!(!p.decision.is_empty(), "Decision should not be empty for {}", p.error_code);
         }
     }
 
@@ -397,18 +377,9 @@ mod tests {
     fn test_bootstrap_stats_has_common_error_codes() {
         let stats = BootstrapStats::from_patterns();
         // Should have patterns for key C→Rust errors
-        assert!(
-            stats.by_error_code.contains_key("E0308"),
-            "Should have E0308 (type mismatch)"
-        );
-        assert!(
-            stats.by_error_code.contains_key("E0133"),
-            "Should have E0133 (unsafe)"
-        );
-        assert!(
-            stats.by_error_code.contains_key("E0382"),
-            "Should have E0382 (use after move)"
-        );
+        assert!(stats.by_error_code.contains_key("E0308"), "Should have E0308 (type mismatch)");
+        assert!(stats.by_error_code.contains_key("E0133"), "Should have E0133 (unsafe)");
+        assert!(stats.by_error_code.contains_key("E0382"), "Should have E0382 (use after move)");
     }
 
     #[test]
@@ -426,11 +397,7 @@ mod tests {
         let mut store = DecisionPatternStore::new().unwrap();
         let count = seed_pattern_store(&mut store).unwrap();
         assert!(count > 0, "Should seed at least some patterns");
-        assert_eq!(
-            count,
-            store.len(),
-            "Store should contain all seeded patterns"
-        );
+        assert_eq!(count, store.len(), "Store should contain all seeded patterns");
     }
 
     #[cfg(feature = "citl")]
@@ -542,11 +509,7 @@ mod tests {
     fn test_e0506_assign_to_borrowed_patterns() {
         let patterns = get_bootstrap_patterns();
         let e0506: Vec<_> = patterns.iter().filter(|p| p.error_code == "E0506").collect();
-        assert_eq!(
-            e0506.len(),
-            1,
-            "E0506 should have 1 cannot-assign-to-borrowed pattern"
-        );
+        assert_eq!(e0506.len(), 1, "E0506 should have 1 cannot-assign-to-borrowed pattern");
         assert_eq!(e0506[0].decision, "reorder_borrow");
         assert!(e0506[0].description.contains("Reorder"));
     }
@@ -562,11 +525,7 @@ mod tests {
     fn test_e0515_return_reference_to_local_patterns() {
         let patterns = get_bootstrap_patterns();
         let e0515: Vec<_> = patterns.iter().filter(|p| p.error_code == "E0515").collect();
-        assert_eq!(
-            e0515.len(),
-            2,
-            "E0515 should have 2 return-reference-to-local patterns"
-        );
+        assert_eq!(e0515.len(), 2, "E0515 should have 2 return-reference-to-local patterns");
     }
 
     #[test]
@@ -594,10 +553,7 @@ mod tests {
     #[test]
     fn test_decision_type_coercion_patterns() {
         let patterns = get_bootstrap_patterns();
-        let coercion: Vec<_> = patterns
-            .iter()
-            .filter(|p| p.decision == "type_coercion")
-            .collect();
+        let coercion: Vec<_> = patterns.iter().filter(|p| p.decision == "type_coercion").collect();
         assert_eq!(coercion.len(), 2, "type_coercion should have 2 patterns");
         assert!(coercion.iter().all(|p| p.error_code == "E0308"));
     }
@@ -605,10 +561,8 @@ mod tests {
     #[test]
     fn test_decision_pointer_to_reference_patterns() {
         let patterns = get_bootstrap_patterns();
-        let ptr_ref: Vec<_> = patterns
-            .iter()
-            .filter(|p| p.decision == "pointer_to_reference")
-            .collect();
+        let ptr_ref: Vec<_> =
+            patterns.iter().filter(|p| p.decision == "pointer_to_reference").collect();
         assert_eq!(ptr_ref.len(), 2, "pointer_to_reference should have 2 patterns");
         // One for *mut, one for *const
         assert!(ptr_ref.iter().any(|p| p.fix_diff.contains("*mut")));
@@ -618,10 +572,8 @@ mod tests {
     #[test]
     fn test_decision_mutable_reference_pattern() {
         let patterns = get_bootstrap_patterns();
-        let mut_ref: Vec<_> = patterns
-            .iter()
-            .filter(|p| p.decision == "mutable_reference")
-            .collect();
+        let mut_ref: Vec<_> =
+            patterns.iter().filter(|p| p.decision == "mutable_reference").collect();
         assert_eq!(mut_ref.len(), 1, "mutable_reference should have 1 pattern");
         assert!(mut_ref[0].fix_diff.contains("&mut"));
     }
@@ -629,10 +581,7 @@ mod tests {
     #[test]
     fn test_decision_unsafe_deref_patterns() {
         let patterns = get_bootstrap_patterns();
-        let deref: Vec<_> = patterns
-            .iter()
-            .filter(|p| p.decision == "unsafe_deref")
-            .collect();
+        let deref: Vec<_> = patterns.iter().filter(|p| p.decision == "unsafe_deref").collect();
         assert_eq!(deref.len(), 2, "unsafe_deref should have 2 patterns");
         for p in &deref {
             assert!(p.fix_diff.contains("unsafe"));
@@ -643,10 +592,7 @@ mod tests {
     #[test]
     fn test_decision_unsafe_extern_pattern() {
         let patterns = get_bootstrap_patterns();
-        let ext: Vec<_> = patterns
-            .iter()
-            .filter(|p| p.decision == "unsafe_extern")
-            .collect();
+        let ext: Vec<_> = patterns.iter().filter(|p| p.decision == "unsafe_extern").collect();
         assert_eq!(ext.len(), 1, "unsafe_extern should have 1 pattern");
         assert!(ext[0].fix_diff.contains("extern_fn"));
         assert!(ext[0].fix_diff.contains("unsafe"));
@@ -655,10 +601,8 @@ mod tests {
     #[test]
     fn test_decision_clone_before_move_pattern() {
         let patterns = get_bootstrap_patterns();
-        let clone_move: Vec<_> = patterns
-            .iter()
-            .filter(|p| p.decision == "clone_before_move")
-            .collect();
+        let clone_move: Vec<_> =
+            patterns.iter().filter(|p| p.decision == "clone_before_move").collect();
         assert_eq!(clone_move.len(), 1, "clone_before_move should have 1 pattern");
         assert!(clone_move[0].fix_diff.contains(".clone()"));
         assert_eq!(clone_move[0].error_code, "E0382");
@@ -667,10 +611,8 @@ mod tests {
     #[test]
     fn test_decision_borrow_instead_of_move_pattern() {
         let patterns = get_bootstrap_patterns();
-        let borrow: Vec<_> = patterns
-            .iter()
-            .filter(|p| p.decision == "borrow_instead_of_move")
-            .collect();
+        let borrow: Vec<_> =
+            patterns.iter().filter(|p| p.decision == "borrow_instead_of_move").collect();
         assert_eq!(borrow.len(), 1, "borrow_instead_of_move should have 1 pattern");
         assert!(borrow[0].fix_diff.contains("&x"));
     }
@@ -678,10 +620,8 @@ mod tests {
     #[test]
     fn test_decision_borrow_parameter_pattern() {
         let patterns = get_bootstrap_patterns();
-        let borrow_param: Vec<_> = patterns
-            .iter()
-            .filter(|p| p.decision == "borrow_parameter")
-            .collect();
+        let borrow_param: Vec<_> =
+            patterns.iter().filter(|p| p.decision == "borrow_parameter").collect();
         assert_eq!(borrow_param.len(), 1, "borrow_parameter should have 1 pattern");
         assert!(borrow_param[0].fix_diff.contains("&String"));
     }
@@ -689,10 +629,8 @@ mod tests {
     #[test]
     fn test_decision_sequential_mutable_borrow_pattern() {
         let patterns = get_bootstrap_patterns();
-        let seq_mut: Vec<_> = patterns
-            .iter()
-            .filter(|p| p.decision == "sequential_mutable_borrow")
-            .collect();
+        let seq_mut: Vec<_> =
+            patterns.iter().filter(|p| p.decision == "sequential_mutable_borrow").collect();
         assert_eq!(seq_mut.len(), 1, "sequential_mutable_borrow should have 1 pattern");
         assert!(seq_mut[0].fix_diff.contains("drop"));
     }
@@ -700,10 +638,8 @@ mod tests {
     #[test]
     fn test_decision_use_stdlib_method_pattern() {
         let patterns = get_bootstrap_patterns();
-        let stdlib: Vec<_> = patterns
-            .iter()
-            .filter(|p| p.decision == "use_stdlib_method")
-            .collect();
+        let stdlib: Vec<_> =
+            patterns.iter().filter(|p| p.decision == "use_stdlib_method").collect();
         assert_eq!(stdlib.len(), 1, "use_stdlib_method should have 1 pattern");
         assert!(stdlib[0].fix_diff.contains("arr.swap"));
     }
@@ -711,10 +647,7 @@ mod tests {
     #[test]
     fn test_decision_reorder_borrow_pattern() {
         let patterns = get_bootstrap_patterns();
-        let reorder: Vec<_> = patterns
-            .iter()
-            .filter(|p| p.decision == "reorder_borrow")
-            .collect();
+        let reorder: Vec<_> = patterns.iter().filter(|p| p.decision == "reorder_borrow").collect();
         assert_eq!(reorder.len(), 1, "reorder_borrow should have 1 pattern");
         assert_eq!(reorder[0].error_code, "E0506");
     }
@@ -722,10 +655,7 @@ mod tests {
     #[test]
     fn test_decision_extend_lifetime_pattern() {
         let patterns = get_bootstrap_patterns();
-        let extend: Vec<_> = patterns
-            .iter()
-            .filter(|p| p.decision == "extend_lifetime")
-            .collect();
+        let extend: Vec<_> = patterns.iter().filter(|p| p.decision == "extend_lifetime").collect();
         assert_eq!(extend.len(), 1, "extend_lifetime should have 1 pattern");
         assert_eq!(extend[0].error_code, "E0597");
         assert!(extend[0].description.contains("outer scope"));
@@ -734,10 +664,7 @@ mod tests {
     #[test]
     fn test_decision_return_owned_patterns() {
         let patterns = get_bootstrap_patterns();
-        let owned: Vec<_> = patterns
-            .iter()
-            .filter(|p| p.decision == "return_owned")
-            .collect();
+        let owned: Vec<_> = patterns.iter().filter(|p| p.decision == "return_owned").collect();
         assert_eq!(owned.len(), 2, "return_owned should have 2 patterns (E0597 + E0515)");
         let error_codes: Vec<_> = owned.iter().map(|p| p.error_code).collect();
         assert!(error_codes.contains(&"E0597"));
@@ -747,10 +674,7 @@ mod tests {
     #[test]
     fn test_decision_clone_return_pattern() {
         let patterns = get_bootstrap_patterns();
-        let clone_ret: Vec<_> = patterns
-            .iter()
-            .filter(|p| p.decision == "clone_return")
-            .collect();
+        let clone_ret: Vec<_> = patterns.iter().filter(|p| p.decision == "clone_return").collect();
         assert_eq!(clone_ret.len(), 1, "clone_return should have 1 pattern");
         assert!(clone_ret[0].fix_diff.contains(".clone()"));
         assert_eq!(clone_ret[0].error_code, "E0515");
@@ -759,10 +683,7 @@ mod tests {
     #[test]
     fn test_decision_array_to_slice_pattern() {
         let patterns = get_bootstrap_patterns();
-        let slice: Vec<_> = patterns
-            .iter()
-            .filter(|p| p.decision == "array_to_slice")
-            .collect();
+        let slice: Vec<_> = patterns.iter().filter(|p| p.decision == "array_to_slice").collect();
         assert_eq!(slice.len(), 1, "array_to_slice should have 1 pattern");
         assert!(slice[0].fix_diff.contains("&[i32]"));
         assert!(slice[0].description.contains("slice"));
@@ -771,10 +692,8 @@ mod tests {
     #[test]
     fn test_decision_bounds_checked_access_pattern() {
         let patterns = get_bootstrap_patterns();
-        let bounds: Vec<_> = patterns
-            .iter()
-            .filter(|p| p.decision == "bounds_checked_access")
-            .collect();
+        let bounds: Vec<_> =
+            patterns.iter().filter(|p| p.decision == "bounds_checked_access").collect();
         assert_eq!(bounds.len(), 1, "bounds_checked_access should have 1 pattern");
         assert!(bounds[0].fix_diff.contains(".get(i)"));
         assert!(bounds[0].fix_diff.contains("unwrap_or"));
@@ -783,10 +702,8 @@ mod tests {
     #[test]
     fn test_decision_safe_pointer_arithmetic_pattern() {
         let patterns = get_bootstrap_patterns();
-        let arith: Vec<_> = patterns
-            .iter()
-            .filter(|p| p.decision == "safe_pointer_arithmetic")
-            .collect();
+        let arith: Vec<_> =
+            patterns.iter().filter(|p| p.decision == "safe_pointer_arithmetic").collect();
         assert_eq!(arith.len(), 1, "safe_pointer_arithmetic should have 1 pattern");
         assert!(arith[0].fix_diff.contains("wrapping_add"));
     }
@@ -794,10 +711,8 @@ mod tests {
     #[test]
     fn test_decision_malloc_to_box_pattern() {
         let patterns = get_bootstrap_patterns();
-        let malloc_box: Vec<_> = patterns
-            .iter()
-            .filter(|p| p.decision == "malloc_to_box")
-            .collect();
+        let malloc_box: Vec<_> =
+            patterns.iter().filter(|p| p.decision == "malloc_to_box").collect();
         assert_eq!(malloc_box.len(), 1, "malloc_to_box should have 1 pattern");
         assert!(
             malloc_box[0].fix_diff.contains("Box::new"),
@@ -809,10 +724,8 @@ mod tests {
     #[test]
     fn test_decision_malloc_array_to_vec_pattern() {
         let patterns = get_bootstrap_patterns();
-        let malloc_vec: Vec<_> = patterns
-            .iter()
-            .filter(|p| p.decision == "malloc_array_to_vec")
-            .collect();
+        let malloc_vec: Vec<_> =
+            patterns.iter().filter(|p| p.decision == "malloc_array_to_vec").collect();
         assert_eq!(malloc_vec.len(), 1, "malloc_array_to_vec should have 1 pattern");
         assert!(malloc_vec[0].fix_diff.contains("Vec::with_capacity"));
     }
@@ -820,10 +733,7 @@ mod tests {
     #[test]
     fn test_decision_arrow_to_dot_pattern() {
         let patterns = get_bootstrap_patterns();
-        let arrow: Vec<_> = patterns
-            .iter()
-            .filter(|p| p.decision == "arrow_to_dot")
-            .collect();
+        let arrow: Vec<_> = patterns.iter().filter(|p| p.decision == "arrow_to_dot").collect();
         assert_eq!(arrow.len(), 1, "arrow_to_dot should have 1 pattern");
         assert!(arrow[0].fix_diff.contains("p->field"));
         assert!(arrow[0].fix_diff.contains("p.field"));
@@ -832,10 +742,8 @@ mod tests {
     #[test]
     fn test_decision_nullable_to_option_pattern() {
         let patterns = get_bootstrap_patterns();
-        let nullable: Vec<_> = patterns
-            .iter()
-            .filter(|p| p.decision == "nullable_to_option")
-            .collect();
+        let nullable: Vec<_> =
+            patterns.iter().filter(|p| p.decision == "nullable_to_option").collect();
         assert_eq!(nullable.len(), 1, "nullable_to_option should have 1 pattern");
         assert!(nullable[0].fix_diff.contains("Option<Box<Node>>"));
     }
@@ -1142,11 +1050,7 @@ mod tests {
     #[test]
     fn test_bootstrap_stats_error_code_count_is_7() {
         let stats = BootstrapStats::from_patterns();
-        assert_eq!(
-            stats.by_error_code.len(),
-            7,
-            "Should have exactly 7 distinct error codes"
-        );
+        assert_eq!(stats.by_error_code.len(), 7, "Should have exactly 7 distinct error codes");
     }
 
     #[test]
@@ -1178,11 +1082,7 @@ mod tests {
     #[test]
     fn test_bootstrap_stats_decision_count_is_21() {
         let stats = BootstrapStats::from_patterns();
-        assert_eq!(
-            stats.by_decision.len(),
-            21,
-            "Should have exactly 21 distinct decision types"
-        );
+        assert_eq!(stats.by_decision.len(), 21, "Should have exactly 21 distinct decision types");
     }
 
     #[test]
@@ -1228,9 +1128,8 @@ mod tests {
         let pretty = stats.to_string_pretty();
         // Decisions with count 2 should appear before decisions with count 1
         // type_coercion has count 2, arrow_to_dot has count 1
-        let decision_section_start = pretty
-            .find("By Decision Type:")
-            .expect("Should have decision section");
+        let decision_section_start =
+            pretty.find("By Decision Type:").expect("Should have decision section");
         let type_coercion_pos = pretty[decision_section_start..]
             .find("type_coercion")
             .expect("type_coercion should be in output");
@@ -1354,12 +1253,7 @@ mod tests {
         let patterns = get_bootstrap_patterns();
         let mut snapshot: Vec<(&str, &str, &str, usize)> = Vec::new();
         for p in &patterns {
-            snapshot.push((
-                p.error_code,
-                p.decision,
-                p.description,
-                p.fix_diff.len(),
-            ));
+            snapshot.push((p.error_code, p.decision, p.description, p.fix_diff.len()));
         }
         // Verify snapshot length matches pattern count
         assert_eq!(snapshot.len(), 25);
@@ -1398,11 +1292,7 @@ mod tests {
             sorted.dedup();
             sorted.len()
         };
-        assert_eq!(
-            unique_count,
-            hashes.len(),
-            "All patterns should have unique content hashes"
-        );
+        assert_eq!(unique_count, hashes.len(), "All patterns should have unique content hashes");
     }
 
     /// Concatenate all fix_diffs and verify total content size is substantial.
@@ -1423,31 +1313,31 @@ mod tests {
     fn test_every_pattern_fix_diff_has_transformation() {
         let patterns = get_bootstrap_patterns();
         let expected_substrings: Vec<&str> = vec![
-            "as i32",                     // 0: type_coercion cast
-            "&mut i32",                   // 1: *mut -> &mut
-            "&i32",                       // 2: *const -> &
-            "&mut x",                     // 3: mutable_reference
-            "std::process::exit",         // 4: exit cast
-            "unsafe { *ptr = value; }",   // 5: unsafe deref write
-            "unsafe { *ptr }",            // 6: unsafe deref read
-            "unsafe { extern_fn(); }",    // 7: unsafe extern
-            "value.clone()",              // 8: clone before move
-            "let y = &x",                // 9: borrow instead of move
-            "fn take(s: &String)",        // 10: borrow parameter
-            "drop(a)",                    // 11: sequential mutable borrow
-            "arr.swap(i, j)",             // 12: use stdlib method
-            "x = 5",                      // 13: reorder borrow
-            "let x = 5",                  // 14: extend lifetime
-            "-> i32",                     // 15: return owned E0597
-            "-> Vec<i32>",               // 16: return owned E0515
-            "local.clone()",              // 17: clone return
-            "&[i32]",                     // 18: array to slice
-            "arr.get(i)",                 // 19: bounds checked access
-            "wrapping_add",               // 20: safe pointer arithmetic
-            "Box::new(value)",            // 21: malloc to box
-            "Vec::with_capacity(n)",      // 22: malloc array to vec
-            "p.field",                    // 23: arrow to dot
-            "Option<Box<Node>>",          // 24: nullable to option
+            "as i32",                   // 0: type_coercion cast
+            "&mut i32",                 // 1: *mut -> &mut
+            "&i32",                     // 2: *const -> &
+            "&mut x",                   // 3: mutable_reference
+            "std::process::exit",       // 4: exit cast
+            "unsafe { *ptr = value; }", // 5: unsafe deref write
+            "unsafe { *ptr }",          // 6: unsafe deref read
+            "unsafe { extern_fn(); }",  // 7: unsafe extern
+            "value.clone()",            // 8: clone before move
+            "let y = &x",               // 9: borrow instead of move
+            "fn take(s: &String)",      // 10: borrow parameter
+            "drop(a)",                  // 11: sequential mutable borrow
+            "arr.swap(i, j)",           // 12: use stdlib method
+            "x = 5",                    // 13: reorder borrow
+            "let x = 5",                // 14: extend lifetime
+            "-> i32",                   // 15: return owned E0597
+            "-> Vec<i32>",              // 16: return owned E0515
+            "local.clone()",            // 17: clone return
+            "&[i32]",                   // 18: array to slice
+            "arr.get(i)",               // 19: bounds checked access
+            "wrapping_add",             // 20: safe pointer arithmetic
+            "Box::new(value)",          // 21: malloc to box
+            "Vec::with_capacity(n)",    // 22: malloc array to vec
+            "p.field",                  // 23: arrow to dot
+            "Option<Box<Node>>",        // 24: nullable to option
         ];
 
         assert_eq!(patterns.len(), expected_substrings.len());
@@ -1468,31 +1358,31 @@ mod tests {
     fn test_every_pattern_description_keywords() {
         let patterns = get_bootstrap_patterns();
         let expected_keywords: Vec<&str> = vec![
-            "cast",           // 0
-            "mutable",        // 1
-            "immutable",      // 2
-            "mutable",        // 3
-            "Cast",           // 4
-            "dereference",    // 5
-            "pointer read",   // 6
-            "extern function", // 7
-            "Clone",          // 8
-            "Borrow",         // 9
-            "borrow",         // 10
-            "mutable borrow", // 11
-            "stdlib",         // 12
-            "Reorder",        // 13
-            "outer scope",    // 14
-            "Return owned",   // 15
-            "Return owned",   // 16
-            "Clone local",    // 17
-            "slice",          // 18
-            "bounds",         // 19
+            "cast",               // 0
+            "mutable",            // 1
+            "immutable",          // 2
+            "mutable",            // 3
+            "Cast",               // 4
+            "dereference",        // 5
+            "pointer read",       // 6
+            "extern function",    // 7
+            "Clone",              // 8
+            "Borrow",             // 9
+            "borrow",             // 10
+            "mutable borrow",     // 11
+            "stdlib",             // 12
+            "Reorder",            // 13
+            "outer scope",        // 14
+            "Return owned",       // 15
+            "Return owned",       // 16
+            "Clone local",        // 17
+            "slice",              // 18
+            "bounds",             // 19
             "pointer arithmetic", // 20
-            "Box",            // 21
-            "Vec",            // 22
-            "arrow",          // 23
-            "Option",         // 24
+            "Box",                // 21
+            "Vec",                // 22
+            "arrow",              // 23
+            "Option",             // 24
         ];
 
         assert_eq!(patterns.len(), expected_keywords.len());
@@ -1550,15 +1440,15 @@ mod tests {
         let codes: Vec<&str> = patterns.iter().map(|p| p.error_code).collect();
         let expected = vec![
             "E0308", "E0308", "E0308", "E0308", "E0308", // type mismatch group
-            "E0133", "E0133", "E0133",                     // unsafe group
-            "E0382", "E0382", "E0382",                     // use after move group
-            "E0499", "E0499",                               // multiple mutable borrow group
-            "E0506",                                         // assign to borrowed
-            "E0597", "E0597",                               // lifetime group
-            "E0515", "E0515",                               // return reference to local group
-            "E0308", "E0308", "E0308",                     // C-specific array/pointer
-            "E0308", "E0308",                               // C-specific malloc
-            "E0308", "E0308",                               // C-specific struct
+            "E0133", "E0133", "E0133", // unsafe group
+            "E0382", "E0382", "E0382", // use after move group
+            "E0499", "E0499", // multiple mutable borrow group
+            "E0506", // assign to borrowed
+            "E0597", "E0597", // lifetime group
+            "E0515", "E0515", // return reference to local group
+            "E0308", "E0308", "E0308", // C-specific array/pointer
+            "E0308", "E0308", // C-specific malloc
+            "E0308", "E0308", // C-specific struct
         ];
         assert_eq!(codes, expected, "Error code sequence should match exactly");
     }
@@ -1591,7 +1481,11 @@ mod tests {
         for (i, p) in patterns.iter().enumerate() {
             output.push_str(&format!(
                 "[{}] {} | {} | {} | diff_len={}\n",
-                i, p.error_code, p.decision, p.description, p.fix_diff.len()
+                i,
+                p.error_code,
+                p.decision,
+                p.description,
+                p.fix_diff.len()
             ));
         }
         // Should have 25 entries (one per pattern)
@@ -1604,10 +1498,7 @@ mod tests {
     #[test]
     fn test_clone_all_patterns_preserves_data() {
         let originals = get_bootstrap_patterns();
-        let clones: Vec<BootstrapPattern> = originals
-            .iter()
-            .map(|p| p.clone())
-            .collect();
+        let clones: Vec<BootstrapPattern> = originals.iter().map(|p| p.clone()).collect();
 
         assert_eq!(originals.len(), clones.len());
         for (orig, cloned) in originals.iter().zip(clones.iter()) {
@@ -1625,38 +1516,22 @@ mod tests {
 
         // E0308 type mismatch: indices 0-4
         for i in 0..5 {
-            assert_eq!(
-                patterns[i].error_code, "E0308",
-                "Index {} should be E0308",
-                i
-            );
+            assert_eq!(patterns[i].error_code, "E0308", "Index {} should be E0308", i);
         }
 
         // E0133 unsafe: indices 5-7
         for i in 5..8 {
-            assert_eq!(
-                patterns[i].error_code, "E0133",
-                "Index {} should be E0133",
-                i
-            );
+            assert_eq!(patterns[i].error_code, "E0133", "Index {} should be E0133", i);
         }
 
         // E0382 use after move: indices 8-10
         for i in 8..11 {
-            assert_eq!(
-                patterns[i].error_code, "E0382",
-                "Index {} should be E0382",
-                i
-            );
+            assert_eq!(patterns[i].error_code, "E0382", "Index {} should be E0382", i);
         }
 
         // E0499 multiple mutable borrow: indices 11-12
         for i in 11..13 {
-            assert_eq!(
-                patterns[i].error_code, "E0499",
-                "Index {} should be E0499",
-                i
-            );
+            assert_eq!(patterns[i].error_code, "E0499", "Index {} should be E0499", i);
         }
 
         // E0506 assign to borrowed: index 13
@@ -1664,29 +1539,17 @@ mod tests {
 
         // E0597 lifetime: indices 14-15
         for i in 14..16 {
-            assert_eq!(
-                patterns[i].error_code, "E0597",
-                "Index {} should be E0597",
-                i
-            );
+            assert_eq!(patterns[i].error_code, "E0597", "Index {} should be E0597", i);
         }
 
         // E0515 return ref to local: indices 16-17
         for i in 16..18 {
-            assert_eq!(
-                patterns[i].error_code, "E0515",
-                "Index {} should be E0515",
-                i
-            );
+            assert_eq!(patterns[i].error_code, "E0515", "Index {} should be E0515", i);
         }
 
         // C-specific E0308: indices 18-24
         for i in 18..25 {
-            assert_eq!(
-                patterns[i].error_code, "E0308",
-                "Index {} should be E0308",
-                i
-            );
+            assert_eq!(patterns[i].error_code, "E0308", "Index {} should be E0308", i);
         }
     }
 
@@ -1724,8 +1587,7 @@ mod tests {
     #[test]
     fn test_unique_decisions_count() {
         let patterns = get_bootstrap_patterns();
-        let unique: std::collections::HashSet<&str> =
-            patterns.iter().map(|p| p.decision).collect();
+        let unique: std::collections::HashSet<&str> = patterns.iter().map(|p| p.decision).collect();
         assert_eq!(unique.len(), 21);
     }
 

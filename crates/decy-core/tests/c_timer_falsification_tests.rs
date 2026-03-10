@@ -163,8 +163,14 @@ int tmr_interval_test(void) {
     assert!(result.is_ok(), "C1802: Interval timer should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1802: Output should not be empty");
-    assert!(code.contains("fn tmr_interval_mgr_init"), "C1802: Should contain tmr_interval_mgr_init");
-    assert!(code.contains("fn tmr_interval_tick_all"), "C1802: Should contain tmr_interval_tick_all");
+    assert!(
+        code.contains("fn tmr_interval_mgr_init"),
+        "C1802: Should contain tmr_interval_mgr_init"
+    );
+    assert!(
+        code.contains("fn tmr_interval_tick_all"),
+        "C1802: Should contain tmr_interval_tick_all"
+    );
 }
 
 /// C1803: One-shot timer with arm and disarm
@@ -374,7 +380,10 @@ int tmr_timestamp_test(void) {
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1805: Output should not be empty");
     assert!(code.contains("fn tmr_timestamp_init"), "C1805: Should contain tmr_timestamp_init");
-    assert!(code.contains("fn tmr_timestamp_seconds"), "C1805: Should contain tmr_timestamp_seconds");
+    assert!(
+        code.contains("fn tmr_timestamp_seconds"),
+        "C1805: Should contain tmr_timestamp_seconds"
+    );
 }
 
 // ============================================================================
@@ -1059,7 +1068,10 @@ int tmr_sync_test(void) {
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1814: Output should not be empty");
     assert!(code.contains("fn tmr_sync_init"), "C1814: Should contain tmr_sync_init");
-    assert!(code.contains("fn tmr_sync_compute_offset"), "C1814: Should contain tmr_sync_compute_offset");
+    assert!(
+        code.contains("fn tmr_sync_compute_offset"),
+        "C1814: Should contain tmr_sync_compute_offset"
+    );
 }
 
 /// C1815: Clock domain crossing with rate conversion
@@ -1217,7 +1229,10 @@ int tmr_deadline_test(void) {
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1816: Output should not be empty");
     assert!(code.contains("fn tmr_deadline_init"), "C1816: Should contain tmr_deadline_init");
-    assert!(code.contains("fn tmr_deadline_check_overdue"), "C1816: Should contain tmr_deadline_check_overdue");
+    assert!(
+        code.contains("fn tmr_deadline_check_overdue"),
+        "C1816: Should contain tmr_deadline_check_overdue"
+    );
 }
 
 /// C1817: Expiry checker with soft and hard timeout thresholds

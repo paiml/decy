@@ -129,7 +129,10 @@ void tree_avl_add(tree_Avl *t, int key) {
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1051: empty output");
     assert!(code.contains("fn tree_avl_insert"), "C1051: Should contain tree_avl_insert");
-    assert!(code.contains("fn tree_avl_rotate_right"), "C1051: Should contain tree_avl_rotate_right");
+    assert!(
+        code.contains("fn tree_avl_rotate_right"),
+        "C1051: Should contain tree_avl_rotate_right"
+    );
 }
 
 #[test]
@@ -926,7 +929,10 @@ int tree_suffix_search(tree_SuffixTree *t, const char *text, const char *pattern
     assert!(result.is_ok(), "C1060 suffix tree failed: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1060: empty output");
-    assert!(code.contains("fn tree_suffix_build_naive"), "C1060: Should contain tree_suffix_build_naive");
+    assert!(
+        code.contains("fn tree_suffix_build_naive"),
+        "C1060: Should contain tree_suffix_build_naive"
+    );
 }
 
 // ============================================================================
@@ -1534,7 +1540,10 @@ int tree_merkle_verify(tree_MerkleTree *t, int node) {
     assert!(result.is_ok(), "C1066 Merkle tree failed: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1066: empty output");
-    assert!(code.contains("fn tree_merkle_construct"), "C1066: Should contain tree_merkle_construct");
+    assert!(
+        code.contains("fn tree_merkle_construct"),
+        "C1066: Should contain tree_merkle_construct"
+    );
     assert!(code.contains("fn tree_merkle_verify"), "C1066: Should contain tree_merkle_verify");
 }
 

@@ -24,11 +24,8 @@ fn test_codegen_static_global_variable() {
     let codegen = CodeGenerator::new();
 
     // Create a constant representing a global variable (we'll need a better structure)
-    let global_var = HirConstant::new(
-        "counter".to_string(),
-        HirType::Int,
-        HirExpression::IntLiteral(0),
-    );
+    let global_var =
+        HirConstant::new("counter".to_string(), HirType::Int, HirExpression::IntLiteral(0));
 
     // This should generate: static mut counter: i32 = 0;
     let rust_code = codegen.generate_global_variable(&global_var, true, false, false);
@@ -84,11 +81,8 @@ fn test_codegen_extern_global_variable() {
 fn test_codegen_const_global_variable() {
     let codegen = CodeGenerator::new();
 
-    let global_var = HirConstant::new(
-        "MAX_SIZE".to_string(),
-        HirType::Int,
-        HirExpression::IntLiteral(100),
-    );
+    let global_var =
+        HirConstant::new("MAX_SIZE".to_string(), HirType::Int, HirExpression::IntLiteral(100));
 
     // is_static=false, is_extern=false, is_const=true
     let rust_code = codegen.generate_global_variable(&global_var, false, false, true);
@@ -116,11 +110,8 @@ fn test_codegen_static_const_global() {
 
     // Note: HIR doesn't have FloatLiteral, using IntLiteral(3) as simplified representation
     // The type annotation (HirType::Double) determines the Rust output type
-    let global_var = HirConstant::new(
-        "PI".to_string(),
-        HirType::Double,
-        HirExpression::IntLiteral(3),
-    );
+    let global_var =
+        HirConstant::new("PI".to_string(), HirType::Double, HirExpression::IntLiteral(3));
 
     // is_static=true, is_extern=false, is_const=true
     // In Rust, static const → const (no need for static)
@@ -146,11 +137,8 @@ fn test_codegen_static_const_global() {
 fn test_codegen_plain_global_variable() {
     let codegen = CodeGenerator::new();
 
-    let global_var = HirConstant::new(
-        "global_flag".to_string(),
-        HirType::Int,
-        HirExpression::IntLiteral(1),
-    );
+    let global_var =
+        HirConstant::new("global_flag".to_string(), HirType::Int, HirExpression::IntLiteral(1));
 
     // is_static=false, is_extern=false, is_const=false
     // Plain global → static mut in Rust
@@ -207,10 +195,7 @@ fn test_codegen_global_array_variable() {
 
     let global_var = HirConstant::new(
         "buffer".to_string(),
-        HirType::Array {
-            element_type: Box::new(HirType::Int),
-            size: Some(10),
-        },
+        HirType::Array { element_type: Box::new(HirType::Int), size: Some(10) },
         HirExpression::IntLiteral(0), // Default initialization
     );
 

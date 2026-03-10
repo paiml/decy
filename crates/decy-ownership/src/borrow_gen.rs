@@ -48,17 +48,11 @@ impl BorrowGenerator {
                         }
                         OwnershipKind::ImmutableBorrow => {
                             // Immutable borrows become &T
-                            HirType::Reference {
-                                inner: inner.clone(),
-                                mutable: false,
-                            }
+                            HirType::Reference { inner: inner.clone(), mutable: false }
                         }
                         OwnershipKind::MutableBorrow => {
                             // Mutable borrows become &mut T
-                            HirType::Reference {
-                                inner: inner.clone(),
-                                mutable: true,
-                            }
+                            HirType::Reference { inner: inner.clone(), mutable: true }
                         }
                         OwnershipKind::ArrayPointer { .. } => {
                             // Array pointers handled by slice transformation
@@ -251,10 +245,7 @@ impl BorrowGenerator {
         var_name: &str,
         dataflow_graph: &crate::dataflow::DataflowGraph,
     ) -> bool {
-        dataflow_graph
-            .body()
-            .iter()
-            .any(|stmt| self.statement_mutates_variable(stmt, var_name))
+        dataflow_graph.body().iter().any(|stmt| self.statement_mutates_variable(stmt, var_name))
     }
 
     /// Recursively check if a statement mutates a variable.
@@ -271,42 +262,24 @@ impl BorrowGenerator {
                 // Check if dereferencing our variable
                 matches!(target, decy_hir::HirExpression::Variable(name) if name == var_name)
             }
-            HirStatement::If {
-                then_block,
-                else_block,
-                ..
-            } => {
-                then_block
-                    .iter()
-                    .any(|s| self.statement_mutates_variable(s, var_name))
+            HirStatement::If { then_block, else_block, .. } => {
+                then_block.iter().any(|s| self.statement_mutates_variable(s, var_name))
                     || else_block
                         .as_ref()
                         .map(|stmts| {
-                            stmts
-                                .iter()
-                                .any(|s| self.statement_mutates_variable(s, var_name))
+                            stmts.iter().any(|s| self.statement_mutates_variable(s, var_name))
                         })
                         .unwrap_or(false)
             }
-            HirStatement::While { body, .. } | HirStatement::For { body, .. } => body
-                .iter()
-                .any(|s| self.statement_mutates_variable(s, var_name)),
-            HirStatement::Switch {
-                cases,
-                default_case,
-                ..
-            } => {
+            HirStatement::While { body, .. } | HirStatement::For { body, .. } => {
+                body.iter().any(|s| self.statement_mutates_variable(s, var_name))
+            }
+            HirStatement::Switch { cases, default_case, .. } => {
                 cases.iter().any(|case| {
-                    case.body
-                        .iter()
-                        .any(|s| self.statement_mutates_variable(s, var_name))
+                    case.body.iter().any(|s| self.statement_mutates_variable(s, var_name))
                 }) || default_case
                     .as_ref()
-                    .map(|stmts| {
-                        stmts
-                            .iter()
-                            .any(|s| self.statement_mutates_variable(s, var_name))
-                    })
+                    .map(|stmts| stmts.iter().any(|s| self.statement_mutates_variable(s, var_name)))
                     .unwrap_or(false)
             }
             _ => false,
@@ -351,49 +324,41 @@ impl BorrowGenerator {
                     length_params_to_remove,
                 ),
             },
-            HirStatement::ArrayIndexAssignment {
-                array,
-                index,
-                value,
-            } => HirStatement::ArrayIndexAssignment {
-                array: Box::new(self.transform_expression_with_length_replacement(
-                    array,
-                    inferences,
-                    length_params_to_remove,
-                )),
-                index: Box::new(self.transform_expression_with_length_replacement(
-                    index,
-                    inferences,
-                    length_params_to_remove,
-                )),
-                value: self.transform_expression_with_length_replacement(
-                    value,
-                    inferences,
-                    length_params_to_remove,
-                ),
-            },
-            HirStatement::FieldAssignment {
-                object,
-                field,
-                value,
-            } => HirStatement::FieldAssignment {
-                object: self.transform_expression_with_length_replacement(
-                    object,
-                    inferences,
-                    length_params_to_remove,
-                ),
-                field: field.clone(),
-                value: self.transform_expression_with_length_replacement(
-                    value,
-                    inferences,
-                    length_params_to_remove,
-                ),
-            },
-            HirStatement::If {
-                condition,
-                then_block,
-                else_block,
-            } => HirStatement::If {
+            HirStatement::ArrayIndexAssignment { array, index, value } => {
+                HirStatement::ArrayIndexAssignment {
+                    array: Box::new(self.transform_expression_with_length_replacement(
+                        array,
+                        inferences,
+                        length_params_to_remove,
+                    )),
+                    index: Box::new(self.transform_expression_with_length_replacement(
+                        index,
+                        inferences,
+                        length_params_to_remove,
+                    )),
+                    value: self.transform_expression_with_length_replacement(
+                        value,
+                        inferences,
+                        length_params_to_remove,
+                    ),
+                }
+            }
+            HirStatement::FieldAssignment { object, field, value } => {
+                HirStatement::FieldAssignment {
+                    object: self.transform_expression_with_length_replacement(
+                        object,
+                        inferences,
+                        length_params_to_remove,
+                    ),
+                    field: field.clone(),
+                    value: self.transform_expression_with_length_replacement(
+                        value,
+                        inferences,
+                        length_params_to_remove,
+                    ),
+                }
+            }
+            HirStatement::If { condition, then_block, else_block } => HirStatement::If {
                 condition: self.transform_expression_with_length_replacement(
                     condition,
                     inferences,
@@ -439,12 +404,7 @@ impl BorrowGenerator {
                     })
                     .collect(),
             },
-            HirStatement::For {
-                init,
-                condition,
-                increment,
-                body,
-            } => HirStatement::For {
+            HirStatement::For { init, condition, increment, body } => HirStatement::For {
                 // DECY-224: Transform all init statements
                 init: init
                     .iter()
@@ -485,11 +445,7 @@ impl BorrowGenerator {
                     })
                     .collect(),
             },
-            HirStatement::Switch {
-                condition,
-                cases,
-                default_case,
-            } => HirStatement::Switch {
+            HirStatement::Switch { condition, cases, default_case } => HirStatement::Switch {
                 condition: self.transform_expression_with_length_replacement(
                     condition,
                     inferences,
@@ -539,21 +495,19 @@ impl BorrowGenerator {
                     length_params_to_remove,
                 ))
             }
-            HirStatement::VariableDeclaration {
-                name,
-                var_type,
-                initializer,
-            } => HirStatement::VariableDeclaration {
-                name: name.clone(),
-                var_type: var_type.clone(),
-                initializer: initializer.as_ref().map(|e| {
-                    self.transform_expression_with_length_replacement(
-                        e,
-                        inferences,
-                        length_params_to_remove,
-                    )
-                }),
-            },
+            HirStatement::VariableDeclaration { name, var_type, initializer } => {
+                HirStatement::VariableDeclaration {
+                    name: name.clone(),
+                    var_type: var_type.clone(),
+                    initializer: initializer.as_ref().map(|e| {
+                        self.transform_expression_with_length_replacement(
+                            e,
+                            inferences,
+                            length_params_to_remove,
+                        )
+                    }),
+                }
+            }
             // Statements that don't contain expressions
             HirStatement::Break | HirStatement::Continue => stmt.clone(),
             // DECY-197: Inline assembly passes through unchanged
@@ -665,10 +619,7 @@ impl BorrowGenerator {
                     length_params_to_remove,
                 )),
             },
-            HirExpression::FunctionCall {
-                function,
-                arguments,
-            } => HirExpression::FunctionCall {
+            HirExpression::FunctionCall { function, arguments } => HirExpression::FunctionCall {
                 function: function.clone(),
                 arguments: arguments
                     .iter()
@@ -711,10 +662,7 @@ impl BorrowGenerator {
                     length_params_to_remove,
                 )),
             },
-            HirExpression::Cast {
-                expr: cast_expr,
-                target_type,
-            } => HirExpression::Cast {
+            HirExpression::Cast { expr: cast_expr, target_type } => HirExpression::Cast {
                 expr: Box::new(self.transform_expression_with_length_replacement(
                     cast_expr,
                     inferences,
@@ -722,22 +670,21 @@ impl BorrowGenerator {
                 )),
                 target_type: target_type.clone(),
             },
-            HirExpression::CompoundLiteral {
-                literal_type,
-                initializers,
-            } => HirExpression::CompoundLiteral {
-                literal_type: literal_type.clone(),
-                initializers: initializers
-                    .iter()
-                    .map(|init| {
-                        self.transform_expression_with_length_replacement(
-                            init,
-                            inferences,
-                            length_params_to_remove,
-                        )
-                    })
-                    .collect(),
-            },
+            HirExpression::CompoundLiteral { literal_type, initializers } => {
+                HirExpression::CompoundLiteral {
+                    literal_type: literal_type.clone(),
+                    initializers: initializers
+                        .iter()
+                        .map(|init| {
+                            self.transform_expression_with_length_replacement(
+                                init,
+                                inferences,
+                                length_params_to_remove,
+                            )
+                        })
+                        .collect(),
+                }
+            }
             HirExpression::IsNotNull(inner) => HirExpression::IsNotNull(Box::new(
                 self.transform_expression_with_length_replacement(
                     inner,
@@ -745,10 +692,7 @@ impl BorrowGenerator {
                     length_params_to_remove,
                 ),
             )),
-            HirExpression::Calloc {
-                count,
-                element_type,
-            } => HirExpression::Calloc {
+            HirExpression::Calloc { count, element_type } => HirExpression::Calloc {
                 count: Box::new(self.transform_expression_with_length_replacement(
                     count,
                     inferences,
@@ -775,33 +719,27 @@ impl BorrowGenerator {
                     length_params_to_remove,
                 )),
             },
-            HirExpression::StringMethodCall {
-                receiver,
-                method,
-                arguments,
-            } => HirExpression::StringMethodCall {
-                receiver: Box::new(self.transform_expression_with_length_replacement(
-                    receiver,
-                    inferences,
-                    length_params_to_remove,
-                )),
-                method: method.clone(),
-                arguments: arguments
-                    .iter()
-                    .map(|arg| {
-                        self.transform_expression_with_length_replacement(
-                            arg,
-                            inferences,
-                            length_params_to_remove,
-                        )
-                    })
-                    .collect(),
-            },
-            HirExpression::SliceIndex {
-                slice,
-                index,
-                element_type,
-            } => HirExpression::SliceIndex {
+            HirExpression::StringMethodCall { receiver, method, arguments } => {
+                HirExpression::StringMethodCall {
+                    receiver: Box::new(self.transform_expression_with_length_replacement(
+                        receiver,
+                        inferences,
+                        length_params_to_remove,
+                    )),
+                    method: method.clone(),
+                    arguments: arguments
+                        .iter()
+                        .map(|arg| {
+                            self.transform_expression_with_length_replacement(
+                                arg,
+                                inferences,
+                                length_params_to_remove,
+                            )
+                        })
+                        .collect(),
+                }
+            }
+            HirExpression::SliceIndex { slice, index, element_type } => HirExpression::SliceIndex {
                 slice: Box::new(self.transform_expression_with_length_replacement(
                     slice,
                     inferences,
@@ -844,11 +782,7 @@ impl BorrowGenerator {
                 )),
             },
             // DECY-192: Ternary expressions - transform all sub-expressions
-            HirExpression::Ternary {
-                condition,
-                then_expr,
-                else_expr,
-            } => HirExpression::Ternary {
+            HirExpression::Ternary { condition, then_expr, else_expr } => HirExpression::Ternary {
                 condition: Box::new(self.transform_expression_with_length_replacement(
                     condition,
                     inferences,
@@ -912,22 +846,15 @@ impl BorrowGenerator {
             HirStatement::Expression(expr) => {
                 Self::expression_uses_pointer_arithmetic(expr, var_name)
             }
-            HirStatement::If {
-                then_block,
-                else_block,
-                ..
-            } => {
-                then_block
-                    .iter()
-                    .any(|s| Self::statement_uses_pointer_arithmetic(s, var_name))
+            HirStatement::If { then_block, else_block, .. } => {
+                then_block.iter().any(|s| Self::statement_uses_pointer_arithmetic(s, var_name))
                     || else_block.as_ref().is_some_and(|blk| {
-                        blk.iter()
-                            .any(|s| Self::statement_uses_pointer_arithmetic(s, var_name))
+                        blk.iter().any(|s| Self::statement_uses_pointer_arithmetic(s, var_name))
                     })
             }
-            HirStatement::While { body, .. } | HirStatement::For { body, .. } => body
-                .iter()
-                .any(|s| Self::statement_uses_pointer_arithmetic(s, var_name)),
+            HirStatement::While { body, .. } | HirStatement::For { body, .. } => {
+                body.iter().any(|s| Self::statement_uses_pointer_arithmetic(s, var_name))
+            }
             _ => false,
         }
     }

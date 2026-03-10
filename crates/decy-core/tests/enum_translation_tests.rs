@@ -46,10 +46,7 @@ fn test_generate_enum_with_multiple_variants() {
                 HirType::Union(vec![
                     ("int_value".to_string(), HirType::Int),
                     ("float_value".to_string(), HirType::Double),
-                    (
-                        "string_value".to_string(),
-                        HirType::Pointer(Box::new(HirType::Char)),
-                    ),
+                    ("string_value".to_string(), HirType::Pointer(Box::new(HirType::Char))),
                 ]),
             ),
         ],
@@ -167,14 +164,8 @@ fn test_pointer_type_mapping() {
             HirStructField::new(
                 "data".to_string(),
                 HirType::Union(vec![
-                    (
-                        "string_val".to_string(),
-                        HirType::Pointer(Box::new(HirType::Char)),
-                    ),
-                    (
-                        "buffer_val".to_string(),
-                        HirType::Pointer(Box::new(HirType::Void)),
-                    ),
+                    ("string_val".to_string(), HirType::Pointer(Box::new(HirType::Char))),
+                    ("buffer_val".to_string(), HirType::Pointer(Box::new(HirType::Void))),
                 ]),
             ),
         ],
@@ -288,10 +279,7 @@ fn test_realistic_ast_node_enum() {
                 HirType::Union(vec![
                     ("literal".to_string(), HirType::Int),
                     ("binary_op".to_string(), HirType::Int), // Would be struct in real code
-                    (
-                        "identifier".to_string(),
-                        HirType::Pointer(Box::new(HirType::Char)),
-                    ),
+                    ("identifier".to_string(), HirType::Pointer(Box::new(HirType::Char))),
                 ]),
             ),
         ],

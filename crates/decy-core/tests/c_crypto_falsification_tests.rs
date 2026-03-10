@@ -79,10 +79,7 @@ int xor_cipher_selftest(void) {
     );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C301: Output should not be empty");
-    assert!(
-        code.contains("fn xor_cipher_init"),
-        "C301: Should contain xor_cipher_init function"
-    );
+    assert!(code.contains("fn xor_cipher_init"), "C301: Should contain xor_cipher_init function");
     assert!(
         code.contains("fn xor_cipher_process"),
         "C301: Should contain xor_cipher_process function"
@@ -134,21 +131,14 @@ uint32_t sha256_big_sigma1(uint32_t x) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C302: SHA-256 message schedule should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C302: SHA-256 message schedule should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C302: Output should not be empty");
     assert!(
         code.contains("fn sha256_expand_schedule"),
         "C302: Should contain sha256_expand_schedule function"
     );
-    assert!(
-        code.contains("fn sha256_ch"),
-        "C302: Should contain sha256_ch function"
-    );
+    assert!(code.contains("fn sha256_ch"), "C302: Should contain sha256_ch function");
 }
 
 #[test]
@@ -216,10 +206,7 @@ void aes_shift_rows(uint8_t state[16]) {
     );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C303: Output should not be empty");
-    assert!(
-        code.contains("fn aes_sub_bytes"),
-        "C303: Should contain aes_sub_bytes function"
-    );
+    assert!(code.contains("fn aes_sub_bytes"), "C303: Should contain aes_sub_bytes function");
 }
 
 #[test]
@@ -290,10 +277,7 @@ int is_probable_prime(uint64_t n, int rounds) {
     );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C304: Output should not be empty");
-    assert!(
-        code.contains("fn mod_exp"),
-        "C304: Should contain mod_exp function"
-    );
+    assert!(code.contains("fn mod_exp"), "C304: Should contain mod_exp function");
     assert!(
         code.contains("fn is_probable_prime"),
         "C304: Should contain is_probable_prime function"
@@ -370,21 +354,11 @@ int hmac_verify(const uint8_t *key, int key_len,
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C305: HMAC construction should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C305: HMAC construction should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C305: Output should not be empty");
-    assert!(
-        code.contains("fn hmac_compute"),
-        "C305: Should contain hmac_compute function"
-    );
-    assert!(
-        code.contains("fn hmac_verify"),
-        "C305: Should contain hmac_verify function"
-    );
+    assert!(code.contains("fn hmac_compute"), "C305: Should contain hmac_compute function");
+    assert!(code.contains("fn hmac_verify"), "C305: Should contain hmac_verify function");
 }
 
 // ============================================================================
@@ -439,14 +413,8 @@ uint8_t ct_max(uint8_t a, uint8_t b) {
     );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C306: Output should not be empty");
-    assert!(
-        code.contains("fn ct_compare"),
-        "C306: Should contain ct_compare function"
-    );
-    assert!(
-        code.contains("fn ct_select"),
-        "C306: Should contain ct_select function"
-    );
+    assert!(code.contains("fn ct_compare"), "C306: Should contain ct_compare function");
+    assert!(code.contains("fn ct_select"), "C306: Should contain ct_select function");
 }
 
 #[test]
@@ -520,17 +488,10 @@ void pbkdf2_derive(const uint8_t *password, int pass_len,
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C307: PBKDF2 key derivation should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C307: PBKDF2 key derivation should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C307: Output should not be empty");
-    assert!(
-        code.contains("fn pbkdf2_derive"),
-        "C307: Should contain pbkdf2_derive function"
-    );
+    assert!(code.contains("fn pbkdf2_derive"), "C307: Should contain pbkdf2_derive function");
 }
 
 #[test]
@@ -585,21 +546,11 @@ void chacha20_init(uint32_t state[16],
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C308: ChaCha20 quarter round should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C308: ChaCha20 quarter round should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C308: Output should not be empty");
-    assert!(
-        code.contains("fn quarter_round"),
-        "C308: Should contain quarter_round function"
-    );
-    assert!(
-        code.contains("fn chacha20_block"),
-        "C308: Should contain chacha20_block function"
-    );
+    assert!(code.contains("fn quarter_round"), "C308: Should contain quarter_round function");
+    assert!(code.contains("fn chacha20_block"), "C308: Should contain chacha20_block function");
 }
 
 #[test]
@@ -666,10 +617,7 @@ void gf256_power_table(uint8_t table[256], uint8_t generator) {
     );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C309: Output should not be empty");
-    assert!(
-        code.contains("fn gf256_mul"),
-        "C309: Should contain gf256_mul function"
-    );
+    assert!(code.contains("fn gf256_mul"), "C309: Should contain gf256_mul function");
     assert!(
         code.contains("fn gf256_mix_columns"),
         "C309: Should contain gf256_mix_columns function"
@@ -780,14 +728,8 @@ int validate_cert(chain_validator_t *v, const cert_info_t *cert,
     );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C310: Output should not be empty");
-    assert!(
-        code.contains("fn validator_init"),
-        "C310: Should contain validator_init function"
-    );
-    assert!(
-        code.contains("fn validate_cert"),
-        "C310: Should contain validate_cert function"
-    );
+    assert!(code.contains("fn validator_init"), "C310: Should contain validator_init function");
+    assert!(code.contains("fn validate_cert"), "C310: Should contain validate_cert function");
 }
 
 // ============================================================================
@@ -857,11 +799,7 @@ void xorshift128p_fill(xorshift128p_t *rng, unsigned char *buf, int len) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C311: PRNG Xorshift128+ should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C311: PRNG Xorshift128+ should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C311: Output should not be empty");
     assert!(
@@ -942,21 +880,11 @@ int b64_decode(const char *input, int in_len, uint8_t *output, int out_max) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C312: Base64 encode/decode should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C312: Base64 encode/decode should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C312: Output should not be empty");
-    assert!(
-        code.contains("fn b64_encode"),
-        "C312: Should contain b64_encode function"
-    );
-    assert!(
-        code.contains("fn b64_decode"),
-        "C312: Should contain b64_decode function"
-    );
+    assert!(code.contains("fn b64_encode"), "C312: Should contain b64_encode function");
+    assert!(code.contains("fn b64_decode"), "C312: Should contain b64_decode function");
 }
 
 #[test]
@@ -1042,14 +970,8 @@ ec_point_t ec_scalar_mul(ec_point_t P, int64_t k, int64_t a, int64_t p) {
     );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C313: Output should not be empty");
-    assert!(
-        code.contains("fn ec_point_add"),
-        "C313: Should contain ec_point_add function"
-    );
-    assert!(
-        code.contains("fn ec_scalar_mul"),
-        "C313: Should contain ec_scalar_mul function"
-    );
+    assert!(code.contains("fn ec_point_add"), "C313: Should contain ec_point_add function");
+    assert!(code.contains("fn ec_scalar_mul"), "C313: Should contain ec_scalar_mul function");
 }
 
 #[test]
@@ -1122,21 +1044,11 @@ int cbc_decrypt(const uint8_t key[16], const uint8_t iv[16],
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C314: CBC encryption with IV should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C314: CBC encryption with IV should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C314: Output should not be empty");
-    assert!(
-        code.contains("fn cbc_encrypt"),
-        "C314: Should contain cbc_encrypt function"
-    );
-    assert!(
-        code.contains("fn cbc_decrypt"),
-        "C314: Should contain cbc_decrypt function"
-    );
+    assert!(code.contains("fn cbc_encrypt"), "C314: Should contain cbc_encrypt function");
+    assert!(code.contains("fn cbc_decrypt"), "C314: Should contain cbc_decrypt function");
 }
 
 #[test]
@@ -1227,10 +1139,7 @@ void aes128_key_expand(const uint8_t key[16], uint32_t round_keys[44]) {
         code.contains("fn aes128_key_expand"),
         "C315: Should contain aes128_key_expand function"
     );
-    assert!(
-        code.contains("fn ks_sub_word"),
-        "C315: Should contain ks_sub_word function"
-    );
+    assert!(code.contains("fn ks_sub_word"), "C315: Should contain ks_sub_word function");
 }
 
 // ============================================================================
@@ -1299,17 +1208,10 @@ int authenticate_and_verify(const uint8_t key[16],
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C316: MAC tag verification should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C316: MAC tag verification should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C316: Output should not be empty");
-    assert!(
-        code.contains("fn mac_verify_ct"),
-        "C316: Should contain mac_verify_ct function"
-    );
+    assert!(code.contains("fn mac_verify_ct"), "C316: Should contain mac_verify_ct function");
     assert!(
         code.contains("fn authenticate_and_verify"),
         "C316: Should contain authenticate_and_verify function"
@@ -1376,14 +1278,8 @@ void nonce_gen_reset(nonce_gen_t *ng) {
     );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C317: Output should not be empty");
-    assert!(
-        code.contains("fn nonce_gen_next"),
-        "C317: Should contain nonce_gen_next function"
-    );
-    assert!(
-        code.contains("fn nonce_gen_init"),
-        "C317: Should contain nonce_gen_init function"
-    );
+    assert!(code.contains("fn nonce_gen_next"), "C317: Should contain nonce_gen_next function");
+    assert!(code.contains("fn nonce_gen_init"), "C317: Should contain nonce_gen_init function");
 }
 
 #[test]
@@ -1441,17 +1337,10 @@ void secure_buffer_destroy(secure_buffer_t *sb) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C318: Secure memory zeroing should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C318: Secure memory zeroing should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C318: Output should not be empty");
-    assert!(
-        code.contains("fn secure_zero"),
-        "C318: Should contain secure_zero function"
-    );
+    assert!(code.contains("fn secure_zero"), "C318: Should contain secure_zero function");
     assert!(
         code.contains("fn secure_buffer_destroy"),
         "C318: Should contain secure_buffer_destroy function"
@@ -1540,17 +1429,10 @@ int asn1_count_sequence_items(const uint8_t *data, int data_len) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C319: ASN.1 DER TLV parser should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C319: ASN.1 DER TLV parser should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C319: Output should not be empty");
-    assert!(
-        code.contains("fn asn1_parse_tlv"),
-        "C319: Should contain asn1_parse_tlv function"
-    );
+    assert!(code.contains("fn asn1_parse_tlv"), "C319: Should contain asn1_parse_tlv function");
     assert!(
         code.contains("fn asn1_count_sequence_items"),
         "C319: Should contain asn1_count_sequence_items function"
@@ -1636,14 +1518,8 @@ int password_verify(const uint8_t *password, int pass_len,
     );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C320: Output should not be empty");
-    assert!(
-        code.contains("fn password_hash"),
-        "C320: Should contain password_hash function"
-    );
-    assert!(
-        code.contains("fn password_verify"),
-        "C320: Should contain password_verify function"
-    );
+    assert!(code.contains("fn password_hash"), "C320: Should contain password_hash function");
+    assert!(code.contains("fn password_verify"), "C320: Should contain password_verify function");
 }
 
 // ============================================================================
@@ -1716,10 +1592,7 @@ int dh_key_exchange_selftest(void) {
     );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C321: Output should not be empty");
-    assert!(
-        code.contains("fn dh_init"),
-        "C321: Should contain dh_init function"
-    );
+    assert!(code.contains("fn dh_init"), "C321: Should contain dh_init function");
     assert!(
         code.contains("fn dh_compute_shared_secret"),
         "C321: Should contain dh_compute_shared_secret function"
@@ -1803,21 +1676,11 @@ int totp_verify(const uint8_t *key, int key_len,
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C322: TOTP generation should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C322: TOTP generation should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C322: Output should not be empty");
-    assert!(
-        code.contains("fn totp_generate"),
-        "C322: Should contain totp_generate function"
-    );
-    assert!(
-        code.contains("fn totp_verify"),
-        "C322: Should contain totp_verify function"
-    );
+    assert!(code.contains("fn totp_generate"), "C322: Should contain totp_generate function");
+    assert!(code.contains("fn totp_verify"), "C322: Should contain totp_verify function");
 }
 
 #[test]
@@ -1896,10 +1759,7 @@ int x509_extract_serial(const uint8_t *tbs, int tbs_len, x509_field_t *serial) {
     );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C323: Output should not be empty");
-    assert!(
-        code.contains("fn x509_read_length"),
-        "C323: Should contain x509_read_length function"
-    );
+    assert!(code.contains("fn x509_read_length"), "C323: Should contain x509_read_length function");
     assert!(
         code.contains("fn x509_extract_serial"),
         "C323: Should contain x509_extract_serial function"
@@ -1978,17 +1838,10 @@ int entropy_pool_has_enough(const entropy_pool_t *ep, int needed_bits) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C324: Entropy pool mixing should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C324: Entropy pool mixing should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C324: Output should not be empty");
-    assert!(
-        code.contains("fn entropy_pool_add"),
-        "C324: Should contain entropy_pool_add function"
-    );
+    assert!(code.contains("fn entropy_pool_add"), "C324: Should contain entropy_pool_add function");
     assert!(
         code.contains("fn entropy_pool_extract"),
         "C324: Should contain entropy_pool_extract function"
@@ -2064,10 +1917,7 @@ int ct_array_contains(const uint8_t *arr, int len, uint8_t target) {
     );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C325: Output should not be empty");
-    assert!(
-        code.contains("fn ct_table_lookup"),
-        "C325: Should contain ct_table_lookup function"
-    );
+    assert!(code.contains("fn ct_table_lookup"), "C325: Should contain ct_table_lookup function");
     assert!(
         code.contains("fn ct_conditional_swap"),
         "C325: Should contain ct_conditional_swap function"

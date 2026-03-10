@@ -9,9 +9,7 @@
 //! - process_ast_to_rust (via transpile_from_file_path)
 //! - Struct/enum/typedef deduplication
 
-use decy_core::{
-    DependencyGraph, ProjectContext, TranspilationCache, TranspiledFile,
-};
+use decy_core::{DependencyGraph, ProjectContext, TranspilationCache, TranspiledFile};
 use std::path::PathBuf;
 use tempfile::TempDir;
 
@@ -70,10 +68,7 @@ fn core_coverage_transpile_with_trace_multiple_functions() {
 
     // Check trace records line count
     let json = trace.to_json();
-    assert!(
-        json.contains("lines of Rust"),
-        "Completion entry should mention line count"
-    );
+    assert!(json.contains("lines of Rust"), "Completion entry should mention line count");
 }
 
 #[test]
@@ -165,10 +160,7 @@ fn core_coverage_global_unsigned_int_default() {
     let result = decy_core::transpile(c_code);
     assert!(result.is_ok());
     let code = result.unwrap();
-    assert!(
-        code.contains("static mut flags"),
-        "Should declare flags as static mut"
-    );
+    assert!(code.contains("static mut flags"), "Should declare flags as static mut");
 }
 
 #[test]
@@ -445,10 +437,7 @@ fn core_coverage_deterministic_function_order() {
     let aaa_pos = code.find("fn aaa_first").unwrap_or(usize::MAX);
     let mmm_pos = code.find("fn mmm_middle").unwrap_or(usize::MAX);
     let zzz_pos = code.find("fn zzz_last").unwrap_or(usize::MAX);
-    assert!(
-        aaa_pos < mmm_pos && mmm_pos < zzz_pos,
-        "Functions should be sorted alphabetically"
-    );
+    assert!(aaa_pos < mmm_pos && mmm_pos < zzz_pos, "Functions should be sorted alphabetically");
 }
 
 // ============================================================================
@@ -603,16 +592,8 @@ fn core_coverage_preprocess_local_include_circular() {
 
     // Create two headers that reference each other
     // a.h includes b.h, b.h includes a.h
-    let _a = create_temp_c_file(
-        &temp,
-        "a.h",
-        "#include \"b.h\"\nint func_a();",
-    );
-    let _b = create_temp_c_file(
-        &temp,
-        "b.h",
-        "#include \"a.h\"\nint func_b();",
-    );
+    let _a = create_temp_c_file(&temp, "a.h", "#include \"b.h\"\nint func_a();");
+    let _b = create_temp_c_file(&temp, "b.h", "#include \"a.h\"\nint func_b();");
 
     let c_code = r#"
         #include "a.h"
@@ -628,11 +609,7 @@ fn core_coverage_preprocess_nested_include() {
     let temp = TempDir::new().unwrap();
 
     let _inner = create_temp_c_file(&temp, "inner.h", "int inner_func();");
-    let _outer = create_temp_c_file(
-        &temp,
-        "outer.h",
-        "#include \"inner.h\"\nint outer_func();",
-    );
+    let _outer = create_temp_c_file(&temp, "outer.h", "#include \"inner.h\"\nint outer_func();");
 
     let c_code = r#"
         #include "outer.h"
@@ -823,10 +800,7 @@ fn core_coverage_extern_with_initializer_kept() {
 fn core_coverage_errno_global() {
     let c_code = "int main() { return 0; }";
     let result = decy_core::transpile(c_code).unwrap();
-    assert!(
-        result.contains("ERRNO"),
-        "Should always include ERRNO global variable"
-    );
+    assert!(result.contains("ERRNO"), "Should always include ERRNO global variable");
 }
 
 // ============================================================================

@@ -78,10 +78,7 @@ fn test_hir_typedef_accessors() {
 
 #[test]
 fn test_hir_typedef_clone_and_debug() {
-    let td = HirTypedef::new(
-        "int_ptr".to_string(),
-        HirType::Pointer(Box::new(HirType::Int)),
-    );
+    let td = HirTypedef::new("int_ptr".to_string(), HirType::Pointer(Box::new(HirType::Int)));
     let cloned = td.clone();
     assert_eq!(cloned.name(), td.name());
 
@@ -95,11 +92,7 @@ fn test_hir_typedef_clone_and_debug() {
 
 #[test]
 fn test_hir_constant_accessors() {
-    let c = HirConstant::new(
-        "MAX".to_string(),
-        HirType::Int,
-        HirExpression::IntLiteral(100),
-    );
+    let c = HirConstant::new("MAX".to_string(), HirType::Int, HirExpression::IntLiteral(100));
     assert_eq!(c.name(), "MAX");
     assert_eq!(c.const_type(), &HirType::Int);
 }
@@ -186,10 +179,8 @@ fn test_hir_statement_variable_declaration() {
 
 #[test]
 fn test_hir_statement_assignment() {
-    let stmt = HirStatement::Assignment {
-        target: "x".to_string(),
-        value: HirExpression::IntLiteral(42),
-    };
+    let stmt =
+        HirStatement::Assignment { target: "x".to_string(), value: HirExpression::IntLiteral(42) };
 
     if let HirStatement::Assignment { target, value } = stmt {
         assert_eq!(target, "x");
@@ -232,10 +223,7 @@ fn test_hir_statement_if_else() {
 
 #[test]
 fn test_hir_statement_while() {
-    let stmt = HirStatement::While {
-        condition: HirExpression::IntLiteral(1),
-        body: vec![],
-    };
+    let stmt = HirStatement::While { condition: HirExpression::IntLiteral(1), body: vec![] };
 
     assert!(matches!(stmt, HirStatement::While { .. }));
 }
@@ -335,11 +323,7 @@ fn test_hir_expression_function_call() {
         arguments: vec![HirExpression::IntLiteral(1)],
     };
 
-    if let HirExpression::FunctionCall {
-        function,
-        arguments,
-    } = expr
-    {
+    if let HirExpression::FunctionCall { function, arguments } = expr {
         assert_eq!(function, "test");
         assert_eq!(arguments.len(), 1);
     }
@@ -381,9 +365,7 @@ fn test_hir_expression_cast() {
 
 #[test]
 fn test_hir_expression_sizeof() {
-    let sizeof_type = HirExpression::Sizeof {
-        type_name: "int".to_string(),
-    };
+    let sizeof_type = HirExpression::Sizeof { type_name: "int".to_string() };
     assert!(matches!(sizeof_type, HirExpression::Sizeof { .. }));
 }
 
@@ -472,10 +454,8 @@ fn test_unary_operators_all() {
 
 #[test]
 fn test_switch_case_fields() {
-    let case = SwitchCase {
-        value: Some(HirExpression::IntLiteral(1)),
-        body: vec![HirStatement::Break],
-    };
+    let case =
+        SwitchCase { value: Some(HirExpression::IntLiteral(1)), body: vec![HirStatement::Break] };
     assert!(matches!(case.value, Some(HirExpression::IntLiteral(1))));
     assert_eq!(case.body.len(), 1);
 }

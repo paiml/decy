@@ -49,23 +49,11 @@ pub fn visualize_c_ast(file_path: &Path, use_colors: bool) -> Result<String> {
     output.push('\n');
 
     // File info
-    let file_label = if use_colors {
-        "File:".bold().to_string()
-    } else {
-        "File:".to_string()
-    };
+    let file_label = if use_colors { "File:".bold().to_string() } else { "File:".to_string() };
     output.push_str(&format!("{} {}\n", file_label, file_path.display()));
 
-    let size_label = if use_colors {
-        "Size:".bold().to_string()
-    } else {
-        "Size:".to_string()
-    };
-    output.push_str(&format!(
-        "{} {} lines\n",
-        size_label,
-        source.lines().count()
-    ));
+    let size_label = if use_colors { "Size:".bold().to_string() } else { "Size:".to_string() };
+    output.push_str(&format!("{} {} lines\n", size_label, source.lines().count()));
     output.push('\n');
 
     // Source code preview
@@ -106,11 +94,8 @@ pub fn visualize_c_ast(file_path: &Path, use_colors: bool) -> Result<String> {
     };
     output.push_str(&format!("{}\n", stats_header));
 
-    let func_count_label = if use_colors {
-        "Functions:".bold().to_string()
-    } else {
-        "Functions:".to_string()
-    };
+    let func_count_label =
+        if use_colors { "Functions:".bold().to_string() } else { "Functions:".to_string() };
     output.push_str(&format!("  {} {}\n", func_count_label, functions.len()));
 
     let total_statements: usize = functions.iter().map(|f| f.body.len()).sum();
@@ -129,10 +114,7 @@ fn format_function(function: &Function, depth: usize, output: &mut String, use_c
     let indent = "  ".repeat(depth);
 
     let node_type = if use_colors {
-        format!("Function: {}", function.name)
-            .green()
-            .bold()
-            .to_string()
+        format!("Function: {}", function.name).green().bold().to_string()
     } else {
         format!("Function: {}", function.name)
     };
@@ -150,11 +132,8 @@ fn format_function(function: &Function, depth: usize, output: &mut String, use_c
 
     // Parameters
     if !function.parameters.is_empty() {
-        let params_label = if use_colors {
-            "Parameters:".blue().to_string()
-        } else {
-            "Parameters:".to_string()
-        };
+        let params_label =
+            if use_colors { "Parameters:".blue().to_string() } else { "Parameters:".to_string() };
         output.push_str(&format!("{}  {} ", indent, params_label));
 
         for (i, param) in function.parameters.iter().enumerate() {
@@ -168,11 +147,7 @@ fn format_function(function: &Function, depth: usize, output: &mut String, use_c
 
     // Body statements
     if !function.body.is_empty() {
-        let body_label = if use_colors {
-            "Body:".cyan().to_string()
-        } else {
-            "Body:".to_string()
-        };
+        let body_label = if use_colors { "Body:".cyan().to_string() } else { "Body:".to_string() };
         output.push_str(&format!("{}  {}\n", indent, body_label));
 
         for stmt in &function.body {
@@ -187,11 +162,7 @@ fn format_statement(stmt: &Statement, depth: usize, output: &mut String, use_col
 
     let stmt_str = match stmt {
         Statement::Return(Some(expr)) => {
-            let label = if use_colors {
-                "Return".red().to_string()
-            } else {
-                "Return".to_string()
-            };
+            let label = if use_colors { "Return".red().to_string() } else { "Return".to_string() };
             format!("{}: {}", label, format_expression(expr, use_colors))
         }
         Statement::Return(None) => {
@@ -207,24 +178,11 @@ fn format_statement(stmt: &Statement, depth: usize, output: &mut String, use_col
             } else {
                 "Assignment".to_string()
             };
-            format!(
-                "{}: {} = {}",
-                label,
-                target,
-                format_expression(value, use_colors)
-            )
+            format!("{}: {} = {}", label, target, format_expression(value, use_colors))
         }
-        Statement::If {
-            condition,
-            then_block,
-            else_block,
-        } => {
+        Statement::If { condition, then_block, else_block } => {
             let mut s = if use_colors {
-                format!(
-                    "{}: {}",
-                    "If".magenta(),
-                    format_expression(condition, use_colors)
-                )
+                format!("{}: {}", "If".magenta(), format_expression(condition, use_colors))
             } else {
                 format!("If: {}", format_expression(condition, use_colors))
             };
@@ -238,11 +196,8 @@ fn format_statement(stmt: &Statement, depth: usize, output: &mut String, use_col
             s
         }
         Statement::While { condition, body } => {
-            let label = if use_colors {
-                "While".magenta().to_string()
-            } else {
-                "While".to_string()
-            };
+            let label =
+                if use_colors { "While".magenta().to_string() } else { "While".to_string() };
             format!(
                 "{}: {} ({} stmts)",
                 label,
@@ -250,17 +205,8 @@ fn format_statement(stmt: &Statement, depth: usize, output: &mut String, use_col
                 body.len()
             )
         }
-        Statement::For {
-            init,
-            condition,
-            increment,
-            body,
-        } => {
-            let label = if use_colors {
-                "For".magenta().to_string()
-            } else {
-                "For".to_string()
-            };
+        Statement::For { init, condition, increment, body } => {
+            let label = if use_colors { "For".magenta().to_string() } else { "For".to_string() };
             format!(
                 "{}: init={:?}, cond={:?}, inc={:?} ({} stmts)",
                 label,
@@ -270,16 +216,9 @@ fn format_statement(stmt: &Statement, depth: usize, output: &mut String, use_col
                 body.len()
             )
         }
-        Statement::VariableDeclaration {
-            name,
-            var_type,
-            initializer,
-        } => {
-            let label = if use_colors {
-                "VarDecl".cyan().to_string()
-            } else {
-                "VarDecl".to_string()
-            };
+        Statement::VariableDeclaration { name, var_type, initializer } => {
+            let label =
+                if use_colors { "VarDecl".cyan().to_string() } else { "VarDecl".to_string() };
             let mut s = format!("{}: {:?} {}", label, var_type, name);
             if let Some(init) = initializer {
                 s.push_str(&format!(" = {}", format_expression(init, use_colors)));
@@ -317,10 +256,7 @@ fn format_expression(expr: &Expression, use_colors: bool) -> String {
                 format_expression(right, use_colors)
             )
         }
-        Expression::FunctionCall {
-            function,
-            arguments,
-        } => {
+        Expression::FunctionCall { function, arguments } => {
             let args_str = arguments
                 .iter()
                 .map(|arg| format_expression(arg, use_colors))
@@ -392,11 +328,8 @@ mod tests {
     #[test]
     fn test_visualize_while_loop() {
         let mut temp_file = NamedTempFile::new().unwrap();
-        writeln!(
-            temp_file,
-            "int main() {{ int x = 10; while (x) {{ x = x - 1; }} return 0; }}"
-        )
-        .unwrap();
+        writeln!(temp_file, "int main() {{ int x = 10; while (x) {{ x = x - 1; }} return 0; }}")
+            .unwrap();
 
         let result = visualize_c_ast(temp_file.path(), false);
         assert!(result.is_ok());
@@ -422,11 +355,7 @@ mod tests {
     #[test]
     fn test_visualize_variable_declaration() {
         let mut temp_file = NamedTempFile::new().unwrap();
-        writeln!(
-            temp_file,
-            "int main() {{ int x = 42; int y = x + 1; return y; }}"
-        )
-        .unwrap();
+        writeln!(temp_file, "int main() {{ int x = 42; int y = x + 1; return y; }}").unwrap();
 
         let result = visualize_c_ast(temp_file.path(), false);
         assert!(result.is_ok());
@@ -437,11 +366,7 @@ mod tests {
     #[test]
     fn test_visualize_assignment() {
         let mut temp_file = NamedTempFile::new().unwrap();
-        writeln!(
-            temp_file,
-            "int main() {{ int x = 0; x = 42; return x; }}"
-        )
-        .unwrap();
+        writeln!(temp_file, "int main() {{ int x = 0; x = 42; return x; }}").unwrap();
 
         let result = visualize_c_ast(temp_file.path(), false);
         assert!(result.is_ok());
@@ -466,11 +391,7 @@ mod tests {
     #[test]
     fn test_visualize_multiple_parameters() {
         let mut temp_file = NamedTempFile::new().unwrap();
-        writeln!(
-            temp_file,
-            "int add3(int a, int b, int c) {{ return a + b + c; }}"
-        )
-        .unwrap();
+        writeln!(temp_file, "int add3(int a, int b, int c) {{ return a + b + c; }}").unwrap();
 
         let result = visualize_c_ast(temp_file.path(), false);
         assert!(result.is_ok());
@@ -490,11 +411,7 @@ mod tests {
     #[test]
     fn test_visualize_statistics() {
         let mut temp_file = NamedTempFile::new().unwrap();
-        writeln!(
-            temp_file,
-            "int f1() {{ return 1; }}\nint f2() {{ return 2; }}"
-        )
-        .unwrap();
+        writeln!(temp_file, "int f1() {{ return 1; }}\nint f2() {{ return 2; }}").unwrap();
 
         let result = visualize_c_ast(temp_file.path(), false);
         assert!(result.is_ok());
@@ -644,10 +561,8 @@ mod tests {
 
     #[test]
     fn test_format_statement_assignment_no_colors() {
-        let stmt = Statement::Assignment {
-            target: "x".to_string(),
-            value: Expression::IntLiteral(42),
-        };
+        let stmt =
+            Statement::Assignment { target: "x".to_string(), value: Expression::IntLiteral(42) };
         let mut output = String::new();
         format_statement(&stmt, 0, &mut output, false);
         assert!(output.contains("Assignment"));
@@ -761,13 +676,8 @@ mod tests {
         let function = Function {
             name: "test_fn".to_string(),
             return_type: decy_parser::Type::Int,
-            parameters: vec![decy_parser::Parameter::new(
-                "x".to_string(),
-                decy_parser::Type::Int,
-            )],
-            body: vec![Statement::Return(Some(Expression::Variable(
-                "x".to_string(),
-            )))],
+            parameters: vec![decy_parser::Parameter::new("x".to_string(), decy_parser::Type::Int)],
+            body: vec![Statement::Return(Some(Expression::Variable("x".to_string())))],
         };
         let mut output = String::new();
         format_function(&function, 0, &mut output, true);

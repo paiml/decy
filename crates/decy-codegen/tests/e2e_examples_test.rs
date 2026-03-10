@@ -21,12 +21,7 @@ use std::process::Command;
 
 /// Get the workspace root directory dynamically
 fn workspace_root() -> PathBuf {
-    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .parent()
-        .unwrap()
-        .parent()
-        .unwrap()
-        .to_path_buf()
+    PathBuf::from(env!("CARGO_MANIFEST_DIR")).parent().unwrap().parent().unwrap().to_path_buf()
 }
 
 /// Known issues that are documented but don't fail the test suite.
@@ -105,10 +100,7 @@ fn transpile_and_compile(c_file: &Path) -> Result<(), String> {
 
     if !compile_output.status.success() {
         let stderr = String::from_utf8_lossy(&compile_output.stderr);
-        return Err(format!(
-            "Compile failed:\nRust code:\n{}\n\nErrors:\n{}",
-            rust_code, stderr
-        ));
+        return Err(format!("Compile failed:\nRust code:\n{}\n\nErrors:\n{}", rust_code, stderr));
     }
 
     Ok(())
@@ -140,20 +132,13 @@ fn test_simple_examples_compile() {
         }
     }
 
-    println!(
-        "\nSimple examples: {}/{} passed",
-        passed,
-        passed + failed.len()
-    );
+    println!("\nSimple examples: {}/{} passed", passed, passed + failed.len());
 
     if !failed.is_empty() {
         for (path, error) in &failed {
             eprintln!("\n=== {} ===\n{}", path.display(), error);
         }
-        panic!(
-            "DECY-145: {} simple example(s) failed to compile",
-            failed.len()
-        );
+        panic!("DECY-145: {} simple example(s) failed to compile", failed.len());
     }
 }
 
@@ -183,20 +168,13 @@ fn test_data_structure_examples_compile() {
         }
     }
 
-    println!(
-        "\nData structure examples: {}/{} passed",
-        passed,
-        passed + failed.len()
-    );
+    println!("\nData structure examples: {}/{} passed", passed, passed + failed.len());
 
     if !failed.is_empty() {
         for (path, error) in &failed {
             eprintln!("\n=== {} ===\n{}", path.display(), error);
         }
-        panic!(
-            "DECY-145: {} data structure example(s) failed to compile",
-            failed.len()
-        );
+        panic!("DECY-145: {} data structure example(s) failed to compile", failed.len());
     }
 }
 
@@ -226,19 +204,12 @@ fn test_moderate_examples_compile() {
         }
     }
 
-    println!(
-        "\nModerate examples: {}/{} passed",
-        passed,
-        passed + failed.len()
-    );
+    println!("\nModerate examples: {}/{} passed", passed, passed + failed.len());
 
     // Document failures but don't fail test for moderate examples
     // These are more complex and may have known issues
     if !failed.is_empty() {
-        println!(
-            "\nNOTE: {} moderate example(s) failed (documented, not blocking)",
-            failed.len()
-        );
+        println!("\nNOTE: {} moderate example(s) failed (documented, not blocking)", failed.len());
         for (path, _) in &failed {
             println!("  - {}", path.file_name().unwrap().to_string_lossy());
         }
@@ -342,12 +313,7 @@ fn test_string_examples_compile() {
     }
 
     let total = passed + known_failed.len() + unexpected_failed.len();
-    println!(
-        "\nString examples: {}/{} passed, {} known issues",
-        passed,
-        total,
-        known_failed.len()
-    );
+    println!("\nString examples: {}/{} passed, {} known issues", passed, total, known_failed.len());
 
     // Document known issues
     if !known_failed.is_empty() {
@@ -362,24 +328,15 @@ fn test_string_examples_compile() {
         for (path, error) in &unexpected_failed {
             eprintln!("\n=== {} ===\n{}", path.display(), error);
         }
-        panic!(
-            "DECY-145: {} string example(s) failed unexpectedly",
-            unexpected_failed.len()
-        );
+        panic!("DECY-145: {} string example(s) failed unexpectedly", unexpected_failed.len());
     }
 }
 
 /// Summary test that counts total pass/fail across all example directories
 #[test]
 fn test_example_corpus_summary() {
-    let dirs = [
-        "simple",
-        "data_structures",
-        "moderate",
-        "pointer_arithmetic",
-        "strings",
-        "real-world",
-    ];
+    let dirs =
+        ["simple", "data_structures", "moderate", "pointer_arithmetic", "strings", "real-world"];
     let known_issues = known_issue_files();
 
     let mut total_passed = 0;

@@ -40,10 +40,7 @@ fn test_detect_simple_output_parameter() {
 
     let func = create_test_function(
         "parse",
-        vec![
-            create_char_pointer_param("input"),
-            create_pointer_param("result"),
-        ],
+        vec![create_char_pointer_param("input"), create_pointer_param("result")],
         HirType::Int,
         vec![
             // *result = 42
@@ -87,9 +84,9 @@ fn test_input_parameter_not_detected_as_output() {
             HirStatement::VariableDeclaration {
                 name: "old".to_string(),
                 var_type: HirType::Int,
-                initializer: Some(HirExpression::Dereference(Box::new(
-                    HirExpression::Variable("value".to_string()),
-                ))),
+                initializer: Some(HirExpression::Dereference(Box::new(HirExpression::Variable(
+                    "value".to_string(),
+                )))),
             },
             // *value = old + 1
             HirStatement::DerefAssignment {
@@ -172,10 +169,7 @@ fn test_fallible_operation_detection() {
 
     let func = create_test_function(
         "try_parse",
-        vec![
-            create_char_pointer_param("input"),
-            create_pointer_param("result"),
-        ],
+        vec![create_char_pointer_param("input"), create_pointer_param("result")],
         HirType::Int,
         vec![
             HirStatement::If {
@@ -200,10 +194,7 @@ fn test_fallible_operation_detection() {
 
     assert_eq!(output_params.len(), 1);
     assert_eq!(output_params[0].name, "result");
-    assert!(
-        output_params[0].is_fallible,
-        "Should detect fallible operation"
-    );
+    assert!(output_params[0].is_fallible, "Should detect fallible operation");
 }
 
 // ============================================================================
@@ -256,11 +247,7 @@ fn test_parameter_not_written_not_detected() {
     let detector = OutputParamDetector::new();
     let output_params = detector.detect(&func);
 
-    assert_eq!(
-        output_params.len(),
-        0,
-        "Unwritten parameter should not be detected"
-    );
+    assert_eq!(output_params.len(), 0, "Unwritten parameter should not be detected");
 }
 
 // ============================================================================
@@ -279,10 +266,7 @@ fn test_conditional_write_detected_as_output() {
 
     let func = create_test_function(
         "maybe_write",
-        vec![
-            HirParameter::new("flag".to_string(), HirType::Int),
-            create_pointer_param("result"),
-        ],
+        vec![HirParameter::new("flag".to_string(), HirType::Int), create_pointer_param("result")],
         HirType::Int,
         vec![
             HirStatement::If {
@@ -332,11 +316,7 @@ fn test_non_pointer_not_detected() {
     let detector = OutputParamDetector::new();
     let output_params = detector.detect(&func);
 
-    assert_eq!(
-        output_params.len(),
-        0,
-        "Non-pointer parameters should not be detected"
-    );
+    assert_eq!(output_params.len(), 0, "Non-pointer parameters should not be detected");
 }
 
 // ============================================================================
@@ -354,19 +334,15 @@ fn test_pointer_read_only_not_output() {
         "read_value",
         vec![create_pointer_param("ptr")],
         HirType::Int,
-        vec![HirStatement::Return(Some(HirExpression::Dereference(
-            Box::new(HirExpression::Variable("ptr".to_string())),
-        )))],
+        vec![HirStatement::Return(Some(HirExpression::Dereference(Box::new(
+            HirExpression::Variable("ptr".to_string()),
+        ))))],
     );
 
     let detector = OutputParamDetector::new();
     let output_params = detector.detect(&func);
 
-    assert_eq!(
-        output_params.len(),
-        0,
-        "Read-only pointer should not be output"
-    );
+    assert_eq!(output_params.len(), 0, "Read-only pointer should not be output");
 }
 
 // ============================================================================
@@ -394,9 +370,7 @@ fn test_double_pointer_output() {
             HirStatement::DerefAssignment {
                 target: HirExpression::Variable("obj".to_string()),
                 value: HirExpression::Malloc {
-                    size: Box::new(HirExpression::Sizeof {
-                        type_name: "Object".to_string(),
-                    }),
+                    size: Box::new(HirExpression::Sizeof { type_name: "Object".to_string() }),
                 },
             },
             HirStatement::Return(Some(HirExpression::IntLiteral(0))),
@@ -421,12 +395,8 @@ fn test_output_param_detector_default() {
 
 #[test]
 fn test_detect_no_parameters() {
-    let func = create_test_function(
-        "noop",
-        vec![],
-        HirType::Void,
-        vec![HirStatement::Return(None)],
-    );
+    let func =
+        create_test_function("noop", vec![], HirType::Void, vec![HirStatement::Return(None)]);
     let detector = OutputParamDetector::new();
     assert!(detector.detect(&func).is_empty());
 }

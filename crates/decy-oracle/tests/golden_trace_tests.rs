@@ -57,12 +57,8 @@ fn test_golden_trace_has_unique_id() {
 
 #[test]
 fn test_golden_trace_has_timestamp() {
-    let trace = GoldenTrace::new(
-        "int x;".to_string(),
-        "let x: i32;".to_string(),
-        TraceTier::P0,
-        "test.c",
-    );
+    let trace =
+        GoldenTrace::new("int x;".to_string(), "let x: i32;".to_string(), TraceTier::P0, "test.c");
 
     assert!(!trace.metadata.generated_at.is_empty());
     // Should be ISO 8601 format
@@ -71,12 +67,8 @@ fn test_golden_trace_has_timestamp() {
 
 #[test]
 fn test_golden_trace_has_decy_version() {
-    let trace = GoldenTrace::new(
-        "int x;".to_string(),
-        "let x: i32;".to_string(),
-        TraceTier::P0,
-        "test.c",
-    );
+    let trace =
+        GoldenTrace::new("int x;".to_string(), "let x: i32;".to_string(), TraceTier::P0, "test.c");
 
     assert!(!trace.metadata.decy_version.is_empty());
 }
@@ -137,10 +129,7 @@ fn test_add_transformation_malloc_to_box() {
     });
 
     assert_eq!(trace.metadata.transformations.len(), 1);
-    assert!(matches!(
-        trace.metadata.transformations[0].kind,
-        TransformationKind::MallocToBox
-    ));
+    assert!(matches!(trace.metadata.transformations[0].kind, TransformationKind::MallocToBox));
 }
 
 #[test]
@@ -173,19 +162,12 @@ fn test_add_multiple_transformations() {
 
 #[test]
 fn test_set_explanation() {
-    let mut trace = GoldenTrace::new(
-        "int x;".to_string(),
-        "let x: i32;".to_string(),
-        TraceTier::P0,
-        "test.c",
-    );
+    let mut trace =
+        GoldenTrace::new("int x;".to_string(), "let x: i32;".to_string(), TraceTier::P0, "test.c");
 
     trace.set_explanation("Direct translation of integer declaration.".to_string());
 
-    assert_eq!(
-        trace.safety_explanation,
-        "Direct translation of integer declaration."
-    );
+    assert_eq!(trace.safety_explanation, "Direct translation of integer declaration.");
 }
 
 #[test]
@@ -280,12 +262,8 @@ fn test_to_chatml_format() {
 
 #[test]
 fn test_chatml_has_system_prompt() {
-    let trace = GoldenTrace::new(
-        "int x;".to_string(),
-        "let x: i32;".to_string(),
-        TraceTier::P0,
-        "test.c",
-    );
+    let trace =
+        GoldenTrace::new("int x;".to_string(), "let x: i32;".to_string(), TraceTier::P0, "test.c");
 
     let chatml = trace.to_chatml();
 
@@ -310,20 +288,13 @@ fn test_to_alpaca_format() {
 
     assert!(alpaca["instruction"].as_str().is_some());
     assert_eq!(alpaca["input"], "int x = 10;");
-    assert!(alpaca["output"]
-        .as_str()
-        .unwrap()
-        .contains("let x: i32 = 10;"));
+    assert!(alpaca["output"].as_str().unwrap().contains("let x: i32 = 10;"));
 }
 
 #[test]
 fn test_alpaca_has_metadata() {
-    let trace = GoldenTrace::new(
-        "int x;".to_string(),
-        "let x: i32;".to_string(),
-        TraceTier::P1,
-        "test.c",
-    );
+    let trace =
+        GoldenTrace::new("int x;".to_string(), "let x: i32;".to_string(), TraceTier::P1, "test.c");
 
     let alpaca = trace.to_alpaca();
 
@@ -347,12 +318,8 @@ fn test_dataset_creation() {
 fn test_dataset_add_trace() {
     let mut dataset = GoldenTraceDataset::new();
 
-    let trace = GoldenTrace::new(
-        "int x;".to_string(),
-        "let x: i32;".to_string(),
-        TraceTier::P0,
-        "test.c",
-    );
+    let trace =
+        GoldenTrace::new("int x;".to_string(), "let x: i32;".to_string(), TraceTier::P0, "test.c");
 
     dataset.add_trace(trace);
 

@@ -32,11 +32,7 @@ fn test_single_void_ptr_becomes_generic() {
     let generator = CodeGenerator::new();
     let code = generator.generate_function(&func);
 
-    assert!(
-        code.contains("<T>"),
-        "Should generate generic type parameter:\n{}",
-        code
-    );
+    assert!(code.contains("<T>"), "Should generate generic type parameter:\n{}", code);
     assert!(
         code.contains("&T") || code.contains("&mut T"),
         "Should replace void* with reference to T:\n{}",
@@ -52,20 +48,13 @@ fn test_single_void_ptr_becomes_generic() {
 #[ignore = "DECY-096: Generic fn<T> generation not fully implemented"]
 fn test_two_void_ptr_same_generic() {
     // void swap(void* a, void* b) → fn swap<T>(a: &mut T, b: &mut T)
-    let func = create_void_ptr_function(
-        "swap",
-        vec![void_ptr_param("a"), void_ptr_param("b")],
-        vec![],
-    );
+    let func =
+        create_void_ptr_function("swap", vec![void_ptr_param("a"), void_ptr_param("b")], vec![]);
 
     let generator = CodeGenerator::new();
     let code = generator.generate_function(&func);
 
-    assert!(
-        code.contains("<T>"),
-        "Should have single generic T:\n{}",
-        code
-    );
+    assert!(code.contains("<T>"), "Should have single generic T:\n{}", code);
     // Both params should use same T
     let t_count = code.matches("&T").count() + code.matches("&mut T").count();
     assert!(t_count >= 2, "Both params should use T:\n{}", code);
@@ -93,11 +82,7 @@ fn test_void_ptr_write_becomes_mut_ref() {
     let generator = CodeGenerator::new();
     let code = generator.generate_function(&func);
 
-    assert!(
-        code.contains("&mut T"),
-        "Should generate &mut T for written param:\n{}",
-        code
-    );
+    assert!(code.contains("&mut T"), "Should generate &mut T for written param:\n{}", code);
 }
 
 // ============================================================================
@@ -111,12 +96,12 @@ fn test_void_ptr_read_becomes_ref() {
         "get_value".to_string(),
         HirType::Int,
         vec![void_ptr_param("data")],
-        vec![HirStatement::Return(Some(HirExpression::Dereference(
-            Box::new(HirExpression::Cast {
+        vec![HirStatement::Return(Some(HirExpression::Dereference(Box::new(
+            HirExpression::Cast {
                 expr: Box::new(HirExpression::Variable("data".to_string())),
                 target_type: HirType::Pointer(Box::new(HirType::Int)),
-            }),
-        )))],
+            },
+        ))))],
     );
 
     let generator = CodeGenerator::new();
@@ -145,11 +130,7 @@ fn test_no_void_ptr_no_generic() {
     let generator = CodeGenerator::new();
     let code = generator.generate_function(&func);
 
-    assert!(
-        !code.contains("<T>"),
-        "Should NOT generate generic for non-void* function:\n{}",
-        code
-    );
+    assert!(!code.contains("<T>"), "Should NOT generate generic for non-void* function:\n{}", code);
 }
 
 // ============================================================================

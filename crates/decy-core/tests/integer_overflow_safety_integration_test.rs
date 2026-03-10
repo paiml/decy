@@ -35,11 +35,7 @@ fn test_addition_overflow_prevention() {
     assert!(result.contains("fn main"), "Should have main function");
 
     let unsafe_count = result.matches("unsafe").count();
-    assert!(
-        unsafe_count <= 4,
-        "Addition should minimize unsafe (found {})",
-        unsafe_count
-    );
+    assert!(unsafe_count <= 4, "Addition should minimize unsafe (found {})", unsafe_count);
 }
 
 #[test]
@@ -60,11 +56,7 @@ fn test_subtraction_underflow_prevention() {
     assert!(result.contains("fn main"), "Should have main function");
 
     let unsafe_count = result.matches("unsafe").count();
-    assert!(
-        unsafe_count <= 4,
-        "Subtraction should minimize unsafe (found {})",
-        unsafe_count
-    );
+    assert!(unsafe_count <= 4, "Subtraction should minimize unsafe (found {})", unsafe_count);
 }
 
 #[test]
@@ -85,11 +77,7 @@ fn test_multiplication_overflow_prevention() {
     assert!(result.contains("fn main"), "Should have main function");
 
     let unsafe_count = result.matches("unsafe").count();
-    assert!(
-        unsafe_count <= 4,
-        "Multiplication should minimize unsafe (found {})",
-        unsafe_count
-    );
+    assert!(unsafe_count <= 4, "Multiplication should minimize unsafe (found {})", unsafe_count);
 }
 
 // ============================================================================
@@ -120,11 +108,7 @@ fn test_division_by_zero_check() {
     assert!(result.contains("fn main"), "Should have main function");
 
     let unsafe_count = result.matches("unsafe").count();
-    assert!(
-        unsafe_count <= 5,
-        "Division should minimize unsafe (found {})",
-        unsafe_count
-    );
+    assert!(unsafe_count <= 5, "Division should minimize unsafe (found {})", unsafe_count);
 }
 
 #[test]
@@ -151,11 +135,7 @@ fn test_modulo_by_zero_check() {
     assert!(result.contains("fn main"), "Should have main function");
 
     let unsafe_count = result.matches("unsafe").count();
-    assert!(
-        unsafe_count <= 5,
-        "Modulo should minimize unsafe (found {})",
-        unsafe_count
-    );
+    assert!(unsafe_count <= 5, "Modulo should minimize unsafe (found {})", unsafe_count);
 }
 
 // ============================================================================
@@ -179,11 +159,7 @@ fn test_negation_overflow() {
     assert!(result.contains("fn main"), "Should have main function");
 
     let unsafe_count = result.matches("unsafe").count();
-    assert!(
-        unsafe_count <= 4,
-        "Negation should minimize unsafe (found {})",
-        unsafe_count
-    );
+    assert!(unsafe_count <= 4, "Negation should minimize unsafe (found {})", unsafe_count);
 }
 
 // ============================================================================
@@ -211,11 +187,7 @@ fn test_loop_counter_overflow() {
     assert!(result.contains("fn main"), "Should have main function");
 
     let unsafe_count = result.matches("unsafe").count();
-    assert!(
-        unsafe_count <= 5,
-        "Loop counter should minimize unsafe (found {})",
-        unsafe_count
-    );
+    assert!(unsafe_count <= 5, "Loop counter should minimize unsafe (found {})", unsafe_count);
 }
 
 // ============================================================================
@@ -271,11 +243,7 @@ fn test_increment_overflow() {
     assert!(result.contains("fn main"), "Should have main function");
 
     let unsafe_count = result.matches("unsafe").count();
-    assert!(
-        unsafe_count <= 4,
-        "Increment should minimize unsafe (found {})",
-        unsafe_count
-    );
+    assert!(unsafe_count <= 4, "Increment should minimize unsafe (found {})", unsafe_count);
 }
 
 #[test]
@@ -298,11 +266,7 @@ fn test_decrement_underflow() {
     assert!(result.contains("fn main"), "Should have main function");
 
     let unsafe_count = result.matches("unsafe").count();
-    assert!(
-        unsafe_count <= 4,
-        "Decrement should minimize unsafe (found {})",
-        unsafe_count
-    );
+    assert!(unsafe_count <= 4, "Decrement should minimize unsafe (found {})", unsafe_count);
 }
 
 // ============================================================================
@@ -328,11 +292,7 @@ fn test_compound_addition_overflow() {
     assert!(result.contains("fn main"), "Should have main function");
 
     let unsafe_count = result.matches("unsafe").count();
-    assert!(
-        unsafe_count <= 4,
-        "Compound addition should minimize unsafe (found {})",
-        unsafe_count
-    );
+    assert!(unsafe_count <= 4, "Compound addition should minimize unsafe (found {})", unsafe_count);
 }
 
 #[test]
@@ -417,11 +377,7 @@ fn test_size_calculation_overflow() {
     assert!(result.contains("fn main"), "Should have main function");
 
     let unsafe_count = result.matches("unsafe").count();
-    assert!(
-        unsafe_count <= 4,
-        "Size calculation should minimize unsafe (found {})",
-        unsafe_count
-    );
+    assert!(unsafe_count <= 4, "Size calculation should minimize unsafe (found {})", unsafe_count);
 }
 
 // ============================================================================
@@ -452,11 +408,8 @@ fn test_unsafe_block_count_target() {
     let unsafe_count = result.matches("unsafe").count();
     let lines_of_code = result.lines().count();
 
-    let unsafe_per_1000 = if lines_of_code > 0 {
-        (unsafe_count as f64 / lines_of_code as f64) * 1000.0
-    } else {
-        0.0
-    };
+    let unsafe_per_1000 =
+        if lines_of_code > 0 { (unsafe_count as f64 / lines_of_code as f64) * 1000.0 } else { 0.0 };
 
     // Target: <=100 unsafe per 1000 LOC for integer overflow prevention
     assert!(
@@ -522,9 +475,5 @@ fn test_integer_overflow_safety_documentation() {
 
     // If unsafe blocks exist, they should be minimal
     let unsafe_count = result.matches("unsafe").count();
-    assert!(
-        unsafe_count < 10,
-        "Should have minimal unsafe blocks (found {})",
-        unsafe_count
-    );
+    assert!(unsafe_count < 10, "Should have minimal unsafe blocks (found {})", unsafe_count);
 }

@@ -28,17 +28,11 @@ fn defect_category_has_all_eight_variants() {
 
 #[test]
 fn defect_category_code_mapping() {
-    assert_eq!(
-        OwnershipDefect::PointerMisclassification.code(),
-        "DECY-O-001"
-    );
+    assert_eq!(OwnershipDefect::PointerMisclassification.code(), "DECY-O-001");
     assert_eq!(OwnershipDefect::LifetimeInferenceGap.code(), "DECY-O-002");
     assert_eq!(OwnershipDefect::DanglingPointerRisk.code(), "DECY-O-003");
     assert_eq!(OwnershipDefect::AliasViolation.code(), "DECY-O-004");
-    assert_eq!(
-        OwnershipDefect::UnsafeMinimizationFailure.code(),
-        "DECY-O-005"
-    );
+    assert_eq!(OwnershipDefect::UnsafeMinimizationFailure.code(), "DECY-O-005");
     assert_eq!(OwnershipDefect::ArraySliceMismatch.code(), "DECY-O-006");
     assert_eq!(OwnershipDefect::ResourceLeakPattern.code(), "DECY-O-007");
     assert_eq!(OwnershipDefect::MutabilityMismatch.code(), "DECY-O-008");
@@ -71,10 +65,7 @@ fn defect_category_from_code() {
         OwnershipDefect::from_code("DECY-O-001"),
         Some(OwnershipDefect::PointerMisclassification)
     );
-    assert_eq!(
-        OwnershipDefect::from_code("DECY-O-008"),
-        Some(OwnershipDefect::MutabilityMismatch)
-    );
+    assert_eq!(OwnershipDefect::from_code("DECY-O-008"), Some(OwnershipDefect::MutabilityMismatch));
     assert_eq!(OwnershipDefect::from_code("INVALID"), None);
 }
 
@@ -199,10 +190,7 @@ fn ownership_features_usage_patterns() {
 
 #[test]
 fn ownership_features_clone() {
-    let f1 = OwnershipFeatures::builder()
-        .pointer_depth(3)
-        .read_count(100)
-        .build();
+    let f1 = OwnershipFeatures::builder().pointer_depth(3).read_count(100).build();
     let f2 = f1.clone();
 
     assert_eq!(f1.pointer_depth, f2.pointer_depth);
@@ -239,10 +227,7 @@ fn inferred_ownership_variants() {
 fn inferred_ownership_to_rust_type() {
     assert_eq!(InferredOwnership::Owned.to_rust_type("i32"), "Box<i32>");
     assert_eq!(InferredOwnership::Borrowed.to_rust_type("i32"), "&i32");
-    assert_eq!(
-        InferredOwnership::BorrowedMut.to_rust_type("i32"),
-        "&mut i32"
-    );
+    assert_eq!(InferredOwnership::BorrowedMut.to_rust_type("i32"), "&mut i32");
     assert_eq!(InferredOwnership::Vec.to_rust_type("i32"), "Vec<i32>");
     assert_eq!(InferredOwnership::Slice.to_rust_type("i32"), "&[i32]");
 }
@@ -257,11 +242,8 @@ fn inferred_ownership_requires_unsafe() {
 #[test]
 fn inferred_ownership_confidence() {
     // Ownership with confidence score
-    let result = OwnershipPrediction {
-        kind: InferredOwnership::Owned,
-        confidence: 0.95,
-        fallback: None,
-    };
+    let result =
+        OwnershipPrediction { kind: InferredOwnership::Owned, confidence: 0.95, fallback: None };
     assert!(result.confidence > 0.65); // Above threshold
     assert!(result.is_confident());
 }
@@ -290,21 +272,15 @@ fn defect_category_serialize() {
 
 #[test]
 fn ownership_features_serialize() {
-    let features = OwnershipFeatures::builder()
-        .pointer_depth(1)
-        .const_qualified(true)
-        .build();
+    let features = OwnershipFeatures::builder().pointer_depth(1).const_qualified(true).build();
     let json = serde_json::to_string(&features).unwrap();
     assert!(json.contains("pointer_depth"));
 }
 
 #[test]
 fn ownership_prediction_serialize() {
-    let pred = OwnershipPrediction {
-        kind: InferredOwnership::Owned,
-        confidence: 0.9,
-        fallback: None,
-    };
+    let pred =
+        OwnershipPrediction { kind: InferredOwnership::Owned, confidence: 0.9, fallback: None };
     let json = serde_json::to_string(&pred).unwrap();
     let parsed: OwnershipPrediction = serde_json::from_str(&json).unwrap();
     assert_eq!(parsed.kind, InferredOwnership::Owned);
@@ -377,10 +353,7 @@ fn feature_extractor_const_reference() {
         "test",
         vec![make_param(
             "ptr",
-            HirType::Reference {
-                inner: Box::new(HirType::Int),
-                mutable: false,
-            },
+            HirType::Reference { inner: Box::new(HirType::Int), mutable: false },
         )],
         vec![],
         HirType::Void,
@@ -470,9 +443,7 @@ fn feature_extractor_deallocation_count() {
     let func = make_function(
         "test",
         vec![make_param("ptr", HirType::Pointer(Box::new(HirType::Int)))],
-        vec![HirStatement::Free {
-            pointer: decy_hir::HirExpression::Variable("ptr".to_string()),
-        }],
+        vec![HirStatement::Free { pointer: decy_hir::HirExpression::Variable("ptr".to_string()) }],
         HirType::Void,
     );
 
@@ -505,12 +476,7 @@ fn feature_extractor_null_checks() {
 #[test]
 fn feature_extractor_non_pointer_returns_none() {
     let extractor = FeatureExtractor::new();
-    let func = make_function(
-        "test",
-        vec![make_param("x", HirType::Int)],
-        vec![],
-        HirType::Void,
-    );
+    let func = make_function("test", vec![make_param("x", HirType::Int)], vec![], HirType::Void);
 
     let features = extractor.extract_for_parameter(&func, "x");
     assert!(features.is_none());
@@ -559,37 +525,25 @@ fn error_pattern_new() {
         "malloc result used as &T",
     );
     assert_eq!(pattern.id(), "malloc_without_box");
-    assert_eq!(
-        pattern.error_kind(),
-        OwnershipErrorKind::PointerMisclassification
-    );
+    assert_eq!(pattern.error_kind(), OwnershipErrorKind::PointerMisclassification);
 }
 
 #[test]
 fn error_pattern_with_c_pattern() {
-    let pattern = ErrorPattern::new(
-        "test",
-        OwnershipErrorKind::PointerMisclassification,
-        "test pattern",
-    )
-    .with_c_pattern("int* p = malloc(sizeof(int));");
+    let pattern =
+        ErrorPattern::new("test", OwnershipErrorKind::PointerMisclassification, "test pattern")
+            .with_c_pattern("int* p = malloc(sizeof(int));");
 
     assert_eq!(pattern.c_pattern(), Some("int* p = malloc(sizeof(int));"));
 }
 
 #[test]
 fn error_pattern_with_rust_error() {
-    let pattern = ErrorPattern::new(
-        "test",
-        OwnershipErrorKind::LifetimeInferenceGap,
-        "missing lifetime",
-    )
-    .with_rust_error("E0106: missing lifetime specifier");
+    let pattern =
+        ErrorPattern::new("test", OwnershipErrorKind::LifetimeInferenceGap, "missing lifetime")
+            .with_rust_error("E0106: missing lifetime specifier");
 
-    assert_eq!(
-        pattern.rust_error(),
-        Some("E0106: missing lifetime specifier")
-    );
+    assert_eq!(pattern.rust_error(), Some("E0106: missing lifetime specifier"));
 }
 
 #[test]
@@ -604,24 +558,18 @@ fn error_pattern_with_fix() {
 
 #[test]
 fn error_pattern_severity() {
-    let pattern = ErrorPattern::new(
-        "test",
-        OwnershipErrorKind::DanglingPointerRisk,
-        "use after free",
-    )
-    .with_severity(ErrorSeverity::Critical);
+    let pattern =
+        ErrorPattern::new("test", OwnershipErrorKind::DanglingPointerRisk, "use after free")
+            .with_severity(ErrorSeverity::Critical);
 
     assert_eq!(pattern.severity(), ErrorSeverity::Critical);
 }
 
 #[test]
 fn error_pattern_curriculum_level() {
-    let pattern = ErrorPattern::new(
-        "test",
-        OwnershipErrorKind::ArraySliceMismatch,
-        "array vs slice",
-    )
-    .with_curriculum_level(2);
+    let pattern =
+        ErrorPattern::new("test", OwnershipErrorKind::ArraySliceMismatch, "array vs slice")
+            .with_curriculum_level(2);
 
     assert_eq!(pattern.curriculum_level(), 2);
 }
@@ -677,21 +625,9 @@ fn pattern_library_get_by_id() {
 #[test]
 fn pattern_library_get_by_error_kind() {
     let mut library = PatternLibrary::new();
-    library.add(ErrorPattern::new(
-        "p1",
-        OwnershipErrorKind::AliasViolation,
-        "alias 1",
-    ));
-    library.add(ErrorPattern::new(
-        "p2",
-        OwnershipErrorKind::AliasViolation,
-        "alias 2",
-    ));
-    library.add(ErrorPattern::new(
-        "p3",
-        OwnershipErrorKind::LifetimeInferenceGap,
-        "lifetime",
-    ));
+    library.add(ErrorPattern::new("p1", OwnershipErrorKind::AliasViolation, "alias 1"));
+    library.add(ErrorPattern::new("p2", OwnershipErrorKind::AliasViolation, "alias 2"));
+    library.add(ErrorPattern::new("p3", OwnershipErrorKind::LifetimeInferenceGap, "lifetime"));
 
     let alias_patterns = library.get_by_error_kind(OwnershipErrorKind::AliasViolation);
     assert_eq!(alias_patterns.len(), 2);
@@ -724,12 +660,8 @@ fn pattern_library_curriculum_ordered() {
 fn pattern_library_match_rust_error() {
     let mut library = PatternLibrary::new();
     library.add(
-        ErrorPattern::new(
-            "lifetime_err",
-            OwnershipErrorKind::LifetimeInferenceGap,
-            "lifetime",
-        )
-        .with_rust_error("E0106"),
+        ErrorPattern::new("lifetime_err", OwnershipErrorKind::LifetimeInferenceGap, "lifetime")
+            .with_rust_error("E0106"),
     );
     library.add(
         ErrorPattern::new("borrow_err", OwnershipErrorKind::AliasViolation, "borrow")
@@ -801,30 +733,14 @@ fn default_library_has_all_error_kinds() {
     let library = default_pattern_library();
 
     // Should have at least one pattern for each error kind
-    assert!(!library
-        .get_by_error_kind(OwnershipErrorKind::PointerMisclassification)
-        .is_empty());
-    assert!(!library
-        .get_by_error_kind(OwnershipErrorKind::LifetimeInferenceGap)
-        .is_empty());
-    assert!(!library
-        .get_by_error_kind(OwnershipErrorKind::DanglingPointerRisk)
-        .is_empty());
-    assert!(!library
-        .get_by_error_kind(OwnershipErrorKind::AliasViolation)
-        .is_empty());
-    assert!(!library
-        .get_by_error_kind(OwnershipErrorKind::UnsafeMinimizationFailure)
-        .is_empty());
-    assert!(!library
-        .get_by_error_kind(OwnershipErrorKind::ArraySliceMismatch)
-        .is_empty());
-    assert!(!library
-        .get_by_error_kind(OwnershipErrorKind::ResourceLeakPattern)
-        .is_empty());
-    assert!(!library
-        .get_by_error_kind(OwnershipErrorKind::MutabilityMismatch)
-        .is_empty());
+    assert!(!library.get_by_error_kind(OwnershipErrorKind::PointerMisclassification).is_empty());
+    assert!(!library.get_by_error_kind(OwnershipErrorKind::LifetimeInferenceGap).is_empty());
+    assert!(!library.get_by_error_kind(OwnershipErrorKind::DanglingPointerRisk).is_empty());
+    assert!(!library.get_by_error_kind(OwnershipErrorKind::AliasViolation).is_empty());
+    assert!(!library.get_by_error_kind(OwnershipErrorKind::UnsafeMinimizationFailure).is_empty());
+    assert!(!library.get_by_error_kind(OwnershipErrorKind::ArraySliceMismatch).is_empty());
+    assert!(!library.get_by_error_kind(OwnershipErrorKind::ResourceLeakPattern).is_empty());
+    assert!(!library.get_by_error_kind(OwnershipErrorKind::MutabilityMismatch).is_empty());
 }
 
 #[test]
@@ -835,10 +751,7 @@ fn default_library_curriculum_levels_ascending() {
     // Verify levels are in ascending order
     let mut prev_level = 0u8;
     for pattern in ordered {
-        assert!(
-            pattern.curriculum_level() >= prev_level,
-            "Curriculum levels should be ascending"
-        );
+        assert!(pattern.curriculum_level() >= prev_level, "Curriculum levels should be ascending");
         prev_level = pattern.curriculum_level();
     }
 }
@@ -866,10 +779,7 @@ fn default_library_has_suggested_fixes() {
     let library = default_pattern_library();
 
     // Most patterns should have suggested fixes
-    let with_fix = library
-        .iter()
-        .filter(|p| p.suggested_fix().is_some())
-        .count();
+    let with_fix = library.iter().filter(|p| p.suggested_fix().is_some()).count();
     assert!(with_fix > library.len() / 2);
 }
 
@@ -879,9 +789,8 @@ fn default_library_malloc_pattern() {
 
     // Should have the basic malloc → Box pattern
     let malloc_patterns = library.get_by_error_kind(OwnershipErrorKind::PointerMisclassification);
-    let has_malloc = malloc_patterns
-        .iter()
-        .any(|p| p.c_pattern().is_some_and(|c| c.contains("malloc")));
+    let has_malloc =
+        malloc_patterns.iter().any(|p| p.c_pattern().is_some_and(|c| c.contains("malloc")));
     assert!(has_malloc, "Should have malloc misclassification pattern");
 }
 
@@ -928,37 +837,22 @@ fn default_library_borrow_checker_pattern() {
 fn inferred_ownership_to_rust_type_all_variants() {
     assert_eq!(InferredOwnership::Owned.to_rust_type("i32"), "Box<i32>");
     assert_eq!(InferredOwnership::Borrowed.to_rust_type("i32"), "&i32");
-    assert_eq!(
-        InferredOwnership::BorrowedMut.to_rust_type("i32"),
-        "&mut i32"
-    );
+    assert_eq!(InferredOwnership::BorrowedMut.to_rust_type("i32"), "&mut i32");
     assert_eq!(InferredOwnership::Shared.to_rust_type("i32"), "Rc<i32>");
-    assert_eq!(
-        InferredOwnership::RawPointer.to_rust_type("i32"),
-        "*const i32"
-    );
+    assert_eq!(InferredOwnership::RawPointer.to_rust_type("i32"), "*const i32");
     assert_eq!(InferredOwnership::Vec.to_rust_type("i32"), "Vec<i32>");
     assert_eq!(InferredOwnership::Slice.to_rust_type("i32"), "&[i32]");
-    assert_eq!(
-        InferredOwnership::SliceMut.to_rust_type("i32"),
-        "&mut [i32]"
-    );
+    assert_eq!(InferredOwnership::SliceMut.to_rust_type("i32"), "&mut [i32]");
 }
 
 #[test]
 fn ownership_prediction_is_confident() {
-    let confident = OwnershipPrediction {
-        kind: InferredOwnership::Owned,
-        confidence: 0.8,
-        fallback: None,
-    };
+    let confident =
+        OwnershipPrediction { kind: InferredOwnership::Owned, confidence: 0.8, fallback: None };
     assert!(confident.is_confident());
 
-    let not_confident = OwnershipPrediction {
-        kind: InferredOwnership::Owned,
-        confidence: 0.5,
-        fallback: None,
-    };
+    let not_confident =
+        OwnershipPrediction { kind: InferredOwnership::Owned, confidence: 0.5, fallback: None };
     assert!(!not_confident.is_confident());
 }
 
@@ -978,35 +872,20 @@ fn ownership_prediction_effective_ownership() {
         confidence: 0.5,
         fallback: Some(InferredOwnership::Borrowed),
     };
-    assert_eq!(
-        not_confident.effective_ownership(),
-        InferredOwnership::Borrowed
-    );
+    assert_eq!(not_confident.effective_ownership(), InferredOwnership::Borrowed);
 
     // Not confident without fallback uses RawPointer
-    let no_fallback = OwnershipPrediction {
-        kind: InferredOwnership::Owned,
-        confidence: 0.5,
-        fallback: None,
-    };
-    assert_eq!(
-        no_fallback.effective_ownership(),
-        InferredOwnership::RawPointer
-    );
+    let no_fallback =
+        OwnershipPrediction { kind: InferredOwnership::Owned, confidence: 0.5, fallback: None };
+    assert_eq!(no_fallback.effective_ownership(), InferredOwnership::RawPointer);
 }
 
 #[test]
 fn ownership_prediction_partial_eq() {
-    let p1 = OwnershipPrediction {
-        kind: InferredOwnership::Owned,
-        confidence: 0.8,
-        fallback: None,
-    };
-    let p2 = OwnershipPrediction {
-        kind: InferredOwnership::Owned,
-        confidence: 0.8,
-        fallback: None,
-    };
+    let p1 =
+        OwnershipPrediction { kind: InferredOwnership::Owned, confidence: 0.8, fallback: None };
+    let p2 =
+        OwnershipPrediction { kind: InferredOwnership::Owned, confidence: 0.8, fallback: None };
     assert_eq!(p1, p2);
 }
 

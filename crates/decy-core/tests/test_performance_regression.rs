@@ -15,10 +15,7 @@ fn golden_traces_available() -> bool {
 
 /// Helper: Check if renacer is installed
 fn renacer_installed() -> bool {
-    std::process::Command::new("renacer")
-        .arg("--version")
-        .output()
-        .is_ok()
+    std::process::Command::new("renacer").arg("--version").output().is_ok()
 }
 
 #[test]

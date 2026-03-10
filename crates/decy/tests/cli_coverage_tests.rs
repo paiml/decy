@@ -32,20 +32,12 @@ fn cli_no_subcommand_shows_info() {
 
 #[test]
 fn cli_help_flag() {
-    decy_cmd()
-        .arg("--help")
-        .assert()
-        .success()
-        .stdout(predicate::str::contains("Transpile"));
+    decy_cmd().arg("--help").assert().success().stdout(predicate::str::contains("Transpile"));
 }
 
 #[test]
 fn cli_version_flag() {
-    decy_cmd()
-        .arg("--version")
-        .assert()
-        .success()
-        .stdout(predicate::str::contains("decy"));
+    decy_cmd().arg("--version").assert().success().stdout(predicate::str::contains("decy"));
 }
 
 // ============================================================================
@@ -219,15 +211,9 @@ fn main() {
 "#;
     let input = create_temp_file(&temp, "verbose.rs", rust_code);
 
-    decy_cmd()
-        .arg("audit")
-        .arg(&input)
-        .arg("--verbose")
-        .assert()
-        .success()
-        .stdout(predicate::str::contains("Detailed Block Analysis").or(
-            predicate::str::contains("Pattern"),
-        ));
+    decy_cmd().arg("audit").arg(&input).arg("--verbose").assert().success().stdout(
+        predicate::str::contains("Detailed Block Analysis").or(predicate::str::contains("Pattern")),
+    );
 }
 
 #[test]
@@ -451,11 +437,7 @@ fn cli_transpile_project_multiple_files() {
     let output_dir = temp.path().join("output");
     create_temp_file(&temp, "a.c", "int a() { return 1; }");
     create_temp_file(&temp, "b.c", "int b() { return 2; }");
-    create_temp_file(
-        &temp,
-        "main.c",
-        "int main() { return 0; }",
-    );
+    create_temp_file(&temp, "main.c", "int main() { return 0; }");
 
     decy_cmd()
         .arg("transpile-project")
@@ -566,10 +548,7 @@ int main() { return square(3) + cube(2); }
 #[test]
 fn cli_oracle_bootstrap_without_feature() {
     // Without the oracle feature, oracle commands should fail with a helpful message
-    let result = decy_cmd()
-        .arg("oracle")
-        .arg("bootstrap")
-        .assert();
+    let result = decy_cmd().arg("oracle").arg("bootstrap").assert();
 
     // The command may succeed or fail depending on feature flags
     // We just want to exercise the code path
@@ -578,21 +557,13 @@ fn cli_oracle_bootstrap_without_feature() {
 
 #[test]
 fn cli_oracle_stats_without_feature() {
-    let result = decy_cmd()
-        .arg("oracle")
-        .arg("stats")
-        .assert();
+    let result = decy_cmd().arg("oracle").arg("stats").assert();
     let _ = result;
 }
 
 #[test]
 fn cli_oracle_query_without_feature() {
-    let result = decy_cmd()
-        .arg("oracle")
-        .arg("query")
-        .arg("--error")
-        .arg("E0308")
-        .assert();
+    let result = decy_cmd().arg("oracle").arg("query").arg("--error").arg("E0308").assert();
     let _ = result;
 }
 

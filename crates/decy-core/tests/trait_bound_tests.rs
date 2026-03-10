@@ -35,12 +35,12 @@ fn test_compare_infers_partial_ord() {
         HirType::Int,
         vec![HirStatement::Return(Some(HirExpression::BinaryOp {
             op: BinaryOperator::LessThan,
-            left: Box::new(HirExpression::Dereference(Box::new(
-                HirExpression::Variable("a".to_string()),
-            ))),
-            right: Box::new(HirExpression::Dereference(Box::new(
-                HirExpression::Variable("b".to_string()),
-            ))),
+            left: Box::new(HirExpression::Dereference(Box::new(HirExpression::Variable(
+                "a".to_string(),
+            )))),
+            right: Box::new(HirExpression::Dereference(Box::new(HirExpression::Variable(
+                "b".to_string(),
+            )))),
         }))],
     );
 
@@ -68,12 +68,12 @@ fn test_equality_infers_partial_eq() {
         HirType::Int,
         vec![HirStatement::Return(Some(HirExpression::BinaryOp {
             op: BinaryOperator::Equal,
-            left: Box::new(HirExpression::Dereference(Box::new(
-                HirExpression::Variable("a".to_string()),
-            ))),
-            right: Box::new(HirExpression::Dereference(Box::new(
-                HirExpression::Variable("b".to_string()),
-            ))),
+            left: Box::new(HirExpression::Dereference(Box::new(HirExpression::Variable(
+                "a".to_string(),
+            )))),
+            right: Box::new(HirExpression::Dereference(Box::new(HirExpression::Variable(
+                "b".to_string(),
+            )))),
         }))],
     );
 
@@ -123,12 +123,8 @@ fn test_copy_infers_clone() {
 #[ignore = "DECY-096: Generic fn<T> generation not fully implemented"]
 fn test_no_ops_no_bounds() {
     // void process(void* data) { } - no ops on T, no bounds needed
-    let func = create_void_ptr_function(
-        "process",
-        vec![void_ptr_param("data")],
-        HirType::Void,
-        vec![],
-    );
+    let func =
+        create_void_ptr_function("process", vec![void_ptr_param("data")], HirType::Void, vec![]);
 
     let generator = CodeGenerator::new();
     let code = generator.generate_function(&func);
@@ -137,11 +133,7 @@ fn test_no_ops_no_bounds() {
     assert!(code.contains("<T>"), "Should have generic T:\n{}", code);
     // Should NOT have complex bounds for simple pass-through
     let has_bounds = code.contains("T:") || code.contains("where T");
-    assert!(
-        !has_bounds,
-        "Should NOT have trait bounds for no-op function:\n{}",
-        code
-    );
+    assert!(!has_bounds, "Should NOT have trait bounds for no-op function:\n{}", code);
 }
 
 // ============================================================================
@@ -160,12 +152,12 @@ fn test_multiple_ops_multiple_bounds() {
             HirStatement::If {
                 condition: HirExpression::BinaryOp {
                     op: BinaryOperator::GreaterThan,
-                    left: Box::new(HirExpression::Dereference(Box::new(
-                        HirExpression::Variable("a".to_string()),
-                    ))),
-                    right: Box::new(HirExpression::Dereference(Box::new(
-                        HirExpression::Variable("b".to_string()),
-                    ))),
+                    left: Box::new(HirExpression::Dereference(Box::new(HirExpression::Variable(
+                        "a".to_string(),
+                    )))),
+                    right: Box::new(HirExpression::Dereference(Box::new(HirExpression::Variable(
+                        "b".to_string(),
+                    )))),
                 },
                 then_block: vec![
                     // *a = *b (copy - needs Clone)

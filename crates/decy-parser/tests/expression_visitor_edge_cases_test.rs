@@ -35,18 +35,10 @@ fn test_if_condition_with_function_call() {
     let ast = parser.parse(source).expect("Parsing should succeed");
 
     // Find the test function (not the prototype)
-    let func = ast
-        .functions()
-        .iter()
-        .find(|f| f.name == "test")
-        .expect("Should find test function");
+    let func =
+        ast.functions().iter().find(|f| f.name == "test").expect("Should find test function");
 
-    if let Statement::If {
-        condition,
-        then_block,
-        ..
-    } = &func.body[0]
-    {
+    if let Statement::If { condition, then_block, .. } = &func.body[0] {
         // Condition should be a function call
         assert!(
             matches!(condition, Expression::FunctionCall { .. }),
@@ -162,11 +154,8 @@ fn test_while_condition_with_function_call() {
     let ast = parser.parse(source).expect("Parsing should succeed");
 
     // Find the test function (not the prototype)
-    let func = ast
-        .functions()
-        .iter()
-        .find(|f| f.name == "test")
-        .expect("Should find test function");
+    let func =
+        ast.functions().iter().find(|f| f.name == "test").expect("Should find test function");
 
     if let Statement::While { condition, body } = &func.body[0] {
         assert!(
@@ -199,10 +188,7 @@ fn test_while_condition_with_comparison() {
     let func = &ast.functions()[0];
 
     // While statement should be third (after declarations and initialization)
-    let while_stmt = func
-        .body
-        .iter()
-        .find(|stmt| matches!(stmt, Statement::While { .. }));
+    let while_stmt = func.body.iter().find(|stmt| matches!(stmt, Statement::While { .. }));
 
     assert!(while_stmt.is_some(), "Should have while statement");
 
@@ -234,18 +220,11 @@ fn test_for_loop_with_variable_in_condition() {
     let func = &ast.functions()[0];
 
     // Find the for statement
-    let for_stmt = func
-        .body
-        .iter()
-        .find(|stmt| matches!(stmt, Statement::For { .. }));
+    let for_stmt = func.body.iter().find(|stmt| matches!(stmt, Statement::For { .. }));
 
     assert!(for_stmt.is_some(), "Should have for statement");
 
-    if let Some(Statement::For {
-        condition: Some(cond),
-        ..
-    }) = for_stmt
-    {
+    if let Some(Statement::For { condition: Some(cond), .. }) = for_stmt {
         // Condition should involve variable references
         match cond {
             Expression::BinaryOp { left, right, .. } => {
@@ -277,18 +256,12 @@ fn test_for_loop_increment_with_assignment() {
     let ast = parser.parse(source).expect("Parsing should succeed");
     let func = &ast.functions()[0];
 
-    let for_stmt = func
-        .body
-        .iter()
-        .find(|stmt| matches!(stmt, Statement::For { .. }));
+    let for_stmt = func.body.iter().find(|stmt| matches!(stmt, Statement::For { .. }));
 
     assert!(for_stmt.is_some(), "Should have for statement");
 
     if let Some(Statement::For { increment, .. }) = for_stmt {
-        assert!(
-            !increment.is_empty(),
-            "For loop should have increment expression"
-        );
+        assert!(!increment.is_empty(), "For loop should have increment expression");
     }
 }
 
@@ -315,42 +288,25 @@ fn test_nested_if_with_different_expression_types() {
     let ast = parser.parse(source).expect("Parsing should succeed");
 
     // Find the test function (not the prototype)
-    let func = ast
-        .functions()
-        .iter()
-        .find(|f| f.name == "test")
-        .expect("Should find test function");
+    let func =
+        ast.functions().iter().find(|f| f.name == "test").expect("Should find test function");
 
     // Outer if: variable
-    if let Statement::If {
-        condition: outer_cond,
-        then_block: outer_then,
-        ..
-    } = &func.body[0]
-    {
+    if let Statement::If { condition: outer_cond, then_block: outer_then, .. } = &func.body[0] {
         assert!(
             matches!(outer_cond, Expression::Variable(_)),
             "Outer if should have variable condition"
         );
 
         // Middle if: function call
-        if let Statement::If {
-            condition: mid_cond,
-            then_block: mid_then,
-            ..
-        } = &outer_then[0]
-        {
+        if let Statement::If { condition: mid_cond, then_block: mid_then, .. } = &outer_then[0] {
             assert!(
                 matches!(mid_cond, Expression::FunctionCall { .. }),
                 "Middle if should have function call condition"
             );
 
             // Inner if: binary operation
-            if let Statement::If {
-                condition: inner_cond,
-                ..
-            } = &mid_then[0]
-            {
+            if let Statement::If { condition: inner_cond, .. } = &mid_then[0] {
                 assert!(
                     matches!(inner_cond, Expression::BinaryOp { .. }),
                     "Inner if should have binary operation condition"

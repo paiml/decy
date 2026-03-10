@@ -56,11 +56,7 @@ fn test_typedef_struct() {
     let ast = parser.parse(source).expect("Parsing should succeed");
 
     // DECY-147: Anonymous struct typedefs become structs directly
-    assert_eq!(
-        ast.structs().len(),
-        1,
-        "Anonymous struct typedef should create a struct"
-    );
+    assert_eq!(ast.structs().len(), 1, "Anonymous struct typedef should create a struct");
 
     let s = &ast.structs()[0];
     assert_eq!(s.name(), "Point");
@@ -93,10 +89,7 @@ fn test_typedef_function_pointer() {
 
     let typedef = &ast.typedefs()[0];
     assert_eq!(typedef.name(), "Callback");
-    assert!(
-        typedef.is_function_pointer(),
-        "Should be recognized as function pointer"
-    );
+    assert!(typedef.is_function_pointer(), "Should be recognized as function pointer");
 }
 
 #[test]

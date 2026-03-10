@@ -142,10 +142,7 @@ fn test_enum_to_int_conversion() {
     let rust_equivalent = "let val = status as i32;";
 
     assert!(c_code.contains("int val"), "C implicit conversion");
-    assert!(
-        rust_equivalent.contains("as i32"),
-        "Rust explicit conversion"
-    );
+    assert!(rust_equivalent.contains("as i32"), "Rust explicit conversion");
 
     // Demonstrate enum to int
     #[repr(i32)]
@@ -180,10 +177,7 @@ fn test_int_to_enum_conversion() {
     let rust_safe = "Use pattern matching or From trait";
 
     assert!(c_code.contains("= 1"), "C implicit conversion");
-    assert!(
-        rust_safe.contains("pattern matching"),
-        "Rust safe conversion"
-    );
+    assert!(rust_safe.contains("pattern matching"), "Rust safe conversion");
 
     // Demonstrate safe int to enum
     #[repr(i32)]
@@ -463,10 +457,7 @@ fn test_enum_in_struct() {
         value: i32,
     }
 
-    let data = Data {
-        status: Status::Ok,
-        value: 42,
-    };
+    let data = Data { status: Status::Ok, value: 42 };
     assert_eq!(data.status, Status::Ok, "Enum field works");
 }
 
@@ -625,10 +616,7 @@ fn test_enum_transformation_unsafe_count() {
 
     // Count unsafe blocks (should be 0)
     let unsafe_count = combined.matches("unsafe").count();
-    assert_eq!(
-        unsafe_count, 0,
-        "Enum transformations should not introduce unsafe blocks"
-    );
+    assert_eq!(unsafe_count, 0, "Enum transformations should not introduce unsafe blocks");
 }
 
 /// Summary of enum transformation rules
@@ -691,10 +679,7 @@ fn test_enum_transformation_rules_summary() {
 
     // Rule 4: No unsafe needed
     let unsafe_blocks = 0;
-    assert_eq!(
-        unsafe_blocks, 0,
-        "Enum transformations introduce 0 unsafe blocks"
-    );
+    assert_eq!(unsafe_blocks, 0, "Enum transformations introduce 0 unsafe blocks");
 
     // Rule 5: More type-safe than C
     let type_safe = true;

@@ -16,9 +16,7 @@ fn test_expand_simple_numeric_constant() {
     let macro_def = HirMacroDefinition::new_object_like("MAX".to_string(), "100".to_string());
 
     let generator = CodeGenerator::new();
-    let rust_code = generator
-        .generate_macro(&macro_def)
-        .expect("Failed to generate");
+    let rust_code = generator.generate_macro(&macro_def).expect("Failed to generate");
 
     assert!(rust_code.contains("const MAX"));
     assert!(rust_code.contains("i32"));
@@ -31,9 +29,7 @@ fn test_expand_float_constant() {
     let macro_def = HirMacroDefinition::new_object_like("PI".to_string(), "3.14159".to_string());
 
     let generator = CodeGenerator::new();
-    let rust_code = generator
-        .generate_macro(&macro_def)
-        .expect("Failed to generate");
+    let rust_code = generator.generate_macro(&macro_def).expect("Failed to generate");
 
     assert!(rust_code.contains("const PI"));
     assert!(rust_code.contains("f64"));
@@ -47,9 +43,7 @@ fn test_expand_string_constant() {
         HirMacroDefinition::new_object_like("GREETING".to_string(), "\"Hello\"".to_string());
 
     let generator = CodeGenerator::new();
-    let rust_code = generator
-        .generate_macro(&macro_def)
-        .expect("Failed to generate");
+    let rust_code = generator.generate_macro(&macro_def).expect("Failed to generate");
 
     assert!(rust_code.contains("const GREETING"));
     assert!(rust_code.contains("&str"));
@@ -63,9 +57,7 @@ fn test_expand_negative_constant() {
         HirMacroDefinition::new_object_like("MIN_VALUE".to_string(), "-100".to_string());
 
     let generator = CodeGenerator::new();
-    let rust_code = generator
-        .generate_macro(&macro_def)
-        .expect("Failed to generate");
+    let rust_code = generator.generate_macro(&macro_def).expect("Failed to generate");
 
     assert!(rust_code.contains("const MIN_VALUE"));
     assert!(rust_code.contains("i32"));
@@ -78,9 +70,7 @@ fn test_expand_hex_constant() {
     let macro_def = HirMacroDefinition::new_object_like("FLAGS".to_string(), "0xFF".to_string());
 
     let generator = CodeGenerator::new();
-    let rust_code = generator
-        .generate_macro(&macro_def)
-        .expect("Failed to generate");
+    let rust_code = generator.generate_macro(&macro_def).expect("Failed to generate");
 
     assert!(rust_code.contains("const FLAGS"));
     assert!(rust_code.contains("0xFF") || rust_code.contains("255"));
@@ -93,12 +83,8 @@ fn test_expand_multiple_constants() {
     let macro2 = HirMacroDefinition::new_object_like("MIN".to_string(), "0".to_string());
 
     let generator = CodeGenerator::new();
-    let rust1 = generator
-        .generate_macro(&macro1)
-        .expect("Failed to generate");
-    let rust2 = generator
-        .generate_macro(&macro2)
-        .expect("Failed to generate");
+    let rust1 = generator.generate_macro(&macro1).expect("Failed to generate");
+    let rust2 = generator.generate_macro(&macro2).expect("Failed to generate");
 
     assert!(rust1.contains("const MAX"));
     assert!(rust2.contains("const MIN"));
@@ -122,9 +108,7 @@ fn test_expand_char_constant() {
     let macro_def = HirMacroDefinition::new_object_like("NEWLINE".to_string(), "'\\n'".to_string());
 
     let generator = CodeGenerator::new();
-    let rust_code = generator
-        .generate_macro(&macro_def)
-        .expect("Failed to generate");
+    let rust_code = generator.generate_macro(&macro_def).expect("Failed to generate");
 
     assert!(rust_code.contains("const NEWLINE"));
     assert!(rust_code.contains("char") || rust_code.contains("'\\n'"));
@@ -136,9 +120,7 @@ fn test_expand_boolean_constant() {
     let macro_def = HirMacroDefinition::new_object_like("DEBUG".to_string(), "1".to_string());
 
     let generator = CodeGenerator::new();
-    let rust_code = generator
-        .generate_macro(&macro_def)
-        .expect("Failed to generate");
+    let rust_code = generator.generate_macro(&macro_def).expect("Failed to generate");
 
     assert!(rust_code.contains("const DEBUG"));
     // Could be bool or i32, both valid
@@ -152,9 +134,7 @@ fn test_naming_convention_preserved() {
         HirMacroDefinition::new_object_like("BUFFER_SIZE".to_string(), "1024".to_string());
 
     let generator = CodeGenerator::new();
-    let rust_code = generator
-        .generate_macro(&macro_def)
-        .expect("Failed to generate");
+    let rust_code = generator.generate_macro(&macro_def).expect("Failed to generate");
 
     assert!(rust_code.contains("BUFFER_SIZE"));
     assert!(!rust_code.contains("buffer_size")); // Should NOT convert to snake_case

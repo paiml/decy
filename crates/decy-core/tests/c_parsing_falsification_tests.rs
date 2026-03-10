@@ -2143,7 +2143,11 @@ int prs_cv_test(void) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(result.is_ok(), "C1296: calculator with variables should transpile: {:?}", result.err());
+    assert!(
+        result.is_ok(),
+        "C1296: calculator with variables should transpile: {:?}",
+        result.err()
+    );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1296: empty output");
     Ok(())

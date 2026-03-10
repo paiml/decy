@@ -58,17 +58,10 @@ float img_average_brightness(const uint8_t *gray, int count) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C826: Grayscale conversion should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C826: Grayscale conversion should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C826: Output should not be empty");
-    assert!(
-        code.contains("fn img_rgb_to_gray"),
-        "C826: Should contain img_rgb_to_gray function"
-    );
+    assert!(code.contains("fn img_rgb_to_gray"), "C826: Should contain img_rgb_to_gray function");
     assert!(
         code.contains("fn img_grayscale_convert"),
         "C826: Should contain img_grayscale_convert function"
@@ -129,11 +122,7 @@ float img_histogram_mean(const img_histogram_t *hist) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C827: Image histogram should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C827: Image histogram should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C827: Output should not be empty");
     assert!(
@@ -191,11 +180,7 @@ float img_equalize_contrast_measure(const uint8_t *pixels, int count) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C828: Histogram equalization should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C828: Histogram equalization should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C828: Output should not be empty");
     assert!(
@@ -265,11 +250,7 @@ void img_gaussian_blur_5x5(const uint8_t *src, uint8_t *dst, int w, int h) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C829: Gaussian blur should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C829: Gaussian blur should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C829: Output should not be empty");
     assert!(
@@ -337,17 +318,10 @@ int img_sobel_edge_count(const uint8_t *edges, int count, uint8_t threshold) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C830: Sobel edge detection should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C830: Sobel edge detection should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C830: Output should not be empty");
-    assert!(
-        code.contains("fn img_sobel_detect"),
-        "C830: Should contain img_sobel_detect function"
-    );
+    assert!(code.contains("fn img_sobel_detect"), "C830: Should contain img_sobel_detect function");
     assert!(
         code.contains("fn img_sobel_edge_count"),
         "C830: Should contain img_sobel_edge_count function"
@@ -411,11 +385,7 @@ void img_canny_threshold(const uint8_t *mag, uint8_t *edges, int count,
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C831: Canny edge detector should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C831: Canny edge detector should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C831: Output should not be empty");
     assert!(
@@ -492,11 +462,7 @@ void img_otsu_apply_threshold(const uint8_t *src, uint8_t *dst, int count, uint8
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C832: Otsu thresholding should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C832: Otsu thresholding should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C832: Output should not be empty");
     assert!(
@@ -560,21 +526,11 @@ void img_erode_binary(const uint8_t *src, uint8_t *dst, int w, int h) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C833: Morphological erosion should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C833: Morphological erosion should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C833: Output should not be empty");
-    assert!(
-        code.contains("fn img_erode_3x3"),
-        "C833: Should contain img_erode_3x3 function"
-    );
-    assert!(
-        code.contains("fn img_erode_binary"),
-        "C833: Should contain img_erode_binary function"
-    );
+    assert!(code.contains("fn img_erode_3x3"), "C833: Should contain img_erode_3x3 function");
+    assert!(code.contains("fn img_erode_binary"), "C833: Should contain img_erode_binary function");
 }
 
 #[test]
@@ -624,17 +580,10 @@ void img_dilate_binary(const uint8_t *src, uint8_t *dst, int w, int h) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C834: Morphological dilation should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C834: Morphological dilation should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C834: Output should not be empty");
-    assert!(
-        code.contains("fn img_dilate_3x3"),
-        "C834: Should contain img_dilate_3x3 function"
-    );
+    assert!(code.contains("fn img_dilate_3x3"), "C834: Should contain img_dilate_3x3 function");
     assert!(
         code.contains("fn img_dilate_binary"),
         "C834: Should contain img_dilate_binary function"
@@ -696,10 +645,7 @@ int img_ccl_count_components(const int *labels, int count) {
         code.contains("fn img_ccl_find_root"),
         "C835: Should contain img_ccl_find_root function"
     );
-    assert!(
-        code.contains("fn img_ccl_union"),
-        "C835: Should contain img_ccl_union function"
-    );
+    assert!(code.contains("fn img_ccl_union"), "C835: Should contain img_ccl_union function");
     assert!(
         code.contains("fn img_ccl_count_components"),
         "C835: Should contain img_ccl_count_components function"
@@ -750,11 +696,7 @@ void img_rotate_nearest(const uint8_t *src, uint8_t *dst, int w, int h, float an
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C836: Image rotation should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C836: Image rotation should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C836: Output should not be empty");
     assert!(
@@ -810,11 +752,7 @@ void img_scale_bilinear(const uint8_t *src, uint8_t *dst,
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C837: Image scaling should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C837: Image scaling should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C837: Output should not be empty");
     assert!(
@@ -882,21 +820,11 @@ int img_hsv_is_red(img_hsv_t hsv) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C838: RGB to HSV conversion should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C838: RGB to HSV conversion should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C838: Output should not be empty");
-    assert!(
-        code.contains("fn img_rgb_to_hsv"),
-        "C838: Should contain img_rgb_to_hsv function"
-    );
-    assert!(
-        code.contains("fn img_hsv_is_red"),
-        "C838: Should contain img_hsv_is_red function"
-    );
+    assert!(code.contains("fn img_rgb_to_hsv"), "C838: Should contain img_rgb_to_hsv function");
+    assert!(code.contains("fn img_hsv_is_red"), "C838: Should contain img_hsv_is_red function");
 }
 
 #[test]
@@ -944,17 +872,10 @@ void img_emboss_kernel(float *kernel) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C839: Image convolution should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C839: Image convolution should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C839: Output should not be empty");
-    assert!(
-        code.contains("fn img_convolve_3x3"),
-        "C839: Should contain img_convolve_3x3 function"
-    );
+    assert!(code.contains("fn img_convolve_3x3"), "C839: Should contain img_convolve_3x3 function");
     assert!(
         code.contains("fn img_sharpen_kernel"),
         "C839: Should contain img_sharpen_kernel function"
@@ -1013,11 +934,7 @@ int img_median_count_noise(const uint8_t *pixels, int count) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C840: Median filter should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C840: Median filter should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C840: Output should not be empty");
     assert!(
@@ -1081,11 +998,7 @@ int img_log_zero_crossings(const uint8_t *laplacian, int w, int h, uint8_t thres
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C841: Laplacian of Gaussian should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C841: Laplacian of Gaussian should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C841: Output should not be empty");
     assert!(
@@ -1139,11 +1052,7 @@ int img_harris_count_corners(const float *response, int count, float threshold) 
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C842: Harris corner detector should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C842: Harris corner detector should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C842: Output should not be empty");
     assert!(
@@ -1207,17 +1116,10 @@ void img_tmatch_find_best(const uint8_t *img, int img_w, int img_h,
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C843: Template matching should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C843: Template matching should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C843: Output should not be empty");
-    assert!(
-        code.contains("fn img_tmatch_sad"),
-        "C843: Should contain img_tmatch_sad function"
-    );
+    assert!(code.contains("fn img_tmatch_sad"), "C843: Should contain img_tmatch_sad function");
     assert!(
         code.contains("fn img_tmatch_find_best"),
         "C843: Should contain img_tmatch_find_best function"
@@ -1285,21 +1187,11 @@ float img_rle_compression_ratio(int original_size, int run_count) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C844: Run-length encoding should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C844: Run-length encoding should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C844: Output should not be empty");
-    assert!(
-        code.contains("fn img_rle_encode"),
-        "C844: Should contain img_rle_encode function"
-    );
-    assert!(
-        code.contains("fn img_rle_decode"),
-        "C844: Should contain img_rle_decode function"
-    );
+    assert!(code.contains("fn img_rle_encode"), "C844: Should contain img_rle_encode function");
+    assert!(code.contains("fn img_rle_decode"), "C844: Should contain img_rle_decode function");
 }
 
 #[test]
@@ -1361,11 +1253,7 @@ int img_dither_count_black(const uint8_t *pixels, int count) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C845: Floyd-Steinberg dithering should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C845: Floyd-Steinberg dithering should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C845: Output should not be empty");
     assert!(
@@ -1438,11 +1326,7 @@ int img_seam_find_min_col(const int *cumulative, int w, int last_row_offset) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C846: Seam carving energy map should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C846: Seam carving energy map should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C846: Output should not be empty");
     assert!(
@@ -1512,11 +1396,7 @@ int img_hough_find_peaks(const int *accumulator, int num_rho, int num_theta, int
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C847: Hough transform should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C847: Hough transform should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C847: Output should not be empty");
     assert!(
@@ -1583,11 +1463,7 @@ float img_pyramid_detail_ratio(const uint8_t *fine, const uint8_t *coarse,
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C848: Image pyramid should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C848: Image pyramid should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C848: Output should not be empty");
     assert!(
@@ -1652,11 +1528,7 @@ float img_alpha_coverage(const img_rgba_pixel_t *pixels, int count) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C849: Alpha blending should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C849: Alpha blending should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C849: Output should not be empty");
     assert!(
@@ -1721,11 +1593,7 @@ float img_gamma_mean_brightness(const uint8_t *pixels, int count) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C850: Gamma correction should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C850: Gamma correction should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C850: Output should not be empty");
     assert!(

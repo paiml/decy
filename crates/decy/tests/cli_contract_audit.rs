@@ -67,11 +67,7 @@ fn cli_audit_valid_file_exits_zero() {
 
 #[test]
 fn cli_audit_missing_file_exits_nonzero() {
-    decy_cmd()
-        .arg("audit")
-        .arg("nonexistent.rs")
-        .assert()
-        .failure();
+    decy_cmd().arg("audit").arg("nonexistent.rs").assert().failure();
 }
 
 #[test]
@@ -91,12 +87,8 @@ fn cli_audit_outputs_report() {
     let temp = TempDir::new().unwrap();
     let file = create_temp_file(&temp, "test.rs", RUST_WITH_UNSAFE);
 
-    decy_cmd()
-        .arg("audit")
-        .arg(&file)
-        .assert()
-        .success()
-        .stdout(predicate::str::is_empty().not()); // Non-empty report
+    decy_cmd().arg("audit").arg(&file).assert().success().stdout(predicate::str::is_empty().not());
+    // Non-empty report
 }
 
 #[test]
@@ -104,16 +96,11 @@ fn cli_audit_reports_unsafe_count() {
     let temp = TempDir::new().unwrap();
     let file = create_temp_file(&temp, "test.rs", RUST_WITH_UNSAFE);
 
-    decy_cmd()
-        .arg("audit")
-        .arg(&file)
-        .assert()
-        .success()
-        .stdout(
-            predicate::str::contains("unsafe")
-                .or(predicate::str::contains("Unsafe"))
-                .or(predicate::str::contains("UNSAFE")),
-        );
+    decy_cmd().arg("audit").arg(&file).assert().success().stdout(
+        predicate::str::contains("unsafe")
+            .or(predicate::str::contains("Unsafe"))
+            .or(predicate::str::contains("UNSAFE")),
+    );
 }
 
 #[test]
@@ -121,14 +108,7 @@ fn cli_audit_safe_code_reports_zero_unsafe() {
     let temp = TempDir::new().unwrap();
     let file = create_temp_file(&temp, "safe.rs", RUST_WITHOUT_UNSAFE);
 
-    let output = decy_cmd()
-        .arg("audit")
-        .arg(&file)
-        .assert()
-        .success()
-        .get_output()
-        .stdout
-        .clone();
+    let output = decy_cmd().arg("audit").arg(&file).assert().success().get_output().stdout.clone();
 
     let output_str = String::from_utf8_lossy(&output);
 
@@ -166,12 +146,7 @@ fn cli_audit_verbose_short_flag() {
     let temp = TempDir::new().unwrap();
     let file = create_temp_file(&temp, "test.rs", RUST_WITH_UNSAFE);
 
-    decy_cmd()
-        .arg("audit")
-        .arg(&file)
-        .arg("-v")
-        .assert()
-        .success();
+    decy_cmd().arg("audit").arg(&file).arg("-v").assert().success();
 }
 
 // ============================================================================
@@ -207,14 +182,7 @@ fn cli_audit_counts_multiple_unsafe_blocks() {
     let temp = TempDir::new().unwrap();
     let file = create_temp_file(&temp, "multi.rs", RUST_MULTIPLE_UNSAFE);
 
-    let output = decy_cmd()
-        .arg("audit")
-        .arg(&file)
-        .assert()
-        .success()
-        .get_output()
-        .stdout
-        .clone();
+    let output = decy_cmd().arg("audit").arg(&file).assert().success().get_output().stdout.clone();
 
     let output_str = String::from_utf8_lossy(&output);
 
@@ -244,11 +212,7 @@ fn cli_audit_help_flag() {
 
 #[test]
 fn cli_audit_requires_input_file() {
-    decy_cmd()
-        .arg("audit")
-        .assert()
-        .failure()
-        .stderr(predicate::str::contains("required"));
+    decy_cmd().arg("audit").assert().failure().stderr(predicate::str::contains("required"));
 }
 
 // ============================================================================
@@ -262,11 +226,7 @@ fn cli_audit_relative_path() {
 
     std::env::set_current_dir(temp.path()).unwrap();
 
-    decy_cmd()
-        .arg("audit")
-        .arg("relative.rs")
-        .assert()
-        .success();
+    decy_cmd().arg("audit").arg("relative.rs").assert().success();
 }
 
 #[test]
@@ -274,11 +234,7 @@ fn cli_audit_absolute_path() {
     let temp = TempDir::new().unwrap();
     let file = create_temp_file(&temp, "absolute.rs", RUST_WITH_UNSAFE);
 
-    decy_cmd()
-        .arg("audit")
-        .arg(file.canonicalize().unwrap())
-        .assert()
-        .success();
+    decy_cmd().arg("audit").arg(file.canonicalize().unwrap()).assert().success();
 }
 
 // ============================================================================
@@ -291,23 +247,9 @@ fn cli_audit_generates_consistent_output() {
     let file = create_temp_file(&temp, "consistent.rs", RUST_WITH_UNSAFE);
 
     // Run twice and compare outputs
-    let output1 = decy_cmd()
-        .arg("audit")
-        .arg(&file)
-        .assert()
-        .success()
-        .get_output()
-        .stdout
-        .clone();
+    let output1 = decy_cmd().arg("audit").arg(&file).assert().success().get_output().stdout.clone();
 
-    let output2 = decy_cmd()
-        .arg("audit")
-        .arg(&file)
-        .assert()
-        .success()
-        .get_output()
-        .stdout
-        .clone();
+    let output2 = decy_cmd().arg("audit").arg(&file).assert().success().get_output().stdout.clone();
 
     assert_eq!(output1, output2, "Audit should produce consistent output");
 }
@@ -329,11 +271,7 @@ fn cli_audit_empty_file() {
 #[test]
 fn cli_audit_comment_only_file() {
     let temp = TempDir::new().unwrap();
-    let file = create_temp_file(
-        &temp,
-        "comments.rs",
-        "// Just comments\n/* Block comment */",
-    );
+    let file = create_temp_file(&temp, "comments.rs", "// Just comments\n/* Block comment */");
 
     decy_cmd().arg("audit").arg(&file).assert().success();
 }

@@ -102,10 +102,7 @@ fn demo_training(dataset: &decy_ownership::TrainingDataset) {
     };
 
     println!("Training configuration:");
-    println!(
-        "  - Validation split: {:.0}%",
-        config.validation_split * 100.0
-    );
+    println!("  - Validation split: {:.0}%", config.validation_split * 100.0);
     println!("  - Random seed: {}", config.random_seed);
     println!("  - Max iterations: {}", config.max_iterations);
 
@@ -131,11 +128,7 @@ fn demo_data_collection() {
     let mut collector = TrainingDataCollector::new();
 
     // Add synthetic data
-    let config = SyntheticConfig {
-        samples_per_pattern: 20,
-        seed: 123,
-        include_edge_cases: true,
-    };
+    let config = SyntheticConfig { samples_per_pattern: 20, seed: 123, include_edge_cases: true };
     let generator = SyntheticDataGenerator::new(config);
     collector.add_synthetic(&generator);
 

@@ -73,10 +73,7 @@ fn test_extract_variant_types() {
                 HirType::Union(vec![
                     ("int_val".to_string(), HirType::Int),
                     ("float_val".to_string(), HirType::Float),
-                    (
-                        "string_val".to_string(),
-                        HirType::Pointer(Box::new(HirType::Char)),
-                    ),
+                    ("string_val".to_string(), HirType::Pointer(Box::new(HirType::Char))),
                 ]),
             ),
         ],
@@ -177,10 +174,7 @@ fn test_tagged_union_analyzer_default() {
 #[test]
 fn test_variant_info_debug_clone() {
     use decy_analyzer::tagged_union_analysis::VariantInfo;
-    let v = VariantInfo {
-        name: "i".to_string(),
-        payload_type: HirType::Int,
-    };
+    let v = VariantInfo { name: "i".to_string(), payload_type: HirType::Int };
     let cloned = v.clone();
     assert_eq!(v, cloned);
     let debug = format!("{:?}", v);
@@ -225,10 +219,7 @@ fn test_realistic_json_value() {
                 HirType::Union(vec![
                     ("int_value".to_string(), HirType::Int),
                     ("float_value".to_string(), HirType::Double),
-                    (
-                        "string_value".to_string(),
-                        HirType::Pointer(Box::new(HirType::Char)),
-                    ),
+                    ("string_value".to_string(), HirType::Pointer(Box::new(HirType::Char))),
                 ]),
             ),
         ],

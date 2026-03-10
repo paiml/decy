@@ -36,24 +36,15 @@ int main() {
 
     // First statement should be a function call
     match &main_func.body[0] {
-        Statement::FunctionCall {
-            function,
-            arguments,
-        } => {
+        Statement::FunctionCall { function, arguments } => {
             assert_eq!(function, "printf");
             assert_eq!(arguments.len(), 1, "printf should have 1 argument");
         }
-        other => panic!(
-            "Expected Statement::FunctionCall for printf, got {:?}",
-            other
-        ),
+        other => panic!("Expected Statement::FunctionCall for printf, got {:?}", other),
     }
 
     // Second statement should be return
-    assert!(
-        matches!(main_func.body[1], Statement::Return(_)),
-        "Second statement should be Return"
-    );
+    assert!(matches!(main_func.body[1], Statement::Return(_)), "Second statement should be Return");
 }
 
 #[test]
@@ -84,10 +75,7 @@ void cleanup(void* ptr) {
 
     // Statement should be a function call to free
     match &cleanup_func.body[0] {
-        Statement::FunctionCall {
-            function,
-            arguments,
-        } => {
+        Statement::FunctionCall { function, arguments } => {
             assert_eq!(function, "free");
             assert_eq!(arguments.len(), 1, "free should have 1 argument");
         }

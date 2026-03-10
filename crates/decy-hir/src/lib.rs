@@ -112,10 +112,7 @@ impl HirType {
             Type::SignedChar => HirType::SignedChar, // DECY-250
             Type::Pointer(inner) => HirType::Pointer(Box::new(HirType::from_ast_type(inner))),
             Type::Struct(name) => HirType::Struct(name.clone()),
-            Type::FunctionPointer {
-                param_types,
-                return_type,
-            } => HirType::FunctionPointer {
+            Type::FunctionPointer { param_types, return_type } => HirType::FunctionPointer {
                 param_types: param_types.iter().map(HirType::from_ast_type).collect(),
                 return_type: Box::new(HirType::from_ast_type(return_type)),
             },
@@ -245,10 +242,7 @@ impl HirTypedef {
     /// assert_eq!(typedef.underlying_type(), &HirType::Int);
     /// ```
     pub fn new(name: String, underlying_type: HirType) -> Self {
-        Self {
-            name,
-            underlying_type,
-        }
+        Self { name, underlying_type }
     }
 
     /// Get the typedef name.
@@ -300,11 +294,7 @@ impl HirConstant {
     /// assert_eq!(constant.name(), "PI");
     /// ```
     pub fn new(name: String, const_type: HirType, value: HirExpression) -> Self {
-        Self {
-            name,
-            const_type,
-            value,
-        }
+        Self { name, const_type, value }
     }
 
     /// Get the constant name.
@@ -386,11 +376,7 @@ impl HirMacroDefinition {
     /// assert!(!macro_def.is_function_like());
     /// ```
     pub fn new_object_like(name: String, body: String) -> Self {
-        Self {
-            name,
-            parameters: vec![],
-            body,
-        }
+        Self { name, parameters: vec![], body }
     }
 
     /// Create a new function-like macro (with parameters).
@@ -411,11 +397,7 @@ impl HirMacroDefinition {
     /// assert_eq!(macro_def.parameters(), &["x"]);
     /// ```
     pub fn new_function_like(name: String, parameters: Vec<String>, body: String) -> Self {
-        Self {
-            name,
-            parameters,
-            body,
-        }
+        Self { name, parameters, body }
     }
 
     /// Get the macro name.
@@ -465,11 +447,7 @@ impl HirParameter {
     /// assert_eq!(param.name(), "x");
     /// ```
     pub fn new(name: String, param_type: HirType) -> Self {
-        Self {
-            name,
-            param_type,
-            is_pointee_const: false,
-        }
+        Self { name, param_type, is_pointee_const: false }
     }
 
     /// Get the parameter name.
@@ -544,12 +522,7 @@ impl HirFunction {
     /// assert_eq!(func.parameters().len(), 2);
     /// ```
     pub fn new(name: String, return_type: HirType, parameters: Vec<HirParameter>) -> Self {
-        Self {
-            name,
-            return_type,
-            parameters,
-            body: None,
-        }
+        Self { name, return_type, parameters, body: None }
     }
 
     /// Get the function name.
@@ -588,23 +561,13 @@ impl HirFunction {
         let body = if ast_func.body.is_empty() {
             None
         } else {
-            Some(
-                ast_func
-                    .body
-                    .iter()
-                    .map(HirStatement::from_ast_statement)
-                    .collect(),
-            )
+            Some(ast_func.body.iter().map(HirStatement::from_ast_statement).collect())
         };
 
         Self {
             name: ast_func.name.clone(),
             return_type: HirType::from_ast_type(&ast_func.return_type),
-            parameters: ast_func
-                .parameters
-                .iter()
-                .map(HirParameter::from_ast_parameter)
-                .collect(),
+            parameters: ast_func.parameters.iter().map(HirParameter::from_ast_parameter).collect(),
             body,
         }
     }
@@ -639,12 +602,7 @@ impl HirFunction {
         parameters: Vec<HirParameter>,
         body: Vec<HirStatement>,
     ) -> Self {
-        Self {
-            name,
-            return_type,
-            parameters,
-            body: Some(body),
-        }
+        Self { name, return_type, parameters, body: Some(body) }
     }
 
     /// Get the function body.
@@ -1051,15 +1009,13 @@ impl HirStatement {
     pub fn from_ast_statement(ast_stmt: &decy_parser::parser::Statement) -> Self {
         use decy_parser::parser::Statement;
         match ast_stmt {
-            Statement::VariableDeclaration {
-                name,
-                var_type,
-                initializer,
-            } => HirStatement::VariableDeclaration {
-                name: name.clone(),
-                var_type: HirType::from_ast_type(var_type),
-                initializer: initializer.as_ref().map(HirExpression::from_ast_expression),
-            },
+            Statement::VariableDeclaration { name, var_type, initializer } => {
+                HirStatement::VariableDeclaration {
+                    name: name.clone(),
+                    var_type: HirType::from_ast_type(var_type),
+                    initializer: initializer.as_ref().map(HirExpression::from_ast_expression),
+                }
+            }
             Statement::Return(expr) => {
                 HirStatement::Return(expr.as_ref().map(HirExpression::from_ast_expression))
             }
@@ -1067,36 +1023,19 @@ impl HirStatement {
                 target: target.clone(),
                 value: HirExpression::from_ast_expression(value),
             },
-            Statement::If {
-                condition,
-                then_block,
-                else_block,
-            } => HirStatement::If {
+            Statement::If { condition, then_block, else_block } => HirStatement::If {
                 condition: HirExpression::from_ast_expression(condition),
-                then_block: then_block
-                    .iter()
-                    .map(HirStatement::from_ast_statement)
-                    .collect(),
+                then_block: then_block.iter().map(HirStatement::from_ast_statement).collect(),
                 else_block: else_block
                     .as_ref()
                     .map(|block| block.iter().map(HirStatement::from_ast_statement).collect()),
             },
-            Statement::For {
-                init,
-                condition,
-                increment,
-                body,
-            } => HirStatement::For {
+            Statement::For { init, condition, increment, body } => HirStatement::For {
                 // DECY-224: Support multiple init statements
                 init: init.iter().map(HirStatement::from_ast_statement).collect(),
-                condition: condition
-                    .as_ref()
-                    .map(HirExpression::from_ast_expression),
+                condition: condition.as_ref().map(HirExpression::from_ast_expression),
                 // DECY-224: Support multiple increment statements
-                increment: increment
-                    .iter()
-                    .map(HirStatement::from_ast_statement)
-                    .collect(),
+                increment: increment.iter().map(HirStatement::from_ast_statement).collect(),
                 body: body.iter().map(HirStatement::from_ast_statement).collect(),
             },
             Statement::While { condition, body } => HirStatement::While {
@@ -1107,20 +1046,14 @@ impl HirStatement {
                 target: HirExpression::from_ast_expression(target),
                 value: HirExpression::from_ast_expression(value),
             },
-            Statement::ArrayIndexAssignment {
-                array,
-                index,
-                value,
-            } => HirStatement::ArrayIndexAssignment {
-                array: Box::new(HirExpression::from_ast_expression(array)),
-                index: Box::new(HirExpression::from_ast_expression(index)),
-                value: HirExpression::from_ast_expression(value),
-            },
-            Statement::FieldAssignment {
-                object,
-                field,
-                value,
-            } => HirStatement::FieldAssignment {
+            Statement::ArrayIndexAssignment { array, index, value } => {
+                HirStatement::ArrayIndexAssignment {
+                    array: Box::new(HirExpression::from_ast_expression(array)),
+                    index: Box::new(HirExpression::from_ast_expression(index)),
+                    value: HirExpression::from_ast_expression(value),
+                }
+            }
+            Statement::FieldAssignment { object, field, value } => HirStatement::FieldAssignment {
                 object: HirExpression::from_ast_expression(object),
                 field: field.clone(),
                 value: HirExpression::from_ast_expression(value),
@@ -1173,21 +1106,13 @@ impl HirStatement {
                 }
             }
             // Switch statement - convert cases and default
-            Statement::Switch {
-                condition,
-                cases,
-                default_case,
-            } => HirStatement::Switch {
+            Statement::Switch { condition, cases, default_case } => HirStatement::Switch {
                 condition: HirExpression::from_ast_expression(condition),
                 cases: cases
                     .iter()
                     .map(|case| SwitchCase {
                         value: case.value.as_ref().map(HirExpression::from_ast_expression),
-                        body: case
-                            .body
-                            .iter()
-                            .map(HirStatement::from_ast_statement)
-                            .collect(),
+                        body: case.body.iter().map(HirStatement::from_ast_statement).collect(),
                     })
                     .collect(),
                 default_case: default_case
@@ -1196,16 +1121,12 @@ impl HirStatement {
             },
             // Function call statement - convert to expression statement
             // DECY-065: Now properly supported with HirStatement::Expression variant
-            Statement::FunctionCall {
-                function,
-                arguments,
-            } => HirStatement::Expression(HirExpression::FunctionCall {
-                function: function.clone(),
-                arguments: arguments
-                    .iter()
-                    .map(HirExpression::from_ast_expression)
-                    .collect(),
-            }),
+            Statement::FunctionCall { function, arguments } => {
+                HirStatement::Expression(HirExpression::FunctionCall {
+                    function: function.clone(),
+                    arguments: arguments.iter().map(HirExpression::from_ast_expression).collect(),
+                })
+            }
         }
     }
 }
@@ -1225,15 +1146,9 @@ impl HirExpression {
                 left: Box::new(HirExpression::from_ast_expression(left)),
                 right: Box::new(HirExpression::from_ast_expression(right)),
             },
-            Expression::FunctionCall {
-                function,
-                arguments,
-            } => HirExpression::FunctionCall {
+            Expression::FunctionCall { function, arguments } => HirExpression::FunctionCall {
                 function: function.clone(),
-                arguments: arguments
-                    .iter()
-                    .map(HirExpression::from_ast_expression)
-                    .collect(),
+                arguments: arguments.iter().map(HirExpression::from_ast_expression).collect(),
             },
             Expression::Dereference(inner) => {
                 HirExpression::Dereference(Box::new(HirExpression::from_ast_expression(inner)))
@@ -1270,29 +1185,24 @@ impl HirExpression {
             Expression::PreDecrement { operand } => HirExpression::PreDecrement {
                 operand: Box::new(HirExpression::from_ast_expression(operand)),
             },
-            Expression::Sizeof { type_name } => HirExpression::Sizeof {
-                type_name: type_name.clone(),
-            },
+            Expression::Sizeof { type_name } => {
+                HirExpression::Sizeof { type_name: type_name.clone() }
+            }
             Expression::Cast { target_type, expr } => HirExpression::Cast {
                 target_type: HirType::from_ast_type(target_type),
                 expr: Box::new(HirExpression::from_ast_expression(expr)),
             },
-            Expression::CompoundLiteral {
-                literal_type,
-                initializers,
-            } => HirExpression::CompoundLiteral {
-                literal_type: HirType::from_ast_type(literal_type),
-                initializers: initializers
-                    .iter()
-                    .map(HirExpression::from_ast_expression)
-                    .collect(),
-            },
+            Expression::CompoundLiteral { literal_type, initializers } => {
+                HirExpression::CompoundLiteral {
+                    literal_type: HirType::from_ast_type(literal_type),
+                    initializers: initializers
+                        .iter()
+                        .map(HirExpression::from_ast_expression)
+                        .collect(),
+                }
+            }
             // DECY-192: Ternary/conditional expression
-            Expression::Ternary {
-                condition,
-                then_expr,
-                else_expr,
-            } => HirExpression::Ternary {
+            Expression::Ternary { condition, then_expr, else_expr } => HirExpression::Ternary {
                 condition: Box::new(HirExpression::from_ast_expression(condition)),
                 then_expr: Box::new(HirExpression::from_ast_expression(then_expr)),
                 else_expr: Box::new(HirExpression::from_ast_expression(else_expr)),

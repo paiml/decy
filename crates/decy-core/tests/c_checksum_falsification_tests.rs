@@ -1356,7 +1356,11 @@ int chk_ht_remove(chk_hashtable_t *ht, uint32_t key) {
 }
 "##;
     let result = decy_core::transpile(c_code);
-    assert!(result.is_ok(), "C1775: Hash table linear probing should transpile: {:?}", result.err());
+    assert!(
+        result.is_ok(),
+        "C1775: Hash table linear probing should transpile: {:?}",
+        result.err()
+    );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1775: Output should not be empty");
     assert!(code.contains("fn chk_"), "C1775: Should contain chk_ functions");

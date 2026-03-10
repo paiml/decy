@@ -46,17 +46,10 @@ float dot_product(const float *x, const float *y, int len) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C226: Dense matrix multiply should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C226: Dense matrix multiply should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C226: Output should not be empty");
-    assert!(
-        code.contains("fn matmul"),
-        "C226: Should contain transpiled function matmul"
-    );
+    assert!(code.contains("fn matmul"), "C226: Should contain transpiled function matmul");
     assert!(
         code.contains("fn dot_product"),
         "C226: Should contain transpiled function dot_product"
@@ -180,21 +173,14 @@ void pool_destroy(MemoryPool *pool) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C228: Memory pool allocator should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C228: Memory pool allocator should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C228: Output should not be empty");
     assert!(
         code.contains("fn pool_create"),
         "C228: Should contain transpiled function pool_create"
     );
-    assert!(
-        code.contains("fn pool_alloc"),
-        "C228: Should contain transpiled function pool_alloc"
-    );
+    assert!(code.contains("fn pool_alloc"), "C228: Should contain transpiled function pool_alloc");
     assert!(
         code.contains("fn pool_destroy"),
         "C228: Should contain transpiled function pool_destroy"
@@ -242,25 +228,12 @@ float ring_peek(const RingBuffer *rb, int offset) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C229: Ring buffer should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C229: Ring buffer should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C229: Output should not be empty");
-    assert!(
-        code.contains("fn ring_init"),
-        "C229: Should contain transpiled function ring_init"
-    );
-    assert!(
-        code.contains("fn ring_push"),
-        "C229: Should contain transpiled function ring_push"
-    );
-    assert!(
-        code.contains("fn ring_pop"),
-        "C229: Should contain transpiled function ring_pop"
-    );
+    assert!(code.contains("fn ring_init"), "C229: Should contain transpiled function ring_init");
+    assert!(code.contains("fn ring_push"), "C229: Should contain transpiled function ring_push");
+    assert!(code.contains("fn ring_pop"), "C229: Should contain transpiled function ring_pop");
 }
 
 #[test]
@@ -347,25 +320,12 @@ void ht_destroy(HashTable *ht) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C230: Hash table with chaining should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C230: Hash table with chaining should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C230: Output should not be empty");
-    assert!(
-        code.contains("fn hash_func"),
-        "C230: Should contain transpiled function hash_func"
-    );
-    assert!(
-        code.contains("fn ht_create"),
-        "C230: Should contain transpiled function ht_create"
-    );
-    assert!(
-        code.contains("fn ht_insert"),
-        "C230: Should contain transpiled function ht_insert"
-    );
+    assert!(code.contains("fn hash_func"), "C230: Should contain transpiled function hash_func");
+    assert!(code.contains("fn ht_create"), "C230: Should contain transpiled function ht_create");
+    assert!(code.contains("fn ht_insert"), "C230: Should contain transpiled function ht_insert");
 }
 
 // ============================================================================
@@ -419,11 +379,7 @@ void dynarray_free(DynArray *arr) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C231: Dynamic array (realloc) should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C231: Dynamic array (realloc) should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C231: Output should not be empty");
     assert!(
@@ -487,10 +443,7 @@ float apply_activation(const ActivationTable *table, int idx, float x) {
     );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C232: Output should not be empty");
-    assert!(
-        code.contains("fn relu"),
-        "C232: Should contain transpiled function relu"
-    );
+    assert!(code.contains("fn relu"), "C232: Should contain transpiled function relu");
     assert!(
         code.contains("fn apply_activation"),
         "C232: Should contain transpiled function apply_activation"
@@ -542,14 +495,8 @@ int popcount(uint32 x) {
     );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C233: Output should not be empty");
-    assert!(
-        code.contains("fn pack_4x8"),
-        "C233: Should contain transpiled function pack_4x8"
-    );
-    assert!(
-        code.contains("fn popcount"),
-        "C233: Should contain transpiled function popcount"
-    );
+    assert!(code.contains("fn pack_4x8"), "C233: Should contain transpiled function pack_4x8");
+    assert!(code.contains("fn popcount"), "C233: Should contain transpiled function popcount");
 }
 
 #[test]
@@ -587,11 +534,7 @@ float sum_unrolled(const float *data, int n) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C234: Manual loop unrolling should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C234: Manual loop unrolling should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C234: Output should not be empty");
     assert!(
@@ -648,25 +591,12 @@ int rc_is_unique(const RefCounted *rc) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C235: Reference counting should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C235: Reference counting should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C235: Output should not be empty");
-    assert!(
-        code.contains("fn rc_create"),
-        "C235: Should contain transpiled function rc_create"
-    );
-    assert!(
-        code.contains("fn rc_retain"),
-        "C235: Should contain transpiled function rc_retain"
-    );
-    assert!(
-        code.contains("fn rc_release"),
-        "C235: Should contain transpiled function rc_release"
-    );
+    assert!(code.contains("fn rc_create"), "C235: Should contain transpiled function rc_create");
+    assert!(code.contains("fn rc_retain"), "C235: Should contain transpiled function rc_retain");
+    assert!(code.contains("fn rc_release"), "C235: Should contain transpiled function rc_release");
 }
 
 // ============================================================================
@@ -706,10 +636,7 @@ int get_call_count(void) {
     );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C236: Output should not be empty");
-    assert!(
-        code.contains("fn accumulate"),
-        "C236: Should contain transpiled function accumulate"
-    );
+    assert!(code.contains("fn accumulate"), "C236: Should contain transpiled function accumulate");
     assert!(
         code.contains("fn get_average"),
         "C236: Should contain transpiled function get_average"
@@ -747,17 +674,10 @@ float max_floats(int count, ...) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C237: Variadic functions should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C237: Variadic functions should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C237: Output should not be empty");
-    assert!(
-        code.contains("fn sum_ints"),
-        "C237: Should contain transpiled function sum_ints"
-    );
+    assert!(code.contains("fn sum_ints"), "C237: Should contain transpiled function sum_ints");
 }
 
 #[test]
@@ -795,11 +715,7 @@ void *tensor_data_ptr(const Tensor *t) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C238: Opaque type with void* should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C238: Opaque type with void* should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C238: Output should not be empty");
     assert!(
@@ -865,14 +781,8 @@ void layer_free(Layer *layer) {
     );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C239: Output should not be empty");
-    assert!(
-        code.contains("fn layer_init"),
-        "C239: Should contain transpiled function layer_init"
-    );
-    assert!(
-        code.contains("fn layer_free"),
-        "C239: Should contain transpiled function layer_free"
-    );
+    assert!(code.contains("fn layer_init"), "C239: Should contain transpiled function layer_init");
+    assert!(code.contains("fn layer_free"), "C239: Should contain transpiled function layer_free");
 }
 
 #[test]
@@ -962,10 +872,7 @@ int calc_stride(int width, int element_size, int alignment) {
     );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C241: Output should not be empty");
-    assert!(
-        code.contains("fn align_up"),
-        "C241: Should contain transpiled function align_up"
-    );
+    assert!(code.contains("fn align_up"), "C241: Should contain transpiled function align_up");
     assert!(
         code.contains("fn calc_padding"),
         "C241: Should contain transpiled function calc_padding"
@@ -1014,11 +921,7 @@ const char *intern_get(const InternTable *table, int id) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C242: String interning table should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C242: String interning table should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C242: Output should not be empty");
     assert!(
@@ -1079,17 +982,10 @@ int graph_degree(const Graph *g, int node) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C243: Graph adjacency list should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C243: Graph adjacency list should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C243: Output should not be empty");
-    assert!(
-        code.contains("fn graph_init"),
-        "C243: Should contain transpiled function graph_init"
-    );
+    assert!(code.contains("fn graph_init"), "C243: Should contain transpiled function graph_init");
     assert!(
         code.contains("fn graph_add_edge"),
         "C243: Should contain transpiled function graph_add_edge"
@@ -1175,25 +1071,12 @@ int heap_size(const MinHeap *h) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C244: Priority queue with heap should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C244: Priority queue with heap should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C244: Output should not be empty");
-    assert!(
-        code.contains("fn heap_init"),
-        "C244: Should contain transpiled function heap_init"
-    );
-    assert!(
-        code.contains("fn heap_push"),
-        "C244: Should contain transpiled function heap_push"
-    );
-    assert!(
-        code.contains("fn heap_pop"),
-        "C244: Should contain transpiled function heap_pop"
-    );
+    assert!(code.contains("fn heap_init"), "C244: Should contain transpiled function heap_init");
+    assert!(code.contains("fn heap_push"), "C244: Should contain transpiled function heap_push");
+    assert!(code.contains("fn heap_pop"), "C244: Should contain transpiled function heap_pop");
 }
 
 #[test]
@@ -1257,11 +1140,7 @@ int btree_insert_nonfull(BTreeNode *node, int key, float value) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C245: B-tree node should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C245: B-tree node should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C245: Output should not be empty");
     assert!(
@@ -1316,21 +1195,11 @@ int csr_nnz_in_row(const CSRMatrix *mat, int row) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C246: Sparse matrix CSR format should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C246: Sparse matrix CSR format should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C246: Output should not be empty");
-    assert!(
-        code.contains("fn csr_get"),
-        "C246: Should contain transpiled function csr_get"
-    );
-    assert!(
-        code.contains("fn csr_matvec"),
-        "C246: Should contain transpiled function csr_matvec"
-    );
+    assert!(code.contains("fn csr_get"), "C246: Should contain transpiled function csr_get");
+    assert!(code.contains("fn csr_matvec"), "C246: Should contain transpiled function csr_matvec");
 }
 
 #[test]
@@ -1388,17 +1257,10 @@ int deque_is_empty(const Deque *d) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C247: Double-ended queue should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C247: Double-ended queue should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C247: Output should not be empty");
-    assert!(
-        code.contains("fn deque_init"),
-        "C247: Should contain transpiled function deque_init"
-    );
+    assert!(code.contains("fn deque_init"), "C247: Should contain transpiled function deque_init");
     assert!(
         code.contains("fn deque_push_back"),
         "C247: Should contain transpiled function deque_push_back"
@@ -1497,18 +1359,9 @@ void lru_put(LRUCache *cache, int key, float value) {
     );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C248: Output should not be empty");
-    assert!(
-        code.contains("fn lru_init"),
-        "C248: Should contain transpiled function lru_init"
-    );
-    assert!(
-        code.contains("fn lru_get"),
-        "C248: Should contain transpiled function lru_get"
-    );
-    assert!(
-        code.contains("fn lru_put"),
-        "C248: Should contain transpiled function lru_put"
-    );
+    assert!(code.contains("fn lru_init"), "C248: Should contain transpiled function lru_init");
+    assert!(code.contains("fn lru_get"), "C248: Should contain transpiled function lru_get");
+    assert!(code.contains("fn lru_put"), "C248: Should contain transpiled function lru_put");
 }
 
 #[test]
@@ -1597,14 +1450,8 @@ RBNode *rb_find(RBNode *root, int key) {
         code.contains("fn rb_create_node"),
         "C249: Should contain transpiled function rb_create_node"
     );
-    assert!(
-        code.contains("fn rb_is_red"),
-        "C249: Should contain transpiled function rb_is_red"
-    );
-    assert!(
-        code.contains("fn rb_find"),
-        "C249: Should contain transpiled function rb_find"
-    );
+    assert!(code.contains("fn rb_is_red"), "C249: Should contain transpiled function rb_is_red");
+    assert!(code.contains("fn rb_find"), "C249: Should contain transpiled function rb_find");
 }
 
 #[test]
@@ -1657,11 +1504,7 @@ float mse_loss(const float *predicted, const float *target, int n) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C250: Neural network layer should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C250: Neural network layer should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C250: Output should not be empty");
     assert!(

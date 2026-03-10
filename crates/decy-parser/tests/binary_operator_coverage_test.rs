@@ -34,11 +34,7 @@ fn test_equality_operator() {
     if let Statement::If { condition, .. } = &func.body[0] {
         match condition {
             Expression::BinaryOp { op, .. } => {
-                assert!(
-                    matches!(op, BinaryOperator::Equal),
-                    "Operator should be ==, got {:?}",
-                    op
-                );
+                assert!(matches!(op, BinaryOperator::Equal), "Operator should be ==, got {:?}", op);
             }
             _ => panic!("Expected binary operation, got {:?}", condition),
         }
@@ -104,11 +100,7 @@ fn test_division_operator() {
     if let Statement::Assignment { value, .. } = assignment {
         match value {
             Expression::BinaryOp { op, .. } => {
-                assert!(
-                    matches!(op, BinaryOperator::Divide),
-                    "Operator should be /, got {:?}",
-                    op
-                );
+                assert!(matches!(op, BinaryOperator::Divide), "Operator should be /, got {:?}", op);
             }
             _ => panic!("Expected binary operation, got {:?}", value),
         }
@@ -140,11 +132,7 @@ fn test_modulo_operator() {
     if let Statement::Assignment { value, .. } = assignment {
         match value {
             Expression::BinaryOp { op, .. } => {
-                assert!(
-                    matches!(op, BinaryOperator::Modulo),
-                    "Operator should be %, got {:?}",
-                    op
-                );
+                assert!(matches!(op, BinaryOperator::Modulo), "Operator should be %, got {:?}", op);
             }
             _ => panic!("Expected binary operation"),
         }
@@ -318,13 +306,8 @@ fn test_comparison_operators_in_logical_expression() {
     if let Statement::If { condition, .. } = &func.body[0] {
         // Outer should be LogicalAnd
         match condition {
-            Expression::BinaryOp {
-                op, left, right, ..
-            } => {
-                assert!(
-                    matches!(op, BinaryOperator::LogicalAnd),
-                    "Outer should be &&"
-                );
+            Expression::BinaryOp { op, left, right, .. } => {
+                assert!(matches!(op, BinaryOperator::LogicalAnd), "Outer should be &&");
 
                 // Left: a < b
                 match &**left {
@@ -337,10 +320,7 @@ fn test_comparison_operators_in_logical_expression() {
                 // Right: c > d
                 match &**right {
                     Expression::BinaryOp { op, .. } => {
-                        assert!(
-                            matches!(op, BinaryOperator::GreaterThan),
-                            "Right should be >"
-                        );
+                        assert!(matches!(op, BinaryOperator::GreaterThan), "Right should be >");
                     }
                     _ => panic!("Expected comparison"),
                 }
@@ -374,10 +354,7 @@ fn test_all_arithmetic_operators_in_sequence() {
 
     if let Statement::Assignment { value, .. } = assignment {
         // Should be a complex binary expression tree
-        assert!(
-            matches!(value, Expression::BinaryOp { .. }),
-            "Should be binary operation"
-        );
+        assert!(matches!(value, Expression::BinaryOp { .. }), "Should be binary operation");
         // The exact structure depends on precedence, but it should parse without error
     }
 }

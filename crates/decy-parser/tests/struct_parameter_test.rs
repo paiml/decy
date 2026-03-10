@@ -41,10 +41,7 @@ fn test_parse_real_world_linked_list_parameters() {
     println!("Function: {}", func.name);
     println!("Parameters: {}", func.parameters.len());
     for (i, param) in func.parameters.iter().enumerate() {
-        println!(
-            "  Param {}: {} (type: {:?})",
-            i, param.name, param.param_type
-        );
+        println!("  Param {}: {} (type: {:?})", i, param.name, param.param_type);
     }
 
     assert_eq!(
@@ -171,29 +168,17 @@ fn test_parse_multiple_struct_parameters() {
     );
 
     // First parameter
-    assert_eq!(
-        func.parameters[0].name, "a",
-        "First parameter should be 'a'"
-    );
+    assert_eq!(func.parameters[0].name, "a", "First parameter should be 'a'");
     assert!(
-        matches!(
-            func.parameters[0].param_type,
-            decy_parser::parser::Type::Pointer(_)
-        ),
+        matches!(func.parameters[0].param_type, decy_parser::parser::Type::Pointer(_)),
         "First parameter should be pointer, got {:?}",
         func.parameters[0].param_type
     );
 
     // Second parameter
-    assert_eq!(
-        func.parameters[1].name, "b",
-        "Second parameter should be 'b'"
-    );
+    assert_eq!(func.parameters[1].name, "b", "Second parameter should be 'b'");
     assert!(
-        matches!(
-            func.parameters[1].param_type,
-            decy_parser::parser::Type::Pointer(_)
-        ),
+        matches!(func.parameters[1].param_type, decy_parser::parser::Type::Pointer(_)),
         "Second parameter should be pointer, got {:?}",
         func.parameters[1].param_type
     );
@@ -228,20 +213,14 @@ fn test_parse_mixed_primitive_struct_parameters() {
     // First parameter: int id
     assert_eq!(func.parameters[0].name, "id");
     assert!(
-        matches!(
-            func.parameters[0].param_type,
-            decy_parser::parser::Type::Int
-        ),
+        matches!(func.parameters[0].param_type, decy_parser::parser::Type::Int),
         "First parameter should be int"
     );
 
     // Second parameter: struct Node* node
     assert_eq!(func.parameters[1].name, "node");
     assert!(
-        matches!(
-            func.parameters[1].param_type,
-            decy_parser::parser::Type::Pointer(_)
-        ),
+        matches!(func.parameters[1].param_type, decy_parser::parser::Type::Pointer(_)),
         "Second parameter should be pointer to struct, got {:?}",
         func.parameters[1].param_type
     );
@@ -249,10 +228,7 @@ fn test_parse_mixed_primitive_struct_parameters() {
     // Third parameter: float value
     assert_eq!(func.parameters[2].name, "value");
     assert!(
-        matches!(
-            func.parameters[2].param_type,
-            decy_parser::parser::Type::Float
-        ),
+        matches!(func.parameters[2].param_type, decy_parser::parser::Type::Float),
         "Third parameter should be float"
     );
 }

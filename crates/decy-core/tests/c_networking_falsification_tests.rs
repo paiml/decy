@@ -97,7 +97,11 @@ int main(void) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(result.is_ok(), "C701: TCP socket create/bind/listen should transpile: {:?}", result.err());
+    assert!(
+        result.is_ok(),
+        "C701: TCP socket create/bind/listen should transpile: {:?}",
+        result.err()
+    );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C701: should produce non-empty output");
     assert!(code.contains("fn netsock_tcp_create"), "C701: should contain netsock_tcp_create");
@@ -306,7 +310,11 @@ int main(void) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(result.is_ok(), "C703: Non-blocking socket select should transpile: {:?}", result.err());
+    assert!(
+        result.is_ok(),
+        "C703: Non-blocking socket select should transpile: {:?}",
+        result.err()
+    );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C703: should produce non-empty output");
     assert!(code.contains("fn netsock_fdset_init"), "C703: should contain netsock_fdset_init");
@@ -381,7 +389,10 @@ int main(void) {
     let code = result.unwrap();
     assert!(!code.is_empty(), "C704: should produce non-empty output");
     assert!(code.contains("fn netsock_addr_init"), "C704: should contain netsock_addr_init");
-    assert!(code.contains("fn netsock_addr_make_ipv4"), "C704: should contain netsock_addr_make_ipv4");
+    assert!(
+        code.contains("fn netsock_addr_make_ipv4"),
+        "C704: should contain netsock_addr_make_ipv4"
+    );
 }
 
 /// C705: DNS lookup simulation (linked list of addresses)
@@ -500,8 +511,14 @@ int main(void) {
     assert!(result.is_ok(), "C705: DNS lookup simulation should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C705: should produce non-empty output");
-    assert!(code.contains("fn netsock_dns_cache_init"), "C705: should contain netsock_dns_cache_init");
-    assert!(code.contains("fn netsock_dns_cache_lookup"), "C705: should contain netsock_dns_cache_lookup");
+    assert!(
+        code.contains("fn netsock_dns_cache_init"),
+        "C705: should contain netsock_dns_cache_init"
+    );
+    assert!(
+        code.contains("fn netsock_dns_cache_lookup"),
+        "C705: should contain netsock_dns_cache_lookup"
+    );
 }
 
 // ============================================================================
@@ -826,7 +843,11 @@ int main(void) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(result.is_ok(), "C708: Ring buffer for network packets should transpile: {:?}", result.err());
+    assert!(
+        result.is_ok(),
+        "C708: Ring buffer for network packets should transpile: {:?}",
+        result.err()
+    );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C708: should produce non-empty output");
     assert!(code.contains("fn netring_init"), "C708: should contain netring_init");
@@ -1196,7 +1217,10 @@ int main(void) {
     assert!(result.is_ok(), "C712: Checksum calculation should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C712: should produce non-empty output");
-    assert!(code.contains("fn netchk_ones_complement"), "C712: should contain netchk_ones_complement");
+    assert!(
+        code.contains("fn netchk_ones_complement"),
+        "C712: should contain netchk_ones_complement"
+    );
     assert!(code.contains("fn netchk_tcp_pseudo"), "C712: should contain netchk_tcp_pseudo");
 }
 
@@ -1298,11 +1322,21 @@ int main(void) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(result.is_ok(), "C713: Packet fragmentation/reassembly should transpile: {:?}", result.err());
+    assert!(
+        result.is_ok(),
+        "C713: Packet fragmentation/reassembly should transpile: {:?}",
+        result.err()
+    );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C713: should produce non-empty output");
-    assert!(code.contains("fn netfrag_reassembly_init"), "C713: should contain netfrag_reassembly_init");
-    assert!(code.contains("fn netfrag_fragment_data"), "C713: should contain netfrag_fragment_data");
+    assert!(
+        code.contains("fn netfrag_reassembly_init"),
+        "C713: should contain netfrag_reassembly_init"
+    );
+    assert!(
+        code.contains("fn netfrag_fragment_data"),
+        "C713: should contain netfrag_fragment_data"
+    );
 }
 
 /// C714: ARP cache table
@@ -1532,7 +1566,11 @@ int main(void) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(result.is_ok(), "C715: Routing table longest prefix match should transpile: {:?}", result.err());
+    assert!(
+        result.is_ok(),
+        "C715: Routing table longest prefix match should transpile: {:?}",
+        result.err()
+    );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C715: should produce non-empty output");
     assert!(code.contains("fn netrt_init"), "C715: should contain netrt_init");
@@ -1613,7 +1651,11 @@ int main(void) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(result.is_ok(), "C716: Network byte order conversion should transpile: {:?}", result.err());
+    assert!(
+        result.is_ok(),
+        "C716: Network byte order conversion should transpile: {:?}",
+        result.err()
+    );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C716: should produce non-empty output");
     assert!(code.contains("fn netbo_htonl"), "C716: should contain netbo_htonl");
@@ -1806,7 +1848,11 @@ int main(void) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(result.is_ok(), "C718: Port scanner state tracker should transpile: {:?}", result.err());
+    assert!(
+        result.is_ok(),
+        "C718: Port scanner state tracker should transpile: {:?}",
+        result.err()
+    );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C718: should produce non-empty output");
     assert!(code.contains("fn netscan_init"), "C718: should contain netscan_init");
@@ -2040,11 +2086,21 @@ int main(void) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(result.is_ok(), "C720: SOCKS proxy protocol handler should transpile: {:?}", result.err());
+    assert!(
+        result.is_ok(),
+        "C720: SOCKS proxy protocol handler should transpile: {:?}",
+        result.err()
+    );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C720: should produce non-empty output");
-    assert!(code.contains("fn netsocks_parse_greeting"), "C720: should contain netsocks_parse_greeting");
-    assert!(code.contains("fn netsocks_parse_connect"), "C720: should contain netsocks_parse_connect");
+    assert!(
+        code.contains("fn netsocks_parse_greeting"),
+        "C720: should contain netsocks_parse_greeting"
+    );
+    assert!(
+        code.contains("fn netsocks_parse_connect"),
+        "C720: should contain netsocks_parse_connect"
+    );
 }
 
 // ============================================================================
@@ -2302,7 +2358,10 @@ int main(void) {
     let code = result.unwrap();
     assert!(!code.is_empty(), "C722: should produce non-empty output");
     assert!(code.contains("fn netmqtt_writer_init"), "C722: should contain netmqtt_writer_init");
-    assert!(code.contains("fn netmqtt_build_connect"), "C722: should contain netmqtt_build_connect");
+    assert!(
+        code.contains("fn netmqtt_build_connect"),
+        "C722: should contain netmqtt_build_connect"
+    );
 }
 
 /// C723: Network interface statistics
@@ -2438,7 +2497,11 @@ int main(void) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(result.is_ok(), "C723: Network interface statistics should transpile: {:?}", result.err());
+    assert!(
+        result.is_ok(),
+        "C723: Network interface statistics should transpile: {:?}",
+        result.err()
+    );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C723: should produce non-empty output");
     assert!(code.contains("fn netif_table_init"), "C723: should contain netif_table_init");
@@ -2661,7 +2724,11 @@ int main(void) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(result.is_ok(), "C725: Connection timeout manager should transpile: {:?}", result.err());
+    assert!(
+        result.is_ok(),
+        "C725: Connection timeout manager should transpile: {:?}",
+        result.err()
+    );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C725: should produce non-empty output");
     assert!(code.contains("fn netto_init"), "C725: should contain netto_init");

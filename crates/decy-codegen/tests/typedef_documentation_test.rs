@@ -72,10 +72,7 @@ fn test_typedef_pointer_type() {
 
     assert!(c_code.contains("typedef"), "C uses typedef for pointers");
     assert!(rust_equivalent.contains("type"), "Rust uses type alias");
-    assert!(
-        rust_equivalent.contains("'a"),
-        "Rust adds lifetime for reference"
-    );
+    assert!(rust_equivalent.contains("'a"), "Rust adds lifetime for reference");
 
     // Demonstrate pointer type alias
     type IntPtr<'a> = &'a i32;
@@ -108,10 +105,7 @@ fn test_typedef_struct() {
     let rust_equivalent = "struct Point { x: i32, y: i32 }";
 
     assert!(c_code.contains("typedef"), "C uses typedef struct");
-    assert!(
-        !rust_equivalent.contains("typedef"),
-        "Rust doesn't need typedef for structs"
-    );
+    assert!(!rust_equivalent.contains("typedef"), "Rust doesn't need typedef for structs");
 
     // Demonstrate struct as type
     struct Point {
@@ -145,10 +139,7 @@ fn test_typedef_anonymous_struct() {
     let rust_equivalent = "struct Point { x: i32, y: i32 }";
 
     assert!(c_code.contains("typedef"), "C uses typedef for naming");
-    assert!(
-        rust_equivalent.contains("struct Point"),
-        "Rust names struct directly"
-    );
+    assert!(rust_equivalent.contains("struct Point"), "Rust names struct directly");
 
     // Demonstrate named struct
     struct Point {
@@ -233,10 +224,7 @@ fn test_typedef_complex_type() {
     let rust_equivalent = "type CallbackArray = [fn(i32) -> i32; 5];";
 
     assert!(c_code.contains("typedef"), "C uses typedef");
-    assert!(
-        rust_equivalent.contains("type"),
-        "Rust type alias is clearer"
-    );
+    assert!(rust_equivalent.contains("type"), "Rust type alias is clearer");
 
     // Demonstrate complex type alias
     type CallbackArray = [fn(i32) -> i32; 5];
@@ -334,10 +322,7 @@ fn test_typedef_chains() {
     let rust_equivalent = "type Integer = i32; type MyInt = Integer;";
 
     assert!(c_code.contains("typedef"), "C uses typedef chains");
-    assert!(
-        rust_equivalent.contains("type"),
-        "Rust uses type alias chains"
-    );
+    assert!(rust_equivalent.contains("type"), "Rust uses type alias chains");
 
     // Demonstrate chained aliases
     type Integer = i32;
@@ -367,10 +352,7 @@ fn test_typedef_const_type() {
     let rust_equivalent = "type ConstInt = i32; // const on binding, not type";
 
     assert!(c_code.contains("const"), "C typedef can include const");
-    assert!(
-        rust_equivalent.contains("type"),
-        "Rust separates type from const"
-    );
+    assert!(rust_equivalent.contains("type"), "Rust separates type from const");
 
     // Demonstrate const with type alias
     type ConstInt = i32;
@@ -400,14 +382,8 @@ fn test_newtype_pattern() {
     let c_limitation = "C typedef doesn't prevent type confusion";
     let rust_advantage = "Rust newtype provides type safety";
 
-    assert!(
-        c_limitation.contains("doesn't prevent"),
-        "C typedef is weak"
-    );
-    assert!(
-        rust_advantage.contains("type safety"),
-        "Rust newtype is strong"
-    );
+    assert!(c_limitation.contains("doesn't prevent"), "C typedef is weak");
+    assert!(rust_advantage.contains("type safety"), "Rust newtype is strong");
 
     // Demonstrate newtype pattern
     struct UserId(i32);
@@ -527,10 +503,7 @@ fn test_typedef_transformation_unsafe_count() {
 
     // Count unsafe blocks (should be 0)
     let unsafe_count = combined.matches("unsafe").count();
-    assert_eq!(
-        unsafe_count, 0,
-        "typedef transformations should not introduce unsafe blocks"
-    );
+    assert_eq!(unsafe_count, 0, "typedef transformations should not introduce unsafe blocks");
 }
 
 /// Summary of typedef transformation rules
@@ -582,10 +555,7 @@ fn test_typedef_transformation_rules_summary() {
 
     // Rule 4: No unsafe needed
     let unsafe_blocks = 0;
-    assert_eq!(
-        unsafe_blocks, 0,
-        "typedef transformations introduce 0 unsafe blocks"
-    );
+    assert_eq!(unsafe_blocks, 0, "typedef transformations introduce 0 unsafe blocks");
 
     // Rule 5: More type-safe than C
     let type_safe = true;

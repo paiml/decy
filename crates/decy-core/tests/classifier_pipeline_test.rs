@@ -26,11 +26,7 @@ int read_value(const int *ptr) {
     let has_immut_ref =
         result.contains("&i32") || result.contains("&'a i32") || result.contains(": &");
 
-    assert!(
-        has_immut_ref,
-        "DECY-183: const pointer should become &T\nGot: {}",
-        result
-    );
+    assert!(has_immut_ref, "DECY-183: const pointer should become &T\nGot: {}", result);
 }
 
 #[test]
@@ -48,11 +44,7 @@ void set_value(int *ptr, int value) {
     let has_mut_ref =
         result.contains("&mut i32") || result.contains("&'a mut i32") || result.contains(": &mut");
 
-    assert!(
-        has_mut_ref,
-        "DECY-183: pointer with writes should become &mut T\nGot: {}",
-        result
-    );
+    assert!(has_mut_ref, "DECY-183: pointer with writes should become &mut T\nGot: {}", result);
 }
 
 #[test]
@@ -74,11 +66,7 @@ int sum(int *arr, int len) {
     let has_slice =
         result.contains("&[i32]") || result.contains("&'a [i32]") || result.contains(": &[");
 
-    assert!(
-        has_slice,
-        "DECY-183: array with size should become slice\nGot: {}",
-        result
-    );
+    assert!(has_slice, "DECY-183: array with size should become slice\nGot: {}", result);
 }
 
 #[test]
@@ -94,19 +82,9 @@ int add(int a, int b) {
 
     // Should have function with correct signature
     assert!(result.contains("fn add"), "Should have add function");
-    assert!(
-        result.contains("a: i32") || result.contains("mut a: i32"),
-        "Should have parameter a"
-    );
-    assert!(
-        result.contains("b: i32") || result.contains("mut b: i32"),
-        "Should have parameter b"
-    );
-    assert!(
-        result.contains("-> i32"),
-        "Should return i32\nGot: {}",
-        result
-    );
+    assert!(result.contains("a: i32") || result.contains("mut a: i32"), "Should have parameter a");
+    assert!(result.contains("b: i32") || result.contains("mut b: i32"), "Should have parameter b");
+    assert!(result.contains("-> i32"), "Should return i32\nGot: {}", result);
 }
 
 #[test]
@@ -144,9 +122,5 @@ int get_value(const int *ptr) {
 
     // Should not contain unsafe block for this simple case
     // (though dereference might still need it depending on implementation)
-    assert!(
-        result.contains("fn get_value"),
-        "Should generate get_value function\nGot: {}",
-        result
-    );
+    assert!(result.contains("fn get_value"), "Should generate get_value function\nGot: {}", result);
 }

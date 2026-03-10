@@ -70,11 +70,7 @@ fn test_parse_logical_not() {
     if let decy_parser::parser::Statement::Return(Some(expr)) = &func.body[0] {
         match expr {
             Expression::UnaryOp { op, operand } => {
-                assert_eq!(
-                    *op,
-                    UnaryOperator::LogicalNot,
-                    "Operator should be logical NOT"
-                );
+                assert_eq!(*op, UnaryOperator::LogicalNot, "Operator should be logical NOT");
 
                 assert!(
                     matches!(**operand, Expression::Variable(_)),
@@ -144,11 +140,7 @@ fn test_parse_address_of_operator() {
             _ => format!("{:?}", expr).contains("AddressOf"),
         };
 
-        assert!(
-            is_address_of,
-            "Expected AddressOf expression for &x, got {:?}",
-            expr
-        );
+        assert!(is_address_of, "Expected AddressOf expression for &x, got {:?}", expr);
     } else {
         panic!("Expected return statement");
     }
@@ -169,11 +161,7 @@ fn test_unary_vs_binary_minus() {
     let ast = parser.parse(source).expect("Parsing should succeed");
 
     let func = &ast.functions()[0];
-    assert_eq!(
-        func.body.len(),
-        3,
-        "Should have 3 statements (2 decls + return)"
-    );
+    assert_eq!(func.body.len(), 3, "Should have 3 statements (2 decls + return)");
 
     // First variable: unary = -a (unary minus)
     if let decy_parser::parser::Statement::VariableDeclaration {
@@ -227,11 +215,7 @@ fn test_unary_minus_in_expression() {
     if let decy_parser::parser::Statement::Return(Some(expr)) = &func.body[0] {
         match expr {
             Expression::UnaryOp { op, operand } => {
-                assert_eq!(
-                    *op,
-                    UnaryOperator::Minus,
-                    "Outer operator should be unary minus"
-                );
+                assert_eq!(*op, UnaryOperator::Minus, "Outer operator should be unary minus");
 
                 // Operand should be a binary expression (a + b)
                 assert!(
@@ -268,13 +252,7 @@ fn test_double_negation() {
 
                 // Inner should also be UnaryOp with LogicalNot
                 assert!(
-                    matches!(
-                        **operand,
-                        Expression::UnaryOp {
-                            op: UnaryOperator::LogicalNot,
-                            ..
-                        }
-                    ),
+                    matches!(**operand, Expression::UnaryOp { op: UnaryOperator::LogicalNot, .. }),
                     "Inner should also be UnaryOp (!), got {:?}",
                     operand
                 );
@@ -303,37 +281,21 @@ fn test_unary_operators_in_assignment() {
     assert_eq!(func.body.len(), 2, "Should have 2 variable declarations");
 
     // First: neg = -x
-    if let decy_parser::parser::Statement::VariableDeclaration {
-        initializer: Some(expr),
-        ..
-    } = &func.body[0]
+    if let decy_parser::parser::Statement::VariableDeclaration { initializer: Some(expr), .. } =
+        &func.body[0]
     {
         assert!(
-            matches!(
-                expr,
-                Expression::UnaryOp {
-                    op: UnaryOperator::Minus,
-                    ..
-                }
-            ),
+            matches!(expr, Expression::UnaryOp { op: UnaryOperator::Minus, .. }),
             "First should be unary minus"
         );
     }
 
     // Second: not_val = !x
-    if let decy_parser::parser::Statement::VariableDeclaration {
-        initializer: Some(expr),
-        ..
-    } = &func.body[1]
+    if let decy_parser::parser::Statement::VariableDeclaration { initializer: Some(expr), .. } =
+        &func.body[1]
     {
         assert!(
-            matches!(
-                expr,
-                Expression::UnaryOp {
-                    op: UnaryOperator::LogicalNot,
-                    ..
-                }
-            ),
+            matches!(expr, Expression::UnaryOp { op: UnaryOperator::LogicalNot, .. }),
             "Second should be logical NOT"
         );
     }

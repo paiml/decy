@@ -79,25 +79,12 @@ vec2_t vec2_lerp(vec2_t a, vec2_t b, float t) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C426: 2D vector math operations should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C426: 2D vector math operations should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C426: Output should not be empty");
-    assert!(
-        code.contains("fn vec2_add"),
-        "C426: Should contain vec2_add function"
-    );
-    assert!(
-        code.contains("fn vec2_dot"),
-        "C426: Should contain vec2_dot function"
-    );
-    assert!(
-        code.contains("fn vec2_lerp"),
-        "C426: Should contain vec2_lerp function"
-    );
+    assert!(code.contains("fn vec2_add"), "C426: Should contain vec2_add function");
+    assert!(code.contains("fn vec2_dot"), "C426: Should contain vec2_dot function");
+    assert!(code.contains("fn vec2_lerp"), "C426: Should contain vec2_lerp function");
 }
 
 #[test]
@@ -167,25 +154,12 @@ vec3_t vec3_negate(vec3_t v) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C427: 3D vector math should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C427: 3D vector math should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C427: Output should not be empty");
-    assert!(
-        code.contains("fn vec3_cross"),
-        "C427: Should contain vec3_cross function"
-    );
-    assert!(
-        code.contains("fn vec3_reflect"),
-        "C427: Should contain vec3_reflect function"
-    );
-    assert!(
-        code.contains("fn vec3_dot"),
-        "C427: Should contain vec3_dot function"
-    );
+    assert!(code.contains("fn vec3_cross"), "C427: Should contain vec3_cross function");
+    assert!(code.contains("fn vec3_reflect"), "C427: Should contain vec3_reflect function");
+    assert!(code.contains("fn vec3_dot"), "C427: Should contain vec3_dot function");
 }
 
 #[test]
@@ -242,21 +216,11 @@ void mat4_scale(mat4_t *out, float sx, float sy, float sz) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C428: 4x4 matrix multiply should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C428: 4x4 matrix multiply should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C428: Output should not be empty");
-    assert!(
-        code.contains("fn mat4_multiply"),
-        "C428: Should contain mat4_multiply function"
-    );
-    assert!(
-        code.contains("fn mat4_identity"),
-        "C428: Should contain mat4_identity function"
-    );
+    assert!(code.contains("fn mat4_multiply"), "C428: Should contain mat4_multiply function");
+    assert!(code.contains("fn mat4_identity"), "C428: Should contain mat4_identity function");
 }
 
 #[test]
@@ -313,21 +277,11 @@ float vec4_dot(vec4_t a, vec4_t b) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C429: Matrix-vector transform should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C429: Matrix-vector transform should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C429: Output should not be empty");
-    assert!(
-        code.contains("fn mat4_mul_vec4"),
-        "C429: Should contain mat4_mul_vec4 function"
-    );
-    assert!(
-        code.contains("fn transform_point"),
-        "C429: Should contain transform_point function"
-    );
+    assert!(code.contains("fn mat4_mul_vec4"), "C429: Should contain mat4_mul_vec4 function");
+    assert!(code.contains("fn transform_point"), "C429: Should contain transform_point function");
 }
 
 #[test]
@@ -386,25 +340,12 @@ quat_t quat_lerp(quat_t a, quat_t b, float t) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C430: Quaternion operations should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C430: Quaternion operations should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C430: Output should not be empty");
-    assert!(
-        code.contains("fn quat_multiply"),
-        "C430: Should contain quat_multiply function"
-    );
-    assert!(
-        code.contains("fn quat_conjugate"),
-        "C430: Should contain quat_conjugate function"
-    );
-    assert!(
-        code.contains("fn quat_dot"),
-        "C430: Should contain quat_dot function"
-    );
+    assert!(code.contains("fn quat_multiply"), "C430: Should contain quat_multiply function");
+    assert!(code.contains("fn quat_conjugate"), "C430: Should contain quat_conjugate function");
+    assert!(code.contains("fn quat_dot"), "C430: Should contain quat_dot function");
 }
 
 // ============================================================================
@@ -461,21 +402,11 @@ float aabb_surface_area(const aabb_t *box) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C431: AABB collision detection should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C431: AABB collision detection should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C431: Output should not be empty");
-    assert!(
-        code.contains("fn aabb_intersects"),
-        "C431: Should contain aabb_intersects function"
-    );
-    assert!(
-        code.contains("fn aabb_merge"),
-        "C431: Should contain aabb_merge function"
-    );
+    assert!(code.contains("fn aabb_intersects"), "C431: Should contain aabb_intersects function");
+    assert!(code.contains("fn aabb_merge"), "C431: Should contain aabb_merge function");
 }
 
 #[test]
@@ -555,21 +486,14 @@ vec3_t ray_at(const ray_t *ray, float t) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C432: Ray-sphere intersection should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C432: Ray-sphere intersection should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C432: Output should not be empty");
     assert!(
         code.contains("fn ray_sphere_intersect"),
         "C432: Should contain ray_sphere_intersect function"
     );
-    assert!(
-        code.contains("fn ray_at"),
-        "C432: Should contain ray_at function"
-    );
+    assert!(code.contains("fn ray_at"), "C432: Should contain ray_at function");
 }
 
 #[test]
@@ -636,21 +560,11 @@ void draw_rect(framebuffer_t *fb, int x, int y, int w, int h, uint8_t color) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C433: Bresenham line drawing should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C433: Bresenham line drawing should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C433: Output should not be empty");
-    assert!(
-        code.contains("fn bresenham_line"),
-        "C433: Should contain bresenham_line function"
-    );
-    assert!(
-        code.contains("fn fb_set_pixel"),
-        "C433: Should contain fb_set_pixel function"
-    );
+    assert!(code.contains("fn bresenham_line"), "C433: Should contain bresenham_line function");
+    assert!(code.contains("fn fb_set_pixel"), "C433: Should contain fb_set_pixel function");
 }
 
 #[test]
@@ -728,21 +642,14 @@ void rasterize_triangle(canvas_t *canvas, point2d_t v0, point2d_t v1, point2d_t 
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C434: Triangle rasterization should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C434: Triangle rasterization should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C434: Output should not be empty");
     assert!(
         code.contains("fn rasterize_triangle"),
         "C434: Should contain rasterize_triangle function"
     );
-    assert!(
-        code.contains("fn edge_function"),
-        "C434: Should contain edge_function function"
-    );
+    assert!(code.contains("fn edge_function"), "C434: Should contain edge_function function");
 }
 
 #[test]
@@ -798,21 +705,14 @@ int zbuffer_is_visible(const zbuffer_t *zb, int x, int y, float z) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C435: Z-buffer depth testing should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C435: Z-buffer depth testing should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C435: Output should not be empty");
     assert!(
         code.contains("fn zbuffer_test_and_write"),
         "C435: Should contain zbuffer_test_and_write function"
     );
-    assert!(
-        code.contains("fn zbuffer_clear"),
-        "C435: Should contain zbuffer_clear function"
-    );
+    assert!(code.contains("fn zbuffer_clear"), "C435: Should contain zbuffer_clear function");
 }
 
 // ============================================================================
@@ -958,17 +858,10 @@ void plane_normalize(plane_t *p) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C437: Frustum culling should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C437: Frustum culling should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C437: Output should not be empty");
-    assert!(
-        code.contains("fn point_in_frustum"),
-        "C437: Should contain point_in_frustum function"
-    );
+    assert!(code.contains("fn point_in_frustum"), "C437: Should contain point_in_frustum function");
     assert!(
         code.contains("fn sphere_in_frustum"),
         "C437: Should contain sphere_in_frustum function"
@@ -1034,21 +927,11 @@ float uv_height(const uv_rect_t *uv) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C438: Sprite atlas UV mapping should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C438: Sprite atlas UV mapping should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C438: Output should not be empty");
-    assert!(
-        code.contains("fn atlas_get_uv"),
-        "C438: Should contain atlas_get_uv function"
-    );
-    assert!(
-        code.contains("fn atlas_init"),
-        "C438: Should contain atlas_init function"
-    );
+    assert!(code.contains("fn atlas_get_uv"), "C438: Should contain atlas_get_uv function");
+    assert!(code.contains("fn atlas_init"), "C438: Should contain atlas_init function");
 }
 
 #[test]
@@ -1126,21 +1009,11 @@ void tilemap_fill_rect(tilemap_t *map, int x0, int y0, int w, int h, int tile_id
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C439: Tile map renderer should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C439: Tile map renderer should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C439: Output should not be empty");
-    assert!(
-        code.contains("fn tilemap_get"),
-        "C439: Should contain tilemap_get function"
-    );
-    assert!(
-        code.contains("fn tilemap_is_solid"),
-        "C439: Should contain tilemap_is_solid function"
-    );
+    assert!(code.contains("fn tilemap_get"), "C439: Should contain tilemap_get function");
+    assert!(code.contains("fn tilemap_is_solid"), "C439: Should contain tilemap_is_solid function");
 }
 
 #[test]
@@ -1223,21 +1096,11 @@ float psys_particle_alpha(const particle_t *p) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C440: Particle system should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C440: Particle system should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C440: Output should not be empty");
-    assert!(
-        code.contains("fn psys_spawn"),
-        "C440: Should contain psys_spawn function"
-    );
-    assert!(
-        code.contains("fn psys_update"),
-        "C440: Should contain psys_update function"
-    );
+    assert!(code.contains("fn psys_spawn"), "C440: Should contain psys_spawn function");
+    assert!(code.contains("fn psys_update"), "C440: Should contain psys_update function");
 }
 
 // ============================================================================
@@ -1393,17 +1256,10 @@ float bezier_arc_length_approx(point2d_t p0, point2d_t p1, point2d_t p2, point2d
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C442: Bezier curve evaluation should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C442: Bezier curve evaluation should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C442: Output should not be empty");
-    assert!(
-        code.contains("fn bezier_cubic"),
-        "C442: Should contain bezier_cubic function"
-    );
+    assert!(code.contains("fn bezier_cubic"), "C442: Should contain bezier_cubic function");
     assert!(
         code.contains("fn bezier_cubic_tangent"),
         "C442: Should contain bezier_cubic_tangent function"
@@ -1472,10 +1328,7 @@ float spline_length_approx(spline_point_t p0, spline_point_t p1,
     );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C443: Output should not be empty");
-    assert!(
-        code.contains("fn catmull_rom"),
-        "C443: Should contain catmull_rom function"
-    );
+    assert!(code.contains("fn catmull_rom"), "C443: Should contain catmull_rom function");
     assert!(
         code.contains("fn catmull_rom_tangent"),
         "C443: Should contain catmull_rom_tangent function"
@@ -1563,11 +1416,7 @@ int spatial_hash_cell_count(const spatial_hash_t *grid, int cell_idx) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C444: Spatial hash grid should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C444: Spatial hash grid should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C444: Output should not be empty");
     assert!(
@@ -1654,21 +1503,11 @@ void vbuf_clear(vertex_buffer_t *vb) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C445: Vertex buffer layout should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C445: Vertex buffer layout should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C445: Output should not be empty");
-    assert!(
-        code.contains("fn vbuf_push"),
-        "C445: Should contain vbuf_push function"
-    );
-    assert!(
-        code.contains("fn vbuf_init"),
-        "C445: Should contain vbuf_init function"
-    );
+    assert!(code.contains("fn vbuf_push"), "C445: Should contain vbuf_push function");
+    assert!(code.contains("fn vbuf_init"), "C445: Should contain vbuf_init function");
 }
 
 // ============================================================================
@@ -1749,21 +1588,14 @@ vec3n_t vec3n_scale(vec3n_t v, float s) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C446: Normal map tangent space should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C446: Normal map tangent space should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C446: Output should not be empty");
     assert!(
         code.contains("fn compute_tangent_space"),
         "C446: Should contain compute_tangent_space function"
     );
-    assert!(
-        code.contains("fn vec3n_dot"),
-        "C446: Should contain vec3n_dot function"
-    );
+    assert!(code.contains("fn vec3n_dot"), "C446: Should contain vec3n_dot function");
 }
 
 #[test]
@@ -1840,17 +1672,10 @@ int lod_total_triangles(const lod_object_t *objects, int count, const lod_config
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C447: LOD distance selector should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C447: LOD distance selector should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C447: Output should not be empty");
-    assert!(
-        code.contains("fn lod_select_level"),
-        "C447: Should contain lod_select_level function"
-    );
+    assert!(code.contains("fn lod_select_level"), "C447: Should contain lod_select_level function");
     assert!(
         code.contains("fn lod_update_object"),
         "C447: Should contain lod_update_object function"
@@ -1939,17 +1764,10 @@ float ssao_average_occlusion(const float *occlusion_values, int count) {
 }
 "#;
     let result = decy_core::transpile(c_code);
-    assert!(
-        result.is_ok(),
-        "C448: SSAO kernel generation should transpile: {:?}",
-        result.err()
-    );
+    assert!(result.is_ok(), "C448: SSAO kernel generation should transpile: {:?}", result.err());
     let code = result.unwrap();
     assert!(!code.is_empty(), "C448: Output should not be empty");
-    assert!(
-        code.contains("fn ssao_kernel_init"),
-        "C448: Should contain ssao_kernel_init function"
-    );
+    assert!(code.contains("fn ssao_kernel_init"), "C448: Should contain ssao_kernel_init function");
     assert!(
         code.contains("fn ssao_compute_occlusion"),
         "C448: Should contain ssao_compute_occlusion function"
@@ -2033,14 +1851,8 @@ float shadow_pcf_3x3(const shadow_map_t *sm, float light_x, float light_y, float
     );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C449: Output should not be empty");
-    assert!(
-        code.contains("fn shadow_test"),
-        "C449: Should contain shadow_test function"
-    );
-    assert!(
-        code.contains("fn shadow_pcf_3x3"),
-        "C449: Should contain shadow_pcf_3x3 function"
-    );
+    assert!(code.contains("fn shadow_test"), "C449: Should contain shadow_test function");
+    assert!(code.contains("fn shadow_pcf_3x3"), "C449: Should contain shadow_pcf_3x3 function");
 }
 
 #[test]

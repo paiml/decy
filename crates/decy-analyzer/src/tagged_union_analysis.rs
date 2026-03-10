@@ -146,14 +146,10 @@ impl TaggedUnionAnalyzer {
         let fields = struct_def.fields();
 
         // Find the first enum field (tag)
-        let tag_field = fields
-            .iter()
-            .find(|f| matches!(f.field_type(), HirType::Enum(_)))?;
+        let tag_field = fields.iter().find(|f| matches!(f.field_type(), HirType::Enum(_)))?;
 
         // Find the first union field (data)
-        let union_field = fields
-            .iter()
-            .find(|f| matches!(f.field_type(), HirType::Union(_)))?;
+        let union_field = fields.iter().find(|f| matches!(f.field_type(), HirType::Union(_)))?;
 
         // Extract union variants
         if let HirType::Union(variants) = union_field.field_type() {

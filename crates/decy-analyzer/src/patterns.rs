@@ -74,11 +74,7 @@ impl PatternDetector {
     /// - `ptr = malloc(...)`     (Assignment)
     fn is_malloc_assignment(&self, stmt: &HirStatement) -> Option<String> {
         match stmt {
-            HirStatement::VariableDeclaration {
-                name,
-                initializer: Some(expr),
-                ..
-            } => {
+            HirStatement::VariableDeclaration { name, initializer: Some(expr), .. } => {
                 if self.is_malloc_call(expr) {
                     Some(name.clone())
                 } else {
@@ -174,16 +170,8 @@ impl PatternDetector {
         stmt: &'a HirStatement,
     ) -> Option<(String, &'a HirExpression)> {
         match stmt {
-            HirStatement::VariableDeclaration {
-                name,
-                initializer: Some(expr),
-                ..
-            } => {
-                if let HirExpression::FunctionCall {
-                    function,
-                    arguments,
-                } = expr
-                {
+            HirStatement::VariableDeclaration { name, initializer: Some(expr), .. } => {
+                if let HirExpression::FunctionCall { function, arguments } = expr {
                     if function == "malloc" && !arguments.is_empty() {
                         return Some((name.clone(), &arguments[0]));
                     }
@@ -191,11 +179,7 @@ impl PatternDetector {
                 None
             }
             HirStatement::Assignment { target, value } => {
-                if let HirExpression::FunctionCall {
-                    function,
-                    arguments,
-                } = value
-                {
+                if let HirExpression::FunctionCall { function, arguments } = value {
                     if function == "malloc" && !arguments.is_empty() {
                         return Some((target.clone(), &arguments[0]));
                     }
@@ -210,13 +194,7 @@ impl PatternDetector {
     ///
     /// Looks for multiplication expressions that indicate array sizing.
     fn is_array_size_expr(&self, expr: &HirExpression) -> bool {
-        matches!(
-            expr,
-            HirExpression::BinaryOp {
-                op: decy_hir::BinaryOperator::Multiply,
-                ..
-            }
-        )
+        matches!(expr, HirExpression::BinaryOp { op: decy_hir::BinaryOperator::Multiply, .. })
     }
 
     /// Extract capacity from array size expression (n * sizeof(T))
@@ -224,12 +202,7 @@ impl PatternDetector {
     /// Returns the left operand of the multiplication, which typically
     /// represents the number of elements (capacity).
     fn extract_capacity(&self, expr: &HirExpression) -> Option<HirExpression> {
-        if let HirExpression::BinaryOp {
-            op: decy_hir::BinaryOperator::Multiply,
-            left,
-            ..
-        } = expr
-        {
+        if let HirExpression::BinaryOp { op: decy_hir::BinaryOperator::Multiply, left, .. } = expr {
             Some((**left).clone())
         } else {
             None
@@ -251,12 +224,7 @@ mod tests {
     #[test]
     fn test_pattern_detector_default() {
         let detector = PatternDetector::default();
-        let func = HirFunction::new_with_body(
-            "test".to_string(),
-            HirType::Void,
-            vec![],
-            vec![],
-        );
+        let func = HirFunction::new_with_body("test".to_string(), HirType::Void, vec![], vec![]);
         assert!(detector.find_box_candidates(&func).is_empty());
         assert!(detector.find_vec_candidates(&func).is_empty());
     }
@@ -330,10 +298,7 @@ mod tests {
         let func = HirFunction::new_with_body(
             "test".to_string(),
             HirType::Void,
-            vec![HirParameter::new(
-                "ptr".to_string(),
-                HirType::Pointer(Box::new(HirType::Int)),
-            )],
+            vec![HirParameter::new("ptr".to_string(), HirType::Pointer(Box::new(HirType::Int)))],
             vec![HirStatement::Assignment {
                 target: "ptr".to_string(),
                 value: HirExpression::FunctionCall {
@@ -495,10 +460,7 @@ mod tests {
 
         assert_eq!(candidates.len(), 1);
         assert_eq!(candidates[0].variable, "arr");
-        assert!(
-            candidates[0].capacity_expr.is_some(),
-            "Should extract capacity expression"
-        );
+        assert!(candidates[0].capacity_expr.is_some(), "Should extract capacity expression");
     }
 
     #[test]
@@ -650,16 +612,8 @@ mod tests {
         let box_candidates = detector.find_box_candidates(&func);
         let vec_candidates = detector.find_vec_candidates(&func);
 
-        assert_eq!(
-            box_candidates.len(),
-            0,
-            "Should not detect calloc/realloc as malloc"
-        );
-        assert_eq!(
-            vec_candidates.len(),
-            0,
-            "Should not detect calloc/realloc as malloc"
-        );
+        assert_eq!(box_candidates.len(), 0, "Should not detect calloc/realloc as malloc");
+        assert_eq!(vec_candidates.len(), 0, "Should not detect calloc/realloc as malloc");
     }
 
     #[test]
@@ -675,10 +629,7 @@ mod tests {
         let func = HirFunction::new_with_body(
             "test".to_string(),
             HirType::Void,
-            vec![HirParameter::new(
-                "arr".to_string(),
-                HirType::Pointer(Box::new(HirType::Int)),
-            )],
+            vec![HirParameter::new("arr".to_string(), HirType::Pointer(Box::new(HirType::Int)))],
             vec![HirStatement::Assignment {
                 target: "arr".to_string(),
                 value: HirExpression::FunctionCall {
@@ -691,11 +642,7 @@ mod tests {
         let detector = PatternDetector::new();
         let vec_candidates = detector.find_vec_candidates(&func);
 
-        assert_eq!(
-            vec_candidates.len(),
-            1,
-            "Should detect array malloc in Assignment as Vec"
-        );
+        assert_eq!(vec_candidates.len(), 1, "Should detect array malloc in Assignment as Vec");
         assert_eq!(vec_candidates[0].variable, "arr");
         assert_eq!(vec_candidates[0].malloc_index, 0);
     }
@@ -713,10 +660,7 @@ mod tests {
         let func = HirFunction::new_with_body(
             "test".to_string(),
             HirType::Void,
-            vec![HirParameter::new(
-                "arr".to_string(),
-                HirType::Pointer(Box::new(HirType::Int)),
-            )],
+            vec![HirParameter::new("arr".to_string(), HirType::Pointer(Box::new(HirType::Int)))],
             vec![HirStatement::Assignment {
                 target: "arr".to_string(),
                 value: HirExpression::FunctionCall {
@@ -729,11 +673,7 @@ mod tests {
         let detector = PatternDetector::new();
         let vec_candidates = detector.find_vec_candidates(&func);
 
-        assert_eq!(
-            vec_candidates.len(),
-            0,
-            "Should not detect calloc in Assignment"
-        );
+        assert_eq!(vec_candidates.len(), 0, "Should not detect calloc in Assignment");
     }
 }
 

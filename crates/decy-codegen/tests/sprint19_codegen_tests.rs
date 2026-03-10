@@ -66,10 +66,7 @@ fn test_codegen_nested_cast() {
         expr: Box::new(HirExpression::Variable("x".to_string())),
     };
 
-    let outer_cast = HirExpression::Cast {
-        target_type: HirType::Int,
-        expr: Box::new(inner_cast),
-    };
+    let outer_cast = HirExpression::Cast { target_type: HirType::Int, expr: Box::new(inner_cast) };
 
     let codegen = CodeGenerator::new();
     let result = codegen.generate_expression(&outer_cast);
@@ -94,10 +91,7 @@ fn test_codegen_compound_literal_struct() {
     assert!(result.contains("Point"), "Should include struct name");
     assert!(result.contains("10"), "Should include first initializer");
     assert!(result.contains("20"), "Should include second initializer");
-    assert!(
-        result.contains("{") && result.contains("}"),
-        "Should have braces"
-    );
+    assert!(result.contains("{") && result.contains("}"), "Should have braces");
 }
 
 #[test]
@@ -106,10 +100,7 @@ fn test_codegen_compound_literal_array() {
     // Rust: vec![1, 2, 3, 4, 5] or [1, 2, 3, 4, 5]
 
     let compound_expr = HirExpression::CompoundLiteral {
-        literal_type: HirType::Array {
-            element_type: Box::new(HirType::Int),
-            size: Some(5),
-        },
+        literal_type: HirType::Array { element_type: Box::new(HirType::Int), size: Some(5) },
         initializers: vec![
             HirExpression::IntLiteral(1),
             HirExpression::IntLiteral(2),
@@ -123,10 +114,7 @@ fn test_codegen_compound_literal_array() {
     let result = codegen.generate_expression(&compound_expr);
 
     // Should generate either vec![...] or [...]
-    assert!(
-        result.contains("vec![") || result.contains("["),
-        "Should have array/vec syntax"
-    );
+    assert!(result.contains("vec![") || result.contains("["), "Should have array/vec syntax");
     assert!(result.contains("1"), "Should include first element");
     assert!(result.contains("5"), "Should include last element");
 }

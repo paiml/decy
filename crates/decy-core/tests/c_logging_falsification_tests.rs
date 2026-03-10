@@ -1291,7 +1291,11 @@ int log_hw_ctr_test(void) {
 }
 "##;
     let result = decy_core::transpile(c_code);
-    assert!(result.is_ok(), "C1616: Hardware counter abstraction should transpile: {:?}", result.err());
+    assert!(
+        result.is_ok(),
+        "C1616: Hardware counter abstraction should transpile: {:?}",
+        result.err()
+    );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1616: Output should not be empty");
     assert!(code.contains("fn log_hw_ctr_"), "C1616: Should contain log_hw_ctr_ functions");
@@ -1358,7 +1362,11 @@ int log_ovf_test(void) {
 }
 "##;
     let result = decy_core::transpile(c_code);
-    assert!(result.is_ok(), "C1617: Counter overflow handling should transpile: {:?}", result.err());
+    assert!(
+        result.is_ok(),
+        "C1617: Counter overflow handling should transpile: {:?}",
+        result.err()
+    );
     let code = result.unwrap();
     assert!(!code.is_empty(), "C1617: Output should not be empty");
     assert!(code.contains("fn log_ovf_"), "C1617: Should contain log_ovf_ functions");

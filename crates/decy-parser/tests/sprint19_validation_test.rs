@@ -42,25 +42,13 @@ fn test_sprint19_validation_file_parses() {
 
     // Verify we have the expected global variables
     let global_names: Vec<&str> = ast.variables().iter().map(|v| v.name()).collect();
-    assert!(
-        global_names.contains(&"global_counter"),
-        "Should parse global_counter"
-    );
-    assert!(
-        global_names.contains(&"file_local_state"),
-        "Should parse file_local_state (static)"
-    );
+    assert!(global_names.contains(&"global_counter"), "Should parse global_counter");
+    assert!(global_names.contains(&"file_local_state"), "Should parse file_local_state (static)");
 
     // Check storage class specifiers work
-    let file_local = ast
-        .variables()
-        .iter()
-        .find(|v| v.name() == "file_local_state");
+    let file_local = ast.variables().iter().find(|v| v.name() == "file_local_state");
     if let Some(var) = file_local {
-        assert!(
-            var.is_static(),
-            "file_local_state should be marked as static"
-        );
+        assert!(var.is_static(), "file_local_state should be marked as static");
     }
 
     // DECY-059: Functions with cast expressions
@@ -103,10 +91,7 @@ fn test_sprint19_validation_file_parses() {
     let struct_names: Vec<&str> = ast.structs().iter().map(|s| s.name()).collect();
     assert!(struct_names.contains(&"Point"), "Should parse Point struct");
     assert!(struct_names.contains(&"Color"), "Should parse Color struct");
-    assert!(
-        struct_names.contains(&"Config"),
-        "Should parse Config struct"
-    );
+    assert!(struct_names.contains(&"Config"), "Should parse Config struct");
 
     println!("\n✅ Sprint 19 Validation PASSED!");
     println!("   - Global variables: ✅");
@@ -146,10 +131,7 @@ fn test_sprint19_global_variable_storage_classes() {
     }
 
     // Verify MAX_BUFFER_SIZE is const
-    let max_buffer = ast
-        .variables()
-        .iter()
-        .find(|v| v.name() == "MAX_BUFFER_SIZE");
+    let max_buffer = ast.variables().iter().find(|v| v.name() == "MAX_BUFFER_SIZE");
     if let Some(var) = max_buffer {
         assert!(var.is_const(), "MAX_BUFFER_SIZE should be const");
     }
@@ -164,15 +146,9 @@ fn test_sprint19_cast_expressions_present() {
     let ast = parser.parse(&source).expect("Should parse");
 
     // The test_cast_expressions function should parse
-    let cast_fn = ast
-        .functions()
-        .iter()
-        .find(|f| f.name == "test_cast_expressions");
+    let cast_fn = ast.functions().iter().find(|f| f.name == "test_cast_expressions");
 
-    assert!(
-        cast_fn.is_some(),
-        "test_cast_expressions function should be parsed"
-    );
+    assert!(cast_fn.is_some(), "test_cast_expressions function should be parsed");
 
     // The function contains casts: (int)pi, (char*)generic_ptr, (int)size
     // These are parsed as part of the function body
@@ -198,11 +174,7 @@ fn test_sprint19_compound_literals_present() {
 
     for func_name in compound_functions {
         let func = ast.functions().iter().find(|f| f.name == func_name);
-        assert!(
-            func.is_some(),
-            "Function {} with compound literals should parse",
-            func_name
-        );
+        assert!(func.is_some(), "Function {} with compound literals should parse", func_name);
     }
 
     println!("✅ All compound literal functions parsed successfully");

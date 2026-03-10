@@ -97,10 +97,7 @@ fn test_type_context_string_iter_param() {
     ctx.add_string_iter_param("str_param".to_string(), "i".to_string());
     assert!(ctx.is_string_iter_param("str_param"));
     assert!(!ctx.is_string_iter_param("other"));
-    assert_eq!(
-        ctx.get_string_iter_index("str_param"),
-        Some(&"i".to_string())
-    );
+    assert_eq!(ctx.get_string_iter_index("str_param"), Some(&"i".to_string()));
 }
 
 #[test]
@@ -144,19 +141,13 @@ fn test_map_type_pointers() {
 
 #[test]
 fn test_map_type_arrays() {
-    let arr = HirType::Array {
-        element_type: Box::new(HirType::Int),
-        size: Some(10),
-    };
+    let arr = HirType::Array { element_type: Box::new(HirType::Int), size: Some(10) };
     let result = CodeGenerator::map_type(&arr);
     assert!(result.contains("i32"));
     assert!(result.contains("10"));
 
     // Unsized array
-    let unsized_arr = HirType::Array {
-        element_type: Box::new(HirType::Int),
-        size: None,
-    };
+    let unsized_arr = HirType::Array { element_type: Box::new(HirType::Int), size: None };
     let unsized_result = CodeGenerator::map_type(&unsized_arr);
     assert!(unsized_result.contains("i32"));
 }
@@ -187,17 +178,11 @@ fn test_map_type_struct() {
 
 #[test]
 fn test_map_type_reference() {
-    let ref_type = HirType::Reference {
-        inner: Box::new(HirType::Int),
-        mutable: false,
-    };
+    let ref_type = HirType::Reference { inner: Box::new(HirType::Int), mutable: false };
     assert!(CodeGenerator::map_type(&ref_type).contains("&"));
     assert!(CodeGenerator::map_type(&ref_type).contains("i32"));
 
-    let mut_ref = HirType::Reference {
-        inner: Box::new(HirType::Int),
-        mutable: true,
-    };
+    let mut_ref = HirType::Reference { inner: Box::new(HirType::Int), mutable: true };
     assert!(CodeGenerator::map_type(&mut_ref).contains("&mut"));
 }
 
@@ -212,10 +197,8 @@ fn test_map_type_reference_to_vec_becomes_slice() {
     assert!(result.contains("&[i32]"));
 
     // &mut Vec<T> → &mut [T]
-    let mut_ref_vec = HirType::Reference {
-        inner: Box::new(HirType::Vec(Box::new(HirType::Int))),
-        mutable: true,
-    };
+    let mut_ref_vec =
+        HirType::Reference { inner: Box::new(HirType::Vec(Box::new(HirType::Int))), mutable: true };
     let mut_result = CodeGenerator::map_type(&mut_ref_vec);
     assert!(mut_result.contains("&mut [i32]"));
 }
@@ -230,10 +213,8 @@ fn test_map_type_function_pointer() {
     assert!(result.contains("fn("));
     assert!(result.contains("i32"));
 
-    let void_fn = HirType::FunctionPointer {
-        param_types: vec![],
-        return_type: Box::new(HirType::Void),
-    };
+    let void_fn =
+        HirType::FunctionPointer { param_types: vec![], return_type: Box::new(HirType::Void) };
     let void_result = CodeGenerator::map_type(&void_fn);
     assert!(void_result.contains("fn()"));
 }
@@ -402,10 +383,8 @@ fn test_generate_statement_variable_declaration() {
 #[test]
 fn test_generate_statement_assignment() {
     let gen = CodeGenerator::new();
-    let stmt = HirStatement::Assignment {
-        target: "x".to_string(),
-        value: HirExpression::IntLiteral(10),
-    };
+    let stmt =
+        HirStatement::Assignment { target: "x".to_string(), value: HirExpression::IntLiteral(10) };
     let result = gen.generate_statement(&stmt);
     assert!(result.contains("x"));
     assert!(result.contains("10"));
@@ -467,11 +446,7 @@ fn test_binary_operator_to_string() {
 
     for (op, expected) in ops_and_expected {
         let result = CodeGenerator::binary_operator_to_string(&op);
-        assert_eq!(
-            result, expected,
-            "Operator {:?} should map to {}",
-            op, expected
-        );
+        assert_eq!(result, expected, "Operator {:?} should map to {}", op, expected);
     }
 }
 
@@ -538,10 +513,7 @@ fn test_is_malloc_expression() {
     };
     assert!(CodeGenerator::is_malloc_expression(&malloc_call));
 
-    let other_call = HirExpression::FunctionCall {
-        function: "foo".to_string(),
-        arguments: vec![],
-    };
+    let other_call = HirExpression::FunctionCall { function: "foo".to_string(), arguments: vec![] };
     assert!(!CodeGenerator::is_malloc_expression(&other_call));
 }
 
@@ -627,10 +599,7 @@ fn test_infer_type_dereference_reference() {
     let mut ctx = TypeContext::new();
     ctx.add_variable(
         "ref_var".to_string(),
-        HirType::Reference {
-            inner: Box::new(HirType::Char),
-            mutable: false,
-        },
+        HirType::Reference { inner: Box::new(HirType::Char), mutable: false },
     );
     let deref =
         HirExpression::Dereference(Box::new(HirExpression::Variable("ref_var".to_string())));
@@ -640,10 +609,7 @@ fn test_infer_type_dereference_reference() {
 #[test]
 fn test_infer_type_dereference_vec() {
     let mut ctx = TypeContext::new();
-    ctx.add_variable(
-        "vec_var".to_string(),
-        HirType::Vec(Box::new(HirType::Double)),
-    );
+    ctx.add_variable("vec_var".to_string(), HirType::Vec(Box::new(HirType::Double)));
     let deref =
         HirExpression::Dereference(Box::new(HirExpression::Variable("vec_var".to_string())));
     assert_eq!(ctx.infer_expression_type(&deref), Some(HirType::Double));
@@ -662,10 +628,7 @@ fn test_infer_type_array_index_array() {
     let mut ctx = TypeContext::new();
     ctx.add_variable(
         "arr".to_string(),
-        HirType::Array {
-            element_type: Box::new(HirType::Int),
-            size: Some(10),
-        },
+        HirType::Array { element_type: Box::new(HirType::Int), size: Some(10) },
     );
     let index = HirExpression::ArrayIndex {
         array: Box::new(HirExpression::Variable("arr".to_string())),
@@ -677,10 +640,7 @@ fn test_infer_type_array_index_array() {
 #[test]
 fn test_infer_type_array_index_pointer() {
     let mut ctx = TypeContext::new();
-    ctx.add_variable(
-        "ptr".to_string(),
-        HirType::Pointer(Box::new(HirType::Float)),
-    );
+    ctx.add_variable("ptr".to_string(), HirType::Pointer(Box::new(HirType::Float)));
     let index = HirExpression::ArrayIndex {
         array: Box::new(HirExpression::Variable("ptr".to_string())),
         index: Box::new(HirExpression::IntLiteral(1)),
@@ -728,18 +688,12 @@ fn test_infer_type_array_index_ref_array() {
 #[test]
 fn test_infer_type_array_index_vec() {
     let mut ctx = TypeContext::new();
-    ctx.add_variable(
-        "vec".to_string(),
-        HirType::Vec(Box::new(HirType::UnsignedInt)),
-    );
+    ctx.add_variable("vec".to_string(), HirType::Vec(Box::new(HirType::UnsignedInt)));
     let index = HirExpression::ArrayIndex {
         array: Box::new(HirExpression::Variable("vec".to_string())),
         index: Box::new(HirExpression::IntLiteral(0)),
     };
-    assert_eq!(
-        ctx.infer_expression_type(&index),
-        Some(HirType::UnsignedInt)
-    );
+    assert_eq!(ctx.infer_expression_type(&index), Some(HirType::UnsignedInt));
 }
 
 #[test]
@@ -777,10 +731,7 @@ fn test_infer_type_pointer_field_access() {
     let mut ctx = TypeContext::new();
     let struct_def = decy_hir::HirStruct::new(
         "Node".to_string(),
-        vec![decy_hir::HirStructField::new(
-            "value".to_string(),
-            HirType::Int,
-        )],
+        vec![decy_hir::HirStructField::new("value".to_string(), HirType::Int)],
     );
     ctx.add_struct(&struct_def);
     ctx.add_variable(
@@ -800,10 +751,7 @@ fn test_infer_type_box_field_access() {
     let mut ctx = TypeContext::new();
     let struct_def = decy_hir::HirStruct::new(
         "Data".to_string(),
-        vec![decy_hir::HirStructField::new(
-            "count".to_string(),
-            HirType::UnsignedInt,
-        )],
+        vec![decy_hir::HirStructField::new("count".to_string(), HirType::UnsignedInt)],
     );
     ctx.add_struct(&struct_def);
     ctx.add_variable(
@@ -815,10 +763,7 @@ fn test_infer_type_box_field_access() {
         pointer: Box::new(HirExpression::Variable("boxed".to_string())),
         field: "count".to_string(),
     };
-    assert_eq!(
-        ctx.infer_expression_type(&access),
-        Some(HirType::UnsignedInt)
-    );
+    assert_eq!(ctx.infer_expression_type(&access), Some(HirType::UnsignedInt));
 }
 
 #[test]
@@ -826,18 +771,12 @@ fn test_infer_type_ref_field_access() {
     let mut ctx = TypeContext::new();
     let struct_def = decy_hir::HirStruct::new(
         "Info".to_string(),
-        vec![decy_hir::HirStructField::new(
-            "flag".to_string(),
-            HirType::Char,
-        )],
+        vec![decy_hir::HirStructField::new("flag".to_string(), HirType::Char)],
     );
     ctx.add_struct(&struct_def);
     ctx.add_variable(
         "ref_info".to_string(),
-        HirType::Reference {
-            inner: Box::new(HirType::Struct("Info".to_string())),
-            mutable: false,
-        },
+        HirType::Reference { inner: Box::new(HirType::Struct("Info".to_string())), mutable: false },
     );
 
     let access = HirExpression::PointerFieldAccess {
@@ -905,18 +844,12 @@ fn test_infer_type_binary_shift() {
 #[test]
 fn test_infer_type_literals() {
     let ctx = TypeContext::new();
-    assert_eq!(
-        ctx.infer_expression_type(&HirExpression::IntLiteral(42)),
-        Some(HirType::Int)
-    );
+    assert_eq!(ctx.infer_expression_type(&HirExpression::IntLiteral(42)), Some(HirType::Int));
     assert_eq!(
         ctx.infer_expression_type(&HirExpression::FloatLiteral("3.14".to_string())),
         Some(HirType::Double)
     );
-    assert_eq!(
-        ctx.infer_expression_type(&HirExpression::CharLiteral(65)),
-        Some(HirType::Char)
-    );
+    assert_eq!(ctx.infer_expression_type(&HirExpression::CharLiteral(65)), Some(HirType::Char));
 }
 
 // ============================================================================
@@ -963,9 +896,7 @@ fn test_generate_if_else_statement() {
     let stmt = HirStatement::If {
         condition: HirExpression::IntLiteral(1),
         then_block: vec![HirStatement::Return(Some(HirExpression::IntLiteral(1)))],
-        else_block: Some(vec![HirStatement::Return(Some(HirExpression::IntLiteral(
-            0,
-        )))]),
+        else_block: Some(vec![HirStatement::Return(Some(HirExpression::IntLiteral(0)))]),
     };
     let result = gen.generate_statement(&stmt);
     assert!(result.contains("if"));
@@ -1032,9 +963,7 @@ fn test_generate_pointer_field_access() {
 #[test]
 fn test_generate_sizeof() {
     let gen = CodeGenerator::new();
-    let expr = HirExpression::Sizeof {
-        type_name: "int".to_string(),
-    };
+    let expr = HirExpression::Sizeof { type_name: "int".to_string() };
     let result = gen.generate_expression(&expr);
     assert!(result.contains("size_of") || result.contains("mem::") || result.contains("4"));
 }
@@ -1232,9 +1161,8 @@ fn test_generate_for_loop() {
 #[test]
 fn test_generate_pre_increment() {
     let gen = CodeGenerator::new();
-    let expr = HirExpression::PreIncrement {
-        operand: Box::new(HirExpression::Variable("i".to_string())),
-    };
+    let expr =
+        HirExpression::PreIncrement { operand: Box::new(HirExpression::Variable("i".to_string())) };
     let result = gen.generate_expression(&expr);
     assert!(result.contains("i") || result.contains("+") || result.contains("1"));
 }
@@ -1252,9 +1180,8 @@ fn test_generate_post_increment() {
 #[test]
 fn test_generate_pre_decrement() {
     let gen = CodeGenerator::new();
-    let expr = HirExpression::PreDecrement {
-        operand: Box::new(HirExpression::Variable("k".to_string())),
-    };
+    let expr =
+        HirExpression::PreDecrement { operand: Box::new(HirExpression::Variable("k".to_string())) };
     let result = gen.generate_expression(&expr);
     assert!(result.contains("k") || result.contains("-") || result.contains("1"));
 }
@@ -1276,9 +1203,7 @@ fn test_generate_post_decrement() {
 #[test]
 fn test_generate_malloc_expression() {
     let gen = CodeGenerator::new();
-    let expr = HirExpression::Malloc {
-        size: Box::new(HirExpression::IntLiteral(100)),
-    };
+    let expr = HirExpression::Malloc { size: Box::new(HirExpression::IntLiteral(100)) };
     let result = gen.generate_expression(&expr);
     assert!(result.contains("Box") || result.contains("Vec") || result.contains("alloc"));
 }
@@ -1571,10 +1496,7 @@ fn test_variable_reference_vec_to_pointer() {
     let mut ctx = TypeContext::new();
     ctx.add_variable(
         "slice".to_string(),
-        HirType::Reference {
-            inner: Box::new(HirType::Vec(Box::new(HirType::Int))),
-            mutable: true,
-        },
+        HirType::Reference { inner: Box::new(HirType::Vec(Box::new(HirType::Int))), mutable: true },
     );
     let expr = HirExpression::Variable("slice".to_string());
     let target = HirType::Pointer(Box::new(HirType::Int));
@@ -1605,10 +1527,7 @@ fn test_variable_mutable_ref_to_pointer() {
     let mut ctx = TypeContext::new();
     ctx.add_variable(
         "x".to_string(),
-        HirType::Reference {
-            inner: Box::new(HirType::Int),
-            mutable: true,
-        },
+        HirType::Reference { inner: Box::new(HirType::Int), mutable: true },
     );
     let expr = HirExpression::Variable("x".to_string());
     let target = HirType::Pointer(Box::new(HirType::Int));
@@ -1622,10 +1541,7 @@ fn test_variable_immutable_ref_to_pointer() {
     let mut ctx = TypeContext::new();
     ctx.add_variable(
         "x".to_string(),
-        HirType::Reference {
-            inner: Box::new(HirType::Int),
-            mutable: false,
-        },
+        HirType::Reference { inner: Box::new(HirType::Int), mutable: false },
     );
     let expr = HirExpression::Variable("x".to_string());
     let target = HirType::Pointer(Box::new(HirType::Int));
@@ -1650,10 +1566,7 @@ fn test_variable_array_to_pointer() {
     let mut ctx = TypeContext::new();
     ctx.add_variable(
         "arr".to_string(),
-        HirType::Array {
-            element_type: Box::new(HirType::Int),
-            size: Some(10),
-        },
+        HirType::Array { element_type: Box::new(HirType::Int), size: Some(10) },
     );
     let expr = HirExpression::Variable("arr".to_string());
     let target = HirType::Pointer(Box::new(HirType::Int));
@@ -1667,10 +1580,7 @@ fn test_variable_array_to_void_pointer() {
     let mut ctx = TypeContext::new();
     ctx.add_variable(
         "arr".to_string(),
-        HirType::Array {
-            element_type: Box::new(HirType::Int),
-            size: Some(10),
-        },
+        HirType::Array { element_type: Box::new(HirType::Int), size: Some(10) },
     );
     let expr = HirExpression::Variable("arr".to_string());
     let target = HirType::Pointer(Box::new(HirType::Void));
@@ -2046,10 +1956,7 @@ fn test_generate_function_with_pointer_param() {
     let func = HirFunction::new_with_body(
         "process".to_string(),
         HirType::Void,
-        vec![HirParameter::new(
-            "data".to_string(),
-            HirType::Pointer(Box::new(HirType::Int)),
-        )],
+        vec![HirParameter::new("data".to_string(), HirType::Pointer(Box::new(HirType::Int)))],
         vec![],
     );
     let result = gen.generate_function(&func);
@@ -2067,9 +1974,7 @@ fn test_generate_function_with_multiple_params() {
             HirParameter::new("b".to_string(), HirType::Int),
             HirParameter::new("c".to_string(), HirType::Int),
         ],
-        vec![HirStatement::Return(Some(HirExpression::Variable(
-            "a".to_string(),
-        )))],
+        vec![HirStatement::Return(Some(HirExpression::Variable("a".to_string())))],
     );
     let result = gen.generate_function(&func);
     assert!(result.contains("a: i32"));
@@ -2113,9 +2018,7 @@ fn test_generate_switch_statement() {
                 body: vec![HirStatement::Return(Some(HirExpression::IntLiteral(20)))],
             },
         ],
-        default_case: Some(vec![HirStatement::Return(Some(HirExpression::IntLiteral(
-            0,
-        )))]),
+        default_case: Some(vec![HirStatement::Return(Some(HirExpression::IntLiteral(0)))]),
     };
     let result = gen.generate_statement(&switch_stmt);
     assert!(result.contains("match"));
@@ -2239,9 +2142,7 @@ fn test_infer_expression_type_ternary() {
 #[test]
 fn test_infer_expression_type_sizeof() {
     let ctx = TypeContext::new();
-    let expr = HirExpression::Sizeof {
-        type_name: "int".to_string(),
-    };
+    let expr = HirExpression::Sizeof { type_name: "int".to_string() };
     // Sizeof is not yet handled in type inference
     let result = ctx.infer_expression_type(&expr);
     assert!(result.is_none());
@@ -2812,10 +2713,7 @@ fn test_mutable_ref_to_pointer() {
     let mut ctx = TypeContext::new();
     ctx.add_variable(
         "r".to_string(),
-        HirType::Reference {
-            inner: Box::new(HirType::Int),
-            mutable: true,
-        },
+        HirType::Reference { inner: Box::new(HirType::Int), mutable: true },
     );
     let expr = HirExpression::Variable("r".to_string());
     let target = HirType::Pointer(Box::new(HirType::Int));
@@ -2829,10 +2727,7 @@ fn test_immutable_ref_to_pointer() {
     let mut ctx = TypeContext::new();
     ctx.add_variable(
         "r".to_string(),
-        HirType::Reference {
-            inner: Box::new(HirType::Int),
-            mutable: false,
-        },
+        HirType::Reference { inner: Box::new(HirType::Int), mutable: false },
     );
     let expr = HirExpression::Variable("r".to_string());
     let target = HirType::Pointer(Box::new(HirType::Int));
@@ -2876,10 +2771,7 @@ fn test_array_to_pointer() {
     let mut ctx = TypeContext::new();
     ctx.add_variable(
         "arr".to_string(),
-        HirType::Array {
-            element_type: Box::new(HirType::Int),
-            size: Some(10),
-        },
+        HirType::Array { element_type: Box::new(HirType::Int), size: Some(10) },
     );
     let expr = HirExpression::Variable("arr".to_string());
     let target = HirType::Pointer(Box::new(HirType::Int));
@@ -2893,10 +2785,7 @@ fn test_array_to_void_pointer() {
     let mut ctx = TypeContext::new();
     ctx.add_variable(
         "arr".to_string(),
-        HirType::Array {
-            element_type: Box::new(HirType::Int),
-            size: Some(10),
-        },
+        HirType::Array { element_type: Box::new(HirType::Int), size: Some(10) },
     );
     let expr = HirExpression::Variable("arr".to_string());
     let target = HirType::Pointer(Box::new(HirType::Void));
@@ -2914,10 +2803,7 @@ fn test_mutable_slice_to_pointer() {
     let mut ctx = TypeContext::new();
     ctx.add_variable(
         "s".to_string(),
-        HirType::Reference {
-            inner: Box::new(HirType::Vec(Box::new(HirType::Int))),
-            mutable: true,
-        },
+        HirType::Reference { inner: Box::new(HirType::Vec(Box::new(HirType::Int))), mutable: true },
     );
     let expr = HirExpression::Variable("s".to_string());
     let target = HirType::Pointer(Box::new(HirType::Int));
@@ -3022,10 +2908,7 @@ fn test_vla_to_vec_unsigned() {
     let gen = CodeGenerator::new();
     let stmt = HirStatement::VariableDeclaration {
         name: "arr".to_string(),
-        var_type: HirType::Array {
-            element_type: Box::new(HirType::UnsignedInt),
-            size: None,
-        },
+        var_type: HirType::Array { element_type: Box::new(HirType::UnsignedInt), size: None },
         initializer: Some(HirExpression::Variable("n".to_string())),
     };
     let result = gen.generate_statement(&stmt);
@@ -3037,10 +2920,7 @@ fn test_vla_to_vec_float() {
     let gen = CodeGenerator::new();
     let stmt = HirStatement::VariableDeclaration {
         name: "arr".to_string(),
-        var_type: HirType::Array {
-            element_type: Box::new(HirType::Float),
-            size: None,
-        },
+        var_type: HirType::Array { element_type: Box::new(HirType::Float), size: None },
         initializer: Some(HirExpression::Variable("n".to_string())),
     };
     let result = gen.generate_statement(&stmt);
@@ -3052,10 +2932,7 @@ fn test_vla_to_vec_double() {
     let gen = CodeGenerator::new();
     let stmt = HirStatement::VariableDeclaration {
         name: "arr".to_string(),
-        var_type: HirType::Array {
-            element_type: Box::new(HirType::Double),
-            size: None,
-        },
+        var_type: HirType::Array { element_type: Box::new(HirType::Double), size: None },
         initializer: Some(HirExpression::Variable("n".to_string())),
     };
     let result = gen.generate_statement(&stmt);
@@ -3067,10 +2944,7 @@ fn test_vla_to_vec_char() {
     let gen = CodeGenerator::new();
     let stmt = HirStatement::VariableDeclaration {
         name: "buf".to_string(),
-        var_type: HirType::Array {
-            element_type: Box::new(HirType::Char),
-            size: None,
-        },
+        var_type: HirType::Array { element_type: Box::new(HirType::Char), size: None },
         initializer: Some(HirExpression::Variable("len".to_string())),
     };
     let result = gen.generate_statement(&stmt);
@@ -3082,10 +2956,7 @@ fn test_vla_to_vec_signed_char() {
     let gen = CodeGenerator::new();
     let stmt = HirStatement::VariableDeclaration {
         name: "buf".to_string(),
-        var_type: HirType::Array {
-            element_type: Box::new(HirType::SignedChar),
-            size: None,
-        },
+        var_type: HirType::Array { element_type: Box::new(HirType::SignedChar), size: None },
         initializer: Some(HirExpression::Variable("len".to_string())),
     };
     let result = gen.generate_statement(&stmt);
@@ -3103,9 +2974,7 @@ fn test_malloc_to_box() {
         name: "node".to_string(),
         var_type: HirType::Pointer(Box::new(HirType::Struct("Node".to_string()))),
         initializer: Some(HirExpression::Malloc {
-            size: Box::new(HirExpression::Sizeof {
-                type_name: "Node".to_string(),
-            }),
+            size: Box::new(HirExpression::Sizeof { type_name: "Node".to_string() }),
         }),
     };
     let result = gen.generate_statement(&stmt);
@@ -3122,9 +2991,7 @@ fn test_malloc_array_to_vec() {
             size: Box::new(HirExpression::BinaryOp {
                 op: BinaryOperator::Multiply,
                 left: Box::new(HirExpression::Variable("n".to_string())),
-                right: Box::new(HirExpression::Sizeof {
-                    type_name: "int".to_string(),
-                }),
+                right: Box::new(HirExpression::Sizeof { type_name: "int".to_string() }),
             }),
         }),
     };
@@ -3295,9 +3162,7 @@ fn test_field_assignment() {
 #[test]
 fn test_free_statement() {
     let gen = CodeGenerator::new();
-    let stmt = HirStatement::Free {
-        pointer: HirExpression::Variable("ptr".to_string()),
-    };
+    let stmt = HirStatement::Free { pointer: HirExpression::Variable("ptr".to_string()) };
     let result = gen.generate_statement(&stmt);
     // Free generates a comment about RAII deallocation
     assert!(result.contains("RAII") || result.contains("deallocated"));

@@ -42,10 +42,7 @@ fn test_hir_parser_function_call_to_expression_statement() {
 
     // Should be an Expression statement, not Break
     match hir_stmt {
-        HirStatement::Expression(HirExpression::FunctionCall {
-            function,
-            arguments,
-        }) => {
+        HirStatement::Expression(HirExpression::FunctionCall { function, arguments }) => {
             assert_eq!(function, "free");
             assert_eq!(arguments.len(), 1);
         }
@@ -84,9 +81,8 @@ fn test_hir_post_increment_expression_preserved() {
 
     use decy_parser::parser::Expression;
 
-    let ast_expr = Expression::PostIncrement {
-        operand: Box::new(Expression::Variable("x".to_string())),
-    };
+    let ast_expr =
+        Expression::PostIncrement { operand: Box::new(Expression::Variable("x".to_string())) };
 
     let hir_expr = HirExpression::from_ast_expression(&ast_expr);
 
@@ -118,9 +114,8 @@ fn test_hir_pre_increment_expression_preserved() {
 
     use decy_parser::parser::Expression;
 
-    let ast_expr = Expression::PreIncrement {
-        operand: Box::new(Expression::Variable("x".to_string())),
-    };
+    let ast_expr =
+        Expression::PreIncrement { operand: Box::new(Expression::Variable("x".to_string())) };
 
     let hir_expr = HirExpression::from_ast_expression(&ast_expr);
 
@@ -148,9 +143,8 @@ fn test_hir_post_decrement_expression_preserved() {
 
     use decy_parser::parser::Expression;
 
-    let ast_expr = Expression::PostDecrement {
-        operand: Box::new(Expression::Variable("x".to_string())),
-    };
+    let ast_expr =
+        Expression::PostDecrement { operand: Box::new(Expression::Variable("x".to_string())) };
 
     let hir_expr = HirExpression::from_ast_expression(&ast_expr);
 
@@ -177,9 +171,8 @@ fn test_hir_pre_decrement_expression_preserved() {
 
     use decy_parser::parser::Expression;
 
-    let ast_expr = Expression::PreDecrement {
-        operand: Box::new(Expression::Variable("x".to_string())),
-    };
+    let ast_expr =
+        Expression::PreDecrement { operand: Box::new(Expression::Variable("x".to_string())) };
 
     let hir_expr = HirExpression::from_ast_expression(&ast_expr);
 

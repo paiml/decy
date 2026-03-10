@@ -21,10 +21,7 @@ fn test_simple_strlen() {
     let func = HirFunction::new_with_body(
         "test".to_string(),
         HirType::Void,
-        vec![HirParameter::new(
-            "s".to_string(),
-            HirType::Pointer(Box::new(HirType::Char)),
-        )],
+        vec![HirParameter::new("s".to_string(), HirType::Pointer(Box::new(HirType::Char)))],
         vec![HirStatement::VariableDeclaration {
             name: "len".to_string(),
             var_type: HirType::Int, // size_t maps to usize in Rust
@@ -39,16 +36,10 @@ fn test_simple_strlen() {
     let result = codegen.generate_function(&func);
 
     // Verify strlen is transformed to .len()
-    assert!(
-        result.contains("s.len()"),
-        "Should transform strlen(s) to s.len()"
-    );
+    assert!(result.contains("s.len()"), "Should transform strlen(s) to s.len()");
 
     // Should NOT contain C strlen function
-    assert!(
-        !result.contains("strlen("),
-        "Should not contain C strlen function"
-    );
+    assert!(!result.contains("strlen("), "Should not contain C strlen function");
 
     // Verify no unsafe blocks
     assert!(!result.contains("unsafe"));
@@ -66,10 +57,7 @@ fn test_strlen_in_expression() {
     let func = HirFunction::new_with_body(
         "test".to_string(),
         HirType::Void,
-        vec![HirParameter::new(
-            "s".to_string(),
-            HirType::Pointer(Box::new(HirType::Char)),
-        )],
+        vec![HirParameter::new("s".to_string(), HirType::Pointer(Box::new(HirType::Char)))],
         vec![HirStatement::If {
             condition: HirExpression::BinaryOp {
                 op: decy_hir::BinaryOperator::GreaterThan,
@@ -111,10 +99,7 @@ fn test_strlen_in_return() {
     let func = HirFunction::new_with_body(
         "get_length".to_string(),
         HirType::Int,
-        vec![HirParameter::new(
-            "s".to_string(),
-            HirType::Pointer(Box::new(HirType::Char)),
-        )],
+        vec![HirParameter::new("s".to_string(), HirType::Pointer(Box::new(HirType::Char)))],
         vec![HirStatement::Return(Some(HirExpression::FunctionCall {
             function: "strlen".to_string(),
             arguments: vec![HirExpression::Variable("s".to_string())],
@@ -226,10 +211,7 @@ fn test_strlen_in_loop() {
     let func = HirFunction::new_with_body(
         "test".to_string(),
         HirType::Void,
-        vec![HirParameter::new(
-            "s".to_string(),
-            HirType::Pointer(Box::new(HirType::Char)),
-        )],
+        vec![HirParameter::new("s".to_string(), HirType::Pointer(Box::new(HirType::Char)))],
         vec![HirStatement::For {
             init: vec![HirStatement::VariableDeclaration {
                 name: "i".to_string(),
@@ -279,10 +261,7 @@ fn test_strlen_zero_comparison() {
     let func = HirFunction::new_with_body(
         "test".to_string(),
         HirType::Void,
-        vec![HirParameter::new(
-            "s".to_string(),
-            HirType::Pointer(Box::new(HirType::Char)),
-        )],
+        vec![HirParameter::new("s".to_string(), HirType::Pointer(Box::new(HirType::Char)))],
         vec![HirStatement::If {
             condition: HirExpression::BinaryOp {
                 op: decy_hir::BinaryOperator::Equal,

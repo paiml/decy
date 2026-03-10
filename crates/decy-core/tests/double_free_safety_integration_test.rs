@@ -118,11 +118,7 @@ fn test_conditional_free() {
     assert!(result.contains("fn main"), "Should have main function");
 
     let unsafe_count = result.matches("unsafe").count();
-    assert!(
-        unsafe_count <= 5,
-        "Conditional free should minimize unsafe (found {})",
-        unsafe_count
-    );
+    assert!(unsafe_count <= 5, "Conditional free should minimize unsafe (found {})", unsafe_count);
 }
 
 // ============================================================================
@@ -162,11 +158,7 @@ fn test_array_of_pointers_free() {
     assert!(result.contains("fn main"), "Should have main function");
 
     let unsafe_count = result.matches("unsafe").count();
-    assert!(
-        unsafe_count <= 6,
-        "Array of pointers should minimize unsafe (found {})",
-        unsafe_count
-    );
+    assert!(unsafe_count <= 6, "Array of pointers should minimize unsafe (found {})", unsafe_count);
 }
 
 // ============================================================================
@@ -292,11 +284,7 @@ fn test_linked_list_free() {
     assert!(result.contains("fn main"), "Should have main function");
 
     let unsafe_count = result.matches("unsafe").count();
-    assert!(
-        unsafe_count <= 8,
-        "Linked list free should minimize unsafe (found {})",
-        unsafe_count
-    );
+    assert!(unsafe_count <= 8, "Linked list free should minimize unsafe (found {})", unsafe_count);
 }
 
 // ============================================================================
@@ -338,11 +326,7 @@ fn test_error_path_free() {
     assert!(result.contains("fn main"), "Should have main function");
 
     let unsafe_count = result.matches("unsafe").count();
-    assert!(
-        unsafe_count <= 6,
-        "Error path free should minimize unsafe (found {})",
-        unsafe_count
-    );
+    assert!(unsafe_count <= 6, "Error path free should minimize unsafe (found {})", unsafe_count);
 }
 
 // ============================================================================
@@ -378,11 +362,7 @@ fn test_realloc_pattern() {
     assert!(result.contains("fn main"), "Should have main function");
 
     let unsafe_count = result.matches("unsafe").count();
-    assert!(
-        unsafe_count <= 5,
-        "Realloc pattern should minimize unsafe (found {})",
-        unsafe_count
-    );
+    assert!(unsafe_count <= 5, "Realloc pattern should minimize unsafe (found {})", unsafe_count);
 }
 
 // ============================================================================
@@ -458,11 +438,7 @@ fn test_aliased_pointer() {
     assert!(result.contains("fn main"), "Should have main function");
 
     let unsafe_count = result.matches("unsafe").count();
-    assert!(
-        unsafe_count <= 4,
-        "Aliased pointer should minimize unsafe (found {})",
-        unsafe_count
-    );
+    assert!(unsafe_count <= 4, "Aliased pointer should minimize unsafe (found {})", unsafe_count);
 }
 
 // ============================================================================
@@ -509,11 +485,7 @@ fn test_raii_wrapper() {
     assert!(result.contains("fn main"), "Should have main function");
 
     let unsafe_count = result.matches("unsafe").count();
-    assert!(
-        unsafe_count <= 5,
-        "RAII wrapper should minimize unsafe (found {})",
-        unsafe_count
-    );
+    assert!(unsafe_count <= 5, "RAII wrapper should minimize unsafe (found {})", unsafe_count);
 }
 
 // ============================================================================
@@ -547,11 +519,8 @@ fn test_unsafe_block_count_target() {
     let unsafe_count = result.matches("unsafe").count();
     let lines_of_code = result.lines().count();
 
-    let unsafe_per_1000 = if lines_of_code > 0 {
-        (unsafe_count as f64 / lines_of_code as f64) * 1000.0
-    } else {
-        0.0
-    };
+    let unsafe_per_1000 =
+        if lines_of_code > 0 { (unsafe_count as f64 / lines_of_code as f64) * 1000.0 } else { 0.0 };
 
     // Target: <=100 unsafe per 1000 LOC for double free prevention
     assert!(
@@ -625,9 +594,5 @@ fn test_double_free_safety_documentation() {
 
     // If unsafe blocks exist, they should be minimal
     let unsafe_count = result.matches("unsafe").count();
-    assert!(
-        unsafe_count < 10,
-        "Should have minimal unsafe blocks (found {})",
-        unsafe_count
-    );
+    assert!(unsafe_count < 10, "Should have minimal unsafe blocks (found {})", unsafe_count);
 }

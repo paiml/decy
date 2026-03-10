@@ -15,9 +15,7 @@ fn test_typedef_simple_int_codegen() {
     let typedef = HirTypedef::new("MyInt".to_string(), HirType::Int);
     let generator = CodeGenerator::new();
 
-    let rust_code = generator
-        .generate_typedef(&typedef)
-        .expect("Failed to generate typedef");
+    let rust_code = generator.generate_typedef(&typedef).expect("Failed to generate typedef");
 
     assert!(
         rust_code.contains("type MyInt = i32;"),
@@ -32,9 +30,7 @@ fn test_typedef_float_codegen() {
     let typedef = HirTypedef::new("MyFloat".to_string(), HirType::Float);
     let generator = CodeGenerator::new();
 
-    let rust_code = generator
-        .generate_typedef(&typedef)
-        .expect("Failed to generate typedef");
+    let rust_code = generator.generate_typedef(&typedef).expect("Failed to generate typedef");
 
     assert!(
         rust_code.contains("type MyFloat = f32;"),
@@ -49,9 +45,7 @@ fn test_typedef_double_codegen() {
     let typedef = HirTypedef::new("MyDouble".to_string(), HirType::Double);
     let generator = CodeGenerator::new();
 
-    let rust_code = generator
-        .generate_typedef(&typedef)
-        .expect("Failed to generate typedef");
+    let rust_code = generator.generate_typedef(&typedef).expect("Failed to generate typedef");
 
     assert!(
         rust_code.contains("type MyDouble = f64;"),
@@ -63,15 +57,10 @@ fn test_typedef_double_codegen() {
 #[test]
 fn test_typedef_pointer_codegen() {
     // Test that pointer typedef generates correct type
-    let typedef = HirTypedef::new(
-        "IntPtr".to_string(),
-        HirType::Pointer(Box::new(HirType::Int)),
-    );
+    let typedef = HirTypedef::new("IntPtr".to_string(), HirType::Pointer(Box::new(HirType::Int)));
     let generator = CodeGenerator::new();
 
-    let rust_code = generator
-        .generate_typedef(&typedef)
-        .expect("Failed to generate typedef");
+    let rust_code = generator.generate_typedef(&typedef).expect("Failed to generate typedef");
 
     assert!(
         rust_code.contains("type IntPtr = *mut i32;"),
@@ -83,15 +72,10 @@ fn test_typedef_pointer_codegen() {
 #[test]
 fn test_typedef_char_pointer_codegen() {
     // Test that char* typedef generates string-appropriate type
-    let typedef = HirTypedef::new(
-        "String".to_string(),
-        HirType::Pointer(Box::new(HirType::Char)),
-    );
+    let typedef = HirTypedef::new("String".to_string(), HirType::Pointer(Box::new(HirType::Char)));
     let generator = CodeGenerator::new();
 
-    let rust_code = generator
-        .generate_typedef(&typedef)
-        .expect("Failed to generate typedef");
+    let rust_code = generator.generate_typedef(&typedef).expect("Failed to generate typedef");
 
     // Should generate either *const i8/u8 or &str depending on context
     assert!(
@@ -109,12 +93,8 @@ fn test_typedef_multiple_codegen() {
 
     let generator = CodeGenerator::new();
 
-    let rust1 = generator
-        .generate_typedef(&typedef1)
-        .expect("Failed to generate typedef1");
-    let rust2 = generator
-        .generate_typedef(&typedef2)
-        .expect("Failed to generate typedef2");
+    let rust1 = generator.generate_typedef(&typedef1).expect("Failed to generate typedef1");
+    let rust2 = generator.generate_typedef(&typedef2).expect("Failed to generate typedef2");
 
     assert!(rust1.contains("type Int32 = i32;"));
     assert!(rust2.contains("type Float32 = f32;"));
@@ -126,9 +106,7 @@ fn test_typedef_struct_codegen() {
     let typedef = HirTypedef::new("Point".to_string(), HirType::Struct("Point".to_string()));
     let generator = CodeGenerator::new();
 
-    let rust_code = generator
-        .generate_typedef(&typedef)
-        .expect("Failed to generate typedef");
+    let rust_code = generator.generate_typedef(&typedef).expect("Failed to generate typedef");
 
     assert!(
         rust_code.contains("type Point") && rust_code.contains("Point"),
@@ -149,9 +127,7 @@ fn test_typedef_function_pointer_codegen() {
     );
     let generator = CodeGenerator::new();
 
-    let rust_code = generator
-        .generate_typedef(&typedef)
-        .expect("Failed to generate typedef");
+    let rust_code = generator.generate_typedef(&typedef).expect("Failed to generate typedef");
 
     assert!(
         rust_code.contains("type Callback = fn(i32, i32) -> i32;"),
@@ -166,16 +142,11 @@ fn test_typedef_array_codegen() {
     // RED: Test that array typedef generates correct type
     let typedef = HirTypedef::new(
         "IntArray".to_string(),
-        HirType::Array {
-            element_type: Box::new(HirType::Int),
-            size: Some(10),
-        },
+        HirType::Array { element_type: Box::new(HirType::Int), size: Some(10) },
     );
     let generator = CodeGenerator::new();
 
-    let rust_code = generator
-        .generate_typedef(&typedef)
-        .expect("Failed to generate typedef");
+    let rust_code = generator.generate_typedef(&typedef).expect("Failed to generate typedef");
 
     assert!(
         rust_code.contains("type IntArray = [i32; 10];"),
@@ -190,13 +161,7 @@ fn test_typedef_visibility() {
     let typedef = HirTypedef::new("MyInt".to_string(), HirType::Int);
     let generator = CodeGenerator::new();
 
-    let rust_code = generator
-        .generate_typedef(&typedef)
-        .expect("Failed to generate typedef");
+    let rust_code = generator.generate_typedef(&typedef).expect("Failed to generate typedef");
 
-    assert!(
-        rust_code.contains("pub type MyInt"),
-        "Expected public typedef, got: {}",
-        rust_code
-    );
+    assert!(rust_code.contains("pub type MyInt"), "Expected public typedef, got: {}", rust_code);
 }
