@@ -23,7 +23,7 @@ jobs:
             runner: ubuntu-latest
             binary: decy
             artifact: decy-x86_64-linux
-            use_cross: true
+            use_cross: false
           - target: x86_64-apple-darwin
             runner: macos-latest
             binary: decy
@@ -50,6 +50,12 @@ jobs:
 
       - name: Ensure target is installed
         run: rustup target add ${{ matrix.target }}
+
+      - name: Install system dependencies (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq libclang-dev >/dev/null
 
       - name: Install cross
         if: matrix.use_cross
