@@ -44,3 +44,8 @@ require_doc_tests = true
 require_readme = true
 require_changelog = true
 require_api_docs = true
+
+[hooks.performance]
+timeout = 30
+max_files = 1000
+incremental = true
