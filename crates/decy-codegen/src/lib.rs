@@ -1168,6 +1168,104 @@ impl CodeGenerator {
         }
     }
 
+    fn gen_expr_variable_pointer_target(
+        escaped_name: &str,
+        name: &str,
+        ptr_inner: &Box<HirType>,
+        ctx: &TypeContext,
+    ) -> Option<String> {
+        let var_type = ctx.get_type(name)?;
+        if matches!(var_type, HirType::Box(_)) {
+            return Some(format!("Box::into_raw({})", escaped_name));
+        }
+        match var_type {
+            HirType::Reference { inner, mutable } => {
+                let element_type_match = match inner.as_ref() {
+                    HirType::Array { element_type, .. } => {
+                        Some((element_type.as_ref(), *mutable))
+                    }
+                    HirType::Vec(elem_type) => Some((elem_type.as_ref(), *mutable)),
+                    _ => None,
+                };
+
+                if let Some((elem_type, is_mutable)) = element_type_match {
+                    if elem_type == ptr_inner.as_ref() {
+                        if is_mutable {
+                            return Some(format!("{}.as_mut_ptr()", escaped_name));
+                        } else {
+                            let ptr_type = Self::map_type(&HirType::Pointer(
+                                ptr_inner.clone(),
+                            ));
+                            return Some(format!(
+                                "{}.as_ptr() as {}",
+                                escaped_name, ptr_type
+                            ));
+                        }
+                    }
+                } else if inner.as_ref() == ptr_inner.as_ref() {
+                    if *mutable {
+                        return Some(format!("{} as *mut _", escaped_name));
+                    } else {
+                        return Some(format!("{} as *const _ as *mut _", escaped_name));
+                    }
+                }
+            }
+            HirType::Vec(elem_type) => {
+                if elem_type.as_ref() == ptr_inner.as_ref() {
+                    return Some(format!("{}.as_mut_ptr()", escaped_name));
+                }
+            }
+            HirType::Array { element_type, .. } => {
+                if element_type.as_ref() == ptr_inner.as_ref() {
+                    return Some(format!("{}.as_mut_ptr()", escaped_name));
+                }
+                if matches!(ptr_inner.as_ref(), HirType::Void) {
+                    return Some(format!("{}.as_mut_ptr() as *mut ()", escaped_name));
+                }
+            }
+            HirType::Pointer(_var_inner) => {
+                return Some(escaped_name.to_string());
+            }
+            _ => {}
+        }
+        None
+    }
+
+    fn gen_expr_variable_numeric_coercion(
+        escaped_name: &str,
+        name: &str,
+        target: &HirType,
+        ctx: &TypeContext,
+    ) -> Option<String> {
+        let var_type = ctx.get_type(name)?;
+        let cast_suffix = if matches!(var_type, HirType::Int | HirType::UnsignedInt) {
+            match target {
+                HirType::Float => Some("f32"),
+                HirType::Double => Some("f64"),
+                _ => None,
+            }
+        } else if matches!(var_type, HirType::Float | HirType::Double) {
+            match target {
+                HirType::Int => Some("i32"),
+                HirType::UnsignedInt => Some("u32"),
+                _ => None,
+            }
+        } else if matches!(var_type, HirType::Char) && matches!(target, HirType::Int) {
+            Some("i32")
+        } else {
+            None
+        };
+
+        cast_suffix.map(|suffix| {
+            let code = format!("{} as {}", escaped_name, suffix);
+            if ctx.is_global(name) {
+                format!("unsafe {{ {} }}", code)
+            } else {
+                code
+            }
+        })
+    }
+
     fn gen_expr_variable(
         &self,
         name: &str,
@@ -1192,60 +1290,10 @@ impl CodeGenerator {
             return escaped_name;
         }
         if let Some(HirType::Pointer(ptr_inner)) = target_type {
-            if let Some(var_type) = ctx.get_type(name) {
-                if matches!(var_type, HirType::Box(_)) {
-                    return format!("Box::into_raw({})", escaped_name);
-                }
-                match var_type {
-                    HirType::Reference { inner, mutable } => {
-                        let element_type_match = match inner.as_ref() {
-                            HirType::Array { element_type, .. } => {
-                                Some((element_type.as_ref(), *mutable))
-                            }
-                            HirType::Vec(elem_type) => Some((elem_type.as_ref(), *mutable)),
-                            _ => None,
-                        };
-
-                        if let Some((elem_type, is_mutable)) = element_type_match {
-                            if elem_type == ptr_inner.as_ref() {
-                                if is_mutable {
-                                    return format!("{}.as_mut_ptr()", escaped_name);
-                                } else {
-                                    let ptr_type = Self::map_type(&HirType::Pointer(
-                                        ptr_inner.clone(),
-                                    ));
-                                    return format!(
-                                        "{}.as_ptr() as {}",
-                                        escaped_name, ptr_type
-                                    );
-                                }
-                            }
-                        } else if inner.as_ref() == ptr_inner.as_ref() {
-                            if *mutable {
-                                return format!("{} as *mut _", escaped_name);
-                            } else {
-                                return format!("{} as *const _ as *mut _", escaped_name);
-                            }
-                        }
-                    }
-                    HirType::Vec(elem_type) => {
-                        if elem_type.as_ref() == ptr_inner.as_ref() {
-                            return format!("{}.as_mut_ptr()", escaped_name);
-                        }
-                    }
-                    HirType::Array { element_type, .. } => {
-                        if element_type.as_ref() == ptr_inner.as_ref() {
-                            return format!("{}.as_mut_ptr()", escaped_name);
-                        }
-                        if matches!(ptr_inner.as_ref(), HirType::Void) {
-                            return format!("{}.as_mut_ptr() as *mut ()", escaped_name);
-                        }
-                    }
-                    HirType::Pointer(_var_inner) => {
-                        return escaped_name;
-                    }
-                    _ => {}
-                }
+            if let Some(result) =
+                Self::gen_expr_variable_pointer_target(&escaped_name, name, ptr_inner, ctx)
+            {
+                return result;
             }
         }
 
@@ -1258,49 +1306,10 @@ impl CodeGenerator {
         }
 
         if let Some(target) = target_type {
-            if let Some(var_type) = ctx.get_type(name) {
-                if matches!(var_type, HirType::Int | HirType::UnsignedInt) {
-                    if matches!(target, HirType::Float) {
-                        let code = format!("{} as f32", escaped_name);
-                        return if ctx.is_global(name) {
-                            format!("unsafe {{ {} }}", code)
-                        } else {
-                            code
-                        };
-                    } else if matches!(target, HirType::Double) {
-                        let code = format!("{} as f64", escaped_name);
-                        return if ctx.is_global(name) {
-                            format!("unsafe {{ {} }}", code)
-                        } else {
-                            code
-                        };
-                    }
-                }
-                if matches!(var_type, HirType::Float | HirType::Double) {
-                    if matches!(target, HirType::Int) {
-                        let code = format!("{} as i32", escaped_name);
-                        return if ctx.is_global(name) {
-                            format!("unsafe {{ {} }}", code)
-                        } else {
-                            code
-                        };
-                    } else if matches!(target, HirType::UnsignedInt) {
-                        let code = format!("{} as u32", escaped_name);
-                        return if ctx.is_global(name) {
-                            format!("unsafe {{ {} }}", code)
-                        } else {
-                            code
-                        };
-                    }
-                }
-                if matches!(var_type, HirType::Char) && matches!(target, HirType::Int) {
-                    let code = format!("{} as i32", escaped_name);
-                    return if ctx.is_global(name) {
-                        format!("unsafe {{ {} }}", code)
-                    } else {
-                        code
-                    };
-                }
+            if let Some(result) =
+                Self::gen_expr_variable_numeric_coercion(&escaped_name, name, target, ctx)
+            {
+                return result;
             }
         }
 
@@ -3913,6 +3922,214 @@ impl CodeGenerator {
     }
 
     /// Generate a variable declaration statement.
+    fn resolve_declaration_type(
+        name: &str,
+        var_type: &HirType,
+        initializer: Option<&HirExpression>,
+        is_malloc_init: bool,
+        ctx: &mut TypeContext,
+    ) -> (HirType, String) {
+        if is_malloc_init {
+            if let HirType::Pointer(inner) = var_type {
+                let is_struct_alloc = matches!(&**inner, HirType::Struct(_));
+                let is_array_pattern = if let Some(init_expr) = initializer {
+                    Self::is_malloc_array_pattern(init_expr)
+                } else {
+                    false
+                };
+
+                if is_struct_alloc && !is_array_pattern {
+                    let box_type = HirType::Box(inner.clone());
+                    ctx.add_variable(name.to_string(), box_type.clone());
+                    return (box_type.clone(), Self::map_type(&box_type));
+                } else {
+                    let vec_type = HirType::Vec(inner.clone());
+                    ctx.add_variable(name.to_string(), vec_type.clone());
+                    return (vec_type.clone(), Self::map_type(&vec_type));
+                }
+            } else {
+                ctx.add_variable(name.to_string(), var_type.clone());
+                return (var_type.clone(), Self::map_type(var_type));
+            }
+        }
+
+        let is_string_literal_init =
+            matches!(initializer, Some(HirExpression::StringLiteral(_)));
+        let is_char_pointer = matches!(
+            var_type,
+            HirType::Pointer(inner) if matches!(&**inner, HirType::Char)
+        );
+        let is_char_pointer_array = matches!(
+            var_type,
+            HirType::Array { element_type, .. }
+            if matches!(&**element_type, HirType::Pointer(inner) if matches!(&**inner, HirType::Char))
+        );
+        let is_array_of_string_literals = matches!(
+            initializer,
+            Some(HirExpression::CompoundLiteral { initializers, .. })
+            if initializers.iter().all(|e| matches!(e, HirExpression::StringLiteral(_)))
+        );
+
+        if is_char_pointer && is_string_literal_init {
+            ctx.add_variable(name.to_string(), HirType::StringReference);
+            (HirType::StringReference, "&str".to_string())
+        } else if is_char_pointer_array && is_array_of_string_literals {
+            let size =
+                if let HirType::Array { size, .. } = var_type { *size } else { None };
+            let array_type = HirType::Array {
+                element_type: Box::new(HirType::StringReference),
+                size,
+            };
+            ctx.add_variable(name.to_string(), array_type.clone());
+            let type_str = if let Some(n) = size {
+                format!("[&str; {}]", n)
+            } else {
+                "[&str]".to_string()
+            };
+            (array_type, type_str)
+        } else {
+            ctx.add_variable(name.to_string(), var_type.clone());
+            (var_type.clone(), Self::map_type(var_type))
+        }
+    }
+
+    fn generate_malloc_expr_init(
+        &self,
+        code: &mut String,
+        var_type: &HirType,
+        init_expr: &HirExpression,
+        ctx: &TypeContext,
+    ) {
+        match var_type {
+            HirType::Box(inner) => {
+                code.push_str(&format!(
+                    " = Box::new({});",
+                    Self::default_value_for_type(inner)
+                ));
+            }
+            HirType::Vec(_) => {
+                if let HirExpression::Malloc { size } = init_expr {
+                    if let HirExpression::BinaryOp {
+                        op: decy_hir::BinaryOperator::Multiply,
+                        left,
+                        ..
+                    } = size.as_ref()
+                    {
+                        let capacity_code =
+                            self.generate_expression_with_context(left, ctx);
+                        code.push_str(&format!(
+                            " = Vec::with_capacity({});",
+                            capacity_code
+                        ));
+                    } else {
+                        code.push_str(" = Vec::new();");
+                    }
+                } else {
+                    code.push_str(" = Vec::new();");
+                }
+            }
+            _ => {
+                code.push_str(" = Box::new(0i32);");
+            }
+        }
+    }
+
+    fn generate_malloc_funcall_init(
+        &self,
+        code: &mut String,
+        var_type: &HirType,
+        actual_type: &HirType,
+        init_expr: &HirExpression,
+        ctx: &mut TypeContext,
+    ) {
+        match actual_type {
+            HirType::Box(inner) => {
+                let use_default =
+                    if let HirType::Struct(struct_name) = inner.as_ref() {
+                        ctx.struct_has_default(struct_name)
+                    } else {
+                        false
+                    };
+
+                if use_default {
+                    code.push_str(" = Box::default();");
+                } else {
+                    let inner_type = Self::map_type(inner);
+                    code.push_str(&format!(
+                        " = Box::new(/* SAFETY: {} is valid when zero-initialized */ unsafe {{ std::mem::zeroed::<{}>() }});",
+                        inner_type, inner_type
+                    ));
+                }
+            }
+            HirType::Vec(_) => {
+                code.push_str(&format!(
+                    " = {};",
+                    self.generate_expression_with_target_type(
+                        init_expr,
+                        ctx,
+                        Some(actual_type)
+                    )
+                ));
+            }
+            _ => {
+                code.push_str(&format!(
+                    " = {};",
+                    self.generate_expression_with_target_type(
+                        init_expr,
+                        ctx,
+                        Some(var_type)
+                    )
+                ));
+            }
+        }
+    }
+
+    fn generate_regular_init(
+        &self,
+        code: &mut String,
+        var_type: &HirType,
+        actual_type: &HirType,
+        init_expr: &HirExpression,
+        ctx: &mut TypeContext,
+    ) {
+        let is_char_array = matches!(
+            var_type,
+            HirType::Array { element_type, .. }
+            if matches!(&**element_type, HirType::Char)
+        );
+
+        if is_char_array {
+            if let HirExpression::StringLiteral(s) = init_expr {
+                let escaped: String = s
+                    .chars()
+                    .map(|c| match c {
+                        '"' => "\\\"".to_string(),
+                        c => c.to_string(),
+                    })
+                    .collect();
+                code.push_str(&format!(" = *b\"{}\\0\";", escaped));
+            } else {
+                code.push_str(&format!(
+                    " = {};",
+                    self.generate_expression_with_target_type(
+                        init_expr,
+                        ctx,
+                        Some(var_type)
+                    )
+                ));
+            }
+        } else {
+            code.push_str(&format!(
+                " = {};",
+                self.generate_expression_with_target_type(
+                    init_expr,
+                    ctx,
+                    Some(actual_type)
+                )
+            ));
+        }
+    }
+
     fn generate_declaration_statement(
         &self,
         name: &str,
@@ -3920,10 +4137,7 @@ impl CodeGenerator {
         initializer: Option<&HirExpression>,
         ctx: &mut TypeContext,
     ) -> String {
-        // DECY-227: Escape reserved keywords in variable names
         let escaped_name = escape_rust_keyword(name);
-        // DECY-245: In Rust, let bindings cannot shadow static variables.
-        // If this local variable has the same name as a global, rename it.
         let escaped_name = if ctx.is_global(&escaped_name) {
             let renamed = format!("{}_local", escaped_name);
             ctx.add_renamed_local(escaped_name.clone(), renamed.clone());
@@ -3931,25 +4145,19 @@ impl CodeGenerator {
         } else {
             escaped_name
         };
-        // Check for VLA pattern: Array with size: None and an initializer
-        // C99 VLA: int arr[n]; where n is runtime-determined
-        // Rust: let arr = vec![0i32; n];
         if let HirType::Array { element_type, size: None } = var_type {
-            // This is a VLA - transform to Vec
             if let Some(size_expr) = initializer {
-                // VLA → Vec
                 let size_code = self.generate_expression_with_context(size_expr, ctx);
                 let default_value = match element_type.as_ref() {
                     HirType::Int => "0i32",
-                    HirType::UnsignedInt => "0u32", // DECY-158
+                    HirType::UnsignedInt => "0u32",
                     HirType::Float => "0.0f32",
                     HirType::Double => "0.0f64",
                     HirType::Char => "0u8",
-                    HirType::SignedChar => "0i8", // DECY-250
+                    HirType::SignedChar => "0i8",
                     _ => &Self::default_value_for_type(element_type),
                 };
 
-                // Register the variable as Vec type in context
                 ctx.add_variable(
                     name.to_string(),
                     HirType::Vec(Box::new(element_type.as_ref().clone())),
@@ -3962,248 +4170,30 @@ impl CodeGenerator {
             }
         }
 
-        // DECY-118: DISABLED for local variables due to double pointer issues (DECY-128)
-        // When a local pointer's address is taken (e.g., &p in set_value(&p, 42)),
-        // transforming `int *p = &x` to `&mut x` breaks type compatibility.
-        // The transformation works for parameters (which are passed by value),
-        // but not for locals where &p may be needed.
-        // See DECY-128 for tracking re-enabling this with address-taken analysis.
-        // Original transform: int *p = &x;  →  Rust: let p = &mut x;
-
-        // DECY-130: Check if this is a malloc/calloc initialization
-        // If so, change the type from *mut T to Vec<T>
-        // DECY-220: Use helper that checks through Cast expressions
         let is_malloc_init = if let Some(init_expr) = initializer {
             Self::is_any_malloc_or_calloc(init_expr)
         } else {
             false
         };
 
-        // Adjust type for malloc initialization:
-        // - Struct pointer → Box<T> (single allocation)
-        // - Primitive pointer with array pattern (n * sizeof) → Vec<T>
-        // - Other → Vec<T> (default for dynamic allocation)
-        let (_actual_type, type_str) = if is_malloc_init {
-            if let HirType::Pointer(inner) = var_type {
-                // Check if this is a struct allocation (should use Box)
-                // vs array allocation (should use Vec)
-                let is_struct_alloc = matches!(&**inner, HirType::Struct(_));
+        let (actual_type, type_str) =
+            Self::resolve_declaration_type(name, var_type, initializer, is_malloc_init, ctx);
 
-                // Also check if the malloc argument is NOT an array pattern (n * sizeof)
-                // DECY-231: Handle Cast-wrapped malloc expressions
-                let is_array_pattern = if let Some(init_expr) = initializer {
-                    Self::is_malloc_array_pattern(init_expr)
-                } else {
-                    false
-                };
-
-                if is_struct_alloc && !is_array_pattern {
-                    // Single struct allocation → Box<T>
-                    let box_type = HirType::Box(inner.clone());
-                    ctx.add_variable(name.to_string(), box_type.clone());
-                    (box_type.clone(), Self::map_type(&box_type))
-                } else {
-                    // Array allocation or primitive → Vec<T>
-                    let vec_type = HirType::Vec(inner.clone());
-                    ctx.add_variable(name.to_string(), vec_type.clone());
-                    (vec_type.clone(), Self::map_type(&vec_type))
-                }
-            } else {
-                ctx.add_variable(name.to_string(), var_type.clone());
-                (var_type.clone(), Self::map_type(var_type))
-            }
-        } else {
-            // DECY-088: Check for char* with string literal initializer → &str
-            let is_string_literal_init =
-                matches!(initializer, Some(HirExpression::StringLiteral(_)));
-            let is_char_pointer = matches!(
-                var_type,
-                HirType::Pointer(inner) if matches!(&**inner, HirType::Char)
-            );
-
-            // DECY-229: Check for array of char pointers initialized with string literals
-            // char *arr[] = {"a", "b"} → let arr: [&str; N] = ["a", "b"]
-            let is_char_pointer_array = matches!(
-                var_type,
-                HirType::Array { element_type, .. }
-                if matches!(&**element_type, HirType::Pointer(inner) if matches!(&**inner, HirType::Char))
-            );
-            let is_array_of_string_literals = matches!(
-                initializer,
-                Some(HirExpression::CompoundLiteral { initializers, .. })
-                if initializers.iter().all(|e| matches!(e, HirExpression::StringLiteral(_)))
-            );
-
-            if is_char_pointer && is_string_literal_init {
-                // char* s = "hello" → let s: &str = "hello"
-                ctx.add_variable(name.to_string(), HirType::StringReference);
-                (HirType::StringReference, "&str".to_string())
-            } else if is_char_pointer_array && is_array_of_string_literals {
-                // char *arr[] = {"a", "b"} → let arr: [&str; N] = ["a", "b"]
-                let size =
-                    if let HirType::Array { size, .. } = var_type { *size } else { None };
-                let array_type = HirType::Array {
-                    element_type: Box::new(HirType::StringReference),
-                    size,
-                };
-                ctx.add_variable(name.to_string(), array_type.clone());
-                let type_str = if let Some(n) = size {
-                    format!("[&str; {}]", n)
-                } else {
-                    "[&str]".to_string()
-                };
-                (array_type, type_str)
-            } else {
-                ctx.add_variable(name.to_string(), var_type.clone());
-                (var_type.clone(), Self::map_type(var_type))
-            }
-        };
-
-        // DECY-228: String references should be mutable since C allows pointer reassignment
-        // In C, `const char *ptr` means the pointed data is const, but the pointer itself
-        // can be reassigned. So `let mut ptr: &str` correctly models this.
         let mutability = "mut ";
         let mut code = format!("let {}{}: {}", mutability, escaped_name, type_str);
         if let Some(init_expr) = initializer {
-            // Special handling for Malloc expressions - use var_type to generate correct Box::new
             if matches!(init_expr, HirExpression::Malloc { .. }) {
-                // Malloc → Box::new or Vec (depending on var_type)
-                match var_type {
-                    HirType::Box(inner) => {
-                        code.push_str(&format!(
-                            " = Box::new({});",
-                            Self::default_value_for_type(inner)
-                        ));
-                    }
-                    HirType::Vec(_) => {
-                        // Extract capacity from malloc size expression
-                        if let HirExpression::Malloc { size } = init_expr {
-                            if let HirExpression::BinaryOp {
-                                op: decy_hir::BinaryOperator::Multiply,
-                                left,
-                                ..
-                            } = size.as_ref()
-                            {
-                                let capacity_code =
-                                    self.generate_expression_with_context(left, ctx);
-                                code.push_str(&format!(
-                                    " = Vec::with_capacity({});",
-                                    capacity_code
-                                ));
-                            } else {
-                                code.push_str(" = Vec::new();");
-                            }
-                        } else {
-                            code.push_str(" = Vec::new();");
-                        }
-                    }
-                    _ => {
-                        // Default to Box::new(0i32) for other types
-                        code.push_str(" = Box::new(0i32);");
-                    }
-                }
+                self.generate_malloc_expr_init(&mut code, var_type, init_expr, ctx);
             } else if is_malloc_init {
-                // Handle FunctionCall { function: "malloc" } for struct allocations
-                // Generate Box::new or Vec based on the MODIFIED type (_actual_type)
-                match &_actual_type {
-                    HirType::Box(inner) => {
-                        // DECY-141: Use Box::default() for safe zero-initialization
-                        // if the inner type is a struct that derives Default
-                        let use_default =
-                            if let HirType::Struct(struct_name) = inner.as_ref() {
-                                ctx.struct_has_default(struct_name)
-                            } else {
-                                false
-                            };
-
-                        if use_default {
-                            // Safe: struct derives Default
-                            code.push_str(" = Box::default();");
-                        } else {
-                            // Fallback: use zeroed for structs with large arrays or unknown types
-                            // DECY-143: Add SAFETY comment
-                            let inner_type = Self::map_type(inner);
-                            code.push_str(&format!(
-                                " = Box::new(/* SAFETY: {} is valid when zero-initialized */ unsafe {{ std::mem::zeroed::<{}>() }});",
-                                inner_type, inner_type
-                            ));
-                        }
-                    }
-                    HirType::Vec(_) => {
-                        // DECY-169: Pass the TRANSFORMED type (_actual_type), not the original
-                        // pointer type (var_type). This ensures the expression generator
-                        // produces Vec code to match the Vec type annotation.
-                        code.push_str(&format!(
-                            " = {};",
-                            self.generate_expression_with_target_type(
-                                init_expr,
-                                ctx,
-                                Some(&_actual_type)
-                            )
-                        ));
-                    }
-                    _ => {
-                        // Fallback to expression generator
-                        code.push_str(&format!(
-                            " = {};",
-                            self.generate_expression_with_target_type(
-                                init_expr,
-                                ctx,
-                                Some(var_type)
-                            )
-                        ));
-                    }
-                }
-            } else {
-                // DECY-199: Handle char array initialization from string literal
-                // char str[N] = "hello" → let mut str: [u8; N] = *b"hello\0"
-                let is_char_array = matches!(
-                    var_type,
-                    HirType::Array { element_type, .. }
-                    if matches!(&**element_type, HirType::Char)
+                self.generate_malloc_funcall_init(
+                    &mut code, var_type, &actual_type, init_expr, ctx,
                 );
-
-                if is_char_array {
-                    if let HirExpression::StringLiteral(s) = init_expr {
-                        // Generate byte string with null terminator, dereferenced to value
-                        // The string from clang already has escape sequences like \n as literal
-                        // characters (\, n). We just need to escape internal quotes.
-                        // Escape sequences from C source are preserved as-is.
-                        let escaped: String = s
-                            .chars()
-                            .map(|c| match c {
-                                '"' => "\\\"".to_string(),
-                                c => c.to_string(),
-                            })
-                            .collect();
-                        code.push_str(&format!(" = *b\"{}\\0\";", escaped));
-                    } else {
-                        // Non-string initializer for char array
-                        code.push_str(&format!(
-                            " = {};",
-                            self.generate_expression_with_target_type(
-                                init_expr,
-                                ctx,
-                                Some(var_type)
-                            )
-                        ));
-                    }
-                } else {
-                    // DECY-214: Pass _actual_type (not var_type) for proper target typing
-                    // When char* + string literal was detected, _actual_type is StringReference
-                    // and we should NOT convert the string literal to *mut u8
-                    code.push_str(&format!(
-                        " = {};",
-                        self.generate_expression_with_target_type(
-                            init_expr,
-                            ctx,
-                            Some(&_actual_type)
-                        )
-                    ));
-                }
+            } else {
+                self.generate_regular_init(
+                    &mut code, var_type, &actual_type, init_expr, ctx,
+                );
             }
         } else {
-            // Provide default value for uninitialized variables
             code.push_str(&format!(" = {};", Self::default_value_for_type(var_type)));
         }
         code

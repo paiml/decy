@@ -1029,705 +1029,703 @@ fn handle_oracle_command(action: OracleAction) -> Result<()> {
 
     #[cfg(feature = "oracle")]
     {
-        use decy_oracle::{DecyOracle, OracleConfig, PatternRetirementPolicy};
-
         match action {
-            OracleAction::Bootstrap { dry_run } => {
-                use decy_oracle::bootstrap::{get_bootstrap_patterns, BootstrapStats};
-
-                println!("=== Oracle Bootstrap ===");
-                println!();
-
-                // Show available bootstrap patterns
-                let stats = BootstrapStats::from_patterns();
-                println!("{}", stats.to_string_pretty());
-
-                if dry_run {
-                    println!();
-                    println!("DRY RUN MODE - Patterns shown but not saved");
-                    println!();
-                    println!("Available patterns:");
-                    for p in get_bootstrap_patterns() {
-                        println!("  [{}] {}: {}", p.error_code, p.decision, p.description);
-                    }
-                    return Ok(());
-                }
-
-                // Bootstrap requires citl feature for pattern store
-                #[cfg(feature = "citl")]
-                {
-                    let config = OracleConfig::default();
-                    let mut oracle = DecyOracle::new(config)?;
-
-                    let count = oracle.bootstrap()?;
-                    oracle.save()?;
-
-                    println!();
-                    println!("✓ Bootstrapped oracle with {} patterns", count);
-                    println!(
-                        "  Patterns saved to: {}",
-                        OracleConfig::default().patterns_path.display()
-                    );
-                }
-
-                #[cfg(not(feature = "citl"))]
-                {
-                    println!();
-                    println!("⚠ Pattern saving requires the 'citl' feature");
-                    println!("  Bootstrap patterns shown above can be used manually");
-                }
-
-                Ok(())
-            }
-
-            OracleAction::Seed { from } => {
-                // Import patterns from another .apr file
-                if !from.exists() {
-                    anyhow::bail!(
-                        "Pattern file not found: {}\n\nTry: Verify the path to the .apr file",
-                        from.display()
-                    );
-                }
-
-                #[cfg(feature = "citl")]
-                {
-                    println!("Seeding oracle from: {}", from.display());
-
-                    let config = OracleConfig::default();
-                    let mut oracle = DecyOracle::new(config)?;
-
-                    let (count, stats) = oracle.import_patterns_with_stats(
-                        &from,
-                        decy_oracle::SmartImportConfig::default(),
-                    )?;
-
-                    println!();
-                    println!("=== Import Results ===");
-                    println!("Patterns imported: {}", count);
-                    println!("Total evaluated: {}", stats.total_evaluated);
-                    println!("Acceptance rate: {:.1}%", stats.overall_acceptance_rate() * 100.0);
-                    println!();
-                    println!("Import statistics by strategy:");
-                    for (strategy, count) in &stats.accepted_by_strategy {
-                        let rejected =
-                            stats.rejected_by_strategy.get(strategy).copied().unwrap_or(0);
-                        let total = count + rejected;
-                        println!(
-                            "  {:?}: {}/{} accepted ({:.1}%)",
-                            strategy,
-                            count,
-                            total,
-                            if total > 0 { (*count as f64 / total as f64) * 100.0 } else { 0.0 }
-                        );
-                    }
-
-                    // Save updated oracle
-                    oracle.save()?;
-                    println!();
-                    println!("✓ Oracle patterns saved");
-                }
-
-                #[cfg(not(feature = "citl"))]
-                {
-                    let _ = from;
-                    return Err(anyhow::anyhow!(
-                    "Pattern import requires the 'citl' feature.\n\nTry: cargo build -p decy --features citl"
-                ));
-                }
-
-                #[allow(unreachable_code)]
-                Ok(())
-            }
-
-            OracleAction::Stats { format } => {
-                let config = OracleConfig::default();
-                let oracle = DecyOracle::new(config)?;
-
-                let metrics = oracle.metrics();
-
-                match format.to_lowercase().as_str() {
-                    "json" => {
-                        println!("{}", metrics.to_json());
-                    }
-                    "markdown" | "md" => {
-                        use decy_oracle::{CIReport, CIThresholds};
-                        let report =
-                            CIReport::from_metrics(metrics.clone(), CIThresholds::default());
-                        println!("{}", report.to_markdown());
-                    }
-                    "prometheus" | "prom" => {
-                        println!("{}", metrics.to_prometheus());
-                    }
-                    _ => {
-                        println!("=== Oracle Statistics ===");
-                        println!("Pattern count: {}", oracle.pattern_count());
-                        println!("Total queries: {}", metrics.queries);
-                        println!("Cache hits: {}", metrics.hits);
-                        println!("Cache misses: {}", metrics.misses);
-                        println!("Fixes applied: {}", metrics.fixes_applied);
-                        println!("Fixes verified: {}", metrics.fixes_verified);
-                        if metrics.queries > 0 {
-                            let hit_rate = (metrics.hits as f64 / metrics.queries as f64) * 100.0;
-                            println!("Hit rate: {:.1}%", hit_rate);
-                        }
-                    }
-                }
-
-                Ok(())
-            }
-
+            OracleAction::Bootstrap { dry_run } => handle_oracle_bootstrap(dry_run),
+            OracleAction::Seed { from } => handle_oracle_seed(from),
+            OracleAction::Stats { format } => handle_oracle_stats(format),
             OracleAction::Retire { dry_run, archive_path } => {
-                let config = OracleConfig::default();
-                let oracle = DecyOracle::new(config)?;
-
-                let policy = PatternRetirementPolicy::new();
-
-                // For now, we don't have pattern statistics available without the citl feature
-                // This is a placeholder that would integrate with actual pattern tracking
-                println!("=== Pattern Retirement Analysis ===");
-                println!("Pattern count: {}", oracle.pattern_count());
-
-                if dry_run {
-                    println!();
-                    println!("DRY RUN MODE - No patterns will be retired");
-                    println!();
-                    println!("Retirement policy thresholds:");
-                    println!("  Min uses: {}", policy.config().min_usage_threshold);
-                    println!(
-                        "  Min success rate: {:.1}%",
-                        policy.config().min_success_rate * 100.0
-                    );
-                    println!("  Window: {} days", policy.config().evaluation_window_days);
-                } else {
-                    println!();
-                    if let Some(ref archive) = archive_path {
-                        println!("Archive path: {}", archive.display());
-                    }
-                    println!();
-                    println!("Note: Full retirement requires pattern usage statistics.");
-                    println!("Run with --dry-run to see policy thresholds.");
-                }
-
-                Ok(())
+                handle_oracle_retire(dry_run, archive_path)
             }
-
-            OracleAction::Validate { corpus } => {
-                if !corpus.exists() {
-                    anyhow::bail!(
-                        "Corpus directory not found: {}\n\nTry: Verify the path to the corpus",
-                        corpus.display()
-                    );
-                }
-
-                println!("Validating oracle on corpus: {}", corpus.display());
-                println!();
-
-                // Analyze corpus diversity (Genchi Genbutsu)
-                use decy_oracle::diversity::{analyze_corpus, DiversityValidation};
-                let histogram = analyze_corpus(&corpus)
-                    .map_err(|e| anyhow::anyhow!("Failed to analyze corpus: {}", e))?;
-
-                println!("=== Corpus Diversity Analysis ===");
-                println!("Files: {}", histogram.total_files);
-                println!("Lines of code: {}", histogram.total_loc);
-                println!();
-
-                // Show C construct coverage
-                if !histogram.construct_coverage.is_empty() {
-                    println!("C Construct Coverage:");
-                    for (construct, count) in &histogram.construct_coverage {
-                        println!("  {:?}: {}", construct, count);
-                    }
-                    println!();
-                }
-
-                // Find C files in corpus
-                let c_files: Vec<_> = walkdir::WalkDir::new(&corpus)
-                    .into_iter()
-                    .filter_map(|e| e.ok())
-                    .filter(|e| e.path().extension().and_then(|s| s.to_str()) == Some("c"))
-                    .collect();
-
-                println!("Found {} C files in corpus", c_files.len());
-
-                let config = OracleConfig::default();
-                let mut oracle = DecyOracle::new(config)?;
-
-                // Track errors during transpilation
-                let mut error_histogram = decy_oracle::diversity::ErrorHistogram::new();
-                let mut transpile_success = 0;
-                let mut transpile_failed = 0;
-
-                for entry in &c_files {
-                    let path = entry.path();
-                    let c_code = match std::fs::read_to_string(path) {
-                        Ok(c) => c,
-                        Err(_) => continue,
-                    };
-
-                    match decy_core::transpile(&c_code) {
-                        Ok(_) => transpile_success += 1,
-                        Err(e) => {
-                            transpile_failed += 1;
-                            // Extract error code if possible
-                            let error_str = e.to_string();
-                            if let Some(code_start) = error_str.find("E0") {
-                                let code: String =
-                                    error_str[code_start..].chars().take(5).collect();
-                                error_histogram.record_error(&code);
-                                oracle
-                                    .record_miss(&decy_oracle::RustcError::new(&code, &error_str));
-                            } else {
-                                error_histogram.record_error("E0000");
-                                oracle.record_miss(&decy_oracle::RustcError::new(
-                                    "E0000",
-                                    "transpilation failed",
-                                ));
-                            }
-                        }
-                    }
-                }
-
-                println!();
-                println!("=== Validation Results ===");
-                println!("Files processed: {}", c_files.len());
-                println!("Transpile success: {}", transpile_success);
-                println!("Transpile failed: {}", transpile_failed);
-                if !c_files.is_empty() {
-                    let success_rate = (transpile_success as f64 / c_files.len() as f64) * 100.0;
-                    println!("Success rate: {:.1}%", success_rate);
-                }
-
-                // Show error distribution
-                if !error_histogram.by_error_code.is_empty() {
-                    println!();
-                    println!("Error Distribution:");
-                    for (code, count) in &error_histogram.by_error_code {
-                        let category = decy_oracle::diversity::categorize_error(code);
-                        println!("  {}: {} ({:?})", code, count, category);
-                    }
-                }
-
-                println!();
-                println!("Oracle metrics after validation:");
-                let metrics = oracle.metrics();
-                println!("  Queries: {}", metrics.queries);
-                println!("  Misses: {}", metrics.misses);
-
-                // Generate diversity validation report
-                let validation = DiversityValidation::new(error_histogram);
-                if validation.passed {
-                    println!();
-                    println!("✅ Corpus diversity validation: PASSED");
-                }
-
-                Ok(())
-            }
-
+            OracleAction::Validate { corpus } => handle_oracle_validate(corpus),
             OracleAction::Export { output, format, with_card } => {
-                use decy_oracle::dataset::{generate_dataset_card, DatasetExporter};
-
-                println!("=== Oracle Dataset Export ===");
-                println!();
-
-                let exporter = DatasetExporter::new();
-                let stats = exporter.stats();
-
-                println!("Patterns to export: {}", exporter.len());
-                println!("Verified: {}", stats.verified);
-                println!();
-
-                let count = match format.to_lowercase().as_str() {
-                    "jsonl" => {
-                        println!("Exporting to JSONL format...");
-                        exporter.export_jsonl(&output)?
-                    }
-                    "chatml" => {
-                        println!("Exporting to ChatML format...");
-                        exporter.export_chatml(&output)?
-                    }
-                    "alpaca" => {
-                        println!("Exporting to Alpaca format...");
-                        exporter.export_alpaca(&output)?
-                    }
-                    "parquet" => {
-                        println!("Exporting to Parquet format...");
-                        exporter.export_parquet(&output)?
-                    }
-                    _ => {
-                        anyhow::bail!(
-                        "Unknown export format: {}\n\nSupported formats: jsonl, chatml, alpaca, parquet",
-                        format
-                    );
-                    }
-                };
-
-                println!("✓ Exported {} patterns to {}", count, output.display());
-
-                if with_card {
-                    let card_path = output.with_file_name("README.md");
-                    let card = generate_dataset_card(&stats);
-                    std::fs::write(&card_path, &card)?;
-                    println!("✓ Generated dataset card: {}", card_path.display());
-                }
-
-                println!();
-                println!("Statistics:");
-                println!("{}", stats.to_markdown());
-
-                Ok(())
+                handle_oracle_export(output, format, with_card)
             }
-
             OracleAction::Train { corpus, tier, dry_run } => {
-                // Validate corpus exists
-                if !corpus.exists() {
-                    anyhow::bail!(
-                        "Corpus directory not found: {}\n\nTry: Verify the path to the corpus",
-                        corpus.display()
-                    );
-                }
-
-                // Validate tier
-                let tier_upper = tier.to_uppercase();
-                if !["P0", "P1", "P2"].contains(&tier_upper.as_str()) {
-                    anyhow::bail!("Invalid tier: {}\n\nSupported tiers: P0, P1, P2", tier);
-                }
-
-                // Find C files in corpus
-                let c_files: Vec<_> = walkdir::WalkDir::new(&corpus)
-                    .into_iter()
-                    .filter_map(|e| e.ok())
-                    .filter(|e| e.path().extension().map(|ext| ext == "c").unwrap_or(false))
-                    .collect();
-
-                if c_files.is_empty() {
-                    anyhow::bail!(
-                    "No C files found in corpus: {}\n\nTry: Add .c files to the corpus directory",
-                    corpus.display()
-                );
-                }
-
-                println!("=== Oracle CITL Training ===");
-                println!();
-                println!("Corpus: {}", corpus.display());
-                println!("Tier: {}", tier_upper);
-                println!("Files: {}", c_files.len());
-                if dry_run {
-                    println!("Mode: DRY RUN (no patterns will be saved)");
-                }
-                println!();
-
-                // Training metrics
-                let mut files_processed = 0;
-                let mut total_errors = 0;
-                let mut patterns_captured = 0;
-
-                // Process each C file
-                let context = decy_core::ProjectContext::default();
-
-                for entry in &c_files {
-                    let c_path = entry.path();
-                    println!("Training on: {}", c_path.display());
-
-                    // Transpile C to Rust
-                    let transpiled = match decy_core::transpile_file(c_path, &context) {
-                        Ok(t) => t,
-                        Err(e) => {
-                            println!("  ⚠ Transpile failed: {}", e);
-                            continue;
-                        }
-                    };
-
-                    // Write scratch file and compile with rustc
-                    let temp_dir = std::env::temp_dir();
-                    let rust_path = temp_dir.join(format!("decy_train_{}.rs", files_processed));
-                    std::fs::write(&rust_path, &transpiled.rust_code)?;
-
-                    // Run rustc to capture errors
-                    let output = std::process::Command::new("rustc")
-                        .arg("--error-format=json")
-                        .arg("--emit=metadata")
-                        .arg("-o")
-                        .arg("/dev/null")
-                        .arg(&rust_path)
-                        .output()?;
-
-                    // Parse errors from rustc output
-                    let stderr = String::from_utf8_lossy(&output.stderr);
-                    let errors: Vec<&str> =
-                        stderr.lines().filter(|l| l.contains("\"level\":\"error\"")).collect();
-
-                    let error_count = errors.len();
-                    total_errors += error_count;
-
-                    if error_count > 0 {
-                        println!("  Errors: {}", error_count);
-
-                        // Extract error codes
-                        for error_line in &errors {
-                            if let Some(code_start) = error_line.find("\"code\":{\"code\":\"") {
-                                let code_substr = &error_line[code_start + 16..];
-                                if let Some(code_end) = code_substr.find('"') {
-                                    let error_code = &code_substr[..code_end];
-                                    println!("    - {}", error_code);
-
-                                    // In non-dry-run mode, we would:
-                                    // 1. Query oracle for fix
-                                    // 2. Apply fix
-                                    // 3. Re-compile to verify
-                                    // 4. Capture pattern if successful
-                                    if !dry_run {
-                                        // Placeholder: In full implementation, capture patterns here
-                                        patterns_captured += 1;
-                                    }
-                                }
-                            }
-                        }
-                    } else {
-                        println!("  ✓ No errors");
-                    }
-
-                    files_processed += 1;
-                }
-
-                // Summary
-                println!();
-                println!("=== Training Summary ===");
-                println!("Files processed: {}", files_processed);
-                println!("Total errors: {}", total_errors);
-                println!("Patterns captured: {}", patterns_captured);
-
-                if dry_run {
-                    println!();
-                    println!("DRY RUN - No patterns were saved");
-                } else if patterns_captured > 0 {
-                    println!();
-                    println!("✓ Training complete");
-                }
-
-                Ok(())
+                handle_oracle_train(corpus, tier, dry_run)
             }
-
             OracleAction::GenerateTraces { corpus, output, tier, dry_run } => {
-                use decy_oracle::golden_trace::{GoldenTrace, GoldenTraceDataset, TraceTier};
-                use decy_oracle::trace_verifier::TraceVerifier;
-
-                // Validate corpus exists
-                if !corpus.exists() {
-                    anyhow::bail!(
-                        "Corpus directory not found: {}\n\nTry: Verify the path to the corpus",
-                        corpus.display()
-                    );
-                }
-
-                // Validate tier
-                let tier_upper = tier.to_uppercase();
-                let trace_tier = match tier_upper.as_str() {
-                    "P0" => TraceTier::P0,
-                    "P1" => TraceTier::P1,
-                    "P2" => TraceTier::P2,
-                    _ => anyhow::bail!("Invalid tier: {}\n\nSupported tiers: P0, P1, P2", tier),
-                };
-
-                // Find C files in corpus
-                let c_files: Vec<_> = walkdir::WalkDir::new(&corpus)
-                    .into_iter()
-                    .filter_map(|e| e.ok())
-                    .filter(|e| e.path().extension().map(|ext| ext == "c").unwrap_or(false))
-                    .collect();
-
-                if c_files.is_empty() {
-                    anyhow::bail!(
-                    "No C files found in corpus: {}\n\nTry: Add .c files to the corpus directory",
-                    corpus.display()
-                );
-                }
-
-                println!("=== Golden Trace Generation ===");
-                println!();
-                println!("Corpus: {}", corpus.display());
-                println!("Output: {}", output.display());
-                println!("Tier: {}", trace_tier);
-                println!("Files: {}", c_files.len());
-                if dry_run {
-                    println!("Mode: DRY RUN (no output file will be written)");
-                }
-                println!();
-
-                // Track generation metrics
-                let mut files_processed = 0;
-                let mut traces_generated = 0;
-                let mut traces_verified = 0;
-                let mut traces_failed = 0;
-                let mut traces_skipped = 0;
-
-                // Create dataset and verifier
-                let mut dataset = GoldenTraceDataset::new();
-                let mut verifier = TraceVerifier::new();
-
-                // Process each C file
-                let context = decy_core::ProjectContext::default();
-
-                for entry in &c_files {
-                    let c_path = entry.path();
-                    let filename = c_path.file_name().and_then(|s| s.to_str()).unwrap_or("unknown");
-
-                    println!("Processing: {}", c_path.display());
-
-                    // Read C source
-                    let c_code = match std::fs::read_to_string(c_path) {
-                        Ok(code) => code,
-                        Err(e) => {
-                            println!("  ⚠ Failed to read: {}", e);
-                            traces_skipped += 1;
-                            continue;
-                        }
-                    };
-
-                    // Transpile C to Rust
-                    let transpiled = match decy_core::transpile_file(c_path, &context) {
-                        Ok(t) => t,
-                        Err(e) => {
-                            println!("  ⚠ Transpile failed: {}", e);
-                            traces_failed += 1;
-                            continue;
-                        }
-                    };
-
-                    // Create Golden Trace
-                    let trace = GoldenTrace::new(
-                        c_code.clone(),
-                        transpiled.rust_code.clone(),
-                        trace_tier,
-                        filename,
-                    );
-
-                    // Verify the trace
-                    let result = verifier.verify_trace(&trace);
-
-                    if result.passed {
-                        println!("  ✓ Verified - generating trace");
-                        traces_verified += 1;
-
-                        // Generate safety explanation (Chain of Thought)
-                        let explanation =
-                            generate_safety_explanation(&c_code, &transpiled.rust_code, trace_tier);
-                        let trace_with_explanation = trace.with_safety_explanation(&explanation);
-
-                        dataset.add_trace(trace_with_explanation);
-                        traces_generated += 1;
-                    } else {
-                        println!("  ✗ Verification failed: {:?}", result.errors);
-                        traces_failed += 1;
-                    }
-
-                    files_processed += 1;
-                }
-
-                // Summary
-                println!();
-                println!("=== Generation Summary ===");
-                println!("Files processed: {}", files_processed);
-                println!("Traces generated: {}", traces_generated);
-                println!("Traces verified: {}", traces_verified);
-                println!("Traces failed: {}", traces_failed);
-                println!("Traces skipped: {}", traces_skipped);
-
-                if dry_run {
-                    println!();
-                    println!("DRY RUN - Would generate {} traces", traces_generated);
-                    println!("Would write to: {}", output.display());
-                } else if traces_generated > 0 {
-                    // Export to JSONL
-                    dataset.export_jsonl(&output)?;
-                    println!();
-                    println!(
-                        "✓ Exported {} Golden Traces to {}",
-                        traces_generated,
-                        output.display()
-                    );
-                } else {
-                    println!();
-                    println!("⚠ No traces generated - check corpus files");
-                }
-
-                Ok(())
+                handle_oracle_generate_traces(corpus, output, tier, dry_run)
             }
-
             OracleAction::Query { error, context, format } => {
-                use decy_oracle::bootstrap::get_bootstrap_patterns;
-
-                // Validate error code format (EXXXX)
-                if !error.starts_with('E') || error.len() != 5 {
-                    anyhow::bail!(
-                        "Invalid error code format: {}\n\nExpected format: EXXXX (e.g., E0308, E0382)",
-                        error
-                    );
-                }
-
-                // Query bootstrap patterns for this error code
-                let patterns = get_bootstrap_patterns();
-                let matching: Vec<_> = patterns.iter().filter(|p| p.error_code == error).collect();
-
-                if format.to_lowercase() == "json" {
-                    // JSON output
-                    let json_patterns: Vec<_> = matching
-                        .iter()
-                        .map(|p| {
-                            serde_json::json!({
-                                "error_code": p.error_code,
-                                "decision": p.decision,
-                                "description": p.description,
-                                "fix_diff": p.fix_diff,
-                            })
-                        })
-                        .collect();
-
-                    println!(
-                        "{}",
-                        serde_json::to_string_pretty(&serde_json::json!({
-                            "error_code": error,
-                            "context": context,
-                            "patterns_found": matching.len(),
-                            "patterns": json_patterns,
-                        }))?
-                    );
-                } else {
-                    // Text output
-                    println!("=== Oracle Query: {} ===", error);
-                    println!();
-
-                    if let Some(ref ctx) = context {
-                        println!("Context: {}", ctx);
-                        println!();
-                    }
-
-                    if matching.is_empty() {
-                        println!("No patterns found for error code {}", error);
-                        println!();
-                        println!("Tip: Use 'decy oracle bootstrap' to load seed patterns");
-                    } else {
-                        println!("Found {} pattern(s) for {}:", matching.len(), error);
-                        println!();
-
-                        for (i, pattern) in matching.iter().enumerate() {
-                            println!("--- Pattern {} ---", i + 1);
-                            println!("Decision: {}", pattern.decision);
-                            println!("Description: {}", pattern.description);
-                            println!();
-                            println!("Fix:");
-                            for line in pattern.fix_diff.lines() {
-                                println!("  {}", line);
-                            }
-                            println!();
-                        }
-                    }
-                }
-
-                Ok(())
+                handle_oracle_query(error, context, format)
             }
         }
     }
+}
+
+#[cfg(feature = "oracle")]
+fn handle_oracle_bootstrap(dry_run: bool) -> Result<()> {
+    use decy_oracle::bootstrap::{get_bootstrap_patterns, BootstrapStats};
+    use decy_oracle::{DecyOracle, OracleConfig};
+
+    println!("=== Oracle Bootstrap ===");
+    println!();
+
+    let stats = BootstrapStats::from_patterns();
+    println!("{}", stats.to_string_pretty());
+
+    if dry_run {
+        println!();
+        println!("DRY RUN MODE - Patterns shown but not saved");
+        println!();
+        println!("Available patterns:");
+        for p in get_bootstrap_patterns() {
+            println!("  [{}] {}: {}", p.error_code, p.decision, p.description);
+        }
+        return Ok(());
+    }
+
+    #[cfg(feature = "citl")]
+    {
+        let config = OracleConfig::default();
+        let mut oracle = DecyOracle::new(config)?;
+
+        let count = oracle.bootstrap()?;
+        oracle.save()?;
+
+        println!();
+        println!("✓ Bootstrapped oracle with {} patterns", count);
+        println!(
+            "  Patterns saved to: {}",
+            OracleConfig::default().patterns_path.display()
+        );
+    }
+
+    #[cfg(not(feature = "citl"))]
+    {
+        println!();
+        println!("⚠ Pattern saving requires the 'citl' feature");
+        println!("  Bootstrap patterns shown above can be used manually");
+    }
+
+    Ok(())
+}
+
+#[cfg(feature = "oracle")]
+fn handle_oracle_seed(from: PathBuf) -> Result<()> {
+    if !from.exists() {
+        anyhow::bail!(
+            "Pattern file not found: {}\n\nTry: Verify the path to the .apr file",
+            from.display()
+        );
+    }
+
+    #[cfg(feature = "citl")]
+    {
+        use decy_oracle::{DecyOracle, OracleConfig};
+
+        println!("Seeding oracle from: {}", from.display());
+
+        let config = OracleConfig::default();
+        let mut oracle = DecyOracle::new(config)?;
+
+        let (count, stats) = oracle.import_patterns_with_stats(
+            &from,
+            decy_oracle::SmartImportConfig::default(),
+        )?;
+
+        println!();
+        println!("=== Import Results ===");
+        println!("Patterns imported: {}", count);
+        println!("Total evaluated: {}", stats.total_evaluated);
+        println!("Acceptance rate: {:.1}%", stats.overall_acceptance_rate() * 100.0);
+        println!();
+        println!("Import statistics by strategy:");
+        for (strategy, count) in &stats.accepted_by_strategy {
+            let rejected =
+                stats.rejected_by_strategy.get(strategy).copied().unwrap_or(0);
+            let total = count + rejected;
+            println!(
+                "  {:?}: {}/{} accepted ({:.1}%)",
+                strategy,
+                count,
+                total,
+                if total > 0 { (*count as f64 / total as f64) * 100.0 } else { 0.0 }
+            );
+        }
+
+        oracle.save()?;
+        println!();
+        println!("✓ Oracle patterns saved");
+    }
+
+    #[cfg(not(feature = "citl"))]
+    {
+        let _ = from;
+        return Err(anyhow::anyhow!(
+            "Pattern import requires the 'citl' feature.\n\nTry: cargo build -p decy --features citl"
+        ));
+    }
+
+    #[allow(unreachable_code)]
+    Ok(())
+}
+
+#[cfg(feature = "oracle")]
+fn handle_oracle_stats(format: String) -> Result<()> {
+    use decy_oracle::{DecyOracle, OracleConfig};
+
+    let config = OracleConfig::default();
+    let oracle = DecyOracle::new(config)?;
+
+    let metrics = oracle.metrics();
+
+    match format.to_lowercase().as_str() {
+        "json" => {
+            println!("{}", metrics.to_json());
+        }
+        "markdown" | "md" => {
+            use decy_oracle::{CIReport, CIThresholds};
+            let report =
+                CIReport::from_metrics(metrics.clone(), CIThresholds::default());
+            println!("{}", report.to_markdown());
+        }
+        "prometheus" | "prom" => {
+            println!("{}", metrics.to_prometheus());
+        }
+        _ => {
+            println!("=== Oracle Statistics ===");
+            println!("Pattern count: {}", oracle.pattern_count());
+            println!("Total queries: {}", metrics.queries);
+            println!("Cache hits: {}", metrics.hits);
+            println!("Cache misses: {}", metrics.misses);
+            println!("Fixes applied: {}", metrics.fixes_applied);
+            println!("Fixes verified: {}", metrics.fixes_verified);
+            if metrics.queries > 0 {
+                let hit_rate = (metrics.hits as f64 / metrics.queries as f64) * 100.0;
+                println!("Hit rate: {:.1}%", hit_rate);
+            }
+        }
+    }
+
+    Ok(())
+}
+
+#[cfg(feature = "oracle")]
+fn handle_oracle_retire(dry_run: bool, archive_path: Option<PathBuf>) -> Result<()> {
+    use decy_oracle::{DecyOracle, OracleConfig, PatternRetirementPolicy};
+
+    let config = OracleConfig::default();
+    let oracle = DecyOracle::new(config)?;
+
+    let policy = PatternRetirementPolicy::new();
+
+    println!("=== Pattern Retirement Analysis ===");
+    println!("Pattern count: {}", oracle.pattern_count());
+
+    if dry_run {
+        println!();
+        println!("DRY RUN MODE - No patterns will be retired");
+        println!();
+        println!("Retirement policy thresholds:");
+        println!("  Min uses: {}", policy.config().min_usage_threshold);
+        println!(
+            "  Min success rate: {:.1}%",
+            policy.config().min_success_rate * 100.0
+        );
+        println!("  Window: {} days", policy.config().evaluation_window_days);
+    } else {
+        println!();
+        if let Some(ref archive) = archive_path {
+            println!("Archive path: {}", archive.display());
+        }
+        println!();
+        println!("Note: Full retirement requires pattern usage statistics.");
+        println!("Run with --dry-run to see policy thresholds.");
+    }
+
+    Ok(())
+}
+
+#[cfg(feature = "oracle")]
+fn handle_oracle_validate(corpus: PathBuf) -> Result<()> {
+    use decy_oracle::diversity::{analyze_corpus, DiversityValidation};
+    use decy_oracle::{DecyOracle, OracleConfig};
+
+    if !corpus.exists() {
+        anyhow::bail!(
+            "Corpus directory not found: {}\n\nTry: Verify the path to the corpus",
+            corpus.display()
+        );
+    }
+
+    println!("Validating oracle on corpus: {}", corpus.display());
+    println!();
+
+    let histogram = analyze_corpus(&corpus)
+        .map_err(|e| anyhow::anyhow!("Failed to analyze corpus: {}", e))?;
+
+    println!("=== Corpus Diversity Analysis ===");
+    println!("Files: {}", histogram.total_files);
+    println!("Lines of code: {}", histogram.total_loc);
+    println!();
+
+    if !histogram.construct_coverage.is_empty() {
+        println!("C Construct Coverage:");
+        for (construct, count) in &histogram.construct_coverage {
+            println!("  {:?}: {}", construct, count);
+        }
+        println!();
+    }
+
+    let c_files: Vec<_> = walkdir::WalkDir::new(&corpus)
+        .into_iter()
+        .filter_map(|e| e.ok())
+        .filter(|e| e.path().extension().and_then(|s| s.to_str()) == Some("c"))
+        .collect();
+
+    println!("Found {} C files in corpus", c_files.len());
+
+    let config = OracleConfig::default();
+    let mut oracle = DecyOracle::new(config)?;
+
+    let mut error_histogram = decy_oracle::diversity::ErrorHistogram::new();
+    let mut transpile_success = 0;
+    let mut transpile_failed = 0;
+
+    for entry in &c_files {
+        let path = entry.path();
+        let c_code = match std::fs::read_to_string(path) {
+            Ok(c) => c,
+            Err(_) => continue,
+        };
+
+        match decy_core::transpile(&c_code) {
+            Ok(_) => transpile_success += 1,
+            Err(e) => {
+                transpile_failed += 1;
+                let error_str = e.to_string();
+                if let Some(code_start) = error_str.find("E0") {
+                    let code: String =
+                        error_str[code_start..].chars().take(5).collect();
+                    error_histogram.record_error(&code);
+                    oracle
+                        .record_miss(&decy_oracle::RustcError::new(&code, &error_str));
+                } else {
+                    error_histogram.record_error("E0000");
+                    oracle.record_miss(&decy_oracle::RustcError::new(
+                        "E0000",
+                        "transpilation failed",
+                    ));
+                }
+            }
+        }
+    }
+
+    println!();
+    println!("=== Validation Results ===");
+    println!("Files processed: {}", c_files.len());
+    println!("Transpile success: {}", transpile_success);
+    println!("Transpile failed: {}", transpile_failed);
+    if !c_files.is_empty() {
+        let success_rate = (transpile_success as f64 / c_files.len() as f64) * 100.0;
+        println!("Success rate: {:.1}%", success_rate);
+    }
+
+    if !error_histogram.by_error_code.is_empty() {
+        println!();
+        println!("Error Distribution:");
+        for (code, count) in &error_histogram.by_error_code {
+            let category = decy_oracle::diversity::categorize_error(code);
+            println!("  {}: {} ({:?})", code, count, category);
+        }
+    }
+
+    println!();
+    println!("Oracle metrics after validation:");
+    let metrics = oracle.metrics();
+    println!("  Queries: {}", metrics.queries);
+    println!("  Misses: {}", metrics.misses);
+
+    let validation = DiversityValidation::new(error_histogram);
+    if validation.passed {
+        println!();
+        println!("✅ Corpus diversity validation: PASSED");
+    }
+
+    Ok(())
+}
+
+#[cfg(feature = "oracle")]
+fn handle_oracle_export(output: PathBuf, format: String, with_card: bool) -> Result<()> {
+    use decy_oracle::dataset::{generate_dataset_card, DatasetExporter};
+
+    println!("=== Oracle Dataset Export ===");
+    println!();
+
+    let exporter = DatasetExporter::new();
+    let stats = exporter.stats();
+
+    println!("Patterns to export: {}", exporter.len());
+    println!("Verified: {}", stats.verified);
+    println!();
+
+    let count = match format.to_lowercase().as_str() {
+        "jsonl" => {
+            println!("Exporting to JSONL format...");
+            exporter.export_jsonl(&output)?
+        }
+        "chatml" => {
+            println!("Exporting to ChatML format...");
+            exporter.export_chatml(&output)?
+        }
+        "alpaca" => {
+            println!("Exporting to Alpaca format...");
+            exporter.export_alpaca(&output)?
+        }
+        "parquet" => {
+            println!("Exporting to Parquet format...");
+            exporter.export_parquet(&output)?
+        }
+        _ => {
+            anyhow::bail!(
+                "Unknown export format: {}\n\nSupported formats: jsonl, chatml, alpaca, parquet",
+                format
+            );
+        }
+    };
+
+    println!("✓ Exported {} patterns to {}", count, output.display());
+
+    if with_card {
+        let card_path = output.with_file_name("README.md");
+        let card = generate_dataset_card(&stats);
+        std::fs::write(&card_path, &card)?;
+        println!("✓ Generated dataset card: {}", card_path.display());
+    }
+
+    println!();
+    println!("Statistics:");
+    println!("{}", stats.to_markdown());
+
+    Ok(())
+}
+
+#[cfg(feature = "oracle")]
+fn handle_oracle_train(corpus: PathBuf, tier: String, dry_run: bool) -> Result<()> {
+    if !corpus.exists() {
+        anyhow::bail!(
+            "Corpus directory not found: {}\n\nTry: Verify the path to the corpus",
+            corpus.display()
+        );
+    }
+
+    let tier_upper = tier.to_uppercase();
+    if !["P0", "P1", "P2"].contains(&tier_upper.as_str()) {
+        anyhow::bail!("Invalid tier: {}\n\nSupported tiers: P0, P1, P2", tier);
+    }
+
+    let c_files: Vec<_> = walkdir::WalkDir::new(&corpus)
+        .into_iter()
+        .filter_map(|e| e.ok())
+        .filter(|e| e.path().extension().map(|ext| ext == "c").unwrap_or(false))
+        .collect();
+
+    if c_files.is_empty() {
+        anyhow::bail!(
+            "No C files found in corpus: {}\n\nTry: Add .c files to the corpus directory",
+            corpus.display()
+        );
+    }
+
+    println!("=== Oracle CITL Training ===");
+    println!();
+    println!("Corpus: {}", corpus.display());
+    println!("Tier: {}", tier_upper);
+    println!("Files: {}", c_files.len());
+    if dry_run {
+        println!("Mode: DRY RUN (no patterns will be saved)");
+    }
+    println!();
+
+    let mut files_processed = 0;
+    let mut total_errors = 0;
+    let mut patterns_captured = 0;
+
+    let context = decy_core::ProjectContext::default();
+
+    for entry in &c_files {
+        let c_path = entry.path();
+        println!("Training on: {}", c_path.display());
+
+        let transpiled = match decy_core::transpile_file(c_path, &context) {
+            Ok(t) => t,
+            Err(e) => {
+                println!("  ⚠ Transpile failed: {}", e);
+                continue;
+            }
+        };
+
+        let temp_dir = std::env::temp_dir();
+        let rust_path = temp_dir.join(format!("decy_train_{}.rs", files_processed));
+        std::fs::write(&rust_path, &transpiled.rust_code)?;
+
+        let output = std::process::Command::new("rustc")
+            .arg("--error-format=json")
+            .arg("--emit=metadata")
+            .arg("-o")
+            .arg("/dev/null")
+            .arg(&rust_path)
+            .output()?;
+
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        let errors: Vec<&str> =
+            stderr.lines().filter(|l| l.contains("\"level\":\"error\"")).collect();
+
+        let error_count = errors.len();
+        total_errors += error_count;
+
+        if error_count > 0 {
+            println!("  Errors: {}", error_count);
+
+            for error_line in &errors {
+                if let Some(code_start) = error_line.find("\"code\":{\"code\":\"") {
+                    let code_substr = &error_line[code_start + 16..];
+                    if let Some(code_end) = code_substr.find('"') {
+                        let error_code = &code_substr[..code_end];
+                        println!("    - {}", error_code);
+
+                        if !dry_run {
+                            patterns_captured += 1;
+                        }
+                    }
+                }
+            }
+        } else {
+            println!("  ✓ No errors");
+        }
+
+        files_processed += 1;
+    }
+
+    println!();
+    println!("=== Training Summary ===");
+    println!("Files processed: {}", files_processed);
+    println!("Total errors: {}", total_errors);
+    println!("Patterns captured: {}", patterns_captured);
+
+    if dry_run {
+        println!();
+        println!("DRY RUN - No patterns were saved");
+    } else if patterns_captured > 0 {
+        println!();
+        println!("✓ Training complete");
+    }
+
+    Ok(())
+}
+
+#[cfg(feature = "oracle")]
+fn handle_oracle_generate_traces(
+    corpus: PathBuf,
+    output: PathBuf,
+    tier: String,
+    dry_run: bool,
+) -> Result<()> {
+    use decy_oracle::golden_trace::{GoldenTrace, GoldenTraceDataset, TraceTier};
+    use decy_oracle::trace_verifier::TraceVerifier;
+
+    if !corpus.exists() {
+        anyhow::bail!(
+            "Corpus directory not found: {}\n\nTry: Verify the path to the corpus",
+            corpus.display()
+        );
+    }
+
+    let tier_upper = tier.to_uppercase();
+    let trace_tier = match tier_upper.as_str() {
+        "P0" => TraceTier::P0,
+        "P1" => TraceTier::P1,
+        "P2" => TraceTier::P2,
+        _ => anyhow::bail!("Invalid tier: {}\n\nSupported tiers: P0, P1, P2", tier),
+    };
+
+    let c_files: Vec<_> = walkdir::WalkDir::new(&corpus)
+        .into_iter()
+        .filter_map(|e| e.ok())
+        .filter(|e| e.path().extension().map(|ext| ext == "c").unwrap_or(false))
+        .collect();
+
+    if c_files.is_empty() {
+        anyhow::bail!(
+            "No C files found in corpus: {}\n\nTry: Add .c files to the corpus directory",
+            corpus.display()
+        );
+    }
+
+    println!("=== Golden Trace Generation ===");
+    println!();
+    println!("Corpus: {}", corpus.display());
+    println!("Output: {}", output.display());
+    println!("Tier: {}", trace_tier);
+    println!("Files: {}", c_files.len());
+    if dry_run {
+        println!("Mode: DRY RUN (no output file will be written)");
+    }
+    println!();
+
+    let mut files_processed = 0;
+    let mut traces_generated = 0;
+    let mut traces_verified = 0;
+    let mut traces_failed = 0;
+    let mut traces_skipped = 0;
+
+    let mut dataset = GoldenTraceDataset::new();
+    let mut verifier = TraceVerifier::new();
+
+    let context = decy_core::ProjectContext::default();
+
+    for entry in &c_files {
+        let c_path = entry.path();
+        let filename = c_path.file_name().and_then(|s| s.to_str()).unwrap_or("unknown");
+
+        println!("Processing: {}", c_path.display());
+
+        let c_code = match std::fs::read_to_string(c_path) {
+            Ok(code) => code,
+            Err(e) => {
+                println!("  ⚠ Failed to read: {}", e);
+                traces_skipped += 1;
+                continue;
+            }
+        };
+
+        let transpiled = match decy_core::transpile_file(c_path, &context) {
+            Ok(t) => t,
+            Err(e) => {
+                println!("  ⚠ Transpile failed: {}", e);
+                traces_failed += 1;
+                continue;
+            }
+        };
+
+        let trace = GoldenTrace::new(
+            c_code.clone(),
+            transpiled.rust_code.clone(),
+            trace_tier,
+            filename,
+        );
+
+        let result = verifier.verify_trace(&trace);
+
+        if result.passed {
+            println!("  ✓ Verified - generating trace");
+            traces_verified += 1;
+
+            let explanation =
+                generate_safety_explanation(&c_code, &transpiled.rust_code, trace_tier);
+            let trace_with_explanation = trace.with_safety_explanation(&explanation);
+
+            dataset.add_trace(trace_with_explanation);
+            traces_generated += 1;
+        } else {
+            println!("  ✗ Verification failed: {:?}", result.errors);
+            traces_failed += 1;
+        }
+
+        files_processed += 1;
+    }
+
+    println!();
+    println!("=== Generation Summary ===");
+    println!("Files processed: {}", files_processed);
+    println!("Traces generated: {}", traces_generated);
+    println!("Traces verified: {}", traces_verified);
+    println!("Traces failed: {}", traces_failed);
+    println!("Traces skipped: {}", traces_skipped);
+
+    if dry_run {
+        println!();
+        println!("DRY RUN - Would generate {} traces", traces_generated);
+        println!("Would write to: {}", output.display());
+    } else if traces_generated > 0 {
+        dataset.export_jsonl(&output)?;
+        println!();
+        println!(
+            "✓ Exported {} Golden Traces to {}",
+            traces_generated,
+            output.display()
+        );
+    } else {
+        println!();
+        println!("⚠ No traces generated - check corpus files");
+    }
+
+    Ok(())
+}
+
+#[cfg(feature = "oracle")]
+fn handle_oracle_query(
+    error: String,
+    context: Option<String>,
+    format: String,
+) -> Result<()> {
+    use decy_oracle::bootstrap::get_bootstrap_patterns;
+
+    if !error.starts_with('E') || error.len() != 5 {
+        anyhow::bail!(
+            "Invalid error code format: {}\n\nExpected format: EXXXX (e.g., E0308, E0382)",
+            error
+        );
+    }
+
+    let patterns = get_bootstrap_patterns();
+    let matching: Vec<_> = patterns.iter().filter(|p| p.error_code == error).collect();
+
+    if format.to_lowercase() == "json" {
+        let json_patterns: Vec<_> = matching
+            .iter()
+            .map(|p| {
+                serde_json::json!({
+                    "error_code": p.error_code,
+                    "decision": p.decision,
+                    "description": p.description,
+                    "fix_diff": p.fix_diff,
+                })
+            })
+            .collect();
+
+        println!(
+            "{}",
+            serde_json::to_string_pretty(&serde_json::json!({
+                "error_code": error,
+                "context": context,
+                "patterns_found": matching.len(),
+                "patterns": json_patterns,
+            }))?
+        );
+    } else {
+        println!("=== Oracle Query: {} ===", error);
+        println!();
+
+        if let Some(ref ctx) = context {
+            println!("Context: {}", ctx);
+            println!();
+        }
+
+        if matching.is_empty() {
+            println!("No patterns found for error code {}", error);
+            println!();
+            println!("Tip: Use 'decy oracle bootstrap' to load seed patterns");
+        } else {
+            println!("Found {} pattern(s) for {}:", matching.len(), error);
+            println!();
+
+            for (i, pattern) in matching.iter().enumerate() {
+                println!("--- Pattern {} ---", i + 1);
+                println!("Decision: {}", pattern.decision);
+                println!("Description: {}", pattern.description);
+                println!();
+                println!("Fix:");
+                for line in pattern.fix_diff.lines() {
+                    println!("  {}", line);
+                }
+                println!();
+            }
+        }
+    }
+
+    Ok(())
 }
 
 /// Generate a safety explanation (Chain of Thought) for the C→Rust transformation

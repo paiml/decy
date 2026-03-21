@@ -772,6 +772,267 @@ pub fn transpile_with_verification(c_code: &str) -> Result<TranspilationResult> 
     }
 }
 
+fn deduplicate_functions(all_hir_functions: Vec<HirFunction>) -> Vec<HirFunction> {
+    let mut func_map: HashMap<String, HirFunction> = HashMap::new();
+
+    for func in all_hir_functions {
+        let name = func.name().to_string();
+        if let Some(existing) = func_map.get(&name) {
+            if func.has_body() && !existing.has_body() {
+                func_map.insert(name, func);
+            }
+        } else {
+            func_map.insert(name, func);
+        }
+    }
+
+    let mut funcs: Vec<_> = func_map.into_values().collect();
+    funcs.sort_by(|a, b| a.name().cmp(b.name()));
+    funcs
+}
+
+fn build_slice_func_arg_mappings(
+    hir_functions: &[HirFunction],
+) -> Vec<(String, Vec<(usize, usize)>)> {
+    hir_functions
+        .iter()
+        .filter_map(|func| {
+            let mut mappings = Vec::new();
+            let params = func.parameters();
+
+            for (i, param) in params.iter().enumerate() {
+                if matches!(param.param_type(), decy_hir::HirType::Pointer(_)) {
+                    if i + 1 < params.len() {
+                        let next_param = &params[i + 1];
+                        if matches!(next_param.param_type(), decy_hir::HirType::Int) {
+                            let param_name = next_param.name().to_lowercase();
+                            if param_name.contains("len")
+                                || param_name.contains("size")
+                                || param_name.contains("count")
+                                || param_name == "n"
+                                || param_name == "num"
+                            {
+                                mappings.push((i, i + 1));
+                            }
+                        }
+                    }
+                }
+            }
+
+            if mappings.is_empty() {
+                None
+            } else {
+                Some((func.name().to_string(), mappings))
+            }
+        })
+        .collect()
+}
+
+fn transform_function_with_ownership(
+    func: HirFunction,
+) -> (HirFunction, decy_ownership::lifetime_gen::AnnotatedSignature) {
+    let dataflow_analyzer = DataflowAnalyzer::new();
+    let dataflow_graph = dataflow_analyzer.analyze(&func);
+
+    let ownership_inferences = classify_with_rules(&dataflow_graph, &func);
+
+    let borrow_generator = BorrowGenerator::new();
+    let func_with_borrows = borrow_generator.transform_function(&func, &ownership_inferences);
+
+    let array_transformer = ArrayParameterTransformer::new();
+    let func_with_slices = array_transformer.transform(&func_with_borrows, &dataflow_graph);
+
+    let lifetime_analyzer = LifetimeAnalyzer::new();
+    let scope_tree = lifetime_analyzer.build_scope_tree(&func_with_slices);
+    let _lifetimes = lifetime_analyzer.track_lifetimes(&func_with_slices, &scope_tree);
+
+    let lifetime_annotator = LifetimeAnnotator::new();
+    let annotated_signature = lifetime_annotator.annotate_function(&func_with_slices);
+
+    let optimized_func = optimize::optimize_function(&func_with_slices);
+
+    (optimized_func, annotated_signature)
+}
+
+fn const_struct_literal(
+    struct_name: &str,
+    hir_structs: &[decy_hir::HirStruct],
+) -> String {
+    if let Some(hir_struct) = hir_structs.iter().find(|s| s.name() == struct_name) {
+        let field_inits: Vec<String> = hir_struct
+            .fields()
+            .iter()
+            .map(|f| {
+                let default_val = match f.field_type() {
+                    decy_hir::HirType::Int => "0".to_string(),
+                    decy_hir::HirType::UnsignedInt => "0".to_string(),
+                    decy_hir::HirType::Char => "0".to_string(),
+                    decy_hir::HirType::SignedChar => "0".to_string(),
+                    decy_hir::HirType::Float => "0.0".to_string(),
+                    decy_hir::HirType::Double => "0.0".to_string(),
+                    decy_hir::HirType::Pointer(_) => "std::ptr::null_mut()".to_string(),
+                    decy_hir::HirType::Array { size: Some(n), element_type } => {
+                        let elem = match element_type.as_ref() {
+                            decy_hir::HirType::Char => "0u8",
+                            decy_hir::HirType::SignedChar => "0i8",
+                            decy_hir::HirType::Int => "0i32",
+                            _ => "0",
+                        };
+                        format!("[{}; {}]", elem, n)
+                    }
+                    _ => "Default::default()".to_string(),
+                };
+                format!("{}: {}", f.name(), default_val)
+            })
+            .collect();
+        format!("{} {{ {} }}", struct_name, field_inits.join(", "))
+    } else {
+        format!("{}::default()", struct_name)
+    }
+}
+
+fn generate_initialized_global_code(
+    name: &str,
+    var_type: &decy_hir::HirType,
+    init_expr: &decy_hir::HirExpression,
+    type_str: &str,
+    hir_structs: &[decy_hir::HirStruct],
+    code_generator: &CodeGenerator,
+) -> String {
+    let init_code =
+        if let decy_hir::HirType::Array { element_type, size: Some(size_val) } = var_type {
+            if matches!(init_expr, decy_hir::HirExpression::IntLiteral(_)) {
+                let element_init = match element_type.as_ref() {
+                    decy_hir::HirType::Char => "0u8".to_string(),
+                    decy_hir::HirType::SignedChar => "0i8".to_string(),
+                    decy_hir::HirType::Int => "0i32".to_string(),
+                    decy_hir::HirType::UnsignedInt => "0u32".to_string(),
+                    decy_hir::HirType::Float => "0.0f32".to_string(),
+                    decy_hir::HirType::Double => "0.0f64".to_string(),
+                    decy_hir::HirType::Pointer(_) => "std::ptr::null_mut()".to_string(),
+                    decy_hir::HirType::Struct(sname) => const_struct_literal(sname, hir_structs),
+                    _ => "0".to_string(),
+                };
+                format!("[{}; {}]", element_init, size_val)
+            } else {
+                code_generator.generate_expression(init_expr)
+            }
+        } else {
+            code_generator.generate_expression(init_expr)
+        };
+    format!("static mut {}: {} = {};\n", name, type_str, init_code)
+}
+
+fn generate_uninitialized_global_code(
+    name: &str,
+    var_type: &decy_hir::HirType,
+    type_str: &str,
+    hir_structs: &[decy_hir::HirStruct],
+) -> Option<String> {
+    match var_type {
+        decy_hir::HirType::FunctionPointer { .. } => {
+            Some(format!("static mut {}: Option<{}> = None;\n", name, type_str))
+        }
+        _ => {
+            let default_value = match var_type {
+                decy_hir::HirType::Int => "0".to_string(),
+                decy_hir::HirType::UnsignedInt => "0".to_string(),
+                decy_hir::HirType::Char => "0".to_string(),
+                decy_hir::HirType::SignedChar => "0".to_string(),
+                decy_hir::HirType::Float => "0.0".to_string(),
+                decy_hir::HirType::Double => "0.0".to_string(),
+                decy_hir::HirType::Pointer(_) => "std::ptr::null_mut()".to_string(),
+                decy_hir::HirType::Array { element_type, size } => {
+                    let elem_default = match element_type.as_ref() {
+                        decy_hir::HirType::Char => "0u8".to_string(),
+                        decy_hir::HirType::SignedChar => "0i8".to_string(),
+                        decy_hir::HirType::Int => "0i32".to_string(),
+                        decy_hir::HirType::UnsignedInt => "0u32".to_string(),
+                        decy_hir::HirType::Float => "0.0f32".to_string(),
+                        decy_hir::HirType::Double => "0.0f64".to_string(),
+                        decy_hir::HirType::Pointer(_) => "std::ptr::null_mut()".to_string(),
+                        decy_hir::HirType::Struct(sname) => {
+                            const_struct_literal(sname, hir_structs)
+                        }
+                        _ => "0".to_string(),
+                    };
+                    if let Some(n) = size {
+                        format!("[{}; {}]", elem_default, n)
+                    } else {
+                        format!("[{}; 0]", elem_default)
+                    }
+                }
+                _ => "Default::default()".to_string(),
+            };
+            Some(format!("static mut {}: {} = {};\n", name, type_str, default_value))
+        }
+    }
+}
+
+fn generate_global_variable_code(
+    hir_variables: &[decy_hir::HirStatement],
+    hir_structs: &[decy_hir::HirStruct],
+    code_generator: &CodeGenerator,
+    rust_code: &mut String,
+) -> Vec<(String, decy_hir::HirType)> {
+    let mut global_vars: Vec<(String, decy_hir::HirType)> = Vec::new();
+    for var_stmt in hir_variables {
+        if let decy_hir::HirStatement::VariableDeclaration { name, var_type, initializer } =
+            var_stmt
+        {
+            global_vars.push((name.clone(), var_type.clone()));
+            let type_str = CodeGenerator::map_type(var_type);
+
+            if let Some(init_expr) = initializer {
+                rust_code.push_str(&generate_initialized_global_code(
+                    name,
+                    var_type,
+                    init_expr,
+                    &type_str,
+                    hir_structs,
+                    code_generator,
+                ));
+            } else if let Some(code) =
+                generate_uninitialized_global_code(name, var_type, &type_str, hir_structs)
+            {
+                rust_code.push_str(&code);
+            }
+        }
+    }
+    if !hir_variables.is_empty() {
+        rust_code.push('\n');
+    }
+    global_vars
+}
+
+fn build_all_function_sigs(
+    transformed_functions: &[(HirFunction, decy_ownership::lifetime_gen::AnnotatedSignature)],
+) -> Vec<(String, Vec<decy_hir::HirType>)> {
+    transformed_functions
+        .iter()
+        .map(|(func, _sig)| {
+            let param_types: Vec<decy_hir::HirType> = func
+                .parameters()
+                .iter()
+                .map(|p| {
+                    if let decy_hir::HirType::Pointer(inner) = p.param_type() {
+                        if uses_pointer_arithmetic(func, p.name())
+                            || pointer_compared_to_null(func, p.name())
+                        {
+                            p.param_type().clone()
+                        } else {
+                            decy_hir::HirType::Reference { inner: inner.clone(), mutable: true }
+                        }
+                    } else {
+                        p.param_type().clone()
+                    }
+                })
+                .collect();
+            (func.name().to_string(), param_types)
+        })
+        .collect()
+}
+
 /// Transpile C code with include directive support and custom base directory.
 ///
 /// # Arguments
@@ -817,28 +1078,7 @@ pub fn transpile_with_includes(c_code: &str, base_dir: Option<&Path>) -> Result<
     // DECY-190: Deduplicate functions - when a C file has both a declaration
     // (prototype) and a definition, only keep the definition.
     // This prevents "the name X is defined multiple times" errors in Rust.
-    let hir_functions: Vec<HirFunction> = {
-        use std::collections::HashMap;
-        let mut func_map: HashMap<String, HirFunction> = HashMap::new();
-
-        for func in all_hir_functions {
-            let name = func.name().to_string();
-            if let Some(existing) = func_map.get(&name) {
-                // Keep the one with a body (definition) over the one without (declaration)
-                if func.has_body() && !existing.has_body() {
-                    func_map.insert(name, func);
-                }
-                // Otherwise keep existing (either both have bodies, both don't, or existing has body)
-            } else {
-                func_map.insert(name, func);
-            }
-        }
-
-        // DECY-260: Sort by name for deterministic output
-        let mut funcs: Vec<_> = func_map.into_values().collect();
-        funcs.sort_by(|a, b| a.name().cmp(b.name()));
-        funcs
-    };
+    let hir_functions = deduplicate_functions(all_hir_functions);
 
     // Convert structs to HIR
     let hir_structs: Vec<decy_hir::HirStruct> = ast
@@ -917,76 +1157,13 @@ pub fn transpile_with_includes(c_code: &str, base_dir: Option<&Path>) -> Result<
         .collect();
 
     // DECY-116: Build slice function arg mappings BEFORE transformation (while we still have original params)
-    let slice_func_args: Vec<(String, Vec<(usize, usize)>)> = hir_functions
-        .iter()
-        .filter_map(|func| {
-            let mut mappings = Vec::new();
-            let params = func.parameters();
-
-            for (i, param) in params.iter().enumerate() {
-                // Check if this is a pointer param (potential array)
-                if matches!(param.param_type(), decy_hir::HirType::Pointer(_)) {
-                    // Check if next param is an int with length-like name
-                    if i + 1 < params.len() {
-                        let next_param = &params[i + 1];
-                        if matches!(next_param.param_type(), decy_hir::HirType::Int) {
-                            let param_name = next_param.name().to_lowercase();
-                            if param_name.contains("len")
-                                || param_name.contains("size")
-                                || param_name.contains("count")
-                                || param_name == "n"
-                                || param_name == "num"
-                            {
-                                mappings.push((i, i + 1));
-                            }
-                        }
-                    }
-                }
-            }
-
-            if mappings.is_empty() {
-                None
-            } else {
-                Some((func.name().to_string(), mappings))
-            }
-        })
-        .collect();
+    let slice_func_args = build_slice_func_arg_mappings(&hir_functions);
 
     // Step 3: Analyze ownership and lifetimes
-    let mut transformed_functions = Vec::new();
-
-    for func in hir_functions {
-        // Build dataflow graph for the function
-        let dataflow_analyzer = DataflowAnalyzer::new();
-        let dataflow_graph = dataflow_analyzer.analyze(&func);
-
-        // DECY-183: Infer ownership patterns using RuleBasedClassifier
-        // This replaces OwnershipInferencer with the new classifier system
-        let ownership_inferences = classify_with_rules(&dataflow_graph, &func);
-
-        // Generate borrow code (&T, &mut T)
-        let borrow_generator = BorrowGenerator::new();
-        let func_with_borrows = borrow_generator.transform_function(&func, &ownership_inferences);
-
-        // DECY-072 GREEN: Transform array parameters to slices
-        let array_transformer = ArrayParameterTransformer::new();
-        let func_with_slices = array_transformer.transform(&func_with_borrows, &dataflow_graph);
-
-        // Analyze lifetimes
-        let lifetime_analyzer = LifetimeAnalyzer::new();
-        let scope_tree = lifetime_analyzer.build_scope_tree(&func_with_slices);
-        let _lifetimes = lifetime_analyzer.track_lifetimes(&func_with_slices, &scope_tree);
-
-        // Generate lifetime annotations
-        let lifetime_annotator = LifetimeAnnotator::new();
-        let annotated_signature = lifetime_annotator.annotate_function(&func_with_slices);
-
-        // DECY-196: Run HIR optimization passes before codegen
-        let optimized_func = optimize::optimize_function(&func_with_slices);
-
-        // Store both function and its annotated signature
-        transformed_functions.push((optimized_func, annotated_signature));
-    }
+    let transformed_functions: Vec<_> = hir_functions
+        .into_iter()
+        .map(|func| transform_function_with_ownership(func))
+        .collect();
 
     // Step 4: Generate Rust code with lifetime annotations
     let code_generator = CodeGenerator::new();
@@ -1033,170 +1210,16 @@ pub fn transpile_with_includes(c_code: &str, base_dir: Option<&Path>) -> Result<
         }
     }
 
-    // DECY-246: Helper to generate const struct literal for static initialization
-    // Creates "StructName { field1: default1, field2: default2, ... }" for const contexts
-    let const_struct_literal = |struct_name: &str| -> String {
-        // Find the struct definition
-        if let Some(hir_struct) = hir_structs.iter().find(|s| s.name() == struct_name) {
-            let field_inits: Vec<String> = hir_struct
-                .fields()
-                .iter()
-                .map(|f| {
-                    let default_val = match f.field_type() {
-                        decy_hir::HirType::Int => "0".to_string(),
-                        decy_hir::HirType::UnsignedInt => "0".to_string(),
-                        decy_hir::HirType::Char => "0".to_string(),
-                        decy_hir::HirType::SignedChar => "0".to_string(), // DECY-250
-                        decy_hir::HirType::Float => "0.0".to_string(),
-                        decy_hir::HirType::Double => "0.0".to_string(),
-                        decy_hir::HirType::Pointer(_) => "std::ptr::null_mut()".to_string(),
-                        decy_hir::HirType::Array { size: Some(n), element_type } => {
-                            let elem = match element_type.as_ref() {
-                                decy_hir::HirType::Char => "0u8",
-                                decy_hir::HirType::SignedChar => "0i8", // DECY-250
-                                decy_hir::HirType::Int => "0i32",
-                                _ => "0",
-                            };
-                            format!("[{}; {}]", elem, n)
-                        }
-                        _ => "Default::default()".to_string(),
-                    };
-                    format!("{}: {}", f.name(), default_val)
-                })
-                .collect();
-            format!("{} {{ {} }}", struct_name, field_inits.join(", "))
-        } else {
-            // Fallback if struct not found
-            format!("{}::default()", struct_name)
-        }
-    };
-
-    // Generate global variables (DECY-054)
-    // DECY-220: Collect global variable names for unsafe access tracking
-    // DECY-233: Also collect types for proper type inference in function bodies
-    let mut global_vars: Vec<(String, decy_hir::HirType)> = Vec::new();
-    for var_stmt in &hir_variables {
-        if let decy_hir::HirStatement::VariableDeclaration { name, var_type, initializer } =
-            var_stmt
-        {
-            // DECY-220/233: Track global name and type for unsafe access and type inference
-            global_vars.push((name.clone(), var_type.clone()));
-            // Generate as static mut for C global variable equivalence
-            let type_str = CodeGenerator::map_type(var_type);
-
-            if let Some(init_expr) = initializer {
-                // DECY-201: Special handling for array initialization
-                // DECY-246: Handle struct arrays using StructName::default()
-                let init_code =
-                    if let decy_hir::HirType::Array { element_type, size: Some(size_val) } =
-                        var_type
-                    {
-                        // Check if init_expr is just an integer (uninitialized or zero-initialized array)
-                        if matches!(init_expr, decy_hir::HirExpression::IntLiteral(_)) {
-                            // Use type-appropriate const default value (for static context)
-                            let element_init = match element_type.as_ref() {
-                                decy_hir::HirType::Char => "0u8".to_string(),
-                                decy_hir::HirType::SignedChar => "0i8".to_string(), // DECY-250
-                                decy_hir::HirType::Int => "0i32".to_string(),
-                                decy_hir::HirType::UnsignedInt => "0u32".to_string(),
-                                decy_hir::HirType::Float => "0.0f32".to_string(),
-                                decy_hir::HirType::Double => "0.0f64".to_string(),
-                                decy_hir::HirType::Pointer(_) => "std::ptr::null_mut()".to_string(),
-                                // DECY-246: Use const struct literal for statics
-                                decy_hir::HirType::Struct(name) => const_struct_literal(name),
-                                _ => "0".to_string(),
-                            };
-                            format!("[{}; {}]", element_init, size_val)
-                        } else {
-                            code_generator.generate_expression(init_expr)
-                        }
-                    } else {
-                        code_generator.generate_expression(init_expr)
-                    };
-                rust_code
-                    .push_str(&format!("static mut {}: {} = {};\n", name, type_str, init_code));
-            } else {
-                // DECY-215: Use appropriate default values for uninitialized globals
-                // Only use Option for function pointers and complex types
-                let default_value = match var_type {
-                    decy_hir::HirType::Int => "0".to_string(),
-                    decy_hir::HirType::UnsignedInt => "0".to_string(),
-                    decy_hir::HirType::Char => "0".to_string(),
-                    decy_hir::HirType::SignedChar => "0".to_string(), // DECY-250
-                    decy_hir::HirType::Float => "0.0".to_string(),
-                    decy_hir::HirType::Double => "0.0".to_string(),
-                    decy_hir::HirType::Pointer(_) => "std::ptr::null_mut()".to_string(),
-                    // DECY-217: Arrays need explicit zero initialization (Default only works for size <= 32)
-                    // DECY-246: Handle struct arrays using const struct literal for statics
-                    decy_hir::HirType::Array { element_type, size } => {
-                        let elem_default = match element_type.as_ref() {
-                            decy_hir::HirType::Char => "0u8".to_string(),
-                            decy_hir::HirType::SignedChar => "0i8".to_string(), // DECY-250
-                            decy_hir::HirType::Int => "0i32".to_string(),
-                            decy_hir::HirType::UnsignedInt => "0u32".to_string(),
-                            decy_hir::HirType::Float => "0.0f32".to_string(),
-                            decy_hir::HirType::Double => "0.0f64".to_string(),
-                            decy_hir::HirType::Pointer(_) => "std::ptr::null_mut()".to_string(),
-                            // DECY-246: Use const struct literal for statics
-                            decy_hir::HirType::Struct(name) => const_struct_literal(name),
-                            _ => "0".to_string(),
-                        };
-                        if let Some(n) = size {
-                            format!("[{}; {}]", elem_default, n)
-                        } else {
-                            format!("[{}; 0]", elem_default)
-                        }
-                    }
-                    decy_hir::HirType::FunctionPointer { .. } => {
-                        // Function pointers need Option wrapping
-                        rust_code.push_str(&format!(
-                            "static mut {}: Option<{}> = None;\n",
-                            name, type_str
-                        ));
-                        continue;
-                    }
-                    _ => "Default::default()".to_string(),
-                };
-                rust_code
-                    .push_str(&format!("static mut {}: {} = {};\n", name, type_str, default_value));
-            }
-        }
-    }
-    if !hir_variables.is_empty() {
-        rust_code.push('\n');
-    }
+    // Generate global variables and collect their names/types
+    let global_vars = generate_global_variable_code(
+        &hir_variables,
+        &hir_structs,
+        &code_generator,
+        &mut rust_code,
+    );
 
     // DECY-117: Build function signatures for call site reference mutability
-    // DECY-125: Keep pointers as pointers when pointer arithmetic is used
-    // DECY-159: Keep pointers as pointers when NULL comparison is used
-    let all_function_sigs: Vec<(String, Vec<decy_hir::HirType>)> = transformed_functions
-        .iter()
-        .map(|(func, _sig)| {
-            let param_types: Vec<decy_hir::HirType> = func
-                .parameters()
-                .iter()
-                .map(|p| {
-                    // Transform pointer params to mutable references (matching DECY-111)
-                    // DECY-125: But keep as pointer if pointer arithmetic is used
-                    // DECY-159: Also keep as pointer if compared to NULL (NULL is valid input)
-                    if let decy_hir::HirType::Pointer(inner) = p.param_type() {
-                        // Check if this param uses pointer arithmetic or is compared to NULL
-                        if uses_pointer_arithmetic(func, p.name())
-                            || pointer_compared_to_null(func, p.name())
-                        {
-                            // Keep as raw pointer
-                            p.param_type().clone()
-                        } else {
-                            decy_hir::HirType::Reference { inner: inner.clone(), mutable: true }
-                        }
-                    } else {
-                        p.param_type().clone()
-                    }
-                })
-                .collect();
-            (func.name().to_string(), param_types)
-        })
-        .collect();
+    let all_function_sigs = build_all_function_sigs(&transformed_functions);
 
     // DECY-134b: Build string iteration function info for call site transformation
     let string_iter_funcs: Vec<(String, Vec<(usize, bool)>)> = transformed_functions

@@ -3104,6 +3104,103 @@ fn extract_binary_operator_from_children(
     result
 }
 
+fn token_str_to_binary_operator(token_str: &str) -> Option<BinaryOperator> {
+    match token_str {
+        "+" => Some(BinaryOperator::Add),
+        "-" => Some(BinaryOperator::Subtract),
+        "*" => Some(BinaryOperator::Multiply),
+        "/" => Some(BinaryOperator::Divide),
+        "%" => Some(BinaryOperator::Modulo),
+        "==" => Some(BinaryOperator::Equal),
+        "!=" => Some(BinaryOperator::NotEqual),
+        "<" => Some(BinaryOperator::LessThan),
+        ">" => Some(BinaryOperator::GreaterThan),
+        "<=" => Some(BinaryOperator::LessEqual),
+        ">=" => Some(BinaryOperator::GreaterEqual),
+        "&&" => Some(BinaryOperator::LogicalAnd),
+        "||" => Some(BinaryOperator::LogicalOr),
+        "<<" => Some(BinaryOperator::LeftShift),
+        ">>" => Some(BinaryOperator::RightShift),
+        "&" => Some(BinaryOperator::BitwiseAnd),
+        "|" => Some(BinaryOperator::BitwiseOr),
+        "^" => Some(BinaryOperator::BitwiseXor),
+        "=" => Some(BinaryOperator::Assign),
+        "," => Some(BinaryOperator::Comma),
+        _ => None,
+    }
+}
+
+fn find_first_matching(
+    candidates: &[(usize, BinaryOperator)],
+    predicate: fn(&BinaryOperator) -> bool,
+) -> Option<BinaryOperator> {
+    candidates.iter().find(|(_, op)| predicate(op)).map(|(_, op)| *op)
+}
+
+fn select_lowest_precedence_operator(
+    mut candidates: Vec<(usize, BinaryOperator)>,
+) -> Option<BinaryOperator> {
+    if candidates.is_empty() {
+        return None;
+    }
+
+    let has_arithmetic = candidates.iter().any(|(_, op)| {
+        matches!(
+            op,
+            BinaryOperator::Add
+                | BinaryOperator::Subtract
+                | BinaryOperator::Multiply
+                | BinaryOperator::Divide
+                | BinaryOperator::Modulo
+        )
+    });
+    let has_comparison = candidates.iter().any(|(_, op)| {
+        matches!(
+            op,
+            BinaryOperator::LessThan
+                | BinaryOperator::GreaterThan
+                | BinaryOperator::LessEqual
+                | BinaryOperator::GreaterEqual
+                | BinaryOperator::Equal
+                | BinaryOperator::NotEqual
+        )
+    });
+
+    if has_arithmetic || has_comparison {
+        candidates.retain(|(_, op)| !matches!(op, BinaryOperator::Comma));
+    }
+
+    // C precedence (low to high): , > = > || > && > | > ^ > & > == != > < > <= >= > << >> > + - > * / %
+    let precedence_checks: Vec<fn(&BinaryOperator) -> bool> = vec![
+        |op| matches!(op, BinaryOperator::Assign),
+        |op| matches!(op, BinaryOperator::LogicalOr),
+        |op| matches!(op, BinaryOperator::LogicalAnd),
+        |op| matches!(op, BinaryOperator::BitwiseOr),
+        |op| matches!(op, BinaryOperator::BitwiseXor),
+        |op| matches!(op, BinaryOperator::BitwiseAnd),
+        |op| matches!(op, BinaryOperator::Equal | BinaryOperator::NotEqual),
+        |op| {
+            matches!(
+                op,
+                BinaryOperator::LessThan
+                    | BinaryOperator::GreaterThan
+                    | BinaryOperator::LessEqual
+                    | BinaryOperator::GreaterEqual
+            )
+        },
+        |op| matches!(op, BinaryOperator::LeftShift | BinaryOperator::RightShift),
+        |op| matches!(op, BinaryOperator::Add | BinaryOperator::Subtract),
+    ];
+
+    for check in &precedence_checks {
+        if let Some(op) = find_first_matching(&candidates, *check) {
+            return Some(op);
+        }
+    }
+
+    Some(candidates[0].1)
+}
+
 /// Extract the binary operator from a cursor by tokenizing.
 #[allow(non_upper_case_globals)]
 fn extract_binary_operator(cursor: CXCursor) -> Option<BinaryOperator> {
@@ -3147,8 +3244,6 @@ fn extract_binary_operator(cursor: CXCursor) -> Option<BinaryOperator> {
             &mut _offset,
         );
     }
-
-    let mut operator = None;
 
     // Look through tokens to find the operator
     // For compound expressions like "a > 0 && b > 0", we need to find the LAST
@@ -3235,33 +3330,7 @@ fn extract_binary_operator(cursor: CXCursor) -> Option<BinaryOperator> {
                     // Only collect operator candidates at depth 0 (outside parentheses)
                     // This fixes DECY-116: n * func(n - 1) was picking up the - inside parens
                     if found_first_operand && paren_depth == 0 {
-                        let op = match token_str {
-                            "+" => Some(BinaryOperator::Add),
-                            "-" => Some(BinaryOperator::Subtract),
-                            "*" => Some(BinaryOperator::Multiply),
-                            "/" => Some(BinaryOperator::Divide),
-                            "%" => Some(BinaryOperator::Modulo),
-                            "==" => Some(BinaryOperator::Equal),
-                            "!=" => Some(BinaryOperator::NotEqual),
-                            "<" => Some(BinaryOperator::LessThan),
-                            ">" => Some(BinaryOperator::GreaterThan),
-                            "<=" => Some(BinaryOperator::LessEqual),
-                            ">=" => Some(BinaryOperator::GreaterEqual),
-                            "&&" => Some(BinaryOperator::LogicalAnd),
-                            "||" => Some(BinaryOperator::LogicalOr),
-                            // DECY-137: Bitwise and shift operators
-                            "<<" => Some(BinaryOperator::LeftShift),
-                            ">>" => Some(BinaryOperator::RightShift),
-                            "&" => Some(BinaryOperator::BitwiseAnd),
-                            "|" => Some(BinaryOperator::BitwiseOr),
-                            "^" => Some(BinaryOperator::BitwiseXor),
-                            // DECY-195: Assignment operator for embedded assignments like (c=getchar())
-                            "=" => Some(BinaryOperator::Assign),
-                            // DECY-224: Comma operator for multi-expression statements (i++, j--)
-                            "," => Some(BinaryOperator::Comma),
-                            _ => None,
-                        };
-                        if let Some(op) = op {
+                        if let Some(op) = token_str_to_binary_operator(token_str) {
                             candidates.push((i as usize, op));
                         }
                     }
@@ -3271,139 +3340,7 @@ fn extract_binary_operator(cursor: CXCursor) -> Option<BinaryOperator> {
         }
     }
 
-    // Select the operator with lowest precedence (appears last in our search)
-    // This handles cases like "a > 0 && b > 0" where && should be selected over >
-    // C precedence (low to high): , > = > || > && > | > ^ > & > == != > < > <= >= > << >> > + - > * / %
-    if !candidates.is_empty() {
-        // DECY-234: Filter out comma operators from candidates when other operators are present
-        // Macro expansion can introduce spurious commas in the token stream
-        // We should only use comma as operator if it's a genuine comma expression
-        let has_arithmetic = candidates.iter().any(|(_, op)| {
-            matches!(
-                op,
-                BinaryOperator::Add
-                    | BinaryOperator::Subtract
-                    | BinaryOperator::Multiply
-                    | BinaryOperator::Divide
-                    | BinaryOperator::Modulo
-            )
-        });
-        let has_comparison = candidates.iter().any(|(_, op)| {
-            matches!(
-                op,
-                BinaryOperator::LessThan
-                    | BinaryOperator::GreaterThan
-                    | BinaryOperator::LessEqual
-                    | BinaryOperator::GreaterEqual
-                    | BinaryOperator::Equal
-                    | BinaryOperator::NotEqual
-            )
-        });
-
-        // Remove comma from candidates if real operators are present
-        if has_arithmetic || has_comparison {
-            candidates.retain(|(_, op)| !matches!(op, BinaryOperator::Comma));
-        }
-
-        // DECY-195: Assignment has lowest precedence (now that spurious commas are filtered)
-        for (_, op) in &candidates {
-            if matches!(op, BinaryOperator::Assign) {
-                operator = Some(*op);
-                break;
-            }
-        }
-        // Find the first || operator (next lowest precedence)
-        if operator.is_none() {
-            for (_, op) in &candidates {
-                if matches!(op, BinaryOperator::LogicalOr) {
-                    operator = Some(*op);
-                    break;
-                }
-            }
-        }
-        // If no ||, find first &&
-        if operator.is_none() {
-            for (_, op) in &candidates {
-                if matches!(op, BinaryOperator::LogicalAnd) {
-                    operator = Some(*op);
-                    break;
-                }
-            }
-        }
-        // DECY-137: Bitwise OR (|)
-        if operator.is_none() {
-            for (_, op) in &candidates {
-                if matches!(op, BinaryOperator::BitwiseOr) {
-                    operator = Some(*op);
-                    break;
-                }
-            }
-        }
-        // DECY-137: Bitwise XOR (^)
-        if operator.is_none() {
-            for (_, op) in &candidates {
-                if matches!(op, BinaryOperator::BitwiseXor) {
-                    operator = Some(*op);
-                    break;
-                }
-            }
-        }
-        // DECY-137: Bitwise AND (&)
-        if operator.is_none() {
-            for (_, op) in &candidates {
-                if matches!(op, BinaryOperator::BitwiseAnd) {
-                    operator = Some(*op);
-                    break;
-                }
-            }
-        }
-        // Equality operators (==, !=)
-        if operator.is_none() {
-            for (_, op) in &candidates {
-                if matches!(op, BinaryOperator::Equal | BinaryOperator::NotEqual) {
-                    operator = Some(*op);
-                    break;
-                }
-            }
-        }
-        // Relational operators (<, >, <=, >=)
-        if operator.is_none() {
-            for (_, op) in &candidates {
-                if matches!(
-                    op,
-                    BinaryOperator::LessThan
-                        | BinaryOperator::GreaterThan
-                        | BinaryOperator::LessEqual
-                        | BinaryOperator::GreaterEqual
-                ) {
-                    operator = Some(*op);
-                    break;
-                }
-            }
-        }
-        // DECY-137: Shift operators (<<, >>)
-        if operator.is_none() {
-            for (_, op) in &candidates {
-                if matches!(op, BinaryOperator::LeftShift | BinaryOperator::RightShift) {
-                    operator = Some(*op);
-                    break;
-                }
-            }
-        }
-        // Additive operators (+, -)
-        if operator.is_none() {
-            for (_, op) in &candidates {
-                if matches!(op, BinaryOperator::Add | BinaryOperator::Subtract) {
-                    operator = Some(*op);
-                    break;
-                }
-            }
-        }
-        // If no additive, take first multiplicative operator (*, /, %)
-        if operator.is_none() {
-            operator = Some(candidates[0].1);
-        }
-    }
+    let operator = select_lowest_precedence_operator(candidates);
 
     unsafe {
         clang_disposeTokens(tu, tokens, num_tokens);
