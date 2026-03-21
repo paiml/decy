@@ -5088,149 +5088,189 @@ impl CodeGenerator {
             .parameters
             .iter()
             .filter_map(|p| {
-                // Skip length parameters for array parameters
                 if skip_params.contains(&p.name) {
                     return None;
                 }
-
-                // Check if this is an array parameter
-                let is_array = graph.is_array_parameter(&p.name).unwrap_or(false);
-
-                // DECY-161: Array params with pointer arithmetic must stay as raw pointers
-                // Slices don't support arr++ or arr + n, so check for pointer arithmetic first
-                let uses_ptr_arithmetic = self.uses_pointer_arithmetic(func, &p.name);
-
-                if is_array && !uses_ptr_arithmetic {
-                    // Transform to slice parameter (only if no pointer arithmetic)
-                    // Find the original parameter to get the HirType
-                    if let Some(orig_param) =
-                        func.parameters().iter().find(|fp| fp.name() == p.name)
-                    {
-                        let is_mutable = self.is_parameter_modified(func, &p.name);
-                        let slice_type =
-                            self.pointer_to_slice_type(orig_param.param_type(), is_mutable);
-                        // For slices, don't add 'mut' prefix (slices themselves aren't reassigned)
-                        Some(format!("{}: {}", p.name, slice_type))
-                    } else {
-                        None
-                    }
-                } else {
-                    // DECY-086: Check if this is an array parameter that should become a slice
-                    // In C, `int arr[10]` as a parameter decays to a pointer, so we use slice
-                    if let Some(orig_param) =
-                        func.parameters().iter().find(|fp| fp.name() == p.name)
-                    {
-                        if let HirType::Array { element_type, .. } = orig_param.param_type() {
-                            // Fixed-size array parameter → slice reference
-                            let is_mutable = self.is_parameter_modified(func, &p.name);
-                            let element_str = Self::map_type(element_type);
-                            if is_mutable {
-                                return Some(format!("{}: &mut [{}]", p.name, element_str));
-                            } else {
-                                return Some(format!("{}: &[{}]", p.name, element_str));
-                            }
-                        }
-                    }
-                    // DECY-111: Check if this is a pointer parameter that should become a reference
-                    // DECY-123: Skip transformation if pointer arithmetic is used
-                    if let Some(orig_param) =
-                        func.parameters().iter().find(|fp| fp.name() == p.name)
-                    {
-                        // DECY-135: const char* → &str transformation
-                        // DECY-138: Add mut for string iteration patterns (param reassignment)
-                        // Must check BEFORE other pointer transformations
-                        if orig_param.is_const_char_pointer() {
-                            return Some(format!("mut {}: &str", p.name));
-                        }
-
-                        if let HirType::Pointer(inner) = orig_param.param_type() {
-                            // DECY-096: void* param becomes generic &T or &mut T
-                            // DECY-168: Only apply generic transformation if we found an actual pattern
-                            // for this specific parameter WITH real constraints (from body analysis).
-                            // Otherwise keep as raw pointer *mut ().
-                            if matches!(**inner, HirType::Void) {
-                                // Look for a void pattern specifically for this parameter
-                                // that has actual constraints (indicating real usage in body)
-                                let void_pattern = void_patterns.iter().find(|vp| {
-                                    vp.param_name == p.name
-                                        && (!vp.constraints.is_empty()
-                                            || !vp.inferred_types.is_empty())
-                                });
-
-                                if let Some(pattern) = void_pattern {
-                                    // Found actual usage pattern - apply generic transformation
-                                    let is_mutable = pattern.constraints.contains(
-                                        &decy_analyzer::void_ptr_analysis::TypeConstraint::Mutable,
-                                    );
-                                    if is_mutable {
-                                        return Some(format!("{}: &mut T", p.name));
-                                    } else {
-                                        return Some(format!("{}: &T", p.name));
-                                    }
-                                } else {
-                                    // DECY-168: No pattern with real constraints found - keep as raw pointer
-                                    // This is important for stdlib stubs (realloc, memcpy, etc.)
-                                    return Some(format!("{}: *mut ()", p.name));
-                                }
-                            }
-                            // DECY-134: Check for string iteration pattern FIRST
-                            // char* with pointer arithmetic → slice instead of raw pointer
-                            if self.is_string_iteration_param(func, &p.name) {
-                                // Transform to slice for safe string iteration
-                                let is_mutable = self.is_parameter_deref_modified(func, &p.name);
-                                if is_mutable {
-                                    return Some(format!("{}: &mut [u8]", p.name));
-                                } else {
-                                    return Some(format!("{}: &[u8]", p.name));
-                                }
-                            }
-                            // DECY-123: Don't transform to reference if pointer arithmetic is used
-                            // (e.g., ptr = ptr + 1) - keep as raw pointer
-                            if self.uses_pointer_arithmetic(func, &p.name) {
-                                // Keep as raw pointer - will need unsafe blocks
-                                // DECY-124: Add mut since the pointer is reassigned
-                                let inner_type = Self::map_type(inner);
-                                return Some(format!("mut {}: *mut {}", p.name, inner_type));
-                            }
-                            // Transform pointer param to mutable reference
-                            // Check if the param is modified in the function body
-                            let is_mutable = self.is_parameter_deref_modified(func, &p.name);
-                            let inner_type = Self::map_type(inner);
-                            if is_mutable {
-                                return Some(format!("{}: &mut {}", p.name, inner_type));
-                            } else {
-                                // Read-only pointer becomes immutable reference
-                                return Some(format!("{}: &{}", p.name, inner_type));
-                            }
-                        }
-                    }
-                    // Regular parameter with lifetime annotation
-                    let type_str = self.annotated_type_to_string(&p.param_type);
-                    // In C, parameters are mutable by default (can be reassigned)
-                    Some(format!("mut {}: {}", p.name, type_str))
-                }
+                self.generate_signature_param(p, func, &graph, &void_patterns)
             })
             .collect();
         sig.push_str(&params.join(", "));
         sig.push(')');
 
+        // Generate return type
+        self.append_signature_return_type(
+            &mut sig,
+            func,
+            output_param_type.as_ref(),
+            output_is_fallible,
+            &annotated_sig,
+        );
+
+        sig
+    }
+
+    /// Generate a single parameter for a function signature.
+    fn generate_signature_param(
+        &self,
+        p: &decy_ownership::lifetime_gen::AnnotatedParameter,
+        func: &HirFunction,
+        graph: &decy_ownership::dataflow::DataflowGraph,
+        void_patterns: &[decy_analyzer::void_ptr_analysis::VoidPtrInfo],
+    ) -> Option<String> {
+        // Check if this is an array parameter
+        let is_array = graph.is_array_parameter(&p.name).unwrap_or(false);
+
+        // DECY-161: Array params with pointer arithmetic must stay as raw pointers
+        // Slices don't support arr++ or arr + n, so check for pointer arithmetic first
+        let uses_ptr_arithmetic = self.uses_pointer_arithmetic(func, &p.name);
+
+        if is_array && !uses_ptr_arithmetic {
+            // Transform to slice parameter (only if no pointer arithmetic)
+            // Find the original parameter to get the HirType
+            if let Some(orig_param) =
+                func.parameters().iter().find(|fp| fp.name() == p.name)
+            {
+                let is_mutable = self.is_parameter_modified(func, &p.name);
+                let slice_type =
+                    self.pointer_to_slice_type(orig_param.param_type(), is_mutable);
+                // For slices, don't add 'mut' prefix (slices themselves aren't reassigned)
+                Some(format!("{}: {}", p.name, slice_type))
+            } else {
+                None
+            }
+        } else {
+            // DECY-086: Check if this is an array parameter that should become a slice
+            // In C, `int arr[10]` as a parameter decays to a pointer, so we use slice
+            if let Some(orig_param) =
+                func.parameters().iter().find(|fp| fp.name() == p.name)
+            {
+                if let HirType::Array { element_type, .. } = orig_param.param_type() {
+                    // Fixed-size array parameter → slice reference
+                    let is_mutable = self.is_parameter_modified(func, &p.name);
+                    let element_str = Self::map_type(element_type);
+                    if is_mutable {
+                        return Some(format!("{}: &mut [{}]", p.name, element_str));
+                    } else {
+                        return Some(format!("{}: &[{}]", p.name, element_str));
+                    }
+                }
+            }
+            // DECY-111: Check if this is a pointer parameter that should become a reference
+            // DECY-123: Skip transformation if pointer arithmetic is used
+            if let Some(orig_param) =
+                func.parameters().iter().find(|fp| fp.name() == p.name)
+            {
+                // DECY-135: const char* → &str transformation
+                // DECY-138: Add mut for string iteration patterns (param reassignment)
+                // Must check BEFORE other pointer transformations
+                if orig_param.is_const_char_pointer() {
+                    return Some(format!("mut {}: &str", p.name));
+                }
+
+                if let HirType::Pointer(inner) = orig_param.param_type() {
+                    return Some(self.generate_pointer_param(
+                        &p.name, inner, func, void_patterns,
+                    ));
+                }
+            }
+            // Regular parameter with lifetime annotation
+            let type_str = self.annotated_type_to_string(&p.param_type);
+            // In C, parameters are mutable by default (can be reassigned)
+            Some(format!("mut {}: {}", p.name, type_str))
+        }
+    }
+
+    /// Generate a pointer parameter representation (reference, raw pointer, slice, or generic).
+    fn generate_pointer_param(
+        &self,
+        name: &str,
+        inner: &HirType,
+        func: &HirFunction,
+        void_patterns: &[decy_analyzer::void_ptr_analysis::VoidPtrInfo],
+    ) -> String {
+        use decy_analyzer::void_ptr_analysis::TypeConstraint;
+
+        // DECY-096: void* param becomes generic &T or &mut T
+        // DECY-168: Only apply generic transformation if we found an actual pattern
+        // for this specific parameter WITH real constraints (from body analysis).
+        // Otherwise keep as raw pointer *mut ().
+        if matches!(inner, HirType::Void) {
+            // Look for a void pattern specifically for this parameter
+            // that has actual constraints (indicating real usage in body)
+            let void_pattern = void_patterns.iter().find(|vp| {
+                vp.param_name == name
+                    && (!vp.constraints.is_empty()
+                        || !vp.inferred_types.is_empty())
+            });
+
+            if let Some(pattern) = void_pattern {
+                // Found actual usage pattern - apply generic transformation
+                let is_mutable = pattern.constraints.contains(&TypeConstraint::Mutable);
+                if is_mutable {
+                    return format!("{}: &mut T", name);
+                } else {
+                    return format!("{}: &T", name);
+                }
+            } else {
+                // DECY-168: No pattern with real constraints found - keep as raw pointer
+                // This is important for stdlib stubs (realloc, memcpy, etc.)
+                return format!("{}: *mut ()", name);
+            }
+        }
+        // DECY-134: Check for string iteration pattern FIRST
+        // char* with pointer arithmetic → slice instead of raw pointer
+        if self.is_string_iteration_param(func, name) {
+            // Transform to slice for safe string iteration
+            let is_mutable = self.is_parameter_deref_modified(func, name);
+            if is_mutable {
+                return format!("{}: &mut [u8]", name);
+            } else {
+                return format!("{}: &[u8]", name);
+            }
+        }
+        // DECY-123: Don't transform to reference if pointer arithmetic is used
+        // (e.g., ptr = ptr + 1) - keep as raw pointer
+        if self.uses_pointer_arithmetic(func, name) {
+            // Keep as raw pointer - will need unsafe blocks
+            // DECY-124: Add mut since the pointer is reassigned
+            let inner_type = Self::map_type(inner);
+            return format!("mut {}: *mut {}", name, inner_type);
+        }
+        // Transform pointer param to mutable reference
+        // Check if the param is modified in the function body
+        let is_mutable = self.is_parameter_deref_modified(func, name);
+        let inner_type = Self::map_type(inner);
+        if is_mutable {
+            format!("{}: &mut {}", name, inner_type)
+        } else {
+            // Read-only pointer becomes immutable reference
+            format!("{}: &{}", name, inner_type)
+        }
+    }
+
+    /// Append return type to signature string.
+    fn append_signature_return_type(
+        &self,
+        sig: &mut String,
+        func: &HirFunction,
+        output_param_type: Option<&HirType>,
+        output_is_fallible: bool,
+        annotated_sig: &AnnotatedSignature,
+    ) {
         // Special handling for main function (DECY-AUDIT-001)
         // C's int main() must become Rust's fn main() (no return type)
         // Rust's entry point returns () and uses std::process::exit(N) for exit codes
         if func.name() == "main" && matches!(func.return_type(), HirType::Int) {
-            // Skip return type for main - it must be fn main()
-            return sig;
+            return;
         }
 
         // DECY-084 GREEN: Generate return type considering output parameters
         // Priority: output param type > original return type
         if let Some(out_type) = output_param_type {
-            let out_type_str = Self::map_type(&out_type);
+            let out_type_str = Self::map_type(out_type);
             if output_is_fallible {
-                // Fallible function: int func(..., T* out) -> Result<T, i32>
                 sig.push_str(&format!(" -> Result<{}, i32>", out_type_str));
             } else {
-                // Non-fallible void function: void func(..., T* out) -> T
                 sig.push_str(&format!(" -> {}", out_type_str));
             }
         } else {
@@ -5246,8 +5286,6 @@ impl CodeGenerator {
                 }
             }
         }
-
-        sig
     }
 
     /// DECY-142: Check if function returns a malloc-allocated array.
