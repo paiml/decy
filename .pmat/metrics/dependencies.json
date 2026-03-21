@@ -1,0 +1,351 @@
+{
+  "direct_count": 0,
+  "transitive_count": 127,
+  "timestamp": "2026-03-21T15:33:16.141324184+00:00",
+  "previous": {
+    "direct_count": 0,
+    "transitive_count": 127,
+    "timestamp": "2026-03-21T15:24:36.961260614+00:00",
+    "previous": {
+      "direct_count": 0,
+      "transitive_count": 127,
+      "timestamp": "2026-03-21T15:19:52.669641945+00:00",
+      "previous": {
+        "direct_count": 0,
+        "transitive_count": 127,
+        "timestamp": "2026-03-21T15:06:22.268465291+00:00",
+        "previous": {
+          "direct_count": 0,
+          "transitive_count": 127,
+          "timestamp": "2026-03-21T15:04:12.126574208+00:00",
+          "previous": {
+            "direct_count": 0,
+            "transitive_count": 127,
+            "timestamp": "2026-03-21T14:56:24.753775597+00:00",
+            "previous": {
+              "direct_count": 0,
+              "transitive_count": 127,
+              "timestamp": "2026-03-21T14:56:24.004610039+00:00",
+              "previous": {
+                "direct_count": 0,
+                "transitive_count": 127,
+                "timestamp": "2026-03-21T14:54:02.959258431+00:00",
+                "previous": {
+                  "direct_count": 0,
+                  "transitive_count": 127,
+                  "timestamp": "2026-03-21T14:52:12.887360899+00:00",
+                  "previous": {
+                    "direct_count": 0,
+                    "transitive_count": 127,
+                    "timestamp": "2026-03-21T14:46:17.394435864+00:00",
+                    "previous": {
+                      "direct_count": 0,
+                      "transitive_count": 127,
+                      "timestamp": "2026-03-21T14:37:43.570334158+00:00",
+                      "previous": {
+                        "direct_count": 0,
+                        "transitive_count": 127,
+                        "timestamp": "2026-03-21T14:36:31.813506890+00:00",
+                        "previous": {
+                          "direct_count": 0,
+                          "transitive_count": 127,
+                          "timestamp": "2026-03-21T14:29:13.832677104+00:00",
+                          "previous": {
+                            "direct_count": 0,
+                            "transitive_count": 127,
+                            "timestamp": "2026-03-21T14:25:24.136263956+00:00",
+                            "previous": {
+                              "direct_count": 0,
+                              "transitive_count": 127,
+                              "timestamp": "2026-03-21T14:23:52.908646986+00:00",
+                              "previous": {
+                                "direct_count": 0,
+                                "transitive_count": 127,
+                                "timestamp": "2026-03-21T14:18:11.463121845+00:00",
+                                "previous": {
+                                  "direct_count": 0,
+                                  "transitive_count": 127,
+                                  "timestamp": "2026-03-21T14:17:24.695746453+00:00",
+                                  "previous": {
+                                    "direct_count": 0,
+                                    "transitive_count": 127,
+                                    "timestamp": "2026-03-21T14:13:33.828400840+00:00",
+                                    "previous": {
+                                      "direct_count": 0,
+                                      "transitive_count": 127,
+                                      "timestamp": "2026-03-21T14:11:15.039185307+00:00",
+                                      "previous": {
+                                        "direct_count": 0,
+                                        "transitive_count": 127,
+                                        "timestamp": "2026-03-21T14:04:16.148748291+00:00",
+                                        "previous": {
+                                          "direct_count": 0,
+                                          "transitive_count": 127,
+                                          "timestamp": "2026-03-21T14:00:33.024425175+00:00",
+                                          "previous": {
+                                            "direct_count": 0,
+                                            "transitive_count": 127,
+                                            "timestamp": "2026-03-21T14:00:32.291331381+00:00",
+                                            "previous": {
+                                              "direct_count": 0,
+                                              "transitive_count": 127,
+                                              "timestamp": "2026-03-21T13:57:41.195732638+00:00",
+                                              "previous": {
+                                                "direct_count": 0,
+                                                "transitive_count": 127,
+                                                "timestamp": "2026-03-21T13:40:04.118717036+00:00",
+                                                "previous": {
+                                                  "direct_count": 0,
+                                                  "transitive_count": 127,
+                                                  "timestamp": "2026-03-21T13:28:57.262162306+00:00",
+                                                  "previous": {
+                                                    "direct_count": 0,
+                                                    "transitive_count": 127,
+                                                    "timestamp": "2026-03-21T13:26:48.046113108+00:00",
+                                                    "previous": {
+                                                      "direct_count": 0,
+                                                      "transitive_count": 127,
+                                                      "timestamp": "2026-03-21T13:20:26.002179561+00:00",
+                                                      "previous": {
+                                                        "direct_count": 0,
+                                                        "transitive_count": 127,
+                                                        "timestamp": "2026-03-21T13:09:34.216040028+00:00",
+                                                        "previous": {
+                                                          "direct_count": 0,
+                                                          "transitive_count": 127,
+                                                          "timestamp": "2026-03-21T13:00:39.236898930+00:00",
+                                                          "previous": {
+                                                            "direct_count": 0,
+                                                            "transitive_count": 127,
+                                                            "timestamp": "2026-03-21T13:00:38.471831022+00:00",
+                                                            "previous": {
+                                                              "direct_count": 0,
+                                                              "transitive_count": 127,
+                                                              "timestamp": "2026-03-21T12:59:44.167606166+00:00",
+                                                              "previous": {
+                                                                "direct_count": 0,
+                                                                "transitive_count": 127,
+                                                                "timestamp": "2026-03-21T12:58:50.818346259+00:00",
+                                                                "previous": {
+                                                                  "direct_count": 0,
+                                                                  "transitive_count": 127,
+                                                                  "timestamp": "2026-03-21T12:57:09.225066622+00:00",
+                                                                  "previous": {
+                                                                    "direct_count": 0,
+                                                                    "transitive_count": 127,
+                                                                    "timestamp": "2026-03-21T12:48:30.745474595+00:00",
+                                                                    "previous": {
+                                                                      "direct_count": 0,
+                                                                      "transitive_count": 127,
+                                                                      "timestamp": "2026-03-21T12:38:43.184628092+00:00",
+                                                                      "previous": {
+                                                                        "direct_count": 0,
+                                                                        "transitive_count": 127,
+                                                                        "timestamp": "2026-03-21T12:37:16.055918677+00:00",
+                                                                        "previous": {
+                                                                          "direct_count": 0,
+                                                                          "transitive_count": 127,
+                                                                          "timestamp": "2026-03-21T12:32:00.261392728+00:00",
+                                                                          "previous": {
+                                                                            "direct_count": 0,
+                                                                            "transitive_count": 127,
+                                                                            "timestamp": "2026-03-21T12:31:11.484975201+00:00",
+                                                                            "previous": {
+                                                                              "direct_count": 0,
+                                                                              "transitive_count": 127,
+                                                                              "timestamp": "2026-03-21T12:27:08.264496716+00:00",
+                                                                              "previous": {
+                                                                                "direct_count": 0,
+                                                                                "transitive_count": 127,
+                                                                                "timestamp": "2026-03-21T12:25:03.121799007+00:00",
+                                                                                "previous": {
+                                                                                  "direct_count": 0,
+                                                                                  "transitive_count": 127,
+                                                                                  "timestamp": "2026-03-21T12:19:29.213703778+00:00",
+                                                                                  "previous": {
+                                                                                    "direct_count": 0,
+                                                                                    "transitive_count": 127,
+                                                                                    "timestamp": "2026-03-21T12:18:03.796854443+00:00",
+                                                                                    "previous": {
+                                                                                      "direct_count": 0,
+                                                                                      "transitive_count": 127,
+                                                                                      "timestamp": "2026-03-21T12:16:20.063368117+00:00",
+                                                                                      "previous": {
+                                                                                        "direct_count": 0,
+                                                                                        "transitive_count": 127,
+                                                                                        "timestamp": "2026-03-21T12:14:21.000487008+00:00",
+                                                                                        "previous": {
+                                                                                          "direct_count": 0,
+                                                                                          "transitive_count": 127,
+                                                                                          "timestamp": "2026-03-21T12:11:40.873709906+00:00",
+                                                                                          "previous": {
+                                                                                            "direct_count": 0,
+                                                                                            "transitive_count": 127,
+                                                                                            "timestamp": "2026-03-21T12:06:29.782422726+00:00",
+                                                                                            "previous": {
+                                                                                              "direct_count": 0,
+                                                                                              "transitive_count": 127,
+                                                                                              "timestamp": "2026-03-21T12:06:29.029196973+00:00",
+                                                                                              "previous": {
+                                                                                                "direct_count": 0,
+                                                                                                "transitive_count": 127,
+                                                                                                "timestamp": "2026-03-21T12:05:01.377990536+00:00",
+                                                                                                "previous": {
+                                                                                                  "direct_count": 0,
+                                                                                                  "transitive_count": 127,
+                                                                                                  "timestamp": "2026-03-21T11:54:48.195395696+00:00",
+                                                                                                  "previous": {
+                                                                                                    "direct_count": 0,
+                                                                                                    "transitive_count": 127,
+                                                                                                    "timestamp": "2026-03-21T11:50:50.045681139+00:00",
+                                                                                                    "previous": {
+                                                                                                      "direct_count": 0,
+                                                                                                      "transitive_count": 127,
+                                                                                                      "timestamp": "2026-03-21T11:48:44.472005871+00:00",
+                                                                                                      "previous": {
+                                                                                                        "direct_count": 0,
+                                                                                                        "transitive_count": 127,
+                                                                                                        "timestamp": "2026-03-21T11:46:14.001859904+00:00",
+                                                                                                        "previous": {
+                                                                                                          "direct_count": 0,
+                                                                                                          "transitive_count": 127,
+                                                                                                          "timestamp": "2026-03-21T11:42:52.603666353+00:00",
+                                                                                                          "previous": {
+                                                                                                            "direct_count": 0,
+                                                                                                            "transitive_count": 127,
+                                                                                                            "timestamp": "2026-03-21T11:39:56.503210321+00:00",
+                                                                                                            "previous": {
+                                                                                                              "direct_count": 0,
+                                                                                                              "transitive_count": 127,
+                                                                                                              "timestamp": "2026-03-21T11:38:43.835940567+00:00",
+                                                                                                              "previous": {
+                                                                                                                "direct_count": 0,
+                                                                                                                "transitive_count": 127,
+                                                                                                                "timestamp": "2026-03-21T11:36:25.390935750+00:00",
+                                                                                                                "previous": {
+                                                                                                                  "direct_count": 0,
+                                                                                                                  "transitive_count": 127,
+                                                                                                                  "timestamp": "2026-03-21T11:36:00.692176850+00:00",
+                                                                                                                  "previous": {
+                                                                                                                    "direct_count": 0,
+                                                                                                                    "transitive_count": 127,
+                                                                                                                    "timestamp": "2026-03-21T11:35:30.899307622+00:00",
+                                                                                                                    "previous": {
+                                                                                                                      "direct_count": 0,
+                                                                                                                      "transitive_count": 127,
+                                                                                                                      "timestamp": "2026-03-21T10:40:57.839035808+00:00",
+                                                                                                                      "previous": {
+                                                                                                                        "direct_count": 0,
+                                                                                                                        "transitive_count": 127,
+                                                                                                                        "timestamp": "2026-03-21T10:32:15.895668289+00:00",
+                                                                                                                        "previous": {
+                                                                                                                          "direct_count": 0,
+                                                                                                                          "transitive_count": 127,
+                                                                                                                          "timestamp": "2026-03-21T10:30:30.606073906+00:00",
+                                                                                                                          "previous": {
+                                                                                                                            "direct_count": 0,
+                                                                                                                            "transitive_count": 127,
+                                                                                                                            "timestamp": "2026-03-21T10:30:28.417109401+00:00",
+                                                                                                                            "previous": {
+                                                                                                                              "direct_count": 0,
+                                                                                                                              "transitive_count": 127,
+                                                                                                                              "timestamp": "2026-03-18T14:45:39.703438739+00:00",
+                                                                                                                              "previous": {
+                                                                                                                                "direct_count": 0,
+                                                                                                                                "transitive_count": 127,
+                                                                                                                                "timestamp": "2026-03-18T14:45:38.944267026+00:00",
+                                                                                                                                "previous": {
+                                                                                                                                  "direct_count": 0,
+                                                                                                                                  "transitive_count": 127,
+                                                                                                                                  "timestamp": "2026-03-18T14:45:38.178499897+00:00",
+                                                                                                                                  "previous": {
+                                                                                                                                    "direct_count": 0,
+                                                                                                                                    "transitive_count": 127,
+                                                                                                                                    "timestamp": "2026-03-18T14:45:17.776990273+00:00",
+                                                                                                                                    "previous": {
+                                                                                                                                      "direct_count": 0,
+                                                                                                                                      "transitive_count": 579,
+                                                                                                                                      "timestamp": "2026-02-10T11:14:10.218242707+00:00",
+                                                                                                                                      "previous": {
+                                                                                                                                        "direct_count": 0,
+                                                                                                                                        "transitive_count": 579,
+                                                                                                                                        "timestamp": "2026-02-10T11:12:25.140468622+00:00",
+                                                                                                                                        "previous": {
+                                                                                                                                          "direct_count": 0,
+                                                                                                                                          "transitive_count": 579,
+                                                                                                                                          "timestamp": "2026-02-09T16:15:30.226831753+00:00",
+                                                                                                                                          "previous": {
+                                                                                                                                            "direct_count": 0,
+                                                                                                                                            "transitive_count": 579,
+                                                                                                                                            "timestamp": "2026-02-05T16:19:41.525030365+00:00",
+                                                                                                                                            "previous": null
+                                                                                                                                          }
+                                                                                                                                        }
+                                                                                                                                      }
+                                                                                                                                    }
+                                                                                                                                  }
+                                                                                                                                }
+                                                                                                                              }
+                                                                                                                            }
+                                                                                                                          }
+                                                                                                                        }
+                                                                                                                      }
+                                                                                                                    }
+                                                                                                                  }
+                                                                                                                }
+                                                                                                              }
+                                                                                                            }
+                                                                                                          }
+                                                                                                        }
+                                                                                                      }
+                                                                                                    }
+                                                                                                  }
+                                                                                                }
+                                                                                              }
+                                                                                            }
+                                                                                          }
+                                                                                        }
+                                                                                      }
+                                                                                    }
+                                                                                  }
+                                                                                }
+                                                                              }
+                                                                            }
+                                                                          }
+                                                                        }
+                                                                      }
+                                                                    }
+                                                                  }
+                                                                }
+                                                              }
+                                                            }
+                                                          }
+                                                        }
+                                                      }
+                                                    }
+                                                  }
+                                                }
+                                              }
+                                            }
+                                          }
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
