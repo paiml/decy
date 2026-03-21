@@ -7,7 +7,9 @@
 // Note: clang-sys requires unsafe for FFI, but we allow it only in this crate
 #![allow(unsafe_code)]
 
+pub mod ast_types;
 pub mod diagnostic;
+pub(crate) mod extract;
 pub mod parser;
 
 pub use diagnostic::{Diagnostic, DiagnosticError, ErrorCategory, Severity};
