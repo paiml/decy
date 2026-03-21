@@ -5900,68 +5900,8 @@ impl CodeGenerator {
         let mut result = format!("fn {}", safe_name);
 
         // DECY-084/085: Detect output parameters for transformation
-        // DECY-085: Support multiple output params as tuple
-        use decy_analyzer::output_params::{OutputParamDetector, ParameterKind};
-        let mut skip_output_params = std::collections::HashSet::new();
-        let mut output_param_types: Vec<HirType> = Vec::new(); // DECY-085: collect ALL output types
-        let mut output_is_fallible = false;
-
-        if let Some(f) = func {
-            let output_detector = OutputParamDetector::new();
-            let output_params = output_detector.detect(f);
-
-            // Count non-pointer parameters (inputs)
-            let input_param_count = f
-                .parameters()
-                .iter()
-                .filter(|p| !matches!(p.param_type(), HirType::Pointer(_)))
-                .count();
-
-            // Count potential output params for heuristic
-            let output_param_count =
-                output_params.iter().filter(|op| op.kind == ParameterKind::Output).count();
-
-            for op in &output_params {
-                if op.kind == ParameterKind::Output {
-                    // Heuristic: Only treat as output param if:
-                    // 1. There are other input parameters (output is derived from inputs)
-                    // 2. Or, the name suggests it's an output (result, out, output, ret, etc.)
-                    // 3. DECY-085: Or, there are multiple output params (void func with multiple outs)
-                    let is_output_name = {
-                        let name_lower = op.name.to_lowercase();
-                        name_lower.contains("result")
-                            || name_lower.contains("out")
-                            || name_lower.contains("ret")
-                            || name_lower == "len"
-                            || name_lower == "size"
-                            // Common dimension/coordinate names
-                            || name_lower == "x"
-                            || name_lower == "y"
-                            || name_lower == "z"
-                            || name_lower == "w"
-                            || name_lower == "h"
-                            || name_lower == "width"
-                            || name_lower == "height"
-                            || name_lower == "r"
-                            || name_lower == "g"
-                            || name_lower == "b"
-                            || name_lower == "count"
-                            || name_lower == "avg"
-                    };
-
-                    if input_param_count > 0 || is_output_name || output_param_count >= 2 {
-                        skip_output_params.insert(op.name.clone());
-                        output_is_fallible = op.is_fallible;
-                        // DECY-085: Collect all output parameter types
-                        if let Some(param) = f.parameters().iter().find(|p| p.name() == op.name) {
-                            if let HirType::Pointer(inner) = param.param_type() {
-                                output_param_types.push((**inner).clone());
-                            }
-                        }
-                    }
-                }
-            }
-        }
+        let (skip_output_params, output_param_types, output_is_fallible) =
+            Self::detect_output_params(func);
 
         // DECY-072: Check if we have any non-slice reference parameters that need lifetimes
         // Slices have elided lifetimes and don't need explicit lifetime parameters
@@ -5988,134 +5928,221 @@ impl CodeGenerator {
             .parameters
             .iter()
             .filter(|p| !skip_output_params.contains(&p.name))
-            .map(|p| {
-                // Check if this is a slice parameter (Reference to Array with size=None)
-                let is_slice = match &p.param_type {
-                    AnnotatedType::Reference { inner, .. } => match &**inner {
-                        AnnotatedType::Simple(HirType::Array { size, .. }) => size.is_none(),
-                        _ => false,
-                    },
-                    _ => false,
-                };
-
-                if is_slice {
-                    // DECY-072: Slices don't need 'mut' prefix or explicit lifetimes
-                    // Generate simple slice type without lifetime annotations
-                    let type_str = match &p.param_type {
-                        AnnotatedType::Reference { inner, mutable, .. } => {
-                            if let AnnotatedType::Simple(HirType::Array { element_type, .. }) =
-                                &**inner
-                            {
-                                if *mutable {
-                                    format!("&mut [{}]", Self::map_type(element_type))
-                                } else {
-                                    format!("&[{}]", Self::map_type(element_type))
-                                }
-                            } else {
-                                self.annotated_type_to_string(&p.param_type)
-                            }
-                        }
-                        _ => self.annotated_type_to_string(&p.param_type),
-                    };
-                    format!("{}: {}", p.name, type_str)
-                } else {
-                    // DECY-111: Transform pointer parameters to mutable references
-                    // DECY-123: Skip transformation if pointer arithmetic is used
-                    // Check if param type is a simple pointer (not already a reference)
-                    if let AnnotatedType::Simple(HirType::Pointer(inner)) = &p.param_type {
-                        // DECY-135: const char* → &str transformation
-                        // DECY-138: Add mut for string iteration patterns (param reassignment)
-                        // Must check BEFORE other pointer transformations
-                        if let Some(f) = func {
-                            if let Some(orig_param) =
-                                f.parameters().iter().find(|fp| fp.name() == p.name)
-                            {
-                                if orig_param.is_const_char_pointer() {
-                                    return format!("mut {}: &str", p.name);
-                                }
-                            }
-                        }
-                        // DECY-134: Check for string iteration pattern FIRST
-                        if let Some(f) = func {
-                            if self.is_string_iteration_param(f, &p.name) {
-                                // Transform to slice for safe string iteration
-                                let is_mutable = self.is_parameter_deref_modified(f, &p.name);
-                                if is_mutable {
-                                    return format!("{}: &mut [u8]", p.name);
-                                } else {
-                                    return format!("{}: &[u8]", p.name);
-                                }
-                            }
-                        }
-                        // DECY-123: If we have function body access, check for pointer arithmetic
-                        if let Some(f) = func {
-                            if self.uses_pointer_arithmetic(f, &p.name) {
-                                // Keep as raw pointer - needs pointer arithmetic
-                                // DECY-124: Add mut since the pointer is reassigned
-                                let inner_type = Self::map_type(inner);
-                                return format!("mut {}: *mut {}", p.name, inner_type);
-                            }
-                        }
-                        // DECY-168: void* parameters should stay as raw pointers
-                        // unless they have actual usage patterns (constraints/types)
-                        if matches!(**inner, HirType::Void) {
-                            // Keep void* as raw pointer for stdlib stubs
-                            return format!("{}: *mut ()", p.name);
-                        }
-                        // Transform *mut T → &mut T for safety
-                        // All pointer params become &mut since C allows writing through them
-                        let inner_type = Self::map_type(inner);
-                        return format!("{}: &mut {}", p.name, inner_type);
-                    }
-                    // DECY-196: Handle unsized array parameters → slice references
-                    // C's `void func(char arr[])` should become `fn func(arr: &mut [u8])`
-                    // Unsized arrays in parameters are always passed by reference in C
-                    // Default to &mut since C arrays are generally mutable and detecting
-                    // modifications in embedded assignments (while conditions) is complex
-                    if let AnnotatedType::Simple(HirType::Array { element_type, size: None }) =
-                        &p.param_type
-                    {
-                        let element_str = Self::map_type(element_type);
-                        return format!("{}: &mut [{}]", p.name, element_str);
-                    }
-
-                    // DECY-041: Add mut for all non-slice parameters to match C semantics
-                    // In C, parameters are mutable by default (can be reassigned)
-                    // DECY-FUTURE: More sophisticated analysis to only add mut when needed
-                    format!("mut {}: {}", p.name, self.annotated_type_to_string(&p.param_type))
-                }
-            })
+            .map(|p| self.generate_annotated_param(p, func))
             .collect();
         result.push_str(&params.join(", "));
         result.push(')');
 
+        // Generate return type
+        self.append_annotated_return_type(
+            &mut result,
+            sig,
+            func,
+            &output_param_types,
+            output_is_fallible,
+        );
+
+        result
+    }
+
+    /// Detect output parameters from a function for signature transformation.
+    /// Returns (skip_set, output_types, is_fallible).
+    fn detect_output_params(
+        func: Option<&HirFunction>,
+    ) -> (std::collections::HashSet<String>, Vec<HirType>, bool) {
+        use decy_analyzer::output_params::{OutputParamDetector, ParameterKind};
+        let mut skip_output_params = std::collections::HashSet::new();
+        let mut output_param_types: Vec<HirType> = Vec::new();
+        let mut output_is_fallible = false;
+
+        if let Some(f) = func {
+            let output_detector = OutputParamDetector::new();
+            let output_params = output_detector.detect(f);
+
+            // Count non-pointer parameters (inputs)
+            let input_param_count = f
+                .parameters()
+                .iter()
+                .filter(|p| !matches!(p.param_type(), HirType::Pointer(_)))
+                .count();
+
+            // Count potential output params for heuristic
+            let output_param_count =
+                output_params.iter().filter(|op| op.kind == ParameterKind::Output).count();
+
+            for op in &output_params {
+                if op.kind == ParameterKind::Output {
+                    // Heuristic: Only treat as output param if:
+                    // 1. There are other input parameters (output is derived from inputs)
+                    // 2. Or, the name suggests it's an output (result, out, output, ret, etc.)
+                    // 3. DECY-085: Or, there are multiple output params (void func with multiple outs)
+                    let is_output_name = Self::is_output_param_name(&op.name);
+
+                    if input_param_count > 0 || is_output_name || output_param_count >= 2 {
+                        skip_output_params.insert(op.name.clone());
+                        output_is_fallible = op.is_fallible;
+                        // DECY-085: Collect all output parameter types
+                        if let Some(param) = f.parameters().iter().find(|p| p.name() == op.name) {
+                            if let HirType::Pointer(inner) = param.param_type() {
+                                output_param_types.push((**inner).clone());
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        (skip_output_params, output_param_types, output_is_fallible)
+    }
+
+    /// Check if a parameter name suggests it is an output parameter.
+    fn is_output_param_name(name: &str) -> bool {
+        let name_lower = name.to_lowercase();
+        name_lower.contains("result")
+            || name_lower.contains("out")
+            || name_lower.contains("ret")
+            || name_lower == "len"
+            || name_lower == "size"
+            || name_lower == "x"
+            || name_lower == "y"
+            || name_lower == "z"
+            || name_lower == "w"
+            || name_lower == "h"
+            || name_lower == "width"
+            || name_lower == "height"
+            || name_lower == "r"
+            || name_lower == "g"
+            || name_lower == "b"
+            || name_lower == "count"
+            || name_lower == "avg"
+    }
+
+    /// Generate a single annotated parameter string.
+    fn generate_annotated_param(
+        &self,
+        p: &decy_ownership::lifetime_gen::AnnotatedParameter,
+        func: Option<&HirFunction>,
+    ) -> String {
+        // Check if this is a slice parameter (Reference to Array with size=None)
+        let is_slice = match &p.param_type {
+            AnnotatedType::Reference { inner, .. } => match &**inner {
+                AnnotatedType::Simple(HirType::Array { size, .. }) => size.is_none(),
+                _ => false,
+            },
+            _ => false,
+        };
+
+        if is_slice {
+            // DECY-072: Slices don't need 'mut' prefix or explicit lifetimes
+            let type_str = match &p.param_type {
+                AnnotatedType::Reference { inner, mutable, .. } => {
+                    if let AnnotatedType::Simple(HirType::Array { element_type, .. }) =
+                        &**inner
+                    {
+                        if *mutable {
+                            format!("&mut [{}]", Self::map_type(element_type))
+                        } else {
+                            format!("&[{}]", Self::map_type(element_type))
+                        }
+                    } else {
+                        self.annotated_type_to_string(&p.param_type)
+                    }
+                }
+                _ => self.annotated_type_to_string(&p.param_type),
+            };
+            return format!("{}: {}", p.name, type_str);
+        }
+
+        // DECY-111: Transform pointer parameters to mutable references
+        // DECY-123: Skip transformation if pointer arithmetic is used
+        if let AnnotatedType::Simple(HirType::Pointer(inner)) = &p.param_type {
+            return self.generate_annotated_pointer_param(&p.name, inner, func);
+        }
+
+        // DECY-196: Handle unsized array parameters → slice references
+        if let AnnotatedType::Simple(HirType::Array { element_type, size: None }) =
+            &p.param_type
+        {
+            let element_str = Self::map_type(element_type);
+            return format!("{}: &mut [{}]", p.name, element_str);
+        }
+
+        // DECY-041: Add mut for all non-slice parameters to match C semantics
+        format!("mut {}: {}", p.name, self.annotated_type_to_string(&p.param_type))
+    }
+
+    /// Generate an annotated pointer parameter (reference, raw pointer, slice, or &str).
+    fn generate_annotated_pointer_param(
+        &self,
+        name: &str,
+        inner: &HirType,
+        func: Option<&HirFunction>,
+    ) -> String {
+        // DECY-135: const char* → &str transformation
+        if let Some(f) = func {
+            if let Some(orig_param) =
+                f.parameters().iter().find(|fp| fp.name() == name)
+            {
+                if orig_param.is_const_char_pointer() {
+                    return format!("mut {}: &str", name);
+                }
+            }
+        }
+        // DECY-134: Check for string iteration pattern FIRST
+        if let Some(f) = func {
+            if self.is_string_iteration_param(f, name) {
+                let is_mutable = self.is_parameter_deref_modified(f, name);
+                if is_mutable {
+                    return format!("{}: &mut [u8]", name);
+                } else {
+                    return format!("{}: &[u8]", name);
+                }
+            }
+        }
+        // DECY-123: If we have function body access, check for pointer arithmetic
+        if let Some(f) = func {
+            if self.uses_pointer_arithmetic(f, name) {
+                let inner_type = Self::map_type(inner);
+                return format!("mut {}: *mut {}", name, inner_type);
+            }
+        }
+        // DECY-168: void* parameters should stay as raw pointers
+        if matches!(*inner, HirType::Void) {
+            return format!("{}: *mut ()", name);
+        }
+        // Transform *mut T → &mut T for safety
+        let inner_type = Self::map_type(inner);
+        format!("{}: &mut {}", name, inner_type)
+    }
+
+    /// Append return type for annotated signature.
+    fn append_annotated_return_type(
+        &self,
+        result: &mut String,
+        sig: &AnnotatedSignature,
+        func: Option<&HirFunction>,
+        output_param_types: &[HirType],
+        output_is_fallible: bool,
+    ) {
         // Special handling for main function (DECY-AUDIT-001)
-        // C's int main() must become Rust's fn main() (no return type)
-        // Rust's entry point returns () and uses std::process::exit(N) for exit codes
         let return_type_str = self.annotated_type_to_string(&sig.return_type);
         if sig.name == "main" && return_type_str == "i32" {
-            // Skip return type for main - it must be fn main()
-            return result;
+            return;
         }
 
         // DECY-084/085: Generate return type considering output parameters
-        // DECY-085: Multiple outputs become tuple
         if !output_param_types.is_empty() {
             let out_type_str = if output_param_types.len() == 1 {
-                // Single output param: return T
                 Self::map_type(&output_param_types[0])
             } else {
-                // Multiple output params: return (T1, T2, ...)
                 let type_strs: Vec<String> =
                     output_param_types.iter().map(Self::map_type).collect();
                 format!("({})", type_strs.join(", "))
             };
 
             if output_is_fallible {
-                // Fallible function: int func(..., T* out) -> Result<T, i32>
                 result.push_str(&format!(" -> Result<{}, i32>", out_type_str));
             } else {
-                // Non-fallible void function: void func(..., T* out) -> T or (T1, T2)
                 result.push_str(&format!(" -> {}", out_type_str));
             }
         } else {
@@ -6124,7 +6151,7 @@ impl CodeGenerator {
                 if let Some(vec_element_type) = self.detect_vec_return(f) {
                     let element_type_str = Self::map_type(&vec_element_type);
                     result.push_str(&format!(" -> Vec<{}>", element_type_str));
-                    return result;
+                    return;
                 }
             }
             // Add return type if not void
@@ -6132,8 +6159,6 @@ impl CodeGenerator {
                 result.push_str(&format!(" -> {}", return_type_str));
             }
         }
-
-        result
     }
 
     /// Convert an `AnnotatedType` to Rust type string with lifetime annotations.
