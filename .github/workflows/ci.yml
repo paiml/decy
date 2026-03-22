@@ -13,7 +13,7 @@ concurrency:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, clean-room]
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
@@ -27,7 +27,7 @@ jobs:
       - run: cargo test --workspace --lib
 
   lint:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, clean-room]
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
@@ -43,7 +43,7 @@ jobs:
       - run: cargo clippy --workspace -- -D warnings
 
   coverage:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, clean-room]
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
@@ -68,3 +68,15 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - run: cargo install cargo-audit --locked || true
       - run: cargo audit
+
+  gate:
+    name: gate
+    runs-on: [self-hosted, clean-room]
+    if: always()
+    needs: [test, lint, coverage, security]
+    steps:
+      - name: Check all jobs
+        run: |
+          if [ "${{ needs.test.result }}" = "failure" ] || [ "${{ needs.lint.result }}" = "failure" ]; then
+            exit 1
+          fi
