@@ -1,9 +1,11 @@
+# Sovereign CI — calls reusable workflow from paiml/.github
+# Change once in paiml/.github → applies to all repos
 name: CI
 
 on:
-  pull_request:
-    branches: [main, master]
   push:
+    branches: [main, master]
+  pull_request:
     branches: [main, master]
   workflow_dispatch:
 
@@ -12,71 +14,9 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  test:
-    runs-on: [self-hosted, clean-room]
-    steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
-      - uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-      - run: cargo test --workspace --lib
+  ci:
+    uses: paiml/.github/.github/workflows/sovereign-ci.yml@main
+    with:
+      repo: ${{ github.event.repository.name }}
+    secrets: inherit
 
-  lint:
-    runs-on: [self-hosted, clean-room]
-    steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
-        with:
-          components: clippy
-      - uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target
-          key: ${{ runner.os }}-cargo-clippy-${{ hashFiles('**/Cargo.lock') }}
-      - run: cargo clippy --workspace -- -D warnings
-
-  coverage:
-    runs-on: [self-hosted, clean-room]
-    steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
-      - uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target
-          key: ${{ runner.os }}-cargo-cov-${{ hashFiles('**/Cargo.lock') }}
-      - run: cargo install cargo-llvm-cov --locked || true
-      - run: cargo llvm-cov test --workspace --lib --lcov --output-path lcov.info
-      - uses: codecov/codecov-action@v4
-        with:
-          files: lcov.info
-        continue-on-error: true
-
-  security:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
-      - run: cargo install cargo-audit --locked || true
-      - run: cargo audit
-
-  gate:
-    name: gate
-    runs-on: [self-hosted, clean-room]
-    if: always()
-    needs: [test, lint, coverage, security]
-    steps:
-      - name: Check all jobs
-        run: |
-          if [ "${{ needs.test.result }}" = "failure" ] || [ "${{ needs.lint.result }}" = "failure" ]; then
-            exit 1
-          fi
