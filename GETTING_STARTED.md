@@ -9,13 +9,13 @@
 Before starting development, familiarize yourself with these key documents:
 
 ### **Core Specifications** (Must Read)
-1. **[decy-spec-v1.md](docs/specifications/decy-spec-v1.md)** - Complete technical specification
+1. **[Specifications](docs/specifications/README.md)** - Entry point to all technical specifications
    - Architecture overview (multi-stage pipeline)
    - Quality requirements (80%+ coverage, ≥90% mutation score)
    - Development methodology (EXTREME TDD, Toyota Way)
-   - 20-sprint roadmap with detailed tickets
+   - Links to all component specs
 
-2. **[decy-unsafe-minimization-strategy.md](docs/specifications/decy-unsafe-minimization-strategy.md)** - Unsafe code minimization
+2. **[decy-unsafe-minimization-strategy.md](docs/specifications/components/decy-unsafe-minimization-strategy.md)** - Unsafe code minimization
    - Multi-phase approach to reduce unsafe code from 100% → <5%
    - Pattern-based refactoring, ownership inference, safe wrappers
    - Property tests for safety verification
@@ -617,7 +617,7 @@ You're on track if:
 
 ## 📞 Getting Help
 
-- **Specification Questions**: Read `docs/specifications/decy-spec-v1.md`
+- **Specification Questions**: Read `docs/specifications/README.md`
 - **Quality Issues**: Check `docs/quality/standards.md`
 - **Roadmap**: See `roadmap.yaml` for all tickets
 - **Architecture**: See `docs/architecture/README.md`

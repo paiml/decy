@@ -273,8 +273,8 @@ cargo llvm-cov --workspace      # Coverage
 ## Documentation
 
 - **[Getting Started](GETTING_STARTED.md)** - Developer guide
-- **[Specification](docs/specifications/decy-spec-v1.md)** - Technical spec
-- **[Unsafe Strategy](docs/specifications/decy-unsafe-minimization-strategy.md)** - How we reduce unsafe
+- **[Specification](docs/specifications/README.md)** - Technical spec (entry point)
+- **[Unsafe Strategy](docs/specifications/components/decy-unsafe-minimization-strategy.md)** - How we reduce unsafe
 - **[Roadmap](roadmap.yaml)** - Development plan
 
 ---

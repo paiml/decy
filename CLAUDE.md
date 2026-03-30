@@ -320,7 +320,7 @@ The pre-commit hook (`./git/hooks/pre-commit`) runs automatically and checks:
 
 Decy uses a **three-tiered testing workflow** inspired by the Certeza framework to balance rapid feedback with comprehensive verification.
 
-**Reference**: `docs/specifications/improve-testing-quality-using-certeza-concepts.md`
+**Reference**: `docs/specifications/components/improve-testing-quality-using-certeza-concepts.md`
 
 ### Tier 1: ON-SAVE (Sub-Second Feedback)
 
@@ -715,7 +715,7 @@ Decy reduces unsafe code through progressive refinement:
 - Generate safe abstractions around remaining unsafe
 - Add `SAFETY` comments for audit trail
 
-See `docs/specifications/decy-unsafe-minimization-strategy.md` for full details.
+See `docs/specifications/components/decy-unsafe-minimization-strategy.md` for full details.
 
 ### Ownership Inference Algorithm (CRITICAL)
 
@@ -762,8 +762,9 @@ HIR is serializable for debugging: `cargo test -- --nocapture` shows HIR.
 
 ### Documentation
 
-- `docs/specifications/decy-spec-v1.md` - Complete technical specification (1,127 lines)
-- `docs/specifications/decy-unsafe-minimization-strategy.md` - Unsafe reduction strategy
+- `docs/specifications/README.md` - Specification entry point with TOC
+- `docs/specifications/components/decy-spec-v1.md` - Complete technical specification (1,127 lines)
+- `docs/specifications/components/decy-unsafe-minimization-strategy.md` - Unsafe reduction strategy
 - `docs/C-VALIDATION-ROADMAP.yaml` - **VALIDATION NORTH STAR** (C99/K&R reference-driven validation)
 - `GETTING_STARTED.md` - Developer onboarding guide
 - `INSTALL.md` - Installation troubleshooting

@@ -11085,3 +11085,186 @@ sprint_improvement_infra:
         - crates/decy-codegen/src/lib.rs
         - crates/decy-ownership/src/borrow_gen.rs
         - crates/decy-ownership/src/dataflow.rs
+
+sprint_cpp_cuda:
+  name: "C++/CUDA Transpilation Support - Phase 1"
+  duration: "2 weeks"
+  goals:
+    - Accept .cu files and pass -x cuda to clang
+    - Extract CUDA function attributes from clang AST
+    - Extract C++ classes, methods, constructors, destructors
+    - Extract C++ namespaces
+    - Generate Rust struct + impl + Drop from C++ classes
+  story_points: 34
+  research_references:
+    - "CROWN type qualifier system [2303.10515] (CAV 2023)"
+    - "Scylla split trees [2412.15042] (Fromherz 2024)"
+    - "SmartC2Rust iterative feedback [2409.10506]"
+    - "CRUST-Bench evaluation [2504.15254] (COLM 2025)"
+    - "HPCTransCompile CUDA dataset [2506.10401]"
+
+  tickets:
+    DECY-198:
+      title: "Allow .cu file extension in parser and CLI"
+      type: feature
+      priority: high
+      story_points: 3
+      assignee: Claude
+      status: in_progress
+      phase: RED
+      started_date: "2026-03-30"
+      description: |
+        Accept .cu files in TranspileProject batch mode (main.rs:710).
+        Detect .cu extension in parser and pass -x cuda to clang.
+        Detect CUDA keywords (__global__, __device__) for inline source parsing.
+        Reference: HPCTransCompile [2506.10401] CUDA transpilation dataset.
+      acceptance_criteria:
+        - TranspileProject accepts .cu files alongside .c files
+        - parse_file() detects .cu and passes -x cuda flag to clang
+        - parse() detects CUDA keywords and enables CUDA mode
+        - Tests for .cu file acceptance and rejection of unknown extensions
+      test_strategy: |
+        RED: Tests that .cu files are accepted, .xyz rejected.
+        GREEN: Modify extension filter and add -x cuda flag.
+        REFACTOR: Clean up flag detection logic.
+      files_modified:
+        - crates/decy/src/main.rs
+        - crates/decy-parser/src/parser.rs
+
+    DECY-199:
+      title: "Extract CUDA attributes from clang AST"
+      type: feature
+      priority: high
+      story_points: 5
+      assignee: Claude
+      status: not_started
+      phase: RED
+      description: |
+        Handle CUDA attribute cursors in parser extraction:
+        CXCursor_CUDAGlobalAttr (414), CUDADeviceAttr (413),
+        CUDAHostAttr (415), CUDASharedAttr (416).
+        Add CudaQualifier enum to AST and HIR.
+        Store qualifier on Function/HirFunction structs.
+        Reference: libclang CUDA cursor types from clang-sys 1.7.
+      acceptance_criteria:
+        - CudaQualifier enum in ast_types.rs and decy-hir
+        - Function struct has optional cuda_qualifier field
+        - Extraction logic matches CXCursor_CUDA*Attr cursors
+        - Tests verify qualifier extraction from CUDA source
+      test_strategy: |
+        RED: Parse __global__ void kernel(), assert qualifier is Global.
+        GREEN: Add cursor matching and qualifier storage.
+        REFACTOR: Ensure all 4 CUDA qualifiers extracted.
+      files_modified:
+        - crates/decy-parser/src/ast_types.rs
+        - crates/decy-parser/src/extract/mod.rs
+        - crates/decy-parser/src/extract/types.rs
+        - crates/decy-hir/src/lib.rs
+
+    DECY-200:
+      title: "C++ class extraction (CXCursor_ClassDecl)"
+      type: feature
+      priority: high
+      story_points: 8
+      assignee: Claude
+      status: not_started
+      phase: RED
+      description: |
+        Extract C++ classes from clang AST. Handle:
+        - CXCursor_ClassDecl -> Class struct in AST
+        - CXCursor_CXXMethod -> methods
+        - CXCursor_Constructor -> constructors
+        - CXCursor_Destructor -> destructors
+        - CXCursor_CXXAccessSpecifier -> visibility
+        Map to HIR: HirClass with fields, methods, constructor, destructor.
+        Research: "C with classes" subset covers majority of real-world C++.
+      acceptance_criteria:
+        - Class struct in ast_types.rs with fields, methods, visibility
+        - HirClass in decy-hir with constructor/destructor
+        - extract_class() function in extract/types.rs
+        - visit_function handles CXCursor_ClassDecl (cursor kind 4)
+        - Tests parse simple C++ class with constructor and method
+      test_strategy: |
+        RED: Parse "class Foo { int x; Foo(int v); int get(); ~Foo(); };"
+        GREEN: Add Class/HirClass structs and extraction logic.
+        REFACTOR: Handle access specifiers, const methods.
+      files_modified:
+        - crates/decy-parser/src/ast_types.rs
+        - crates/decy-parser/src/extract/mod.rs
+        - crates/decy-parser/src/extract/types.rs
+        - crates/decy-hir/src/lib.rs
+
+    DECY-201:
+      title: "C++ namespace extraction"
+      type: feature
+      priority: medium
+      story_points: 5
+      assignee: Claude
+      status: not_started
+      phase: RED
+      description: |
+        Handle CXCursor_Namespace (22) in parser. Add Namespace to AST
+        containing nested functions, structs, classes. Map to Rust module
+        structure in HIR and codegen.
+      acceptance_criteria:
+        - Namespace struct in ast_types.rs
+        - HirNamespace in decy-hir
+        - Extraction recurses into namespace children
+        - Tests parse "namespace foo { int bar(); }"
+      test_strategy: |
+        RED: Parse namespace with function, assert namespace name and contents.
+        GREEN: Add Namespace struct and cursor matching.
+        REFACTOR: Handle nested namespaces.
+      files_modified:
+        - crates/decy-parser/src/ast_types.rs
+        - crates/decy-parser/src/extract/mod.rs
+        - crates/decy-hir/src/lib.rs
+
+    DECY-202:
+      title: "Codegen for C++ classes -> struct + impl Drop"
+      type: feature
+      priority: high
+      story_points: 8
+      assignee: Claude
+      status: not_started
+      phase: RED
+      description: |
+        Generate Rust code from HirClass:
+        - Fields -> struct fields (with visibility from access specifiers)
+        - Methods -> impl block methods (&self / &mut self based on const)
+        - Constructor -> pub fn new(...) -> Self
+        - Destructor -> impl Drop for Struct { fn drop(&mut self) }
+        Reference: CROWN ownership model applies to class member pointers.
+      acceptance_criteria:
+        - generate_class() in decy-codegen
+        - Constructor maps to new() associated function
+        - Destructor maps to Drop trait implementation
+        - Const methods get &self, non-const get &mut self
+        - Tests verify full class -> struct + impl roundtrip
+      test_strategy: |
+        RED: HirClass with constructor/method/destructor -> expected Rust.
+        GREEN: Implement generate_class() with all mappings.
+        REFACTOR: Handle edge cases (default constructor, empty destructor).
+      files_modified:
+        - crates/decy-codegen/src/lib.rs
+        - crates/decy-core/src/lib.rs
+
+    DECY-203:
+      title: "Spec consistency and provable contracts setup"
+      type: quality
+      priority: medium
+      story_points: 5
+      assignee: Claude
+      status: not_started
+      phase: RED
+      description: |
+        Update docs/specifications/README.md to reflect implementation status.
+        Create contracts/decy/binding.yaml stub for provable-contracts integration.
+        Ensure CLAUDE.md references are consistent with new spec structure.
+      acceptance_criteria:
+        - Spec sections 4-9 reflect implemented state
+        - CLAUDE.md doc paths all valid
+        - contracts/decy/binding.yaml created with initial bindings
+      files_modified:
+        - docs/specifications/README.md
+        - CLAUDE.md
