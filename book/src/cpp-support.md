@@ -179,10 +179,17 @@ fn launch_kernel(a: *mut f32, b: *mut f32, c: *mut f32, n: i32) {
 }
 ```
 
-## Running the Example
+## Running the Examples
 
 ```bash
+# C++ feature demo (4 demos with assertions)
 cargo run -p decy-core --example cpp_class_transpile_demo
+
+# CUDA transpilation demo (3 demos)
+cargo run -p decy-core --example cuda_transpile_demo
+
+# Dogfood validation (5 tests compiled with rustc)
+cargo run -p decy-core --example dogfood_validation_demo
 ```
 
 ## Limitations
@@ -193,3 +200,6 @@ cargo run -p decy-core --example cpp_class_transpile_demo
 - **Lambda expressions** are not yet supported
 - **Virtual dispatch** generates `dyn Trait` (planned)
 - **Operator method bodies** currently generate `Default::default()` placeholder
+- **Method calls on self** — `brightness()` in a method body generates `brightness()` (free function) instead of `self.brightness()`. Workaround: use explicit `this->brightness()` in C++ source.
+- **`new` type inference** — `T* p = new T(args)` correctly generates `Box::new(T::new(args))` but the variable type stays `*mut T`. Needs ownership inference to upgrade to `Box<T>`.
+- **Default constructors** — `T()` without parameters doesn't generate `new()`. Use `T::default()` in Rust.
