@@ -3,6 +3,10 @@
 #![warn(clippy::all)]
 #![deny(unsafe_code)]
 
+#[macro_use]
+#[allow(unused_macros)]
+mod generated_contracts;
+
 mod oracle_integration;
 mod repl;
 
@@ -699,17 +703,22 @@ fn transpile_project(
         })?;
     }
 
-    // Find all C files
+    // Find all C/C++/CUDA source files
     let c_files: Vec<PathBuf> = WalkDir::new(&input_dir)
         .into_iter()
         .filter_map(|e| e.ok())
-        .filter(|e| e.path().extension().and_then(|s| s.to_str()) == Some("c"))
+        .filter(|e| {
+            matches!(
+                e.path().extension().and_then(|s| s.to_str()),
+                Some("c") | Some("cu") | Some("cpp") | Some("cc") | Some("cxx")
+            )
+        })
         .map(|e| e.path().to_path_buf())
         .collect();
 
     if c_files.is_empty() {
         if !quiet {
-            println!("No C files found in {}", input_dir.display());
+            println!("No C/C++/CUDA files found in {}", input_dir.display());
         }
         return Ok(());
     }

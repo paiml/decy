@@ -152,9 +152,8 @@ impl CParser {
             Length: source.len() as std::os::raw::c_ulong,
         };
 
-        // Detect if source contains BARE extern "C" (without #ifdef guards)
-        // If it has #ifdef __cplusplus guards, clang can handle it as C
-        // Only enable C++ mode for bare extern "C" blocks
+        // Detect language mode from source content
+        // DECY-198: Support C++ and CUDA language modes
         let has_extern_c = source.contains("extern \"C\"");
         let has_ifdef_guard =
             source.contains("#ifdef __cplusplus") || source.contains("#if defined(__cplusplus)");
@@ -166,7 +165,7 @@ impl CParser {
         let include_cstrings: Vec<CString> =
             self.system_includes.iter().map(|p| CString::new(p.as_str()).unwrap()).collect();
 
-        // Prepare command line arguments for C++ mode if needed
+        // Prepare command line arguments for language mode
         let cpp_flag = CString::new("-x").unwrap();
         let cpp_lang = CString::new("c++").unwrap();
 
@@ -261,6 +260,7 @@ impl CParser {
     /// from the actual file path instead of an in-memory string.
     #[allow(clippy::disallowed_methods)] // CString::new with literals cannot fail
     pub fn parse_file(&self, path: &Path) -> Result<Ast> {
+        contract_pre_parse!(path);
         let source = std::fs::read_to_string(path)
             .with_context(|| format!("Failed to read file: {}", path.display()))?;
 
@@ -289,13 +289,19 @@ impl CParser {
             Length: source.len() as std::os::raw::c_ulong,
         };
 
-        // Detect if source contains BARE extern "C"
+        // DECY-198: Detect language mode from file extension and source content
+        // .cu and .cpp/.cc/.cxx files use C++ mode (CUDA mode requires CUDA toolkit)
+        let is_cpp_or_cuda_file = matches!(
+            path.extension().and_then(|s| s.to_str()),
+            Some("cu") | Some("cpp") | Some("cc") | Some("cxx") | Some("hpp")
+        );
         let has_extern_c = source.contains("extern \"C\"");
         let has_ifdef_guard =
             source.contains("#ifdef __cplusplus") || source.contains("#if defined(__cplusplus)");
-        let needs_cpp_mode = has_extern_c && !has_ifdef_guard;
+        let needs_cpp_mode =
+            is_cpp_or_cuda_file || (has_extern_c && !has_ifdef_guard);
 
-        // Prepare command line arguments for C++ mode if needed
+        // Prepare command line arguments for language mode
         let cpp_flag = CString::new("-x").unwrap();
         let cpp_lang = CString::new("c++").unwrap();
 
@@ -434,3 +440,7 @@ mod pointer_arithmetic_tests;
 #[cfg(test)]
 #[path = "break_continue_tests.rs"]
 mod break_continue_tests;
+
+#[cfg(test)]
+#[path = "cpp_cuda_tests.rs"]
+mod cpp_cuda_tests;
