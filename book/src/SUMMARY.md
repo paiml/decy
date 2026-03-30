@@ -40,6 +40,10 @@
 - [Race Condition Safety](./patterns/race-condition-safety.md)
 - [Double Free Safety](./patterns/double-free-safety.md)
 
+# C++ and CUDA Support
+
+- [C++ Transpilation](./cpp-support.md)
+
 # Advanced Topics
 
 - [Multi-file Projects](./advanced/multi-file.md)
