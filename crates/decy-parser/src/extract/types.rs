@@ -67,7 +67,61 @@ pub(crate) fn extract_function(cursor: CXCursor) -> Option<Function> {
         clang_visitChildren(cursor, visit_statement, body_ptr as CXClientData);
     }
 
-    Some(Function::new_with_body(name, return_type, parameters, body))
+    // DECY-199: Detect CUDA qualifiers by visiting function attributes
+    let mut cuda_qualifier = None;
+    let cuda_qual_ptr = &mut cuda_qualifier as *mut Option<CudaQualifier>;
+    unsafe {
+        clang_visitChildren(cursor, visit_cuda_attrs, cuda_qual_ptr as CXClientData);
+    }
+
+    let mut func = Function::new_with_body(name, return_type, parameters, body);
+    func.cuda_qualifier = cuda_qualifier;
+    Some(func)
+}
+
+/// Visitor callback to detect CUDA function attributes (DECY-199).
+///
+/// Checks for CXCursor_CUDAGlobalAttr (414), CUDADeviceAttr (413),
+/// CUDAHostAttr (415) among the function's children.
+extern "C" fn visit_cuda_attrs(
+    cursor: CXCursor,
+    _parent: CXCursor,
+    client_data: CXClientData,
+) -> CXChildVisitResult {
+    let kind = unsafe { clang_getCursorKind(cursor) };
+    let qual_ptr = client_data as *mut Option<CudaQualifier>;
+
+    // clang-sys cursor kinds for CUDA attributes:
+    // CXCursor_CUDADeviceAttr = 413
+    // CXCursor_CUDAGlobalAttr = 414
+    // CXCursor_CUDAHostAttr = 415
+    match kind {
+        414 => {
+            // __global__
+            unsafe { *qual_ptr = Some(CudaQualifier::Global) };
+        }
+        413 => {
+            // __device__ - could combine with __host__
+            unsafe {
+                *qual_ptr = match *qual_ptr {
+                    Some(CudaQualifier::Host) => Some(CudaQualifier::HostDevice),
+                    _ => Some(CudaQualifier::Device),
+                };
+            }
+        }
+        415 => {
+            // __host__ - could combine with __device__
+            unsafe {
+                *qual_ptr = match *qual_ptr {
+                    Some(CudaQualifier::Device) => Some(CudaQualifier::HostDevice),
+                    _ => Some(CudaQualifier::Host),
+                };
+            }
+        }
+        _ => {}
+    }
+
+    CXChildVisit_Continue
 }
 
 /// Extract typedef information from a clang cursor.

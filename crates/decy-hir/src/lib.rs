@@ -22,6 +22,10 @@
 #![warn(clippy::all)]
 #![deny(unsafe_code)]
 
+#[macro_use]
+#[allow(unused_macros)]
+mod generated_contracts;
+
 /// Represents a C type in HIR.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum HirType {
@@ -100,6 +104,7 @@ impl HirType {
     /// assert_eq!(hir_type, HirType::Int);
     /// ```
     pub fn from_ast_type(ast_type: &decy_parser::parser::Type) -> Self {
+        contract_pre_parse!(ast_type);
         use decy_parser::parser::Type;
         match ast_type {
             Type::Void => HirType::Void,
@@ -473,6 +478,7 @@ impl HirParameter {
 
     /// Convert from parser AST parameter to HIR parameter.
     pub fn from_ast_parameter(ast_param: &decy_parser::parser::Parameter) -> Self {
+        contract_pre_parse!(ast_param);
         Self {
             name: ast_param.name.clone(),
             param_type: HirType::from_ast_type(&ast_param.param_type),
@@ -492,6 +498,22 @@ impl HirParameter {
     }
 }
 
+/// CUDA function qualifier (DECY-199).
+///
+/// Preserved from AST through HIR for codegen to emit appropriate
+/// attributes or FFI wrappers.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum HirCudaQualifier {
+    /// `__global__` - kernel entry point
+    Global,
+    /// `__device__` - device-only function
+    Device,
+    /// `__host__` - host-only function
+    Host,
+    /// `__host__ __device__` - dual function
+    HostDevice,
+}
+
 /// Represents a function in HIR.
 #[derive(Debug, Clone, PartialEq)]
 pub struct HirFunction {
@@ -499,6 +521,8 @@ pub struct HirFunction {
     return_type: HirType,
     parameters: Vec<HirParameter>,
     body: Option<Vec<HirStatement>>,
+    /// CUDA qualifier (DECY-199), None for plain C/C++ functions
+    cuda_qualifier: Option<HirCudaQualifier>,
 }
 
 impl HirFunction {
@@ -522,7 +546,7 @@ impl HirFunction {
     /// assert_eq!(func.parameters().len(), 2);
     /// ```
     pub fn new(name: String, return_type: HirType, parameters: Vec<HirParameter>) -> Self {
-        Self { name, return_type, parameters, body: None }
+        Self { name, return_type, parameters, body: None, cuda_qualifier: None }
     }
 
     /// Get the function name.
@@ -564,11 +588,19 @@ impl HirFunction {
             Some(ast_func.body.iter().map(HirStatement::from_ast_statement).collect())
         };
 
+        let cuda_qualifier = ast_func.cuda_qualifier.map(|q| match q {
+            decy_parser::parser::CudaQualifier::Global => HirCudaQualifier::Global,
+            decy_parser::parser::CudaQualifier::Device => HirCudaQualifier::Device,
+            decy_parser::parser::CudaQualifier::Host => HirCudaQualifier::Host,
+            decy_parser::parser::CudaQualifier::HostDevice => HirCudaQualifier::HostDevice,
+        });
+
         Self {
             name: ast_func.name.clone(),
             return_type: HirType::from_ast_type(&ast_func.return_type),
             parameters: ast_func.parameters.iter().map(HirParameter::from_ast_parameter).collect(),
             body,
+            cuda_qualifier,
         }
     }
 
@@ -602,7 +634,7 @@ impl HirFunction {
         parameters: Vec<HirParameter>,
         body: Vec<HirStatement>,
     ) -> Self {
-        Self { name, return_type, parameters, body: Some(body) }
+        Self { name, return_type, parameters, body: Some(body), cuda_qualifier: None }
     }
 
     /// Get the function body.
@@ -614,6 +646,11 @@ impl HirFunction {
     /// Returns true for definitions, false for forward declarations/prototypes.
     pub fn has_body(&self) -> bool {
         self.body.is_some()
+    }
+
+    /// Get the CUDA qualifier (DECY-199).
+    pub fn cuda_qualifier(&self) -> Option<HirCudaQualifier> {
+        self.cuda_qualifier
     }
 }
 

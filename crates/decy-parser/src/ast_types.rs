@@ -892,6 +892,22 @@ impl Default for Ast {
     }
 }
 
+/// CUDA function qualifier (DECY-199).
+///
+/// Represents `__global__`, `__device__`, `__host__`, or combined qualifiers
+/// extracted from CUDA source files via clang-sys cursor attributes.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CudaQualifier {
+    /// `__global__` - kernel entry point, callable from host, runs on device
+    Global,
+    /// `__device__` - callable from device only, runs on device
+    Device,
+    /// `__host__` - callable from host only, runs on host (default)
+    Host,
+    /// `__host__ __device__` - callable from both host and device
+    HostDevice,
+}
+
 /// Represents a C function.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Function {
@@ -903,12 +919,14 @@ pub struct Function {
     pub parameters: Vec<Parameter>,
     /// Function body (statements)
     pub body: Vec<Statement>,
+    /// CUDA qualifier (DECY-199), None for plain C/C++ functions
+    pub cuda_qualifier: Option<CudaQualifier>,
 }
 
 impl Function {
     /// Create a new function.
     pub fn new(name: String, return_type: Type, parameters: Vec<Parameter>) -> Self {
-        Self { name, return_type, parameters, body: Vec::new() }
+        Self { name, return_type, parameters, body: Vec::new(), cuda_qualifier: None }
     }
 
     /// Create a new function with body.
@@ -918,7 +936,7 @@ impl Function {
         parameters: Vec<Parameter>,
         body: Vec<Statement>,
     ) -> Self {
-        Self { name, return_type, parameters, body }
+        Self { name, return_type, parameters, body, cuda_qualifier: None }
     }
 }
 
