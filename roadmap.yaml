@@ -11279,8 +11279,10 @@ sprint_cpp_cuda:
       priority: medium
       story_points: 5
       assignee: Claude
-      status: not_started
-      phase: RED
+      status: done
+      phase: DONE
+      started_date: "2026-03-30"
+      completed_date: "2026-03-30"
       description: |
         Update docs/specifications/README.md to reflect implementation status.
         Create contracts/decy/binding.yaml stub for provable-contracts integration.
@@ -11292,3 +11294,62 @@ sprint_cpp_cuda:
       files_modified:
         - docs/specifications/README.md
         - CLAUDE.md
+
+    DECY-204:
+      title: "Wire classes and namespaces into transpile pipeline"
+      type: feature
+      priority: high
+      story_points: 5
+      assignee: Claude
+      status: done
+      phase: DONE
+      started_date: "2026-03-30"
+      completed_date: "2026-03-30"
+      actual_metrics:
+        tests_passing: 234
+      description: |
+        Add class/namespace AST->HIR conversion and codegen in both
+        transpile_with_includes() and process_ast_to_rust().
+      files_modified:
+        - crates/decy-core/src/lib.rs
+
+    DECY-205:
+      title: "Add namespace codegen (mod block generation)"
+      type: feature
+      priority: high
+      story_points: 5
+      assignee: Claude
+      status: done
+      phase: DONE
+      started_date: "2026-03-30"
+      completed_date: "2026-03-30"
+      actual_metrics:
+        tests_added: 3
+        tests_passing: 3
+      description: |
+        Add generate_namespace() to CodeGenerator. Generates pub mod
+        blocks with indented structs, classes, functions. Handles
+        nested namespaces recursively.
+      files_modified:
+        - crates/decy-codegen/src/func_gen.rs
+        - crates/decy-codegen/src/class_codegen_tests.rs
+
+    DECY-206:
+      title: "End-to-end C++ transpilation integration tests"
+      type: quality
+      priority: high
+      story_points: 3
+      assignee: Claude
+      status: done
+      phase: DONE
+      started_date: "2026-03-30"
+      completed_date: "2026-03-30"
+      actual_metrics:
+        tests_added: 5
+        tests_passing: 5
+      description: |
+        5 integration tests proving full C++ pipeline:
+        class->struct+impl, namespace->mod, class-in-namespace,
+        no-destructor->no-Drop, mixed C+C++ in same file.
+      files_modified:
+        - crates/decy-core/tests/cpp_transpilation_test.rs
