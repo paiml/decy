@@ -2224,18 +2224,27 @@ impl CodeGenerator {
             code.push_str(&params.join(", "));
             code.push_str(") -> Self {\n");
             code.push_str("        Self {\n");
-            // Map constructor params to field initializers
-            for field in hir_class.fields() {
-                // Try to match field to constructor param by name
-                let matching_param = hir_class
-                    .constructor_params()
-                    .iter()
-                    .find(|p| p.name() == field.name());
+            // DECY-213: Map constructor params to field initializers
+            // Strategy: name match first, then positional fallback
+            let ctor_params = hir_class.constructor_params();
+            let own_fields: Vec<_> = hir_class.fields().iter()
+                .filter(|f| f.name() != "base") // skip inherited base field
+                .collect();
+            for (idx, field) in own_fields.iter().enumerate() {
+                // Try name match first
+                let matching_param = ctor_params.iter().find(|p| p.name() == field.name());
                 if let Some(param) = matching_param {
                     code.push_str(&format!(
                         "            {}: {},\n",
                         escape_rust_keyword(field.name()),
                         escape_rust_keyword(param.name())
+                    ));
+                } else if idx < ctor_params.len() {
+                    // Positional fallback: param[idx] -> field[idx]
+                    code.push_str(&format!(
+                        "            {}: {},\n",
+                        escape_rust_keyword(field.name()),
+                        escape_rust_keyword(ctor_params[idx].name())
                     ));
                 } else {
                     code.push_str(&format!(
@@ -2243,6 +2252,10 @@ impl CodeGenerator {
                         escape_rust_keyword(field.name())
                     ));
                 }
+            }
+            // If there's a base field from inheritance, default-construct it
+            if hir_class.base_class().is_some() {
+                code.push_str("            base: Default::default(),\n");
             }
             code.push_str("        }\n");
             code.push_str("    }\n\n");
