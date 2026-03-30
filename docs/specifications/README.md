@@ -299,17 +299,17 @@ Below 0.6 confidence, the pointer remains raw (`*const T` / `*mut T`) with an
 
 **Validation north star**: `docs/C-VALIDATION-ROADMAP.yaml` (150 constructs mapped)
 
-### 6.2 C++ Support (Phase 1 Complete)
+### 6.2 C++ Support (Phase 2 In Progress)
 
 | Feature | Phase | Status | Rust Mapping |
 |---------|-------|--------|-------------|
 | Classes (data + methods) | Phase 1 | **Complete** (DECY-200) | `struct` + `impl` |
 | Namespaces | Phase 1 | **Complete** (DECY-201) | `mod` modules |
 | Constructors / destructors | Phase 1 | **Complete** (DECY-202) | `new()` + `impl Drop` |
-| Single inheritance | Phase 2 | Planned | Composition + traits |
-| Virtual dispatch | Phase 2 | Medium | `dyn Trait` |
-| Operator overloading | Phase 2 | Low-Med | `std::ops` traits |
-| `new`/`delete` | Phase 2 | Low-Med | `Box::new()` / drop |
+| `new`/`delete` | Phase 2 | **Complete** (DECY-207) | `Box::new()` / `drop()` |
+| Operator overloading | Phase 2 | **Complete** (DECY-208) | `std::ops` traits |
+| Single inheritance | Phase 3 | Planned | Composition + traits |
+| Virtual dispatch | Phase 3 | Planned | `dyn Trait` |
 | Simple templates (1 param) | Phase 3 | Medium | Generics + trait bounds |
 | Exceptions (try/catch/throw) | Phase 4 | Med-Hard | `Result<T, E>` + `?` |
 | Lambdas | Phase 4 | Medium | Closures |
@@ -591,10 +591,11 @@ All work is ticket-driven via `roadmap.yaml`. No code without a ticket. State ch
 | Test coverage | 97.60% |
 | Workspace crates | 11 |
 | C constructs mapped | 150 (see C-VALIDATION-ROADMAP.yaml) |
-| C++ features supported | 3 (classes, namespaces, constructors/destructors) |
+| C++ features supported | 5 (classes, namespaces, ctor/dtor, new/delete, operators) |
 | CUDA features supported | 2 (.cu parsing, qualifier extraction) |
 | Parser tests | 172 passing |
 | HIR tests | 192 passing |
+| E2E C++ tests | 7 passing |
 | Compilation success | 100% |
 | Unsafe per 1000 LOC | <5 |
 | PMAT TDG average | 92.8 |
