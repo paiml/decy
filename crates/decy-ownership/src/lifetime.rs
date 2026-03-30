@@ -311,6 +311,13 @@ impl LifetimeAnalyzer {
                     || self.expression_uses_variable(then_expr, var_name)
                     || self.expression_uses_variable(else_expr, var_name)
             }
+            // DECY-207: C++ new/delete
+            HirExpression::CxxNew { arguments, .. } => {
+                arguments.iter().any(|a| self.expression_uses_variable(a, var_name))
+            }
+            HirExpression::CxxDelete { operand } => {
+                self.expression_uses_variable(operand, var_name)
+            }
         }
     }
 

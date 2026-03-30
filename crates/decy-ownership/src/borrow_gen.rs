@@ -799,6 +799,8 @@ impl BorrowGenerator {
                     length_params_to_remove,
                 )),
             },
+            // DECY-207: C++ new/delete - pass through (codegen handles transformation)
+            HirExpression::CxxNew { .. } | HirExpression::CxxDelete { .. } => expr.clone(),
             // Leaf expressions - no transformation needed
             HirExpression::IntLiteral(_)
             | HirExpression::FloatLiteral(_)

@@ -688,6 +688,15 @@ impl DataflowAnalyzer {
                 Self::track_expr_recursive(then_expr, _graph, _index);
                 Self::track_expr_recursive(else_expr, _graph, _index);
             }
+            // DECY-207: C++ new allocates, delete frees
+            HirExpression::CxxNew { arguments, .. } => {
+                for arg in arguments {
+                    Self::track_expr_recursive(arg, _graph, _index);
+                }
+            }
+            HirExpression::CxxDelete { operand } => {
+                Self::track_expr_recursive(operand, _graph, _index);
+            }
         }
     }
 

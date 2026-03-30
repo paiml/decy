@@ -122,6 +122,24 @@ impl CodeGenerator {
             HirExpression::Ternary { condition, then_expr, else_expr } => {
                 self.gen_expr_ternary(condition, then_expr, else_expr, ctx, target_type)
             }
+            // DECY-207: C++ new T(args) -> Box::new(T::new(args)) or Box::new(T::default())
+            HirExpression::CxxNew { allocated_type, arguments } => {
+                let type_name = Self::map_type(allocated_type);
+                if arguments.is_empty() {
+                    format!("Box::new({}::default())", type_name)
+                } else {
+                    let args: Vec<String> = arguments
+                        .iter()
+                        .map(|a| self.generate_expression_with_context(a, ctx))
+                        .collect();
+                    format!("Box::new({}::new({}))", type_name, args.join(", "))
+                }
+            }
+            // DECY-207: C++ delete ptr -> drop(ptr) (Box drops automatically)
+            HirExpression::CxxDelete { operand } => {
+                let operand_code = self.generate_expression_with_context(operand, ctx);
+                format!("drop({})", operand_code)
+            }
         }
     }
 }

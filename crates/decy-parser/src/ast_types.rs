@@ -377,6 +377,18 @@ pub enum Expression {
         /// Value if condition is false
         else_expr: Box<Expression>,
     },
+    /// C++ new expression: `new T(args)` (DECY-207)
+    CxxNew {
+        /// Type name being allocated
+        type_name: String,
+        /// Constructor arguments
+        arguments: Vec<Expression>,
+    },
+    /// C++ delete expression: `delete ptr` (DECY-207)
+    CxxDelete {
+        /// Expression being deleted
+        operand: Box<Expression>,
+    },
 }
 
 impl Expression {

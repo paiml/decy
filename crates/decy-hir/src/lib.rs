@@ -1118,6 +1118,18 @@ pub enum HirExpression {
         /// Value if condition is false
         else_expr: Box<HirExpression>,
     },
+    /// C++ new expression: `new T(args)` -> `Box::new(T::new(args))` (DECY-207)
+    CxxNew {
+        /// Type being allocated
+        allocated_type: HirType,
+        /// Constructor arguments (empty for default construction)
+        arguments: Vec<HirExpression>,
+    },
+    /// C++ delete expression: `delete ptr` -> `drop(ptr)` (DECY-207)
+    CxxDelete {
+        /// Expression being deleted
+        operand: Box<HirExpression>,
+    },
 }
 
 /// Represents a single case in a switch statement.
@@ -1449,6 +1461,15 @@ impl HirExpression {
                 condition: Box::new(HirExpression::from_ast_expression(condition)),
                 then_expr: Box::new(HirExpression::from_ast_expression(then_expr)),
                 else_expr: Box::new(HirExpression::from_ast_expression(else_expr)),
+            },
+            // DECY-207: C++ new expression
+            Expression::CxxNew { type_name, arguments } => HirExpression::CxxNew {
+                allocated_type: HirType::Struct(type_name.clone()),
+                arguments: arguments.iter().map(HirExpression::from_ast_expression).collect(),
+            },
+            // DECY-207: C++ delete expression
+            Expression::CxxDelete { operand } => HirExpression::CxxDelete {
+                operand: Box::new(HirExpression::from_ast_expression(operand)),
             },
         }
     }
