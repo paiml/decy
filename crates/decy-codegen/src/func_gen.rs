@@ -2314,19 +2314,24 @@ impl CodeGenerator {
         // Generate regular methods (non-operator)
         for method in hir_class.methods().iter().filter(|m| m.operator_kind().is_none()) {
             let func = method.function();
-            let self_param = if method.is_static() {
-                ""
-            } else if method.is_const() {
-                "&self, "
-            } else {
-                "&mut self, "
-            };
 
             let params: Vec<String> = func
                 .parameters()
                 .iter()
                 .map(|p| format!("{}: {}", escape_rust_keyword(p.name()), Self::map_type(p.param_type())))
                 .collect();
+
+            // DECY-222: Build parameter list without trailing comma
+            let all_params = if method.is_static() {
+                params.join(", ")
+            } else {
+                let self_ref = if method.is_const() { "&self" } else { "&mut self" };
+                if params.is_empty() {
+                    self_ref.to_string()
+                } else {
+                    format!("{}, {}", self_ref, params.join(", "))
+                }
+            };
 
             let return_type = if *func.return_type() == decy_hir::HirType::Void {
                 String::new()
@@ -2335,10 +2340,9 @@ impl CodeGenerator {
             };
 
             code.push_str(&format!(
-                "    pub fn {}({}{}){} {{\n",
+                "    pub fn {}({}){} {{\n",
                 escape_rust_keyword(func.name()),
-                self_param,
-                params.join(", "),
+                all_params,
                 return_type,
             ));
 
