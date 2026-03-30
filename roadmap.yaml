@@ -11568,3 +11568,28 @@ sprint_cpp_cuda:
       completed_date: "2026-03-30"
       description: |
         3 equations, 4 falsification tests, 4 bindings for CUDA transpilation.
+
+    DECY-225:
+      title: "Extract C++ new/delete from clang AST"
+      type: feature
+      priority: high
+      story_points: 5
+      assignee: Claude
+      status: done
+      phase: DONE
+      completed_date: "2026-03-30"
+      description: |
+        Handle CXCursor_CXXNewExpr (134) and CXCursor_CXXDeleteExpr (135).
+        new T(args) -> Box::new(T::new(args)), delete ptr -> drop(ptr).
+
+    DECY-226:
+      title: "Extract C++ bool/nullptr literals from clang AST"
+      type: feature
+      priority: medium
+      story_points: 2
+      assignee: Claude
+      status: done
+      phase: DONE
+      completed_date: "2026-03-30"
+      description: |
+        Handle CXCursor_CXXBoolLiteralExpr (130) and CXXNullPtrLiteralExpr (131).
