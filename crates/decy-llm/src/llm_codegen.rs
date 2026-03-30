@@ -137,6 +137,7 @@ impl LlmCodegen {
     /// 1. Markdown code blocks with ```rust ... ```
     /// 2. JSON with { "code": "...", "confidence": ..., ... }
     pub fn parse_response(&self, response: &str) -> Result<GeneratedCode, LlmError> {
+        contract_pre_parse!();
         // Try JSON format first
         if let Ok(generated) = serde_json::from_str::<GeneratedCode>(response.trim()) {
             return Ok(generated);

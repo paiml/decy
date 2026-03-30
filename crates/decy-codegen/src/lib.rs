@@ -29,6 +29,10 @@
 #![warn(clippy::all)]
 #![deny(unsafe_code)]
 
+#[macro_use]
+#[allow(unused_macros)]
+mod generated_contracts;
+
 pub mod box_transform;
 pub mod concurrency_transform;
 pub mod enum_gen;

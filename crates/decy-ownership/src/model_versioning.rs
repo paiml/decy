@@ -66,6 +66,7 @@ impl ModelVersion {
 
     /// Parse from string (e.g., "1.2.3").
     pub fn parse(s: &str) -> Option<Self> {
+        contract_pre_parse!();
         let parts: Vec<&str> = s.trim_start_matches('v').split('.').collect();
         if parts.len() != 3 {
             return None;

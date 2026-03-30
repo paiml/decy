@@ -7,6 +7,10 @@
 // Note: clang-sys requires unsafe for FFI, but we allow it only in this crate
 #![allow(unsafe_code)]
 
+#[macro_use]
+#[allow(unused_macros)]
+mod generated_contracts;
+
 pub mod ast_types;
 pub mod diagnostic;
 pub(crate) mod extract;

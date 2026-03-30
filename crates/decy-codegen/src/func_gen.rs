@@ -1676,6 +1676,7 @@ impl CodeGenerator {
         string_iter_funcs: &[(String, Vec<(usize, bool)>)],
         globals: &[(String, HirType)],
     ) -> String {
+        contract_pre_host_transpilation!();
         // DECY-221: CUDA kernel/device functions bypass normal codegen
         if func.cuda_qualifier() == Some(decy_hir::HirCudaQualifier::Global) {
             return self.generate_cuda_kernel_ffi(func);
@@ -2212,6 +2213,7 @@ impl CodeGenerator {
     /// }
     /// ```
     pub fn generate_class(&self, hir_class: &decy_hir::HirClass) -> String {
+        contract_pre_class_to_struct!();
         let mut code = String::new();
 
         // Generate struct definition
@@ -2476,6 +2478,7 @@ impl CodeGenerator {
     /// Instead, generate an `extern "C"` FFI declaration so host code can call
     /// the pre-compiled kernel, plus a safe wrapper comment.
     fn generate_cuda_kernel_ffi(&self, func: &HirFunction) -> String {
+        contract_pre_kernel_ffi!();
         let mut code = String::new();
 
         // Generate extern "C" block
@@ -2520,6 +2523,7 @@ impl CodeGenerator {
     /// Functions, structs, and classes within the namespace are generated
     /// inside the module scope.
     pub fn generate_namespace(&self, ns: &decy_hir::HirNamespace) -> String {
+        contract_pre_namespace_to_mod!();
         let mut code = String::new();
 
         code.push_str(&format!("pub mod {} {{\n", escape_rust_keyword(ns.name())));

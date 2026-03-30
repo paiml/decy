@@ -462,6 +462,7 @@ pub use crate::ast_types::*;
 /// `__global__`, `__device__`, and `__host__` qualifiers are stripped.
 /// This function recovers them by matching function names against source lines.
 fn apply_cuda_qualifiers_from_source(ast: &mut Ast, source: &str) {
+    contract_pre_qualifier_preservation!();
     // Build a map of function_name -> qualifier from source scanning
     let mut qualifiers: std::collections::HashMap<String, CudaQualifier> =
         std::collections::HashMap::new();

@@ -214,6 +214,7 @@ impl TierMetrics {
 
     /// Transpilation success rate (0.0 to 1.0).
     pub fn transpile_rate(&self) -> f64 {
+        contract_pre_configuration!();
         if self.total_files == 0 {
             0.0
         } else {
@@ -251,6 +252,7 @@ impl ConvergenceReport {
 
     /// Overall transpilation rate across all tiers.
     pub fn overall_transpile_rate(&self) -> f64 {
+        contract_pre_configuration!();
         let total: u64 = self.tiers.iter().map(|t| t.total_files).sum();
         let success: u64 = self.tiers.iter().map(|t| t.transpile_success).sum();
         if total == 0 {

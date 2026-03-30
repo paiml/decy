@@ -283,6 +283,7 @@ impl HirClass {
 
     /// Convert from parser AST class to HIR class.
     pub fn from_ast_class(ast_class: &decy_parser::parser::Class) -> Self {
+        contract_pre_class_to_struct!();
         let fields = ast_class
             .fields
             .iter()
@@ -923,6 +924,7 @@ impl HirFunction {
 
     /// Set the CUDA qualifier (DECY-221: preserve through transformations).
     pub fn set_cuda_qualifier(&mut self, qualifier: Option<HirCudaQualifier>) {
+        contract_pre_qualifier_preservation!();
         self.cuda_qualifier = qualifier;
     }
 }

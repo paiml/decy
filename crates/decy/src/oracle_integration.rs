@@ -103,6 +103,7 @@ pub struct OracleTranspileResult {
 /// Parse rustc error output into structured errors
 #[cfg(feature = "citl")]
 pub fn parse_rustc_errors(stderr: &str) -> Vec<RustcError> {
+    contract_pre_parse!();
     let mut errors = Vec::new();
 
     // Parse error lines like: "error[E0382]: borrow of moved value"
@@ -139,6 +140,7 @@ pub fn transpile_with_oracle(
     c_code: &str,
     options: &OracleOptions,
 ) -> anyhow::Result<OracleTranspileResult> {
+    contract_pre_configuration!();
     use anyhow::Context;
 
     // Initialize oracle
@@ -263,6 +265,7 @@ pub fn transpile_with_oracle(
     c_code: &str,
     _options: &OracleOptions,
 ) -> anyhow::Result<OracleTranspileResult> {
+    contract_pre_configuration!();
     let rust_code = decy_core::transpile(c_code)?;
     Ok(OracleTranspileResult {
         rust_code,

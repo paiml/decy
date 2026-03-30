@@ -15,6 +15,10 @@
 #![warn(clippy::all)]
 #![deny(unsafe_code)]
 
+#[macro_use]
+#[allow(unused_macros)]
+mod generated_contracts;
+
 pub mod ab_testing;
 pub mod active_learning;
 pub mod array_slice;

@@ -45,6 +45,7 @@ pub enum ReplCommand {
 
 /// Parse a REPL input line into a command
 pub fn parse_command(input: &str) -> ReplCommand {
+    contract_pre_parse!();
     let trimmed = input.trim();
 
     match trimmed {

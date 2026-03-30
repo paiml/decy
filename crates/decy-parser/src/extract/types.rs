@@ -129,6 +129,7 @@ extern "C" fn visit_cuda_attrs(
 /// Visits class children to find fields, methods, constructors, and destructors.
 /// Maps to AST `Class` struct for downstream conversion to Rust struct + impl.
 pub(crate) fn extract_class(cursor: CXCursor) -> Option<Class> {
+    contract_pre_class_to_struct!();
     let name_cxstring = unsafe { clang_getCursorSpelling(cursor) };
     let name = unsafe {
         let c_str = CStr::from_ptr(clang_getCString(name_cxstring));
@@ -259,6 +260,7 @@ extern "C" fn visit_class_children(
 ///
 /// Clang spells overloaded operators as "operator+", "operator==", etc.
 fn detect_operator_kind(name: &str) -> Option<CxxOperatorKind> {
+    contract_pre_operator_to_trait!();
     match name {
         "operator+" => Some(CxxOperatorKind::Add),
         "operator-" => Some(CxxOperatorKind::Sub),
@@ -285,6 +287,7 @@ fn detect_operator_kind(name: &str) -> Option<CxxOperatorKind> {
 /// Visits namespace children to collect functions, structs, classes, and nested namespaces.
 /// Maps to Rust `mod` block in codegen.
 pub(crate) fn extract_namespace(cursor: CXCursor) -> Option<Namespace> {
+    contract_pre_namespace_to_mod!();
     let name_cxstring = unsafe { clang_getCursorSpelling(cursor) };
     let name = unsafe {
         let c_str = CStr::from_ptr(clang_getCString(name_cxstring));
