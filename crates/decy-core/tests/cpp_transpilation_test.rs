@@ -248,3 +248,60 @@ public:
         rust_code
     );
 }
+
+// =========================================================================
+// DECY-209: Single inheritance E2E test
+// =========================================================================
+
+#[test]
+fn test_cpp_single_inheritance() {
+    let cpp_code = r#"
+extern "C" { void __dummy(); }
+class Animal {
+public:
+    int legs;
+    int get_legs() { return legs; }
+};
+class Dog : public Animal {
+public:
+    int bark_volume;
+    int get_bark() { return bark_volume; }
+};
+"#;
+
+    let result = transpile(cpp_code);
+    assert!(result.is_ok(), "Inheritance transpilation failed: {:?}", result.err());
+
+    let rust_code = result.unwrap();
+
+    // Base class should be a struct
+    assert!(
+        rust_code.contains("pub struct Animal"),
+        "Expected base struct Animal, got:\n{}",
+        rust_code
+    );
+
+    // Derived class should have base field
+    assert!(
+        rust_code.contains("pub struct Dog"),
+        "Expected derived struct Dog, got:\n{}",
+        rust_code
+    );
+    assert!(
+        rust_code.contains("base: Animal"),
+        "Expected base field in Dog, got:\n{}",
+        rust_code
+    );
+
+    // Should generate Deref impl
+    assert!(
+        rust_code.contains("impl std::ops::Deref for Dog"),
+        "Expected Deref impl for inheritance, got:\n{}",
+        rust_code
+    );
+    assert!(
+        rust_code.contains("type Target = Animal"),
+        "Expected Target = Animal, got:\n{}",
+        rust_code
+    );
+}

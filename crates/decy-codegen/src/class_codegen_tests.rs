@@ -16,6 +16,7 @@ fn test_generate_class_simple_fields() {
         methods: vec![],
         constructor_params: vec![],
         has_destructor: false,
+        base_class: None,
     };
 
     let hir_class = HirClass::from_ast_class(&ast_class);
@@ -43,6 +44,7 @@ fn test_generate_class_with_constructor() {
             decy_parser::parser::Parameter::new("h".to_string(), decy_parser::parser::Type::Int),
         ],
         has_destructor: false,
+        base_class: None,
     };
 
     let hir_class = HirClass::from_ast_class(&ast_class);
@@ -66,6 +68,7 @@ fn test_generate_class_with_destructor() {
         methods: vec![],
         constructor_params: vec![],
         has_destructor: true,
+        base_class: None,
     };
 
     let hir_class = HirClass::from_ast_class(&ast_class);
@@ -101,6 +104,7 @@ fn test_generate_class_with_method() {
         }],
         constructor_params: vec![],
         has_destructor: false,
+        base_class: None,
     };
 
     let hir_class = HirClass::from_ast_class(&ast_class);
@@ -123,6 +127,7 @@ fn test_generate_class_no_drop_when_no_destructor() {
         methods: vec![],
         constructor_params: vec![],
         has_destructor: false,
+        base_class: None,
     };
 
     let hir_class = HirClass::from_ast_class(&ast_class);

@@ -630,6 +630,8 @@ pub struct Class {
     pub constructor_params: Vec<Parameter>,
     /// Whether a destructor was defined
     pub has_destructor: bool,
+    /// Base class name for single inheritance (DECY-209), None if no base
+    pub base_class: Option<String>,
 }
 
 impl Class {
@@ -641,6 +643,7 @@ impl Class {
             methods: Vec::new(),
             constructor_params: Vec::new(),
             has_destructor: false,
+            base_class: None,
         }
     }
 }

@@ -264,6 +264,8 @@ pub struct HirClass {
     methods: Vec<HirMethod>,
     constructor_params: Vec<HirParameter>,
     has_destructor: bool,
+    /// Base class name for single inheritance (DECY-209)
+    base_class: Option<String>,
 }
 
 impl HirClass {
@@ -275,6 +277,7 @@ impl HirClass {
             methods: Vec::new(),
             constructor_params: Vec::new(),
             has_destructor: false,
+            base_class: None,
         }
     }
 
@@ -330,6 +333,7 @@ impl HirClass {
             methods,
             constructor_params,
             has_destructor: ast_class.has_destructor,
+            base_class: ast_class.base_class.clone(),
         }
     }
 
@@ -356,6 +360,11 @@ impl HirClass {
     /// Whether this class has a destructor (needs Drop impl).
     pub fn has_destructor(&self) -> bool {
         self.has_destructor
+    }
+
+    /// Get the base class name (DECY-209).
+    pub fn base_class(&self) -> Option<&str> {
+        self.base_class.as_deref()
     }
 }
 

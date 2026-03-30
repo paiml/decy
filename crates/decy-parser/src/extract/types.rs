@@ -225,6 +225,25 @@ extern "C" fn visit_class_children(
         25 => {
             class.has_destructor = true;
         }
+        // CXCursor_CXXBaseSpecifier = 44 (DECY-209: single inheritance)
+        44 => {
+            let base_name_cx = unsafe { clang_getCursorSpelling(cursor) };
+            let base_name = unsafe {
+                let c_str = CStr::from_ptr(clang_getCString(base_name_cx));
+                let n = c_str.to_string_lossy().into_owned();
+                clang_disposeString(base_name_cx);
+                n
+            };
+            // clang spells base specifiers as "class BaseClass" or "struct BaseClass"
+            let clean_name = base_name
+                .strip_prefix("class ")
+                .or_else(|| base_name.strip_prefix("struct "))
+                .unwrap_or(&base_name)
+                .to_string();
+            if !clean_name.is_empty() {
+                class.base_class = Some(clean_name);
+            }
+        }
         _ => {}
     }
 

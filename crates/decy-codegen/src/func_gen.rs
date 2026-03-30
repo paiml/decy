@@ -2180,11 +2180,20 @@ impl CodeGenerator {
     pub fn generate_class(&self, hir_class: &decy_hir::HirClass) -> String {
         let mut code = String::new();
 
-        // Generate struct definition (reuse struct codegen for fields)
-        let hir_struct = decy_hir::HirStruct::new(
-            hir_class.name().to_string(),
-            hir_class.fields().to_vec(),
-        );
+        // Generate struct definition
+        // DECY-209: If there's a base class, add it as a field for composition
+        let mut fields = hir_class.fields().to_vec();
+        if let Some(base) = hir_class.base_class() {
+            // Insert base class field at the beginning
+            fields.insert(
+                0,
+                decy_hir::HirStructField::new(
+                    "base".to_string(),
+                    decy_hir::HirType::Struct(base.to_string()),
+                ),
+            );
+        }
+        let hir_struct = decy_hir::HirStruct::new(hir_class.name().to_string(), fields);
         code.push_str(&self.generate_struct(&hir_struct));
         code.push_str("\n\n");
 
@@ -2351,6 +2360,28 @@ impl CodeGenerator {
             code.push_str(&format!("\nimpl Drop for {} {{\n", hir_class.name()));
             code.push_str("    fn drop(&mut self) {\n");
             code.push_str("        // Destructor body (C++ ~ClassName)\n");
+            code.push_str("    }\n");
+            code.push_str("}\n");
+        }
+
+        // DECY-209: Generate Deref/DerefMut for base class access
+        if let Some(base) = hir_class.base_class() {
+            code.push_str(&format!(
+                "\nimpl std::ops::Deref for {} {{\n",
+                hir_class.name()
+            ));
+            code.push_str(&format!("    type Target = {};\n\n", base));
+            code.push_str("    fn deref(&self) -> &Self::Target {\n");
+            code.push_str("        &self.base\n");
+            code.push_str("    }\n");
+            code.push_str("}\n");
+
+            code.push_str(&format!(
+                "\nimpl std::ops::DerefMut for {} {{\n",
+                hir_class.name()
+            ));
+            code.push_str("    fn deref_mut(&mut self) -> &mut Self::Target {\n");
+            code.push_str("        &mut self.base\n");
             code.push_str("    }\n");
             code.push_str("}\n");
         }
