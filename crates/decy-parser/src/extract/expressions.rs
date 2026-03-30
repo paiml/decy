@@ -256,6 +256,12 @@ pub(crate) extern "C" fn visit_expression(
             }
             CXChildVisit_Continue
         }
+        132 => {
+            // CXCursor_CXXThisExpr - implicit 'this' pointer in C++ methods
+            // DECY-214: Map to 'self' for Rust method access
+            *expr_opt = Some(Expression::Variable("self".to_string()));
+            CXChildVisit_Continue
+        }
         CXCursor_UnexposedExpr => {
             // Unexposed expressions might wrap other expressions (like ImplicitCastExpr wrapping CallExpr)
             // Recurse first to check if there's a more specific expression inside
@@ -1458,7 +1464,10 @@ pub(crate) fn extract_field_access(cursor: CXCursor) -> Option<Expression> {
         clang_visitChildren(cursor, visit_expression, expr_ptr as CXClientData);
     }
 
-    let object = object_expr?;
+    // DECY-214: If no object expression found, this is implicit 'this' access
+    // in a C++ method body (e.g., `return x;` where x is a member field).
+    // Map to self.field for Rust.
+    let object = object_expr.unwrap_or_else(|| Expression::Variable("self".to_string()));
 
     if is_arrow {
         Some(Expression::PointerFieldAccess { pointer: Box::new(object), field })
