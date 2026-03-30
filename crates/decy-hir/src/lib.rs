@@ -22,9 +22,7 @@
 #![warn(clippy::all)]
 #![deny(unsafe_code)]
 
-#[macro_use]
-#[allow(unused_macros)]
-mod generated_contracts;
+
 
 /// Represents a C type in HIR.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -104,7 +102,6 @@ impl HirType {
     /// assert_eq!(hir_type, HirType::Int);
     /// ```
     pub fn from_ast_type(ast_type: &decy_parser::parser::Type) -> Self {
-        contract_pre_parse!(ast_type);
         use decy_parser::parser::Type;
         match ast_type {
             Type::Void => HirType::Void,
@@ -605,7 +602,6 @@ impl HirParameter {
 
     /// Convert from parser AST parameter to HIR parameter.
     pub fn from_ast_parameter(ast_param: &decy_parser::parser::Parameter) -> Self {
-        contract_pre_parse!(ast_param);
         Self {
             name: ast_param.name.clone(),
             param_type: HirType::from_ast_type(&ast_param.param_type),

@@ -3,10 +3,6 @@
 #![warn(clippy::all)]
 #![deny(unsafe_code)]
 
-#[macro_use]
-#[allow(unused_macros)]
-mod generated_contracts;
-
 mod oracle_integration;
 mod repl;
 
