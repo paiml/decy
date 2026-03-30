@@ -2210,7 +2210,14 @@ impl CodeGenerator {
         code.push_str(&self.generate_struct(&hir_struct));
         code.push_str("\n\n");
 
-        // Generate impl block
+        // DECY-215: Only emit impl block if there's content (constructor or methods)
+        let has_constructor = !hir_class.constructor_params().is_empty();
+        let has_regular_methods = hir_class.methods().iter().any(|m| m.operator_kind().is_none());
+
+        if !has_constructor && !has_regular_methods {
+            // Skip empty impl block
+        } else {
+
         code.push_str(&format!("impl {} {{\n", hir_class.name()));
 
         // Generate constructor as new() if constructor params exist
@@ -2309,6 +2316,7 @@ impl CodeGenerator {
         }
 
         code.push_str("}\n");
+        } // end DECY-215 impl block guard
 
         // DECY-208: Generate std::ops trait impls for operator methods
         let class_name = hir_class.name();

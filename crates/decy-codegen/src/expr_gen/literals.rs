@@ -227,6 +227,8 @@ impl CodeGenerator {
         target_type: Option<&HirType>,
     ) -> String {
         match name {
+            // DECY-214: 'self' is valid in method context, don't escape
+            "self" => return "self".to_string(),
             "stderr" => return "std::io::stderr()".to_string(),
             "stdin" => return "std::io::stdin()".to_string(),
             "stdout" => return "std::io::stdout()".to_string(),
