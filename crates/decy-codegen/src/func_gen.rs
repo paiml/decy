@@ -2291,6 +2291,53 @@ impl CodeGenerator {
         code
     }
 
+    /// DECY-205: Generate a Rust `mod` block from a C++ namespace.
+    ///
+    /// Recursively generates nested modules for nested namespaces.
+    /// Functions, structs, and classes within the namespace are generated
+    /// inside the module scope.
+    pub fn generate_namespace(&self, ns: &decy_hir::HirNamespace) -> String {
+        let mut code = String::new();
+
+        code.push_str(&format!("pub mod {} {{\n", escape_rust_keyword(ns.name())));
+
+        // Generate structs
+        for s in ns.structs() {
+            for line in self.generate_struct(s).lines() {
+                code.push_str(&format!("    {}\n", line));
+            }
+            code.push('\n');
+        }
+
+        // Generate classes
+        for c in ns.classes() {
+            for line in self.generate_class(c).lines() {
+                code.push_str(&format!("    {}\n", line));
+            }
+            code.push('\n');
+        }
+
+        // Generate functions
+        for f in ns.functions() {
+            let func_code = self.generate_function(f);
+            for line in func_code.lines() {
+                code.push_str(&format!("    {}\n", line));
+            }
+            code.push('\n');
+        }
+
+        // Recurse into nested namespaces
+        for nested in ns.namespaces() {
+            for line in self.generate_namespace(nested).lines() {
+                code.push_str(&format!("    {}\n", line));
+            }
+            code.push('\n');
+        }
+
+        code.push_str("}\n");
+        code
+    }
+
     /// DECY-240: Generate an enum definition from HIR.
     ///
     /// Generates Rust const declarations for C enum values.

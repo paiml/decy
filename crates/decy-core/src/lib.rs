@@ -12,6 +12,10 @@
 #![warn(clippy::all)]
 #![deny(unsafe_code)]
 
+#[macro_use]
+#[allow(unused_macros)]
+mod generated_contracts;
+
 pub mod metrics;
 pub mod optimize;
 pub mod trace;
@@ -98,6 +102,7 @@ impl ProjectContext {
     /// This makes the file's types and functions available for
     /// cross-file reference resolution.
     pub fn add_transpiled_file(&mut self, file: &TranspiledFile) {
+        contract_pre_configuration!();
         // Track file
         self.transpiled_files.insert(file.source_path.clone(), file.clone());
 
@@ -279,6 +284,7 @@ impl DependencyGraph {
     ///
     /// Returns a list of filenames (e.g., ["utils.h", "stdio.h"]).
     pub fn parse_include_directives(code: &str) -> Vec<String> {
+        contract_pre_parse!();
         let mut includes = Vec::new();
 
         for line in code.lines() {
@@ -413,6 +419,7 @@ impl TranspilationCache {
 
     /// Insert a transpiled file into the cache.
     pub fn insert(&mut self, path: &Path, transpiled: &TranspiledFile) {
+        contract_pre_configuration!();
         let hash = match self.compute_hash(path) {
             Ok(h) => h,
             Err(_) => return, // Skip caching if hash fails
@@ -677,6 +684,7 @@ fn preprocess_includes(
 /// - HIR conversion fails
 /// - Code generation fails
 pub fn transpile(c_code: &str) -> Result<String> {
+    contract_pre_configuration!();
     transpile_with_includes(c_code, None)
 }
 
@@ -707,6 +715,7 @@ pub fn transpile(c_code: &str) -> Result<String> {
 /// # Ok::<(), anyhow::Error>(())
 /// ```
 pub fn transpile_with_trace(c_code: &str) -> Result<(String, trace::TraceCollector)> {
+    contract_pre_configuration!();
     use trace::{DecisionType, PipelineStage, TraceCollector, TraceEntry};
 
     let mut collector = TraceCollector::new();
@@ -763,6 +772,7 @@ pub fn transpile_with_trace(c_code: &str) -> Result<(String, trace::TraceCollect
 /// assert!(result.is_ok());
 /// ```
 pub fn transpile_with_verification(c_code: &str) -> Result<TranspilationResult> {
+    contract_pre_contract_composition!();
     match transpile(c_code) {
         Ok(rust_code) => Ok(TranspilationResult::success(rust_code)),
         Err(e) => {
@@ -1051,6 +1061,7 @@ fn build_all_function_sigs(
 /// # Ok::<(), anyhow::Error>(())
 /// ```
 pub fn transpile_with_includes(c_code: &str, base_dir: Option<&Path>) -> Result<String> {
+    contract_pre_configuration!();
     // Step 0: Preprocess #include directives (DECY-056) + Inject stdlib prototypes
     let stdlib_prototypes = StdlibPrototypes::new();
     let mut processed_files = std::collections::HashSet::new();
@@ -1193,6 +1204,32 @@ pub fn transpile_with_includes(c_code: &str, base_dir: Option<&Path>) -> Result<
         rust_code.push('\n');
     }
 
+    // DECY-204: Convert C++ classes to HIR and generate struct + impl + Drop
+    let hir_classes: Vec<decy_hir::HirClass> = ast
+        .classes()
+        .iter()
+        .map(decy_hir::HirClass::from_ast_class)
+        .collect();
+
+    for hir_class in &hir_classes {
+        let class_code = code_generator.generate_class(hir_class);
+        rust_code.push_str(&class_code);
+        rust_code.push('\n');
+    }
+
+    // DECY-204: Convert C++ namespaces to HIR and generate mod blocks
+    let hir_namespaces: Vec<decy_hir::HirNamespace> = ast
+        .namespaces()
+        .iter()
+        .map(decy_hir::HirNamespace::from_ast_namespace)
+        .collect();
+
+    for hir_ns in &hir_namespaces {
+        let ns_code = code_generator.generate_namespace(hir_ns);
+        rust_code.push_str(&ns_code);
+        rust_code.push('\n');
+    }
+
     // DECY-241: Add errno global variable (C compatibility)
     rust_code.push_str("static mut ERRNO: i32 = 0;\n");
 
@@ -1265,6 +1302,7 @@ pub fn transpile_with_includes(c_code: &str, base_dir: Option<&Path>) -> Result<
 ///
 /// Generated Rust code as a string.
 pub fn transpile_from_file_path(file_path: &Path) -> Result<String> {
+    contract_pre_configuration!();
     // Read the source code
     let c_code = std::fs::read_to_string(file_path)
         .with_context(|| format!("Failed to read file: {}", file_path.display()))?;
@@ -1416,6 +1454,32 @@ fn process_ast_to_rust(ast: decy_parser::Ast, _base_dir: Option<&Path>) -> Resul
         rust_code.push('\n');
     }
 
+    // DECY-204: Generate C++ class definitions (struct + impl + Drop)
+    let hir_classes: Vec<decy_hir::HirClass> = ast
+        .classes()
+        .iter()
+        .map(decy_hir::HirClass::from_ast_class)
+        .collect();
+
+    for hir_class in &hir_classes {
+        let class_code = code_generator.generate_class(hir_class);
+        rust_code.push_str(&class_code);
+        rust_code.push('\n');
+    }
+
+    // DECY-204: Generate C++ namespace definitions (mod blocks)
+    let hir_namespaces: Vec<decy_hir::HirNamespace> = ast
+        .namespaces()
+        .iter()
+        .map(decy_hir::HirNamespace::from_ast_namespace)
+        .collect();
+
+    for hir_ns in &hir_namespaces {
+        let ns_code = code_generator.generate_namespace(hir_ns);
+        rust_code.push_str(&ns_code);
+        rust_code.push('\n');
+    }
+
     // DECY-241: Add errno global variable (C compatibility)
     rust_code.push_str("static mut ERRNO: i32 = 0;\n");
 
@@ -1507,6 +1571,7 @@ fn process_ast_to_rust(ast: decy_parser::Ast, _base_dir: Option<&Path>) -> Resul
 /// # Ok::<(), anyhow::Error>(())
 /// ```
 pub fn transpile_with_box_transform(c_code: &str) -> Result<String> {
+    contract_pre_configuration!();
     // Step 1: Parse C code
     let parser = CParser::new().context("Failed to create C parser")?;
     let ast = parser.parse(c_code).context("Failed to parse C code")?;
@@ -1559,6 +1624,7 @@ pub fn transpile_with_box_transform(c_code: &str) -> Result<String> {
 /// - C code parsing fails
 /// - Code generation fails
 pub fn transpile_file(path: &Path, _context: &ProjectContext) -> Result<TranspiledFile> {
+    contract_pre_configuration!();
     // Read the C source file
     let c_code = std::fs::read_to_string(path)
         .with_context(|| format!("Failed to read file: {}", path.display()))?;
