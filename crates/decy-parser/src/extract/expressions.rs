@@ -262,6 +262,32 @@ pub(crate) extern "C" fn visit_expression(
             *expr_opt = Some(Expression::Variable("self".to_string()));
             CXChildVisit_Continue
         }
+        134 => {
+            // CXCursor_CXXNewExpr - C++ new expression (DECY-225)
+            if let Some(expr) = extract_cxx_new(cursor) {
+                *expr_opt = Some(expr);
+            }
+            CXChildVisit_Continue
+        }
+        135 => {
+            // CXCursor_CXXDeleteExpr - C++ delete expression (DECY-225)
+            if let Some(expr) = extract_cxx_delete(cursor) {
+                *expr_opt = Some(expr);
+            }
+            CXChildVisit_Continue
+        }
+        130 => {
+            // CXCursor_CXXBoolLiteralExpr - C++ true/false (DECY-226)
+            if let Some(expr) = extract_cxx_bool_literal(cursor) {
+                *expr_opt = Some(expr);
+            }
+            CXChildVisit_Continue
+        }
+        131 => {
+            // CXCursor_CXXNullPtrLiteralExpr - C++ nullptr (DECY-226)
+            *expr_opt = Some(Expression::NullLiteral);
+            CXChildVisit_Continue
+        }
         CXCursor_UnexposedExpr => {
             // Unexposed expressions might wrap other expressions (like ImplicitCastExpr wrapping CallExpr)
             // Recurse first to check if there's a more specific expression inside
@@ -1845,4 +1871,98 @@ pub(crate) extern "C" fn visit_compound_literal_initializers(
     }
 }
 
+/// Extract C++ new expression (DECY-225).
+pub(crate) fn extract_cxx_new(cursor: CXCursor) -> Option<Expression> {
+    let cx_type = unsafe { clang_getCursorType(cursor) };
+    let pointee = unsafe { clang_getPointeeType(cx_type) };
+    let type_name_cx = unsafe { clang_getTypeSpelling(pointee) };
+    let type_name = unsafe {
+        let c_str = CStr::from_ptr(clang_getCString(type_name_cx));
+        let n = c_str.to_string_lossy().into_owned();
+        clang_disposeString(type_name_cx);
+        n
+    };
+
+    let clean_type = type_name
+        .strip_prefix("struct ")
+        .or_else(|| type_name.strip_prefix("class "))
+        .unwrap_or(&type_name)
+        .rsplit("::")
+        .next()
+        .unwrap_or(&type_name)
+        .to_string();
+
+    // Extract constructor arguments
+    let mut args: Vec<Expression> = Vec::new();
+    let args_ptr = &mut args as *mut Vec<Expression>;
+    unsafe {
+        clang_visitChildren(cursor, visit_cxx_new_args, args_ptr as CXClientData);
+    }
+
+    if clean_type.is_empty() {
+        return None;
+    }
+
+    Some(Expression::CxxNew { type_name: clean_type, arguments: args })
+}
+
+/// Visitor for new expression constructor arguments.
+extern "C" fn visit_cxx_new_args(
+    cursor: CXCursor,
+    _parent: CXCursor,
+    client_data: CXClientData,
+) -> CXChildVisitResult {
+    let args = unsafe { &mut *(client_data as *mut Vec<Expression>) };
+    let kind = unsafe { clang_getCursorKind(cursor) };
+
+    // Skip type references (43) — only collect argument expressions
+    if kind == 43 { return CXChildVisit_Continue; }
+
+    match kind {
+        CXCursor_IntegerLiteral => {
+            if let Some(e) = extract_int_literal(cursor) { args.push(e); }
+        }
+        CXCursor_DeclRefExpr => {
+            if let Some(e) = extract_variable_ref(cursor) { args.push(e); }
+        }
+        _ => {
+            let mut expr_opt: Option<Expression> = None;
+            let expr_ptr = &mut expr_opt as *mut Option<Expression>;
+            unsafe { clang_visitChildren(cursor, visit_expression, expr_ptr as CXClientData); }
+            if let Some(e) = expr_opt { args.push(e); }
+        }
+    }
+    CXChildVisit_Continue
+}
+
+/// Extract C++ delete expression (DECY-225).
+pub(crate) fn extract_cxx_delete(cursor: CXCursor) -> Option<Expression> {
+    let mut operand: Option<Expression> = None;
+    let expr_ptr = &mut operand as *mut Option<Expression>;
+    unsafe { clang_visitChildren(cursor, visit_expression, expr_ptr as CXClientData); }
+    Some(Expression::CxxDelete { operand: Box::new(operand?) })
+}
+
+/// Extract C++ bool literal (DECY-226).
+pub(crate) fn extract_cxx_bool_literal(cursor: CXCursor) -> Option<Expression> {
+    let tu = unsafe { clang_Cursor_getTranslationUnit(cursor) };
+    if tu.is_null() { return None; }
+    let extent = unsafe { clang_getCursorExtent(cursor) };
+    let mut tokens = ptr::null_mut();
+    let mut num_tokens = 0;
+    unsafe { clang_tokenize(tu, extent, &mut tokens, &mut num_tokens); }
+
+    let mut is_true = false;
+    if num_tokens > 0 {
+        unsafe {
+            let token = *tokens;
+            let token_cx = clang_getTokenSpelling(tu, token);
+            let c_str = CStr::from_ptr(clang_getCString(token_cx));
+            if let Ok(s) = c_str.to_str() { is_true = s == "true"; }
+            clang_disposeString(token_cx);
+            clang_disposeTokens(tu, tokens, num_tokens);
+        }
+    }
+    Some(Expression::BoolLiteral(is_true))
+}
 

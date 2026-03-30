@@ -389,6 +389,10 @@ pub enum Expression {
         /// Expression being deleted
         operand: Box<Expression>,
     },
+    /// C++ nullptr literal (DECY-226)
+    NullLiteral,
+    /// C++ bool literal true/false (DECY-226)
+    BoolLiteral(bool),
 }
 
 impl Expression {

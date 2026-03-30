@@ -361,6 +361,18 @@ pub(crate) extern "C" fn visit_statement(
             }
             CXChildVisit_Continue
         }
+        135 => {
+            // CXCursor_CXXDeleteExpr - delete ptr -> free(ptr) equivalent (DECY-225)
+            if let Some(Expression::CxxDelete { operand }) = expressions::extract_cxx_delete(cursor) {
+                // Map delete to a "free" function call for the statement extractor
+                // The codegen maps free() to drop() in Rust
+                statements.push(Statement::FunctionCall {
+                    function: "free".to_string(),
+                    arguments: vec![*operand],
+                });
+            }
+            CXChildVisit_Continue
+        }
         _ => CXChildVisit_Recurse, // Recurse into unknown nodes to find statements
     }
 }

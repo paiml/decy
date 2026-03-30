@@ -1538,6 +1538,12 @@ impl HirExpression {
             Expression::CxxDelete { operand } => HirExpression::CxxDelete {
                 operand: Box::new(HirExpression::from_ast_expression(operand)),
             },
+            // DECY-226: C++ nullptr -> NullLiteral
+            Expression::NullLiteral => HirExpression::NullLiteral,
+            // DECY-226: C++ bool literal
+            Expression::BoolLiteral(val) => {
+                if *val { HirExpression::IntLiteral(1) } else { HirExpression::IntLiteral(0) }
+            }
         }
     }
 }
