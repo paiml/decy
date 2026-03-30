@@ -59,12 +59,15 @@ pub fn optimize_function(func: &HirFunction) -> HirFunction {
         iterations += 1;
     }
 
-    HirFunction::new_with_body(
+    let mut result = HirFunction::new_with_body(
         func.name().to_string(),
         func.return_type().clone(),
         func.parameters().to_vec(),
         body,
-    )
+    );
+    // DECY-221: Preserve CUDA qualifier through optimization
+    result.set_cuda_qualifier(func.cuda_qualifier());
+    result
 }
 
 // ============================================================================

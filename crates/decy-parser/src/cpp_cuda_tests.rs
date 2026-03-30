@@ -269,4 +269,39 @@ mod tests {
         assert_eq!(ast.functions().len(), 1);
         assert_eq!(ast.functions()[0].name, "host_function");
     }
+
+    // =========================================================================
+    // DECY-221: CUDA qualifier detection from inline source
+    // =========================================================================
+
+    #[test]
+    fn test_cuda_global_qualifier_detected_inline() {
+        let parser = CParser::new().expect("Parser creation failed");
+        let source = r#"
+__global__ void kernel_add(int n) {
+    int i = 0;
+}
+void host_func(int x) {
+    int y = x + 1;
+}
+"#;
+        let ast = parser.parse(source).expect("CUDA inline parse");
+        assert_eq!(ast.functions().len(), 2, "Should have 2 functions");
+
+        let kernel = ast.functions().iter().find(|f| f.name == "kernel_add");
+        assert!(kernel.is_some(), "Should find kernel_add");
+        assert_eq!(
+            kernel.unwrap().cuda_qualifier,
+            Some(CudaQualifier::Global),
+            "kernel_add should have Global qualifier"
+        );
+
+        let host = ast.functions().iter().find(|f| f.name == "host_func");
+        assert!(host.is_some(), "Should find host_func");
+        assert_eq!(
+            host.unwrap().cuda_qualifier,
+            None,
+            "host_func should have no CUDA qualifier"
+        );
+    }
 }

@@ -127,12 +127,15 @@ impl ArrayParameterTransformer {
             .collect();
 
         // Create new function with transformed parameters and body
-        HirFunction::new_with_body(
+        let mut result = HirFunction::new_with_body(
             func.name().to_string(),
             func.return_type().clone(),
             new_parameters,
             new_body,
-        )
+        );
+        // DECY-221: Preserve CUDA qualifier through array transformation
+        result.set_cuda_qualifier(func.cuda_qualifier());
+        result
     }
 
     /// Transform a statement to replace length parameter references with .len()

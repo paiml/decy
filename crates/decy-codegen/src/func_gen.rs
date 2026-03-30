@@ -1516,6 +1516,15 @@ impl CodeGenerator {
         func: &HirFunction,
         structs: &[decy_hir::HirStruct],
     ) -> String {
+        // DECY-221: CUDA kernel/device functions bypass normal codegen
+        if func.cuda_qualifier() == Some(decy_hir::HirCudaQualifier::Global) {
+            return self.generate_cuda_kernel_ffi(func);
+        }
+        if func.cuda_qualifier() == Some(decy_hir::HirCudaQualifier::Device) {
+            let sig = self.generate_signature(func);
+            return format!("// CUDA __device__ function — GPU only\n// {}\n", sig);
+        }
+
         let mut code = String::new();
 
         // Generate signature
@@ -1667,6 +1676,18 @@ impl CodeGenerator {
         string_iter_funcs: &[(String, Vec<(usize, bool)>)],
         globals: &[(String, HirType)],
     ) -> String {
+        // DECY-221: CUDA kernel/device functions bypass normal codegen
+        if func.cuda_qualifier() == Some(decy_hir::HirCudaQualifier::Global) {
+            return self.generate_cuda_kernel_ffi(func);
+        }
+        if func.cuda_qualifier() == Some(decy_hir::HirCudaQualifier::Device) {
+            let sig_str = self.generate_signature(func);
+            return format!(
+                "// CUDA __device__ function — runs on GPU only, not transpiled\n// {}\n",
+                sig_str
+            );
+        }
+
         let mut code = String::new();
 
         // Generate signature with lifetimes

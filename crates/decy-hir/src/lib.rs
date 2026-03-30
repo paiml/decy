@@ -920,6 +920,11 @@ impl HirFunction {
     pub fn cuda_qualifier(&self) -> Option<HirCudaQualifier> {
         self.cuda_qualifier
     }
+
+    /// Set the CUDA qualifier (DECY-221: preserve through transformations).
+    pub fn set_cuda_qualifier(&mut self, qualifier: Option<HirCudaQualifier>) {
+        self.cuda_qualifier = qualifier;
+    }
 }
 
 /// Unary operators for expressions.

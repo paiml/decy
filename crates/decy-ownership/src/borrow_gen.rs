@@ -125,12 +125,15 @@ impl BorrowGenerator {
             })
             .collect();
 
-        HirFunction::new_with_body(
+        let mut result = HirFunction::new_with_body(
             func.name().to_string(),
             func.return_type().clone(),
             transformed_params,
             transformed_body,
-        )
+        );
+        // DECY-221: Preserve CUDA qualifier through ownership transformation
+        result.set_cuda_qualifier(func.cuda_qualifier());
+        result
     }
 
     /// Transform parameters with array parameter detection.

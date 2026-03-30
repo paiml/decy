@@ -153,11 +153,16 @@ impl CParser {
         };
 
         // Detect language mode from source content
-        // DECY-198: Support C++ and CUDA language modes
+        // DECY-198/221: Support C++ and CUDA language modes
         let has_extern_c = source.contains("extern \"C\"");
         let has_ifdef_guard =
             source.contains("#ifdef __cplusplus") || source.contains("#if defined(__cplusplus)");
-        let needs_cpp_mode = has_extern_c && !has_ifdef_guard;
+        // DECY-221: Detect CUDA keywords to enable C++ mode for .cu content
+        let has_cuda_keywords = source.contains("__global__")
+            || source.contains("__device__")
+            || source.contains("__host__");
+        let needs_cpp_mode =
+            (has_extern_c && !has_ifdef_guard) || has_cuda_keywords;
 
         // Build system include path arguments
         // We need to keep CStrings alive for the duration of parsing
@@ -170,11 +175,18 @@ impl CParser {
         let cpp_lang = CString::new("c++").unwrap();
 
         // DECY-194: Add standard C macro definitions that might not be available
-        // EOF is defined as -1 in stdio.h, NULL as 0
         let define_eof = CString::new("-DEOF=-1").unwrap();
         let define_null = CString::new("-DNULL=0").unwrap();
-        // BUFSIZ from stdio.h (typical value)
         let define_bufsiz = CString::new("-DBUFSIZ=8192").unwrap();
+
+        // DECY-221: Define CUDA keywords as empty macros so clang in C++ mode
+        // can parse .cu content without CUDA toolkit. The qualifier detection
+        // falls back to name-based heuristics (functions named with _kernel suffix
+        // or detected via annotation attributes).
+        let define_global = CString::new("-D__global__=").unwrap();
+        let define_device = CString::new("-D__device__=").unwrap();
+        let define_host = CString::new("-D__host__=").unwrap();
+        let define_shared = CString::new("-D__shared__=").unwrap();
 
         // Build the complete args vector
         let mut args_vec: Vec<*const std::os::raw::c_char> = Vec::new();
@@ -183,6 +195,14 @@ impl CParser {
         if needs_cpp_mode {
             args_vec.push(cpp_flag.as_ptr());
             args_vec.push(cpp_lang.as_ptr());
+        }
+
+        // DECY-221: Add CUDA macro definitions when CUDA keywords detected
+        if has_cuda_keywords {
+            args_vec.push(define_global.as_ptr());
+            args_vec.push(define_device.as_ptr());
+            args_vec.push(define_host.as_ptr());
+            args_vec.push(define_shared.as_ptr());
         }
 
         // Add macro definitions
@@ -238,6 +258,13 @@ impl CParser {
 
             // Clean up
             clang_disposeTranslationUnit(tu);
+        }
+
+        // DECY-221: Post-parse CUDA qualifier application
+        // Since we use empty macros (__global__= etc.), the qualifier info is lost
+        // during parsing. Recover it by scanning the original source.
+        if has_cuda_keywords {
+            apply_cuda_qualifiers_from_source(&mut ast, source);
         }
 
         Ok(ast)
@@ -428,6 +455,58 @@ impl Drop for CParser {
 
 // Re-export all AST types so external users see them at parser:: level
 pub use crate::ast_types::*;
+
+/// DECY-221: Apply CUDA qualifiers to parsed functions by scanning source text.
+///
+/// When parsing .cu content in C++ mode (with empty CUDA macros), the
+/// `__global__`, `__device__`, and `__host__` qualifiers are stripped.
+/// This function recovers them by matching function names against source lines.
+fn apply_cuda_qualifiers_from_source(ast: &mut Ast, source: &str) {
+    // Build a map of function_name -> qualifier from source scanning
+    let mut qualifiers: std::collections::HashMap<String, CudaQualifier> =
+        std::collections::HashMap::new();
+
+    for line in source.lines() {
+        let trimmed = line.trim();
+        let qualifier = if trimmed.starts_with("__global__") {
+            Some(CudaQualifier::Global)
+        } else if trimmed.starts_with("__device__") && trimmed.contains("__host__") {
+            Some(CudaQualifier::HostDevice)
+        } else if trimmed.starts_with("__host__") && trimmed.contains("__device__") {
+            Some(CudaQualifier::HostDevice)
+        } else if trimmed.starts_with("__device__") {
+            Some(CudaQualifier::Device)
+        } else if trimmed.starts_with("__host__") {
+            Some(CudaQualifier::Host)
+        } else {
+            None
+        };
+
+        if let Some(qual) = qualifier {
+            // Extract function name: after qualifier + return type, before '('
+            let after_qual = trimmed
+                .replace("__global__", "")
+                .replace("__device__", "")
+                .replace("__host__", "");
+            if let Some(paren_pos) = after_qual.find('(') {
+                let before_paren = after_qual[..paren_pos].trim();
+                // Last word before '(' is the function name
+                if let Some(name) = before_paren.split_whitespace().last() {
+                    // Strip pointer/ref decorators
+                    let clean_name = name.trim_start_matches('*').trim_start_matches('&');
+                    qualifiers.insert(clean_name.to_string(), qual);
+                }
+            }
+        }
+    }
+
+    // Apply qualifiers to parsed functions
+    for func in ast.functions_mut() {
+        if let Some(qual) = qualifiers.get(&func.name) {
+            func.cuda_qualifier = Some(*qual);
+        }
+    }
+}
 
 #[cfg(test)]
 #[path = "parser_tests.rs"]

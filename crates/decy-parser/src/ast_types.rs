@@ -975,6 +975,11 @@ impl Ast {
         &self.functions
     }
 
+    /// Get mutable access to functions (DECY-221: for CUDA qualifier post-processing).
+    pub fn functions_mut(&mut self) -> &mut [Function] {
+        &mut self.functions
+    }
+
     /// Add a function to the AST.
     pub fn add_function(&mut self, function: Function) {
         self.functions.push(function);
