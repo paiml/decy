@@ -1898,3 +1898,6 @@ fn expr_string_literal_basic() {
 fn expr_float_literal() {
     let cg = CodeGenerator::new();
     let expr = HirExpression::FloatLiteral("3.14".to_string());
+    let code = cg.generate_expression(&expr, None, &mut TypeContext::new(), None);
+    assert!(code.contains("3.14"));
+}

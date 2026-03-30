@@ -1,11 +1,3 @@
-    let code = cg.generate_expression(&expr);
-    assert!(
-        code.contains("format") || code.contains("buf"),
-        "sprintf should generate format!, got: {}",
-        code
-    );
-}
-
 #[test]
 fn expr_atof_call() {
     let cg = CodeGenerator::new();

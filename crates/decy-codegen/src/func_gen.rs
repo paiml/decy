@@ -2150,6 +2150,147 @@ impl CodeGenerator {
         code
     }
 
+    /// DECY-202: Generate a Rust struct + impl block from a C++ class.
+    ///
+    /// Maps: class fields -> struct fields, methods -> impl block,
+    /// constructor -> `pub fn new()`, destructor -> `impl Drop`.
+    ///
+    /// # Example
+    ///
+    /// C++: `class Point { int x, y; Point(int x, int y); int distance(); ~Point(); };`
+    /// Rust:
+    /// ```ignore
+    /// #[derive(Debug, Clone, Default, PartialEq, Eq)]
+    /// pub struct Point {
+    ///     pub x: i32,
+    ///     pub y: i32,
+    /// }
+    ///
+    /// impl Point {
+    ///     pub fn new(x: i32, y: i32) -> Self {
+    ///         Self { x, y }
+    ///     }
+    ///     pub fn distance(&self) -> i32 { /* ... */ }
+    /// }
+    ///
+    /// impl Drop for Point {
+    ///     fn drop(&mut self) { /* destructor body */ }
+    /// }
+    /// ```
+    pub fn generate_class(&self, hir_class: &decy_hir::HirClass) -> String {
+        let mut code = String::new();
+
+        // Generate struct definition (reuse struct codegen for fields)
+        let hir_struct = decy_hir::HirStruct::new(
+            hir_class.name().to_string(),
+            hir_class.fields().to_vec(),
+        );
+        code.push_str(&self.generate_struct(&hir_struct));
+        code.push_str("\n\n");
+
+        // Generate impl block
+        code.push_str(&format!("impl {} {{\n", hir_class.name()));
+
+        // Generate constructor as new() if constructor params exist
+        if !hir_class.constructor_params().is_empty() {
+            code.push_str("    pub fn new(");
+            let params: Vec<String> = hir_class
+                .constructor_params()
+                .iter()
+                .map(|p| format!("{}: {}", escape_rust_keyword(p.name()), Self::map_type(p.param_type())))
+                .collect();
+            code.push_str(&params.join(", "));
+            code.push_str(") -> Self {\n");
+            code.push_str("        Self {\n");
+            // Map constructor params to field initializers
+            for field in hir_class.fields() {
+                // Try to match field to constructor param by name
+                let matching_param = hir_class
+                    .constructor_params()
+                    .iter()
+                    .find(|p| p.name() == field.name());
+                if let Some(param) = matching_param {
+                    code.push_str(&format!(
+                        "            {}: {},\n",
+                        escape_rust_keyword(field.name()),
+                        escape_rust_keyword(param.name())
+                    ));
+                } else {
+                    code.push_str(&format!(
+                        "            {}: Default::default(),\n",
+                        escape_rust_keyword(field.name())
+                    ));
+                }
+            }
+            code.push_str("        }\n");
+            code.push_str("    }\n\n");
+        }
+
+        // Generate methods
+        for method in hir_class.methods() {
+            let func = method.function();
+            let self_param = if method.is_static() {
+                ""
+            } else if method.is_const() {
+                "&self, "
+            } else {
+                "&mut self, "
+            };
+
+            // Method signature
+            let params: Vec<String> = func
+                .parameters()
+                .iter()
+                .map(|p| format!("{}: {}", escape_rust_keyword(p.name()), Self::map_type(p.param_type())))
+                .collect();
+
+            let return_type = if *func.return_type() == decy_hir::HirType::Void {
+                String::new()
+            } else {
+                format!(" -> {}", Self::map_type(func.return_type()))
+            };
+
+            code.push_str(&format!(
+                "    pub fn {}({}{}){} {{\n",
+                escape_rust_keyword(func.name()),
+                self_param,
+                params.join(", "),
+                return_type,
+            ));
+
+            // Generate method body
+            if func.body().is_empty() {
+                if *func.return_type() == decy_hir::HirType::Void {
+                    // Empty void method
+                } else {
+                    code.push_str("        Default::default()\n");
+                }
+            } else {
+                for stmt in func.body() {
+                    code.push_str(&format!(
+                        "        {}\n",
+                        self.generate_statement_with_context(stmt, None, &mut TypeContext::new(), None)
+                    ));
+                }
+            }
+
+            code.push_str("    }\n\n");
+        }
+
+        code.push_str("}\n");
+
+        // Generate Drop impl if destructor exists
+        if hir_class.has_destructor() {
+            code.push_str(&format!("\nimpl Drop for {} {{\n", hir_class.name()));
+            code.push_str("    fn drop(&mut self) {\n");
+            code.push_str("        // Destructor body (C++ ~ClassName)\n");
+            code.push_str("    }\n");
+            code.push_str("}\n");
+        }
+
+        code
+    }
+
     /// DECY-240: Generate an enum definition from HIR.
     ///
     /// Generates Rust const declarations for C enum values.

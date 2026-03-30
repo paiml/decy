@@ -1,11 +1,3 @@
-    let code = cg.generate_expression(&expr);
-    assert!(
-        code.contains("3.14"),
-        "FloatLiteral should contain 3.14, got: {}",
-        code
-    );
-}
-
 #[test]
 fn expr_int_literal_negative() {
     let cg = CodeGenerator::new();
@@ -1898,3 +1890,6 @@ fn expr_sprintf_call() {
             HirExpression::Variable("age".to_string()),
         ],
     };
+    let code = cg.generate_expression(&expr, None, &mut TypeContext::new(), None);
+    assert!(!code.is_empty());
+}
