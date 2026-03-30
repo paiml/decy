@@ -593,11 +593,14 @@ All work is ticket-driven via `roadmap.yaml`. No code without a ticket. State ch
 | Test coverage | 97.60% |
 | Workspace crates | 11 |
 | C constructs mapped | 150 (see C-VALIDATION-ROADMAP.yaml) |
-| C++ features supported | 6 (classes, namespaces, ctor/dtor, new/delete, operators, inheritance) |
-| CUDA features supported | 4 (.cu parsing, qualifier extraction, kernel FFI, device annotation) |
-| Parser tests | 172 passing |
+| C++ features supported | 7 (classes, namespaces, ctor/dtor, new/delete, operators, inheritance, implicit this) |
+| CUDA features supported | 5 (.cu parsing, qualifier extraction, kernel FFI, device annotation, inline keyword detection) |
+| Parser tests | 173 passing |
 | HIR tests | 192 passing |
 | E2E C++/CUDA tests | 9 passing |
+| Provable contracts | 1 (cpp-type-preservation-v1: 4 equations, 7 falsification tests) |
+| Runnable examples | 2 (cpp_class_transpile_demo, cuda_transpile_demo) |
+| Dogfood status | C++ compiles with rustc (0 errors), CUDA kernel FFI generates correctly |
 | Compilation success | 100% |
 | Unsafe per 1000 LOC | <5 |
 | PMAT TDG average | 92.8 |

@@ -11436,3 +11436,100 @@ sprint_cpp_cuda:
       phase: DONE
       started_date: "2026-03-30"
       completed_date: "2026-03-30"
+
+    DECY-213:
+      title: "Fix constructor param mapping (positional fallback)"
+      type: bug
+      priority: high
+      story_points: 2
+      assignee: Claude
+      status: done
+      phase: DONE
+      completed_date: "2026-03-30"
+
+    DECY-214:
+      title: "Fix method body generation (implicit this access)"
+      type: bug
+      priority: high
+      story_points: 3
+      assignee: Claude
+      status: done
+      phase: DONE
+      completed_date: "2026-03-30"
+
+    DECY-215:
+      title: "Clean codegen output (self escaping, empty impl blocks)"
+      type: quality
+      priority: medium
+      story_points: 2
+      assignee: Claude
+      status: done
+      phase: DONE
+      completed_date: "2026-03-30"
+
+    DECY-216:
+      title: "Provable contract: cpp-type-preservation-v1"
+      type: quality
+      priority: high
+      story_points: 5
+      assignee: Claude
+      status: done
+      phase: DONE
+      completed_date: "2026-03-30"
+      description: |
+        4 equations, 7 falsification tests, 7 bindings in provable-contracts.
+
+    DECY-217:
+      title: "C++ transpilation runnable example"
+      type: docs
+      priority: medium
+      story_points: 3
+      assignee: Claude
+      status: done
+      phase: DONE
+      completed_date: "2026-03-30"
+
+    DECY-218:
+      title: "Book chapter: C++ transpilation"
+      type: docs
+      priority: medium
+      story_points: 3
+      assignee: Claude
+      status: done
+      phase: DONE
+      completed_date: "2026-03-30"
+
+    DECY-219:
+      title: "Dogfood: transpile real C++ vector math library"
+      type: quality
+      priority: high
+      story_points: 3
+      assignee: Claude
+      status: done
+      phase: DONE
+      completed_date: "2026-03-30"
+
+    DECY-220:
+      title: "Fix dogfood issues: Copy+Drop, PartialEq, module path, Eq"
+      type: bug
+      priority: critical
+      story_points: 5
+      assignee: Claude
+      status: done
+      phase: DONE
+      completed_date: "2026-03-30"
+      description: |
+        Transpiled C++ now compiles with rustc (0 errors, 6 warnings).
+
+    DECY-221:
+      title: "CUDA inline parsing + qualifier preservation"
+      type: feature
+      priority: high
+      story_points: 8
+      assignee: Claude
+      status: done
+      phase: DONE
+      completed_date: "2026-03-30"
+      description: |
+        CUDA keywords detected in inline source, qualifier preserved through
+        borrow_gen, array_slice, optimize transformations. CUDA example added.
