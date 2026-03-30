@@ -11353,3 +11353,86 @@ sprint_cpp_cuda:
         no-destructor->no-Drop, mixed C+C++ in same file.
       files_modified:
         - crates/decy-core/tests/cpp_transpilation_test.rs
+
+    DECY-207:
+      title: "Handle C++ new/delete expressions"
+      type: feature
+      priority: high
+      story_points: 5
+      assignee: Claude
+      status: done
+      phase: DONE
+      started_date: "2026-03-30"
+      completed_date: "2026-03-30"
+      description: |
+        new T(args) -> Box::new(T::new(args)), delete ptr -> drop(ptr).
+        Added CxxNew/CxxDelete to AST and HIR expression enums.
+
+    DECY-208:
+      title: "C++ operator overloading -> std::ops traits"
+      type: feature
+      priority: high
+      story_points: 8
+      assignee: Claude
+      status: done
+      phase: DONE
+      started_date: "2026-03-30"
+      completed_date: "2026-03-30"
+      actual_metrics:
+        operator_kinds: 16
+      description: |
+        Detect overloaded operators from clang method names.
+        Generate std::ops trait impls (Add, Sub, Mul, Div, Rem,
+        PartialEq, AddAssign, SubAssign).
+
+    DECY-209:
+      title: "C++ single inheritance -> composition + Deref"
+      type: feature
+      priority: high
+      story_points: 5
+      assignee: Claude
+      status: done
+      phase: DONE
+      started_date: "2026-03-30"
+      completed_date: "2026-03-30"
+      description: |
+        Detect CXCursor_CXXBaseSpecifier (44). Embed base class as
+        field in derived struct. Generate Deref/DerefMut impls.
+
+    DECY-210:
+      title: "E2E tests for Phase 2 C++ features"
+      type: quality
+      priority: high
+      story_points: 3
+      assignee: Claude
+      status: done
+      phase: DONE
+      started_date: "2026-03-30"
+      completed_date: "2026-03-30"
+      actual_metrics:
+        tests_added: 2
+
+    DECY-211:
+      title: "CUDA __global__ kernel -> extern C FFI wrapper"
+      type: feature
+      priority: high
+      story_points: 5
+      assignee: Claude
+      status: done
+      phase: DONE
+      started_date: "2026-03-30"
+      completed_date: "2026-03-30"
+      description: |
+        __global__ kernels generate extern "C" FFI declarations.
+        __device__ functions emit GPU-only annotation comments.
+
+    DECY-212:
+      title: "Update roadmap and spec for Phase 2/3 completion"
+      type: quality
+      priority: medium
+      story_points: 2
+      assignee: Claude
+      status: done
+      phase: DONE
+      started_date: "2026-03-30"
+      completed_date: "2026-03-30"
