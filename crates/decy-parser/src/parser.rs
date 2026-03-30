@@ -260,6 +260,7 @@ impl CParser {
     /// from the actual file path instead of an in-memory string.
     #[allow(clippy::disallowed_methods)] // CString::new with literals cannot fail
     pub fn parse_file(&self, path: &Path) -> Result<Ast> {
+        contract_pre_parse!();
         let source = std::fs::read_to_string(path)
             .with_context(|| format!("Failed to read file: {}", path.display()))?;
 

@@ -228,6 +228,63 @@ extern "C" fn visit_class_children(
     CXChildVisit_Continue
 }
 
+/// Extract a C++ namespace from a CXCursor_Namespace cursor (DECY-201).
+///
+/// Visits namespace children to collect functions, structs, classes, and nested namespaces.
+/// Maps to Rust `mod` block in codegen.
+pub(crate) fn extract_namespace(cursor: CXCursor) -> Option<Namespace> {
+    let name_cxstring = unsafe { clang_getCursorSpelling(cursor) };
+    let name = unsafe {
+        let c_str = CStr::from_ptr(clang_getCString(name_cxstring));
+        let n = c_str.to_string_lossy().into_owned();
+        clang_disposeString(name_cxstring);
+        n
+    };
+
+    let mut ns = Namespace::new(name);
+    let ns_ptr = &mut ns as *mut Namespace;
+
+    unsafe {
+        clang_visitChildren(cursor, visit_namespace_children, ns_ptr as CXClientData);
+    }
+
+    Some(ns)
+}
+
+/// Visitor callback for C++ namespace children (DECY-201).
+///
+/// Handles: FunctionDecl, StructDecl, ClassDecl, Namespace (nested).
+extern "C" fn visit_namespace_children(
+    cursor: CXCursor,
+    _parent: CXCursor,
+    client_data: CXClientData,
+) -> CXChildVisitResult {
+    let ns = unsafe { &mut *(client_data as *mut Namespace) };
+    let kind = unsafe { clang_getCursorKind(cursor) };
+
+    if kind == CXCursor_FunctionDecl {
+        if let Some(func) = extract_function(cursor) {
+            ns.functions.push(func);
+        }
+    } else if kind == CXCursor_StructDecl {
+        if let Some(s) = extract_struct(cursor) {
+            ns.structs.push(s);
+        }
+    } else if kind == 4 {
+        // CXCursor_ClassDecl = 4
+        if let Some(class) = extract_class(cursor) {
+            ns.classes.push(class);
+        }
+    } else if kind == 22 {
+        // CXCursor_Namespace = 22 (nested namespace)
+        if let Some(nested) = extract_namespace(cursor) {
+            ns.namespaces.push(nested);
+        }
+    }
+
+    CXChildVisit_Continue
+}
+
 /// Extract typedef information from a clang cursor.
 /// Returns (Option<Typedef>, Option<Struct>) - struct is Some when typedef is for anonymous struct.
 pub(crate) fn extract_typedef(cursor: CXCursor) -> (Option<Typedef>, Option<Struct>) {

@@ -14,5 +14,6 @@ pub mod parser;
 
 pub use diagnostic::{Diagnostic, DiagnosticError, ErrorCategory, Severity};
 pub use parser::{
-    Ast, CParser, Expression, Function, Parameter, Statement, Struct, StructField, Type, Variable,
+    Ast, CParser, Class, CudaQualifier, Expression, Function, Namespace, Parameter, Statement,
+    Struct, StructField, Type, Variable,
 };

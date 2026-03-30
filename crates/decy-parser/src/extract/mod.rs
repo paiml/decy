@@ -13,7 +13,7 @@ mod expressions;
 
 pub(crate) use types::{
     extract_function, extract_typedef, extract_struct, extract_enum,
-    extract_variable, extract_macro, extract_class,
+    extract_variable, extract_macro, extract_class, extract_namespace,
 };
 
 use crate::ast_types::*;
@@ -204,9 +204,18 @@ pub(crate) extern "C" fn visit_function(
         }
     } else if kind == 4 {
         // CXCursor_ClassDecl = 4 (DECY-200: C++ class extraction)
+        // Don't recurse — extract_class handles its own children
         if let Some(class) = extract_class(cursor) {
             ast.add_class(class);
         }
+        return CXChildVisit_Continue;
+    } else if kind == 22 {
+        // CXCursor_Namespace = 22 (DECY-201: C++ namespace extraction)
+        // Don't recurse — extract_namespace handles its own children
+        if let Some(ns) = extract_namespace(cursor) {
+            ast.add_namespace(ns);
+        }
+        return CXChildVisit_Continue;
     } else if kind == CXCursor_MacroDefinition {
         // Extract macro definition (only from main file, not includes)
         let location = unsafe { clang_getCursorLocation(cursor) };

@@ -592,6 +592,36 @@ impl Class {
     }
 }
 
+/// Represents a C++ namespace (DECY-201).
+///
+/// Maps to Rust `mod` block. Nested namespaces become nested modules.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Namespace {
+    /// Namespace name (empty for anonymous namespaces)
+    pub name: String,
+    /// Functions declared in this namespace
+    pub functions: Vec<Function>,
+    /// Structs declared in this namespace
+    pub structs: Vec<Struct>,
+    /// Classes declared in this namespace
+    pub classes: Vec<Class>,
+    /// Nested namespaces
+    pub namespaces: Vec<Namespace>,
+}
+
+impl Namespace {
+    /// Create a new empty namespace.
+    pub fn new(name: String) -> Self {
+        Self {
+            name,
+            functions: Vec::new(),
+            structs: Vec::new(),
+            classes: Vec::new(),
+            namespaces: Vec::new(),
+        }
+    }
+}
+
 /// Represents a variable declaration.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Variable {
@@ -789,6 +819,8 @@ pub struct Ast {
     enums: Vec<Enum>,
     /// C++ classes (DECY-200)
     classes: Vec<Class>,
+    /// C++ namespaces (DECY-201)
+    namespaces: Vec<Namespace>,
 }
 
 /// Represents a C macro definition (#define).
@@ -878,6 +910,7 @@ impl Ast {
             variables: Vec::new(),
             enums: Vec::new(),
             classes: Vec::new(),
+            namespaces: Vec::new(),
         }
     }
 
@@ -955,6 +988,16 @@ impl Ast {
         if !self.classes.iter().any(|c| c.name == class.name) {
             self.classes.push(class);
         }
+    }
+
+    /// Get the C++ namespaces in the AST (DECY-201).
+    pub fn namespaces(&self) -> &[Namespace] {
+        &self.namespaces
+    }
+
+    /// Add a C++ namespace to the AST (DECY-201).
+    pub fn add_namespace(&mut self, ns: Namespace) {
+        self.namespaces.push(ns);
     }
 }
 

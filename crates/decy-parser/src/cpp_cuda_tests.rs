@@ -179,6 +179,81 @@ mod tests {
     }
 
     // =========================================================================
+    // DECY-201: C++ namespace extraction
+    // =========================================================================
+
+    #[test]
+    fn test_parse_cpp_namespace_with_function() {
+        let parser = CParser::new().expect("Parser creation failed");
+        let source = r#"
+            extern "C" { void dummy(); }
+            namespace math {
+                int add(int a, int b) { return a + b; }
+            }
+        "#;
+        let ast = parser.parse(source).expect("Parsing namespace with function");
+        assert_eq!(ast.namespaces().len(), 1, "Should find one namespace");
+        assert_eq!(ast.namespaces()[0].name, "math");
+        assert_eq!(ast.namespaces()[0].functions.len(), 1);
+        assert_eq!(ast.namespaces()[0].functions[0].name, "add");
+    }
+
+    #[test]
+    fn test_parse_cpp_namespace_with_struct() {
+        let parser = CParser::new().expect("Parser creation failed");
+        let source = r#"
+            extern "C" { void dummy(); }
+            namespace geom {
+                struct Point { int x; int y; };
+            }
+        "#;
+        let ast = parser.parse(source).expect("Parsing namespace with struct");
+        assert_eq!(ast.namespaces().len(), 1);
+        assert_eq!(ast.namespaces()[0].name, "geom");
+        assert_eq!(ast.namespaces()[0].structs.len(), 1);
+        assert_eq!(ast.namespaces()[0].structs[0].name, "Point");
+    }
+
+    #[test]
+    fn test_parse_cpp_nested_namespace() {
+        let parser = CParser::new().expect("Parser creation failed");
+        let source = r#"
+            extern "C" { void dummy(); }
+            namespace outer {
+                namespace inner {
+                    int value() { return 42; }
+                }
+            }
+        "#;
+        let ast = parser.parse(source).expect("Parsing nested namespace");
+        assert_eq!(ast.namespaces().len(), 1);
+        assert_eq!(ast.namespaces()[0].name, "outer");
+        assert_eq!(ast.namespaces()[0].namespaces.len(), 1);
+        assert_eq!(ast.namespaces()[0].namespaces[0].name, "inner");
+        assert_eq!(ast.namespaces()[0].namespaces[0].functions.len(), 1);
+    }
+
+    #[test]
+    fn test_parse_cpp_namespace_with_class() {
+        let parser = CParser::new().expect("Parser creation failed");
+        let source = r#"
+            extern "C" { void dummy(); }
+            namespace shapes {
+                class Circle {
+                public:
+                    int radius;
+                    int area() { return 3 * radius * radius; }
+                };
+            }
+        "#;
+        let ast = parser.parse(source).expect("Parsing namespace with class");
+        assert_eq!(ast.namespaces().len(), 1);
+        assert_eq!(ast.namespaces()[0].name, "shapes");
+        assert_eq!(ast.namespaces()[0].classes.len(), 1);
+        assert_eq!(ast.namespaces()[0].classes[0].name, "Circle");
+    }
+
+    // =========================================================================
     // Original tests
     // =========================================================================
 

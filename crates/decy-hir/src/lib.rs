@@ -22,7 +22,9 @@
 #![warn(clippy::all)]
 #![deny(unsafe_code)]
 
-
+#[macro_use]
+#[allow(unused_macros)]
+mod generated_contracts;
 
 /// Represents a C type in HIR.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -102,6 +104,7 @@ impl HirType {
     /// assert_eq!(hir_type, HirType::Int);
     /// ```
     pub fn from_ast_type(ast_type: &decy_parser::parser::Type) -> Self {
+        contract_pre_parse!();
         use decy_parser::parser::Type;
         match ast_type {
             Type::Void => HirType::Void,
@@ -300,6 +303,85 @@ impl HirClass {
     /// Whether this class has a destructor (needs Drop impl).
     pub fn has_destructor(&self) -> bool {
         self.has_destructor
+    }
+}
+
+/// Represents a C++ namespace in HIR (DECY-201).
+///
+/// Maps to Rust `mod` block. Contains functions, structs, classes, and
+/// nested namespaces.
+#[derive(Debug, Clone, PartialEq)]
+pub struct HirNamespace {
+    name: String,
+    functions: Vec<HirFunction>,
+    structs: Vec<HirStruct>,
+    classes: Vec<HirClass>,
+    namespaces: Vec<HirNamespace>,
+}
+
+impl HirNamespace {
+    /// Create a new HIR namespace.
+    pub fn new(name: String) -> Self {
+        Self {
+            name,
+            functions: Vec::new(),
+            structs: Vec::new(),
+            classes: Vec::new(),
+            namespaces: Vec::new(),
+        }
+    }
+
+    /// Convert from parser AST namespace to HIR namespace.
+    pub fn from_ast_namespace(ast_ns: &decy_parser::parser::Namespace) -> Self {
+        Self {
+            name: ast_ns.name.clone(),
+            functions: ast_ns.functions.iter().map(HirFunction::from_ast_function).collect(),
+            structs: ast_ns
+                .structs
+                .iter()
+                .map(|s| {
+                    HirStruct::new(
+                        s.name().to_string(),
+                        s.fields()
+                            .iter()
+                            .map(|f| {
+                                HirStructField::new(
+                                    f.name().to_string(),
+                                    HirType::from_ast_type(&f.field_type),
+                                )
+                            })
+                            .collect(),
+                    )
+                })
+                .collect(),
+            classes: ast_ns.classes.iter().map(HirClass::from_ast_class).collect(),
+            namespaces: ast_ns.namespaces.iter().map(HirNamespace::from_ast_namespace).collect(),
+        }
+    }
+
+    /// Get the namespace name.
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    /// Get the functions in this namespace.
+    pub fn functions(&self) -> &[HirFunction] {
+        &self.functions
+    }
+
+    /// Get the structs in this namespace.
+    pub fn structs(&self) -> &[HirStruct] {
+        &self.structs
+    }
+
+    /// Get the classes in this namespace.
+    pub fn classes(&self) -> &[HirClass] {
+        &self.classes
+    }
+
+    /// Get nested namespaces.
+    pub fn namespaces(&self) -> &[HirNamespace] {
+        &self.namespaces
     }
 }
 
@@ -602,6 +684,7 @@ impl HirParameter {
 
     /// Convert from parser AST parameter to HIR parameter.
     pub fn from_ast_parameter(ast_param: &decy_parser::parser::Parameter) -> Self {
+        contract_pre_parse!();
         Self {
             name: ast_param.name.clone(),
             param_type: HirType::from_ast_type(&ast_param.param_type),
