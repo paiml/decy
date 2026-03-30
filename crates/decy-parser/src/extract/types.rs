@@ -235,10 +235,15 @@ extern "C" fn visit_class_children(
                 n
             };
             // clang spells base specifiers as "class BaseClass" or "struct BaseClass"
-            let clean_name = base_name
+            // DECY-220: Also strip namespace qualifiers (vecmath::Vec2 -> Vec2)
+            let stripped = base_name
                 .strip_prefix("class ")
                 .or_else(|| base_name.strip_prefix("struct "))
-                .unwrap_or(&base_name)
+                .unwrap_or(&base_name);
+            let clean_name = stripped
+                .rsplit("::")
+                .next()
+                .unwrap_or(stripped)
                 .to_string();
             if !clean_name.is_empty() {
                 class.base_class = Some(clean_name);

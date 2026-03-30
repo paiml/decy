@@ -2207,7 +2207,29 @@ impl CodeGenerator {
             );
         }
         let hir_struct = decy_hir::HirStruct::new(hir_class.name().to_string(), fields);
-        code.push_str(&self.generate_struct(&hir_struct));
+        let mut struct_code = self.generate_struct(&hir_struct);
+
+        // DECY-220: Fix derive conflicts found by dogfooding
+        // Can't derive Copy when class has destructor (impl Drop)
+        if hir_class.has_destructor() {
+            struct_code = struct_code.replace("Copy, ", "").replace(", Copy", "");
+        }
+        // Can't derive PartialEq when operator== generates impl PartialEq
+        let has_eq_operator = hir_class.methods().iter().any(|m| {
+            m.operator_kind() == Some(decy_hir::HirCxxOperatorKind::Equal)
+        });
+        if has_eq_operator {
+            struct_code = struct_code
+                .replace(", PartialEq, Eq", "")
+                .replace(", PartialEq", "")
+                .replace("PartialEq, ", "");
+        }
+        // Can't derive Eq when base class has custom PartialEq (no Eq guarantee)
+        if hir_class.base_class().is_some() {
+            struct_code = struct_code.replace(", Eq", "").replace("Eq, ", "");
+        }
+
+        code.push_str(&struct_code);
         code.push_str("\n\n");
 
         // DECY-215: Only emit impl block if there's content (constructor or methods)
