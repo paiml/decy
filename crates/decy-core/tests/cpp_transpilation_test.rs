@@ -178,3 +178,73 @@ public:
         rust_code
     );
 }
+
+// =========================================================================
+// DECY-210: Phase 2 - operator overloading E2E tests
+// =========================================================================
+
+#[test]
+fn test_cpp_operator_overloading_add() {
+    let cpp_code = r#"
+extern "C" { void __dummy(); }
+class Vec2 {
+public:
+    int x;
+    int y;
+    Vec2 operator+(Vec2 other) { Vec2 result; result.x = x + other.x; result.y = y + other.y; return result; }
+};
+"#;
+
+    let result = transpile(cpp_code);
+    assert!(result.is_ok(), "Operator overloading transpilation failed: {:?}", result.err());
+
+    let rust_code = result.unwrap();
+
+    assert!(
+        rust_code.contains("pub struct Vec2"),
+        "Expected struct Vec2, got:\n{}",
+        rust_code
+    );
+    assert!(
+        rust_code.contains("impl std::ops::Add"),
+        "Expected Add trait impl for operator+, got:\n{}",
+        rust_code
+    );
+    assert!(
+        rust_code.contains("type Output"),
+        "Expected Output associated type, got:\n{}",
+        rust_code
+    );
+}
+
+#[test]
+fn test_cpp_operator_equality() {
+    let cpp_code = r#"
+extern "C" { void __dummy(); }
+class Point {
+public:
+    int x;
+    int y;
+    int get_x() { return x; }
+    bool operator==(Point other) { return x == other.x && y == other.y; }
+};
+"#;
+
+    let result = transpile(cpp_code);
+    assert!(result.is_ok(), "Equality operator transpilation failed: {:?}", result.err());
+
+    let rust_code = result.unwrap();
+
+    // Regular method should be in impl block
+    assert!(
+        rust_code.contains("fn get_x("),
+        "Expected regular method get_x, got:\n{}",
+        rust_code
+    );
+    // Operator== should generate PartialEq
+    assert!(
+        rust_code.contains("impl PartialEq for Point"),
+        "Expected PartialEq impl for operator==, got:\n{}",
+        rust_code
+    );
+}
