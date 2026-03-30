@@ -11533,3 +11533,38 @@ sprint_cpp_cuda:
       description: |
         CUDA keywords detected in inline source, qualifier preserved through
         borrow_gen, array_slice, optimize transformations. CUDA example added.
+
+    DECY-222:
+      title: "Fix trailing comma in empty method parameter lists"
+      type: bug
+      priority: medium
+      story_points: 1
+      assignee: Claude
+      status: done
+      phase: DONE
+      completed_date: "2026-03-30"
+
+    DECY-223:
+      title: "rustc compilation E2E tests for C++ output"
+      type: quality
+      priority: critical
+      story_points: 5
+      assignee: Claude
+      status: done
+      phase: DONE
+      completed_date: "2026-03-30"
+      description: |
+        5 tests that transpile C++ and verify output compiles with rustc.
+        Most rigorous validation: if it doesn't compile, it doesn't count.
+
+    DECY-224:
+      title: "Provable contract: cuda-kernel-safety-v1"
+      type: quality
+      priority: high
+      story_points: 3
+      assignee: Claude
+      status: done
+      phase: DONE
+      completed_date: "2026-03-30"
+      description: |
+        3 equations, 4 falsification tests, 4 bindings for CUDA transpilation.
