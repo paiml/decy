@@ -2226,8 +2226,8 @@ impl CodeGenerator {
             code.push_str("    }\n\n");
         }
 
-        // Generate methods
-        for method in hir_class.methods() {
+        // Generate regular methods (non-operator)
+        for method in hir_class.methods().iter().filter(|m| m.operator_kind().is_none()) {
             let func = method.function();
             let self_param = if method.is_static() {
                 ""
@@ -2237,7 +2237,6 @@ impl CodeGenerator {
                 "&mut self, "
             };
 
-            // Method signature
             let params: Vec<String> = func
                 .parameters()
                 .iter()
@@ -2258,11 +2257,8 @@ impl CodeGenerator {
                 return_type,
             ));
 
-            // Generate method body
             if func.body().is_empty() {
-                if *func.return_type() == decy_hir::HirType::Void {
-                    // Empty void method
-                } else {
+                if *func.return_type() != decy_hir::HirType::Void {
                     code.push_str("        Default::default()\n");
                 }
             } else {
@@ -2278,6 +2274,77 @@ impl CodeGenerator {
         }
 
         code.push_str("}\n");
+
+        // DECY-208: Generate std::ops trait impls for operator methods
+        let class_name = hir_class.name();
+        for method in hir_class.methods().iter().filter(|m| m.operator_kind().is_some()) {
+            let op = method.operator_kind().unwrap();
+            let func = method.function();
+            let return_type = Self::map_type(func.return_type());
+
+            // Get the RHS parameter type (first parameter of operator method)
+            let rhs_type = func.parameters().first().map_or(
+                class_name.to_string(),
+                |p| Self::map_type(p.param_type()),
+            );
+
+            use decy_hir::HirCxxOperatorKind as Op;
+            match op {
+                Op::Add | Op::Sub | Op::Mul | Op::Div | Op::Rem => {
+                    let (trait_name, method_name) = match op {
+                        Op::Add => ("Add", "add"),
+                        Op::Sub => ("Sub", "sub"),
+                        Op::Mul => ("Mul", "mul"),
+                        Op::Div => ("Div", "div"),
+                        Op::Rem => ("Rem", "rem"),
+                        _ => unreachable!(),
+                    };
+                    code.push_str(&format!(
+                        "\nimpl std::ops::{}<{}> for {} {{\n",
+                        trait_name, rhs_type, class_name
+                    ));
+                    code.push_str(&format!("    type Output = {};\n\n", return_type));
+                    code.push_str(&format!(
+                        "    fn {}(self, rhs: {}) -> Self::Output {{\n",
+                        method_name, rhs_type
+                    ));
+                    code.push_str("        Default::default()\n");
+                    code.push_str("    }\n");
+                    code.push_str("}\n");
+                }
+                Op::Equal => {
+                    code.push_str(&format!("\nimpl PartialEq for {} {{\n", class_name));
+                    code.push_str("    fn eq(&self, other: &Self) -> bool {\n");
+                    code.push_str("        Default::default()\n");
+                    code.push_str("    }\n");
+                    code.push_str("}\n");
+                }
+                Op::AddAssign | Op::SubAssign => {
+                    let (trait_name, method_name) = match op {
+                        Op::AddAssign => ("AddAssign", "add_assign"),
+                        Op::SubAssign => ("SubAssign", "sub_assign"),
+                        _ => unreachable!(),
+                    };
+                    code.push_str(&format!(
+                        "\nimpl std::ops::{}<{}> for {} {{\n",
+                        trait_name, rhs_type, class_name
+                    ));
+                    code.push_str(&format!(
+                        "    fn {}(&mut self, rhs: {}) {{\n",
+                        method_name, rhs_type
+                    ));
+                    code.push_str("    }\n");
+                    code.push_str("}\n");
+                }
+                _ => {
+                    // Other operators: emit as comment
+                    code.push_str(&format!(
+                        "\n// TODO: impl operator {:?} for {}\n",
+                        op, class_name
+                    ));
+                }
+            }
+        }
 
         // Generate Drop impl if destructor exists
         if hir_class.has_destructor() {

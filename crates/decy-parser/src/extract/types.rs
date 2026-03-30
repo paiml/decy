@@ -185,12 +185,15 @@ extern "C" fn visit_class_children(
                 let is_const = unsafe { clang_CXXMethod_isConst(cursor) != 0 };
                 let is_static = unsafe { clang_CXXMethod_isStatic(cursor) != 0 };
                 let is_virtual = unsafe { clang_CXXMethod_isVirtual(cursor) != 0 };
+                // DECY-208: Detect overloaded operators from function name
+                let operator_kind = detect_operator_kind(&func.name);
                 class.methods.push(Method {
                     function: func,
-                    access: AccessSpecifier::Public, // simplified: default to public
+                    access: AccessSpecifier::Public,
                     is_const,
                     is_static,
                     is_virtual,
+                    operator_kind,
                 });
             }
         }
@@ -226,6 +229,31 @@ extern "C" fn visit_class_children(
     }
 
     CXChildVisit_Continue
+}
+
+/// Detect C++ operator kind from method name (DECY-208).
+///
+/// Clang spells overloaded operators as "operator+", "operator==", etc.
+fn detect_operator_kind(name: &str) -> Option<CxxOperatorKind> {
+    match name {
+        "operator+" => Some(CxxOperatorKind::Add),
+        "operator-" => Some(CxxOperatorKind::Sub),
+        "operator*" => Some(CxxOperatorKind::Mul),
+        "operator/" => Some(CxxOperatorKind::Div),
+        "operator%" => Some(CxxOperatorKind::Rem),
+        "operator==" => Some(CxxOperatorKind::Equal),
+        "operator!=" => Some(CxxOperatorKind::NotEqual),
+        "operator<" => Some(CxxOperatorKind::Less),
+        "operator<=" => Some(CxxOperatorKind::LessEqual),
+        "operator>" => Some(CxxOperatorKind::Greater),
+        "operator>=" => Some(CxxOperatorKind::GreaterEqual),
+        "operator[]" => Some(CxxOperatorKind::Index),
+        "operator<<" => Some(CxxOperatorKind::Shl),
+        "operator>>" => Some(CxxOperatorKind::Shr),
+        "operator+=" => Some(CxxOperatorKind::AddAssign),
+        "operator-=" => Some(CxxOperatorKind::SubAssign),
+        _ => None,
+    }
 }
 
 /// Extract a C++ namespace from a CXCursor_Namespace cursor (DECY-201).

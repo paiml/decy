@@ -558,6 +558,45 @@ pub enum AccessSpecifier {
     Private,
 }
 
+/// C++ overloaded operator kind (DECY-208).
+///
+/// Maps to Rust `std::ops` traits in codegen.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CxxOperatorKind {
+    /// operator+ -> std::ops::Add
+    Add,
+    /// operator- -> std::ops::Sub
+    Sub,
+    /// operator* -> std::ops::Mul
+    Mul,
+    /// operator/ -> std::ops::Div
+    Div,
+    /// operator% -> std::ops::Rem
+    Rem,
+    /// operator== -> PartialEq::eq
+    Equal,
+    /// operator!= -> PartialEq::ne (derived from eq)
+    NotEqual,
+    /// operator< -> PartialOrd::lt
+    Less,
+    /// operator<= -> PartialOrd::le
+    LessEqual,
+    /// operator> -> PartialOrd::gt
+    Greater,
+    /// operator>= -> PartialOrd::ge
+    GreaterEqual,
+    /// operator[] -> std::ops::Index
+    Index,
+    /// operator<< -> std::ops::Shl (or Display for ostream)
+    Shl,
+    /// operator>> -> std::ops::Shr
+    Shr,
+    /// operator+= -> std::ops::AddAssign
+    AddAssign,
+    /// operator-= -> std::ops::SubAssign
+    SubAssign,
+}
+
 /// A C++ class method with its access level (DECY-200).
 #[derive(Debug, Clone, PartialEq)]
 pub struct Method {
@@ -571,6 +610,8 @@ pub struct Method {
     pub is_static: bool,
     /// Whether this is virtual
     pub is_virtual: bool,
+    /// Overloaded operator kind, if this is an operator method (DECY-208)
+    pub operator_kind: Option<CxxOperatorKind>,
 }
 
 /// Represents a C++ class (DECY-200).

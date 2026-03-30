@@ -179,6 +179,33 @@ impl HirStruct {
     }
 }
 
+/// C++ operator kind in HIR (DECY-208).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum HirCxxOperatorKind {
+    /// operator+ -> impl Add
+    Add,
+    /// operator- -> impl Sub
+    Sub,
+    /// operator* -> impl Mul
+    Mul,
+    /// operator/ -> impl Div
+    Div,
+    /// operator% -> impl Rem
+    Rem,
+    /// operator== -> impl PartialEq
+    Equal,
+    /// operator!= (derived from PartialEq)
+    NotEqual,
+    /// operator< -> impl PartialOrd
+    Less,
+    /// operator[] -> impl Index
+    Index,
+    /// operator+= -> impl AddAssign
+    AddAssign,
+    /// operator-= -> impl SubAssign
+    SubAssign,
+}
+
 /// Represents a C++ method in HIR (DECY-200).
 #[derive(Debug, Clone, PartialEq)]
 pub struct HirMethod {
@@ -190,12 +217,14 @@ pub struct HirMethod {
     is_static: bool,
     /// Whether this is virtual (maps to dyn Trait dispatch)
     is_virtual: bool,
+    /// Overloaded operator kind (DECY-208)
+    operator_kind: Option<HirCxxOperatorKind>,
 }
 
 impl HirMethod {
     /// Create a new HIR method.
     pub fn new(function: HirFunction, is_const: bool, is_static: bool, is_virtual: bool) -> Self {
-        Self { function, is_const, is_static, is_virtual }
+        Self { function, is_const, is_static, is_virtual, operator_kind: None }
     }
 
     /// Get the underlying function.
@@ -216,6 +245,11 @@ impl HirMethod {
     /// Whether this method is virtual (trait dispatch candidate).
     pub fn is_virtual(&self) -> bool {
         self.is_virtual
+    }
+
+    /// Get the operator kind if this is an overloaded operator (DECY-208).
+    pub fn operator_kind(&self) -> Option<HirCxxOperatorKind> {
+        self.operator_kind
     }
 }
 
@@ -256,12 +290,31 @@ impl HirClass {
             .methods
             .iter()
             .map(|m| {
-                HirMethod::new(
+                let mut method = HirMethod::new(
                     HirFunction::from_ast_function(&m.function),
                     m.is_const,
                     m.is_static,
                     m.is_virtual,
-                )
+                );
+                method.operator_kind = m.operator_kind.map(|op| {
+                    use decy_parser::parser::CxxOperatorKind as P;
+                    match op {
+                        P::Add => HirCxxOperatorKind::Add,
+                        P::Sub => HirCxxOperatorKind::Sub,
+                        P::Mul => HirCxxOperatorKind::Mul,
+                        P::Div => HirCxxOperatorKind::Div,
+                        P::Rem => HirCxxOperatorKind::Rem,
+                        P::Equal | P::NotEqual => HirCxxOperatorKind::Equal,
+                        P::Less | P::LessEqual | P::Greater | P::GreaterEqual => {
+                            HirCxxOperatorKind::Less
+                        }
+                        P::Index => HirCxxOperatorKind::Index,
+                        P::AddAssign => HirCxxOperatorKind::AddAssign,
+                        P::SubAssign => HirCxxOperatorKind::SubAssign,
+                        P::Shl | P::Shr => HirCxxOperatorKind::Add, // fallback
+                    }
+                });
+                method
             })
             .collect();
 

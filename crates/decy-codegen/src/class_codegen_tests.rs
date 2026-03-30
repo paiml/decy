@@ -97,6 +97,7 @@ fn test_generate_class_with_method() {
             is_const: true,
             is_static: false,
             is_virtual: false,
+            operator_kind: None,
         }],
         constructor_params: vec![],
         has_destructor: false,
