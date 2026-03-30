@@ -250,6 +250,43 @@ public:
 }
 
 // =========================================================================
+// DECY-225: new/delete E2E test
+// =========================================================================
+
+#[test]
+fn test_cpp_new_generates_box_new() {
+    let cpp_code = r#"
+extern "C" { void __m(); }
+class Obj {
+public:
+    int val;
+    Obj(int v) : val(v) {}
+    ~Obj() {}
+};
+void test() {
+    Obj* o = new Obj(42);
+    delete o;
+}
+"#;
+
+    let result = transpile(cpp_code);
+    assert!(result.is_ok(), "new/delete transpilation failed: {:?}", result.err());
+
+    let rust_code = result.unwrap();
+
+    assert!(
+        rust_code.contains("Box::new(Obj::new(42))"),
+        "new Obj(42) should become Box::new(Obj::new(42)), got:\n{}",
+        rust_code
+    );
+    assert!(
+        rust_code.contains("drop(o)"),
+        "delete o should become drop(o), got:\n{}",
+        rust_code
+    );
+}
+
+// =========================================================================
 // DECY-209: Single inheritance E2E test
 // =========================================================================
 

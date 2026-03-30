@@ -200,3 +200,32 @@ namespace collections {
         result.err()
     );
 }
+
+#[test]
+#[ignore = "Known limitation: new returns Box<T> but var type is *mut T — needs ownership inference upgrade"]
+fn test_cpp_new_delete_compiles_with_rustc() {
+    let cpp_code = r#"
+extern "C" { void __m(); }
+class Resource {
+public:
+    int handle;
+    Resource(int h) : handle(h) {}
+    int get() { return handle; }
+    ~Resource() {}
+};
+void use_resource() {
+    Resource* r = new Resource(42);
+    delete r;
+}
+"#;
+
+    let rust_code = transpile(cpp_code).expect("Transpilation failed");
+    let clean = strip_noise(&rust_code);
+    let result = compile_rust_code(&clean);
+    assert!(
+        result.is_ok(),
+        "new/delete transpilation should compile:\n{}\nErrors: {:?}",
+        clean,
+        result.err()
+    );
+}
