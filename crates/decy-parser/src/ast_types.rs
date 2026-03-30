@@ -535,6 +535,63 @@ impl Struct {
     }
 }
 
+/// C++ access specifier (DECY-200).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum AccessSpecifier {
+    /// public:
+    Public,
+    /// protected:
+    Protected,
+    /// private: (default for class)
+    Private,
+}
+
+/// A C++ class method with its access level (DECY-200).
+#[derive(Debug, Clone, PartialEq)]
+pub struct Method {
+    /// The function definition
+    pub function: Function,
+    /// Access specifier (public/protected/private)
+    pub access: AccessSpecifier,
+    /// Whether this is a const method
+    pub is_const: bool,
+    /// Whether this is a static method
+    pub is_static: bool,
+    /// Whether this is virtual
+    pub is_virtual: bool,
+}
+
+/// Represents a C++ class (DECY-200).
+///
+/// Maps to Rust `struct` + `impl` block. Constructors become `new()`,
+/// destructors become `impl Drop`.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Class {
+    /// Class name
+    pub name: String,
+    /// Data fields (inherited from struct model)
+    pub fields: Vec<StructField>,
+    /// Methods (including constructors/destructors)
+    pub methods: Vec<Method>,
+    /// Constructor parameters (from the first constructor found)
+    pub constructor_params: Vec<Parameter>,
+    /// Whether a destructor was defined
+    pub has_destructor: bool,
+}
+
+impl Class {
+    /// Create a new empty class.
+    pub fn new(name: String) -> Self {
+        Self {
+            name,
+            fields: Vec::new(),
+            methods: Vec::new(),
+            constructor_params: Vec::new(),
+            has_destructor: false,
+        }
+    }
+}
+
 /// Represents a variable declaration.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Variable {
@@ -730,6 +787,8 @@ pub struct Ast {
     macros: Vec<MacroDefinition>,
     variables: Vec<Variable>,
     enums: Vec<Enum>,
+    /// C++ classes (DECY-200)
+    classes: Vec<Class>,
 }
 
 /// Represents a C macro definition (#define).
@@ -818,6 +877,7 @@ impl Ast {
             macros: Vec::new(),
             variables: Vec::new(),
             enums: Vec::new(),
+            classes: Vec::new(),
         }
     }
 
@@ -883,6 +943,18 @@ impl Ast {
     /// Add an enum to the AST.
     pub fn add_enum(&mut self, enum_def: Enum) {
         self.enums.push(enum_def);
+    }
+
+    /// Get the C++ classes in the AST (DECY-200).
+    pub fn classes(&self) -> &[Class] {
+        &self.classes
+    }
+
+    /// Add a C++ class to the AST (DECY-200).
+    pub fn add_class(&mut self, class: Class) {
+        if !self.classes.iter().any(|c| c.name == class.name) {
+            self.classes.push(class);
+        }
     }
 }
 

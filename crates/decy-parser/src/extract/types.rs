@@ -124,6 +124,110 @@ extern "C" fn visit_cuda_attrs(
     CXChildVisit_Continue
 }
 
+/// Extract a C++ class from a CXCursor_ClassDecl cursor (DECY-200).
+///
+/// Visits class children to find fields, methods, constructors, and destructors.
+/// Maps to AST `Class` struct for downstream conversion to Rust struct + impl.
+pub(crate) fn extract_class(cursor: CXCursor) -> Option<Class> {
+    let name_cxstring = unsafe { clang_getCursorSpelling(cursor) };
+    let name = unsafe {
+        let c_str = CStr::from_ptr(clang_getCString(name_cxstring));
+        let n = c_str.to_string_lossy().into_owned();
+        clang_disposeString(name_cxstring);
+        n
+    };
+
+    // Skip anonymous classes
+    if name.is_empty() {
+        return None;
+    }
+
+    let mut class = Class::new(name);
+    let class_ptr = &mut class as *mut Class;
+
+    unsafe {
+        clang_visitChildren(cursor, visit_class_children, class_ptr as CXClientData);
+    }
+
+    Some(class)
+}
+
+/// Visitor callback for C++ class children (DECY-200).
+///
+/// Handles: CXCursor_FieldDecl, CXCursor_CXXMethod, CXCursor_Constructor,
+/// CXCursor_Destructor, CXCursor_CXXAccessSpecifier.
+extern "C" fn visit_class_children(
+    cursor: CXCursor,
+    _parent: CXCursor,
+    client_data: CXClientData,
+) -> CXChildVisitResult {
+    let class = unsafe { &mut *(client_data as *mut Class) };
+    let kind = unsafe { clang_getCursorKind(cursor) };
+
+    match kind {
+        // CXCursor_FieldDecl = 6
+        6 => {
+            let field_name_cx = unsafe { clang_getCursorSpelling(cursor) };
+            let field_name = unsafe {
+                let c_str = CStr::from_ptr(clang_getCString(field_name_cx));
+                let n = c_str.to_string_lossy().into_owned();
+                clang_disposeString(field_name_cx);
+                n
+            };
+            let field_type = unsafe { clang_getCursorType(cursor) };
+            if let Some(ft) = convert_type(field_type) {
+                class.fields.push(StructField::new(field_name, ft));
+            }
+        }
+        // CXCursor_CXXMethod = 21
+        21 => {
+            if let Some(func) = extract_function(cursor) {
+                let is_const = unsafe { clang_CXXMethod_isConst(cursor) != 0 };
+                let is_static = unsafe { clang_CXXMethod_isStatic(cursor) != 0 };
+                let is_virtual = unsafe { clang_CXXMethod_isVirtual(cursor) != 0 };
+                class.methods.push(Method {
+                    function: func,
+                    access: AccessSpecifier::Public, // simplified: default to public
+                    is_const,
+                    is_static,
+                    is_virtual,
+                });
+            }
+        }
+        // CXCursor_Constructor = 24
+        24 => {
+            // Extract constructor parameters
+            let num_args = unsafe { clang_Cursor_getNumArguments(cursor) };
+            let mut params = Vec::new();
+            for i in 0..num_args {
+                let arg_cursor = unsafe { clang_Cursor_getArgument(cursor, i as u32) };
+                let param_name_cx = unsafe { clang_getCursorSpelling(arg_cursor) };
+                let param_name = unsafe {
+                    let c_str = CStr::from_ptr(clang_getCString(param_name_cx));
+                    let n = c_str.to_string_lossy().into_owned();
+                    clang_disposeString(param_name_cx);
+                    n
+                };
+                let param_type = unsafe { clang_getCursorType(arg_cursor) };
+                if let Some(pt) = convert_type(param_type) {
+                    params.push(Parameter::new(param_name, pt));
+                }
+            }
+            // Store first constructor's params (primary constructor)
+            if class.constructor_params.is_empty() {
+                class.constructor_params = params;
+            }
+        }
+        // CXCursor_Destructor = 25
+        25 => {
+            class.has_destructor = true;
+        }
+        _ => {}
+    }
+
+    CXChildVisit_Continue
+}
+
 /// Extract typedef information from a clang cursor.
 /// Returns (Option<Typedef>, Option<Struct>) - struct is Some when typedef is for anonymous struct.
 pub(crate) fn extract_typedef(cursor: CXCursor) -> (Option<Typedef>, Option<Struct>) {

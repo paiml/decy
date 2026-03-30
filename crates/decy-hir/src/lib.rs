@@ -179,6 +179,133 @@ impl HirStruct {
     }
 }
 
+/// Represents a C++ method in HIR (DECY-200).
+#[derive(Debug, Clone, PartialEq)]
+pub struct HirMethod {
+    /// The function definition
+    function: HirFunction,
+    /// Whether this is a const method (maps to &self vs &mut self)
+    is_const: bool,
+    /// Whether this is static (associated function, no self)
+    is_static: bool,
+    /// Whether this is virtual (maps to dyn Trait dispatch)
+    is_virtual: bool,
+}
+
+impl HirMethod {
+    /// Create a new HIR method.
+    pub fn new(function: HirFunction, is_const: bool, is_static: bool, is_virtual: bool) -> Self {
+        Self { function, is_const, is_static, is_virtual }
+    }
+
+    /// Get the underlying function.
+    pub fn function(&self) -> &HirFunction {
+        &self.function
+    }
+
+    /// Whether this method takes &self (const) vs &mut self.
+    pub fn is_const(&self) -> bool {
+        self.is_const
+    }
+
+    /// Whether this is an associated function (no self parameter).
+    pub fn is_static(&self) -> bool {
+        self.is_static
+    }
+
+    /// Whether this method is virtual (trait dispatch candidate).
+    pub fn is_virtual(&self) -> bool {
+        self.is_virtual
+    }
+}
+
+/// Represents a C++ class in HIR (DECY-200).
+///
+/// Maps to Rust: `struct Name { fields }` + `impl Name { methods }` +
+/// optionally `impl Drop for Name { fn drop() }`.
+#[derive(Debug, Clone, PartialEq)]
+pub struct HirClass {
+    name: String,
+    fields: Vec<HirStructField>,
+    methods: Vec<HirMethod>,
+    constructor_params: Vec<HirParameter>,
+    has_destructor: bool,
+}
+
+impl HirClass {
+    /// Create a new HIR class.
+    pub fn new(name: String) -> Self {
+        Self {
+            name,
+            fields: Vec::new(),
+            methods: Vec::new(),
+            constructor_params: Vec::new(),
+            has_destructor: false,
+        }
+    }
+
+    /// Convert from parser AST class to HIR class.
+    pub fn from_ast_class(ast_class: &decy_parser::parser::Class) -> Self {
+        let fields = ast_class
+            .fields
+            .iter()
+            .map(|f| HirStructField::new(f.name().to_string(), HirType::from_ast_type(&f.field_type)))
+            .collect();
+
+        let methods = ast_class
+            .methods
+            .iter()
+            .map(|m| {
+                HirMethod::new(
+                    HirFunction::from_ast_function(&m.function),
+                    m.is_const,
+                    m.is_static,
+                    m.is_virtual,
+                )
+            })
+            .collect();
+
+        let constructor_params = ast_class
+            .constructor_params
+            .iter()
+            .map(HirParameter::from_ast_parameter)
+            .collect();
+
+        Self {
+            name: ast_class.name.clone(),
+            fields,
+            methods,
+            constructor_params,
+            has_destructor: ast_class.has_destructor,
+        }
+    }
+
+    /// Get the class name.
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    /// Get the class fields.
+    pub fn fields(&self) -> &[HirStructField] {
+        &self.fields
+    }
+
+    /// Get the class methods.
+    pub fn methods(&self) -> &[HirMethod] {
+        &self.methods
+    }
+
+    /// Get constructor parameters.
+    pub fn constructor_params(&self) -> &[HirParameter] {
+        &self.constructor_params
+    }
+
+    /// Whether this class has a destructor (needs Drop impl).
+    pub fn has_destructor(&self) -> bool {
+        self.has_destructor
+    }
+}
+
 /// Represents an enum variant in HIR.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct HirEnumVariant {

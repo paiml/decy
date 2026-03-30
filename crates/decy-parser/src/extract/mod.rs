@@ -13,7 +13,7 @@ mod expressions;
 
 pub(crate) use types::{
     extract_function, extract_typedef, extract_struct, extract_enum,
-    extract_variable, extract_macro,
+    extract_variable, extract_macro, extract_class,
 };
 
 use crate::ast_types::*;
@@ -201,6 +201,11 @@ pub(crate) extern "C" fn visit_function(
         // DECY-240: Extract enum declaration
         if let Some(enum_def) = extract_enum(cursor) {
             ast.add_enum(enum_def);
+        }
+    } else if kind == 4 {
+        // CXCursor_ClassDecl = 4 (DECY-200: C++ class extraction)
+        if let Some(class) = extract_class(cursor) {
+            ast.add_class(class);
         }
     } else if kind == CXCursor_MacroDefinition {
         // Extract macro definition (only from main file, not includes)
