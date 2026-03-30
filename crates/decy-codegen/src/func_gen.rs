@@ -1376,6 +1376,19 @@ impl CodeGenerator {
     /// assert!(code.contains("}"));
     /// ```
     pub fn generate_function(&self, func: &HirFunction) -> String {
+        // DECY-211: CUDA __global__ kernels -> extern "C" FFI wrapper
+        if func.cuda_qualifier() == Some(decy_hir::HirCudaQualifier::Global) {
+            return self.generate_cuda_kernel_ffi(func);
+        }
+        // DECY-211: CUDA __device__ functions -> comment noting device-only
+        if func.cuda_qualifier() == Some(decy_hir::HirCudaQualifier::Device) {
+            let sig = self.generate_signature(func);
+            return format!(
+                "// CUDA __device__ function — runs on GPU only, not transpiled\n// {}\n",
+                sig
+            );
+        }
+
         let mut code = String::new();
 
         // DECY-072 GREEN: Build mapping of length params -> array params for body transformation
@@ -2385,6 +2398,50 @@ impl CodeGenerator {
             code.push_str("    }\n");
             code.push_str("}\n");
         }
+
+        code
+    }
+
+    /// DECY-211: Generate FFI declaration for a CUDA __global__ kernel.
+    ///
+    /// CUDA kernels cannot be directly transpiled to Rust — they run on the GPU.
+    /// Instead, generate an `extern "C"` FFI declaration so host code can call
+    /// the pre-compiled kernel, plus a safe wrapper comment.
+    fn generate_cuda_kernel_ffi(&self, func: &HirFunction) -> String {
+        let mut code = String::new();
+
+        // Generate extern "C" block
+        code.push_str("extern \"C\" {\n");
+        code.push_str(&format!("    /// CUDA kernel: {} (compiled separately)\n", func.name()));
+
+        // Build parameter list as raw C types
+        let params: Vec<String> = func
+            .parameters()
+            .iter()
+            .map(|p| {
+                let ty = match p.param_type() {
+                    decy_hir::HirType::Pointer(inner) => {
+                        format!("*mut {}", Self::map_type(inner))
+                    }
+                    other => Self::map_type(other),
+                };
+                format!("{}: {}", escape_rust_keyword(p.name()), ty)
+            })
+            .collect();
+
+        let return_type = if *func.return_type() == decy_hir::HirType::Void {
+            String::new()
+        } else {
+            format!(" -> {}", Self::map_type(func.return_type()))
+        };
+
+        code.push_str(&format!(
+            "    fn {}({}){};\n",
+            func.name(),
+            params.join(", "),
+            return_type,
+        ));
+        code.push_str("}\n");
 
         code
     }

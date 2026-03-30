@@ -305,3 +305,25 @@ public:
         rust_code
     );
 }
+
+// =========================================================================
+// DECY-211: CUDA kernel FFI E2E test
+// =========================================================================
+
+#[test]
+fn test_cuda_host_function_transpiles_normally() {
+    // A .cu file with just host code should transpile like C
+    let cuda_code = r#"
+int add(int a, int b) { return a + b; }
+"#;
+
+    let result = transpile(cuda_code);
+    assert!(result.is_ok(), "CUDA host code failed: {:?}", result.err());
+
+    let rust_code = result.unwrap();
+    assert!(
+        rust_code.contains("fn add("),
+        "Host function should transpile normally, got:\n{}",
+        rust_code
+    );
+}
