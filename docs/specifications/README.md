@@ -299,14 +299,14 @@ Below 0.6 confidence, the pointer remains raw (`*const T` / `*mut T`) with an
 
 **Validation north star**: `docs/C-VALIDATION-ROADMAP.yaml` (150 constructs mapped)
 
-### 6.2 C++ Support (Planned)
+### 6.2 C++ Support (Phase 1 Complete)
 
-| Feature | Phase | Difficulty | Rust Mapping |
-|---------|-------|------------|-------------|
-| Classes (data + methods) | Phase 1 | Low | `struct` + `impl` |
-| Namespaces | Phase 1 | Low | `mod` modules |
-| Constructors / destructors | Phase 1 | Low-Med | `new()` + `impl Drop` |
-| Single inheritance | Phase 2 | Medium | Composition + traits |
+| Feature | Phase | Status | Rust Mapping |
+|---------|-------|--------|-------------|
+| Classes (data + methods) | Phase 1 | **Complete** (DECY-200) | `struct` + `impl` |
+| Namespaces | Phase 1 | **Complete** (DECY-201) | `mod` modules |
+| Constructors / destructors | Phase 1 | **Complete** (DECY-202) | `new()` + `impl Drop` |
+| Single inheritance | Phase 2 | Planned | Composition + traits |
 | Virtual dispatch | Phase 2 | Medium | `dyn Trait` |
 | Operator overloading | Phase 2 | Low-Med | `std::ops` traits |
 | `new`/`delete` | Phase 2 | Low-Med | `Box::new()` / drop |
@@ -322,14 +322,14 @@ Below 0.6 confidence, the pointer remains raw (`*const T` / `*mut T`) with an
 (`CXCursor_ClassDecl`, `CXCursor_CXXMethod`, `CXCursor_Namespace`,
 `CXCursor_ClassTemplate`, etc.).
 
-### 6.3 CUDA Support (Planned)
+### 6.3 CUDA Support (Phase 1 Partial)
 
-| Feature | Phase | Strategy |
-|---------|-------|----------|
-| `.cu` file parsing | Phase 1 | Pass `-x cuda` to clang |
-| `__global__`, `__device__`, `__host__` qualifiers | Phase 1 | Extract via `CXCursor_CUDAGlobalAttr` (414), `CUDADeviceAttr` (413), `CUDAHostAttr` (415) |
-| `__shared__` memory | Phase 1 | Extract via `CXCursor_CUDASharedAttr` (416) |
-| Host-side C code | Phase 1 | Normal transpilation pipeline |
+| Feature | Phase | Status | Strategy |
+|---------|-------|--------|----------|
+| `.cu` file parsing | Phase 1 | **Complete** (DECY-198) | C++ mode for .cu files |
+| `__global__`, `__device__`, `__host__` qualifiers | Phase 1 | **Complete** (DECY-199) | Extract via `CXCursor_CUDAGlobalAttr` (414), `CUDADeviceAttr` (413), `CUDAHostAttr` (415) |
+| `__shared__` memory | Phase 1 | Planned | Extract via `CXCursor_CUDASharedAttr` (416) |
+| Host-side C code | Phase 1 | **Complete** | Normal transpilation pipeline |
 | `cudaMalloc`/`cudaFree`/`cudaMemcpy` | Phase 2 | RAII wrappers or `cudarc` bindings |
 | Kernel launch `<<<grid, block>>>` | Phase 2 | FFI stubs or `cudarc` API |
 | Thread indexing (`threadIdx`, `blockIdx`) | Phase 2 | Preserved in FFI kernels |
@@ -587,12 +587,17 @@ All work is ticket-driven via `roadmap.yaml`. No code without a ticket. State ch
 
 | Metric | Value |
 |--------|-------|
-| Version | 1.0.0 (on crates.io) |
+| Version | 2.1.0 |
 | Test coverage | 97.60% |
 | Workspace crates | 11 |
 | C constructs mapped | 150 (see C-VALIDATION-ROADMAP.yaml) |
+| C++ features supported | 3 (classes, namespaces, constructors/destructors) |
+| CUDA features supported | 2 (.cu parsing, qualifier extraction) |
+| Parser tests | 172 passing |
+| HIR tests | 192 passing |
 | Compilation success | 100% |
 | Unsafe per 1000 LOC | <5 |
+| PMAT TDG average | 92.8 |
 
 ### 13.2 Supported Transformations
 

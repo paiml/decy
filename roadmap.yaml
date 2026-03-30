@@ -11110,9 +11110,13 @@ sprint_cpp_cuda:
       priority: high
       story_points: 3
       assignee: Claude
-      status: in_progress
-      phase: RED
+      status: done
+      phase: DONE
       started_date: "2026-03-30"
+      completed_date: "2026-03-30"
+      actual_metrics:
+        tests_added: 6
+        tests_passing: 6
       description: |
         Accept .cu files in TranspileProject batch mode (main.rs:710).
         Detect .cu extension in parser and pass -x cuda to clang.
@@ -11137,8 +11141,13 @@ sprint_cpp_cuda:
       priority: high
       story_points: 5
       assignee: Claude
-      status: not_started
-      phase: RED
+      status: done
+      phase: DONE
+      started_date: "2026-03-30"
+      completed_date: "2026-03-30"
+      actual_metrics:
+        enum_variants_added: 4
+        structs_modified: 2
       description: |
         Handle CUDA attribute cursors in parser extraction:
         CXCursor_CUDAGlobalAttr (414), CUDADeviceAttr (413),
@@ -11167,7 +11176,12 @@ sprint_cpp_cuda:
       priority: high
       story_points: 8
       assignee: Claude
-      status: not_started
+      status: done
+      completed_date: "2026-03-30"
+      actual_metrics:
+        tests_added: 4
+        tests_passing: 4
+        types_added: 4
       phase: RED
       description: |
         Extract C++ classes from clang AST. Handle:
@@ -11200,8 +11214,13 @@ sprint_cpp_cuda:
       priority: medium
       story_points: 5
       assignee: Claude
-      status: not_started
-      phase: RED
+      status: done
+      phase: DONE
+      started_date: "2026-03-30"
+      completed_date: "2026-03-30"
+      actual_metrics:
+        tests_added: 4
+        tests_passing: 4
       description: |
         Handle CXCursor_Namespace (22) in parser. Add Namespace to AST
         containing nested functions, structs, classes. Map to Rust module
@@ -11226,8 +11245,13 @@ sprint_cpp_cuda:
       priority: high
       story_points: 8
       assignee: Claude
-      status: not_started
-      phase: RED
+      status: done
+      phase: DONE
+      started_date: "2026-03-30"
+      completed_date: "2026-03-30"
+      actual_metrics:
+        tests_added: 5
+        tests_passing: 5
       description: |
         Generate Rust code from HirClass:
         - Fields -> struct fields (with visibility from access specifiers)
