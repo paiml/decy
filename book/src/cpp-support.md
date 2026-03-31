@@ -182,14 +182,20 @@ fn launch_kernel(a: *mut f32, b: *mut f32, c: *mut f32, n: i32) {
 ## Running the Examples
 
 ```bash
-# C++ feature demo (4 demos with assertions)
-cargo run -p decy-core --example cpp_class_transpile_demo
+# C++ feature demos
+cargo run -p decy-core --example cpp_class_transpile_demo      # class/ctor/dtor
+cargo run -p decy-core --example cpp_inheritance_demo           # inheritance + Deref
+cargo run -p decy-core --example cpp_operator_demo              # operator+ / == / dot product
+cargo run -p decy-core --example cpp_namespace_demo             # namespaces + nested mods
+cargo run -p decy-core --example cpp_new_delete_demo            # new/delete -> Box/drop
+cargo run -p decy-core --example cpp_full_program_demo          # ALL features (12 checks)
 
-# CUDA transpilation demo (3 demos)
-cargo run -p decy-core --example cuda_transpile_demo
+# CUDA demos
+cargo run -p decy-core --example cuda_transpile_demo            # kernel FFI + host
+cargo run -p decy-core --example cuda_kernel_ffi_demo           # 3 kernels + 2 host funcs
 
-# Dogfood validation (5 tests compiled with rustc)
-cargo run -p decy-core --example dogfood_validation_demo
+# Validation
+cargo run -p decy-core --example dogfood_validation_demo        # 5 patterns + rustc
 ```
 
 ## Limitations

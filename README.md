@@ -270,10 +270,26 @@ cargo llvm-cov --workspace      # Coverage
 
 ---
 
+## C++ and CUDA Support
+
+Decy transpiles C++ classes, namespaces, operators, inheritance, `new`/`delete`, and CUDA kernels to idiomatic Rust. All output compiles with `rustc --edition 2021`.
+
+```bash
+# Try it — 9 runnable examples
+cargo run -p decy-core --example cpp_class_transpile_demo
+cargo run -p decy-core --example cpp_inheritance_demo
+cargo run -p decy-core --example cpp_operator_demo
+cargo run -p decy-core --example cuda_kernel_ffi_demo
+cargo run -p decy-core --example dogfood_validation_demo   # proves output compiles
+```
+
+See [C++ Transpilation Guide](book/src/cpp-support.md) for details.
+
 ## Documentation
 
 - **[Getting Started](GETTING_STARTED.md)** - Developer guide
 - **[Specification](docs/specifications/README.md)** - Technical spec (entry point)
+- **[C++ Support](book/src/cpp-support.md)** - C++ and CUDA transpilation guide
 - **[Unsafe Strategy](docs/specifications/components/decy-unsafe-minimization-strategy.md)** - How we reduce unsafe
 - **[Roadmap](roadmap.yaml)** - Development plan
 
