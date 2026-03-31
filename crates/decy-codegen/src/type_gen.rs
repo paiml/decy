@@ -170,261 +170,133 @@ impl CodeGenerator {
     pub fn generate_class(&self, hir_class: &decy_hir::HirClass) -> String {
         contract_pre_class_to_struct!();
         let mut code = String::new();
+        self.generate_class_struct(hir_class, &mut code);
+        self.generate_class_impl_block(hir_class, &mut code);
+        self.generate_class_operator_impls(hir_class, &mut code);
+        self.generate_class_drop_deref(hir_class, &mut code);
+        code
+    }
 
-        // Generate struct definition
-        // DECY-209: If there's a base class, add it as a field for composition
+    /// Generate struct definition with derive fixups for a C++ class.
+    fn generate_class_struct(&self, hir_class: &decy_hir::HirClass, code: &mut String) {
         let mut fields = hir_class.fields().to_vec();
         if let Some(base) = hir_class.base_class() {
-            // Insert base class field at the beginning
-            fields.insert(
-                0,
-                decy_hir::HirStructField::new(
-                    "base".to_string(),
-                    decy_hir::HirType::Struct(base.to_string()),
-                ),
-            );
+            fields.insert(0, decy_hir::HirStructField::new("base".to_string(), decy_hir::HirType::Struct(base.to_string())));
         }
         let hir_struct = decy_hir::HirStruct::new(hir_class.name().to_string(), fields);
         let mut struct_code = self.generate_struct(&hir_struct);
-
-        // DECY-220: Fix derive conflicts found by dogfooding
-        // Can't derive Copy when class has destructor (impl Drop)
         if hir_class.has_destructor() {
             struct_code = struct_code.replace("Copy, ", "").replace(", Copy", "");
         }
-        // Can't derive PartialEq when operator== generates impl PartialEq
-        let has_eq_operator = hir_class.methods().iter().any(|m| {
-            m.operator_kind() == Some(decy_hir::HirCxxOperatorKind::Equal)
-        });
-        if has_eq_operator {
-            struct_code = struct_code
-                .replace(", PartialEq, Eq", "")
-                .replace(", PartialEq", "")
-                .replace("PartialEq, ", "");
+        if hir_class.methods().iter().any(|m| m.operator_kind() == Some(decy_hir::HirCxxOperatorKind::Equal)) {
+            struct_code = struct_code.replace(", PartialEq, Eq", "").replace(", PartialEq", "").replace("PartialEq, ", "");
         }
-        // Can't derive Eq when base class has custom PartialEq (no Eq guarantee)
         if hir_class.base_class().is_some() {
             struct_code = struct_code.replace(", Eq", "").replace("Eq, ", "");
         }
-
         code.push_str(&struct_code);
         code.push_str("\n\n");
+    }
 
-        // DECY-215: Only emit impl block if there's content (constructor or methods)
-        let has_constructor = !hir_class.constructor_params().is_empty();
-        let has_regular_methods = hir_class.methods().iter().any(|m| m.operator_kind().is_none());
-
-        if !has_constructor && !has_regular_methods {
-            // Skip empty impl block
-        } else {
+    /// Generate impl block with constructor and methods for a C++ class.
+    fn generate_class_impl_block(&self, hir_class: &decy_hir::HirClass, code: &mut String) {
+        let has_ctor = !hir_class.constructor_params().is_empty();
+        let has_methods = hir_class.methods().iter().any(|m| m.operator_kind().is_none());
+        if !has_ctor && !has_methods { return; }
 
         code.push_str(&format!("impl {} {{\n", hir_class.name()));
+        self.generate_class_constructor(hir_class, code);
+        self.generate_class_methods(hir_class, code);
+        code.push_str("}\n");
+    }
 
-        // Generate constructor as new() if constructor params exist
-        if !hir_class.constructor_params().is_empty() {
-            code.push_str("    pub fn new(");
-            let params: Vec<String> = hir_class
-                .constructor_params()
-                .iter()
-                .map(|p| format!("{}: {}", escape_rust_keyword(p.name()), Self::map_type(p.param_type())))
-                .collect();
-            code.push_str(&params.join(", "));
-            code.push_str(") -> Self {\n");
-            code.push_str("        Self {\n");
-            // DECY-213: Map constructor params to field initializers
-            // Strategy: name match first, then positional fallback
-            let ctor_params = hir_class.constructor_params();
-            let own_fields: Vec<_> = hir_class.fields().iter()
-                .filter(|f| f.name() != "base") // skip inherited base field
-                .collect();
-            for (idx, field) in own_fields.iter().enumerate() {
-                // Try name match first
-                let matching_param = ctor_params.iter().find(|p| p.name() == field.name());
-                if let Some(param) = matching_param {
-                    code.push_str(&format!(
-                        "            {}: {},\n",
-                        escape_rust_keyword(field.name()),
-                        escape_rust_keyword(param.name())
-                    ));
-                } else if idx < ctor_params.len() {
-                    // Positional fallback: param[idx] -> field[idx]
-                    code.push_str(&format!(
-                        "            {}: {},\n",
-                        escape_rust_keyword(field.name()),
-                        escape_rust_keyword(ctor_params[idx].name())
-                    ));
-                } else {
-                    code.push_str(&format!(
-                        "            {}: Default::default(),\n",
-                        escape_rust_keyword(field.name())
-                    ));
-                }
-            }
-            // If there's a base field from inheritance, default-construct it
-            if hir_class.base_class().is_some() {
-                code.push_str("            base: Default::default(),\n");
-            }
-            code.push_str("        }\n");
-            code.push_str("    }\n\n");
+    /// Generate pub fn new() constructor from C++ constructor params.
+    fn generate_class_constructor(&self, hir_class: &decy_hir::HirClass, code: &mut String) {
+        if hir_class.constructor_params().is_empty() { return; }
+        let params: Vec<String> = hir_class.constructor_params().iter()
+            .map(|p| format!("{}: {}", escape_rust_keyword(p.name()), Self::map_type(p.param_type())))
+            .collect();
+        code.push_str(&format!("    pub fn new({}) -> Self {{\n", params.join(", ")));
+        code.push_str("        Self {\n");
+        let ctor_params = hir_class.constructor_params();
+        let own_fields: Vec<_> = hir_class.fields().iter().filter(|f| f.name() != "base").collect();
+        for (idx, field) in own_fields.iter().enumerate() {
+            let val = if let Some(p) = ctor_params.iter().find(|p| p.name() == field.name()) {
+                escape_rust_keyword(p.name())
+            } else if idx < ctor_params.len() {
+                escape_rust_keyword(ctor_params[idx].name())
+            } else {
+                "Default::default()".to_string()
+            };
+            code.push_str(&format!("            {}: {},\n", escape_rust_keyword(field.name()), val));
         }
+        if hir_class.base_class().is_some() {
+            code.push_str("            base: Default::default(),\n");
+        }
+        code.push_str("        }\n    }\n\n");
+    }
 
-        // Generate regular methods (non-operator)
+    /// Generate regular (non-operator) methods for a C++ class.
+    fn generate_class_methods(&self, hir_class: &decy_hir::HirClass, code: &mut String) {
         for method in hir_class.methods().iter().filter(|m| m.operator_kind().is_none()) {
             let func = method.function();
-
-            let params: Vec<String> = func
-                .parameters()
-                .iter()
+            let params: Vec<String> = func.parameters().iter()
                 .map(|p| format!("{}: {}", escape_rust_keyword(p.name()), Self::map_type(p.param_type())))
                 .collect();
-
-            // DECY-222: Build parameter list without trailing comma
             let all_params = if method.is_static() {
                 params.join(", ")
             } else {
-                let self_ref = if method.is_const() { "&self" } else { "&mut self" };
-                if params.is_empty() {
-                    self_ref.to_string()
-                } else {
-                    format!("{}, {}", self_ref, params.join(", "))
-                }
+                let sr = if method.is_const() { "&self" } else { "&mut self" };
+                if params.is_empty() { sr.to_string() } else { format!("{}, {}", sr, params.join(", ")) }
             };
-
-            let return_type = if *func.return_type() == decy_hir::HirType::Void {
-                String::new()
-            } else {
-                format!(" -> {}", Self::map_type(func.return_type()))
-            };
-
-            code.push_str(&format!(
-                "    pub fn {}({}){} {{\n",
-                escape_rust_keyword(func.name()),
-                all_params,
-                return_type,
-            ));
-
+            let ret = if *func.return_type() == decy_hir::HirType::Void { String::new() } else { format!(" -> {}", Self::map_type(func.return_type())) };
+            code.push_str(&format!("    pub fn {}({}){} {{\n", escape_rust_keyword(func.name()), all_params, ret));
             if func.body().is_empty() {
-                if *func.return_type() != decy_hir::HirType::Void {
-                    code.push_str("        Default::default()\n");
-                }
+                if *func.return_type() != decy_hir::HirType::Void { code.push_str("        Default::default()\n"); }
             } else {
                 for stmt in func.body() {
-                    code.push_str(&format!(
-                        "        {}\n",
-                        self.generate_statement_with_context(stmt, None, &mut TypeContext::new(), None)
-                    ));
+                    code.push_str(&format!("        {}\n", self.generate_statement_with_context(stmt, None, &mut TypeContext::new(), None)));
                 }
             }
-
             code.push_str("    }\n\n");
         }
+    }
 
-        code.push_str("}\n");
-        } // end DECY-215 impl block guard
-
-        // DECY-208: Generate std::ops trait impls for operator methods
-        let class_name = hir_class.name();
+    /// Generate std::ops trait impls for C++ operator overloading.
+    fn generate_class_operator_impls(&self, hir_class: &decy_hir::HirClass, code: &mut String) {
+        let cn = hir_class.name();
         for method in hir_class.methods().iter().filter(|m| m.operator_kind().is_some()) {
             let op = method.operator_kind().unwrap();
             let func = method.function();
-            let return_type = Self::map_type(func.return_type());
-
-            // Get the RHS parameter type (first parameter of operator method)
-            let rhs_type = func.parameters().first().map_or(
-                class_name.to_string(),
-                |p| Self::map_type(p.param_type()),
-            );
-
+            let rt = Self::map_type(func.return_type());
+            let rhs = func.parameters().first().map_or(cn.to_string(), |p| Self::map_type(p.param_type()));
             use decy_hir::HirCxxOperatorKind as Op;
             match op {
                 Op::Add | Op::Sub | Op::Mul | Op::Div | Op::Rem => {
-                    let (trait_name, method_name) = match op {
-                        Op::Add => ("Add", "add"),
-                        Op::Sub => ("Sub", "sub"),
-                        Op::Mul => ("Mul", "mul"),
-                        Op::Div => ("Div", "div"),
-                        Op::Rem => ("Rem", "rem"),
-                        _ => unreachable!(),
-                    };
-                    code.push_str(&format!(
-                        "\nimpl std::ops::{}<{}> for {} {{\n",
-                        trait_name, rhs_type, class_name
-                    ));
-                    code.push_str(&format!("    type Output = {};\n\n", return_type));
-                    code.push_str(&format!(
-                        "    fn {}(self, rhs: {}) -> Self::Output {{\n",
-                        method_name, rhs_type
-                    ));
-                    code.push_str("        Default::default()\n");
-                    code.push_str("    }\n");
-                    code.push_str("}\n");
+                    let (tn, mn) = match op { Op::Add=>("Add","add"), Op::Sub=>("Sub","sub"), Op::Mul=>("Mul","mul"), Op::Div=>("Div","div"), _=>("Rem","rem") };
+                    code.push_str(&format!("\nimpl std::ops::{}<{}> for {} {{\n    type Output = {};\n\n    fn {}(self, rhs: {}) -> Self::Output {{\n        Default::default()\n    }}\n}}\n", tn, rhs, cn, rt, mn, rhs));
                 }
                 Op::Equal => {
-                    code.push_str(&format!("\nimpl PartialEq for {} {{\n", class_name));
-                    code.push_str("    fn eq(&self, other: &Self) -> bool {\n");
-                    code.push_str("        Default::default()\n");
-                    code.push_str("    }\n");
-                    code.push_str("}\n");
+                    code.push_str(&format!("\nimpl PartialEq for {} {{\n    fn eq(&self, other: &Self) -> bool {{\n        Default::default()\n    }}\n}}\n", cn));
                 }
                 Op::AddAssign | Op::SubAssign => {
-                    let (trait_name, method_name) = match op {
-                        Op::AddAssign => ("AddAssign", "add_assign"),
-                        Op::SubAssign => ("SubAssign", "sub_assign"),
-                        _ => unreachable!(),
-                    };
-                    code.push_str(&format!(
-                        "\nimpl std::ops::{}<{}> for {} {{\n",
-                        trait_name, rhs_type, class_name
-                    ));
-                    code.push_str(&format!(
-                        "    fn {}(&mut self, rhs: {}) {{\n",
-                        method_name, rhs_type
-                    ));
-                    code.push_str("    }\n");
-                    code.push_str("}\n");
+                    let (tn, mn) = if op == Op::AddAssign { ("AddAssign","add_assign") } else { ("SubAssign","sub_assign") };
+                    code.push_str(&format!("\nimpl std::ops::{}<{}> for {} {{\n    fn {}(&mut self, rhs: {}) {{\n    }}\n}}\n", tn, rhs, cn, mn, rhs));
                 }
-                _ => {
-                    // Other operators: emit as comment
-                    code.push_str(&format!(
-                        "\n// TODO: impl operator {:?} for {}\n",
-                        op, class_name
-                    ));
-                }
+                _ => { code.push_str(&format!("\n// TODO: impl operator {:?} for {}\n", op, cn)); }
             }
         }
+    }
 
-        // Generate Drop impl if destructor exists
+    /// Generate Drop and Deref/DerefMut impls for inheritance.
+    fn generate_class_drop_deref(&self, hir_class: &decy_hir::HirClass, code: &mut String) {
         if hir_class.has_destructor() {
-            code.push_str(&format!("\nimpl Drop for {} {{\n", hir_class.name()));
-            code.push_str("    fn drop(&mut self) {\n");
-            code.push_str("        // Destructor body (C++ ~ClassName)\n");
-            code.push_str("    }\n");
-            code.push_str("}\n");
+            code.push_str(&format!("\nimpl Drop for {} {{\n    fn drop(&mut self) {{\n        // Destructor body (C++ ~ClassName)\n    }}\n}}\n", hir_class.name()));
         }
-
-        // DECY-209: Generate Deref/DerefMut for base class access
         if let Some(base) = hir_class.base_class() {
-            code.push_str(&format!(
-                "\nimpl std::ops::Deref for {} {{\n",
-                hir_class.name()
-            ));
-            code.push_str(&format!("    type Target = {};\n\n", base));
-            code.push_str("    fn deref(&self) -> &Self::Target {\n");
-            code.push_str("        &self.base\n");
-            code.push_str("    }\n");
-            code.push_str("}\n");
-
-            code.push_str(&format!(
-                "\nimpl std::ops::DerefMut for {} {{\n",
-                hir_class.name()
-            ));
-            code.push_str("    fn deref_mut(&mut self) -> &mut Self::Target {\n");
-            code.push_str("        &mut self.base\n");
-            code.push_str("    }\n");
-            code.push_str("}\n");
+            code.push_str(&format!("\nimpl std::ops::Deref for {} {{\n    type Target = {};\n\n    fn deref(&self) -> &Self::Target {{\n        &self.base\n    }}\n}}\n", hir_class.name(), base));
+            code.push_str(&format!("\nimpl std::ops::DerefMut for {} {{\n    fn deref_mut(&mut self) -> &mut Self::Target {{\n        &mut self.base\n    }}\n}}\n", hir_class.name()));
         }
-
-        code
     }
 
     /// DECY-211: Generate FFI declaration for a CUDA __global__ kernel.
