@@ -38,6 +38,8 @@ pub mod concurrency_transform;
 pub mod enum_gen;
 pub mod pattern_gen;
 pub mod test_generator;
+mod transform_gen;
+mod type_gen;
 
 use decy_hir::{HirExpression, HirFunction, HirType};
 use std::collections::HashMap;
