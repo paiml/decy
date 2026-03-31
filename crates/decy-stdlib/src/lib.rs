@@ -194,8 +194,6 @@ impl StdlibPrototypes {
         Self { functions }
     }
 
-    /// ISO C99 §7.22 - General utilities <stdlib.h>
-
     /// Get prototype for a stdlib function by name
     pub fn get_prototype(&self, name: &str) -> Option<&FunctionProto> {
         self.functions.get(name)

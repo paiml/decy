@@ -1,3 +1,38 @@
+## [2.2.0] - 2026-03-31
+
+### C++ Transpilation Support (31 PMAT tickets: DECY-198 through DECY-228)
+
+#### C++ Features
+- **Classes** -> `struct` + `impl` with fields, methods, constructors, destructors
+- **Namespaces** -> `pub mod` blocks (nested)
+- **Constructors** -> `pub fn new() -> Self` with positional param fallback
+- **Destructors** -> `impl Drop`
+- **Operator overloading** -> `std::ops::{Add,Sub,Mul,Div,Rem,AddAssign,SubAssign}` + `PartialEq`
+- **Single inheritance** -> composition field + `Deref`/`DerefMut`
+- **`new`/`delete`** -> `Box::new()` / `drop()`
+- **`bool`/`nullptr` literals** -> bool / NullLiteral
+- **Implicit `this` access** -> `self.field` in method bodies
+
+#### CUDA Support
+- `.cu` file parsing with C++ mode + CUDA keyword detection
+- `__global__` kernels -> `extern "C"` FFI declarations
+- `__device__` functions -> GPU-only annotation comments
+- CUDA qualifier preservation through entire transformation pipeline
+
+#### Quality
+- **19/19 falsification tests pass** (Popperian methodology)
+- **5 rustc compilation E2E tests** (transpiled C++ compiles)
+- **9 runnable examples** (all compile-proven)
+- **2 provable contracts** (cpp-type-preservation-v1, cuda-kernel-safety-v1)
+- **pmat comply: 0 failures** (CB-200 + File Health both pass)
+- TDG average: 94.7, F-grade files: 24 -> 2
+
+#### Refactoring
+- Split `func_gen.rs` (2850 lines) into 3 files (900 + 1160 + 805)
+- Split `StdlibPrototypes::new()` into 8 per-header init functions
+- Removed 22 F-grade validation artifact files
+- `generate_class` (complexity 39) split into 6 helper functions
+
 ## [2.1.0] - 2026-02-15
 
 ### C99 Type System Expansion

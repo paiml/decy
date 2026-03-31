@@ -266,7 +266,7 @@ impl CodeGenerator {
     fn generate_class_operator_impls(&self, hir_class: &decy_hir::HirClass, code: &mut String) {
         let cn = hir_class.name();
         for method in hir_class.methods().iter().filter(|m| m.operator_kind().is_some()) {
-            let op = method.operator_kind().unwrap();
+            let op = method.operator_kind().expect("filtered for is_some");
             let func = method.function();
             let rt = Self::map_type(func.return_type());
             let rhs = func.parameters().first().map_or(cn.to_string(), |p| Self::map_type(p.param_type()));

@@ -4,7 +4,7 @@
 //! declarations: function signatures, function bodies with ownership analysis,
 //! struct/enum definitions, typedefs, constants, and global variables.
 
-use super::{escape_rust_keyword, CodeGenerator, TypeContext};
+use super::CodeGenerator;
 use decy_hir::{BinaryOperator, HirExpression, HirFunction, HirStatement, HirType};
 use decy_ownership::lifetime_gen::{AnnotatedSignature, AnnotatedType};
 

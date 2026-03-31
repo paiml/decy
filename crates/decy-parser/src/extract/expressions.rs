@@ -1,6 +1,5 @@
 //! Expression extraction from clang cursors.
 
-#[allow(non_upper_case_globals)]
 
 use crate::ast_types::*;
 use clang_sys::*;
@@ -16,7 +15,6 @@ use super::statements::{
 
 /// Helper function to extract an expression from a cursor.
 /// Dispatches to the appropriate extract function based on cursor kind.
-#[allow(non_upper_case_globals)]
 pub(crate) fn try_extract_expression(cursor: CXCursor) -> Option<Expression> {
     let kind = unsafe { clang_getCursorKind(cursor) };
 
@@ -58,7 +56,6 @@ pub(crate) fn try_extract_expression(cursor: CXCursor) -> Option<Expression> {
 }
 
 /// Visitor callback for variable initializer expressions.
-#[allow(non_upper_case_globals)]
 pub(crate) extern "C" fn visit_variable_initializer(
     cursor: CXCursor,
     _parent: CXCursor,
@@ -76,7 +73,6 @@ pub(crate) extern "C" fn visit_variable_initializer(
 }
 
 /// Helper function to extract a statement from a cursor based on its kind.
-#[allow(non_upper_case_globals)]
 pub(crate) fn extract_statement(cursor: CXCursor) -> Option<Statement> {
     let kind = unsafe { clang_getCursorKind(cursor) };
 
@@ -157,7 +153,6 @@ pub(crate) fn extract_single_statement(cursor: CXCursor) -> Option<Statement> {
 /// # Safety
 ///
 /// This function is called by clang_visitChildren and must follow C calling conventions.
-#[allow(non_upper_case_globals)]
 pub(crate) extern "C" fn visit_expression(
     cursor: CXCursor,
     _parent: CXCursor,
@@ -608,7 +603,6 @@ pub(crate) fn extract_binary_op(cursor: CXCursor) -> Option<Expression> {
 }
 
 /// Visitor callback for binary operator operands.
-#[allow(non_upper_case_globals)]
 pub(crate) extern "C" fn visit_binary_operand(
     cursor: CXCursor,
     _parent: CXCursor,
@@ -716,7 +710,6 @@ pub(crate) extern "C" fn visit_binary_operand(
 
 /// DECY-234: Extract binary operator by looking between child cursor locations.
 /// This is more reliable than tokenizing the full extent for macro-expanded expressions.
-#[allow(non_upper_case_globals)]
 pub(crate) fn extract_binary_operator_from_children(
     cursor: CXCursor,
     tu: CXTranslationUnit,
@@ -916,7 +909,6 @@ pub(crate) fn select_lowest_precedence_operator(
 }
 
 /// Extract the binary operator from a cursor by tokenizing.
-#[allow(non_upper_case_globals)]
 pub(crate) fn extract_binary_operator(cursor: CXCursor) -> Option<BinaryOperator> {
     // Get the translation unit
     let tu = unsafe { clang_Cursor_getTranslationUnit(cursor) };
@@ -1100,7 +1092,6 @@ pub(crate) fn extract_function_call(cursor: CXCursor) -> Option<Expression> {
 /// # Safety
 ///
 /// This function is called by clang_visitChildren and must follow C calling conventions.
-#[allow(non_upper_case_globals)]
 pub(crate) extern "C" fn visit_call_argument(
     cursor: CXCursor,
     _parent: CXCursor,
@@ -1599,7 +1590,6 @@ pub(crate) fn extract_sizeof(cursor: CXCursor) -> Option<Expression> {
 }
 
 /// Convert clang type to our Type enum.
-#[allow(non_upper_case_globals)]
 /// Extract a cast expression from a clang cursor.
 ///
 /// Parses C-style cast expressions like `(int)x` or `(void*)ptr`.
@@ -1621,7 +1611,6 @@ pub(crate) fn extract_cast(cursor: CXCursor) -> Option<Expression> {
 }
 
 /// Visitor callback to extract the inner expression of a cast.
-#[allow(non_upper_case_globals)]
 pub(crate) extern "C" fn visit_cast_inner(
     cursor: CXCursor,
     _parent: CXCursor,
@@ -1703,7 +1692,6 @@ pub(crate) fn extract_conditional_op(cursor: CXCursor) -> Option<Expression> {
 
 /// Visitor callback for conditional operator (ternary) operands.
 /// DECY-192: Collects condition, then_expr, and else_expr.
-#[allow(non_upper_case_globals)]
 pub(crate) extern "C" fn visit_conditional_operand(
     cursor: CXCursor,
     _parent: CXCursor,
@@ -1742,7 +1730,6 @@ pub(crate) fn extract_init_list(cursor: CXCursor) -> Option<Expression> {
 
 /// Visitor callback to extract initializers from an InitListExpr.
 /// DECY-133: Handles both regular and designated initializers.
-#[allow(non_upper_case_globals)]
 pub(crate) extern "C" fn visit_init_list_children(
     cursor: CXCursor,
     _parent: CXCursor,
@@ -1842,7 +1829,6 @@ pub(crate) extern "C" fn visit_init_list_children(
 }
 
 /// Visitor callback to extract initializers from a compound literal.
-#[allow(non_upper_case_globals)]
 pub(crate) extern "C" fn visit_compound_literal_initializers(
     cursor: CXCursor,
     _parent: CXCursor,

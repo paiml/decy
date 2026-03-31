@@ -471,9 +471,9 @@ fn apply_cuda_qualifiers_from_source(ast: &mut Ast, source: &str) {
         let trimmed = line.trim();
         let qualifier = if trimmed.starts_with("__global__") {
             Some(CudaQualifier::Global)
-        } else if trimmed.starts_with("__device__") && trimmed.contains("__host__") {
-            Some(CudaQualifier::HostDevice)
-        } else if trimmed.starts_with("__host__") && trimmed.contains("__device__") {
+        } else if (trimmed.starts_with("__device__") && trimmed.contains("__host__"))
+            || (trimmed.starts_with("__host__") && trimmed.contains("__device__"))
+        {
             Some(CudaQualifier::HostDevice)
         } else if trimmed.starts_with("__device__") {
             Some(CudaQualifier::Device)

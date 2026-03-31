@@ -1,6 +1,5 @@
 //! Statement extraction from clang cursors.
 
-#[allow(non_upper_case_globals)]
 
 use crate::ast_types::*;
 use clang_sys::*;
@@ -604,7 +603,6 @@ pub(crate) fn extract_if_stmt(cursor: CXCursor) -> Option<Statement> {
 }
 
 /// Visitor for if statement children.
-#[allow(non_upper_case_globals)]
 pub(crate) extern "C" fn visit_if_children(
     cursor: CXCursor,
     _parent: CXCursor,
@@ -961,7 +959,6 @@ pub(crate) fn extract_while_stmt(cursor: CXCursor) -> Option<Statement> {
 }
 
 /// Visitor for while loop children.
-#[allow(non_upper_case_globals)]
 pub(crate) extern "C" fn visit_while_children(
     cursor: CXCursor,
     _parent: CXCursor,
@@ -1019,7 +1016,6 @@ pub(crate) extern "C" fn visit_while_children(
 /// Extract a switch statement from a cursor.
 ///
 /// Parses switch statements including cases and default labels.
-#[allow(non_upper_case_globals)]
 pub(crate) fn extract_switch_stmt(cursor: CXCursor) -> Option<Statement> {
     // Switch has 2 children:
     // 1. Condition expression
@@ -1050,7 +1046,6 @@ pub(crate) fn extract_switch_stmt(cursor: CXCursor) -> Option<Statement> {
 }
 
 /// Visitor callback for switch statement children (condition and body).
-#[allow(non_upper_case_globals)]
 pub(crate) extern "C" fn visit_switch_children(
     cursor: CXCursor,
     _parent: CXCursor,
@@ -1092,7 +1087,6 @@ pub(crate) extern "C" fn visit_switch_children(
 }
 
 /// Visitor callback for switch body to extract cases and default.
-#[allow(non_upper_case_globals)]
 pub(crate) extern "C" fn visit_switch_body(
     cursor: CXCursor,
     _parent: CXCursor,
@@ -1153,7 +1147,6 @@ pub(crate) fn extract_case_stmt(cursor: CXCursor) -> Option<SwitchCase> {
 }
 
 /// Visitor for case statement children.
-#[allow(non_upper_case_globals)]
 pub(crate) extern "C" fn visit_case_children(
     cursor: CXCursor,
     _parent: CXCursor,
@@ -1204,7 +1197,6 @@ pub(crate) fn extract_default_stmt(cursor: CXCursor) -> Option<Vec<Statement>> {
 }
 
 /// Visitor for default statement children.
-#[allow(non_upper_case_globals)]
 pub(crate) extern "C" fn visit_default_children(
     cursor: CXCursor,
     _parent: CXCursor,

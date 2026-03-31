@@ -1,7 +1,7 @@
 # Decy Specification
 
 **Project**: Decy - C/C++/CUDA to Rust Transpiler
-**Version**: 2.1.0
+**Version**: 2.2.0
 **Status**: Active Development
 **Last Updated**: 2026-03-30
 
@@ -589,7 +589,7 @@ All work is ticket-driven via `roadmap.yaml`. No code without a ticket. State ch
 
 | Metric | Value |
 |--------|-------|
-| Version | 2.1.0 |
+| Version | 2.2.0 |
 | Test coverage | 97.60% |
 | Workspace crates | 11 |
 | C constructs mapped | 150 (see C-VALIDATION-ROADMAP.yaml) |

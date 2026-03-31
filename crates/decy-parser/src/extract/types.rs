@@ -1,6 +1,5 @@
 //! Type, struct, enum, typedef, variable, and macro extraction from clang cursors.
 
-#[allow(non_upper_case_globals)]
 
 use crate::ast_types::*;
 use clang_sys::*;
@@ -628,7 +627,6 @@ pub(crate) fn extract_macro(cursor: CXCursor) -> Option<MacroDefinition> {
 /// # Safety
 ///
 /// This function is called by clang_visitChildren and must follow C calling conventions.
-#[allow(non_upper_case_globals)]
 pub(crate) extern "C" fn visit_struct_fields(
     cursor: CXCursor,
     _parent: CXCursor,
@@ -660,7 +658,6 @@ pub(crate) extern "C" fn visit_struct_fields(
     CXChildVisit_Continue
 }
 
-#[allow(non_upper_case_globals)]
 pub(crate) fn convert_type(cx_type: CXType) -> Option<Type> {
     // SAFETY: Getting type kind
     match cx_type.kind {
