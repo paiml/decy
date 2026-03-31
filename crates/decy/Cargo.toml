@@ -36,7 +36,7 @@ oracle = ["decy-oracle"]
 citl = ["oracle", "decy-oracle/citl"]
 
 [dev-dependencies]
-provable-contracts = { path = "../../../provable-contracts/crates/provable-contracts" }
+provable-contracts = { version = "0.2.1", path = "../../../provable-contracts/crates/provable-contracts" }
 proptest.workspace = true
 assert_cmd.workspace = true
 predicates.workspace = true

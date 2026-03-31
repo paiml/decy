@@ -1266,7 +1266,7 @@ dependencies = [
 
 [[package]]
 name = "decy"
-version = "2.1.0"
+version = "2.2.0"
 dependencies = [
  "anyhow",
  "assert_cmd",
@@ -1292,11 +1292,11 @@ dependencies = [
 
 [[package]]
 name = "decy-agent"
-version = "2.1.0"
+version = "2.2.0"
 
 [[package]]
 name = "decy-analyzer"
-version = "2.1.0"
+version = "2.2.0"
 dependencies = [
  "anyhow",
  "criterion",
@@ -1310,11 +1310,11 @@ dependencies = [
 
 [[package]]
 name = "decy-book"
-version = "2.1.0"
+version = "2.2.0"
 
 [[package]]
 name = "decy-codegen"
-version = "2.1.0"
+version = "2.2.0"
 dependencies = [
  "anyhow",
  "criterion",
@@ -1334,7 +1334,7 @@ dependencies = [
 
 [[package]]
 name = "decy-core"
-version = "2.1.0"
+version = "2.2.0"
 dependencies = [
  "anyhow",
  "criterion",
@@ -1357,7 +1357,7 @@ dependencies = [
 
 [[package]]
 name = "decy-debugger"
-version = "2.1.0"
+version = "2.2.0"
 dependencies = [
  "anyhow",
  "colored",
@@ -1376,7 +1376,7 @@ dependencies = [
 
 [[package]]
 name = "decy-hir"
-version = "2.1.0"
+version = "2.2.0"
 dependencies = [
  "anyhow",
  "decy-parser",
@@ -1389,7 +1389,7 @@ dependencies = [
 
 [[package]]
 name = "decy-llm"
-version = "2.1.0"
+version = "2.2.0"
 dependencies = [
  "decy-analyzer",
  "decy-hir",
@@ -1402,11 +1402,11 @@ dependencies = [
 
 [[package]]
 name = "decy-mcp"
-version = "2.1.0"
+version = "2.2.0"
 
 [[package]]
 name = "decy-oracle"
-version = "2.1.0"
+version = "2.2.0"
 dependencies = [
  "alimentar",
  "anyhow",
@@ -1430,7 +1430,7 @@ dependencies = [
 
 [[package]]
 name = "decy-ownership"
-version = "2.1.0"
+version = "2.2.0"
 dependencies = [
  "anyhow",
  "decy-analyzer",
@@ -1445,7 +1445,7 @@ dependencies = [
 
 [[package]]
 name = "decy-parser"
-version = "2.1.0"
+version = "2.2.0"
 dependencies = [
  "anyhow",
  "clang-sys",
@@ -1460,15 +1460,15 @@ dependencies = [
 
 [[package]]
 name = "decy-repo"
-version = "2.1.0"
+version = "2.2.0"
 
 [[package]]
 name = "decy-stdlib"
-version = "2.1.0"
+version = "2.2.0"
 
 [[package]]
 name = "decy-verify"
-version = "2.1.0"
+version = "2.2.0"
 dependencies = [
  "anyhow",
  "decy-analyzer",
@@ -3254,7 +3254,7 @@ dependencies = [
 
 [[package]]
 name = "provable-contracts"
-version = "0.1.1"
+version = "0.2.1"
 dependencies = [
  "provable-contracts-macros",
  "regex",
@@ -3266,7 +3266,7 @@ dependencies = [
 
 [[package]]
 name = "provable-contracts-macros"
-version = "0.1.1"
+version = "0.2.1"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -3275,9 +3275,9 @@ dependencies = [
 
 [[package]]
 name = "pyo3"
-version = "0.22.6"
+version = "0.24.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f402062616ab18202ae8319da13fa4279883a2b8a9d9f83f20dbade813ce1884"
+checksum = "e5203598f366b11a02b13aa20cab591229ff0a89fd121a308a5df751d5fc9219"
 dependencies = [
  "cfg-if",
  "indoc",
@@ -3293,9 +3293,9 @@ dependencies = [
 
 [[package]]
 name = "pyo3-build-config"
-version = "0.22.6"
+version = "0.24.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b14b5775b5ff446dd1056212d778012cbe8a0fbffd368029fd9e25b514479c38"
+checksum = "99636d423fa2ca130fa5acde3059308006d46f98caac629418e53f7ebb1e9999"
 dependencies = [
  "once_cell",
  "target-lexicon",
@@ -3303,9 +3303,9 @@ dependencies = [
 
 [[package]]
 name = "pyo3-ffi"
-version = "0.22.6"
+version = "0.24.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9ab5bcf04a2cdcbb50c7d6105de943f543f9ed92af55818fd17b660390fc8636"
+checksum = "78f9cf92ba9c409279bc3305b5409d90db2d2c22392d443a87df3a1adad59e33"
 dependencies = [
  "libc",
  "pyo3-build-config",
@@ -3313,9 +3313,9 @@ dependencies = [
 
 [[package]]
 name = "pyo3-macros"
-version = "0.22.6"
+version = "0.24.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0fd24d897903a9e6d80b968368a34e1525aeb719d568dba8b3d4bfa5dc67d453"
+checksum = "0b999cb1a6ce21f9a6b147dcf1be9ffedf02e0043aec74dc390f3007047cecd9"
 dependencies = [
  "proc-macro2",
  "pyo3-macros-backend",
@@ -3325,9 +3325,9 @@ dependencies = [
 
 [[package]]
 name = "pyo3-macros-backend"
-version = "0.22.6"
+version = "0.24.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "36c011a03ba1e50152b4b394b479826cad97e7a21eb52df179cd91ac411cbfbe"
+checksum = "822ece1c7e1012745607d5cf0bcb2874769f0f7cb34c4cde03b9358eb9ef911a"
 dependencies = [
  "heck",
  "proc-macro2",
@@ -4067,9 +4067,9 @@ dependencies = [
 
 [[package]]
 name = "spydecy-c"
-version = "0.3.0"
+version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d221c7002e497c1d045c0ec999cb15c02720460aac5e957eae2425345e673281"
+checksum = "b6381f556bab79e4492b4592e18adc6561750dbc12013784fa1e9fee0b655298"
 dependencies = [
  "anyhow",
  "clang-sys",
@@ -4082,9 +4082,9 @@ dependencies = [
 
 [[package]]
 name = "spydecy-codegen"
-version = "0.3.0"
+version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "49179f399bc2bedfa63d054015b08f8b839f79865f1a095e900d5541e6434200"
+checksum = "58932f0b01d0b052ed16beb7e061fb311c8bc680b47da7d554f2ce602026a4b2"
 dependencies = [
  "anyhow",
  "serde",
@@ -4094,9 +4094,9 @@ dependencies = [
 
 [[package]]
 name = "spydecy-debugger"
-version = "0.3.0"
+version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c70db6bec553ec6cc8b9480ebeabe1be9556aaac3c67767c07562032261eace7"
+checksum = "bedfad17e469aa796a16b57154fad1dbef2abb94c486e452577eca6cc4857526"
 dependencies = [
  "anyhow",
  "colored",
@@ -4112,9 +4112,9 @@ dependencies = [
 
 [[package]]
 name = "spydecy-hir"
-version = "0.3.0"
+version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9be77a97dae5c576711956fb4f1fa552d77adecc3f091852eba856c0636b28fe"
+checksum = "c482d2b8cafc79ac66ccf582222af338b4c2574c9d8d37a9da050ac636439ad8"
 dependencies = [
  "anyhow",
  "codespan",
@@ -4126,9 +4126,9 @@ dependencies = [
 
 [[package]]
 name = "spydecy-optimizer"
-version = "0.3.0"
+version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0c6a7c85e01098ceda03b6b401bedbb3dc51444f1f990f7e0182856881412763"
+checksum = "299fbeec16aac804a200592dda3f467e5a78923c4ab7a5c301525c72a16135b8"
 dependencies = [
  "anyhow",
  "serde",
@@ -4138,9 +4138,9 @@ dependencies = [
 
 [[package]]
 name = "spydecy-python"
-version = "0.3.0"
+version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "56dd1261312556c8322ee1db99c87dc8cd306f7e4da0ccd47e21150d3831c5fd"
+checksum = "7515548f291cf9ee2a92504bb4733eb52e3c9a7d818e26d24d7bd6698d2f216e"
 dependencies = [
  "anyhow",
  "pyo3",
@@ -4266,9 +4266,9 @@ dependencies = [
 
 [[package]]
 name = "target-lexicon"
-version = "0.12.16"
+version = "0.13.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "61c41af27dd6d1e27b1b16b489db798443478cef1f06a660c96db617ba5de3b1"
+checksum = "adb6935a6f5c20170eeceb1a3835a49e12e19d792f6dd344ccc76a985ca5a6ca"
 
 [[package]]
 name = "tempfile"
