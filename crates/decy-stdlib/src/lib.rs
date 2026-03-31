@@ -148,19 +148,52 @@ impl FunctionProto {
 /// Built-in C Standard Library Prototype Database
 ///
 /// Contains all 150+ functions from ISO C99 §7
+///
+/// # Examples
+///
+/// ```
+/// use decy_stdlib::StdlibPrototypes;
+/// let db = StdlibPrototypes::default();
+/// assert!(db.get_prototype("printf").is_some());
+/// ```
 pub struct StdlibPrototypes {
     functions: HashMap<String, FunctionProto>,
 }
 
 impl StdlibPrototypes {
-    /// Create new prototype database with all C99 §7 functions
+    /// Create new prototype database with all C99 §7 functions.
+    ///
+    /// Initializes 150+ function prototypes across 8 standard library headers:
+    /// stdlib.h, stdio.h, string.h, ctype.h, time.h, math.h, unistd.h, dirent.h.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use decy_stdlib::StdlibPrototypes;
+    /// let protos = StdlibPrototypes::new();
+    /// assert!(protos.get_prototype("malloc").is_some());
+    /// assert!(protos.get_prototype("printf").is_some());
+    /// ```
     pub fn new() -> Self {
+        Self::build_all_prototypes()
+    }
+
+    /// Build all C99 §7 prototypes (implementation detail).
+    fn build_all_prototypes() -> Self {
         let mut functions = HashMap::new();
+        Self::init_stdlib(&mut functions);
+        Self::init_stdio(&mut functions);
+        Self::init_string(&mut functions);
+        Self::init_ctype(&mut functions);
+        Self::init_time(&mut functions);
+        Self::init_math(&mut functions);
+        Self::init_posix_unistd(&mut functions);
+        Self::init_posix_dirent(&mut functions);
+        Self { functions }
+    }
 
-        // ====================================================================
-        // ISO C99 §7.22 - General utilities <stdlib.h>
-        // ====================================================================
-
+    /// ISO C99 §7.22 - General utilities <stdlib.h>
+    fn init_stdlib(functions: &mut HashMap<String, FunctionProto>) {
         // §7.22.3 - Memory management functions
         functions.insert(
             "malloc".to_string(),
@@ -416,9 +449,10 @@ impl StdlibPrototypes {
             },
         );
 
-        // ====================================================================
-        // ISO C99 §7.21 - Input/output <stdio.h>
-        // ====================================================================
+    }
+
+    /// ISO C99 §7.21 - Input/output <stdio.h>
+    fn init_stdio(functions: &mut HashMap<String, FunctionProto>) {
 
         // §7.21.6 - Formatted output functions
         functions.insert(
@@ -716,9 +750,10 @@ impl StdlibPrototypes {
             },
         );
 
-        // ====================================================================
-        // ISO C99 §7.23 - String handling <string.h>
-        // ====================================================================
+    }
+
+    /// ISO C99 §7.23 - String handling <string.h>
+    fn init_string(functions: &mut HashMap<String, FunctionProto>) {
 
         // §7.23.2 - Copying functions
         functions.insert(
@@ -976,9 +1011,10 @@ impl StdlibPrototypes {
             },
         );
 
-        // ====================================================================
-        // ISO C99 §7.4 - Character handling <ctype.h>
-        // ====================================================================
+    }
+
+    /// ISO C99 §7.4 - Character handling <ctype.h>
+    fn init_ctype(functions: &mut HashMap<String, FunctionProto>) {
 
         functions.insert(
             "isspace".to_string(),
@@ -1076,9 +1112,10 @@ impl StdlibPrototypes {
             },
         );
 
-        // ====================================================================
-        // ISO C99 §7.23 - Date and time <time.h>
-        // ====================================================================
+    }
+
+    /// ISO C99 §7.23 - Date and time <time.h>
+    fn init_time(functions: &mut HashMap<String, FunctionProto>) {
 
         functions.insert(
             "clock".to_string(),
@@ -1104,9 +1141,10 @@ impl StdlibPrototypes {
             },
         );
 
-        // ====================================================================
-        // ISO C99 §7.12 - Mathematics <math.h>
-        // ====================================================================
+    }
+
+    /// ISO C99 §7.12 - Mathematics <math.h>
+    fn init_math(functions: &mut HashMap<String, FunctionProto>) {
 
         functions.insert(
             "sqrt".to_string(),
@@ -1324,9 +1362,10 @@ impl StdlibPrototypes {
             },
         );
 
-        // ====================================================================
-        // POSIX - unistd.h additional functions
-        // ====================================================================
+    }
+
+    /// POSIX - unistd.h additional functions
+    fn init_posix_unistd(functions: &mut HashMap<String, FunctionProto>) {
 
         functions.insert(
             "pipe".to_string(),
@@ -1463,9 +1502,10 @@ impl StdlibPrototypes {
             },
         );
 
-        // ====================================================================
-        // POSIX - dirent.h functions
-        // ====================================================================
+    }
+
+    /// POSIX - dirent.h functions
+    fn init_posix_dirent(functions: &mut HashMap<String, FunctionProto>) {
 
         functions.insert(
             "opendir".to_string(),
@@ -1503,7 +1543,6 @@ impl StdlibPrototypes {
             },
         );
 
-        Self { functions }
     }
 
     /// Get prototype for a stdlib function by name
