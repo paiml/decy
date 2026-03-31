@@ -665,6 +665,7 @@ mod tests {
             return_type: decy_parser::Type::Void,
             parameters: vec![],
             body: vec![],
+            cuda_qualifier: None,
         };
         let mut output = String::new();
         format_function(&function, 0, &mut output, false);
@@ -678,6 +679,7 @@ mod tests {
             return_type: decy_parser::Type::Int,
             parameters: vec![decy_parser::Parameter::new("x".to_string(), decy_parser::Type::Int)],
             body: vec![Statement::Return(Some(Expression::Variable("x".to_string())))],
+            cuda_qualifier: None,
         };
         let mut output = String::new();
         format_function(&function, 0, &mut output, true);

@@ -274,6 +274,118 @@ mod tests {
     // DECY-221: CUDA qualifier detection from inline source
     // =========================================================================
 
+    // =========================================================================
+    // DECY-225/226: new/delete/bool/nullptr extraction
+    // =========================================================================
+
+    #[test]
+    fn test_parse_cpp_new_expression() {
+        let parser = CParser::new().expect("Parser creation failed");
+        let source = r#"
+            extern "C" { void dummy(); }
+            class Obj { public: int v; Obj(int x) : v(x) {} ~Obj() {} };
+            void test() {
+                Obj* o = new Obj(42);
+                delete o;
+            }
+        "#;
+        let ast = parser.parse(source).expect("Parsing new/delete");
+        // Should have at least 2 functions: dummy and test
+        assert!(ast.functions().len() >= 1);
+    }
+
+    #[test]
+    fn test_parse_cpp_bool_literal() {
+        let parser = CParser::new().expect("Parser creation failed");
+        let source = r#"
+            extern "C" { void dummy(); }
+            bool is_valid() { return true; }
+            bool is_invalid() { return false; }
+        "#;
+        let ast = parser.parse(source).expect("Parsing bool literals");
+        assert!(ast.functions().len() >= 2);
+    }
+
+    #[test]
+    fn test_parse_cpp_nullptr() {
+        let parser = CParser::new().expect("Parser creation failed");
+        let source = r#"
+            extern "C" { void dummy(); }
+            void test() {
+                int* p = nullptr;
+            }
+        "#;
+        let ast = parser.parse(source).expect("Parsing nullptr");
+        assert!(ast.functions().len() >= 1);
+    }
+
+    #[test]
+    fn test_parse_cpp_class_with_multiple_methods() {
+        let parser = CParser::new().expect("Parser creation failed");
+        let source = r#"
+            extern "C" { void dummy(); }
+            class Math {
+            public:
+                int val;
+                Math(int v) : val(v) {}
+                int square() { return val * val; }
+                int cube() { return val * val * val; }
+                int add(int x) { return val + x; }
+                bool is_positive() { return val > 0; }
+                ~Math() {}
+            };
+        "#;
+        let ast = parser.parse(source).expect("Parsing class with multiple methods");
+        assert_eq!(ast.classes().len(), 1);
+        let cls = &ast.classes()[0];
+        assert_eq!(cls.name, "Math");
+        assert_eq!(cls.methods.len(), 4, "Should have 4 methods");
+        assert!(cls.has_destructor);
+        assert_eq!(cls.constructor_params.len(), 1);
+    }
+
+    #[test]
+    fn test_parse_cpp_class_with_operator_methods() {
+        let parser = CParser::new().expect("Parser creation failed");
+        let source = r#"
+            extern "C" { void dummy(); }
+            class Vec2 {
+            public:
+                int x;
+                int y;
+                Vec2(int a, int b) : x(a), y(b) {}
+                Vec2 operator+(Vec2 o) { Vec2 r(0,0); return r; }
+                bool operator==(Vec2 o) { return x == o.x && y == o.y; }
+            };
+        "#;
+        let ast = parser.parse(source).expect("Parsing operator methods");
+        assert_eq!(ast.classes().len(), 1);
+        let cls = &ast.classes()[0];
+        // operator+ and operator== should be detected
+        let op_add = cls.methods.iter().find(|m| m.operator_kind == Some(CxxOperatorKind::Add));
+        assert!(op_add.is_some(), "Should detect operator+");
+        let op_eq = cls.methods.iter().find(|m| m.operator_kind == Some(CxxOperatorKind::Equal));
+        assert!(op_eq.is_some(), "Should detect operator==");
+    }
+
+    #[test]
+    fn test_parse_cpp_class_with_inheritance() {
+        let parser = CParser::new().expect("Parser creation failed");
+        let source = r#"
+            extern "C" { void dummy(); }
+            class Base { public: int id; };
+            class Derived : public Base { public: int extra; };
+        "#;
+        let ast = parser.parse(source).expect("Parsing inheritance");
+        assert_eq!(ast.classes().len(), 2);
+        let derived = ast.classes().iter().find(|c| c.name == "Derived").unwrap();
+        assert_eq!(derived.base_class, Some("Base".to_string()));
+    }
+
+    // =========================================================================
+    // DECY-221: CUDA qualifier detection from inline source
+    // =========================================================================
+
     #[test]
     fn test_cuda_global_qualifier_detected_inline() {
         let parser = CParser::new().expect("Parser creation failed");
