@@ -34,10 +34,7 @@ fn compile_rust_code(code: &str) -> Result<(), String> {
     } else {
         let stderr = String::from_utf8_lossy(&output.stderr);
         // Filter out warnings — only fail on errors
-        let errors: Vec<&str> = stderr
-            .lines()
-            .filter(|l| l.starts_with("error"))
-            .collect();
+        let errors: Vec<&str> = stderr.lines().filter(|l| l.starts_with("error")).collect();
         if errors.is_empty() {
             Ok(()) // Warnings only
         } else {
@@ -94,7 +91,12 @@ public:
     let rust_code = transpile(cpp_code).expect("Transpilation failed");
     let clean = strip_noise(&rust_code);
     let result = compile_rust_code(&clean);
-    assert!(result.is_ok(), "Transpiled class should compile:\n{}\nErrors: {:?}", clean, result.err());
+    assert!(
+        result.is_ok(),
+        "Transpiled class should compile:\n{}\nErrors: {:?}",
+        clean,
+        result.err()
+    );
 }
 
 #[test]
@@ -110,7 +112,12 @@ namespace math {
     let rust_code = transpile(cpp_code).expect("Transpilation failed");
     let clean = strip_noise(&rust_code);
     let result = compile_rust_code(&clean);
-    assert!(result.is_ok(), "Transpiled namespace should compile:\n{}\nErrors: {:?}", clean, result.err());
+    assert!(
+        result.is_ok(),
+        "Transpiled namespace should compile:\n{}\nErrors: {:?}",
+        clean,
+        result.err()
+    );
 }
 
 #[test]
@@ -130,7 +137,12 @@ public:
     let rust_code = transpile(cpp_code).expect("Transpilation failed");
     let clean = strip_noise(&rust_code);
     let result = compile_rust_code(&clean);
-    assert!(result.is_ok(), "Transpiled operators should compile:\n{}\nErrors: {:?}", clean, result.err());
+    assert!(
+        result.is_ok(),
+        "Transpiled operators should compile:\n{}\nErrors: {:?}",
+        clean,
+        result.err()
+    );
 }
 
 #[test]
@@ -152,7 +164,12 @@ public:
     let rust_code = transpile(cpp_code).expect("Transpilation failed");
     let clean = strip_noise(&rust_code);
     let result = compile_rust_code(&clean);
-    assert!(result.is_ok(), "Transpiled inheritance should compile:\n{}\nErrors: {:?}", clean, result.err());
+    assert!(
+        result.is_ok(),
+        "Transpiled inheritance should compile:\n{}\nErrors: {:?}",
+        clean,
+        result.err()
+    );
 }
 
 #[test]

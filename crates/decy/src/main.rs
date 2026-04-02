@@ -1094,10 +1094,7 @@ fn handle_oracle_bootstrap(dry_run: bool) -> Result<()> {
 
         println!();
         println!("✓ Bootstrapped oracle with {} patterns", count);
-        println!(
-            "  Patterns saved to: {}",
-            OracleConfig::default().patterns_path.display()
-        );
+        println!("  Patterns saved to: {}", OracleConfig::default().patterns_path.display());
     }
 
     #[cfg(not(feature = "citl"))]
@@ -1128,10 +1125,8 @@ fn handle_oracle_seed(from: PathBuf) -> Result<()> {
         let config = OracleConfig::default();
         let mut oracle = DecyOracle::new(config)?;
 
-        let (count, stats) = oracle.import_patterns_with_stats(
-            &from,
-            decy_oracle::SmartImportConfig::default(),
-        )?;
+        let (count, stats) =
+            oracle.import_patterns_with_stats(&from, decy_oracle::SmartImportConfig::default())?;
 
         println!();
         println!("=== Import Results ===");
@@ -1141,8 +1136,7 @@ fn handle_oracle_seed(from: PathBuf) -> Result<()> {
         println!();
         println!("Import statistics by strategy:");
         for (strategy, count) in &stats.accepted_by_strategy {
-            let rejected =
-                stats.rejected_by_strategy.get(strategy).copied().unwrap_or(0);
+            let rejected = stats.rejected_by_strategy.get(strategy).copied().unwrap_or(0);
             let total = count + rejected;
             println!(
                 "  {:?}: {}/{} accepted ({:.1}%)",
@@ -1185,8 +1179,7 @@ fn handle_oracle_stats(format: String) -> Result<()> {
         }
         "markdown" | "md" => {
             use decy_oracle::{CIReport, CIThresholds};
-            let report =
-                CIReport::from_metrics(metrics.clone(), CIThresholds::default());
+            let report = CIReport::from_metrics(metrics.clone(), CIThresholds::default());
             println!("{}", report.to_markdown());
         }
         "prometheus" | "prom" => {
@@ -1228,10 +1221,7 @@ fn handle_oracle_retire(dry_run: bool, archive_path: Option<PathBuf>) -> Result<
         println!();
         println!("Retirement policy thresholds:");
         println!("  Min uses: {}", policy.config().min_usage_threshold);
-        println!(
-            "  Min success rate: {:.1}%",
-            policy.config().min_success_rate * 100.0
-        );
+        println!("  Min success rate: {:.1}%", policy.config().min_success_rate * 100.0);
         println!("  Window: {} days", policy.config().evaluation_window_days);
     } else {
         println!();
@@ -1261,8 +1251,8 @@ fn handle_oracle_validate(corpus: PathBuf) -> Result<()> {
     println!("Validating oracle on corpus: {}", corpus.display());
     println!();
 
-    let histogram = analyze_corpus(&corpus)
-        .map_err(|e| anyhow::anyhow!("Failed to analyze corpus: {}", e))?;
+    let histogram =
+        analyze_corpus(&corpus).map_err(|e| anyhow::anyhow!("Failed to analyze corpus: {}", e))?;
 
     println!("=== Corpus Diversity Analysis ===");
     println!("Files: {}", histogram.total_files);
@@ -1305,11 +1295,9 @@ fn handle_oracle_validate(corpus: PathBuf) -> Result<()> {
                 transpile_failed += 1;
                 let error_str = e.to_string();
                 if let Some(code_start) = error_str.find("E0") {
-                    let code: String =
-                        error_str[code_start..].chars().take(5).collect();
+                    let code: String = error_str[code_start..].chars().take(5).collect();
                     error_histogram.record_error(&code);
-                    oracle
-                        .record_miss(&decy_oracle::RustcError::new(&code, &error_str));
+                    oracle.record_miss(&decy_oracle::RustcError::new(&code, &error_str));
                 } else {
                     error_histogram.record_error("E0000");
                     oracle.record_miss(&decy_oracle::RustcError::new(
@@ -1608,12 +1596,8 @@ fn handle_oracle_generate_traces(
             }
         };
 
-        let trace = GoldenTrace::new(
-            c_code.clone(),
-            transpiled.rust_code.clone(),
-            trace_tier,
-            filename,
-        );
+        let trace =
+            GoldenTrace::new(c_code.clone(), transpiled.rust_code.clone(), trace_tier, filename);
 
         let result = verifier.verify_trace(&trace);
 
@@ -1650,11 +1634,7 @@ fn handle_oracle_generate_traces(
     } else if traces_generated > 0 {
         dataset.export_jsonl(&output)?;
         println!();
-        println!(
-            "✓ Exported {} Golden Traces to {}",
-            traces_generated,
-            output.display()
-        );
+        println!("✓ Exported {} Golden Traces to {}", traces_generated, output.display());
     } else {
         println!();
         println!("⚠ No traces generated - check corpus files");
@@ -1664,11 +1644,7 @@ fn handle_oracle_generate_traces(
 }
 
 #[cfg(feature = "oracle")]
-fn handle_oracle_query(
-    error: String,
-    context: Option<String>,
-    format: String,
-) -> Result<()> {
+fn handle_oracle_query(error: String, context: Option<String>, format: String) -> Result<()> {
     use decy_oracle::bootstrap::get_bootstrap_patterns;
 
     if !error.starts_with('E') || error.len() != 5 {

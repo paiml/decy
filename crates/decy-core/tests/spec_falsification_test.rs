@@ -272,7 +272,10 @@ class P { public: int x; bool operator==(P o) { return x == o.x; } };
     assert!(rust.contains("impl PartialEq"), "Should have PartialEq impl");
     let derive_line = rust.lines().find(|l| l.contains("#[derive("));
     if let Some(derive) = derive_line {
-        assert!(!derive.contains("PartialEq"), "Should NOT derive PartialEq when operator== exists");
+        assert!(
+            !derive.contains("PartialEq"),
+            "Should NOT derive PartialEq when operator== exists"
+        );
     }
 }
 

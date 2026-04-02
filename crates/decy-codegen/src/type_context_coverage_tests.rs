@@ -2,7 +2,7 @@
 //! and untested branches in helper functions.
 
 use super::*;
-use decy_hir::{HirStruct, HirStructField};
+use decy_hir::{BinaryOperator, HirStruct, HirStructField};
 
 // ============================================================================
 // struct_has_default: large array field and unknown struct

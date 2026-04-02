@@ -5,15 +5,15 @@
 //! our AST representation.
 
 #[allow(non_upper_case_globals)]
-mod types;
+mod expressions;
 #[allow(non_upper_case_globals)]
 mod statements;
 #[allow(non_upper_case_globals)]
-mod expressions;
+mod types;
 
 pub(crate) use types::{
-    extract_function, extract_typedef, extract_struct, extract_enum,
-    extract_variable, extract_macro, extract_class, extract_namespace,
+    extract_class, extract_enum, extract_function, extract_macro, extract_namespace,
+    extract_struct, extract_typedef, extract_variable,
 };
 
 use crate::ast_types::*;
@@ -24,10 +24,9 @@ use std::ptr;
 
 use self::expressions::extract_statement;
 use self::statements::{
-    extract_var_decl, extract_return_stmt, extract_assignment_stmt,
-    extract_inc_dec_stmt, extract_compound_assignment_stmt,
-    extract_if_stmt, extract_for_stmt, extract_while_stmt,
-    extract_switch_stmt,
+    extract_assignment_stmt, extract_compound_assignment_stmt, extract_for_stmt, extract_if_stmt,
+    extract_inc_dec_stmt, extract_return_stmt, extract_switch_stmt, extract_var_decl,
+    extract_while_stmt,
 };
 
 #[allow(non_upper_case_globals)]
@@ -363,7 +362,8 @@ pub(crate) extern "C" fn visit_statement(
         }
         135 => {
             // CXCursor_CXXDeleteExpr - delete ptr -> free(ptr) equivalent (DECY-225)
-            if let Some(Expression::CxxDelete { operand }) = expressions::extract_cxx_delete(cursor) {
+            if let Some(Expression::CxxDelete { operand }) = expressions::extract_cxx_delete(cursor)
+            {
                 // Map delete to a "free" function call for the statement extractor
                 // The codegen maps free() to drop() in Rust
                 statements.push(Statement::FunctionCall {
@@ -376,4 +376,3 @@ pub(crate) extern "C" fn visit_statement(
         _ => CXChildVisit_Recurse, // Recurse into unknown nodes to find statements
     }
 }
-

@@ -1,20 +1,19 @@
 //! Statement extraction from clang cursors.
 
-
 use crate::ast_types::*;
 use clang_sys::*;
 use std::ffi::CStr;
 use std::ptr;
 
+use super::expressions::{
+    extract_array_index, extract_binary_op, extract_binary_operator, extract_char_literal,
+    extract_expression_from_cursor, extract_field_access, extract_float_literal,
+    extract_function_call, extract_int_literal, extract_single_statement, extract_statement,
+    extract_unary_op, extract_variable_ref, try_extract_expression, visit_binary_operand,
+    visit_expression,
+};
 use super::types::convert_type;
 use super::visit_statement;
-use super::expressions::{
-    extract_binary_op, extract_binary_operator, extract_int_literal, extract_float_literal,
-    extract_char_literal, extract_variable_ref, extract_function_call, extract_unary_op,
-    extract_field_access, extract_array_index, extract_statement,
-    extract_expression_from_cursor, extract_single_statement,
-    visit_expression, visit_binary_operand, try_extract_expression,
-};
 
 /// Extract a variable declaration statement.
 pub(crate) fn extract_var_decl(cursor: CXCursor) -> Option<Statement> {
@@ -1211,4 +1210,3 @@ pub(crate) extern "C" fn visit_default_children(
 
     CXChildVisit_Continue
 }
-

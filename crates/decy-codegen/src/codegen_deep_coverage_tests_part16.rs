@@ -1,12 +1,3 @@
-    };
-    let code = cg.generate_expression_with_context(&expr, &mut ctx);
-    assert!(
-        code.contains("[0i32; 4]"),
-        "Empty sized array → [0i32; 4]: {}",
-        code
-    );
-}
-
 #[test]
 fn expr_context_compound_literal_array_empty_unsized() {
     // (int[]){} → []

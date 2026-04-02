@@ -21,6 +21,7 @@
 
 ## Table of Contents
 
+- [What's New in v2.2.0](#whats-new-in-v220)
 - [Quick Start](#quick-start)
 - [Quality Metrics](#quality-metrics-pmat)
 - [Installation](#installation)
@@ -32,6 +33,14 @@
 - [Documentation](#documentation)
 - [Contributing](#contributing)
 - [License](#license)
+
+---
+
+## What's New in v2.2.0
+
+- **pyo3 bumped to 0.24**: Fixes RUSTSEC-2025-0020 security advisory
+- **`&Box<HirType>` simplified to `&HirType`**: Clippy-clean HIR references
+- **`BinaryOperator` import fixed**: Resolved missing import in codegen
 
 ---
 

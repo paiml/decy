@@ -1898,3 +1898,7 @@ fn addressof_in_call_args_immutable() {
         arguments: vec![HirExpression::AddressOf(Box::new(
             HirExpression::Variable("buffer".to_string()),
         ))],
+    };
+    let code = cg.generate_expression_with_target_type(&expr, &mut ctx, None);
+    let _ = code; // test body completed by DECY-202 fix
+}

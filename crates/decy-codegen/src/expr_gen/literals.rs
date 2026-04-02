@@ -16,7 +16,11 @@ impl CodeGenerator {
         val.to_string()
     }
 
-    pub(crate) fn gen_expr_float_literal(&self, val: &str, target_type: Option<&HirType>) -> String {
+    pub(crate) fn gen_expr_float_literal(
+        &self,
+        val: &str,
+        target_type: Option<&HirType>,
+    ) -> String {
         let val_stripped = val.trim_end_matches(['f', 'F', 'l', 'L']);
         match target_type {
             Some(HirType::Float) => format!("{}f32", val_stripped),
@@ -125,7 +129,7 @@ impl CodeGenerator {
     pub(crate) fn gen_expr_variable_pointer_target(
         escaped_name: &str,
         name: &str,
-        ptr_inner: &Box<HirType>,
+        ptr_inner: &HirType,
         ctx: &TypeContext,
     ) -> Option<String> {
         let var_type = ctx.get_type(name)?;
@@ -135,28 +139,22 @@ impl CodeGenerator {
         match var_type {
             HirType::Reference { inner, mutable } => {
                 let element_type_match = match inner.as_ref() {
-                    HirType::Array { element_type, .. } => {
-                        Some((element_type.as_ref(), *mutable))
-                    }
+                    HirType::Array { element_type, .. } => Some((element_type.as_ref(), *mutable)),
                     HirType::Vec(elem_type) => Some((elem_type.as_ref(), *mutable)),
                     _ => None,
                 };
 
                 if let Some((elem_type, is_mutable)) = element_type_match {
-                    if elem_type == ptr_inner.as_ref() {
+                    if elem_type == ptr_inner {
                         if is_mutable {
                             return Some(format!("{}.as_mut_ptr()", escaped_name));
                         } else {
-                            let ptr_type = Self::map_type(&HirType::Pointer(
-                                ptr_inner.clone(),
-                            ));
-                            return Some(format!(
-                                "{}.as_ptr() as {}",
-                                escaped_name, ptr_type
-                            ));
+                            let ptr_type =
+                                Self::map_type(&HirType::Pointer(Box::new(ptr_inner.clone())));
+                            return Some(format!("{}.as_ptr() as {}", escaped_name, ptr_type));
                         }
                     }
-                } else if inner.as_ref() == ptr_inner.as_ref() {
+                } else if inner.as_ref() == ptr_inner {
                     if *mutable {
                         return Some(format!("{} as *mut _", escaped_name));
                     } else {
@@ -165,15 +163,15 @@ impl CodeGenerator {
                 }
             }
             HirType::Vec(elem_type) => {
-                if elem_type.as_ref() == ptr_inner.as_ref() {
+                if elem_type.as_ref() == ptr_inner {
                     return Some(format!("{}.as_mut_ptr()", escaped_name));
                 }
             }
             HirType::Array { element_type, .. } => {
-                if element_type.as_ref() == ptr_inner.as_ref() {
+                if element_type.as_ref() == ptr_inner {
                     return Some(format!("{}.as_mut_ptr()", escaped_name));
                 }
-                if matches!(ptr_inner.as_ref(), HirType::Void) {
+                if matches!(ptr_inner, HirType::Void) {
                     return Some(format!("{}.as_mut_ptr() as *mut ()", escaped_name));
                 }
             }
@@ -240,8 +238,7 @@ impl CodeGenerator {
             _ => {}
         }
         let escaped_name = escape_rust_keyword(name);
-        let escaped_name =
-            ctx.get_renamed_local(&escaped_name).cloned().unwrap_or(escaped_name);
+        let escaped_name = ctx.get_renamed_local(&escaped_name).cloned().unwrap_or(escaped_name);
         if let Some(HirType::Vec(_)) = target_type {
             return escaped_name;
         }

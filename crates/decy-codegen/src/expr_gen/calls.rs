@@ -20,8 +20,7 @@ impl CodeGenerator {
         if let HirExpression::PostIncrement { operand } = inner {
             if let HirExpression::Variable(var_name) = &**operand {
                 if let Some(var_type) = ctx.get_type(var_name) {
-                    if matches!(var_type, HirType::StringReference | HirType::StringLiteral)
-                    {
+                    if matches!(var_type, HirType::StringReference | HirType::StringLiteral) {
                         return self.generate_expression_with_context(inner, ctx);
                     }
                 }
@@ -69,10 +68,7 @@ impl CodeGenerator {
                         operand_code, operand_code, operand_code
                     )
                 } else {
-                    format!(
-                        "{{ let __tmp = {}; {} += 1; __tmp }}",
-                        operand_code, operand_code
-                    )
+                    format!("{{ let __tmp = {}; {} += 1; __tmp }}", operand_code, operand_code)
                 }
             }
             UnaryOperator::PostDecrement => {
@@ -84,10 +80,7 @@ impl CodeGenerator {
                         operand_code, operand_code, operand_code
                     )
                 } else {
-                    format!(
-                        "{{ let __tmp = {}; {} -= 1; __tmp }}",
-                        operand_code, operand_code
-                    )
+                    format!("{{ let __tmp = {}; {} -= 1; __tmp }}", operand_code, operand_code)
                 }
             }
             UnaryOperator::PreIncrement => {
@@ -162,10 +155,16 @@ impl CodeGenerator {
                     .to_string()
             }
             "wait" => "child.wait().expect(\"wait failed\")".to_string(),
-            "WEXITSTATUS" => self.gen_call_status_macro(arguments, ctx, |s| format!("{}.code().unwrap_or(-1)", s)),
-            "WIFEXITED" => self.gen_call_status_macro(arguments, ctx, |s| format!("{}.success()", s)),
-            "WIFSIGNALED" => self.gen_call_status_macro(arguments, ctx, |s| format!("{}.signal().is_some()", s)),
-            "WTERMSIG" => self.gen_call_status_macro(arguments, ctx, |s| format!("{}.signal().unwrap_or(0)", s)),
+            "WEXITSTATUS" => self
+                .gen_call_status_macro(arguments, ctx, |s| format!("{}.code().unwrap_or(-1)", s)),
+            "WIFEXITED" => {
+                self.gen_call_status_macro(arguments, ctx, |s| format!("{}.success()", s))
+            }
+            "WIFSIGNALED" => {
+                self.gen_call_status_macro(arguments, ctx, |s| format!("{}.signal().is_some()", s))
+            }
+            "WTERMSIG" => self
+                .gen_call_status_macro(arguments, ctx, |s| format!("{}.signal().unwrap_or(0)", s)),
             "atoi" => self.gen_call_parse(arguments, ctx, "i32", "0"),
             "atof" => self.gen_call_parse(arguments, ctx, "f64", "0.0"),
             "abs" => {
@@ -215,10 +214,7 @@ impl CodeGenerator {
         ctx: &TypeContext,
     ) -> String {
         if arguments.len() == 1 {
-            format!(
-                "{}.len() as i32",
-                self.generate_expression_with_context(&arguments[0], ctx)
-            )
+            format!("{}.len() as i32", self.generate_expression_with_context(&arguments[0], ctx))
         } else {
             let args: Vec<String> = arguments
                 .iter()
@@ -235,11 +231,9 @@ impl CodeGenerator {
         ctx: &TypeContext,
     ) -> String {
         if arguments.len() == 2 {
-            let src_code =
-                self.generate_expression_with_context(&arguments[1], ctx);
-            let is_raw_pointer = src_code.contains("(*")
-                || src_code.contains(").")
-                || src_code.contains("as *");
+            let src_code = self.generate_expression_with_context(&arguments[1], ctx);
+            let is_raw_pointer =
+                src_code.contains("(*") || src_code.contains(").") || src_code.contains("as *");
             if is_raw_pointer {
                 format!(
                     "unsafe {{ std::ffi::CStr::from_ptr({} as *const i8).to_str().unwrap_or(\"\").to_string() }}",
@@ -264,24 +258,16 @@ impl CodeGenerator {
         target_type: Option<&HirType>,
     ) -> String {
         if arguments.len() == 1 {
-            let size_code =
-                self.generate_expression_with_context(&arguments[0], ctx);
+            let size_code = self.generate_expression_with_context(&arguments[0], ctx);
 
             if let Some(HirType::Vec(elem_type)) = target_type {
                 let elem_type_str = Self::map_type(elem_type);
                 let default_val = Self::default_value_for_type(elem_type);
-                if let HirExpression::BinaryOp {
-                    op: BinaryOperator::Multiply,
-                    left,
-                    ..
-                } = &arguments[0]
+                if let HirExpression::BinaryOp { op: BinaryOperator::Multiply, left, .. } =
+                    &arguments[0]
                 {
-                    let count_code =
-                        self.generate_expression_with_context(left, ctx);
-                    return format!(
-                        "vec![{}; ({}) as usize]",
-                        default_val, count_code
-                    );
+                    let count_code = self.generate_expression_with_context(left, ctx);
+                    return format!("vec![{}; ({}) as usize]", default_val, count_code);
                 } else {
                     return format!(
                         "Vec::<{}>::with_capacity(({}) as usize)",
@@ -298,21 +284,14 @@ impl CodeGenerator {
                     );
                 }
                 if let HirType::Struct(struct_name) = inner.as_ref() {
-                    return format!(
-                        "Box::into_raw(Box::<{}>::default())",
-                        struct_name
-                    );
+                    return format!("Box::into_raw(Box::<{}>::default())", struct_name);
                 }
                 let elem_type_str = Self::map_type(inner);
                 let default_val = Self::default_value_for_type(inner);
-                if let HirExpression::BinaryOp {
-                    op: BinaryOperator::Multiply,
-                    left,
-                    ..
-                } = &arguments[0]
+                if let HirExpression::BinaryOp { op: BinaryOperator::Multiply, left, .. } =
+                    &arguments[0]
                 {
-                    let count_code =
-                        self.generate_expression_with_context(left, ctx);
+                    let count_code = self.generate_expression_with_context(left, ctx);
                     return format!(
                         "Box::leak(vec![{}; ({}) as usize].into_boxed_slice()).as_mut_ptr() as *mut {}",
                         default_val, count_code, elem_type_str
@@ -325,11 +304,8 @@ impl CodeGenerator {
                 }
             }
 
-            if let HirExpression::BinaryOp {
-                op: BinaryOperator::Multiply,
-                left,
-                ..
-            } = &arguments[0]
+            if let HirExpression::BinaryOp { op: BinaryOperator::Multiply, left, .. } =
+                &arguments[0]
             {
                 let count_code = self.generate_expression_with_context(left, ctx);
                 format!("vec![0i32; ({}) as usize]", count_code)
@@ -348,8 +324,7 @@ impl CodeGenerator {
         target_type: Option<&HirType>,
     ) -> String {
         if arguments.len() == 2 {
-            let count_code =
-                self.generate_expression_with_context(&arguments[0], ctx);
+            let count_code = self.generate_expression_with_context(&arguments[0], ctx);
 
             if let Some(HirType::Vec(elem_type)) = target_type {
                 let default_val = Self::default_value_for_type(elem_type);
@@ -378,16 +353,12 @@ impl CodeGenerator {
         target_type: Option<&HirType>,
     ) -> String {
         if arguments.len() == 2 {
-            let ptr_code =
-                self.generate_expression_with_context(&arguments[0], ctx);
-            let size_code =
-                self.generate_expression_with_context(&arguments[1], ctx);
-            let realloc_call =
-                format!("realloc({} as *mut (), {})", ptr_code, size_code);
+            let ptr_code = self.generate_expression_with_context(&arguments[0], ctx);
+            let size_code = self.generate_expression_with_context(&arguments[1], ctx);
+            let realloc_call = format!("realloc({} as *mut (), {})", ptr_code, size_code);
 
             if let Some(HirType::Pointer(inner)) = target_type {
-                let target_ptr_type =
-                    Self::map_type(&HirType::Pointer(inner.clone()));
+                let target_ptr_type = Self::map_type(&HirType::Pointer(inner.clone()));
                 format!("{} as {}", realloc_call, target_ptr_type)
             } else {
                 realloc_call
@@ -399,8 +370,7 @@ impl CodeGenerator {
 
     pub(crate) fn gen_call_free(&self, arguments: &[HirExpression], ctx: &TypeContext) -> String {
         if arguments.len() == 1 {
-            let ptr_code =
-                self.generate_expression_with_context(&arguments[0], ctx);
+            let ptr_code = self.generate_expression_with_context(&arguments[0], ctx);
             format!("drop({})", ptr_code)
         } else {
             "/* free() */".to_string()
@@ -409,8 +379,7 @@ impl CodeGenerator {
 
     pub(crate) fn gen_call_fopen(&self, arguments: &[HirExpression], ctx: &TypeContext) -> String {
         if arguments.len() == 2 {
-            let filename =
-                self.generate_expression_with_context(&arguments[0], ctx);
+            let filename = self.generate_expression_with_context(&arguments[0], ctx);
             let mode = self.generate_expression_with_context(&arguments[1], ctx);
             if mode.contains('w') || mode.contains('a') {
                 format!("std::fs::File::create({}).ok()", filename)
@@ -424,8 +393,7 @@ impl CodeGenerator {
 
     pub(crate) fn gen_call_fclose(&self, arguments: &[HirExpression], ctx: &TypeContext) -> String {
         if arguments.len() == 1 {
-            let file_code =
-                self.generate_expression_with_context(&arguments[0], ctx);
+            let file_code = self.generate_expression_with_context(&arguments[0], ctx);
             format!("drop({})", file_code)
         } else {
             "/* fclose() */".to_string()
@@ -434,8 +402,7 @@ impl CodeGenerator {
 
     pub(crate) fn gen_call_fgetc(&self, arguments: &[HirExpression], ctx: &TypeContext) -> String {
         if arguments.len() == 1 {
-            let file_code =
-                self.generate_expression_with_context(&arguments[0], ctx);
+            let file_code = self.generate_expression_with_context(&arguments[0], ctx);
             format!(
                 "{{ use std::io::Read; let mut buf = [0u8; 1]; {}.read(&mut buf).map(|_| buf[0] as i32).unwrap_or(-1) }}",
                 file_code
@@ -447,10 +414,8 @@ impl CodeGenerator {
 
     pub(crate) fn gen_call_fputc(&self, arguments: &[HirExpression], ctx: &TypeContext) -> String {
         if arguments.len() == 2 {
-            let char_code =
-                self.generate_expression_with_context(&arguments[0], ctx);
-            let file_code =
-                self.generate_expression_with_context(&arguments[1], ctx);
+            let char_code = self.generate_expression_with_context(&arguments[0], ctx);
+            let file_code = self.generate_expression_with_context(&arguments[1], ctx);
             format!(
                 "{{ use std::io::Write; {}.write(&[{} as u8]).map(|_| {} as i32).unwrap_or(-1) }}",
                 file_code, char_code, char_code
@@ -460,10 +425,13 @@ impl CodeGenerator {
         }
     }
 
-    pub(crate) fn gen_call_fprintf(&self, arguments: &[HirExpression], ctx: &TypeContext) -> String {
+    pub(crate) fn gen_call_fprintf(
+        &self,
+        arguments: &[HirExpression],
+        ctx: &TypeContext,
+    ) -> String {
         if arguments.len() >= 2 {
-            let file_code =
-                self.generate_expression_with_context(&arguments[0], ctx);
+            let file_code = self.generate_expression_with_context(&arguments[0], ctx);
             let fmt = self.generate_expression_with_context(&arguments[1], ctx);
             let rust_fmt = Self::convert_c_format_to_rust(&fmt);
             if arguments.len() == 2 {
@@ -487,7 +455,9 @@ impl CodeGenerator {
                     .collect();
                 format!(
                     "{{ use std::io::Write; write!({}, {}, {}).map(|_| 0).unwrap_or(-1) }}",
-                    file_code, rust_fmt, args.join(", ")
+                    file_code,
+                    rust_fmt,
+                    args.join(", ")
                 )
             }
         } else {
@@ -507,14 +477,11 @@ impl CodeGenerator {
                     .iter()
                     .enumerate()
                     .map(|(i, a)| {
-                        let arg_code =
-                            self.generate_expression_with_context(a, ctx);
+                        let arg_code = self.generate_expression_with_context(a, ctx);
                         if s_positions.contains(&i) && !Self::is_string_ternary(a) {
                             let arg_type = ctx.infer_expression_type(a);
-                            let is_raw_pointer =
-                                matches!(arg_type, Some(HirType::Pointer(_)));
-                            let is_function_call =
-                                matches!(a, HirExpression::FunctionCall { .. });
+                            let is_raw_pointer = matches!(arg_type, Some(HirType::Pointer(_)));
+                            let is_function_call = matches!(a, HirExpression::FunctionCall { .. });
                             if is_raw_pointer || is_function_call {
                                 Self::wrap_raw_ptr_with_cstr(&arg_code)
                             } else {
@@ -534,14 +501,9 @@ impl CodeGenerator {
 
     pub(crate) fn gen_call_fread(&self, arguments: &[HirExpression], ctx: &TypeContext) -> String {
         if arguments.len() == 4 {
-            let buf_code =
-                self.generate_expression_with_context(&arguments[0], ctx);
-            let file_code =
-                self.generate_expression_with_context(&arguments[3], ctx);
-            format!(
-                "{{ use std::io::Read; {}.read(&mut {}).unwrap_or(0) }}",
-                file_code, buf_code
-            )
+            let buf_code = self.generate_expression_with_context(&arguments[0], ctx);
+            let file_code = self.generate_expression_with_context(&arguments[3], ctx);
+            format!("{{ use std::io::Read; {}.read(&mut {}).unwrap_or(0) }}", file_code, buf_code)
         } else {
             "0 /* fread requires 4 args */".to_string()
         }
@@ -549,14 +511,9 @@ impl CodeGenerator {
 
     pub(crate) fn gen_call_fwrite(&self, arguments: &[HirExpression], ctx: &TypeContext) -> String {
         if arguments.len() == 4 {
-            let data_code =
-                self.generate_expression_with_context(&arguments[0], ctx);
-            let file_code =
-                self.generate_expression_with_context(&arguments[3], ctx);
-            format!(
-                "{{ use std::io::Write; {}.write(&{}).unwrap_or(0) }}",
-                file_code, data_code
-            )
+            let data_code = self.generate_expression_with_context(&arguments[0], ctx);
+            let file_code = self.generate_expression_with_context(&arguments[3], ctx);
+            format!("{{ use std::io::Write; {}.write(&{}).unwrap_or(0) }}", file_code, data_code)
         } else {
             "0 /* fwrite requires 4 args */".to_string()
         }
@@ -564,10 +521,8 @@ impl CodeGenerator {
 
     pub(crate) fn gen_call_fputs(&self, arguments: &[HirExpression], ctx: &TypeContext) -> String {
         if arguments.len() == 2 {
-            let str_code =
-                self.generate_expression_with_context(&arguments[0], ctx);
-            let file_code =
-                self.generate_expression_with_context(&arguments[1], ctx);
+            let str_code = self.generate_expression_with_context(&arguments[0], ctx);
+            let file_code = self.generate_expression_with_context(&arguments[1], ctx);
             format!(
                 "{{ use std::io::Write; {}.write_all({}.as_bytes()).map(|_| 0).unwrap_or(-1) }}",
                 file_code, str_code
@@ -592,8 +547,7 @@ impl CodeGenerator {
                     cmd
                 )
             } else {
-                let arg_chain: String =
-                    args.iter().map(|a| format!(".arg({})", a)).collect();
+                let arg_chain: String = args.iter().map(|a| format!(".arg({})", a)).collect();
                 format!(
                     "{{ use std::process::Command; Command::new({}){}.status().expect(\"command failed\"); }}",
                     cmd, arg_chain
@@ -611,8 +565,7 @@ impl CodeGenerator {
         fmt_fn: impl Fn(String) -> String,
     ) -> String {
         if !arguments.is_empty() {
-            let status_var =
-                self.generate_expression_with_context(&arguments[0], ctx);
+            let status_var = self.generate_expression_with_context(&arguments[0], ctx);
             fmt_fn(status_var)
         } else {
             "/* macro requires status arg */".to_string()
@@ -634,7 +587,11 @@ impl CodeGenerator {
         }
     }
 
-    pub(crate) fn gen_call_snprintf(&self, arguments: &[HirExpression], ctx: &TypeContext) -> String {
+    pub(crate) fn gen_call_snprintf(
+        &self,
+        arguments: &[HirExpression],
+        ctx: &TypeContext,
+    ) -> String {
         if arguments.len() >= 3 {
             let fmt = self.generate_expression_with_context(&arguments[2], ctx);
             let rust_fmt = Self::convert_c_format_to_rust(&fmt);
@@ -652,7 +609,11 @@ impl CodeGenerator {
         }
     }
 
-    pub(crate) fn gen_call_sprintf(&self, arguments: &[HirExpression], ctx: &TypeContext) -> String {
+    pub(crate) fn gen_call_sprintf(
+        &self,
+        arguments: &[HirExpression],
+        ctx: &TypeContext,
+    ) -> String {
         if arguments.len() >= 2 {
             let fmt = self.generate_expression_with_context(&arguments[1], ctx);
             let rust_fmt = Self::convert_c_format_to_rust(&fmt);

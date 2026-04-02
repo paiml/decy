@@ -110,7 +110,7 @@ fn test_generate_class_with_method() {
     let hir_class = HirClass::from_ast_class(&ast_class);
     let code = codegen.generate_class(&hir_class);
 
-    assert!(code.contains("pub fn area(&self") , "Const method should take &self: {code}");
+    assert!(code.contains("pub fn area(&self"), "Const method should take &self: {code}");
     assert!(code.contains("-> i32"), "Should have return type: {code}");
 }
 
@@ -150,8 +150,14 @@ fn test_generate_namespace_with_function() {
             "add".to_string(),
             decy_parser::parser::Type::Int,
             vec![
-                decy_parser::parser::Parameter::new("a".to_string(), decy_parser::parser::Type::Int),
-                decy_parser::parser::Parameter::new("b".to_string(), decy_parser::parser::Type::Int),
+                decy_parser::parser::Parameter::new(
+                    "a".to_string(),
+                    decy_parser::parser::Type::Int,
+                ),
+                decy_parser::parser::Parameter::new(
+                    "b".to_string(),
+                    decy_parser::parser::Type::Int,
+                ),
             ],
         )],
         structs: vec![],
@@ -176,8 +182,14 @@ fn test_generate_namespace_with_struct() {
         structs: vec![decy_parser::parser::Struct::new(
             "Vec2".to_string(),
             vec![
-                decy_parser::parser::StructField::new("x".to_string(), decy_parser::parser::Type::Float),
-                decy_parser::parser::StructField::new("y".to_string(), decy_parser::parser::Type::Float),
+                decy_parser::parser::StructField::new(
+                    "x".to_string(),
+                    decy_parser::parser::Type::Float,
+                ),
+                decy_parser::parser::StructField::new(
+                    "y".to_string(),
+                    decy_parser::parser::Type::Float,
+                ),
             ],
         )],
         classes: vec![],

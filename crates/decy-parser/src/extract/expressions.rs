@@ -1,17 +1,15 @@
 //! Expression extraction from clang cursors.
 
-
 use crate::ast_types::*;
 use clang_sys::*;
 use std::ffi::CStr;
 use std::ptr;
 
-use super::types::convert_type;
 use super::statements::{
-    extract_var_decl, extract_return_stmt, extract_if_stmt, extract_for_stmt,
-    extract_while_stmt, extract_switch_stmt, extract_inc_dec_stmt,
-    extract_assignment_stmt,
+    extract_assignment_stmt, extract_for_stmt, extract_if_stmt, extract_inc_dec_stmt,
+    extract_return_stmt, extract_switch_stmt, extract_var_decl, extract_while_stmt,
 };
+use super::types::convert_type;
 
 /// Helper function to extract an expression from a cursor.
 /// Dispatches to the appropriate extract function based on cursor kind.
@@ -1902,20 +1900,30 @@ extern "C" fn visit_cxx_new_args(
     let kind = unsafe { clang_getCursorKind(cursor) };
 
     // Skip type references (43) — only collect argument expressions
-    if kind == 43 { return CXChildVisit_Continue; }
+    if kind == 43 {
+        return CXChildVisit_Continue;
+    }
 
     match kind {
         CXCursor_IntegerLiteral => {
-            if let Some(e) = extract_int_literal(cursor) { args.push(e); }
+            if let Some(e) = extract_int_literal(cursor) {
+                args.push(e);
+            }
         }
         CXCursor_DeclRefExpr => {
-            if let Some(e) = extract_variable_ref(cursor) { args.push(e); }
+            if let Some(e) = extract_variable_ref(cursor) {
+                args.push(e);
+            }
         }
         _ => {
             let mut expr_opt: Option<Expression> = None;
             let expr_ptr = &mut expr_opt as *mut Option<Expression>;
-            unsafe { clang_visitChildren(cursor, visit_expression, expr_ptr as CXClientData); }
-            if let Some(e) = expr_opt { args.push(e); }
+            unsafe {
+                clang_visitChildren(cursor, visit_expression, expr_ptr as CXClientData);
+            }
+            if let Some(e) = expr_opt {
+                args.push(e);
+            }
         }
     }
     CXChildVisit_Continue
@@ -1925,18 +1933,24 @@ extern "C" fn visit_cxx_new_args(
 pub(crate) fn extract_cxx_delete(cursor: CXCursor) -> Option<Expression> {
     let mut operand: Option<Expression> = None;
     let expr_ptr = &mut operand as *mut Option<Expression>;
-    unsafe { clang_visitChildren(cursor, visit_expression, expr_ptr as CXClientData); }
+    unsafe {
+        clang_visitChildren(cursor, visit_expression, expr_ptr as CXClientData);
+    }
     Some(Expression::CxxDelete { operand: Box::new(operand?) })
 }
 
 /// Extract C++ bool literal (DECY-226).
 pub(crate) fn extract_cxx_bool_literal(cursor: CXCursor) -> Option<Expression> {
     let tu = unsafe { clang_Cursor_getTranslationUnit(cursor) };
-    if tu.is_null() { return None; }
+    if tu.is_null() {
+        return None;
+    }
     let extent = unsafe { clang_getCursorExtent(cursor) };
     let mut tokens = ptr::null_mut();
     let mut num_tokens = 0;
-    unsafe { clang_tokenize(tu, extent, &mut tokens, &mut num_tokens); }
+    unsafe {
+        clang_tokenize(tu, extent, &mut tokens, &mut num_tokens);
+    }
 
     let mut is_true = false;
     if num_tokens > 0 {
@@ -1944,11 +1958,12 @@ pub(crate) fn extract_cxx_bool_literal(cursor: CXCursor) -> Option<Expression> {
             let token = *tokens;
             let token_cx = clang_getTokenSpelling(tu, token);
             let c_str = CStr::from_ptr(clang_getCString(token_cx));
-            if let Ok(s) = c_str.to_str() { is_true = s == "true"; }
+            if let Ok(s) = c_str.to_str() {
+                is_true = s == "true";
+            }
             clang_disposeString(token_cx);
             clang_disposeTokens(tu, tokens, num_tokens);
         }
     }
     Some(Expression::BoolLiteral(is_true))
 }
-

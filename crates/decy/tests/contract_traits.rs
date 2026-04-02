@@ -9,9 +9,9 @@
 //! Run with: `cargo test --test contract_traits`
 
 use provable_contracts::traits::{
-    ActivationKernelV1, AdamwKernelV1, AttentionKernelV1, CrossEntropyKernelV1,
-    FlashAttentionV1, GqaKernelV1, LayernormKernelV1, MatmulKernelV1, RmsnormKernelV1,
-    RopeKernelV1, SiluKernelV1, SoftmaxKernelV1, SwigluKernelV1,
+    ActivationKernelV1, AdamwKernelV1, AttentionKernelV1, CrossEntropyKernelV1, FlashAttentionV1,
+    GqaKernelV1, LayernormKernelV1, MatmulKernelV1, RmsnormKernelV1, RopeKernelV1, SiluKernelV1,
+    SoftmaxKernelV1, SwigluKernelV1,
 };
 
 /// Marker struct for reference scalar kernel implementations.
@@ -100,11 +100,7 @@ impl LayernormKernelV1 for ReferenceKernels {
 impl CrossEntropyKernelV1 for ReferenceKernels {
     fn cross_entropy(&self, targets: &[f32], logits: &[f32]) -> Vec<f32> {
         let log_sm = CrossEntropyKernelV1::log_softmax(self, logits);
-        let loss = -targets
-            .iter()
-            .zip(log_sm.iter())
-            .map(|(t, l)| t * l)
-            .sum::<f32>();
+        let loss = -targets.iter().zip(log_sm.iter()).map(|(t, l)| t * l).sum::<f32>();
         vec![loss]
     }
 
@@ -127,11 +123,7 @@ impl SwigluKernelV1 for ReferenceKernels {
         let gate: Vec<f32> = x.iter().zip(w.iter()).map(|(xi, wi)| xi * wi).collect();
         let silu_gate: Vec<f32> = gate.iter().map(|&g| g / (1.0 + (-g).exp())).collect();
         let value: Vec<f32> = x.iter().zip(v.iter()).map(|(xi, vi)| xi * vi).collect();
-        silu_gate
-            .iter()
-            .zip(value.iter())
-            .map(|(s, val)| s * val)
-            .collect()
+        silu_gate.iter().zip(value.iter()).map(|(s, val)| s * val).collect()
     }
 }
 
@@ -250,10 +242,7 @@ fn swiglu_kernel_v1_properties() {
     // swiglu(x, I, I, 0, 0) = silu(x) * x
     for (i, &xi) in x.iter().enumerate() {
         let expected = (xi / (1.0 + (-xi).exp())) * xi;
-        assert!(
-            (out[i] - expected).abs() < 1e-5,
-            "swiglu with identity weights: element {i}"
-        );
+        assert!((out[i] - expected).abs() < 1e-5, "swiglu with identity weights: element {i}");
     }
 }
 

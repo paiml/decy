@@ -942,7 +942,6 @@ impl CodeGenerator {
             }
         }
     }
-
 }
 
 mod expr_gen;

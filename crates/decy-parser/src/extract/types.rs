@@ -1,14 +1,12 @@
 //! Type, struct, enum, typedef, variable, and macro extraction from clang cursors.
 
-
 use crate::ast_types::*;
 use clang_sys::*;
 use std::ffi::CStr;
 use std::ptr;
 
-
-use super::visit_statement;
 use super::expressions::visit_variable_initializer;
+use super::visit_statement;
 
 pub(crate) fn extract_function(cursor: CXCursor) -> Option<Function> {
     // SAFETY: Getting cursor spelling (function name)
@@ -240,11 +238,7 @@ extern "C" fn visit_class_children(
                 .strip_prefix("class ")
                 .or_else(|| base_name.strip_prefix("struct "))
                 .unwrap_or(&base_name);
-            let clean_name = stripped
-                .rsplit("::")
-                .next()
-                .unwrap_or(stripped)
-                .to_string();
+            let clean_name = stripped.rsplit("::").next().unwrap_or(stripped).to_string();
             if !clean_name.is_empty() {
                 class.base_class = Some(clean_name);
             }
@@ -819,4 +813,3 @@ pub(crate) fn convert_type(cx_type: CXType) -> Option<Type> {
         _ => None,
     }
 }
-

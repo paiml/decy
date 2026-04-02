@@ -14,7 +14,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut total = 0;
     let mut passed = 0;
 
-    passed += dogfood_test("Class with methods", r#"
+    passed += dogfood_test(
+        "Class with methods",
+        r#"
 extern "C" { void __m(); }
 class Calculator {
 public:
@@ -25,9 +27,13 @@ public:
     void multiply(int x) { result = result * x; }
     ~Calculator() {}
 };
-"#, &mut total)?;
+"#,
+        &mut total,
+    )?;
 
-    passed += dogfood_test("Namespace with nested struct", r#"
+    passed += dogfood_test(
+        "Namespace with nested struct",
+        r#"
 extern "C" { void __m(); }
 namespace geometry {
     struct Point { int x; int y; };
@@ -37,9 +43,13 @@ namespace geometry {
         return dx * dx + dy * dy;
     }
 }
-"#, &mut total)?;
+"#,
+        &mut total,
+    )?;
 
-    passed += dogfood_test("Operator overloading", r#"
+    passed += dogfood_test(
+        "Operator overloading",
+        r#"
 extern "C" { void __m(); }
 class Pair {
 public:
@@ -49,9 +59,13 @@ public:
     Pair operator+(Pair other) { Pair r(0,0); return r; }
     bool operator==(Pair other) { return first == other.first; }
 };
-"#, &mut total)?;
+"#,
+        &mut total,
+    )?;
 
-    passed += dogfood_test("Inheritance", r#"
+    passed += dogfood_test(
+        "Inheritance",
+        r#"
 extern "C" { void __m(); }
 class Base {
 public:
@@ -63,16 +77,22 @@ public:
     int extra;
     int get_extra() { return extra; }
 };
-"#, &mut total)?;
+"#,
+        &mut total,
+    )?;
 
-    passed += dogfood_test("CUDA kernel", r#"
+    passed += dogfood_test(
+        "CUDA kernel",
+        r#"
 __global__ void saxpy(float* y, float a, float* x, int n) {
     int i = 0;
 }
 void host_setup(int n) {
     int blocks = (n + 255) / 256;
 }
-"#, &mut total)?;
+"#,
+        &mut total,
+    )?;
 
     println!("\n=== Results: {}/{} passed ===", passed, total);
     if passed == total {
@@ -84,7 +104,11 @@ void host_setup(int n) {
     Ok(())
 }
 
-fn dogfood_test(name: &str, cpp_code: &str, total: &mut usize) -> Result<usize, Box<dyn std::error::Error>> {
+fn dogfood_test(
+    name: &str,
+    cpp_code: &str,
+    total: &mut usize,
+) -> Result<usize, Box<dyn std::error::Error>> {
     *total += 1;
     print!("  {:40} ", name);
 
@@ -126,17 +150,13 @@ fn dogfood_test(name: &str, cpp_code: &str, total: &mut usize) -> Result<usize, 
         .arg(&rs_path)
         .output()?;
 
-    let has_errors = String::from_utf8_lossy(&output.stderr)
-        .lines()
-        .any(|l| l.starts_with("error"));
+    let has_errors =
+        String::from_utf8_lossy(&output.stderr).lines().any(|l| l.starts_with("error"));
 
     if has_errors {
         println!("[FAIL]");
         let stderr_str = String::from_utf8_lossy(&output.stderr).to_string();
-        let errors: Vec<&str> = stderr_str
-            .lines()
-            .filter(|l| l.starts_with("error"))
-            .collect();
+        let errors: Vec<&str> = stderr_str.lines().filter(|l| l.starts_with("error")).collect();
         for e in errors.iter().take(3) {
             println!("    {}", e);
         }

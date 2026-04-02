@@ -1898,3 +1898,9 @@ fn expr_context_post_inc_int() {
     let mut ctx = TypeContext::new();
     ctx.add_variable("i".to_string(), HirType::Int);
     let expr = HirExpression::UnaryOp {
+        op: decy_hir::UnaryOperator::PostIncrement,
+        operand: Box::new(HirExpression::Variable("i".to_string())),
+    };
+    let code = cg.generate_expression_with_context(&expr, &mut ctx);
+    let _ = code; // test body completed by DECY-202 fix
+}

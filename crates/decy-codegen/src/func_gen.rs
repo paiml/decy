@@ -188,12 +188,9 @@ impl CodeGenerator {
         if is_array && !uses_ptr_arithmetic {
             // Transform to slice parameter (only if no pointer arithmetic)
             // Find the original parameter to get the HirType
-            if let Some(orig_param) =
-                func.parameters().iter().find(|fp| fp.name() == p.name)
-            {
+            if let Some(orig_param) = func.parameters().iter().find(|fp| fp.name() == p.name) {
                 let is_mutable = self.is_parameter_modified(func, &p.name);
-                let slice_type =
-                    self.pointer_to_slice_type(orig_param.param_type(), is_mutable);
+                let slice_type = self.pointer_to_slice_type(orig_param.param_type(), is_mutable);
                 // For slices, don't add 'mut' prefix (slices themselves aren't reassigned)
                 Some(format!("{}: {}", p.name, slice_type))
             } else {
@@ -202,9 +199,7 @@ impl CodeGenerator {
         } else {
             // DECY-086: Check if this is an array parameter that should become a slice
             // In C, `int arr[10]` as a parameter decays to a pointer, so we use slice
-            if let Some(orig_param) =
-                func.parameters().iter().find(|fp| fp.name() == p.name)
-            {
+            if let Some(orig_param) = func.parameters().iter().find(|fp| fp.name() == p.name) {
                 if let HirType::Array { element_type, .. } = orig_param.param_type() {
                     // Fixed-size array parameter → slice reference
                     let is_mutable = self.is_parameter_modified(func, &p.name);
@@ -218,9 +213,7 @@ impl CodeGenerator {
             }
             // DECY-111: Check if this is a pointer parameter that should become a reference
             // DECY-123: Skip transformation if pointer arithmetic is used
-            if let Some(orig_param) =
-                func.parameters().iter().find(|fp| fp.name() == p.name)
-            {
+            if let Some(orig_param) = func.parameters().iter().find(|fp| fp.name() == p.name) {
                 // DECY-135: const char* → &str transformation
                 // DECY-138: Add mut for string iteration patterns (param reassignment)
                 // Must check BEFORE other pointer transformations
@@ -229,9 +222,7 @@ impl CodeGenerator {
                 }
 
                 if let HirType::Pointer(inner) = orig_param.param_type() {
-                    return Some(self.generate_pointer_param(
-                        &p.name, inner, func, void_patterns,
-                    ));
+                    return Some(self.generate_pointer_param(&p.name, inner, func, void_patterns));
                 }
             }
             // Regular parameter with lifetime annotation
@@ -260,8 +251,7 @@ impl CodeGenerator {
             // that has actual constraints (indicating real usage in body)
             let void_pattern = void_patterns.iter().find(|vp| {
                 vp.param_name == name
-                    && (!vp.constraints.is_empty()
-                        || !vp.inferred_types.is_empty())
+                    && (!vp.constraints.is_empty() || !vp.inferred_types.is_empty())
             });
 
             if let Some(pattern) = void_pattern {
@@ -896,5 +886,4 @@ impl CodeGenerator {
 
         result
     }
-
 }

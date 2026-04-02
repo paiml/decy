@@ -161,8 +161,7 @@ impl CParser {
         let has_cuda_keywords = source.contains("__global__")
             || source.contains("__device__")
             || source.contains("__host__");
-        let needs_cpp_mode =
-            (has_extern_c && !has_ifdef_guard) || has_cuda_keywords;
+        let needs_cpp_mode = (has_extern_c && !has_ifdef_guard) || has_cuda_keywords;
 
         // Build system include path arguments
         // We need to keep CStrings alive for the duration of parsing
@@ -325,8 +324,7 @@ impl CParser {
         let has_extern_c = source.contains("extern \"C\"");
         let has_ifdef_guard =
             source.contains("#ifdef __cplusplus") || source.contains("#if defined(__cplusplus)");
-        let needs_cpp_mode =
-            is_cpp_or_cuda_file || (has_extern_c && !has_ifdef_guard);
+        let needs_cpp_mode = is_cpp_or_cuda_file || (has_extern_c && !has_ifdef_guard);
 
         // Prepare command line arguments for language mode
         let cpp_flag = CString::new("-x").unwrap();
@@ -485,10 +483,8 @@ fn apply_cuda_qualifiers_from_source(ast: &mut Ast, source: &str) {
 
         if let Some(qual) = qualifier {
             // Extract function name: after qualifier + return type, before '('
-            let after_qual = trimmed
-                .replace("__global__", "")
-                .replace("__device__", "")
-                .replace("__host__", "");
+            let after_qual =
+                trimmed.replace("__global__", "").replace("__device__", "").replace("__host__", "");
             if let Some(paren_pos) = after_qual.find('(') {
                 let before_paren = after_qual[..paren_pos].trim();
                 // Last word before '(' is the function name

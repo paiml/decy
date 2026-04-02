@@ -135,10 +135,7 @@ public:
 
     assert!(rust_code.contains("pub struct Shape"), "Should have base struct");
     assert!(rust_code.contains("base: Shape"), "Derived should embed base");
-    assert!(
-        rust_code.contains("impl std::ops::Deref for Circle"),
-        "Should generate Deref"
-    );
+    assert!(rust_code.contains("impl std::ops::Deref for Circle"), "Should generate Deref");
     println!("  [PASS] Inheritance transpilation verified\n");
     Ok(())
 }

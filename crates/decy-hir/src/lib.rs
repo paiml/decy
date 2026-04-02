@@ -287,7 +287,9 @@ impl HirClass {
         let fields = ast_class
             .fields
             .iter()
-            .map(|f| HirStructField::new(f.name().to_string(), HirType::from_ast_type(&f.field_type)))
+            .map(|f| {
+                HirStructField::new(f.name().to_string(), HirType::from_ast_type(&f.field_type))
+            })
             .collect();
 
         let methods = ast_class
@@ -322,11 +324,8 @@ impl HirClass {
             })
             .collect();
 
-        let constructor_params = ast_class
-            .constructor_params
-            .iter()
-            .map(HirParameter::from_ast_parameter)
-            .collect();
+        let constructor_params =
+            ast_class.constructor_params.iter().map(HirParameter::from_ast_parameter).collect();
 
         Self {
             name: ast_class.name.clone(),
@@ -1544,7 +1543,11 @@ impl HirExpression {
             Expression::NullLiteral => HirExpression::NullLiteral,
             // DECY-226: C++ bool literal
             Expression::BoolLiteral(val) => {
-                if *val { HirExpression::IntLiteral(1) } else { HirExpression::IntLiteral(0) }
+                if *val {
+                    HirExpression::IntLiteral(1)
+                } else {
+                    HirExpression::IntLiteral(0)
+                }
             }
         }
     }

@@ -40,51 +40,40 @@ impl CodeGenerator {
             HirStatement::Return(expr_opt) => {
                 self.generate_return_statement(expr_opt.as_ref(), function_name, ctx, return_type)
             }
-            HirStatement::If { condition, then_block, else_block } => {
-                self.generate_if_statement(
-                    condition,
-                    then_block,
-                    else_block.as_deref(),
-                    function_name,
-                    ctx,
-                    return_type,
-                )
-            }
+            HirStatement::If { condition, then_block, else_block } => self.generate_if_statement(
+                condition,
+                then_block,
+                else_block.as_deref(),
+                function_name,
+                ctx,
+                return_type,
+            ),
             HirStatement::While { condition, body } => {
-                self.generate_while_statement(
-                    condition,
-                    body,
-                    function_name,
-                    ctx,
-                    return_type,
-                )
+                self.generate_while_statement(condition, body, function_name, ctx, return_type)
             }
             HirStatement::Break => "break;".to_string(),
             HirStatement::Continue => "continue;".to_string(),
             HirStatement::Assignment { target, value } => {
                 self.generate_assignment_statement(target, value, ctx)
             }
-            HirStatement::For { init, condition, increment, body } => {
-                self.generate_for_statement(
-                    init,
-                    condition.as_ref(),
-                    increment,
-                    body,
-                    function_name,
-                    ctx,
-                    return_type,
-                )
-            }
-            HirStatement::Switch { condition, cases, default_case } => {
-                self.generate_switch_statement(
+            HirStatement::For { init, condition, increment, body } => self.generate_for_statement(
+                init,
+                condition.as_ref(),
+                increment,
+                body,
+                function_name,
+                ctx,
+                return_type,
+            ),
+            HirStatement::Switch { condition, cases, default_case } => self
+                .generate_switch_statement(
                     condition,
                     cases,
                     default_case.as_deref(),
                     function_name,
                     ctx,
                     return_type,
-                )
-            }
+                ),
             HirStatement::DerefAssignment { target, value } => {
                 self.generate_deref_assignment_statement(target, value, ctx)
             }
@@ -150,8 +139,7 @@ impl CodeGenerator {
             }
         }
 
-        let is_string_literal_init =
-            matches!(initializer, Some(HirExpression::StringLiteral(_)));
+        let is_string_literal_init = matches!(initializer, Some(HirExpression::StringLiteral(_)));
         let is_char_pointer = matches!(
             var_type,
             HirType::Pointer(inner) if matches!(&**inner, HirType::Char)
@@ -171,18 +159,12 @@ impl CodeGenerator {
             ctx.add_variable(name.to_string(), HirType::StringReference);
             (HirType::StringReference, "&str".to_string())
         } else if is_char_pointer_array && is_array_of_string_literals {
-            let size =
-                if let HirType::Array { size, .. } = var_type { *size } else { None };
-            let array_type = HirType::Array {
-                element_type: Box::new(HirType::StringReference),
-                size,
-            };
+            let size = if let HirType::Array { size, .. } = var_type { *size } else { None };
+            let array_type =
+                HirType::Array { element_type: Box::new(HirType::StringReference), size };
             ctx.add_variable(name.to_string(), array_type.clone());
-            let type_str = if let Some(n) = size {
-                format!("[&str; {}]", n)
-            } else {
-                "[&str]".to_string()
-            };
+            let type_str =
+                if let Some(n) = size { format!("[&str; {}]", n) } else { "[&str]".to_string() };
             (array_type, type_str)
         } else {
             ctx.add_variable(name.to_string(), var_type.clone());
@@ -199,10 +181,7 @@ impl CodeGenerator {
     ) {
         match var_type {
             HirType::Box(inner) => {
-                code.push_str(&format!(
-                    " = Box::new({});",
-                    Self::default_value_for_type(inner)
-                ));
+                code.push_str(&format!(" = Box::new({});", Self::default_value_for_type(inner)));
             }
             HirType::Vec(_) => {
                 if let HirExpression::Malloc { size } = init_expr {
@@ -212,12 +191,8 @@ impl CodeGenerator {
                         ..
                     } = size.as_ref()
                     {
-                        let capacity_code =
-                            self.generate_expression_with_context(left, ctx);
-                        code.push_str(&format!(
-                            " = Vec::with_capacity({});",
-                            capacity_code
-                        ));
+                        let capacity_code = self.generate_expression_with_context(left, ctx);
+                        code.push_str(&format!(" = Vec::with_capacity({});", capacity_code));
                     } else {
                         code.push_str(" = Vec::new();");
                     }
@@ -241,12 +216,11 @@ impl CodeGenerator {
     ) {
         match actual_type {
             HirType::Box(inner) => {
-                let use_default =
-                    if let HirType::Struct(struct_name) = inner.as_ref() {
-                        ctx.struct_has_default(struct_name)
-                    } else {
-                        false
-                    };
+                let use_default = if let HirType::Struct(struct_name) = inner.as_ref() {
+                    ctx.struct_has_default(struct_name)
+                } else {
+                    false
+                };
 
                 if use_default {
                     code.push_str(" = Box::default();");
@@ -261,21 +235,13 @@ impl CodeGenerator {
             HirType::Vec(_) => {
                 code.push_str(&format!(
                     " = {};",
-                    self.generate_expression_with_target_type(
-                        init_expr,
-                        ctx,
-                        Some(actual_type)
-                    )
+                    self.generate_expression_with_target_type(init_expr, ctx, Some(actual_type))
                 ));
             }
             _ => {
                 code.push_str(&format!(
                     " = {};",
-                    self.generate_expression_with_target_type(
-                        init_expr,
-                        ctx,
-                        Some(var_type)
-                    )
+                    self.generate_expression_with_target_type(init_expr, ctx, Some(var_type))
                 ));
             }
         }
@@ -308,21 +274,13 @@ impl CodeGenerator {
             } else {
                 code.push_str(&format!(
                     " = {};",
-                    self.generate_expression_with_target_type(
-                        init_expr,
-                        ctx,
-                        Some(var_type)
-                    )
+                    self.generate_expression_with_target_type(init_expr, ctx, Some(var_type))
                 ));
             }
         } else {
             code.push_str(&format!(
                 " = {};",
-                self.generate_expression_with_target_type(
-                    init_expr,
-                    ctx,
-                    Some(actual_type)
-                )
+                self.generate_expression_with_target_type(init_expr, ctx, Some(actual_type))
             ));
         }
     }
@@ -383,12 +341,14 @@ impl CodeGenerator {
                 self.generate_malloc_expr_init(&mut code, var_type, init_expr, ctx);
             } else if is_malloc_init {
                 self.generate_malloc_funcall_init(
-                    &mut code, var_type, &actual_type, init_expr, ctx,
+                    &mut code,
+                    var_type,
+                    &actual_type,
+                    init_expr,
+                    ctx,
                 );
             } else {
-                self.generate_regular_init(
-                    &mut code, var_type, &actual_type, init_expr, ctx,
-                );
+                self.generate_regular_init(&mut code, var_type, &actual_type, init_expr, ctx);
             }
         } else {
             code.push_str(&format!(" = {};", Self::default_value_for_type(var_type)));
@@ -423,10 +383,7 @@ impl CodeGenerator {
             }
         } else if let Some(expr) = expr_opt {
             // Pass return type as target type hint for null pointer detection
-            format!(
-                "return {};",
-                self.generate_expression_with_target_type(expr, ctx, return_type)
-            )
+            format!("return {};", self.generate_expression_with_target_type(expr, ctx, return_type))
         } else {
             "return;".to_string()
         }
@@ -558,8 +515,7 @@ impl CodeGenerator {
             let target_var = target.to_string();
 
             // Check if target is a Vec type to get element type
-            let element_type = if let Some(HirType::Vec(inner)) = ctx.get_type(&target_var)
-            {
+            let element_type = if let Some(HirType::Vec(inner)) = ctx.get_type(&target_var) {
                 inner.as_ref().clone()
             } else {
                 // Fallback: assume i32
@@ -584,19 +540,14 @@ impl CodeGenerator {
                 {
                     let count_code = self.generate_expression_with_context(left, ctx);
                     let default_value = Self::default_value_for_type(&element_type);
-                    return format!(
-                        "{}.resize({}, {})",
-                        target_var, count_code, default_value
-                    );
+                    return format!("{}.resize({}, {})", target_var, count_code, default_value);
                 }
             }
 
             // 3. realloc(ptr, new_size) → vec.resize(new_count, default)
             // Extract count from new_size (typically n * sizeof(T))
             if let HirExpression::BinaryOp {
-                op: decy_hir::BinaryOperator::Multiply,
-                left,
-                ..
+                op: decy_hir::BinaryOperator::Multiply, left, ..
             } = new_size.as_ref()
             {
                 let count_code = self.generate_expression_with_context(left, ctx);
@@ -617,8 +568,7 @@ impl CodeGenerator {
                 if let HirExpression::BinaryOp { op, left, right } = value {
                     if let HirExpression::Variable(var_name) = &**left {
                         if var_name == target {
-                            let right_code =
-                                self.generate_expression_with_context(right, ctx);
+                            let right_code = self.generate_expression_with_context(right, ctx);
                             return match op {
                                 BinaryOperator::Add => {
                                     format!("{} += {} as usize;", idx_var, right_code)
@@ -638,8 +588,7 @@ impl CodeGenerator {
             }
             // Regular assignment (not realloc)
             let target_type = ctx.get_type(target);
-            let value_code =
-                self.generate_expression_with_target_type(value, ctx, target_type);
+            let value_code = self.generate_expression_with_target_type(value, ctx, target_type);
 
             // DECY-261: Helper to strip nested unsafe blocks to avoid redundancy
             fn strip_nested_unsafe(code: &str) -> String {
@@ -676,6 +625,7 @@ impl CodeGenerator {
     }
 
     /// Generate a for statement.
+    #[allow(clippy::too_many_arguments)]
     fn generate_for_statement(
         &self,
         init: &[HirStatement],
@@ -851,8 +801,8 @@ impl CodeGenerator {
         }
 
         // Infer the type of *target for null pointer detection
-        let target_type = ctx
-            .infer_expression_type(&HirExpression::Dereference(Box::new(target.clone())));
+        let target_type =
+            ctx.infer_expression_type(&HirExpression::Dereference(Box::new(target.clone())));
         let target_code = self.generate_expression_with_context(target, ctx);
         let value_code =
             self.generate_expression_with_target_type(value, ctx, target_type.as_ref());
@@ -924,8 +874,7 @@ impl CodeGenerator {
         ctx: &mut TypeContext,
     ) -> String {
         // Infer the type of array[index] for null pointer detection
-        let target_expr =
-            HirExpression::ArrayIndex { array: array.clone(), index: index.clone() };
+        let target_expr = HirExpression::ArrayIndex { array: array.clone(), index: index.clone() };
         let target_type = ctx.infer_expression_type(&target_expr);
 
         // DECY-165: Check if array is a raw pointer - if so, use unsafe pointer arithmetic
@@ -979,10 +928,7 @@ impl CodeGenerator {
             // DECY-150: Wrap index in parens to handle operator precedence
             // DECY-223: Wrap global array assignment in unsafe block
             if is_global_array {
-                format!(
-                    "unsafe {{ {}[({}) as usize] = {}; }}",
-                    array_code, index_code, value_code
-                )
+                format!("unsafe {{ {}[({}) as usize] = {}; }}", array_code, index_code, value_code)
             } else {
                 format!("{}[({}) as usize] = {};", array_code, index_code, value_code)
             }
@@ -1002,15 +948,11 @@ impl CodeGenerator {
         // Look up field type for null pointer detection
         let field_type = ctx.get_field_type(object, field);
         let obj_code = self.generate_expression_with_context(object, ctx);
-        let value_code =
-            self.generate_expression_with_target_type(value, ctx, field_type.as_ref());
+        let value_code = self.generate_expression_with_target_type(value, ctx, field_type.as_ref());
 
         // DECY-119: Check if object is a raw pointer - need unsafe deref
-        let obj_type = if let HirExpression::Variable(name) = object {
-            ctx.get_type(name)
-        } else {
-            None
-        };
+        let obj_type =
+            if let HirExpression::Variable(name) = object { ctx.get_type(name) } else { None };
 
         if matches!(obj_type, Some(HirType::Pointer(_))) {
             // Raw pointer field assignment needs unsafe block
@@ -1032,10 +974,7 @@ impl CodeGenerator {
                         )
                     }
                     let clean_value = strip_nested_unsafe(&value_code);
-                    return format!(
-                        "unsafe {{ {}.{} = {}; }}",
-                        name, escaped_field, clean_value
-                    );
+                    return format!("unsafe {{ {}.{} = {}; }}", name, escaped_field, clean_value);
                 }
             }
             // Regular struct field assignment

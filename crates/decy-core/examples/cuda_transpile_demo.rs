@@ -41,14 +41,8 @@ __global__ void vector_add(float* a, float* b, float* c, int n) {
     println!("{}", rust_code);
     println!();
 
-    assert!(
-        rust_code.contains("extern \"C\""),
-        "Kernel should generate extern C FFI"
-    );
-    assert!(
-        rust_code.contains("fn vector_add("),
-        "Should contain kernel name"
-    );
+    assert!(rust_code.contains("extern \"C\""), "Kernel should generate extern C FFI");
+    assert!(rust_code.contains("fn vector_add("), "Should contain kernel name");
     println!("  [PASS] CUDA kernel FFI generation verified\n");
     Ok(())
 }
@@ -74,14 +68,8 @@ void setup(int n) {
     println!("{}", rust_code);
     println!();
 
-    assert!(
-        rust_code.contains("fn setup("),
-        "Host function should transpile normally"
-    );
-    assert!(
-        rust_code.contains("block_size"),
-        "Host variables should be present"
-    );
+    assert!(rust_code.contains("fn setup("), "Host function should transpile normally");
+    assert!(rust_code.contains("block_size"), "Host variables should be present");
     println!("  [PASS] Host code transpilation verified\n");
     Ok(())
 }
@@ -117,14 +105,8 @@ int main() {
         rust_code.contains("extern \"C\"") && rust_code.contains("matmul_kernel"),
         "Kernel should be extern C"
     );
-    assert!(
-        rust_code.contains("fn compute("),
-        "Host function should transpile"
-    );
-    assert!(
-        rust_code.contains("fn main()"),
-        "Main should transpile"
-    );
+    assert!(rust_code.contains("fn compute("), "Host function should transpile");
+    assert!(rust_code.contains("fn main()"), "Main should transpile");
     println!("  [PASS] Mixed CUDA transpilation verified\n");
     Ok(())
 }

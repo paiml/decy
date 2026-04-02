@@ -76,7 +76,13 @@ impl CodeGenerator {
 
         if matches!(op, BinaryOperator::LogicalAnd | BinaryOperator::LogicalOr) {
             return self.gen_expr_binary_logical(
-                op, left, right, &left_str, &right_str, op_str, target_type,
+                op,
+                left,
+                right,
+                &left_str,
+                &right_str,
+                op_str,
+                target_type,
             );
         }
 
@@ -89,7 +95,14 @@ impl CodeGenerator {
                 | BinaryOperator::Modulo
         ) {
             if let Some(result) = self.gen_expr_binary_arithmetic_coercion(
-                op, left, right, &left_str, &right_str, op_str, ctx, target_type,
+                op,
+                left,
+                right,
+                &left_str,
+                &right_str,
+                op_str,
+                ctx,
+                target_type,
             ) {
                 return result;
             }
@@ -109,12 +122,24 @@ impl CodeGenerator {
 
         if is_comparison {
             if let Some(result) = self.gen_expr_binary_chained_comparison(
-                left, right, &left_str, &right_str, op_str, ctx, target_type,
+                left,
+                right,
+                &left_str,
+                &right_str,
+                op_str,
+                ctx,
+                target_type,
             ) {
                 return result;
             }
             if let Some(result) = self.gen_expr_binary_signed_unsigned_comparison(
-                left, right, &left_str, &right_str, op_str, ctx, target_type,
+                left,
+                right,
+                &left_str,
+                &right_str,
+                op_str,
+                ctx,
+                target_type,
             ) {
                 return result;
             }
@@ -135,7 +160,13 @@ impl CodeGenerator {
                 | BinaryOperator::Modulo
         ) {
             if let Some(result) = self.gen_expr_binary_arithmetic_target_cast(
-                left, right, &left_str, &right_str, op_str, ctx, target_type,
+                left,
+                right,
+                &left_str,
+                &right_str,
+                op_str,
+                ctx,
+                target_type,
             ) {
                 return result;
             }
@@ -143,13 +174,11 @@ impl CodeGenerator {
 
         if matches!(
             op,
-            BinaryOperator::BitwiseAnd
-                | BinaryOperator::BitwiseOr
-                | BinaryOperator::BitwiseXor
+            BinaryOperator::BitwiseAnd | BinaryOperator::BitwiseOr | BinaryOperator::BitwiseXor
         ) {
-            if let Some(result) = self.gen_expr_binary_bitwise_bool(
-                left, right, &left_str, &right_str, op_str, ctx,
-            ) {
+            if let Some(result) =
+                self.gen_expr_binary_bitwise_bool(left, right, &left_str, &right_str, op_str, ctx)
+            {
                 return result;
             }
         }
@@ -248,10 +277,7 @@ impl CodeGenerator {
 
         if let HirExpression::Variable(var_name) = left {
             if ctx.is_vec(var_name)
-                && matches!(
-                    *right,
-                    HirExpression::IntLiteral(0) | HirExpression::NullLiteral
-                )
+                && matches!(*right, HirExpression::IntLiteral(0) | HirExpression::NullLiteral)
             {
                 return Some(match op {
                     BinaryOperator::Equal => "false /* Vec never null */".to_string(),
@@ -263,17 +289,10 @@ impl CodeGenerator {
 
         if let HirExpression::Variable(var_name) = left {
             if let Some(HirType::Box(_)) = ctx.get_type(var_name) {
-                if matches!(
-                    *right,
-                    HirExpression::IntLiteral(0) | HirExpression::NullLiteral
-                ) {
+                if matches!(*right, HirExpression::IntLiteral(0) | HirExpression::NullLiteral) {
                     return Some(match op {
-                        BinaryOperator::Equal => {
-                            "false /* Box never null */".to_string()
-                        }
-                        BinaryOperator::NotEqual => {
-                            "true /* Box never null */".to_string()
-                        }
+                        BinaryOperator::Equal => "false /* Box never null */".to_string(),
+                        BinaryOperator::NotEqual => "true /* Box never null */".to_string(),
                         _ => unreachable!(),
                     });
                 }
@@ -283,8 +302,7 @@ impl CodeGenerator {
         if let HirExpression::FunctionCall { function, arguments } = left {
             if function == "strlen" && arguments.len() == 1 {
                 if let HirExpression::IntLiteral(0) = right {
-                    let arg_code =
-                        self.generate_expression_with_context(&arguments[0], ctx);
+                    let arg_code = self.generate_expression_with_context(&arguments[0], ctx);
                     return Some(match op {
                         BinaryOperator::Equal => format!("{}.is_empty()", arg_code),
                         BinaryOperator::NotEqual => format!("!{}.is_empty()", arg_code),
@@ -296,8 +314,7 @@ impl CodeGenerator {
         if let HirExpression::FunctionCall { function, arguments } = right {
             if function == "strlen" && arguments.len() == 1 {
                 if let HirExpression::IntLiteral(0) = left {
-                    let arg_code =
-                        self.generate_expression_with_context(&arguments[0], ctx);
+                    let arg_code = self.generate_expression_with_context(&arguments[0], ctx);
                     return Some(match op {
                         BinaryOperator::Equal => format!("{}.is_empty()", arg_code),
                         BinaryOperator::NotEqual => format!("!{}.is_empty()", arg_code),
@@ -383,17 +400,11 @@ impl CodeGenerator {
                         if let HirExpression::Variable(right_var) = right {
                             if ctx.is_pointer(right_var) {
                                 Self::unsafe_block(
-                                    &format!(
-                                        "{}.offset_from({}) as i32",
-                                        left_str, right_str
-                                    ),
+                                    &format!("{}.offset_from({}) as i32", left_str, right_str),
                                     "both pointers derive from same allocation",
                                 )
                             } else {
-                                format!(
-                                    "{}.wrapping_sub({} as usize)",
-                                    left_str, right_str
-                                )
+                                format!("{}.wrapping_sub({} as usize)", left_str, right_str)
                             }
                         } else {
                             format!("{}.wrapping_sub({} as usize)", left_str, right_str)
@@ -420,17 +431,11 @@ impl CodeGenerator {
         let left_needs_bool = !Self::is_boolean_expression(left);
         let right_needs_bool = !Self::is_boolean_expression(right);
 
-        let left_bool = if left_needs_bool {
-            format!("({} != 0)", left_str)
-        } else {
-            left_str.to_string()
-        };
+        let left_bool =
+            if left_needs_bool { format!("({} != 0)", left_str) } else { left_str.to_string() };
 
-        let right_bool = if right_needs_bool {
-            format!("({} != 0)", right_str)
-        } else {
-            right_str.to_string()
-        };
+        let right_bool =
+            if right_needs_bool { format!("({} != 0)", right_str) } else { right_str.to_string() };
 
         if let Some(HirType::Int) = target_type {
             return format!("({} {} {}) as i32", left_bool, op_str, right_bool);
@@ -476,21 +481,16 @@ impl CodeGenerator {
         let left_type = ctx.infer_expression_type(left);
         let right_type = ctx.infer_expression_type(right);
 
-        let left_is_int =
-            matches!(left_type, Some(HirType::Int) | Some(HirType::UnsignedInt));
-        let right_is_int =
-            matches!(right_type, Some(HirType::Int) | Some(HirType::UnsignedInt));
+        let left_is_int = matches!(left_type, Some(HirType::Int) | Some(HirType::UnsignedInt));
+        let right_is_int = matches!(right_type, Some(HirType::Int) | Some(HirType::UnsignedInt));
         let left_is_float = matches!(left_type, Some(HirType::Float));
         let right_is_float = matches!(right_type, Some(HirType::Float));
         let left_is_double = matches!(left_type, Some(HirType::Double));
         let right_is_double = matches!(right_type, Some(HirType::Double));
 
         if (left_is_int && right_is_float) || (left_is_float && right_is_int) {
-            let left_cast = if left_is_int {
-                format!("({} as f32)", left_str)
-            } else {
-                left_str.to_string()
-            };
+            let left_cast =
+                if left_is_int { format!("({} as f32)", left_str) } else { left_str.to_string() };
             let right_cast = if right_is_int {
                 format!("({} as f32)", right_str)
             } else {
@@ -500,11 +500,8 @@ impl CodeGenerator {
         }
 
         if (left_is_int && right_is_double) || (left_is_double && right_is_int) {
-            let left_cast = if left_is_int {
-                format!("({} as f64)", left_str)
-            } else {
-                left_str.to_string()
-            };
+            let left_cast =
+                if left_is_int { format!("({} as f64)", left_str) } else { left_str.to_string() };
             let right_cast = if right_is_int {
                 format!("({} as f64)", right_str)
             } else {
@@ -514,11 +511,8 @@ impl CodeGenerator {
         }
 
         if (left_is_float && right_is_double) || (left_is_double && right_is_float) {
-            let left_cast = if left_is_float {
-                format!("({} as f64)", left_str)
-            } else {
-                left_str.to_string()
-            };
+            let left_cast =
+                if left_is_float { format!("({} as f64)", left_str) } else { left_str.to_string() };
             let right_cast = if right_is_float {
                 format!("({} as f64)", right_str)
             } else {
@@ -582,9 +576,7 @@ impl CodeGenerator {
         let right_is_signed = matches!(right_type, Some(HirType::Int));
         let right_is_unsigned = matches!(right_type, Some(HirType::UnsignedInt));
 
-        if (left_is_signed && right_is_unsigned)
-            || (left_is_unsigned && right_is_signed)
-        {
+        if (left_is_signed && right_is_unsigned) || (left_is_unsigned && right_is_signed) {
             let left_code = format!("({} as i64)", left_str);
             let right_code = format!("({} as i64)", right_str);
             if let Some(HirType::Int) = target_type {
@@ -609,12 +601,8 @@ impl CodeGenerator {
         let left_type = ctx.infer_expression_type(left);
         let right_type = ctx.infer_expression_type(right);
 
-        let result_is_int =
-            matches!(left_type, Some(HirType::Int) | Some(HirType::UnsignedInt))
-                && matches!(
-                    right_type,
-                    Some(HirType::Int) | Some(HirType::UnsignedInt)
-                );
+        let result_is_int = matches!(left_type, Some(HirType::Int) | Some(HirType::UnsignedInt))
+            && matches!(right_type, Some(HirType::Int) | Some(HirType::UnsignedInt));
 
         if result_is_int {
             if let Some(HirType::Float) = target_type {

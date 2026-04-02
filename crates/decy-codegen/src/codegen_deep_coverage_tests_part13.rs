@@ -1,5 +1,3 @@
-}
-
 // --- default_value_for_type: TypeAlias size_t → 0usize (line 3697-3700) ---
 
 #[test]

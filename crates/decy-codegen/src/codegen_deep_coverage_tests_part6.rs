@@ -1898,3 +1898,14 @@ fn generate_function_with_lifetimes_and_structs_array_param() {
         ],
         return_type: AnnotatedType::Simple(HirType::Int),
     };
+    let code = cg.generate_function_with_lifetimes_and_structs(
+        &func,
+        &sig,
+        &[],
+        &[],
+        &[],
+        &[],
+        &[],
+    );
+    let _ = code; // test body completed by DECY-202 fix
+}

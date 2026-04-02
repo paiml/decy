@@ -181,15 +181,28 @@ impl CodeGenerator {
     fn generate_class_struct(&self, hir_class: &decy_hir::HirClass, code: &mut String) {
         let mut fields = hir_class.fields().to_vec();
         if let Some(base) = hir_class.base_class() {
-            fields.insert(0, decy_hir::HirStructField::new("base".to_string(), decy_hir::HirType::Struct(base.to_string())));
+            fields.insert(
+                0,
+                decy_hir::HirStructField::new(
+                    "base".to_string(),
+                    decy_hir::HirType::Struct(base.to_string()),
+                ),
+            );
         }
         let hir_struct = decy_hir::HirStruct::new(hir_class.name().to_string(), fields);
         let mut struct_code = self.generate_struct(&hir_struct);
         if hir_class.has_destructor() {
             struct_code = struct_code.replace("Copy, ", "").replace(", Copy", "");
         }
-        if hir_class.methods().iter().any(|m| m.operator_kind() == Some(decy_hir::HirCxxOperatorKind::Equal)) {
-            struct_code = struct_code.replace(", PartialEq, Eq", "").replace(", PartialEq", "").replace("PartialEq, ", "");
+        if hir_class
+            .methods()
+            .iter()
+            .any(|m| m.operator_kind() == Some(decy_hir::HirCxxOperatorKind::Equal))
+        {
+            struct_code = struct_code
+                .replace(", PartialEq, Eq", "")
+                .replace(", PartialEq", "")
+                .replace("PartialEq, ", "");
         }
         if hir_class.base_class().is_some() {
             struct_code = struct_code.replace(", Eq", "").replace("Eq, ", "");
@@ -202,7 +215,9 @@ impl CodeGenerator {
     fn generate_class_impl_block(&self, hir_class: &decy_hir::HirClass, code: &mut String) {
         let has_ctor = !hir_class.constructor_params().is_empty();
         let has_methods = hir_class.methods().iter().any(|m| m.operator_kind().is_none());
-        if !has_ctor && !has_methods { return; }
+        if !has_ctor && !has_methods {
+            return;
+        }
 
         code.push_str(&format!("impl {} {{\n", hir_class.name()));
         self.generate_class_constructor(hir_class, code);
@@ -212,9 +227,15 @@ impl CodeGenerator {
 
     /// Generate pub fn new() constructor from C++ constructor params.
     fn generate_class_constructor(&self, hir_class: &decy_hir::HirClass, code: &mut String) {
-        if hir_class.constructor_params().is_empty() { return; }
-        let params: Vec<String> = hir_class.constructor_params().iter()
-            .map(|p| format!("{}: {}", escape_rust_keyword(p.name()), Self::map_type(p.param_type())))
+        if hir_class.constructor_params().is_empty() {
+            return;
+        }
+        let params: Vec<String> = hir_class
+            .constructor_params()
+            .iter()
+            .map(|p| {
+                format!("{}: {}", escape_rust_keyword(p.name()), Self::map_type(p.param_type()))
+            })
             .collect();
         code.push_str(&format!("    pub fn new({}) -> Self {{\n", params.join(", ")));
         code.push_str("        Self {\n");
@@ -228,7 +249,11 @@ impl CodeGenerator {
             } else {
                 "Default::default()".to_string()
             };
-            code.push_str(&format!("            {}: {},\n", escape_rust_keyword(field.name()), val));
+            code.push_str(&format!(
+                "            {}: {},\n",
+                escape_rust_keyword(field.name()),
+                val
+            ));
         }
         if hir_class.base_class().is_some() {
             code.push_str("            base: Default::default(),\n");
@@ -240,22 +265,49 @@ impl CodeGenerator {
     fn generate_class_methods(&self, hir_class: &decy_hir::HirClass, code: &mut String) {
         for method in hir_class.methods().iter().filter(|m| m.operator_kind().is_none()) {
             let func = method.function();
-            let params: Vec<String> = func.parameters().iter()
-                .map(|p| format!("{}: {}", escape_rust_keyword(p.name()), Self::map_type(p.param_type())))
+            let params: Vec<String> = func
+                .parameters()
+                .iter()
+                .map(|p| {
+                    format!("{}: {}", escape_rust_keyword(p.name()), Self::map_type(p.param_type()))
+                })
                 .collect();
             let all_params = if method.is_static() {
                 params.join(", ")
             } else {
                 let sr = if method.is_const() { "&self" } else { "&mut self" };
-                if params.is_empty() { sr.to_string() } else { format!("{}, {}", sr, params.join(", ")) }
+                if params.is_empty() {
+                    sr.to_string()
+                } else {
+                    format!("{}, {}", sr, params.join(", "))
+                }
             };
-            let ret = if *func.return_type() == decy_hir::HirType::Void { String::new() } else { format!(" -> {}", Self::map_type(func.return_type())) };
-            code.push_str(&format!("    pub fn {}({}){} {{\n", escape_rust_keyword(func.name()), all_params, ret));
+            let ret = if *func.return_type() == decy_hir::HirType::Void {
+                String::new()
+            } else {
+                format!(" -> {}", Self::map_type(func.return_type()))
+            };
+            code.push_str(&format!(
+                "    pub fn {}({}){} {{\n",
+                escape_rust_keyword(func.name()),
+                all_params,
+                ret
+            ));
             if func.body().is_empty() {
-                if *func.return_type() != decy_hir::HirType::Void { code.push_str("        Default::default()\n"); }
+                if *func.return_type() != decy_hir::HirType::Void {
+                    code.push_str("        Default::default()\n");
+                }
             } else {
                 for stmt in func.body() {
-                    code.push_str(&format!("        {}\n", self.generate_statement_with_context(stmt, None, &mut TypeContext::new(), None)));
+                    code.push_str(&format!(
+                        "        {}\n",
+                        self.generate_statement_with_context(
+                            stmt,
+                            None,
+                            &mut TypeContext::new(),
+                            None
+                        )
+                    ));
                 }
             }
             code.push_str("    }\n\n");
@@ -269,21 +321,36 @@ impl CodeGenerator {
             let op = method.operator_kind().expect("filtered for is_some");
             let func = method.function();
             let rt = Self::map_type(func.return_type());
-            let rhs = func.parameters().first().map_or(cn.to_string(), |p| Self::map_type(p.param_type()));
+            let rhs = func
+                .parameters()
+                .first()
+                .map_or(cn.to_string(), |p| Self::map_type(p.param_type()));
             use decy_hir::HirCxxOperatorKind as Op;
             match op {
                 Op::Add | Op::Sub | Op::Mul | Op::Div | Op::Rem => {
-                    let (tn, mn) = match op { Op::Add=>("Add","add"), Op::Sub=>("Sub","sub"), Op::Mul=>("Mul","mul"), Op::Div=>("Div","div"), _=>("Rem","rem") };
+                    let (tn, mn) = match op {
+                        Op::Add => ("Add", "add"),
+                        Op::Sub => ("Sub", "sub"),
+                        Op::Mul => ("Mul", "mul"),
+                        Op::Div => ("Div", "div"),
+                        _ => ("Rem", "rem"),
+                    };
                     code.push_str(&format!("\nimpl std::ops::{}<{}> for {} {{\n    type Output = {};\n\n    fn {}(self, rhs: {}) -> Self::Output {{\n        Default::default()\n    }}\n}}\n", tn, rhs, cn, rt, mn, rhs));
                 }
                 Op::Equal => {
                     code.push_str(&format!("\nimpl PartialEq for {} {{\n    fn eq(&self, other: &Self) -> bool {{\n        Default::default()\n    }}\n}}\n", cn));
                 }
                 Op::AddAssign | Op::SubAssign => {
-                    let (tn, mn) = if op == Op::AddAssign { ("AddAssign","add_assign") } else { ("SubAssign","sub_assign") };
+                    let (tn, mn) = if op == Op::AddAssign {
+                        ("AddAssign", "add_assign")
+                    } else {
+                        ("SubAssign", "sub_assign")
+                    };
                     code.push_str(&format!("\nimpl std::ops::{}<{}> for {} {{\n    fn {}(&mut self, rhs: {}) {{\n    }}\n}}\n", tn, rhs, cn, mn, rhs));
                 }
-                _ => { code.push_str(&format!("\n// TODO: impl operator {:?} for {}\n", op, cn)); }
+                _ => {
+                    code.push_str(&format!("\n// TODO: impl operator {:?} for {}\n", op, cn));
+                }
             }
         }
     }
@@ -333,12 +400,7 @@ impl CodeGenerator {
             format!(" -> {}", Self::map_type(func.return_type()))
         };
 
-        code.push_str(&format!(
-            "    fn {}({}){};\n",
-            func.name(),
-            params.join(", "),
-            return_type,
-        ));
+        code.push_str(&format!("    fn {}({}){};\n", func.name(), params.join(", "), return_type,));
         code.push_str("}\n");
 
         code

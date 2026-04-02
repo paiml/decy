@@ -3,6 +3,7 @@
 //! These tests are intentionally failing to follow EXTREME TDD methodology.
 
 use super::*;
+use decy_hir::{BinaryOperator, HirStatement};
 
 #[cfg(test)]
 mod tests {

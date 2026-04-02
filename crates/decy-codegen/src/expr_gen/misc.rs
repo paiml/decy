@@ -14,13 +14,8 @@ impl CodeGenerator {
     ) -> String {
         let escaped_field = escape_rust_keyword(field);
         match pointer {
-            HirExpression::PointerFieldAccess { .. }
-            | HirExpression::FieldAccess { .. } => {
-                format!(
-                    "{}.{}",
-                    self.generate_expression_with_context(pointer, ctx),
-                    escaped_field
-                )
+            HirExpression::PointerFieldAccess { .. } | HirExpression::FieldAccess { .. } => {
+                format!("{}.{}", self.generate_expression_with_context(pointer, ctx), escaped_field)
             }
             _ => {
                 let ptr_code = self.generate_expression_with_context(pointer, ctx);
@@ -114,10 +109,7 @@ impl CodeGenerator {
                 let struct_name = parts[0];
                 let field_name = parts[1];
                 let field_type = ctx.structs.get(struct_name).and_then(|fields| {
-                    fields
-                        .iter()
-                        .find(|(name, _)| name == field_name)
-                        .map(|(_, ty)| ty.clone())
+                    fields.iter().find(|(name, _)| name == field_name).map(|(_, ty)| ty.clone())
                 });
                 if let Some(field_type) = field_type {
                     let rust_type = Self::map_type(&field_type);
@@ -165,12 +157,7 @@ impl CodeGenerator {
     }
 
     pub(crate) fn gen_expr_malloc(&self, size: &HirExpression, ctx: &TypeContext) -> String {
-        if let HirExpression::BinaryOp {
-            op: decy_hir::BinaryOperator::Multiply,
-            left,
-            ..
-        } = size
-        {
+        if let HirExpression::BinaryOp { op: decy_hir::BinaryOperator::Multiply, left, .. } = size {
             let capacity_code = self.generate_expression_with_context(left, ctx);
             format!("Vec::with_capacity({})", capacity_code)
         } else {
@@ -186,9 +173,7 @@ impl CodeGenerator {
     ) -> String {
         if matches!(*pointer, HirExpression::NullLiteral) {
             if let HirExpression::BinaryOp {
-                op: decy_hir::BinaryOperator::Multiply,
-                left,
-                ..
+                op: decy_hir::BinaryOperator::Multiply, left, ..
             } = new_size
             {
                 let count_code = self.generate_expression_with_context(left, ctx);
@@ -239,11 +224,7 @@ impl CodeGenerator {
     ) -> String {
         if let Some(vec_type @ HirType::Vec(_)) = target_type {
             if Self::is_any_malloc_or_calloc(expr) {
-                return self.generate_expression_with_target_type(
-                    expr,
-                    ctx,
-                    Some(vec_type),
-                );
+                return self.generate_expression_with_target_type(expr, ctx, Some(vec_type));
             }
         }
 
@@ -290,8 +271,7 @@ impl CodeGenerator {
                         .iter()
                         .enumerate()
                         .map(|(i, init)| {
-                            let init_code =
-                                self.generate_expression_with_context(init, ctx);
+                            let init_code = self.generate_expression_with_context(init, ctx);
                             let field_name = struct_fields
                                 .and_then(|f| f.get(i))
                                 .map(|(name, _)| name.as_str())
@@ -303,11 +283,7 @@ impl CodeGenerator {
                         .collect();
 
                     if initializers.len() < num_struct_fields {
-                        format!(
-                            "{} {{ {}, ..Default::default() }}",
-                            name,
-                            fields.join(", ")
-                        )
+                        format!("{} {{ {}, ..Default::default() }}", name, fields.join(", "))
                     } else {
                         format!("{} {{ {} }}", name, fields.join(", "))
                     }
@@ -350,7 +326,11 @@ impl CodeGenerator {
         }
     }
 
-    pub(crate) fn gen_expr_post_increment(&self, operand: &HirExpression, ctx: &TypeContext) -> String {
+    pub(crate) fn gen_expr_post_increment(
+        &self,
+        operand: &HirExpression,
+        ctx: &TypeContext,
+    ) -> String {
         if let HirExpression::Variable(var_name) = operand {
             if let Some(var_type) = ctx.get_type(var_name) {
                 if matches!(var_type, HirType::StringReference | HirType::StringLiteral) {
@@ -383,14 +363,15 @@ impl CodeGenerator {
                 operand = operand_code
             )
         } else {
-            format!(
-                "{{ let __tmp = {operand}; {operand} += 1; __tmp }}",
-                operand = operand_code
-            )
+            format!("{{ let __tmp = {operand}; {operand} += 1; __tmp }}", operand = operand_code)
         }
     }
 
-    pub(crate) fn gen_expr_pre_increment(&self, operand: &HirExpression, ctx: &TypeContext) -> String {
+    pub(crate) fn gen_expr_pre_increment(
+        &self,
+        operand: &HirExpression,
+        ctx: &TypeContext,
+    ) -> String {
         if let HirExpression::Dereference(inner) = operand {
             if let HirExpression::Variable(var_name) = &**inner {
                 if ctx.is_pointer(var_name) {
@@ -414,7 +395,11 @@ impl CodeGenerator {
         }
     }
 
-    pub(crate) fn gen_expr_post_decrement(&self, operand: &HirExpression, ctx: &TypeContext) -> String {
+    pub(crate) fn gen_expr_post_decrement(
+        &self,
+        operand: &HirExpression,
+        ctx: &TypeContext,
+    ) -> String {
         if let HirExpression::Dereference(inner) = operand {
             if let HirExpression::Variable(var_name) = &**inner {
                 if ctx.is_pointer(var_name) {
@@ -434,14 +419,15 @@ impl CodeGenerator {
                 operand = operand_code
             )
         } else {
-            format!(
-                "{{ let __tmp = {operand}; {operand} -= 1; __tmp }}",
-                operand = operand_code
-            )
+            format!("{{ let __tmp = {operand}; {operand} -= 1; __tmp }}", operand = operand_code)
         }
     }
 
-    pub(crate) fn gen_expr_pre_decrement(&self, operand: &HirExpression, ctx: &TypeContext) -> String {
+    pub(crate) fn gen_expr_pre_decrement(
+        &self,
+        operand: &HirExpression,
+        ctx: &TypeContext,
+    ) -> String {
         if let HirExpression::Dereference(inner) = operand {
             if let HirExpression::Variable(var_name) = &**inner {
                 if ctx.is_pointer(var_name) {
@@ -474,10 +460,8 @@ impl CodeGenerator {
         target_type: Option<&HirType>,
     ) -> String {
         let cond_code = self.generate_expression_with_context(condition, ctx);
-        let then_code =
-            self.generate_expression_with_target_type(then_expr, ctx, target_type);
-        let else_code =
-            self.generate_expression_with_target_type(else_expr, ctx, target_type);
+        let then_code = self.generate_expression_with_target_type(then_expr, ctx, target_type);
+        let else_code = self.generate_expression_with_target_type(else_expr, ctx, target_type);
 
         let cond_bool = if Self::is_boolean_expression(condition) {
             cond_code

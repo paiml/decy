@@ -864,10 +864,7 @@ fn transform_function_with_ownership(
     (optimized_func, annotated_signature)
 }
 
-fn const_struct_literal(
-    struct_name: &str,
-    hir_structs: &[decy_hir::HirStruct],
-) -> String {
+fn const_struct_literal(struct_name: &str, hir_structs: &[decy_hir::HirStruct]) -> String {
     if let Some(hir_struct) = hir_structs.iter().find(|s| s.name() == struct_name) {
         let field_inits: Vec<String> = hir_struct
             .fields()
@@ -1171,10 +1168,8 @@ pub fn transpile_with_includes(c_code: &str, base_dir: Option<&Path>) -> Result<
     let slice_func_args = build_slice_func_arg_mappings(&hir_functions);
 
     // Step 3: Analyze ownership and lifetimes
-    let transformed_functions: Vec<_> = hir_functions
-        .into_iter()
-        .map(|func| transform_function_with_ownership(func))
-        .collect();
+    let transformed_functions: Vec<_> =
+        hir_functions.into_iter().map(|func| transform_function_with_ownership(func)).collect();
 
     // Step 4: Generate Rust code with lifetime annotations
     let code_generator = CodeGenerator::new();
@@ -1205,11 +1200,8 @@ pub fn transpile_with_includes(c_code: &str, base_dir: Option<&Path>) -> Result<
     }
 
     // DECY-204: Convert C++ classes to HIR and generate struct + impl + Drop
-    let hir_classes: Vec<decy_hir::HirClass> = ast
-        .classes()
-        .iter()
-        .map(decy_hir::HirClass::from_ast_class)
-        .collect();
+    let hir_classes: Vec<decy_hir::HirClass> =
+        ast.classes().iter().map(decy_hir::HirClass::from_ast_class).collect();
 
     for hir_class in &hir_classes {
         let class_code = code_generator.generate_class(hir_class);
@@ -1218,11 +1210,8 @@ pub fn transpile_with_includes(c_code: &str, base_dir: Option<&Path>) -> Result<
     }
 
     // DECY-204: Convert C++ namespaces to HIR and generate mod blocks
-    let hir_namespaces: Vec<decy_hir::HirNamespace> = ast
-        .namespaces()
-        .iter()
-        .map(decy_hir::HirNamespace::from_ast_namespace)
-        .collect();
+    let hir_namespaces: Vec<decy_hir::HirNamespace> =
+        ast.namespaces().iter().map(decy_hir::HirNamespace::from_ast_namespace).collect();
 
     for hir_ns in &hir_namespaces {
         let ns_code = code_generator.generate_namespace(hir_ns);
@@ -1455,11 +1444,8 @@ fn process_ast_to_rust(ast: decy_parser::Ast, _base_dir: Option<&Path>) -> Resul
     }
 
     // DECY-204: Generate C++ class definitions (struct + impl + Drop)
-    let hir_classes: Vec<decy_hir::HirClass> = ast
-        .classes()
-        .iter()
-        .map(decy_hir::HirClass::from_ast_class)
-        .collect();
+    let hir_classes: Vec<decy_hir::HirClass> =
+        ast.classes().iter().map(decy_hir::HirClass::from_ast_class).collect();
 
     for hir_class in &hir_classes {
         let class_code = code_generator.generate_class(hir_class);
@@ -1468,11 +1454,8 @@ fn process_ast_to_rust(ast: decy_parser::Ast, _base_dir: Option<&Path>) -> Resul
     }
 
     // DECY-204: Generate C++ namespace definitions (mod blocks)
-    let hir_namespaces: Vec<decy_hir::HirNamespace> = ast
-        .namespaces()
-        .iter()
-        .map(decy_hir::HirNamespace::from_ast_namespace)
-        .collect();
+    let hir_namespaces: Vec<decy_hir::HirNamespace> =
+        ast.namespaces().iter().map(decy_hir::HirNamespace::from_ast_namespace).collect();
 
     for hir_ns in &hir_namespaces {
         let ns_code = code_generator.generate_namespace(hir_ns);
@@ -1855,7 +1838,6 @@ fn statement_uses_pointer_arithmetic(stmt: &HirStatement, var_name: &str) -> boo
         _ => false,
     }
 }
-
 
 #[cfg(test)]
 #[path = "tests.rs"]

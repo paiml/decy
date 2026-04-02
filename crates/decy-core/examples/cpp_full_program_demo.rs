@@ -60,7 +60,9 @@ namespace gfx {
 "#;
 
     println!("C++ Input: {} lines", cpp.lines().count());
-    println!("  Features: class, inheritance, operators, destructor, namespace, nested namespace\n");
+    println!(
+        "  Features: class, inheritance, operators, destructor, namespace, nested namespace\n"
+    );
 
     let rust = transpile(cpp)?;
     let clean = strip(&rust);
@@ -103,10 +105,18 @@ fn strip(code: &str) -> String {
     let mut out = Vec::new();
     let mut skip = false;
     for line in code.lines() {
-        if line.starts_with("fn __") { skip = true; continue; }
-        if skip && line.trim() == "}" { skip = false; continue; }
+        if line.starts_with("fn __") {
+            skip = true;
+            continue;
+        }
+        if skip && line.trim() == "}" {
+            skip = false;
+            continue;
+        }
         skip = false;
-        if line.starts_with("static mut ERRNO") { continue; }
+        if line.starts_with("static mut ERRNO") {
+            continue;
+        }
         out.push(line);
     }
     out.join("\n")
@@ -119,6 +129,8 @@ fn compile_check(code: &str) -> Result<bool, Box<dyn std::error::Error>> {
     std::fs::write(&rs, code)?;
     let o = Command::new("rustc")
         .args(["--edition", "2021", "--crate-type=lib", "-o"])
-        .arg(&rlib).arg(&rs).output()?;
+        .arg(&rlib)
+        .arg(&rs)
+        .output()?;
     Ok(!String::from_utf8_lossy(&o.stderr).lines().any(|l| l.starts_with("error")))
 }

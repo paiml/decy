@@ -259,12 +259,10 @@ impl StdlibPrototypes {
                 c99_section: "§7.22.6.1".to_string(),
             },
         );
-
     }
 
     /// ISO C99 §7.21 - Input/output <stdio.h>
     pub(crate) fn init_stdio(functions: &mut HashMap<String, FunctionProto>) {
-
         // §7.21.6 - Formatted output functions
         functions.insert(
             "printf".to_string(),
@@ -560,12 +558,10 @@ impl StdlibPrototypes {
                 c99_section: "§7.21.7.9".to_string(),
             },
         );
-
     }
 
     /// ISO C99 §7.23 - String handling <string.h>
     pub(crate) fn init_string(functions: &mut HashMap<String, FunctionProto>) {
-
         // §7.23.2 - Copying functions
         functions.insert(
             "memcpy".to_string(),
@@ -821,12 +817,10 @@ impl StdlibPrototypes {
                 c99_section: "POSIX".to_string(),
             },
         );
-
     }
 
     /// ISO C99 §7.4 - Character handling <ctype.h>
     pub(crate) fn init_ctype(functions: &mut HashMap<String, FunctionProto>) {
-
         functions.insert(
             "isspace".to_string(),
             FunctionProto {
@@ -922,12 +916,10 @@ impl StdlibPrototypes {
                 c99_section: "§7.4.2.2".to_string(),
             },
         );
-
     }
 
     /// ISO C99 §7.23 - Date and time <time.h>
     pub(crate) fn init_time(functions: &mut HashMap<String, FunctionProto>) {
-
         functions.insert(
             "clock".to_string(),
             FunctionProto {
@@ -951,12 +943,10 @@ impl StdlibPrototypes {
                 c99_section: "§7.23.2.4".to_string(),
             },
         );
-
     }
 
     /// ISO C99 §7.12 - Mathematics <math.h>
     pub(crate) fn init_math(functions: &mut HashMap<String, FunctionProto>) {
-
         functions.insert(
             "sqrt".to_string(),
             FunctionProto {
@@ -1172,12 +1162,10 @@ impl StdlibPrototypes {
                 c99_section: "§7.12.10.1".to_string(),
             },
         );
-
     }
 
     /// POSIX - unistd.h additional functions
     pub(crate) fn init_posix_unistd(functions: &mut HashMap<String, FunctionProto>) {
-
         functions.insert(
             "pipe".to_string(),
             FunctionProto {
@@ -1312,12 +1300,10 @@ impl StdlibPrototypes {
                 c99_section: "§7.22.4.6".to_string(),
             },
         );
-
     }
 
     /// POSIX - dirent.h functions
     pub(crate) fn init_posix_dirent(functions: &mut HashMap<String, FunctionProto>) {
-
         functions.insert(
             "opendir".to_string(),
             FunctionProto {
@@ -1353,6 +1339,5 @@ impl StdlibPrototypes {
                 c99_section: "POSIX".to_string(),
             },
         );
-
     }
 }

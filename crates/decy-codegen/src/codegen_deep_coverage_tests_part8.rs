@@ -1898,3 +1898,4 @@ fn stmt_ctx_vla_declaration_unsigned_int() {
     };
     let result = cg.generate_statement_with_context(&stmt, None, &mut ctx, None);
     assert!(result.contains("vec![0u32;"), "Got: {}", result);
+}

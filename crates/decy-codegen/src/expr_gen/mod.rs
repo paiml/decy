@@ -4,9 +4,9 @@
 //! including binary operations, unary operations, function calls, literals,
 //! format string handling, and type coercion.
 
-mod literals;
 mod binary_ops;
 mod calls;
+mod literals;
 mod misc;
 
 use super::{escape_rust_keyword, CodeGenerator, TypeContext};
@@ -21,7 +21,11 @@ impl CodeGenerator {
 
     /// Generate code for an expression with type context for pointer arithmetic.
     #[allow(clippy::only_used_in_recursion)]
-    pub(crate) fn generate_expression_with_context(&self, expr: &HirExpression, ctx: &TypeContext) -> String {
+    pub(crate) fn generate_expression_with_context(
+        &self,
+        expr: &HirExpression,
+        ctx: &TypeContext,
+    ) -> String {
         self.generate_expression_with_target_type(expr, ctx, None)
     }
 
@@ -37,31 +41,21 @@ impl CodeGenerator {
         match expr {
             HirExpression::IntLiteral(val) => self.gen_expr_int_literal(*val, target_type),
             HirExpression::FloatLiteral(val) => self.gen_expr_float_literal(val, target_type),
-            HirExpression::AddressOf(inner) => {
-                self.gen_expr_address_of(inner, ctx, target_type)
-            }
+            HirExpression::AddressOf(inner) => self.gen_expr_address_of(inner, ctx, target_type),
             HirExpression::UnaryOp { op: decy_hir::UnaryOperator::AddressOf, operand } => {
                 self.gen_expr_unary_address_of(operand, ctx, target_type)
             }
             HirExpression::UnaryOp { op: decy_hir::UnaryOperator::LogicalNot, operand } => {
                 self.gen_expr_unary_logical_not(operand, ctx, target_type)
             }
-            HirExpression::StringLiteral(s) => {
-                self.gen_expr_string_literal(s, target_type)
-            }
+            HirExpression::StringLiteral(s) => self.gen_expr_string_literal(s, target_type),
             HirExpression::CharLiteral(c) => Self::gen_expr_char_literal(*c),
-            HirExpression::Variable(name) => {
-                self.gen_expr_variable(name, ctx, target_type)
-            }
+            HirExpression::Variable(name) => self.gen_expr_variable(name, ctx, target_type),
             HirExpression::BinaryOp { op, left, right } => {
                 self.gen_expr_binary_op(op, left, right, ctx, target_type)
             }
-            HirExpression::Dereference(inner) => {
-                self.gen_expr_dereference(inner, ctx)
-            }
-            HirExpression::UnaryOp { op, operand } => {
-                self.gen_expr_unary_op(op, operand, ctx)
-            }
+            HirExpression::Dereference(inner) => self.gen_expr_dereference(inner, ctx),
+            HirExpression::UnaryOp { op, operand } => self.gen_expr_unary_op(op, operand, ctx),
             HirExpression::FunctionCall { function, arguments } => {
                 self.gen_expr_function_call(function, arguments, ctx, target_type)
             }
@@ -83,9 +77,7 @@ impl CodeGenerator {
                 let index_code = self.generate_expression_with_context(index, ctx);
                 format!("{}[({}) as usize]", slice_code, index_code)
             }
-            HirExpression::Sizeof { type_name } => {
-                self.gen_expr_sizeof(type_name, ctx)
-            }
+            HirExpression::Sizeof { type_name } => self.gen_expr_sizeof(type_name, ctx),
             HirExpression::NullLiteral => "None".to_string(),
             HirExpression::IsNotNull(inner) => {
                 let inner_code = self.generate_expression_with_context(inner, ctx);
@@ -107,18 +99,10 @@ impl CodeGenerator {
             HirExpression::CompoundLiteral { literal_type, initializers } => {
                 self.gen_expr_compound_literal(literal_type, initializers, ctx)
             }
-            HirExpression::PostIncrement { operand } => {
-                self.gen_expr_post_increment(operand, ctx)
-            }
-            HirExpression::PreIncrement { operand } => {
-                self.gen_expr_pre_increment(operand, ctx)
-            }
-            HirExpression::PostDecrement { operand } => {
-                self.gen_expr_post_decrement(operand, ctx)
-            }
-            HirExpression::PreDecrement { operand } => {
-                self.gen_expr_pre_decrement(operand, ctx)
-            }
+            HirExpression::PostIncrement { operand } => self.gen_expr_post_increment(operand, ctx),
+            HirExpression::PreIncrement { operand } => self.gen_expr_pre_increment(operand, ctx),
+            HirExpression::PostDecrement { operand } => self.gen_expr_post_decrement(operand, ctx),
+            HirExpression::PreDecrement { operand } => self.gen_expr_pre_decrement(operand, ctx),
             HirExpression::Ternary { condition, then_expr, else_expr } => {
                 self.gen_expr_ternary(condition, then_expr, else_expr, ctx, target_type)
             }

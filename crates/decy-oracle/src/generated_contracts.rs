@@ -1127,6 +1127,25 @@ macro_rules! contract_pre_configuration {
     }};
 }
 
+/// Postconditions for equation `configuration`.
+/// Call before return: `contract_post_configuration!(result_expr)`
+macro_rules! contract_post_configuration {
+    ($result:expr) => {{
+        let _contract_result = &$result;
+        debug_assert!(_contract_result.len() > 0, "Contract configuration: postcondition violated — result.len() > 0");
+    }};
+}
+
+/// Combined pre+post contract for equation `configuration`.
+macro_rules! contract_configuration {
+    ($input:expr, $body:expr) => {{
+        contract_pre_configuration!($input);
+        let _contract_result = $body;
+        contract_post_configuration!(_contract_result);
+        _contract_result
+    }};
+}
+
 // Auto-generated from contracts/context-generation-v1.yaml — DO NOT EDIT
 // Contract: context-generation-v1
 
@@ -1510,6 +1529,25 @@ macro_rules! contract_pre_display_format {
     }};
 }
 
+/// Postconditions for equation `display_format`.
+/// Call before return: `contract_post_display_format!(result_expr)`
+macro_rules! contract_post_display_format {
+    ($result:expr) => {{
+        let _contract_result = &$result;
+        debug_assert!(_contract_result.len() > 0, "Contract display_format: postcondition violated — result.len() > 0");
+    }};
+}
+
+/// Combined pre+post contract for equation `display_format`.
+macro_rules! contract_display_format {
+    ($input:expr, $body:expr) => {{
+        contract_pre_display_format!($input);
+        let _contract_result = $body;
+        contract_post_display_format!(_contract_result);
+        _contract_result
+    }};
+}
+
 /// Preconditions for equation `render`.
 /// Domain-specific. Call: `contract_pre_render!(slice_expr)`
 macro_rules! contract_pre_render {
@@ -1518,6 +1556,25 @@ macro_rules! contract_pre_render {
         let input = &$input;
         debug_assert!(input.len() > 0,
             "Contract render: precondition violated — input.len() > 0");
+    }};
+}
+
+/// Postconditions for equation `render`.
+/// Call before return: `contract_post_render!(result_expr)`
+macro_rules! contract_post_render {
+    ($result:expr) => {{
+        let _contract_result = &$result;
+        debug_assert!(_contract_result.len() > 0, "Contract render: postcondition violated — result.len() > 0");
+    }};
+}
+
+/// Combined pre+post contract for equation `render`.
+macro_rules! contract_render {
+    ($input:expr, $body:expr) => {{
+        contract_pre_render!($input);
+        let _contract_result = $body;
+        contract_post_render!(_contract_result);
+        _contract_result
     }};
 }
 
@@ -1869,6 +1926,25 @@ macro_rules! contract_pre_error_handling {
         let input = &$input;
         debug_assert!(input.len() > 0,
             "Contract error_handling: precondition violated — input.len() > 0");
+    }};
+}
+
+/// Postconditions for equation `error_handling`.
+/// Call before return: `contract_post_error_handling!(result_expr)`
+macro_rules! contract_post_error_handling {
+    ($result:expr) => {{
+        let _contract_result = &$result;
+        debug_assert!(_contract_result.len() > 0, "Contract error_handling: postcondition violated — result.len() > 0");
+    }};
+}
+
+/// Combined pre+post contract for equation `error_handling`.
+macro_rules! contract_error_handling {
+    ($input:expr, $body:expr) => {{
+        contract_pre_error_handling!($input);
+        let _contract_result = $body;
+        contract_post_error_handling!(_contract_result);
+        _contract_result
     }};
 }
 
@@ -6540,85 +6616,4 @@ macro_rules! contract_pre_identity {
     }};
 }
 
-// ---- cpp-type-preservation-v1 (DECY-216) ----
-
-/// Preconditions for equation `class_to_struct`.
-/// Domain-specific. Call: `contract_pre_class_to_struct!(slice_expr)`
-macro_rules! contract_pre_class_to_struct {
-    () => {{}};
-    ($input:expr) => {{
-        let name = &$input;
-        debug_assert!(!name.is_empty(),
-            "Contract class_to_struct: precondition violated — class name must not be empty");
-    }};
-}
-
-/// Preconditions for equation `namespace_to_mod`.
-/// Domain-specific. Call: `contract_pre_namespace_to_mod!(slice_expr)`
-macro_rules! contract_pre_namespace_to_mod {
-    () => {{}};
-    ($input:expr) => {{
-        let name = &$input;
-        debug_assert!(!name.is_empty(),
-            "Contract namespace_to_mod: precondition violated — namespace name must not be empty");
-    }};
-}
-
-/// Preconditions for equation `operator_to_trait`.
-/// Domain-specific. Call: `contract_pre_operator_to_trait!(slice_expr)`
-macro_rules! contract_pre_operator_to_trait {
-    () => {{}};
-    ($input:expr) => {{
-        let name = &$input;
-        debug_assert!(!name.is_empty(),
-            "Contract operator_to_trait: precondition violated — operator name must not be empty");
-    }};
-}
-
-/// Preconditions for equation `inheritance_to_composition`.
-/// Domain-specific. Call: `contract_pre_inheritance_to_composition!(slice_expr)`
-macro_rules! contract_pre_inheritance_to_composition {
-    () => {{}};
-    ($input:expr) => {{
-        let name = &$input;
-        debug_assert!(!name.is_empty(),
-            "Contract inheritance_to_composition: precondition violated — class name must not be empty");
-    }};
-}
-
-// ---- cuda-kernel-safety-v1 (DECY-224) ----
-
-/// Preconditions for equation `kernel_ffi`.
-/// Domain-specific. Call: `contract_pre_kernel_ffi!(slice_expr)`
-macro_rules! contract_pre_kernel_ffi {
-    () => {{}};
-    ($input:expr) => {{
-        let name = &$input;
-        debug_assert!(!name.is_empty(),
-            "Contract kernel_ffi: precondition violated — kernel function name must not be empty");
-    }};
-}
-
-/// Preconditions for equation `qualifier_preservation`.
-/// Domain-specific. Call: `contract_pre_qualifier_preservation!(slice_expr)`
-macro_rules! contract_pre_qualifier_preservation {
-    () => {{}};
-    ($input:expr) => {{
-        let name = &$input;
-        debug_assert!(!name.is_empty(),
-            "Contract qualifier_preservation: precondition violated — function name must not be empty");
-    }};
-}
-
-/// Preconditions for equation `host_transpilation`.
-/// Domain-specific. Call: `contract_pre_host_transpilation!(slice_expr)`
-macro_rules! contract_pre_host_transpilation {
-    () => {{}};
-    ($input:expr) => {{
-        let name = &$input;
-        debug_assert!(!name.is_empty(),
-            "Contract host_transpilation: precondition violated — function name must not be empty");
-    }};
-}
-
-// Total: 608 preconditions, 11 postconditions from 165 contracts
+// Total: 608 preconditions, 15 postconditions from 165 contracts

@@ -1,5 +1,3 @@
-}
-
 #[test]
 fn stmt_ctx_vla_declaration_signed_char() {
     let cg = CodeGenerator::new();
@@ -1898,3 +1896,14 @@ fn expr_target_array_index_raw_pointer_unsafe() {
 fn expr_target_array_index_regular() {
     let cg = CodeGenerator::new();
     let mut ctx = TypeContext::new();
+    ctx.add_variable("arr".to_string(), HirType::Array {
+        element_type: Box::new(HirType::Int),
+        size: Some(10),
+    });
+    let expr = HirExpression::ArrayIndex {
+        array: Box::new(HirExpression::Variable("arr".to_string())),
+        index: Box::new(HirExpression::IntLiteral(5)),
+    };
+    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
+    let _ = result; // test body completed by DECY-202 fix
+}

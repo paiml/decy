@@ -206,9 +206,7 @@ impl CodeGenerator {
             // DECY-072: Slices don't need 'mut' prefix or explicit lifetimes
             let type_str = match &p.param_type {
                 AnnotatedType::Reference { inner, mutable, .. } => {
-                    if let AnnotatedType::Simple(HirType::Array { element_type, .. }) =
-                        &**inner
-                    {
+                    if let AnnotatedType::Simple(HirType::Array { element_type, .. }) = &**inner {
                         if *mutable {
                             format!("&mut [{}]", Self::map_type(element_type))
                         } else {
@@ -230,9 +228,7 @@ impl CodeGenerator {
         }
 
         // DECY-196: Handle unsized array parameters → slice references
-        if let AnnotatedType::Simple(HirType::Array { element_type, size: None }) =
-            &p.param_type
-        {
+        if let AnnotatedType::Simple(HirType::Array { element_type, size: None }) = &p.param_type {
             let element_str = Self::map_type(element_type);
             return format!("{}: &mut [{}]", p.name, element_str);
         }
@@ -250,9 +246,7 @@ impl CodeGenerator {
     ) -> String {
         // DECY-135: const char* → &str transformation
         if let Some(f) = func {
-            if let Some(orig_param) =
-                f.parameters().iter().find(|fp| fp.name() == name)
-            {
+            if let Some(orig_param) = f.parameters().iter().find(|fp| fp.name() == name) {
                 if orig_param.is_const_char_pointer() {
                     return format!("mut {}: &str", name);
                 }

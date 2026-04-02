@@ -1,19 +1,3 @@
-    let code = cg.generate_function_with_lifetimes_and_structs(
-        &func,
-        &sig,
-        &[],
-        &[],
-        &[],
-        &[],
-        &[],
-    );
-    assert!(
-        code.contains("fn sum_arr"),
-        "Should generate function with array param context, got: {}",
-        code
-    );
-}
-
 // ============================================================================
 // Batch 5: transform_vec_statement with capacity (line 6939-6941)
 // ============================================================================

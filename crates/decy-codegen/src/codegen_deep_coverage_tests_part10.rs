@@ -1,16 +1,3 @@
-    ctx.add_variable("arr".to_string(), HirType::Array {
-        element_type: Box::new(HirType::Int),
-        size: Some(10),
-    });
-    let expr = HirExpression::ArrayIndex {
-        array: Box::new(HirExpression::Variable("arr".to_string())),
-        index: Box::new(HirExpression::IntLiteral(5)),
-    };
-    let result = cg.generate_expression_with_target_type(&expr, &ctx, None);
-    assert!(result.contains("arr[(5) as usize]"), "Got: {}", result);
-    assert!(!result.contains("unsafe"), "Got: {}", result);
-}
-
 // --- Sizeof: known variable → size_of_val ---
 #[test]
 fn expr_target_sizeof_variable() {

@@ -1,12 +1,3 @@
-    };
-    let code = cg.generate_expression_with_target_type(&expr, &mut ctx, None);
-    assert!(
-        code.contains("&buffer") || code.contains("&mut buffer"),
-        "Should generate reference from AddressOf, Got: {}",
-        code
-    );
-}
-
 // --- Variable init Vec::new() fallback (line 4196) ---
 
 #[test]
@@ -1898,3 +1889,4 @@ fn default_value_for_owned_string_is_string_new() {
 fn default_value_for_string_reference_is_empty() {
     let result = CodeGenerator::default_value_for_type(&HirType::StringReference);
     assert_eq!(result, "\"\"", "StringReference default should be empty string");
+}

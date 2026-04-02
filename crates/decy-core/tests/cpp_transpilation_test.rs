@@ -35,11 +35,7 @@ public:
     );
 
     // Verify impl block
-    assert!(
-        rust_code.contains("impl Counter"),
-        "Expected impl Counter, got:\n{}",
-        rust_code
-    );
+    assert!(rust_code.contains("impl Counter"), "Expected impl Counter, got:\n{}", rust_code);
 
     // Verify constructor maps to new()
     assert!(
@@ -77,11 +73,7 @@ namespace utils {
 
     let rust_code = result.unwrap();
 
-    assert!(
-        rust_code.contains("pub mod utils"),
-        "Expected mod utils, got:\n{}",
-        rust_code
-    );
+    assert!(rust_code.contains("pub mod utils"), "Expected mod utils, got:\n{}", rust_code);
     assert!(
         rust_code.contains("fn helper("),
         "Expected helper function in module, got:\n{}",
@@ -107,11 +99,7 @@ namespace shapes {
 
     let rust_code = result.unwrap();
 
-    assert!(
-        rust_code.contains("pub mod shapes"),
-        "Expected mod shapes, got:\n{}",
-        rust_code
-    );
+    assert!(rust_code.contains("pub mod shapes"), "Expected mod shapes, got:\n{}", rust_code);
     assert!(
         rust_code.contains("pub struct Circle"),
         "Expected struct Circle inside module, got:\n{}",
@@ -135,11 +123,7 @@ public:
 
     let rust_code = result.unwrap();
 
-    assert!(
-        rust_code.contains("pub struct Point"),
-        "Expected struct Point, got:\n{}",
-        rust_code
-    );
+    assert!(rust_code.contains("pub struct Point"), "Expected struct Point, got:\n{}", rust_code);
     assert!(
         !rust_code.contains("impl Drop for Point"),
         "Should NOT have Drop impl without destructor, got:\n{}",
@@ -167,11 +151,7 @@ public:
     let rust_code = result.unwrap();
 
     // Both C function and C++ class should be present
-    assert!(
-        rust_code.contains("fn add("),
-        "Expected C function add(), got:\n{}",
-        rust_code
-    );
+    assert!(rust_code.contains("fn add("), "Expected C function add(), got:\n{}", rust_code);
     assert!(
         rust_code.contains("pub struct Adder"),
         "Expected class Adder as struct, got:\n{}",
@@ -200,11 +180,7 @@ public:
 
     let rust_code = result.unwrap();
 
-    assert!(
-        rust_code.contains("pub struct Vec2"),
-        "Expected struct Vec2, got:\n{}",
-        rust_code
-    );
+    assert!(rust_code.contains("pub struct Vec2"), "Expected struct Vec2, got:\n{}", rust_code);
     assert!(
         rust_code.contains("impl std::ops::Add"),
         "Expected Add trait impl for operator+, got:\n{}",
@@ -236,11 +212,7 @@ public:
     let rust_code = result.unwrap();
 
     // Regular method should be in impl block
-    assert!(
-        rust_code.contains("fn get_x("),
-        "Expected regular method get_x, got:\n{}",
-        rust_code
-    );
+    assert!(rust_code.contains("fn get_x("), "Expected regular method get_x, got:\n{}", rust_code);
     // Operator== should generate PartialEq
     assert!(
         rust_code.contains("impl PartialEq for Point"),
@@ -279,11 +251,7 @@ void test() {
         "new Obj(42) should become Box::new(Obj::new(42)), got:\n{}",
         rust_code
     );
-    assert!(
-        rust_code.contains("drop(o)"),
-        "delete o should become drop(o), got:\n{}",
-        rust_code
-    );
+    assert!(rust_code.contains("drop(o)"), "delete o should become drop(o), got:\n{}", rust_code);
 }
 
 // =========================================================================
@@ -324,11 +292,7 @@ public:
         "Expected derived struct Dog, got:\n{}",
         rust_code
     );
-    assert!(
-        rust_code.contains("base: Animal"),
-        "Expected base field in Dog, got:\n{}",
-        rust_code
-    );
+    assert!(rust_code.contains("base: Animal"), "Expected base field in Dog, got:\n{}", rust_code);
 
     // Should generate Deref impl
     assert!(

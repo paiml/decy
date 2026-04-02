@@ -51,10 +51,18 @@ fn strip(code: &str) -> String {
     let mut out = Vec::new();
     let mut skip = false;
     for line in code.lines() {
-        if line.starts_with("fn __") { skip = true; continue; }
-        if skip && line.trim() == "}" { skip = false; continue; }
+        if line.starts_with("fn __") {
+            skip = true;
+            continue;
+        }
+        if skip && line.trim() == "}" {
+            skip = false;
+            continue;
+        }
         skip = false;
-        if line.starts_with("static mut ERRNO") { continue; }
+        if line.starts_with("static mut ERRNO") {
+            continue;
+        }
         out.push(line);
     }
     out.join("\n")

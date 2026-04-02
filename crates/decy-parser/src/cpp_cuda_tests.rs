@@ -410,10 +410,6 @@ void host_func(int x) {
 
         let host = ast.functions().iter().find(|f| f.name == "host_func");
         assert!(host.is_some(), "Should find host_func");
-        assert_eq!(
-            host.unwrap().cuda_qualifier,
-            None,
-            "host_func should have no CUDA qualifier"
-        );
+        assert_eq!(host.unwrap().cuda_qualifier, None, "host_func should have no CUDA qualifier");
     }
 }
