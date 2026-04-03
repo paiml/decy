@@ -102,3 +102,11 @@ A pre-commit hook runs all essential quality checks. These should always be run 
 -   **`.github/workflows/quality.yml`**: Defines the CI pipeline and quality checks.
 -   **`roadmap.yaml`**: The 20-sprint development plan.
 -   **`docs/specifications/`**: Contains the detailed technical specifications for the transpiler.
+
+## 5. Contract-First Development
+
+All new features and bug fixes must follow provable-contract-first methodology:
+1. Write or update the contract YAML in `../provable-contracts/contracts/decy/`
+2. Run `pmat comply check` to validate compliance
+3. Implement the code to satisfy the contract
+4. Run `pmat comply check` again to confirm
