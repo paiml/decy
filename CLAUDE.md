@@ -2,6 +2,12 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Contract-First Design
+
+This project follows contract-first development with provable-contracts.
+Contracts live in `../provable-contracts/contracts/decy/`.
+Run `pmat comply check` to validate contract compliance.
+
 ## Project Overview
 
 Decy is a C-to-Rust transpiler that generates idiomatic, safe Rust code with minimal `unsafe` blocks (<5 per 1000 LOC). The project uses **EXTREME TDD**, **Toyota Way principles**, and **PMAT (Project Management and Automation Toolkit)** qualification for roadmap-driven development.
