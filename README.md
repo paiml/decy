@@ -338,6 +338,10 @@ See [GETTING_STARTED.md](GETTING_STARTED.md) for detailed developer setup.
 
 Minimum Supported Rust Version: **1.74**
 
+## Cookbook
+
+See [decy-cookbook](https://github.com/paiml/decy-cookbook) for examples and recipes.
+
 ## License
 
 MIT OR Apache-2.0
