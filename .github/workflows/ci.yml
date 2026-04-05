@@ -18,5 +18,6 @@ jobs:
     uses: paiml/.github/.github/workflows/sovereign-ci.yml@main
     with:
       repo: ${{ github.event.repository.name }}
+      extra_pkgs: python3-dev libclang-dev
     secrets: inherit
 
