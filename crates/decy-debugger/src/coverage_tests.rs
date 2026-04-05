@@ -1,13 +1,13 @@
-//! Additional coverage tests for decy-debugger
+//! Additional coverage tests for `decy-debugger`
 //!
 //! Targets remaining uncovered lines in:
-//! - visualize_ast.rs: format_statement colored paths, format_function colored paths,
-//!   format_expression edge cases, visualize_c_ast header/stats colored branches
-//! - visualize_hir.rs: visualize_hir colored branches, parameter iteration, body count
-//! - lib.rs: Debugger delegation methods
+//! - `visualize_ast.rs`: `format_statement` colored paths, `format_function` colored paths,
+//!   `format_expression` edge cases, `visualize_c_ast` header/stats colored branches
+//! - `visualize_hir.rs`: `visualize_hir` colored branches, parameter iteration, body count
+//! - `lib.rs`: `Debugger` delegation methods
 //!
-//! These tests use both direct function invocation (for format_* helpers)
-//! and full pipeline invocation (through visualize_c_ast / visualize_hir)
+//! These tests use both direct function invocation (for `format_*` helpers)
+//! and full pipeline invocation (through `visualize_c_ast` / `visualize_hir`)
 //! to exercise every color/no-color branch systematically.
 
 use crate::visualize_ast::visualize_c_ast;
@@ -48,7 +48,7 @@ fn test_stmt_return_variable_colored() {
     let result = visualize_c_ast(temp.path(), true);
     assert!(result.is_ok());
     let output = result.unwrap();
-    assert!(output.contains("x"));
+    assert!(output.contains('x'));
 }
 
 // ============================================================================
@@ -71,8 +71,8 @@ fn test_stmt_assignment_binary_expr_colored() {
     let result = visualize_c_ast(temp.path(), true);
     assert!(result.is_ok());
     let output = result.unwrap();
-    assert!(output.contains("1"));
-    assert!(output.contains("2"));
+    assert!(output.contains('1'));
+    assert!(output.contains('2'));
 }
 
 // ============================================================================
@@ -94,7 +94,7 @@ fn test_stmt_var_decl_without_init_colored() {
     let result = visualize_c_ast(temp.path(), true);
     assert!(result.is_ok());
     let output = result.unwrap();
-    assert!(output.contains("z"));
+    assert!(output.contains('z'));
 }
 
 // ============================================================================
@@ -283,7 +283,7 @@ fn test_expr_int_literal_zero_colored() {
     let result = visualize_c_ast(temp.path(), true);
     assert!(result.is_ok());
     let output = result.unwrap();
-    assert!(output.contains("0"));
+    assert!(output.contains('0'));
 }
 
 #[test]
@@ -293,7 +293,7 @@ fn test_expr_int_literal_negative_no_colors() {
     let result = visualize_c_ast(temp.path(), false);
     assert!(result.is_ok());
     let output = result.unwrap();
-    assert!(output.contains("1"));
+    assert!(output.contains('1'));
 }
 
 // ============================================================================
@@ -522,9 +522,9 @@ fn test_hir_three_functions_colored() {
     assert!(result.is_ok());
     let output = result.unwrap();
     assert!(output.contains("HIR Functions: 3"));
-    assert!(output.contains("a"));
-    assert!(output.contains("b"));
-    assert!(output.contains("c"));
+    assert!(output.contains('a'));
+    assert!(output.contains('b'));
+    assert!(output.contains('c'));
 }
 
 #[test]
@@ -628,7 +628,7 @@ fn test_debugger_step_through_nonexistent() {
 
 #[test]
 fn test_ast_complex_program_no_colors() {
-    let source = r#"
+    let source = r"
 int max(int a, int b) {
     if (a > b) {
         return a;
@@ -652,7 +652,7 @@ int countdown(int start) {
     }
     return start;
 }
-"#;
+";
     let temp = write_c_temp(source);
     let result = visualize_c_ast(temp.path(), false);
     assert!(result.is_ok());
@@ -666,7 +666,7 @@ int countdown(int start) {
 
 #[test]
 fn test_ast_complex_program_with_colors() {
-    let source = r#"
+    let source = r"
 int max(int a, int b) {
     if (a > b) {
         return a;
@@ -690,7 +690,7 @@ int countdown(int start) {
     }
     return start;
 }
-"#;
+";
     let temp = write_c_temp(source);
     let result = visualize_c_ast(temp.path(), true);
     assert!(result.is_ok());
@@ -702,7 +702,7 @@ int countdown(int start) {
 
 #[test]
 fn test_hir_complex_program_no_colors() {
-    let source = r#"
+    let source = r"
 int max(int a, int b) {
     if (a > b) {
         return a;
@@ -719,7 +719,7 @@ int sum_to(int n) {
     }
     return total;
 }
-"#;
+";
     let temp = write_c_temp(source);
     let result = visualize_hir(temp.path(), false);
     assert!(result.is_ok());
@@ -731,7 +731,7 @@ int sum_to(int n) {
 
 #[test]
 fn test_hir_complex_program_with_colors() {
-    let source = r#"
+    let source = r"
 int max(int a, int b) {
     if (a > b) {
         return a;
@@ -748,7 +748,7 @@ int sum_to(int n) {
     }
     return total;
 }
-"#;
+";
     let temp = write_c_temp(source);
     let result = visualize_hir(temp.path(), true);
     assert!(result.is_ok());

@@ -325,10 +325,8 @@ fn test_run_test_suite_empty_dir() {
     let _ = std::fs::create_dir_all(&tmp);
     // Make sure it's empty
     if let Ok(entries) = std::fs::read_dir(&tmp) {
-        for entry in entries {
-            if let Ok(e) = entry {
-                let _ = std::fs::remove_file(e.path());
-            }
+        for e in entries.flatten() {
+            let _ = std::fs::remove_file(e.path());
         }
     }
     let result = run_test_suite(&tmp, "fn main() {}");
@@ -499,10 +497,8 @@ fn test_verify_empty_test_dir_returns_compiles_only() {
     let _ = std::fs::create_dir_all(&tmp);
     // Clean out any existing files
     if let Ok(entries) = std::fs::read_dir(&tmp) {
-        for entry in entries {
-            if let Ok(e) = entry {
-                let _ = std::fs::remove_file(e.path());
-            }
+        for e in entries.flatten() {
+            let _ = std::fs::remove_file(e.path());
         }
     }
     let code = "pub fn good() -> i32 { 42 }";

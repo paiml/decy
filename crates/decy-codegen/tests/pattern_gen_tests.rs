@@ -384,7 +384,7 @@ fn test_generate_block_body_multi_stmt() {
 
 #[test]
 fn test_pattern_generator_default() {
-    let gen = PatternGenerator::default();
+    let gen = PatternGenerator;
     let result = gen.transform_tag_check(&HirStatement::Break);
     assert!(result.is_empty());
 }

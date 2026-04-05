@@ -399,13 +399,17 @@ fn trainer_train_rule_based_returns_working_classifier() {
 
 #[test]
 fn training_result_success_has_correct_fields() {
-    let mut train_metrics = EvaluationMetrics::default();
-    train_metrics.total_samples = 100;
-    train_metrics.correct = 85;
+    let train_metrics = EvaluationMetrics {
+        total_samples: 100,
+        correct: 85,
+        ..Default::default()
+    };
 
-    let mut val_metrics = EvaluationMetrics::default();
-    val_metrics.total_samples = 20;
-    val_metrics.correct = 16;
+    let val_metrics = EvaluationMetrics {
+        total_samples: 20,
+        correct: 16,
+        ..Default::default()
+    };
 
     let result = TrainingResult::success(train_metrics, val_metrics, 50, 2.5);
 

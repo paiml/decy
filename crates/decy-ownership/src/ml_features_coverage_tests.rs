@@ -125,8 +125,8 @@ fn to_vector_all_features_populated() {
     assert!((vec[10] - 7.0).abs() < f32::EPSILON); // arithmetic_ops
     assert!((vec[11] - 3.0).abs() < f32::EPSILON); // null_checks
                                                    // Padding should be zeros
-    for i in 12..OwnershipFeatures::DIMENSION {
-        assert!((vec[i] - 0.0).abs() < f32::EPSILON, "Padding at index {} should be 0.0", i);
+    for (i, val) in vec.iter().enumerate().skip(12).take(OwnershipFeatures::DIMENSION - 12) {
+        assert!((val - 0.0).abs() < f32::EPSILON, "Padding at index {} should be 0.0", i);
     }
 }
 

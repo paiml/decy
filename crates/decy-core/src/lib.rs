@@ -811,19 +811,19 @@ fn build_slice_func_arg_mappings(
             let params = func.parameters();
 
             for (i, param) in params.iter().enumerate() {
-                if matches!(param.param_type(), decy_hir::HirType::Pointer(_)) {
-                    if i + 1 < params.len() {
-                        let next_param = &params[i + 1];
-                        if matches!(next_param.param_type(), decy_hir::HirType::Int) {
-                            let param_name = next_param.name().to_lowercase();
-                            if param_name.contains("len")
-                                || param_name.contains("size")
-                                || param_name.contains("count")
-                                || param_name == "n"
-                                || param_name == "num"
-                            {
-                                mappings.push((i, i + 1));
-                            }
+                if matches!(param.param_type(), decy_hir::HirType::Pointer(_))
+                    && i + 1 < params.len()
+                {
+                    let next_param = &params[i + 1];
+                    if matches!(next_param.param_type(), decy_hir::HirType::Int) {
+                        let param_name = next_param.name().to_lowercase();
+                        if param_name.contains("len")
+                            || param_name.contains("size")
+                            || param_name.contains("count")
+                            || param_name == "n"
+                            || param_name == "num"
+                        {
+                            mappings.push((i, i + 1));
                         }
                     }
                 }
@@ -1169,7 +1169,7 @@ pub fn transpile_with_includes(c_code: &str, base_dir: Option<&Path>) -> Result<
 
     // Step 3: Analyze ownership and lifetimes
     let transformed_functions: Vec<_> =
-        hir_functions.into_iter().map(|func| transform_function_with_ownership(func)).collect();
+        hir_functions.into_iter().map(transform_function_with_ownership).collect();
 
     // Step 4: Generate Rust code with lifetime annotations
     let code_generator = CodeGenerator::new();

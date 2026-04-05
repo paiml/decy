@@ -257,15 +257,10 @@ void f() {
     let func = first_func(&ast);
     // The &x should appear as an AddressOf expression in a variable declaration
     let has_addr_of = func.body.iter().any(|s| {
-        if let Statement::VariableDeclaration {
+        matches!(s, Statement::VariableDeclaration {
             initializer: Some(Expression::UnaryOp { op: UnaryOperator::AddressOf, .. }),
             ..
-        } = s
-        {
-            true
-        } else {
-            false
-        }
+        })
     });
     assert!(has_addr_of, "Expected AddressOf expression in initializer, got: {:?}", func.body);
 }

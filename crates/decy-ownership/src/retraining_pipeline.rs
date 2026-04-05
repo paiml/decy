@@ -1053,8 +1053,10 @@ mod tests {
         let config = pipeline.config();
         assert!((config.min_precision - 0.85).abs() < 0.001);
 
-        let mut new_config = RetrainingConfig::default();
-        new_config.min_precision = 0.95;
+        let new_config = RetrainingConfig {
+            min_precision: 0.95,
+            ..Default::default()
+        };
         pipeline.set_config(new_config);
         assert!((pipeline.config().min_precision - 0.95).abs() < 0.001);
     }

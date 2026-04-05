@@ -387,7 +387,7 @@ fn test_double_pointer_output() {
 
 #[test]
 fn test_output_param_detector_default() {
-    let detector = OutputParamDetector::default();
+    let detector = OutputParamDetector;
     let func = create_test_function("empty", vec![], HirType::Void, vec![]);
     let params = detector.detect(&func);
     assert!(params.is_empty());

@@ -1258,6 +1258,6 @@ mod tests {
 
         let threshold = find_optimal_threshold(&samples);
         // Should return a valid threshold
-        assert!(threshold >= 0.1 && threshold <= 0.9);
+        assert!((0.1..=0.9).contains(&threshold));
     }
 }

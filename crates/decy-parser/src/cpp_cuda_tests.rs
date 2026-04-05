@@ -291,7 +291,7 @@ mod tests {
         "#;
         let ast = parser.parse(source).expect("Parsing new/delete");
         // Should have at least 2 functions: dummy and test
-        assert!(ast.functions().len() >= 1);
+        assert!(!ast.functions().is_empty());
     }
 
     #[test]
@@ -316,7 +316,7 @@ mod tests {
             }
         "#;
         let ast = parser.parse(source).expect("Parsing nullptr");
-        assert!(ast.functions().len() >= 1);
+        assert!(!ast.functions().is_empty());
     }
 
     #[test]

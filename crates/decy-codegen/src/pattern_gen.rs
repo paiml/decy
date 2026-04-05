@@ -248,7 +248,7 @@ mod tests {
 
     #[test]
     fn test_pattern_generator_default_impl() {
-        let gen = PatternGenerator::default();
+        let gen = PatternGenerator;
         // Non-if statement returns empty
         let result = gen.transform_tag_check(&HirStatement::Break);
         assert!(result.is_empty());

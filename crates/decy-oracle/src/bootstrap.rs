@@ -1498,7 +1498,7 @@ mod tests {
     #[test]
     fn test_clone_all_patterns_preserves_data() {
         let originals = get_bootstrap_patterns();
-        let clones: Vec<BootstrapPattern> = originals.iter().map(|p| p.clone()).collect();
+        let clones: Vec<BootstrapPattern> = originals.to_vec();
 
         assert_eq!(originals.len(), clones.len());
         for (orig, cloned) in originals.iter().zip(clones.iter()) {
@@ -1515,41 +1515,41 @@ mod tests {
         let patterns = get_bootstrap_patterns();
 
         // E0308 type mismatch: indices 0-4
-        for i in 0..5 {
-            assert_eq!(patterns[i].error_code, "E0308", "Index {} should be E0308", i);
+        for (i, pat) in patterns.iter().enumerate().take(5) {
+            assert_eq!(pat.error_code, "E0308", "Index {} should be E0308", i);
         }
 
         // E0133 unsafe: indices 5-7
-        for i in 5..8 {
-            assert_eq!(patterns[i].error_code, "E0133", "Index {} should be E0133", i);
+        for (i, pat) in patterns.iter().enumerate().take(8).skip(5) {
+            assert_eq!(pat.error_code, "E0133", "Index {} should be E0133", i);
         }
 
         // E0382 use after move: indices 8-10
-        for i in 8..11 {
-            assert_eq!(patterns[i].error_code, "E0382", "Index {} should be E0382", i);
+        for (i, pat) in patterns.iter().enumerate().take(11).skip(8) {
+            assert_eq!(pat.error_code, "E0382", "Index {} should be E0382", i);
         }
 
         // E0499 multiple mutable borrow: indices 11-12
-        for i in 11..13 {
-            assert_eq!(patterns[i].error_code, "E0499", "Index {} should be E0499", i);
+        for (i, pat) in patterns.iter().enumerate().take(13).skip(11) {
+            assert_eq!(pat.error_code, "E0499", "Index {} should be E0499", i);
         }
 
         // E0506 assign to borrowed: index 13
         assert_eq!(patterns[13].error_code, "E0506");
 
         // E0597 lifetime: indices 14-15
-        for i in 14..16 {
-            assert_eq!(patterns[i].error_code, "E0597", "Index {} should be E0597", i);
+        for (i, pat) in patterns.iter().enumerate().take(16).skip(14) {
+            assert_eq!(pat.error_code, "E0597", "Index {} should be E0597", i);
         }
 
         // E0515 return ref to local: indices 16-17
-        for i in 16..18 {
-            assert_eq!(patterns[i].error_code, "E0515", "Index {} should be E0515", i);
+        for (i, pat) in patterns.iter().enumerate().take(18).skip(16) {
+            assert_eq!(pat.error_code, "E0515", "Index {} should be E0515", i);
         }
 
         // C-specific E0308: indices 18-24
-        for i in 18..25 {
-            assert_eq!(patterns[i].error_code, "E0308", "Index {} should be E0308", i);
+        for (i, pat) in patterns.iter().enumerate().take(25).skip(18) {
+            assert_eq!(pat.error_code, "E0308", "Index {} should be E0308", i);
         }
     }
 

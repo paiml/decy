@@ -1585,7 +1585,7 @@ mod tests {
 
         let warnings = checker.check_deadlock_risk(&[func1, func2, func3]);
         // Both func1 vs func3 and func2 vs func3 should produce warnings
-        assert!(warnings.len() >= 1);
+        assert!(!warnings.is_empty());
     }
 
     #[test]

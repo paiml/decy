@@ -22,16 +22,19 @@
 
 /// Document transformation of volatile int for signal handler
 ///
-/// C: volatile int flag = 0;
+/// ```c
+/// volatile int flag = 0;
 ///
-///    void signal_handler(int sig) {
-///        flag = 1;  // Set from signal handler
-///    }
+/// void signal_handler(int sig) {
+///     flag = 1;  // Set from signal handler
+/// }
 ///
-///    int main() {
-///        while (!flag) { /* wait */ }
-///    }
+/// int main() {
+///     while (!flag) { /* wait */ }
+/// }
+/// ```
 ///
+/// ```text
 /// Rust: use std::sync::atomic::{AtomicBool, Ordering};
 ///
 ///       static FLAG: AtomicBool = AtomicBool::new(false);
@@ -39,13 +42,14 @@
 ///       fn main() {
 ///           while !FLAG.load(Ordering::Relaxed) { /* wait */ }
 ///       }
+/// ```
 ///
-/// **Transformation**: volatile for signals → AtomicBool (safe!)
+/// **Transformation**: volatile for signals -> AtomicBool (safe!)
 /// - AtomicBool provides proper memory ordering
 /// - Safe API (no unsafe needed for basic use)
 /// - Better than C volatile (which doesn't guarantee atomicity)
 ///
-/// Reference: K&R §A8.2, ISO C99 §6.7.3
+/// Reference: K&R A8.2, ISO C99 6.7.3
 #[test]
 fn test_volatile_signal_to_atomic() {
     // This is a documentation test showing transformation rules

@@ -780,6 +780,7 @@ fn test_variant_hash() {
 }
 
 #[test]
+#[allow(clippy::clone_on_copy)]
 fn test_variant_clone_copy() {
     let v = TestVariant::Control;
     let cloned = v.clone();
@@ -889,6 +890,7 @@ fn test_assignment_strategy_eq() {
 }
 
 #[test]
+#[allow(clippy::clone_on_copy)]
 fn test_assignment_strategy_clone_copy() {
     let s = AssignmentStrategy::Random;
     let cloned = s.clone();

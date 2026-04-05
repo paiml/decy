@@ -408,10 +408,12 @@ fn execute_pipeline_config_roundtrip() {
     let trainer = NullTrainer::new(0.92, 0.88);
     let mut pipeline = RetrainingPipeline::with_defaults(trainer);
 
-    let mut config = RetrainingConfig::default();
-    config.min_precision = 0.99;
-    config.min_recall = 0.98;
-    config.cv_folds = 10;
+    let config = RetrainingConfig {
+        min_precision: 0.99,
+        min_recall: 0.98,
+        cv_folds: 10,
+        ..Default::default()
+    };
     pipeline.set_config(config);
 
     assert!((pipeline.config().min_precision - 0.99).abs() < 0.001);

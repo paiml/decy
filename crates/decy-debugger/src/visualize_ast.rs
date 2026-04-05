@@ -489,7 +489,7 @@ mod tests {
     fn test_format_expression_variable_with_colors() {
         let expr = Expression::Variable("x".to_string());
         let result = format_expression(&expr, true);
-        assert!(result.contains("x"));
+        assert!(result.contains('x'));
     }
 
     #[test]
@@ -500,8 +500,8 @@ mod tests {
             right: Box::new(Expression::IntLiteral(2)),
         };
         let result = format_expression(&expr, false);
-        assert!(result.contains("1"));
-        assert!(result.contains("2"));
+        assert!(result.contains('1'));
+        assert!(result.contains('2'));
         assert!(result.contains("Add"));
     }
 
@@ -540,7 +540,7 @@ mod tests {
         let mut output = String::new();
         format_statement(&stmt, 0, &mut output, false);
         assert!(output.contains("Return"));
-        assert!(output.contains("0"));
+        assert!(output.contains('0'));
     }
 
     #[test]
@@ -566,7 +566,7 @@ mod tests {
         let mut output = String::new();
         format_statement(&stmt, 0, &mut output, false);
         assert!(output.contains("Assignment"));
-        assert!(output.contains("x"));
+        assert!(output.contains('x'));
     }
 
     #[test]
@@ -634,7 +634,7 @@ mod tests {
         let mut output = String::new();
         format_statement(&stmt, 0, &mut output, false);
         assert!(output.contains("VarDecl"));
-        assert!(output.contains("x"));
+        assert!(output.contains('x'));
     }
 
     #[test]
@@ -647,7 +647,7 @@ mod tests {
         let mut output = String::new();
         format_statement(&stmt, 0, &mut output, false);
         assert!(output.contains("VarDecl"));
-        assert!(output.contains("y"));
+        assert!(output.contains('y'));
     }
 
     #[test]

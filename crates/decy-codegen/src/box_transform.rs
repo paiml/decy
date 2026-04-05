@@ -279,7 +279,7 @@ mod tests {
 
     #[test]
     fn test_box_transformer_default_trait() {
-        let transformer = BoxTransformer::default();
+        let transformer = BoxTransformer;
         let malloc_expr = HirExpression::FunctionCall {
             function: "malloc".to_string(),
             arguments: vec![HirExpression::IntLiteral(64)],

@@ -17,9 +17,7 @@ allow-unwrap-in-tests = true
 warn-on-all-wildcard-imports = false
 disallowed-names = ["foo", "baz", "quux", "toto", "titi", "tata"]
 
-# Ban unwrap() in production code — use .expect() or proper error handling
+# Unwrap protection: use clippy::unwrap_used (which respects allow-unwrap-in-tests)
+# rather than disallowed-methods (which fires in test code too).
 # See: Cloudflare outage 2025-11-18 caused by unwrap() panic
-disallowed-methods = [
-    { path = "core::option::Option::unwrap", reason = "use .expect() with context or proper error handling" },
-    { path = "core::result::Result::unwrap", reason = "use .expect() with context or ? operator" },
-]
+disallowed-methods = []

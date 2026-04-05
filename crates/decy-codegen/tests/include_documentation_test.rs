@@ -129,39 +129,39 @@ fn test_math_h_no_import_needed() {
     );
 }
 
-/// Document transformation of #include "myheader.h" (local headers)
+/// Document transformation of `#include "myheader.h"` (local headers)
 ///
-/// C: File structure:
-///    main.c:
-///      #include "myheader.h"
-///      int main() {
-///          my_function();
-///          return 0;
-///      }
+/// ```c
+/// // main.c:
+/// #include "myheader.h"
+/// int main() {
+///     my_function();
+///     return 0;
+/// }
 ///
-///    myheader.h:
-///      void my_function();
+/// // myheader.h:
+/// void my_function();
 ///
-///    myheader.c:
-///      void my_function() { ... }
+/// // myheader.c:
+/// void my_function() { /* ... */ }
+/// ```
 ///
-/// Rust: File structure:
-///    main.rs:
-///      mod mymodule;  // Declares the module
-///      use mymodule::my_function;  // Brings function into scope
+/// ```text
+/// Rust file structure:
+///   main.rs:
+///     mod mymodule;
+///     use mymodule::my_function;
+///     fn main() { my_function(); }
 ///
-///      fn main() {
-///          my_function();
-///      }
+///   mymodule.rs:
+///     pub fn my_function() { /* ... */ }
+/// ```
 ///
-///    mymodule.rs:
-///      pub fn my_function() { ... }
+/// **Transformation**: Local headers -> Rust modules
+/// - `#include "header.h"` -> `mod module_name;`
+/// - Function/type usage -> `use module_name::item;`
 ///
-/// **Transformation**: Local headers → Rust modules
-/// - #include "header.h" → mod module_name;
-/// - Function/type usage → use module_name::item; (or module_name::item directly)
-///
-/// Reference: K&R §4.11, ISO C99 §6.10.2
+/// Reference: K&R 4.11, ISO C99 6.10.2
 #[test]
 fn test_local_header_to_mod_declaration() {
     // Documentation test showing local headers require mod declarations
@@ -278,63 +278,61 @@ fn test_conditional_includes() {
 
 /// Document complete transformation example
 ///
-/// C Program:
-///   main.c:
-///     #include <stdio.h>
-///     #include <stdlib.h>
-///     #include "utils.h"
+/// ```c
+/// // main.c:
+/// #include <stdio.h>
+/// #include <stdlib.h>
+/// #include "utils.h"
 ///
-///     int main() {
-///         int* arr = malloc(10 * sizeof(int));
-///         printf("Array allocated\n");
-///         init_array(arr, 10);
-///         free(arr);
-///         return 0;
+/// int main() {
+///     int* arr = malloc(10 * sizeof(int));
+///     printf("Array allocated\n");
+///     init_array(arr, 10);
+///     free(arr);
+///     return 0;
+/// }
+///
+/// // utils.h:
+/// #ifndef UTILS_H
+/// #define UTILS_H
+/// void init_array(int* arr, int size);
+/// #endif
+///
+/// // utils.c:
+/// #include "utils.h"
+/// void init_array(int* arr, int size) {
+///     for (int i = 0; i < size; i++) {
+///         arr[i] = 0;
 ///     }
+/// }
+/// ```
 ///
-///   utils.h:
-///     #ifndef UTILS_H
-///     #define UTILS_H
-///     void init_array(int* arr, int size);
-///     #endif
-///
-///   utils.c:
-///     #include "utils.h"
-///     void init_array(int* arr, int size) {
-///         for (int i = 0; i < size; i++) {
-///             arr[i] = 0;
-///         }
-///     }
-///
+/// ```text
 /// Rust Program:
 ///   main.rs:
-///     mod utils;  // Declares utils module
-///     use utils::init_array;  // Optional: brings function into scope
-///
+///     mod utils;
+///     use utils::init_array;
 ///     fn main() {
-///         let mut arr = vec![0i32; 10];  // malloc → Vec
-///         println!("Array allocated");   // printf → println!
-///         init_array(&mut arr);          // Function call
-///         // free is automatic via Vec's Drop
+///         let mut arr = vec![0i32; 10];
+///         println!("Array allocated");
+///         init_array(&mut arr);
 ///     }
 ///
 ///   utils.rs:
-///     // No header guard needed
-///     // No #include "utils.h" needed
-///
 ///     pub fn init_array(arr: &mut [i32]) {
 ///         for (i, item) in arr.iter_mut().enumerate() {
 ///             *item = 0;
 ///         }
 ///     }
+/// ```
 ///
 /// **Key Transformations**:
-/// 1. <stdio.h>, <stdlib.h> → no imports (built-ins)
-/// 2. "utils.h" → mod utils;
-/// 3. Header guards → removed (not needed)
-/// 4. #include in .c file → removed (module contains implementation)
+/// 1. `<stdio.h>`, `<stdlib.h>` -> no imports (built-ins)
+/// 2. `"utils.h"` -> `mod utils;`
+/// 3. Header guards -> removed (not needed)
+/// 4. `#include` in .c file -> removed (module contains implementation)
 ///
-/// Reference: K&R §4.11, ISO C99 §6.10.2
+/// Reference: K&R 4.11, ISO C99 6.10.2
 #[test]
 fn test_complete_transformation_example() {
     // Documentation test showing complete program transformation

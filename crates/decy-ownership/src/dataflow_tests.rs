@@ -1244,7 +1244,7 @@ fn test_dataflow_graph_default_trait() {
 
 #[test]
 fn test_dataflow_analyzer_default_trait() {
-    let analyzer = DataflowAnalyzer::default();
+    let analyzer = DataflowAnalyzer;
     let func = HirFunction::new_with_body("test".to_string(), HirType::Void, vec![], vec![]);
     let graph = analyzer.analyze(&func);
     assert!(graph.variables().is_empty());

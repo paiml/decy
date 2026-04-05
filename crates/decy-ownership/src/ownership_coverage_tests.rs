@@ -194,7 +194,7 @@ mod tests {
                     vec![feat.clone()],
                 ));
             }
-            tracker.record_success(&[feat.clone()]);
+            tracker.record_success(std::slice::from_ref(feat));
         }
 
         let report = tracker.generate_markdown_report();

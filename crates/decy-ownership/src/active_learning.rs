@@ -1031,7 +1031,7 @@ mod tests {
         for kind in kinds {
             let pred = make_prediction(kind, 0.5);
             let score = calc.calculate(&pred, SelectionStrategy::Random);
-            assert!(score >= 0.0 && score <= 1.0);
+            assert!((0.0..=1.0).contains(&score));
         }
     }
 
@@ -1411,7 +1411,7 @@ mod tests {
         let features = OwnershipFeatures::default();
         let pred = make_prediction(InferredOwnership::Borrowed, 0.5);
         let (uncertainty, queued) = learner.process_prediction("ptr", features, pred);
-        assert!(uncertainty >= 0.0 && uncertainty <= 1.0);
+        assert!((0.0..=1.0).contains(&uncertainty));
         assert!(queued);
     }
 }

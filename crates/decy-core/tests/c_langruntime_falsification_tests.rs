@@ -16,7 +16,7 @@
 //! - C761-C763: Runtime (closures, mark-compact GC, string interning)
 //! - C764-C768: Dispatch/Control (vtable, exception, coroutine, JIT buffer, profiler)
 //! - C769-C775: Infrastructure (debug info, module loader, regex NFA, pattern match,
-//!              instruction codec, peephole opt, stack frame layout)
+//!   instruction codec, peephole opt, stack frame layout)
 
 // ============================================================================
 // C751-C755: Core VM (Bytecode VM, Lexer, Parser, AST Builder, Symbol Table)

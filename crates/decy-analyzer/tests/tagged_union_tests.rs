@@ -157,7 +157,7 @@ fn test_empty_union() {
 
 #[test]
 fn test_tagged_union_analyzer_default() {
-    let analyzer = TaggedUnionAnalyzer::default();
+    let analyzer = TaggedUnionAnalyzer;
     let struct_def = HirStruct::new(
         "Value".to_string(),
         vec![

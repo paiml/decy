@@ -686,7 +686,7 @@ fn test_type_constraint_clone_eq() {
 
 #[test]
 fn test_void_ptr_analyzer_default() {
-    let analyzer = VoidPtrAnalyzer::default();
+    let analyzer = VoidPtrAnalyzer;
     let func = create_function("empty", vec![], vec![]);
     let patterns = analyzer.analyze(&func);
     assert!(patterns.is_empty());

@@ -518,7 +518,7 @@ fn test_transform_statement_wildcard_while() {
 
 #[test]
 fn test_box_transformer_default() {
-    let transformer = BoxTransformer::default();
+    let transformer = BoxTransformer;
     // Verify it works the same as new()
     let malloc_expr = HirExpression::FunctionCall {
         function: "malloc".to_string(),

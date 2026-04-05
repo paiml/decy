@@ -1,11 +1,11 @@
-//! Coverage expansion tests for decy-debugger
+//! Coverage expansion tests for `decy-debugger`
 //!
 //! Targets uncovered lines in:
-//! - visualize_ast.rs: visualize_c_ast (which calls format_function, format_statement, format_expression)
-//! - visualize_hir.rs: visualize_hir
+//! - `visualize_ast.rs`: `visualize_c_ast` (which calls `format_function`, `format_statement`, `format_expression`)
+//! - `visualize_hir.rs`: `visualize_hir`
 //!
 //! These tests exercise the public API which drives all the internal formatting code.
-//! We test with both use_colors=true and use_colors=false to cover all color branches.
+//! We test with both `use_colors=true` and `use_colors=false` to cover all color branches.
 
 use crate::visualize_ast::visualize_c_ast;
 use crate::visualize_hir::visualize_hir;
@@ -305,8 +305,8 @@ fn test_ast_binary_expression_no_colors() {
     let result = visualize_c_ast(temp.path(), false);
     assert!(result.is_ok());
     let output = result.unwrap();
-    assert!(output.contains("3"));
-    assert!(output.contains("4"));
+    assert!(output.contains('3'));
+    assert!(output.contains('4'));
 }
 
 #[test]

@@ -515,12 +515,13 @@ fn config_coverage_debug_format_with_custom_values() {
 
 #[test]
 fn config_coverage_field_mutation() {
-    let mut config = OracleConfig::default();
-    config.patterns_path = PathBuf::from("/mutated.apr");
-    config.confidence_threshold = 0.1;
-    config.max_suggestions = 100;
-    config.auto_fix = true;
-    config.max_retries = 50;
+    let config = OracleConfig {
+        patterns_path: PathBuf::from("/mutated.apr"),
+        confidence_threshold: 0.1,
+        max_suggestions: 100,
+        auto_fix: true,
+        max_retries: 50,
+    };
 
     assert_eq!(config.patterns_path, PathBuf::from("/mutated.apr"));
     assert!((config.confidence_threshold - 0.1_f32).abs() < f32::EPSILON);

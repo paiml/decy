@@ -12,15 +12,15 @@
 //!
 //! Organization:
 //! - C1551-C1555: Type inference (HM unification, type var substitution,
-//!                constraint gen, occur check, let-polymorphism)
+//!   constraint gen, occur check, let-polymorphism)
 //! - C1556-C1560: Type checking (structural subtyping, record types, variant types,
-//!                function types, recursive types)
+//!   function types, recursive types)
 //! - C1561-C1565: Generic instantiation (monomorphization, type erasure,
-//!                dictionary passing, specialization, coercion)
+//!   dictionary passing, specialization, coercion)
 //! - C1566-C1570: Type representation (tagged union, vtable dispatch, type descriptor,
-//!                reflection metadata, type ID hashing)
+//!   reflection metadata, type ID hashing)
 //! - C1571-C1575: Advanced types (dependent type index, linear type tracker,
-//!                affine type checker, effect system, row polymorphism)
+//!   affine type checker, effect system, row polymorphism)
 
 // ============================================================================
 // C1551-C1555: Type Inference

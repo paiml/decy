@@ -223,7 +223,7 @@ mod tests {
 
     #[test]
     fn test_pattern_detector_default() {
-        let detector = PatternDetector::default();
+        let detector = PatternDetector;
         let func = HirFunction::new_with_body("test".to_string(), HirType::Void, vec![], vec![]);
         assert!(detector.find_box_candidates(&func).is_empty());
         assert!(detector.find_vec_candidates(&func).is_empty());

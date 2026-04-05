@@ -814,7 +814,7 @@ fn test_lock_call_with_no_arguments() {
 
 #[test]
 fn test_lock_analyzer_default() {
-    let analyzer = decy_analyzer::lock_analysis::LockAnalyzer::default();
+    let analyzer = decy_analyzer::lock_analysis::LockAnalyzer;
     let func = HirFunction::new_with_body("test".to_string(), HirType::Void, vec![], vec![]);
     let regions = analyzer.find_lock_regions(&func);
     assert!(regions.is_empty());
