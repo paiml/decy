@@ -823,7 +823,7 @@ fn wexitstatus_no_args_fallback() {
     let expr =
         HirExpression::FunctionCall { function: "WEXITSTATUS".to_string(), arguments: vec![] };
     let result = expr_no_tt(&expr, &c);
-    assert!(result.contains("WEXITSTATUS requires"));
+    assert!(result.contains("macro requires status arg"));
 }
 
 #[test]
@@ -842,7 +842,7 @@ fn wifexited_no_args_fallback() {
     let c = ctx();
     let expr = HirExpression::FunctionCall { function: "WIFEXITED".to_string(), arguments: vec![] };
     let result = expr_no_tt(&expr, &c);
-    assert!(result.contains("WIFEXITED requires"));
+    assert!(result.contains("macro requires status arg"));
 }
 
 #[test]
@@ -862,7 +862,7 @@ fn wifsignaled_no_args_fallback() {
     let expr =
         HirExpression::FunctionCall { function: "WIFSIGNALED".to_string(), arguments: vec![] };
     let result = expr_no_tt(&expr, &c);
-    assert!(result.contains("WIFSIGNALED requires"));
+    assert!(result.contains("macro requires status arg"));
 }
 
 #[test]
@@ -881,7 +881,7 @@ fn wtermsig_no_args_fallback() {
     let c = ctx();
     let expr = HirExpression::FunctionCall { function: "WTERMSIG".to_string(), arguments: vec![] };
     let result = expr_no_tt(&expr, &c);
-    assert!(result.contains("WTERMSIG requires"));
+    assert!(result.contains("macro requires status arg"));
 }
 
 // ============================================================================

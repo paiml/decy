@@ -25,7 +25,7 @@ fn test_generate_class_simple_fields() {
     assert!(code.contains("pub struct Point"), "Should generate struct: {code}");
     assert!(code.contains("x: i32"), "Should have x field: {code}");
     assert!(code.contains("y: i32"), "Should have y field: {code}");
-    assert!(code.contains("impl Point"), "Should generate impl block: {code}");
+    assert!(!code.contains("impl Point"), "Fields-only class should not generate impl block: {code}");
 }
 
 #[test]

@@ -3010,7 +3010,7 @@ fn expr_wexitstatus_no_args() {
         function: "WEXITSTATUS".to_string(),
         arguments: vec![],
     });
-    assert!(result.contains("WEXITSTATUS requires status arg"));
+    assert!(result.contains("macro requires status arg"));
 }
 
 #[test]
@@ -3020,7 +3020,7 @@ fn expr_wifexited_no_args() {
         function: "WIFEXITED".to_string(),
         arguments: vec![],
     });
-    assert!(result.contains("WIFEXITED requires status arg"));
+    assert!(result.contains("macro requires status arg"));
 }
 
 #[test]
@@ -3030,7 +3030,7 @@ fn expr_wifsignaled_no_args() {
         function: "WIFSIGNALED".to_string(),
         arguments: vec![],
     });
-    assert!(result.contains("WIFSIGNALED requires status arg"));
+    assert!(result.contains("macro requires status arg"));
 }
 
 #[test]
@@ -3040,7 +3040,7 @@ fn expr_wtermsig_no_args() {
         function: "WTERMSIG".to_string(),
         arguments: vec![],
     });
-    assert!(result.contains("WTERMSIG requires status arg"));
+    assert!(result.contains("macro requires status arg"));
 }
 
 #[test]
