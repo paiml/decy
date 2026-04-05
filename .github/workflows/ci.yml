@@ -19,5 +19,6 @@ jobs:
     with:
       repo: ${{ github.event.repository.name }}
       extra_pkgs: python3-dev libclang-dev
+      test_args: --workspace
     secrets: inherit
 
