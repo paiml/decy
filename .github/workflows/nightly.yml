@@ -52,10 +52,6 @@ jobs:
         include:
           - target: x86_64-unknown-linux-gnu
             runner: ubuntu-latest
-          - target: x86_64-apple-darwin
-            runner: macos-latest
-          - target: aarch64-apple-darwin
-            runner: macos-latest
           - target: x86_64-pc-windows-msvc
             runner: windows-latest
     runs-on: ${{ matrix.runner }}
@@ -89,16 +85,6 @@ jobs:
       - name: Install system dependencies (Linux)
         if: runner.os == 'Linux'
         run: sudo apt-get update && sudo apt-get install -y libclang-dev python3-dev
-
-      - name: Install system dependencies (macOS)
-        if: runner.os == 'macOS'
-        run: brew install llvm python3
-        env:
-          HOMEBREW_NO_AUTO_UPDATE: 1
-
-      - name: Set LIBCLANG_PATH (macOS)
-        if: runner.os == 'macOS'
-        run: echo "LIBCLANG_PATH=$(brew --prefix llvm)/lib" >> $GITHUB_ENV
 
       - name: Build release binary
         run: cargo build --release --target ${{ matrix.target }}
