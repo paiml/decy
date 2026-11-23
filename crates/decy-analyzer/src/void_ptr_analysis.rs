@@ -208,10 +208,10 @@ impl VoidPtrAnalyzer {
                                 info.constraints.push(TypeConstraint::PartialOrd);
                             }
                         }
-                        BinaryOperator::Equal | BinaryOperator::NotEqual => {
-                            if !info.constraints.contains(&TypeConstraint::PartialEq) {
-                                info.constraints.push(TypeConstraint::PartialEq);
-                            }
+                        BinaryOperator::Equal | BinaryOperator::NotEqual
+                            if !info.constraints.contains(&TypeConstraint::PartialEq) =>
+                        {
+                            info.constraints.push(TypeConstraint::PartialEq);
                         }
                         _ => {}
                     }

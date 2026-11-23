@@ -48,7 +48,7 @@ fn test_ast_simple_return_with_colors() {
     let output = result.unwrap();
     // Output should still contain the function name and relevant content,
     // albeit wrapped in ANSI color codes
-    assert!(!output.is_empty());
+    assert_ne!(output, "");
     assert!(output.contains("main"));
 }
 
@@ -432,7 +432,7 @@ fn test_ast_multiline_source_preview_with_colors() {
     let result = visualize_c_ast(temp.path(), true);
     assert!(result.is_ok());
     let output = result.unwrap();
-    assert!(!output.is_empty());
+    assert_ne!(output, "");
 }
 
 // ============================================================================

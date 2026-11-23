@@ -367,7 +367,7 @@ impl ErrorTracker {
 
         // Suggest improvements for common defects
         let mut defects: Vec<_> = defect_dist.into_iter().collect();
-        defects.sort_by(|a, b| b.1.cmp(&a.1));
+        defects.sort_by_key(|a| std::cmp::Reverse(a.1));
 
         for (defect, count) in defects.iter().take(3) {
             if *count > 5 {
@@ -433,7 +433,7 @@ impl ErrorTracker {
         // Defect distribution
         report.push_str("### Defect Distribution\n\n");
         let mut defects: Vec<_> = defect_dist.into_iter().collect();
-        defects.sort_by(|a, b| b.1.cmp(&a.1));
+        defects.sort_by_key(|a| std::cmp::Reverse(a.1));
         for (defect, count) in defects.iter().take(5) {
             report.push_str(&format!(
                 "- {}: {} ({:.1}%)\n",

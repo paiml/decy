@@ -302,7 +302,7 @@ mod tests {
 
         // Just verify it produces output (color codes make exact matching hard)
         let output = result.unwrap();
-        assert!(!output.is_empty());
+        assert_ne!(output, "");
         assert!(output.contains("main"));
     }
 
@@ -433,7 +433,7 @@ mod tests {
         let result = visualize_c_ast(temp_file.path(), true);
         assert!(result.is_ok());
         let output = result.unwrap();
-        assert!(!output.is_empty());
+        assert_ne!(output, "");
     }
 
     #[test]
@@ -531,7 +531,7 @@ mod tests {
         let expr = Expression::StringLiteral("hello".to_string());
         let result = format_expression(&expr, false);
         // Falls through to Debug format
-        assert!(!result.is_empty());
+        assert_ne!(result, "");
     }
 
     #[test]
@@ -655,7 +655,7 @@ mod tests {
         let stmt = Statement::Break;
         let mut output = String::new();
         format_statement(&stmt, 0, &mut output, false);
-        assert!(!output.is_empty());
+        assert_ne!(output, "");
     }
 
     #[test]
